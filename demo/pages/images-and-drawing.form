@@ -1,4 +1,5 @@
-/* The Gallery's images-and-drawing page (stage FD, phase FD6.3): every
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gallery's images-and-drawing page (stage FD, phase FD6.3): every
    PictureBox sizing mode, image opacity, the DrawingSurface painter
    composition, a RasterCanvas and two MaterialPanel materials.
    gui_forms_add_form() compiles this document into
@@ -9,211 +10,181 @@
    each is placed by its bounds in design coordinates. The page keeps in
    code what the form language does not state: the pictures' grounds, the
    drawing board's paint callback and the raster's bitmap and sampling.
-   The Gallery theme styles the classes. */
-scaled-panel gallery.images.document {
-  design-size: 1000 660;
+   The Gallery theme styles the classes. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.images.document"
+    design-size="1000 660">
 
-  label gallery.images.heading {
-    text: "IMAGES AND DRAWING";
-    classes: "heading" "page-title";
-    bounds: 24 18 620 34;
-  }
-  label gallery.images.lead {
-    text: "Window-owned image resources, every PictureBox sizing policy, opacity, clipping, and retained painter primitives.";
-    classes: "muted" "body";
-    bounds: 26 52 920 24;
-  }
+  <label id="gallery.images.heading"
+      text="IMAGES AND DRAWING"
+      classes="heading page-title"
+      bounds="24 18 620 34"/>
+  <label id="gallery.images.lead"
+      text="Window-owned image resources, every PictureBox sizing policy, opacity, clipping, and retained painter primitives."
+      classes="muted body"
+      bounds="26 52 920 24"/>
 
-  scaled-group-box gallery.images.modes {
-    text: "PictureBox · five canonical sizing modes";
-    design-size: 930 290;
-    bounds: 24 92 930 290;
-    classes: "paper" "group-caption";
-    picture-box gallery.images.picture.0 {
-      classes: "picture-light";
-      size-mode: normal;
-      border-style: sunken;
-      accessible-name: "Normal PictureBox test card";
-      bounds: 22 40 158 166;
-    }
-    label gallery.images.caption.0 {
-      text: "Normal";
-      classes: "heading" "strong";
-      alignment: center;
-      bounds: 22 216 158 24;
-    }
-    label gallery.images.behavior.0 {
-      text: "Native pixels";
-      classes: "muted" "note";
-      alignment: center;
-      bounds: 22 242 158 22;
-    }
-    picture-box gallery.images.picture.1 {
-      classes: "picture-dark";
-      size-mode: stretch-image;
-      border-style: sunken;
-      accessible-name: "StretchImage PictureBox test card";
-      bounds: 202 40 158 166;
-    }
-    label gallery.images.caption.1 {
-      text: "StretchImage";
-      classes: "heading" "strong";
-      alignment: center;
-      bounds: 202 216 158 24;
-    }
-    label gallery.images.behavior.1 {
-      text: "Fill bounds";
-      classes: "muted" "note";
-      alignment: center;
-      bounds: 202 242 158 22;
-    }
-    picture-box gallery.images.picture.2 {
-      classes: "picture-light";
-      size-mode: auto-size;
-      border-style: sunken;
-      accessible-name: "AutoSize PictureBox test card";
-      bounds: 382 40 158 166;
-    }
-    label gallery.images.caption.2 {
-      text: "AutoSize";
-      classes: "heading" "strong";
-      alignment: center;
-      bounds: 382 216 158 24;
-    }
-    label gallery.images.behavior.2 {
-      text: "Intrinsic measure";
-      classes: "muted" "note";
-      alignment: center;
-      bounds: 382 242 158 22;
-    }
-    picture-box gallery.images.picture.3 {
-      classes: "picture-dark";
-      size-mode: center-image;
-      border-style: sunken;
-      accessible-name: "CenterImage PictureBox test card";
-      bounds: 562 40 158 166;
-    }
-    label gallery.images.caption.3 {
-      text: "CenterImage";
-      classes: "heading" "strong";
-      alignment: center;
-      bounds: 562 216 158 24;
-    }
-    label gallery.images.behavior.3 {
-      text: "Native centered";
-      classes: "muted" "note";
-      alignment: center;
-      bounds: 562 242 158 22;
-    }
-    picture-box gallery.images.picture.4 {
-      classes: "picture-light";
-      size-mode: zoom;
-      border-style: sunken;
-      accessible-name: "Zoom PictureBox test card";
-      bounds: 742 40 158 166;
-    }
-    label gallery.images.caption.4 {
-      text: "Zoom";
-      classes: "heading" "strong";
-      alignment: center;
-      bounds: 742 216 158 24;
-    }
-    label gallery.images.behavior.4 {
-      text: "Aspect fit";
-      classes: "muted" "note";
-      alignment: center;
-      bounds: 742 242 158 22;
-    }
-  }
+  <scaled-group-box id="gallery.images.modes"
+      text="PictureBox · five canonical sizing modes"
+      design-size="930 290"
+      bounds="24 92 930 290"
+      classes="paper group-caption">
+    <picture-box id="gallery.images.picture.0"
+        classes="picture-light"
+        size-mode="normal"
+        border-style="sunken"
+        accessible-name="Normal PictureBox test card"
+        bounds="22 40 158 166"/>
+    <label id="gallery.images.caption.0"
+        text="Normal"
+        classes="heading strong"
+        alignment="center"
+        bounds="22 216 158 24"/>
+    <label id="gallery.images.behavior.0"
+        text="Native pixels"
+        classes="muted note"
+        alignment="center"
+        bounds="22 242 158 22"/>
+    <picture-box id="gallery.images.picture.1"
+        classes="picture-dark"
+        size-mode="stretch-image"
+        border-style="sunken"
+        accessible-name="StretchImage PictureBox test card"
+        bounds="202 40 158 166"/>
+    <label id="gallery.images.caption.1"
+        text="StretchImage"
+        classes="heading strong"
+        alignment="center"
+        bounds="202 216 158 24"/>
+    <label id="gallery.images.behavior.1"
+        text="Fill bounds"
+        classes="muted note"
+        alignment="center"
+        bounds="202 242 158 22"/>
+    <picture-box id="gallery.images.picture.2"
+        classes="picture-light"
+        size-mode="auto-size"
+        border-style="sunken"
+        accessible-name="AutoSize PictureBox test card"
+        bounds="382 40 158 166"/>
+    <label id="gallery.images.caption.2"
+        text="AutoSize"
+        classes="heading strong"
+        alignment="center"
+        bounds="382 216 158 24"/>
+    <label id="gallery.images.behavior.2"
+        text="Intrinsic measure"
+        classes="muted note"
+        alignment="center"
+        bounds="382 242 158 22"/>
+    <picture-box id="gallery.images.picture.3"
+        classes="picture-dark"
+        size-mode="center-image"
+        border-style="sunken"
+        accessible-name="CenterImage PictureBox test card"
+        bounds="562 40 158 166"/>
+    <label id="gallery.images.caption.3"
+        text="CenterImage"
+        classes="heading strong"
+        alignment="center"
+        bounds="562 216 158 24"/>
+    <label id="gallery.images.behavior.3"
+        text="Native centered"
+        classes="muted note"
+        alignment="center"
+        bounds="562 242 158 22"/>
+    <picture-box id="gallery.images.picture.4"
+        classes="picture-light"
+        size-mode="zoom"
+        border-style="sunken"
+        accessible-name="Zoom PictureBox test card"
+        bounds="742 40 158 166"/>
+    <label id="gallery.images.caption.4"
+        text="Zoom"
+        classes="heading strong"
+        alignment="center"
+        bounds="742 216 158 24"/>
+    <label id="gallery.images.behavior.4"
+        text="Aspect fit"
+        classes="muted note"
+        alignment="center"
+        bounds="742 242 158 22"/>
+  </scaled-group-box>
 
-  scaled-group-box gallery.images.opacity {
-    text: "Image opacity · renderer-neutral";
-    design-size: 450 220;
-    bounds: 24 404 450 220;
-    classes: "paper" "group-caption";
-    picture-box gallery.images.opacity.0 {
-      classes: "picture-ground";
-      size-mode: zoom;
-      image-opacity: 1;
-      border-style: line;
-      accessible-name: "Test card at 100 percent opacity";
-      bounds: 22 42 120 112;
-    }
-    label gallery.images.opacity.caption.0 {
-      text: "100%";
-      classes: "heading" "note-strong";
-      alignment: center;
-      bounds: 22 164 120 22;
-    }
-    picture-box gallery.images.opacity.1 {
-      classes: "picture-ground";
-      size-mode: zoom;
-      image-opacity: 0.6;
-      border-style: line;
-      accessible-name: "Test card at 60 percent opacity";
-      bounds: 158 42 120 112;
-    }
-    label gallery.images.opacity.caption.1 {
-      text: "60%";
-      classes: "heading" "note-strong";
-      alignment: center;
-      bounds: 158 164 120 22;
-    }
-    picture-box gallery.images.opacity.2 {
-      classes: "picture-ground";
-      size-mode: zoom;
-      image-opacity: 0.25;
-      border-style: line;
-      accessible-name: "Test card at 25 percent opacity";
-      bounds: 294 42 120 112;
-    }
-    label gallery.images.opacity.caption.2 {
-      text: "25%";
-      classes: "heading" "note-strong";
-      alignment: center;
-      bounds: 294 164 120 22;
-    }
-  }
+  <scaled-group-box id="gallery.images.opacity"
+      text="Image opacity · renderer-neutral"
+      design-size="450 220"
+      bounds="24 404 450 220"
+      classes="paper group-caption">
+    <picture-box id="gallery.images.opacity.0"
+        classes="picture-ground"
+        size-mode="zoom"
+        image-opacity="1"
+        border-style="line"
+        accessible-name="Test card at 100 percent opacity"
+        bounds="22 42 120 112"/>
+    <label id="gallery.images.opacity.caption.0"
+        text="100%"
+        classes="heading note-strong"
+        alignment="center"
+        bounds="22 164 120 22"/>
+    <picture-box id="gallery.images.opacity.1"
+        classes="picture-ground"
+        size-mode="zoom"
+        image-opacity="0.6"
+        border-style="line"
+        accessible-name="Test card at 60 percent opacity"
+        bounds="158 42 120 112"/>
+    <label id="gallery.images.opacity.caption.1"
+        text="60%"
+        classes="heading note-strong"
+        alignment="center"
+        bounds="158 164 120 22"/>
+    <picture-box id="gallery.images.opacity.2"
+        classes="picture-ground"
+        size-mode="zoom"
+        image-opacity="0.25"
+        border-style="line"
+        accessible-name="Test card at 25 percent opacity"
+        bounds="294 42 120 112"/>
+    <label id="gallery.images.opacity.caption.2"
+        text="25%"
+        classes="heading note-strong"
+        alignment="center"
+        bounds="294 164 120 22"/>
+  </scaled-group-box>
 
-  scaled-group-box gallery.images.primitives {
-    text: "Painter · image materials";
-    design-size: 460 220;
-    bounds: 494 404 460 220;
-    classes: "paper" "group-caption";
-    drawing-surface gallery.images.drawing.board {
-      accessible-name: "Renderer-neutral drawing primitive composition";
-      accessible-description: "Nested clipping, translation, fills, strokes, lines, and text";
-      bounds: 20 38 194 158;
-    }
-    raster-canvas gallery.images.raster.canvas {
-      accessible-name: "Raster canvas transparency and sampling";
-      bounds: 224 54 96 132;
-    }
-    label gallery.images.raster.caption {
-      text: "RASTER";
-      classes: "heading" "tag";
-      alignment: center;
-      bounds: 224 34 96 16;
-    }
-    material-panel gallery.images.material.nine-patch {
-      accessible-name: "Density-aware nine-patch material";
-      accessible-description: "Corners remain fixed while edge and center source regions stretch";
-      bounds: 334 52 106 54;
-    }
-    label gallery.images.material.nine-patch.caption {
-      text: "NINE-PATCH";
-      classes: "heading" "tag";
-      bounds: 334 34 106 16;
-    }
-    material-panel gallery.images.material.tile {
-      accessible-name: "Tiled source-image material";
-      accessible-description: "Exact logical period with cropped partial edge tiles";
-      bounds: 334 132 106 54;
-    }
-    label gallery.images.material.tile.caption {
-      text: "TEXTURE TILE";
-      classes: "heading" "tag";
-      bounds: 334 114 106 16;
-    }
-  }
-}
+  <scaled-group-box id="gallery.images.primitives"
+      text="Painter · image materials"
+      design-size="460 220"
+      bounds="494 404 460 220"
+      classes="paper group-caption">
+    <drawing-surface id="gallery.images.drawing.board"
+        accessible-name="Renderer-neutral drawing primitive composition"
+        accessible-description="Nested clipping, translation, fills, strokes, lines, and text"
+        bounds="20 38 194 158"/>
+    <raster-canvas id="gallery.images.raster.canvas"
+        accessible-name="Raster canvas transparency and sampling"
+        bounds="224 54 96 132"/>
+    <label id="gallery.images.raster.caption"
+        text="RASTER"
+        classes="heading tag"
+        alignment="center"
+        bounds="224 34 96 16"/>
+    <material-panel id="gallery.images.material.nine-patch"
+        accessible-name="Density-aware nine-patch material"
+        accessible-description="Corners remain fixed while edge and center source regions stretch"
+        bounds="334 52 106 54"/>
+    <label id="gallery.images.material.nine-patch.caption"
+        text="NINE-PATCH"
+        classes="heading tag"
+        bounds="334 34 106 16"/>
+    <material-panel id="gallery.images.material.tile"
+        accessible-name="Tiled source-image material"
+        accessible-description="Exact logical period with cropped partial edge tiles"
+        bounds="334 132 106 54"/>
+    <label id="gallery.images.material.tile.caption"
+        text="TEXTURE TILE"
+        classes="heading tag"
+        bounds="334 114 106 16"/>
+  </scaled-group-box>
+</scaled-panel>

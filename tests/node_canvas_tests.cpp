@@ -30,6 +30,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
+#include "support/frame_wake.hpp"
 
 #include <array>
 #include <cmath>
@@ -44,6 +45,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -282,8 +285,8 @@ void view_transform_and_events() {
     require(canvas.set_view(SceneViewTransform{WorldPoint{10.0, 20.0}, 2.0}) && views == 1U,
             "the same view raises nothing");
     require(!canvas.set_view(SceneViewTransform{WorldPoint{}, -1.0}) && views == 1U, "an invalid view is refused");
-    const std::optional<Point> anchor = canvas.port_view_anchor(PortRef{fixture.a, PortIndex{0U}});
-    require(anchor.has_value() && (*anchor).x == (126.0 - 10.0) * 2.0 && (*anchor).y == (82.0 - 20.0) * 2.0,
+    const stxlib::Optional<Point> anchor = canvas.port_view_anchor(PortRef{fixture.a, PortIndex{0U}});
+    require(anchor.present() && (*anchor.value()).x == (126.0 - 10.0) * 2.0 && (*anchor.value()).y == (82.0 - 20.0) * 2.0,
             "a port's view anchor follows the transform");
     const WorldPoint under = canvas.view().to_world(Point{100.0, 60.0});
     canvas.zoom_about(Point{100.0, 60.0}, 2.0);
@@ -525,7 +528,7 @@ void link_drags_and_detach() {
     const PortRef mix_in{fixture.b, PortIndex{0U}};
     fixture.drag(Point{200.0, 82.0}, Point{350.0, 280.0}, Modifier::none);
     require(fixture.graph.link(fixture.graph.link_into(mix_in)) == nullptr, "the detached link is gone");
-    require(palette.size() == 1U && palette[0].from.has_value() && (*palette[0].from).node == fixture.a,
+    require(palette.size() == 1U && palette[0].from.present() && (*palette[0].from.value()).node == fixture.a,
             "a link dropped off every port asks for the palette with its output");
     require(std::fabs(palette[0].local.x - 350.0) < 2.0 && std::fabs(palette[0].local.y - 280.0) < 2.0,
             "the palette is asked for at the release");
@@ -590,13 +593,13 @@ void keyboard() {
     NodeCanvas& canvas = *fixture.canvas;
     fixture.paint();
     require((*fixture.window).request_focus(fixture.canvas), "the canvas takes focus");
-    require(canvas.focused_node().has_value() && *canvas.focused_node() == fixture.a,
+    require(canvas.focused_node() == stxlib::Optional<NodeId>::of(fixture.a),
             "focus enters at the first visible node");
     fixture.key(PhysicalKey::right, Modifier::none);
     require(canvas.selection().size() == 1U && canvas.selected(fixture.b), "right goes to the node to the right");
     require(canvas.announcement() == "Mix, mix", "the arrival is announced");
     fixture.key(PhysicalKey::down, Modifier::none);
-    require(canvas.selected(fixture.c) && *canvas.focused_node() == fixture.c, "down goes to the node below");
+    require(canvas.selected(fixture.c) && canvas.focused_node() == stxlib::Optional<NodeId>::of(fixture.c), "down goes to the node below");
 
     const std::size_t steps = fixture.graph.undo_steps();
     fixture.key(PhysicalKey::right, Modifier::control);
@@ -628,13 +631,13 @@ void keyboard() {
 
     // Enter walks into the ports; arrows walk them; Escape leaves.
     fixture.key(PhysicalKey::enter, Modifier::none);
-    require(canvas.focused_port().has_value() && (*canvas.focused_port()).value == 0U &&
+    require(canvas.focused_port() == stxlib::Optional<PortIndex>::of(PortIndex{0U}) &&
                 canvas.announcement() == "input in",
             "Enter enters the ports");
     fixture.key(PhysicalKey::down, Modifier::none);
-    require((*canvas.focused_port()).value == 1U && canvas.announcement() == "output out", "arrows walk the ports");
+    require(canvas.focused_port() == stxlib::Optional<PortIndex>::of(PortIndex{1U}) && canvas.announcement() == "output out", "arrows walk the ports");
     fixture.key(PhysicalKey::escape, Modifier::none);
-    require(!canvas.focused_port().has_value(), "Escape leaves the ports");
+    require(canvas.focused_port().absent(), "Escape leaves the ports");
 
     // Delete removes the selection; Ctrl+Z brings it back.
     fixture.key(PhysicalKey::delete_forward, Modifier::none);
@@ -687,8 +690,8 @@ void accessibility() {
     require((*mix).children.size() == 2U && (*mix).children[0].stable_id == mix_id + ".port-0" &&
                 (*mix).children[0].name == "input in, connected to Noise" && (*mix).children[1].name == "output out",
             "ports are children; an input names its source (no flow relations yet, gap 13)");
-    require((*mix).children[0].position_in_set == std::optional<std::size_t>{1U} &&
-                (*mix).children[0].set_size == std::optional<std::size_t>{2U},
+    require((*mix).children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                (*mix).children[0].set_size == stxlib::Optional<std::size_t>::of(2U),
             "ports have positions in their set");
 
     // Child actions select and reveal; press opens an edit.
@@ -732,7 +735,7 @@ void edit_host() {
 
     // Double-click on a caption opens a rename over the caption band.
     fixture.double_click(Point{78.0, 60.0});
-    require(canvas.editing() && canvas.edited_node() == fixture.a && host.last_part == NodeEditPart::caption,
+    require(canvas.editing() && canvas.edited_node() == stxlib::Optional<NodeId>::of(fixture.a) && host.last_part == NodeEditPart::caption,
             "a double-click on a caption edits it");
     require(host.last_bounds == Rect{30.0, 50.0, 96.0, NodeCanvas::caption_height}, "the editor covers the caption");
     require(!canvas.delete_selection(), "the canvas does not edit the graph while an editor is open");
@@ -889,7 +892,7 @@ void focus_rings() {
     const std::uint64_t node_rings = canvas.statistics().focus_rings_painted;
     require(node_rings == before + 1U, "the focused node is ringed once");
     fixture.key(PhysicalKey::enter, Modifier::none);
-    require(canvas.focused_port().has_value(), "Enter walks into the node's ports");
+    require(canvas.focused_port().present(), "Enter walks into the node's ports");
     fixture.paint();
     require(canvas.statistics().focus_rings_painted == node_rings + 1U, "the focused port takes the ring instead");
     require(canvas.canvas_look().focus.stroke_width >= minimum_canvas_focus_width,
@@ -903,21 +906,21 @@ void link_preview_states() {
     Fixture fixture{};
     NodeCanvas& canvas = *fixture.canvas;
     fixture.paint();
-    require(!canvas.link_preview_state().has_value(), "no drag, no preview");
+    require(canvas.link_preview_state().absent(), "no drag, no preview");
     fixture.press(Point{296.0, 82.0}, Modifier::none);
     fixture.glide(Point{296.0, 82.0}, Point{350.0, 280.0}, Modifier::none);
-    require(canvas.link_preview_state() == CanvasPreviewState::seeking, "over empty canvas the link seeks");
+    require(canvas.link_preview_state() == stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::seeking), "over empty canvas the link seeks");
     fixture.paint();
     fixture.glide(Point{350.0, 280.0}, Point{200.0, 82.0}, Modifier::none);
-    require(canvas.link_preview_state() == CanvasPreviewState::refused,
+    require(canvas.link_preview_state() == stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::refused),
             "over its own node's input the link is refused");
     fixture.paint();
     fixture.glide(Point{200.0, 82.0}, Point{203.0, 209.0}, Modifier::none);
-    require(canvas.link_preview_state() == CanvasPreviewState::accepted, "captured by a free input it is accepted");
+    require(canvas.link_preview_state() == stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::accepted), "captured by a free input it is accepted");
     fixture.paint();
     fixture.key(PhysicalKey::escape, Modifier::none);
     fixture.release(Point{203.0, 209.0}, Modifier::none);
-    require(!canvas.link_preview_state().has_value(), "Escape ends the preview");
+    require(canvas.link_preview_state().absent(), "Escape ends the preview");
 }
 
 // The flow runs on the window's motion clock only while a flowing link is
@@ -928,13 +931,14 @@ void flow_starts_and_stops() {
     NodeCanvas& canvas = *fixture.canvas;
     MotionClock& clock = (*fixture.window).motion_clock();
     fixture.paint();
+    require(!canvas.link_flowing(fixture.link), "a link does not flow by default (T12: a state the program sets)");
     require(!canvas.flow_running() && !clock.control_ambient(canvas), "with nothing flowing there are no frames");
     require(canvas.set_link_flowing(fixture.link, true) && canvas.link_flowing(fixture.link), "the link flows");
     require(!canvas.set_link_flowing(LinkId{99U, 1U}, true), "a stale link is refused");
     fixture.paint();
     require(canvas.flow_running() && canvas.statistics().flow_links_painted >= 1U,
             "a shown flowing link enlists the flow and draws its marks");
-    static_cast<void>((*fixture.window).poll_frame_schedule(*(*fixture.window).next_wake()));
+    static_cast<void>((*fixture.window).poll_frame_schedule(armed_wake(*fixture.window)));
     require(canvas.statistics().flow_frames == 1U, "a clock frame advances the flow");
     fixture.paint();
     require(canvas.flow_effect().counters().ticks > 0U, "the paint after a frame runs its ticks");

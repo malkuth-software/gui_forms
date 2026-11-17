@@ -3,6 +3,7 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <stxlib/optional.hpp>
 #include <thread>
 using namespace gui_forms;
 namespace {
@@ -73,11 +74,11 @@ int main() {
         (*parent).add_child(child);
         (*parent).set_custom_cursor(images, CursorKind::crosshair);
         require((*child).effective_cursor_images() == images && (*child).effective_cursor() == CursorKind::crosshair, "custom inheritance");
-        (*child).cursor = CursorKind::hand;
+        (*child).cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
         require(!(*child).effective_cursor_images(), "stock override leaks parent image");
-        (*child).cursor = std::nullopt;
+        (*child).cursor = stxlib::Optional<CursorKind>::none();
         require((*child).effective_cursor_images() == images, "inherit reset");
-        (*parent).cursor = CursorKind::crosshair;
+        (*parent).cursor = stxlib::Optional<CursorKind>::of(CursorKind::crosshair);
         require(!(*child).effective_cursor_images(), "same stock fallback fails to reset");
         services.shutdown();
         require(!services.set_custom_cursor(images, 1).accepted(), "shutdown accepted mutation");

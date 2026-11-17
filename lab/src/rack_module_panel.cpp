@@ -30,6 +30,7 @@ constexpr ControlAnatomy module_anatomy{
     .parts = panel_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = module_custom_states,
+    .item_systems = {},
 };
 
 } // namespace
@@ -77,7 +78,7 @@ void RackModulePanel::on_paint(Painter& painter, Rect local_damage) {
     keyline.role = PartRole::keyline;
     keyline.states = anatomy_states();
     keyline.bounds = Rect{border, border, severity_keyline_width, height};
-    keyline.authored_foreground = notice_severity_colour(*severity_);
+    keyline.authored_foreground.set(notice_severity_colour(*severity_));
     paint_part(painter, *this, keyline);
 }
 

@@ -1,0 +1,7 @@
+compiled
+rule 0 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material colour_filter colours=[#000000ff]
+  material drop_shadow colours=[#000000ff]
+  material filter_blur lengths=[0] colours=[#000000ff]

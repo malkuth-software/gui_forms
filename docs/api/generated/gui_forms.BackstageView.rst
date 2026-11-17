@@ -34,7 +34,7 @@ gui_forms::BackstageView
          The column's width in logical units at text scale 1.
          ``set_column_width`` throws ``std::invalid_argument`` outside 48 to 480.
 
-      **selected_topic** : ``std::optional<std::size_t>``
+      **selected_topic** : ``stxlib::Optional<std::size_t>``
          The topic whose page shows. Assigning an item past the end throws
          ``std::out_of_range``; an item that is not a topic, or no value, throws
          ``std::invalid_argument``.
@@ -128,7 +128,7 @@ gui_forms::BackstageView
       The column's width in logical units at text scale 1.
       ``set_column_width`` throws ``std::invalid_argument`` outside 48 to 480.
 
-   .. cpp:member:: std::optional<std::size_t> selected_topic
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_topic
 
       The topic whose page shows. Assigning an item past the end throws
       ``std::out_of_range``; an item that is not a topic, or no value, throws

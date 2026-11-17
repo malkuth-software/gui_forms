@@ -25,6 +25,7 @@ std::shared_ptr<PartRaster> PartRaster::create(const DeviceExtent extent, const 
 
 PartRasterView PartRaster::view() noexcept {
     opaque_ = false;
+    opaque_interior_ = PartRasterInterior{};
     const PartRasterView borrowed{std::span<std::uint8_t>(pixels_.data(), pixels_.size()), extent_, row_bytes_};
     return borrowed;
 }
@@ -37,6 +38,25 @@ void PartRaster::record_opacity() noexcept {
         every = static_cast<std::uint8_t>(every & pixels_[offset]);
     }
     opaque_ = !pixels_.empty() && every == 255U;
+}
+
+void PartRaster::record_opaque_interior(const PartRasterInterior interior) noexcept {
+    opaque_interior_ = PartRasterInterior{};
+    const bool inside = interior.left < interior.right && interior.top < interior.bottom &&
+                        interior.right <= extent_.width && interior.bottom <= extent_.height;
+    if (!inside) return;
+    const std::size_t first = static_cast<std::size_t>(interior.left) * part_raster_bytes_per_pixel + 3U;
+    const std::size_t end = static_cast<std::size_t>(interior.right) * part_raster_bytes_per_pixel;
+    for (std::uint32_t y = interior.top; y < interior.bottom; ++y) {
+        const std::size_t row = static_cast<std::size_t>(y) * row_bytes_;
+        // The AND of the row's alpha bytes: no exit inside the row.
+        std::uint8_t every = 255U;
+        for (std::size_t offset = first; offset < end; offset += part_raster_bytes_per_pixel) {
+            every = static_cast<std::uint8_t>(every & pixels_[row + offset]);
+        }
+        if (every != 255U) return;
+    }
+    opaque_interior_ = interior;
 }
 
 } // namespace gui_forms

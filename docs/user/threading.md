@@ -69,9 +69,10 @@ future callbacks synchronously. A `Timer` is not a background worker.
 ## Workers
 
 `gui_forms/threading.hpp` provides the cooperative worker utilities. They
-live in the small shared library `GUIForms::Threading`, which `Core`,
-`Application` and `Audio` all link, so there is exactly one implementation in
-a process.
+live in the small static library `GUIForms::Threading`, which `Core`,
+`Application` and `Audio` all link. It is linked once into your program (or
+into the C ABI library), so there is exactly one implementation in a
+process.
 
 `CancellationFlag`
 : `request()` sets a release/acquire atomic once and for all; `requested()` is
@@ -95,8 +96,9 @@ a process.
   the pool.
 
 Workers use system pthreads on macOS and Linux and MSYS2 winpthreads on
-Windows. On Windows `libgui_forms_threading.dll` links winpthreads
-statically, so no `libwinpthread-1.dll` is needed beside it.
+Windows. The Threading library is a static archive linked into your
+program, and on Windows the program links winpthreads statically, so no
+`libwinpthread-1.dll` is needed beside it.
 
 ## Pattern: compute off-thread, publish on-thread
 
@@ -128,9 +130,56 @@ gf::Worker worker(entry, &job);   // destructor cancels and joins
 
 The worker touches no control. It posts a callback carrying copies, and the
 callback runs on the UI thread in a later turn. If the label is disposed
-before then, the callback still runs but `set_text` on a disposed control is
-rejected; use `Control::begin_invoke` on the label instead to have the
+before then, the callback still runs but writing `text` on a disposed control
+is rejected; use `Control::begin_invoke` on the label instead to have the
 dispatcher drop the work automatically.
+
+## BackgroundWorker
+
+`BackgroundWorker` (`<gui_forms/background_worker/background_worker.hpp>`)
+is Windows Forms' BackgroundWorker over a `Worker`. It runs one work
+function at a time on a worker thread and delivers progress and completion
+on its window's UI thread, through the window's dispatcher, in order with
+input, layout and paint.
+
+```cpp
+#include <gui_forms/background_worker/background_worker.hpp>
+#include <gui_forms/binding/value/binding_value.hpp>
+
+struct Sums final {
+    void work(gf::BackgroundWorkerTask& task) {
+        const std::int64_t limit = gf::binding_value_to_signed(task.argument()).value_or(0);
+        std::int64_t total = 0;
+        for (std::int64_t value = 1; value <= limit && !task.cancellation_pending(); ++value) {
+            total += value;
+        }
+        task.set_result(gf::BindingValue{total});
+    }
+};
+
+Sums sums;
+gf::BackgroundWorker worker(window);
+worker.set_do_work(gf::BackgroundWorker::Work::bind<Sums, &Sums::work>(sums));
+worker.run_worker_async(gf::BindingValue{std::int64_t{100}});
+// run_worker_completed reports 5050 when the window's dispatcher runs.
+```
+
+- **The work** is a `Delegate` bound with `set_do_work`. It touches only
+  its `BackgroundWorkerTask` (the argument, the result, cancellation and
+  progress reports) and its own data, never a control.
+- **Progress.** With `set_worker_reports_progress(true)`, the work calls
+  `task.report_progress(percent, user_state)` and `progress_changed()`
+  delivers each report on the UI thread.
+- **Cancellation** is cooperative. With
+  `set_worker_supports_cancellation(true)`, `cancel_async()` sets the
+  task's `cancellation_pending()`, and the work decides when to stop and
+  calls `task.set_cancelled(true)`.
+- **Completion.** `run_worker_completed()` delivers a
+  `BackgroundWorkerCompleted` with the result, or the exception the work
+  threw (`error`, `error_message`), or `cancelled`.
+- `run_worker_async` throws `std::logic_error` while a run is busy. The
+  destructor requests cancellation and waits for the work to return, so a
+  work function must never wait on the UI thread.
 
 ## Audio
 

@@ -1,11 +1,13 @@
 #pragma once
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/control/runtime_id/runtime_id.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
 #include "gui_forms/anatomy.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/component.hpp"
+#include "gui_forms/control/active_border/active_border.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/binding_types.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
@@ -17,6 +19,7 @@
 #include "gui_forms/engine/theme_rules/cascade_facts.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
+#include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
@@ -26,6 +29,7 @@
 #include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <atomic>
 #include <any>
@@ -38,6 +42,7 @@
 #include <map>
 #include <mutex>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -61,6 +66,8 @@ class Theme;
 struct ThemeRoleColours;
 class InlineStyleResult;
 struct ThemeCompileDiagnostic;
+class ThemeCompileResult;
+class ThemeOverrides;
 class CompiledThemeRules;
 class ContainerControl;
 class CommandTarget;
@@ -82,6 +89,8 @@ class KeptResolutions;
 GUI_FORMS_API void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
+struct ControlThemeSheet;
+class CompositeLook;
 struct InlineRestyle;
 // A control's help fields (Control::help_line, help and keywords), made on
 // the first non-empty write and released when all three are empty again,
@@ -113,18 +122,6 @@ private:
 };
 }
 
-struct GUI_FORMS_API RuntimeId {
-    std::uint64_t value{};
-    friend constexpr bool operator==(const RuntimeId& left,
-                                     const RuntimeId& right) noexcept {
-        return left.value == right.value;
-    }
-    friend constexpr std::strong_ordering operator<=>(
-        const RuntimeId& left, const RuntimeId& right) noexcept {
-        return left.value <=> right.value;
-    }
-};
-
 // Exact WinForms flag values. Masked bounds mutation is kept in the portable
 // retained core because layout authors and generated facades need one coherent
 // source of truth for partial geometry updates.
@@ -154,10 +151,12 @@ enum class OwnerDecorationLayer : std::uint8_t {
 struct GUI_FORMS_API OwnerDecorationRecipe final {
     OwnerDecorationLayer layer{OwnerDecorationLayer::after_content};
     Size size{};
-    std::optional<double> left;
-    std::optional<double> top;
-    std::optional<double> right;
-    std::optional<double> bottom;
+    // Offsets from the owner's edges: exactly one of left and right, and one
+    // of top and bottom, is present (set_owned_decorations checks).
+    stxlib::Optional<double> left{};
+    stxlib::Optional<double> top{};
+    stxlib::Optional<double> right{};
+    stxlib::Optional<double> bottom{};
     double rotation_degrees{};
     MaterialBorderEdges border_edges;
     friend bool operator==(const OwnerDecorationRecipe& left_value,
@@ -261,7 +260,7 @@ struct GUI_FORMS_API LayoutTransactionState final {
 // locale-dependent platform text API into the core.
 struct GUI_FORMS_API MnemonicText final {
     std::string display_text;
-    std::optional<char32_t> mnemonic;
+    stxlib::Optional<char32_t> mnemonic;
 };
 
 [[nodiscard]] GUI_FORMS_API MnemonicText parse_mnemonic_text(std::string_view text);
@@ -270,6 +269,10 @@ struct GUI_FORMS_API MnemonicText final {
 [[nodiscard]] GUI_FORMS_API std::string mnemonic_access_key(std::string_view text);
 [[nodiscard]] GUI_FORMS_API bool is_mnemonic(char32_t character,
                                std::string_view text) noexcept;
+// Whether `text` marks no mnemonic and its first displayed scalar matches
+// `character` (the same folding as is_mnemonic): a menu's first-letter jump
+// for items without a mnemonic, as Windows menus and ToolStripDropDown do.
+[[nodiscard]] GUI_FORMS_API bool is_first_letter(char32_t character, std::string_view text) noexcept;
 
 // Where a control's plain tooltip (Control::tool_tip_text) shows. Its
 // window's one presenter reads it; a control type chooses it once, in its
@@ -462,7 +465,7 @@ public:
     // last puts the child at the bottom. Moving a child to where it is
     // changes nothing; returns false for a child this control does not hold.
     bool set_child_index_from_top(RuntimeId child, std::size_t index);
-    [[nodiscard]] std::optional<std::size_t> child_index_from_top(
+    [[nodiscard]] stxlib::Optional<std::size_t> child_index_from_top(
         RuntimeId child) const noexcept;
     void clear_children();
 
@@ -487,7 +490,7 @@ public:
     // offsets this, never the committed bounds, which already carry its
     // previous offset.
     [[nodiscard]] Rect pending_layout_bounds() const noexcept {
-        return layout_slot_ ? *layout_slot_ : arranged_bounds_;
+        return layout_slot_.value_or(arranged_bounds_);
     }
     [[nodiscard]] Rect client_rectangle() const noexcept {
         return {0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height};
@@ -511,13 +514,19 @@ public:
     // otherwise. A detach (or this control's death) ends the copies lent.
     [[nodiscard]] BorrowedPointer<Window> attached_window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose table holds this control (null while detached).
-    // Inside a sub-surface attached_window() is null and this is not.
+    // Inside a sub-surface attached_window() is null and this is not. Its
+    // scale() is the device scale the control paints at (1 while detached).
     [[nodiscard]] BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept {
         return detail::lend_pointer(surface_root_);
     }
     // Resolves the authored font against the attached window's presentation
     // text scale. Custom controls should use this for both measurement and
     // painting so text, wrapping, hit geometry, and carets remain coherent.
+    // It also admits the font's families for where the control is
+    // (admit_font, gui_forms/typography/app_fonts/app_fonts.hpp): an
+    // application font family draws in a composite (the control carries a
+    // look: look_rules()) and in a sub-surface (a root that presents no
+    // Window), and is dropped everywhere else.
     [[nodiscard]] double effective_text_scale() const noexcept;
     [[nodiscard]] FontSpec effective_font(FontSpec authored) const noexcept;
     // The control's primary text font (T4 fonts, owner ruling of
@@ -567,10 +576,10 @@ public:
     // package declares with `color-roles`, such as `syntax-keyword`) for
     // this control's window (window_media_facts; light, unforced while
     // detached): from effective_theme, else, where that is GUI.Forms' own
-    // in place of the chosen theme, from the chosen theme. Nullopt where
+    // in place of the chosen theme, from the chosen theme. None where
     // neither declares the role. Code draws program-meant colours through
     // this rather than hard-coding them (T4 theme variants).
-    [[nodiscard]] std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept;
+    [[nodiscard]] stxlib::Optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept;
     // Whether back_color or fore_color has been set on this control, which
     // writes the warning W404 `inline_colour` once for each (T4 theme
     // variants, stage A: colour belongs in the theme).
@@ -580,6 +589,14 @@ public:
     // convention's while detached. A control asks it whether a key event is
     // a named keyboard command instead of naming the keys itself.
     [[nodiscard]] const KeyMap& effective_key_map() const noexcept;
+    // The locale the control formats dates and numbers with (exhibit gap
+    // E11): its window's application locale (ApplicationResources::locale),
+    // or the portable default while detached. The reference stays valid
+    // while the control is attached and the locale unchanged; a control
+    // keeping something derived from it keys it by
+    // effective_locale_generation() (0 while detached).
+    [[nodiscard]] const HostLocale& effective_locale() const noexcept;
+    [[nodiscard]] std::uint64_t effective_locale_generation() const noexcept;
     [[nodiscard]] std::shared_ptr<const Theme> theme_override() const noexcept {
         return theme_override_;
     }
@@ -623,8 +640,8 @@ public:
     // where WinForms' box stays white. Writing one (std::nullopt clears it)
     // repaints the control and its descendants.
     // This control's own colour, else its nearest ancestor's, else none.
-    [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
-    [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> ambient_back_color() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
     owned_decorations() const& noexcept {
         return std::span<const OwnerDecorationRecipe>(owned_decorations_.data(), owned_decorations_.size());
@@ -633,6 +650,30 @@ public:
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,
                                std::size_t decoration_count);
     void clear_owned_decorations();
+    // The control border (active_border.hpp; the active border study's
+    // phase 2): set, validated first (an invalid border throws
+    // std::invalid_argument and changes nothing), or cleared with
+    // none. It paints after the control's content and its owned
+    // decorations, and its reach (active_border_reach) widens the visual
+    // outsets. A change repaints the control; a moving border repaints on
+    // a paint-gated timer (ADR-016) only while its pose moves, and its
+    // motion restarts lit whenever the timer starts. UI thread.
+    void set_active_border(stxlib::Optional<ActiveBorder> border);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<ActiveBorder>")]]
+    void set_active_border(std::optional<ActiveBorder> border) {
+        stxlib::Optional<ActiveBorder> owned{};
+        if (border.has_value()) owned.set(*border);
+        set_active_border(owned);
+    }
+    // A plain border is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<ActiveBorder>::of(border).
+    void set_active_border(ActiveBorder border) = delete;
+    [[nodiscard]] stxlib::Optional<ActiveBorder> active_border() const;
+    // The pose the border last painted with (resolve_active_border), empty
+    // before its first paint or with no border; and whether its timer runs.
+    [[nodiscard]] stxlib::Optional<ActiveBorderPose> active_border_pose() const noexcept;
+    [[nodiscard]] bool active_border_animating() const noexcept;
     [[nodiscard]] ControlVisualStatus visual_status() const noexcept {
         return visual_status_;
     }
@@ -735,6 +776,35 @@ public:
     // theme compiles it again (ApplicationResources::set_theme,
     // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
+    // The control's theme sheet (the ImGui-class demonstrator's I7): a whole
+    // program theme's text, as theme_sheet_package(text, name) holds it,
+    // compiled with the stock control anatomies into the window's
+    // ApplicationResources and set as this control's theme override for
+    // its subtree. Set while the control is attached to a window with
+    // resources, it compiles at once; set while it is not, it compiles when
+    // it is next attached, after the attachment is committed. It compiles
+    // again on an attachment to another window's resources (the theme's
+    // images belong to the resources it was compiled into). Every
+    // compilation raises theme_sheet_compiled with its result, the
+    // diagnostics included, whether it applied or was refused; a refused
+    // sheet leaves the theme override as it was, and so does a sheet an
+    // inline style of the subtree cannot compile against (reported as a
+    // refusal with the code E000 `inline_style_refused`). Empty text
+    // removes the sheet and the override it set. Returns true when the
+    // sheet compiled and applied now; false when it was refused now or
+    // waits for an attachment (theme_sheet_pending).
+    bool set_theme_sheet(std::string_view text, std::string_view name = "sheet");
+    // The sheet's text; empty without one. Valid until the sheet is set.
+    [[nodiscard]] std::string_view theme_sheet() const noexcept;
+    // Whether the sheet waits for an attachment to compile.
+    [[nodiscard]] bool theme_sheet_pending() const noexcept;
+    // Raised after each compilation of the sheet, on the control's thread.
+    [[nodiscard]] Event<const ThemeCompileResult&>& theme_sheet_compiled();
+    // Typed run-time styling (the ImGui-class demonstrator's I6): the
+    // overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet,
+    // named `overrides`, with set_theme_sheet's timing, reports and result.
+    // Empty overrides remove the sheet.
+    bool set_theme_overrides(const ThemeOverrides& overrides);
     // The inline style's text in force; empty without one. Valid until the
     // style is set, cleared or recompiled for a theme change (checked
     // builds fail fast on a later read).
@@ -742,6 +812,26 @@ public:
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
+    // The rules of the composite look this control is styled by, for the
+    // theme in effect (CompiledThemeRules::compile_look), or null: a
+    // composite control sets its definition's look on itself and on each
+    // control its definition made (CompositeControl), not on slot content
+    // or controls added later. The cascade consults it beside the theme in
+    // effect, so the theme, a theme switch, a user theme and forced high
+    // contrast reach the control as they reach any other, and the look's
+    // rules stand over the theme's sheet rules only where they say
+    // something. A look reading the theme's roles or custom properties is
+    // compiled for each theme before resolution, at attachment and when a
+    // theme is applied, once for all the controls it styles
+    // (detail::CompositeLook); this reads that compilation and compiles
+    // nothing. The rules are borrowed until a theme is applied.
+    [[nodiscard]] const CompiledThemeRules* look_rules() const noexcept;
+    // Sets or (null) clears that look (CompositeControl) and invalidates
+    // the control's paint and text font. Shared: a control taken out of
+    // its composite keeps the look, and the definition it belongs to,
+    // alive.
+    void set_composite_look(std::shared_ptr<detail::CompositeLook> look);
+    [[nodiscard]] bool has_composite_look() const noexcept { return composite_look_ != nullptr; }
     // Whether this control or one of its ancestors is marked ceremonial
     // (the ceremonial capability: T2 GIVEN B3-1; design language §10, an
     // installer's or a first run's world).
@@ -784,12 +874,35 @@ public:
     void set_command_target(std::shared_ptr<CommandTarget> target) noexcept {
         command_target_ = std::move(target);
     }
+    // The cursor shown over the control: its `cursor`, else its nearest
+    // ancestor's. A control whose regions want different cursors (a
+    // resize edge, an axis, a handle) writes `cursor` as the pointer moves
+    // between them, from on_mouse_move, and puts it back on leave, as
+    // DataGridView does at its column edges.
     [[nodiscard]] CursorKind effective_cursor() const noexcept;
     [[nodiscard]] bool effectively_visible() const noexcept;
     [[nodiscard]] bool effectively_enabled() const noexcept;
     [[nodiscard]] bool eligible_for_input() const noexcept;
+    // Pointer capture. A primary press captures the pointer to the control
+    // it lands on, unless that control is focusable and refuses focus; the
+    // primary release ends the capture. Other buttons do not capture. A
+    // control calls set_pointer_capture(true) only to capture outside a
+    // primary press (a secondary-button drag), and false to end a capture
+    // early.
     void set_pointer_capture(bool captured);
     [[nodiscard]] bool has_pointer_capture() const noexcept;
+    // Relative pointer mode (gui_forms/events/relative_pointer): asks this
+    // control's window for the pointer's motion as deltas, every sample
+    // (relative_pointer), until the mode ends (relative_pointer_ended).
+    // SurfaceRoot::begin_relative_pointer gives the rules; a detached
+    // control is refused with RelativePointerResult::detached. Release ends
+    // this control's mode only (false when it has none). warp_pointer moves
+    // the pointer to `position` in this control's coordinates where the host
+    // can (false where it cannot, or while this control has no mode).
+    RelativePointerGrant request_relative_pointer(RelativePointerRequest request = {});
+    bool release_relative_pointer();
+    [[nodiscard]] bool has_relative_pointer() const noexcept;
+    bool warp_pointer(Point position);
 
     // An attached control's flags are read after its surface root settles
     // the touches made since the last read (SurfaceRoot::settle_dirty): an
@@ -801,7 +914,31 @@ public:
     [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
-    [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
+    [[nodiscard]] stxlib::Optional<DisplayChunkInfo> display_chunk_info() const noexcept;
+    // The control's content effect (capability review decision 1, owner
+    // 2026-11-16): PaintGroupEffect's colour stages, blur and masks applied
+    // to what this control and its descendants paint, as one image. The
+    // window draws the control's display chunk and its descendants' chunks
+    // in its paint plane inside one paint group carrying the effect, over
+    // the control's visual bounds and child viewport, and grows every
+    // damage of the control and its descendants by the effect's reach
+    // (paint_group_effect_reach), so that the blur's spread repaints. An
+    // effect set here wins over the theme's (`filter` and `mask-*` on a
+    // control rule). Null for none. Throws std::invalid_argument, changing
+    // nothing, for an effect valid_paint_group_effect refuses. Shared
+    // read-only: the window's recordings keep it alive. Under forced high
+    // contrast the window paints it without its colour stages
+    // (SurfaceRoot::painted_content_effect).
+    void set_content_effect(std::shared_ptr<const PaintGroupEffect> effect);
+    [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept {
+        return content_effect_;
+    }
+    const std::shared_ptr<const PaintGroupEffect>& content_effect() const&& = delete;
+    // The effect the window draws: the one set, else the theme's.
+    [[nodiscard]] const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const& noexcept {
+        return content_effect_ ? content_effect_ : theme_content_effect_;
+    }
+    const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const&& = delete;
     void invalidate(Dirty dirty);
     // Marks only a local client rectangle for repaint. The retained display
     // chunk remains the authoritative complete presentation, while host
@@ -900,6 +1037,16 @@ public:
     [[nodiscard]] Event<KeyEventArgs&>& key_down() { return key_events().key_down; }
     [[nodiscard]] Event<KeyPressEventArgs&>& key_press() { return key_events().key_press; }
     [[nodiscard]] Event<KeyEventArgs&>& key_up() { return key_events().key_up; }
+    // The relative pointer events (request_relative_pointer): one
+    // relative_pointer per host sample while this control holds the mode,
+    // then relative_pointer_ended once. Kept in a record made by the first
+    // accessor called.
+    [[nodiscard]] Event<RelativePointerEventArgs&>& relative_pointer() {
+        return relative_pointer_events().relative_pointer;
+    }
+    [[nodiscard]] Event<const RelativePointerEnded&>& relative_pointer_ended() {
+        return relative_pointer_events().relative_pointer_ended;
+    }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Keeps `link`, a form binding's link of one of this control's
@@ -909,7 +1056,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 33U;
+    static constexpr std::size_t control_property_count = 41U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -995,8 +1142,8 @@ public:
     // in lines (TextBlock) and the CSS containers override them. Flex and
     // grid alignment use the first baseline; an inline item in BlockPanel
     // uses the last, as an inline-block does.
-    [[nodiscard]] virtual std::optional<double> first_baseline(double width);
-    [[nodiscard]] virtual std::optional<double> last_baseline(double width);
+    [[nodiscard]] virtual stxlib::Optional<double> first_baseline(double width);
+    [[nodiscard]] virtual stxlib::Optional<double> last_baseline(double width);
     // Advances whenever this control becomes measure-dirty; a cache entry
     // stored under an earlier generation is never answered. Settles first
     // (see dirty()): a descendant's touch advances it at the settle.
@@ -1040,6 +1187,15 @@ public:
     // callback). False by default, which keeps every existing container's
     // measure pass unchanged.
     [[nodiscard]] virtual bool measures_children_in_arrange() const noexcept;
+    // Whether a requested width or height of 0 means "from content" when
+    // this control is placed by its parent's dock and anchor layout without
+    // AutoSize (coordinator ruling, cp32 return 1: exhibit gap E12). The
+    // parent then measures it once, at the requested width (else the
+    // client's), and takes each zero axis from the answer: width first,
+    // then the height at that width (the A8 rule), so one layout pass
+    // converges. False by default, so a 0 stays 0 for every control that
+    // does not say otherwise; Label answers true.
+    [[nodiscard]] virtual bool sizes_unrequested_extents_from_content() const noexcept;
     // layout_direction stores the authored inline direction, `inherit` by
     // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
     // registry, the property grid and forms spell it `right_to_left` (No,
@@ -1096,6 +1252,17 @@ public:
     virtual void on_pointer_bubble(PointerEvent& event);
     virtual void on_key_preview(KeyEvent& event);
     virtual void on_key_bubble(KeyEvent& event);
+    // The MouseEventArgs a routed pointer event carries on this control,
+    // as the window builds its mouse raisers' (SurfaceRoot::
+    // mouse_event_arguments), for a handler of the routed form that reads
+    // the raisers' fields; key_event_arguments is the keys' counterpart.
+    // A detached control takes the event's own click count.
+    [[nodiscard]] MouseEventArgs mouse_event_arguments(const PointerEvent& event) const;
+    // Where the pointer is, as this control's window last saw it, in this
+    // control's coordinates and the window's (PointerLocation): the
+    // position on_mouse_enter and on_mouse_leave, which carry no
+    // arguments, read for the crossing. All zero while detached.
+    [[nodiscard]] PointerLocation pointer_location() const;
     virtual void on_text_input(TextInputEvent& event);
     // Dialog characters are routed by Window only after the focused key route
     // and accelerators decline them. The base implementation traverses the
@@ -1176,7 +1343,7 @@ public:
     // while this control has focus: the caret's box, in local coordinates.
     // The base returns none, and SurfaceRoot::text_input_caret then uses a
     // one-unit-wide box at the control's left edge.
-    [[nodiscard]] virtual std::optional<Rect> text_input_caret() const;
+    [[nodiscard]] virtual stxlib::Optional<Rect> text_input_caret() const;
     // Window focus visibility is input-modality state, distinct from actual
     // focus. Controls with bounded focus-cue presentation may retarget here.
     virtual void on_focus_cue_changed(bool visible);
@@ -1233,6 +1400,9 @@ public:
     // every item system, not model positions. This is the generic path;
     // item-bearing types also offer typed records through realized_items().
     [[nodiscard]] virtual std::size_t realized_item_count() const;
+    // Throws std::out_of_range for an item past realized_item_count(), as
+    // realized_item_anatomy_states does; an override keeps that rule (a count
+    // read before the items changed must not index past them).
     [[nodiscard]] virtual std::string realized_item_stable_id(std::size_t item) const;
     // The item system a realized item belongs to; the first by default.
     // Throws std::out_of_range for an item past realized_item_count().
@@ -1307,8 +1477,12 @@ protected:
     // derived events are dropped (rule 5). The second press of a
     // double-click raises on_double_click and on_mouse_double_click only.
     // on_mouse_enter and on_mouse_leave follow the pointer (the window's
-    // hover tracking, not the route); on_mouse_capture_changed runs on the
-    // control losing the capture, after the release's on_click.
+    // hover tracking, not the route): during the move that crosses, the
+    // old control's leave and then the new one's enter, before the move's
+    // own route. They carry no arguments, as in Windows Forms;
+    // pointer_location() reads where the crossing happened.
+    // on_mouse_capture_changed runs on the control losing the capture,
+    // after the release's on_click.
     virtual void on_mouse_down(MouseEventArgs& arguments);
     virtual void on_mouse_up(MouseEventArgs& arguments);
     virtual void on_mouse_move(MouseEventArgs& arguments);
@@ -1580,6 +1754,12 @@ private:
     // primary font, and returns Dirty::layout where it resolves differently
     // now (a font is a layout input), else Dirty::none.
     [[nodiscard]] Dirty refresh_text_font() noexcept;
+    // Resolves the theme's content effect for the control again
+    // (Theme::control_content_effect) into theme_content_effect_, keeping
+    // the shared effect where the new one is equal. Called by the window
+    // where the control's paint damage is owed, before the damage is
+    // measured, so the damage spreads by the new reach.
+    void refresh_theme_content_effect();
     // Whether the control's theme or its window's user theme has rules with
     // ancestor compounds (CompiledThemeRules::uses_ancestors).
     [[nodiscard]] bool reads_ancestors() const noexcept;
@@ -1604,6 +1784,22 @@ private:
     // error: the theme's rules reading its names then keep the theme's
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
+    // The fixed points of a composite look (detail::CompositeLook::
+    // prepare): prepares this control's look for the theme in effect, or,
+    // for the subtree form, every look of this subtree for each control's
+    // theme in effect, holding that compilation. Called on attachment, when
+    // a window shows a theme and when a theme override changes; never from
+    // the cascade. release_composite_look drops the hold (detachment,
+    // destruction, another look).
+    void prepare_composite_look();
+    void release_composite_look() noexcept;
+    void prepare_composite_looks();
+    // Whether the theme sheet must compile now that the control is attached:
+    // it waits, or was compiled into other resources.
+    [[nodiscard]] bool theme_sheet_due() const noexcept;
+    // Compiles the sheet into the attached window's resources, applies it
+    // and raises theme_sheet_compiled; marks it pending without resources.
+    bool compile_theme_sheet();
     friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
@@ -1668,11 +1864,11 @@ private:
     void written(const decltype(causes_validation)& cell);
     void prepare_write(const decltype(tool_tip_text)& cell, std::string& value);
     void written(const decltype(tool_tip_text)& cell);
-    void prepare_write(const decltype(cursor)& cell, std::optional<CursorKind>& value);
+    void prepare_write(const decltype(cursor)& cell, stxlib::Optional<CursorKind>& value);
     void written(const decltype(cursor)& cell);
-    void prepare_write(const decltype(back_color)& cell, std::optional<Color>& value);
+    void prepare_write(const decltype(back_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(back_color)& cell);
-    void prepare_write(const decltype(fore_color)& cell, std::optional<Color>& value);
+    void prepare_write(const decltype(fore_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(fore_color)& cell);
     void prepare_write(const decltype(minimum_size)& cell, Size& value);
     void written(const decltype(minimum_size)& cell);
@@ -1768,6 +1964,16 @@ private:
     void paint_back_color(Painter& painter, Rect bounds) const;
     void paint_owned_decorations(Painter& painter, Rect bounds,
                                  OwnerDecorationLayer layer) const;
+    // The control border's state (control.cpp), allocated while a border
+    // is set, and its timer's target, which observes the control.
+    struct ActiveBorderState;
+    struct ActiveBorderTick;
+    // Paints the border after the control's content, resolving its pose
+    // and starting or stopping its timer. Called by the window's paint.
+    void paint_active_border(Painter& painter);
+    // One timer tick: the border's time moves to `now` and the control
+    // repaints. False when there is no border.
+    bool on_active_border_tick(FrameTime now);
     [[nodiscard]] Insets effective_visual_outsets() const noexcept;
     void validate_authored_surface_material_images(
         const SurfaceMaterial& material) const;
@@ -1786,7 +1992,7 @@ private:
     }
     void disconnect_control_events() noexcept;
     static void restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
-                                           std::optional<std::size_t> previous_index) noexcept;
+                                           stxlib::Optional<std::size_t> previous_index) noexcept;
     // attach_child's depth check, after its cycle check and before any
     // change: throws ControlTreeDepthError when `child`'s subtree, put
     // under this control at `depth` levels (this control's own level, the
@@ -1909,8 +2115,8 @@ private:
     struct InheritedValues final {
         std::uint64_t generation{};
         const Theme* theme_override{};
-        std::optional<Color> back_color{};
-        std::optional<Color> fore_color{};
+        stxlib::Optional<Color> back_color{};
+        stxlib::Optional<Color> fore_color{};
         CursorKind cursor{CursorKind::arrow};
         bool visible{};
         bool enabled{};
@@ -1957,18 +2163,18 @@ private:
     detail::ControlSlot surface_slot_{};
     // dispatcher_mutex_ guards dispatcher_state_: BeginInvoke reads it from a
     // worker while the UI thread attaches or detaches this control.
-    mutable std::mutex dispatcher_mutex_;
+    mutable Mutex dispatcher_mutex_;
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Rect requested_bounds_{};
     Rect arranged_bounds_{};
     // A layout container assigns this slot without destroying the child's
     // authored/preferred requested bounds. Unmanaged children leave it empty.
-    std::optional<Rect> layout_slot_;
+    stxlib::Optional<Rect> layout_slot_;
     struct AnchorReference final {
         Rect bounds;
         Rect client;
     };
-    std::optional<AnchorReference> anchor_reference_;
+    stxlib::Optional<AnchorReference> anchor_reference_;
     // Drops the anchor reference and, when the control is undocked and it
     // and its attached parent are arranged, captures the current one.
     void recapture_anchor_reference();
@@ -1983,6 +2189,19 @@ private:
     PaintPlane paint_plane_{PaintPlane::control};
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
+    // The content effects (set_content_effect): the one set in code, the
+    // theme's (refresh_theme_content_effect, where the control's paint
+    // damage is owed),
+    // and the reach of the one last painted, so that a smaller or removed
+    // effect still damages what the larger one spread over.
+    std::shared_ptr<const PaintGroupEffect> content_effect_{};
+    std::shared_ptr<const PaintGroupEffect> theme_content_effect_{};
+    // Under forced high contrast, the shown effect without its colour
+    // stages (SurfaceRoot::painted_content_effect), and the shown effect it
+    // was made from; replaced when that changes.
+    std::shared_ptr<const PaintGroupEffect> contrast_content_effect_{};
+    std::shared_ptr<const PaintGroupEffect> contrast_effect_source_{};
+    double last_painted_effect_reach_{};
     bool layout_collapsed_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
@@ -2001,12 +2220,21 @@ private:
     [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
+    // The composite look (look_rules); null for most controls. The serial
+    // of the theme whose compilation this control holds (CompositeLook::
+    // prepare, release), 0 for none.
+    std::shared_ptr<detail::CompositeLook> composite_look_;
+    std::uint64_t composite_look_held_{};
+    // The theme sheet, its compiled theme and its event; null until a sheet
+    // or a subscription needs them (one pointer on every control).
+    std::unique_ptr<detail::ControlThemeSheet> theme_sheet_;
     std::optional<SurfaceMaterial> authored_surface_material_;
     bool back_color_warned_{};
     bool fore_color_warned_{};
     // The primary text font last resolved (text_font), and what it was
     // resolved against: valid while the theme, the window's media facts,
-    // the user theme's and the inline style's rules and `own` are the same.
+    // the user theme's, the look's and the inline style's rules and `own`
+    // are the same.
     // The classes are not compared: a classes write drops it (refresh_text_font).
     struct TextFontCache final {
         bool valid{};
@@ -2014,6 +2242,7 @@ private:
         const Theme* theme{};
         MediaFacts media{};
         const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* look_rules{};
         const CompiledThemeRules* inline_rules{};
         ResolvedFont resolved{};
     };
@@ -2025,6 +2254,7 @@ private:
         const Theme* theme{};
         MediaFacts media{};
         const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* look_rules{};
         const CompiledThemeRules* inline_rules{};
         bool clear{};
     };
@@ -2032,6 +2262,7 @@ private:
     mutable bool clear_face_warned_{};
     bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
+    std::unique_ptr<ActiveBorderState> active_border_{};
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     // set_specimen_states: empty unless a palette or test shows states.
     AnatomyStateSet specimen_states_{};
@@ -2083,6 +2314,14 @@ private:
     };
     KeyEvents& key_events();
     std::unique_ptr<KeyEvents> key_events_{};
+    // The relative pointer events, made on first access; null while nobody
+    // has asked for one.
+    struct RelativePointerEvents final {
+        Event<RelativePointerEventArgs&> relative_pointer;
+        Event<const RelativePointerEnded&> relative_pointer_ended;
+    };
+    RelativePointerEvents& relative_pointer_events();
+    std::unique_ptr<RelativePointerEvents> relative_pointer_events_{};
     Event<bool> focus_observed_;
     Event<Rect> arranged_bounds_changed_;
     Event<HelpRequestEvent&> help_requested_;
@@ -2162,7 +2401,45 @@ private:
         fore_color,
         focusable,
         right_to_left,
+        // The control border (active_border.hpp) as properties (the owner's
+        // approval of 2026-11-13, roadmap row 3.1).
+        active_border,
+        active_border_color,
+        active_border_alternate_color,
+        active_border_width,
+        active_border_offset,
+        active_border_corner_radius,
+        active_border_motion,
+        active_border_frequency,
     };
+
+    // The control border's properties (RegisteredProperty::active_border
+    // to active_border_frequency) over set_active_border, which validates:
+    // `active_border` is whether the control has a border (true sets the
+    // current one, or the default border); each other property reads the
+    // border's field (the default border's while there is none), and
+    // writing it sets the border with that field changed, so writing any
+    // border field shows the border. A value active_border_valid refuses
+    // throws std::invalid_argument and changes nothing. The colours are
+    // nullable: null is the theme's accent for the colour and the lit
+    // colour made transparent for the alternate.
+    [[nodiscard]] static constexpr bool active_border_property(RegisteredProperty property) noexcept {
+        return property == RegisteredProperty::active_border || property == RegisteredProperty::active_border_color ||
+               property == RegisteredProperty::active_border_alternate_color ||
+               property == RegisteredProperty::active_border_width ||
+               property == RegisteredProperty::active_border_offset ||
+               property == RegisteredProperty::active_border_corner_radius ||
+               property == RegisteredProperty::active_border_motion ||
+               property == RegisteredProperty::active_border_frequency;
+    }
+    [[nodiscard]] BindingValue active_border_property_value(RegisteredProperty property) const;
+    void set_active_border_property_value(RegisteredProperty property, const BindingValue& value);
+    [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor> active_border_motion_property_enum();
+    // The table's serialized predicate for a border property: while the
+    // control has a border, `active_border` serializes, and each field when
+    // it differs from the default border's.
+    template <RegisteredProperty Property>
+    [[nodiscard]] static bool active_border_serialized(const Component& owner);
 
     // Control's table operations over the adapters below (study section
     // 14): one entry per migrated property, built by
@@ -2271,6 +2548,8 @@ private:
                 return (*control).fore_color_property_value();
             } else if constexpr (Property == RegisteredProperty::right_to_left) {
                 return (*control).right_to_left_property_value();
+            } else if constexpr (Control::active_border_property(Property)) {
+                return (*control).active_border_property_value(Property);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
@@ -2391,6 +2670,8 @@ private:
                 (*control).set_fore_color_property_value(value);
             } else if constexpr (Property == RegisteredProperty::right_to_left) {
                 (*control).set_right_to_left_property_value(value);
+            } else if constexpr (Control::active_border_property(Property)) {
+                (*control).set_active_border_property_value(Property, value);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);

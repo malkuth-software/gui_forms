@@ -1309,6 +1309,17 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #6e1619;
   box-shadow: inset 0 0 2px #fbdcddb0;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 } // namespace gui_forms::detail

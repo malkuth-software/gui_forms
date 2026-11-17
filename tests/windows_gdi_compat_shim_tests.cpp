@@ -697,7 +697,9 @@ int main() {
         std::fprintf(stderr, "shim-gate=failure|stage:api\n");
         return 1;
     }
-    HMODULE shim = LoadLibraryW(L"gui_forms_win32_compat.dll");
+    // The shim's Win32 names are exports of the C ABI library itself (one
+    // module): loading it again only adds a reference, released at the end.
+    HMODULE shim = LoadLibraryW(L"gui_forms_abi1.dll");
     if (shim == nullptr) {
         std::fprintf(stderr, "shim-gate=failure|stage:load\n");
         return 1;

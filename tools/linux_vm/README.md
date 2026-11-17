@@ -32,6 +32,25 @@ Clang 22 lives in `/usr/lib/llvm22/bin`:
 export PATH=/usr/lib/llvm22/bin:$PATH CC=clang CXX=clang++
 ```
 
+The guest builds against libc++ 22, as every Linux build does since
+2026-11-15, and links libc++, libc++abi and libunwind statically from the
+harness's own runtime, not Alpine's archives (Alpine's `libc++abi.a` is not
+position independent, so `gui_forms_abi` could not carry it). Build the
+runtime once in the guest with Alpine's clang, the bootstrap compiler, and
+export its prefix before configuring:
+
+```sh
+runtime="$PWD/.build/toolchain/$(python3 template_harness/harness/linux_runtime_manifest.py --directory-name)"
+python3 template_harness/harness/build_linux_runtimes.py --work "$PWD/.build/llvm-runtimes" --prefix "$runtime" --jobs 4
+export GUI_FORMS_LLVM_RUNTIME="$runtime"
+```
+
+`cmake/llvm22.cmake` then compiles against the runtime's headers, adds
+`-stdlib=libc++ -nostdlib++`, the three archives at the end of each C++ link
+and, on musl, `-rtlib=compiler-rt -unwindlib=none`. A build tree configured
+against another C++ library keeps working: the toolchain file adds the flags
+at its next configure, and everything recompiles.
+
 Graphical tests run against a headless server, for example:
 
 ```sh

@@ -87,7 +87,8 @@ Both are licensed under SIL OFL 1.1. Exact upstream license copies are retained
 as `OFL-NotoSansCJKjp.txt` and `OFL-NotoEmoji.txt`, each SHA-256
 `6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2`.
 The files are reproducibly acquired and verified by
-`third_party/fetch_showcase_fallback_fonts.sh`. They are **DECIDED** only for
+`third_party/fetch_showcase_fallback_fonts.sh`. Since 2026-11-16 the CJK file
+is the source of the subsets below rather than a bundled face. They are **DECIDED** only for
 the Gallery font pack and deterministic cross-script fallback proof;
 File Manager's final locale/font-pack policy remains an M9 decision.
 
@@ -96,7 +97,41 @@ but painted no pixels in live Skia/FreeType dogfood. The older upstream
 monochrome face is deliberately bounded to fallback proof until GUI.Drawing
 admits and measures a color-font raster policy.
 
-Noto Sans Arabic, Hebrew, Devanagari, Bengali and Gurmukhi are unmodified Noto Project font files under SIL OFL 1.1. See OFL-Noto.txt and language-font-provenance.json for source URLs and byte hashes.
+Noto Sans Hebrew is the unmodified Noto Project file under SIL OFL 1.1. See OFL-Noto.txt and language-font-provenance.json for its source URL and byte hash.
+
+## The slim fallback subsets (2026-11-16)
+
+On 2026-11-16 the owner asked for the fallback faces to be stripped down: a
+proper CJK face for Japanese and for Korean, and a very minimal fallback for
+Chinese, Arabic and the Indic scripts. Hebrew stays as it is. The Noto Sans CJK
+JP file above and the upstream Noto Sans Arabic, Devanagari, Bengali and
+Gurmukhi files are no longer bundled whole. `tools/fallback_font_subsets.py`
+cuts these subsets from them with fontTools 4.66.1. It checks each source
+against its SHA-256 first, and its output is byte-for-byte reproducible:
+
+| File | Cut from | Characters |
+|---|---|---|
+| `NotoSansCJKjp-Subset.otf` | Noto Sans CJK JP | kana, JIS X 0208 (non-kanji, levels 1 and 2), Japanese punctuation and width forms; Japanese forms |
+| `NotoSansCJKkr-Subset.otf` | Noto Sans CJK JP | all 11,172 Hangul syllables, the jamo, KS X 1001 with its hanja; Korean forms |
+| `NotoSansCJKsc-Minimal.otf` | Noto Sans CJK JP | the GB 2312 level 1 hanzi the two faces above lack; Simplified Chinese forms |
+| `NotoSansArabic-Minimal.ttf` | Noto Sans Arabic | basic letters (with the Persian additions), vowel marks, digits and punctuation |
+| `NotoSansDevanagari-Minimal.ttf`, `NotoSansBengali-Minimal.ttf`, `NotoSansGurmukhi-Minimal.ttf` | the matching Noto Sans file | the script's main block |
+
+The Noto Sans CJK JP file is Noto's language-specific OTF: it holds every
+region's glyphs and reaches the Korean and Chinese forms through its `locl`
+feature. The script writes the forms of the face's language into its
+character map, so the Korean and Chinese faces draw the regional glyphs with
+no shaping. The minimal faces keep no presentation forms and no layout tables:
+the text engine draws Arabic and the Indic scripts unshaped (owner, 2026-11-16).
+The CJK faces keep no layout tables either.
+
+Each subset is a Modified Version under SIL OFL 1.1. Neither Noto licence text
+(`OFL-NotoSansCJKjp.txt`, `OFL-Noto.txt`) declares a Reserved Font Name. The
+subsets keep their Noto family names. The Korean and Chinese faces are named
+"Noto Sans CJK KR" and "Noto Sans CJK SC" after the forms they draw. Each
+keeps the copyright, licence and trademark ("Noto is a trademark of Google
+Inc.") name records. Source URLs, digests and each subset's SHA-256 are in
+`language-font-provenance.json`.
 
 ## Font substitution faces (stage F)
 

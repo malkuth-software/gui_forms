@@ -33,14 +33,23 @@ void RadioButton::set_checked_without_exclusion(bool checked_value) {
 }
 
 void RadioButton::clear_checked_peer() {
+    // Held, and the siblings copied, before any peer's checked_changed
+    // runs: a handler may add or remove controls in the same parent (the
+    // child list's storage moves) or drop this button (A-gf-controls-01-F1).
+    const Control::Ptr retained = weak_from_this().lock();
     const Control::Ptr owner = parent();
     if (!owner) return;
-    for (const Control::Ptr& sibling : (*owner).children()) {
+    const std::size_t count = (*owner).child_count();
+    std::vector<Control::Ptr> siblings;
+    siblings.reserve(count);
+    for (std::size_t index = 0; index < count; ++index) siblings.push_back((*owner).child_at(index));
+    for (const Control::Ptr& sibling : siblings) {
         std::shared_ptr<gui_forms::RadioButton> peer = std::dynamic_pointer_cast<RadioButton>(sibling);
         if (peer && peer.get() != this && (*peer).group_name.read() == group_name.read() &&
             (*peer).checked_) {
             (*peer).set_checked_without_exclusion(false);
-            if (!is_alive()) {
+            // Stop when this button died or left the parent it cleared for.
+            if (!is_alive() || parent() != owner) {
                 return;
             }
         }
@@ -54,6 +63,9 @@ void RadioButton::write_view(const decltype(checked)&, bool incoming) {
     if (checked_ == incoming) {
         return;
     }
+    // Held across the peers' handlers, so is_alive() below reads a live
+    // object (A-gf-controls-01-F1).
+    const Control::Ptr retained = weak_from_this().lock();
     if (incoming) {
         clear_checked_peer();
         if (!is_alive()) {
@@ -80,17 +92,17 @@ void RadioButton::written(const decltype(group_name)&) {
 namespace {
 
 constexpr std::array<PartField<RadioButton::Parts>, 6> radio_button_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::well},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::indicator},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::label},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RadioButton::Parts::focus},
 }};
 
@@ -117,6 +129,7 @@ constexpr ControlAnatomy radio_button_anatomy{
     .parts = radio_button_parts,
     .states = radio_button_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -153,11 +166,11 @@ void RadioButton::publish_part_geometry(std::span<PartGeometry> geometry) const 
     record.region = PartGeometry::from_bounds(bounds);
     record.well = PartGeometry::from_bounds(well);
     record.indicator = PartGeometry::from_bounds(mark);
-    if (layout.image.has_value()) {
-        record.icon = PartGeometry::from_bounds(*layout.image);
+    if (layout.image.present()) {
+        record.icon = PartGeometry::from_bounds(*layout.image.value());
     }
-    if (layout.text.has_value()) {
-        record.label = PartGeometry::from_bounds(*layout.text);
+    if (layout.text.present()) {
+        record.label = PartGeometry::from_bounds(*layout.text.value());
     }
     record.focus = PartGeometry::from_bounds(bounds);
     write_parts(anatomy(), radio_button_part_fields, record, geometry);
@@ -201,21 +214,21 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     const Rect laid_box{1.0, top, indicator_width, 15.0};
     const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
     if (has_style_override()) {
         const BasicControlStyle& colors = style();
-        ground = colors.paper;
-        ink = colors.text;
+        ground.set(colors.paper);
+        ink.set(colors.text);
     }
     PartPaint well;
     well.family = ControlVisualRole::choice;
     well.role = PartRole::well;
     well.bounds = box;
     well.states = states;
-    well.corner_radius = 7.5;
+    well.corner_radius.set(7.5);
     well.authored_background = ground;
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     if (toggle || checked_) {
         PartPaint indicator;
@@ -223,7 +236,7 @@ void RadioButton::on_paint(Painter& painter, Rect) {
         indicator.role = PartRole::indicator;
         indicator.states = states;
         indicator.authored_foreground = ink;
-        indicator.key = PartKey{"indicator", {}, {}};
+        indicator.key.set(PartKey{"indicator", {}, {}});
         Rect laid_mark{};
         if (toggle) {
             const double knob_x = checked_ ? laid_box.x + laid_box.width - 13.0 : laid_box.x + 2.0;
@@ -249,14 +262,17 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     focus.role = PartRole::focus;
     focus.bounds = bounds;
     focus.states = states;
-    focus.key = PartKey{"focus", {}, {}};
+    focus.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, focus);
 }
 
 Insets RadioButton::visual_outsets() const noexcept {
     const ControlVisualContext context = visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked_, .focused = focus_cue_visible()});
+    // The control's box encloses the glyph's (surface_material_painting.hpp).
+    const Rect arranged = committed_arranged_bounds();
     return surface_material_visual_outsets(
-        effective_theme().resolve(ControlVisualRole::choice, context).material);
+        effective_theme().resolve(ControlVisualRole::choice, context).material,
+        Size{arranged.width, arranged.height});
 }
 
 void RadioButton::on_activate() {

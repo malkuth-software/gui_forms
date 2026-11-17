@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // One window's records of the parts the engine has painted with a key (T2
@@ -107,7 +109,7 @@ struct GUI_FORMS_API CachedPartRaster final {
     // Set when `raster` drew a procedural fill's ground because its pattern
     // was not ready (E10): the table's pattern generation then. Such a
     // raster is current only until the table makes another pattern.
-    std::optional<std::uint64_t> awaited_patterns{};
+    stxlib::Optional<std::uint64_t> awaited_patterns{};
     // Whether `raster` is one of the table's shared bakes (a keyframe): it
     // then counts against shared_bake_budget_bytes, not the part cache's,
     // and is never drawn over.
@@ -140,6 +142,8 @@ struct GUI_FORMS_API AssembledPartMaterial final {
     std::uint64_t inline_serial{};
     // The serial of the part's user theme, or 0 (T3 user themes).
     std::uint64_t user_serial{};
+    // The serial of the part's composite look, or 0 (Control::look_rules).
+    std::uint64_t look_serial{};
     std::array<const MaterialDeclaration*, material_field_count> fields{};
     Size box{};
     // The part's em and text colour, where a field reads them (T3 P8c);
@@ -156,7 +160,7 @@ struct GUI_FORMS_API AssembledPartMaterial final {
 // assembly) and whether it holds one yet.
 struct GUI_FORMS_API UnkeptPartAssembly final {
     AssembledPartMaterial assembled{};
-    std::optional<ControlVisualRole> darkened{};
+    stxlib::Optional<ControlVisualRole> darkened{};
     bool filled{};
 };
 
@@ -179,7 +183,7 @@ struct GUI_FORMS_API PartTransitionChannel final {
     std::size_t parameter{};
     std::uint64_t rules_serial{};
     std::size_t machine{};
-    std::optional<std::size_t> state{};
+    stxlib::Optional<std::size_t> state{};
     std::optional<MotionValue> value{};
 };
 
@@ -216,7 +220,7 @@ struct GUI_FORMS_API EnginePartRecord final {
     std::string part;
     std::string item;
     // Set only for the index fallback (PartKey::index_fallback).
-    std::optional<std::size_t> item_index{};
+    stxlib::Optional<std::size_t> item_index{};
     // The states the part was last painted in.
     AnatomyStateSet states{};
     // What the part's primitive derived for its geometry; empty until a
@@ -265,7 +269,7 @@ struct GUI_FORMS_API EnginePartRecord final {
     AnatomyStateSet face_states{};
     // The states whose keyframes were last queued for idle frames (E7r):
     // queued again when the part's states change.
-    std::optional<AnatomyStateSet> keyframe_states{};
+    stxlib::Optional<AnatomyStateSet> keyframe_states{};
     // Whether the part's last paint had an ambient effect, and whether that
     // effect was refused for its area (E7). An ambient part repaints when
     // ambient motion resumes; a refusal is counted once, when it begins.
@@ -429,6 +433,9 @@ struct GUI_FORMS_API RasterCacheStatistics final {
     std::size_t finish_tiles{};
     std::size_t finish_tile_bytes{};
     std::size_t finish_tiles_queued{};
+    // Idle frames whose finish tiles were painted on the bake pool, two
+    // tiles or more at once (EnginePartTable::set_finish_bake_threads).
+    std::uint64_t finish_tile_parallel_batches{};
 };
 
 // One backplane image's region (E9-B): `extent` device pixels at `scale`,
@@ -502,6 +509,11 @@ inline constexpr std::uint64_t finish_tile_idle_effort = 16'000'000U;
 // The most parts waiting for finish tiles at once; a part beyond it is
 // repainted when the window next repaints it.
 inline constexpr std::size_t maximum_finish_tile_waiters = 32U;
+// The most threads a window's finish-tile bake pool runs (claude/geometry-1,
+// parallel material bakes). By default the pool has one thread per
+// hardware thread less one, at most this many; fewer than two bakes
+// serially on the window's thread.
+inline constexpr std::uint32_t maximum_finish_bake_threads = 4U;
 
 // What EnginePartTable::generate_pattern did (E10): nothing was queued
 // (none); a pattern was made, and the parts whose rasters drew a ground
@@ -526,6 +538,12 @@ public:
     // The table keeps at most `item_record_cap` item-part records (at least
     // 1); the window's table uses maximum_item_part_records.
     explicit EnginePartTable(std::size_t item_record_cap = maximum_item_part_records) noexcept;
+    // Joins the finish-tile bake pool's idle threads, if one was made.
+    ~EnginePartTable();
+    EnginePartTable(const EnginePartTable&) = delete;
+    EnginePartTable& operator=(const EnginePartTable&) = delete;
+    EnginePartTable(EnginePartTable&&) = delete;
+    EnginePartTable& operator=(EnginePartTable&&) = delete;
 
     // The record for `control_id` and `key`, made if there is none, and
     // marked the most recently painted item record when it is an item's. A
@@ -538,7 +556,7 @@ public:
 
     // The live record for `control_id` and `key`, if there is one. For
     // inspection: it builds its lookup text in a string of its own.
-    [[nodiscard]] std::optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const;
+    [[nodiscard]] stxlib::Optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const;
 
     // The record a handle names, or null when the handle is stale (its
     // record was released) or names no slot. The pointer is valid until the
@@ -619,10 +637,34 @@ public:
     // it returns true when it held a tile and the queue is then empty: the
     // waiters are to be repainted (take_finish_tile_waiters), once for the
     // whole queue rather than once a tile. Allocation failure propagates
-    // as std::bad_alloc and leaves the tile being painted unheld.
+    // as std::bad_alloc and leaves this frame's tiles unheld (their keys
+    // are queued again when a paint next asks for them).
+    //
+    // Parallel material bakes (claude/geometry-1): an idle frame's tiles
+    // are chosen, their rasters made and their room found first, in queue
+    // order, on the window's thread; then each is painted with its own
+    // scratch rows, on the table's bake pool when two or more are chosen
+    // and a pool runs, else in turn on the window's thread; then they are
+    // held in queue order. A tile's pixels depend on its key alone, so the
+    // tiles held, their order and their bytes are the same however the
+    // frame was painted. While the pool paints, each task reads only its
+    // tile's key and writes only its tile's raster and scratch; the window's
+    // thread waits for every task (AtomicThreadPool::run returns after the
+    // last), and nothing else in the table is read or written meanwhile.
+    // A pool that cannot start or run paints the frame on the window's
+    // thread instead.
     [[nodiscard]] std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter,
                                                                 std::uint64_t paint_sequence);
     bool generate_finish_tiles(std::uint64_t paint_sequence);
+    // The bake pool's threads: 0 chooses the default (one per hardware
+    // thread less one, at most maximum_finish_bake_threads); 1 paints every
+    // tile on the window's thread; more are capped at
+    // maximum_finish_bake_threads. The pool is made when a frame first
+    // needs it and kept for the table's life; a change joins and drops a
+    // pool already made (no batch is in flight then, since a batch ends
+    // before generate_finish_tiles returns). Shutdown: the table's
+    // destructor joins the pool's idle threads.
+    void set_finish_bake_threads(std::uint32_t threads);
     [[nodiscard]] bool finish_tiles_waiting() const noexcept;
     // Moves the parts waiting for finish tiles into `waiters` (cleared
     // first) and forgets them.
@@ -639,8 +681,10 @@ public:
     // again, and bakes again the slice reference it is assembled from. A
     // stale handle does nothing.
     void invalidate_raster(PartRecordHandle handle) noexcept;
-    // Makes every cached raster stale and drops every slice reference, as
-    // when the theme changes.
+    // Makes every cached raster stale and drops every slice reference and
+    // queued keyframe, as when the theme changes. Held and queued
+    // procedural patterns and finish tiles depend on their keys alone and
+    // are kept.
     void invalidate_rasters() noexcept;
 
     [[nodiscard]] RasterCacheStatistics cache_statistics() const noexcept { return statistics_; }
@@ -779,14 +823,14 @@ private:
     // (E10), and reset otherwise.
     [[nodiscard]] RasterOutcome draw(const PartRasterRequest& request, PrimitivePreparation& preparation,
                                      const PartRasterView& destination, std::uint64_t paint_sequence, bool refresh,
-                                     std::optional<std::uint64_t>& awaited);
+                                     stxlib::Optional<std::uint64_t>& awaited);
     // The held shared bake answering `request`, or one baked and held now
     // (again in place of the held one when `refresh`); null when the
     // primitive refuses it. `use` chooses the counters. `awaited` is set
     // as draw sets it, from the held bake's record when one answers.
     [[nodiscard]] std::shared_ptr<PartRaster> shared_bake(const PartRasterRequest& request,
                                                           std::uint64_t paint_sequence, bool refresh, SharedUse use,
-                                                          std::optional<std::uint64_t>& awaited);
+                                                          stxlib::Optional<std::uint64_t>& awaited);
     // Evicts the least recently used shared bakes and image variants until
     // `incoming` more bytes fit shared_bake_budget_bytes.
     void make_shared_room(std::size_t incoming) noexcept;
@@ -811,8 +855,8 @@ private:
     // of the window's images are dropped first. A procedural pattern not
     // held is queued instead and not lent (E10). Returns the pattern
     // generation when a pattern was not lent, else none.
-    std::optional<std::uint64_t> lend_image_variants(const PartRasterRequest& request,
-                                                     std::uint64_t paint_sequence, LentImageVariants& lent);
+    stxlib::Optional<std::uint64_t> lend_image_variants(const PartRasterRequest& request,
+                                                        std::uint64_t paint_sequence, LentImageVariants& lent);
     // Counts a bake of `request` whose primitive asked for an image mask's
     // variant (image_mask_variant_layer) that `lent` does not hold: it was
     // drawn unmasked (E9.6).
@@ -859,7 +903,7 @@ private:
     // so lookups scan them. Made from the window's images at
     // image_variant_revision_ (none before the first).
     std::vector<HeldImageVariant> image_variants_;
-    std::optional<std::uint64_t> image_variant_revision_{};
+    stxlib::Optional<std::uint64_t> image_variant_revision_{};
     // Procedural patterns (E10) are held among image_variants_ (their
     // requests' `procedural` set) and are kept when the images or the
     // theme change. Patterns waiting for idle frames, oldest first; the
@@ -893,6 +937,13 @@ private:
     std::deque<FinishTileKey> finish_tile_queue_;
     std::vector<PartRecordHandle> finish_tile_waiters_;
     bool finish_tile_made_{};
+    // The finish-tile bake batch: its pool, its tiles' rasters and scratch
+    // rows and its tasks, kept and reused across idle frames (defined in
+    // engine_part_table.cpp); null until a frame first paints a tile.
+    struct FinishBakeBatch;
+    std::unique_ptr<FinishBakeBatch> finish_batch_;
+    // set_finish_bake_threads; 0 is the default.
+    std::uint32_t finish_bake_threads_{};
     // Keyframes waiting for idle frames, oldest first; each a request kept
     // as a cached raster's description, its raster null.
     std::deque<CachedPartRaster> idle_keyframes_;

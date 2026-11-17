@@ -106,7 +106,7 @@ void begin_cost_phase(CostProbe& probe) {
         cost_require(metrics.renderer_name.find("bundled fonts (optional Unicode fallback)") !=
             std::string::npos, "bundled fonts not ready; paint-cost interval rejected");
         cost_require(!model.focused_control(), "surrogate must have no focused control");
-        cost_require(!model.next_wake().has_value(), "surrogate acquired an autonomous deadline");
+        cost_require(model.next_wake().absent(), "surrogate acquired an autonomous deadline");
         if (index == 0U) {
             cost_require(window.isVisible && !model.occluded(), "primary must be visible");
             probe.primary = window;
@@ -129,7 +129,7 @@ void cost_tick(CostProbe& probe) {
     NSWindow* window = probe.primary;
     cost_require(window != nil && window.isVisible, "primary disappeared during interval");
     gui_forms::Window& model = *probe.models[0];
-    cost_require(!model.occluded() && !model.focused_control() && !model.next_wake().has_value(),
+    cost_require(!model.occluded() && !model.focused_control() && model.next_wake().absent(),
                  "focus, occlusion or autonomous scheduling changed during interval");
     const std::chrono::steady_clock::time_point expected = probe.started +
         cost_cadence * static_cast<std::int64_t>(probe.tick + 1U);

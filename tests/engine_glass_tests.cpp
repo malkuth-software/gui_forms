@@ -33,6 +33,7 @@
 
 #include "../src/core/engine/primitives/light/glass_primitive.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -42,6 +43,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -118,9 +120,9 @@ std::shared_ptr<PartRaster> draw_glass(const PrimitiveParameterBlock& parameters
     target.material = material;
     target.reduced_transparency = reduced;
     require(primitive.accepts(parameters, target), "glass accepts the target");
-    const std::optional<std::uint32_t> margin = primitive.backplane_margin(parameters, target.scale);
-    require(margin.has_value(), "glass samples the backplane");
-    target.backplane_margin = *margin;
+    const stxlib::Optional<std::uint32_t> margin = primitive.backplane_margin(parameters, target.scale);
+    require(margin.present(), "glass samples the backplane");
+    target.backplane_margin = (*margin.value());
     const DeviceExtent extent{static_cast<std::uint32_t>(logical.width * scale),
                               static_cast<std::uint32_t>(logical.height * scale)};
     std::shared_ptr<PartRaster> drawn = PartRaster::create(extent, target.scale);
@@ -157,7 +159,7 @@ void the_blur(bool printing) {
     const PrimitiveParameterBlock defaults = default_parameters(primitive.descriptor());
     // σ = blur × scale / 2; three boxes of 2h + 1, read 3h past each side.
     require(engine_primitives::glass_box_half(6.0, 1.0) == 3U, "blur 6 at scale 1 is a box of 7");
-    require(*primitive.backplane_margin(defaults, DeviceScale{1.0}) == 9U, "blur 6 at scale 1 reads 9 pixels past");
+    require(primitive.backplane_margin(defaults, DeviceScale{1.0}).take() == 9U, "blur 6 at scale 1 reads 9 pixels past");
     require(engine_primitives::glass_box_half(8.0, 2.0) == 8U, "blur 8 at scale 2 is a box of 17");
     require(engine_primitives::glass_box_half(0.0, 2.0) == 0U, "blur 0 is no blur");
 
@@ -341,8 +343,8 @@ public:
         part.role = PartRole::region;
         part.family = ControlVisualRole::card;
         part.bounds = face;
-        part.corner_radius = 6.0;
-        part.key = PartKey{"glass", {}, {}};
+        part.corner_radius.set(6.0);
+        part.key.set(PartKey{"glass", {}, {}});
         paint_part(painter, *this, part);
     }
     Rect face{20.0, 20.0, 100.0, 30.0};
@@ -363,7 +365,7 @@ std::unique_ptr<ThemeDefinition> glass_theme(double blur) {
     definition.id = "engine-glass";
     ThemeRule rule{};
     rule.label = "glass";
-    rule.selector.role = PartRole::region;
+    rule.selector.role.set(PartRole::region);
     rule.declarations.push_back(RuleDeclaration::primitive("glass"));
     rule.declarations.push_back(RuleDeclaration::number_value("blur", blur));
     definition.rules.rules.push_back(rule);

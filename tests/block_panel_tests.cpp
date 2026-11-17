@@ -16,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -225,7 +226,7 @@ void test_lines_and_shrink_to_fit() {
     (*line).text_align = TextAlignment::center;
     // A zero strut, so a line is as tall as its items (unset, the strut
     // would come from the panel's font).
-    (*line).line_strut = LineStrut{};
+    (*line).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{});
     (*root).add_child(line);
     BlockFlowItemLayout narrow{};
     narrow.width = px(100.0);
@@ -248,7 +249,7 @@ void test_lines_and_shrink_to_fit() {
     BlockFlowItemLayout atomic{};
     atomic.level = BlockFlowLevel::inline_level;
     (*root).set_item_layout(*fitted, atomic);
-    (*root).line_strut = LineStrut{};
+    (*root).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{});
 
     const std::unique_ptr<Window> held = std::make_unique<Window>(root, Size{800.0, 600.0});
     (*held).perform_layout();
@@ -259,13 +260,13 @@ void test_lines_and_shrink_to_fit() {
     require_bounds(*fitted, 0.0, 20.0, 30.0, 10.0, "an inline panel shrinks to fit its content");
 
     // A strut of 10 above and below: each line is 20 tall.
-    (*line).line_strut = LineStrut{10.0, 10.0, 0.0};
+    (*line).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{10.0, 10.0, 0.0});
     (*held).perform_layout();
     require_bounds(*line, 0.0, 0.0, 100.0, 40.0, "the strut sets each line's height");
     require_bounds(*boxes[2], 30.0, 20.0, 40.0, 10.0, "the item sits on the baseline");
     bool refused = false;
     try {
-        (*line).line_strut = LineStrut{-1.0, 0.0, 0.0};
+        (*line).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{-1.0, 0.0, 0.0});
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -343,7 +344,7 @@ void test_documented_examples() {
 
     std::shared_ptr<BlockPanel> row = make_control<BlockPanel>(StableId("doc.row"));
     (*row).text_align = TextAlignment::center;
-    (*row).line_strut = LineStrut{};
+    (*row).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{});
     const BlockFlowItemLayout atomic = inline_item(80.0, 20.0);
     std::vector<std::shared_ptr<Button>> row_buttons;
     for (int index = 0; index < 3; ++index) {

@@ -164,6 +164,14 @@ void test_ring_column() {
                 ring.written() == 12U,
             "a push larger than the ring keeps its newest");
     const std::array<float, 1> back{1.0F};
+    const std::uint64_t written_before = ring.written();
+    require(ring.check_push_overwrite(back) == SeriesEditOutcome::refused_order &&
+                ring.check_push_overwrite(huge) == SeriesEditOutcome::refused_order &&
+                ring.written() == written_before,
+            "check_push_overwrite reports a refusal and changes nothing");
+    const std::array<float, 1> onward{13.0F};
+    require(ring.check_push_overwrite(onward) == SeriesEditOutcome::applied && ring.written() == written_before,
+            "check_push_overwrite reports an accepted push and changes nothing");
     require(ring.push_overwrite(back) == SeriesEditOutcome::refused_order, "a monotone ring never goes back");
     require(ring.append(back) == SeriesEditOutcome::refused_mode, "a full ring refuses append");
 }
@@ -196,6 +204,13 @@ void test_lease_and_borrowed_views() {
     narrow.count = 2U;
     narrow.stride_bytes = 4U;
     require(validate_series_view(narrow) == SeriesViewCheck::stride_too_small, "a stride under the element refuses");
+    // A-gf-core-09-F4: an offset within one element of SIZE_MAX (a negative
+    // offset converted) overflows, whatever the count.
+    SeriesView<float> wrapped = view;
+    wrapped.offset_bytes = static_cast<std::size_t>(-4);
+    require(validate_series_view(wrapped) == SeriesViewCheck::size_overflow, "an offset that wraps refuses");
+    wrapped.count = 1U;
+    require(validate_series_view(wrapped) == SeriesViewCheck::size_overflow, "a single element past SIZE_MAX refuses");
     SeriesLease lease;
     const BorrowedSeries<float> borrowed(view, lease);
     {
@@ -234,6 +249,16 @@ void test_ring_channel() {
     const std::size_t taken = channel.consume(columns, scratch);
     require(taken == 8U && channel.statistics().overrun == 4U, "samples the producer lapped are counted as overrun");
     require(xs.read().at(ElementIndex{7U}) == 14.0, "the newest samples arrive");
+    // A-gf-controls-10-F3: a block whose x goes back (an acquisition
+    // restarted at zero) enters neither column, so x and y stay paired.
+    const std::size_t x_length = xs.length();
+    const std::size_t y_length = ys.length();
+    const double newest_y = ys.read().at(ElementIndex{y_length - 1U});
+    const std::array<double, 4> restarted{0.0, 50.0, 1.0, 51.0};
+    (*lease).write(restarted);
+    require(channel.consume(columns, scratch) == 0U && xs.length() == x_length && ys.length() == y_length &&
+                ys.read().at(ElementIndex{y_length - 1U}) == newest_y,
+            "a block the x column refuses does not enter the y column either");
     lease.reset();
     require(channel.acquire_write_lease() != nullptr, "an ended lease frees the channel");
 }
@@ -362,10 +387,51 @@ void test_tick_golden_tables() {
     request.categories = names;
     static_cast<void>(generate_ticks(horizontal(ScaleKind::category, -0.5, 2.5, 300.0), request, nullptr, named));
     require(tick_line(named) == "low mid high", "categories are labelled by name");
+    // A-gf-core-09-F5: a long category name is cut at its last whole UTF-8
+    // sequence: eleven three-byte characters (33 bytes) keep ten (30).
+    std::string long_name{};
+    for (std::size_t index = 0U; index < 11U; ++index) long_name += "\xE2\x82\xAC";
+    const std::array<std::string_view, 1> long_names{long_name};
+    TickRequest long_request{};
+    long_request.categories = long_names;
+    TickSet cut{};
+    static_cast<void>(generate_ticks(horizontal(ScaleKind::category, -0.5, 0.5, 300.0), long_request, nullptr, cut));
+    require(cut.major_count == 1U && cut.major[0].label.text() == std::string_view(long_name).substr(0U, 30U),
+            "a cut category name ends at a whole UTF-8 sequence");
     TickSet empty{};
     require(generate_ticks(horizontal(ScaleKind::linear, 0.0, 1.0, 0.5), request, nullptr, empty) ==
                 TickOutcome::too_small && empty.major_count == 0U,
             "a sub-unit extent has no ticks");
+    // A-gf-core-09-F2: a domain too narrow for its magnitude (tick positions
+    // past 2^53, where adding 1 does not move them) returns at once with no
+    // ticks instead of looping for ever or repeating one tick.
+    // Doubles near 1E17 are 16 apart, so [1E17, 1E17 + 16] is one ulp wide:
+    // its step is 5, and its first position, 2E16, is past 2^53.
+    TickSet noise{};
+    TickRequest plain{};
+    require(generate_ticks(horizontal(ScaleKind::linear, 1e17, 1e17 + 16.0, 300.0), plain, nullptr, noise) ==
+                    TickOutcome::too_small &&
+                noise.major_count == 0U && noise.minor_count == 0U && noise.step == 0.0,
+            "a constant with rounding noise has no ticks");
+    // Two ulp around 0.3 stay within 2^53 positions (step 5E-17, positions
+    // near 6E15), so the guard does not apply: the loops run over at most
+    // three exact positions and end. Their values may round together, so
+    // distinctness is not required here.
+    TickSet small_noise{};
+    static_cast<void>(generate_ticks(horizontal(ScaleKind::linear, 0.29999999999999993, 0.30000000000000004, 300.0),
+                                     plain, nullptr, small_noise));
+    require(small_noise.major_count <= 3U, "a constant with rounding noise near one ends after a few ticks");
+    // A few ulp of a large magnitude: whatever ticks remain are distinct.
+    TickSet far{};
+    static_cast<void>(generate_ticks(horizontal(ScaleKind::linear, 1e17, 1e17 + 64.0, 300.0), plain, nullptr, far));
+    bool distinct = far.minor_count < maximum_minor_ticks;
+    for (std::size_t index = 1U; index < far.major_count; ++index) {
+        if (!(far.major[index - 1U].value < far.major[index].value)) distinct = false;
+    }
+    for (std::size_t index = 1U; index < far.minor_count; ++index) {
+        if (far.minor[index - 1U] == far.minor[index]) distinct = false;
+    }
+    require(distinct, "a few ulp of a large magnitude give only distinct ticks");
 }
 
 void test_labels_never_overlap() {
@@ -385,6 +451,33 @@ void test_labels_never_overlap() {
         last_end = tick.device + width * 0.5;
     }
     require(ticks.label_every > 1U, "the axis was thinned");
+}
+
+std::string duration_line(ScaleKind kind, double minimum, double maximum, double width, double unit_seconds) {
+    TickSet ticks{};
+    TickRequest request{};
+    request.minimum_spacing = 50.0;
+    request.label_unit = TickLabelUnit::duration;
+    request.unit_seconds = unit_seconds;
+    static_cast<void>(generate_ticks(horizontal(kind, minimum, maximum, width), request, nullptr, ticks));
+    const std::string line = tick_line(ticks);
+    return line;
+}
+
+// The flame graph demonstrator's F8: duration labels take one unit per set,
+// chosen by the step, with the step's decimals in that unit.
+void test_duration_ticks() {
+    require(duration_line(ScaleKind::linear, 0.0, 3.0, 150.0, 1.0) == "0 s 1 s 2 s 3 s", "a 1 s step labels seconds");
+    require(duration_line(ScaleKind::linear, 0.0, 2.0, 400.0, 1e-3) == "0.0 ms 0.5 ms 1.0 ms 1.5 ms 2.0 ms",
+            "a half-millisecond step on a millisecond axis labels milliseconds");
+    require(duration_line(ScaleKind::linear, 0.0, 0.005, 250.0, 1e-3) ==
+                "0 \xC2\xB5s 1 \xC2\xB5s 2 \xC2\xB5s 3 \xC2\xB5s 4 \xC2\xB5s 5 \xC2\xB5s",
+            "a zoom to microseconds labels microseconds");
+    require(duration_line(ScaleKind::linear, 0.0, 30e-9, 300.0, 1.0) == "0 ns 5 ns 10 ns 15 ns 20 ns 25 ns",
+            "nanosecond steps label nanoseconds");
+    require(duration_line(ScaleKind::linear, 0.0, 3.0, 150.0, 0.0) == "0 1 2 3",
+            "a unit that is not positive labels plain numbers");
+    require(duration_line(ScaleKind::log10, 1.0, 1000.0, 300.0, 1.0) == "1 10 100 1000", "a log scale ignores the unit");
 }
 
 void test_civil_time() {
@@ -576,6 +669,16 @@ void test_occupancy_and_binning() {
     require(tally.binned == 5U && tally.below == 1U && tally.above == 1U && tally.gaps == 1U,
             "out-of-range values and gaps are counted apart");
     require(bin_values(values.read(), BinSpec{1.0, 1.0, 4U}, counts).refused, "an empty bin range is refused");
+    // bin_values adds to counts; bin_values_into counts afresh, and a
+    // refused spec leaves counts as they were.
+    static_cast<void>(bin_values(values.read(), BinSpec{0.0, 1.0, 4U}, counts));
+    require(counts == (std::array<std::uint64_t, 4>{2U, 2U, 2U, 4U}), "bin_values accumulates");
+    const BinTally fresh = bin_values_into(values.read(), BinSpec{0.0, 1.0, 4U}, counts);
+    require(counts == (std::array<std::uint64_t, 4>{1U, 1U, 1U, 2U}) && fresh.binned == 5U,
+            "bin_values_into clears before counting");
+    require(bin_values_into(values.read(), BinSpec{1.0, 1.0, 4U}, counts).refused &&
+                counts == (std::array<std::uint64_t, 4>{1U, 1U, 1U, 2U}),
+            "a refused spec leaves counts untouched");
     std::array<std::uint64_t, 4> grid_counts{};
     const BinTally two = bin_points(samples_of(xs, ys), BinSpec{0.0, 10.0, 2U}, BinSpec{0.0, 10.0, 2U}, grid_counts);
     require(two.binned == 5U && grid_counts[0] == 3U && grid_counts[3] == 2U, "two-dimensional bins are row-major");
@@ -669,6 +772,36 @@ void test_colormaps() {
             "a span maps through its scale's domain");
 }
 
+// The flame graph demonstrator's F7: a key's colour is stable and equal
+// names share it.
+void test_categorical_colors() {
+    require(category_key("") == 0xCBF29CE484222325ULL && category_key("a") == 0xAF63DC4C8601EC8CULL,
+            "category_key is FNV-1a 64");
+    require(category_key("render") == category_key(std::string("render")), "equal names give equal keys");
+    require(category_position(42U, 0U) == 0U, "no slots gives 0");
+    std::array<std::size_t, 8> counts{};
+    for (std::uint64_t key = 0U; key < 800U; ++key) {
+        const std::size_t slot = category_position(key, counts.size());
+        require(slot < counts.size(), "a position is a slot");
+        counts[slot] = counts[slot] + 1U;
+    }
+    for (const std::size_t count : counts) require(count > 60U && count < 140U, "consecutive keys spread over the slots");
+    Colormap qualitative{};
+    qualitative.kind = ColormapKind::qualitative;
+    qualitative.stop_count = 3U;
+    qualitative.stops[0].color = Color::rgba(1, 0, 0);
+    qualitative.stops[1].color = Color::rgba(0, 1, 0);
+    qualitative.stops[2].color = Color::rgba(0, 0, 1);
+    const std::uint64_t key = category_key("parse_header");
+    require(categorical_color(key, qualitative) == qualitative.stops[category_position(key, 3U)].color,
+            "a qualitative map gives the key's stop");
+    const Colormap& magma = built_in_colormap(BuiltInColormap::magma);
+    require(categorical_color(key, magma) == categorical_color(key, magma), "a continuous map samples the same place");
+    Colormap broken{};
+    broken.gap_color = Color::rgba(9, 9, 9);
+    require(categorical_color(key, broken) == broken.gap_color, "an invalid map gives its gap colour");
+}
+
 // -- view model --------------------------------------------------------------------------------
 
 PlotViewModel make_view_model() {
@@ -700,7 +833,7 @@ void test_view_model_gestures() {
     PlotViewModel boxed = make_view_model();
     static_cast<void>(boxed.pointer_pressed(Point{50.0, 25.0}, PlotPointerButton::secondary, PlotModifiers{}, plot));
     static_cast<void>(boxed.pointer_moved(Point{150.0, 75.0}));
-    require(boxed.drag_box().has_value() && (*boxed.drag_box()).width == 100.0, "a right drag shows a box");
+    require(boxed.drag_box().present() && (boxed.drag_box().take()).width == 100.0, "a right drag shows a box");
     const PlotViewChange box = boxed.pointer_released(Point{150.0, 75.0});
     require(box.view && boxed.x_axes()[0].range == (PlotRange{25.0, 75.0}) && boxed.y_axes()[0].range == (PlotRange{2.5, 7.5}),
             "a right drag zooms to the box");
@@ -710,8 +843,8 @@ void test_view_model_gestures() {
     static_cast<void>(query.pointer_pressed(Point{0.0, 0.0}, PlotPointerButton::secondary, control, plot));
     static_cast<void>(query.pointer_moved(Point{100.0, 50.0}));
     const PlotViewChange selected = query.pointer_released(Point{100.0, 50.0});
-    require(selected.selection && !selected.view && query.selection().has_value() &&
-                (*query.selection()).x == (PlotRange{0.0, 50.0}) && (*query.selection()).y == (PlotRange{5.0, 10.0}),
+    require(selected.selection && !selected.view && query.selection().present() &&
+                ((*query.selection().value())).x == (PlotRange{0.0, 50.0}) && ((*query.selection().value())).y == (PlotRange{5.0, 10.0}),
             "Ctrl and right drag queries without zooming");
     PlotViewModel clicked = make_view_model();
     static_cast<void>(clicked.pointer_pressed(Point{10.0, 10.0}, PlotPointerButton::primary, PlotModifiers{}, plot));
@@ -762,6 +895,56 @@ void test_view_model_locks_keys_and_follow() {
     require(!live.x_following(0U), "relaying the axes keeps the stopped state");
     static_cast<void>(live.key(PlotKey::end, PlotModifiers{}, none));
     require(live.x_following(0U) && live.follow_tail(30.0), "End resumes following");
+}
+
+// The flame graph demonstrator's F1: gestures in an x-axis zone move x
+// alone, and gesture axes confine every input change to one orientation.
+void test_view_model_single_axis() {
+    const PlotZone x_zone{PlotZoneKind::x_axis, 0U};
+    PlotViewModel panned = make_view_model();
+    static_cast<void>(panned.pointer_pressed(Point{100.0, 50.0}, PlotPointerButton::primary, PlotModifiers{}, x_zone));
+    static_cast<void>(panned.pointer_moved(Point{120.0, 30.0}));
+    static_cast<void>(panned.pointer_released(Point{120.0, 30.0}));
+    require(panned.x_axes()[0].range == (PlotRange{-10.0, 90.0}) && panned.y_axes()[0].range == (PlotRange{0.0, 10.0}),
+            "a primary drag in the x-axis zone pans x alone");
+    PlotViewModel zoomed = make_view_model();
+    static_cast<void>(zoomed.wheel(Point{50.0, 90.0}, 1.0, x_zone));
+    const PlotRange x = zoomed.x_axes()[0].range;
+    require(zoomed.y_axes()[0].range == (PlotRange{0.0, 10.0}), "the wheel in the x-axis zone keeps y");
+    require(std::fabs((25.0 - x.minimum) / x.extent() - 0.25) < 1e-9 && std::fabs(x.extent() - 100.0 / 1.1) < 1e-9,
+            "the wheel in the x-axis zone zooms x about the pointer");
+
+    PlotViewModel only = make_view_model();
+    only.set_gesture_axes(PlotGestureAxes::x_only);
+    require(only.gesture_axes() == PlotGestureAxes::x_only, "the gesture axes are kept");
+    const PlotZone plot{PlotZoneKind::plot, 0U};
+    static_cast<void>(only.pointer_pressed(Point{100.0, 50.0}, PlotPointerButton::primary, PlotModifiers{}, plot));
+    static_cast<void>(only.pointer_moved(Point{120.0, 40.0}));
+    static_cast<void>(only.pointer_released(Point{120.0, 40.0}));
+    require(only.x_axes()[0].range == (PlotRange{-10.0, 90.0}) && only.y_axes()[0].range == (PlotRange{0.0, 10.0}),
+            "x_only: a drag in the plot pans x alone");
+    static_cast<void>(only.wheel(Point{100.0, 50.0}, 1.0, PlotZone{PlotZoneKind::y_axis, 0U}));
+    require(only.y_axes()[0].range == (PlotRange{0.0, 10.0}), "x_only: the wheel on the y axis changes nothing");
+    const PlotDataBounds none{};
+    static_cast<void>(only.key(PlotKey::up, PlotModifiers{}, none));
+    require(only.y_axes()[0].range == (PlotRange{0.0, 10.0}), "x_only: Up changes nothing");
+    PlotViewModel boxed = make_view_model();
+    boxed.set_gesture_axes(PlotGestureAxes::x_only);
+    static_cast<void>(boxed.pointer_pressed(Point{50.0, 25.0}, PlotPointerButton::secondary, PlotModifiers{}, plot));
+    static_cast<void>(boxed.pointer_moved(Point{150.0, 75.0}));
+    static_cast<void>(boxed.pointer_released(Point{150.0, 75.0}));
+    require(boxed.x_axes()[0].range == (PlotRange{25.0, 75.0}) && boxed.y_axes()[0].range == (PlotRange{0.0, 10.0}),
+            "x_only: a box zoom takes the box's horizontal extent");
+    PlotDataBounds bounds{};
+    bounds.x[0] = PlotRange{0.0, 50.0};
+    bounds.y[0] = PlotRange{-1.0, 1.0};
+    static_cast<void>(boxed.fit(bounds));
+    require(boxed.y_axes()[0].range == (PlotRange{0.0, 10.0}), "x_only: a fit keeps y");
+    require(boxed.set_y_range(0U, PlotRange{2.0, 4.0}), "x_only: a program still sets y");
+    PlotViewModel vertical = make_view_model();
+    vertical.set_gesture_axes(PlotGestureAxes::y_only);
+    static_cast<void>(vertical.key(PlotKey::right, PlotModifiers{}, none));
+    require(vertical.x_axes()[0].range == (PlotRange{0.0, 100.0}), "y_only: Right changes nothing");
 }
 
 // -- legend and annotations -----------------------------------------------------------------------
@@ -1031,6 +1214,7 @@ int main() {
         test_scale_refusals();
         test_tick_golden_tables();
         test_labels_never_overlap();
+        test_duration_ticks();
         test_civil_time();
         test_time_ticks();
         test_axes_and_transform();
@@ -1040,8 +1224,10 @@ int main() {
         test_occupancy_and_binning();
         test_picker_matches_oracle();
         test_colormaps();
+        test_categorical_colors();
         test_view_model_gestures();
         test_view_model_locks_keys_and_follow();
+        test_view_model_single_axis();
         test_legend_and_annotations();
         test_signal_programs();
         test_signal_verification();

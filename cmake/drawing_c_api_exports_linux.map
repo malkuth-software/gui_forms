@@ -1,5 +1,0 @@
-/* GUI.Drawing C ABI: the one exported entry point (Linux; see drawing_c_api_exports_macos.txt). */
-{
-    global: gd_get_api_v0;
-    local: *;
-};

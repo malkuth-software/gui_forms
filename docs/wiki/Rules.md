@@ -21,7 +21,7 @@ const gf::RuleAddResult added = window.rules().add(rule);   // added.token, or a
   `command_executed`, `value_changed`. Conditions: `key_down`, `modifiers`,
   `hovering`, `pressed`, `focused`, `focus_within`, `enabled`, `visible`,
   `window_active`, `is_true`, `equals`, `dragging`, `drop_candidate`, each
-  with a `not_` form.
+  but `modifiers` with a negated form (`not_hovering`, `not_true`, ...).
 - **Actions** are named functions `void f(Context&, const gf::RuleFiring&)`
   or built-ins: `invoke(command)`, `set(value, x)`, `toggle(flag)`,
   `focus(c)`, `begin_keyboard_drag(c)`. No lambdas.
@@ -34,6 +34,6 @@ const gf::RuleAddResult added = window.rules().add(rule);   // added.token, or a
   `gf::on(window.rules(), gf::trigger::click(*ok), page, &search_now);`.
   For events outside the vocabulary, `gf::on(event, owner, &Owner::member)`.
 
-Form documents hold no rules in 0.5. The C ABI has `GF_TABLE_RULES`.
+Form documents hold no rules. The C ABI has `GF_TABLE_RULES`.
 
-Full page: [Rules](https://gui-forms.readthedocs.io/user/rules.html).
+Full page: [Rules](https://gui-forms.readthedocs.io/en/latest/user/rules.html).

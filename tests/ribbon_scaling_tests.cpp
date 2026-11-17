@@ -48,6 +48,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
 
@@ -110,19 +112,19 @@ RibbonCommandSpec large_button(const std::string& id, const std::string& text, s
 }
 
 RibbonCommandSpec small_button(const std::string& id, const std::string& text, std::uint32_t image = 1U) {
-    RibbonCommandSpec spec{.stable_id = id, .size = RibbonCommandSize::small, .command = command(id, text),
+    RibbonCommandSpec spec{.stable_id = id, .size = RibbonCommandSize::compact, .command = command(id, text),
                            .image = ImageId{image}};
     return spec;
 }
 
 RibbonCommandSpec icon_toggle(const std::string& id, const std::string& text, std::uint32_t image = 2U) {
-    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::toggle, .size = RibbonCommandSize::small,
+    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::toggle, .size = RibbonCommandSize::compact,
                            .command = command(id, text), .image = ImageId{image}, .show_label = false};
     return spec;
 }
 
 RibbonCommandSpec icon_menu(const std::string& id, const std::string& text) {
-    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::drop_down, .size = RibbonCommandSize::small,
+    RibbonCommandSpec spec{.stable_id = id, .kind = RibbonCommandKind::drop_down, .size = RibbonCommandSize::compact,
                            .text = text, .image = ImageId{3U}, .show_label = false,
                            .drop_down = {MenuItemSpec(id + ".item", MenuItemKind::command, command(id + ".c", "Item"),
                                                       "Item")}};
@@ -203,7 +205,7 @@ RibbonTabSpec wordpad_view() {
     zoom.commands.push_back(large_button("zoom-out", "Zoom out", 41U));
     zoom.commands.push_back(large_button("zoom-100", "100%", 42U));
     RibbonGroupLayout medium = layout_of(RibbonGroupSize::medium);
-    medium.command_sizes = {RibbonCommandSize::small, RibbonCommandSize::small, RibbonCommandSize::small};
+    medium.command_sizes = {RibbonCommandSize::compact, RibbonCommandSize::compact, RibbonCommandSize::compact};
     zoom.layouts = {layout_of(RibbonGroupSize::large), medium, layout_of(RibbonGroupSize::collapsed)};
     RibbonGroupSpec show{.stable_id = "show-hide", .caption = "Show or hide"};
     show.commands.push_back({.stable_id = "ruler", .kind = RibbonCommandKind::check_box, .text = "Ruler"});
@@ -244,7 +246,7 @@ RibbonTabSpec three_groups(std::vector<RibbonReductionStep> order) {
 const char* size_name(RibbonGroupSize size) {
     if (size == RibbonGroupSize::large) return "large";
     if (size == RibbonGroupSize::medium) return "medium";
-    if (size == RibbonGroupSize::small) return "small";
+    if (size == RibbonGroupSize::compact) return "small";
     return "collapsed";
 }
 
@@ -287,8 +289,9 @@ std::string number(double value) {
 // and every shown group as "<id> L<layout>|C x+width".
 std::string describe(const Ribbon& ribbon) {
     std::string line = "step=";
-    const std::optional<std::size_t> step = ribbon.ladder_step();
-    line += step ? std::to_string(*step) : std::string("none");
+    const stxlib::Optional<std::size_t> step = ribbon.ladder_step();
+    const std::size_t* const shown_step = step.value();
+    line += shown_step != nullptr ? std::to_string(*shown_step) : std::string("none");
     line += ribbon.scrolling() ? " scroll first=" + std::to_string(ribbon.first_visible_group()) : "";
     for (const Ribbon::Group& group : ribbon.realized_groups()) {
         line += " " + group.stable_id + " " + (group.collapsed ? std::string("C") : "L" + std::to_string(group.layout));
@@ -361,19 +364,19 @@ void generated_layouts() {
     const std::span<const RibbonGroupLayout> three = ribbon.group_layouts(0U, 0U);
     require(three.size() == 3U && three[0].size == RibbonGroupSize::large &&
                 three[1].size == RibbonGroupSize::medium && three[1].command_sizes.size() == 3U &&
-                three[1].command_sizes[0] == RibbonCommandSize::small &&
+                three[1].command_sizes[0] == RibbonCommandSize::compact &&
                 three[2].size == RibbonGroupSize::collapsed,
             "three large commands generate large, medium (all small) and collapsed layouts");
     const std::span<const RibbonGroupLayout> mixed_layouts = ribbon.group_layouts(0U, 3U);
     // Alpha L, Beta S, Gamma to Zeta L: Delta to Zeta shrink first, then
     // Gamma (its run stops at the small Beta), then Alpha, then collapsed.
     require(mixed_layouts.size() == 5U && mixed_layouts[1].command_sizes[2] == RibbonCommandSize::large &&
-                mixed_layouts[1].command_sizes[3] == RibbonCommandSize::small &&
-                mixed_layouts[1].command_sizes[5] == RibbonCommandSize::small &&
-                mixed_layouts[2].size == RibbonGroupSize::small &&
+                mixed_layouts[1].command_sizes[3] == RibbonCommandSize::compact &&
+                mixed_layouts[1].command_sizes[5] == RibbonCommandSize::compact &&
+                mixed_layouts[2].size == RibbonGroupSize::compact &&
                 mixed_layouts[2].command_sizes[0] == RibbonCommandSize::large &&
-                mixed_layouts[2].command_sizes[2] == RibbonCommandSize::small &&
-                mixed_layouts[3].command_sizes[0] == RibbonCommandSize::small &&
+                mixed_layouts[2].command_sizes[2] == RibbonCommandSize::compact &&
+                mixed_layouts[3].command_sizes[0] == RibbonCommandSize::compact &&
                 mixed_layouts[4].size == RibbonGroupSize::collapsed,
             "the rightmost run of up to three large commands shrinks first, then the next run");
     const std::span<const RibbonGroupLayout> single_layouts = ribbon.group_layouts(0U, 4U);
@@ -484,7 +487,7 @@ void refusals() {
     std::vector<RibbonTabSpec> count;
     count.push_back(three_groups({}));
     RibbonGroupLayout short_sizes = layout_of(RibbonGroupSize::medium);
-    short_sizes.command_sizes = {RibbonCommandSize::small};
+    short_sizes.command_sizes = {RibbonCommandSize::compact};
     count[0].groups[0].layouts = {layout_of(RibbonGroupSize::large), short_sizes};
     require(refused(ribbon, std::move(count)), "a layout without one size per command is refused");
     std::vector<RibbonTabSpec> rows;
@@ -530,6 +533,21 @@ void refusals() {
     wrong_form[0].groups[0].commands.push_back(
         {.stable_id = "g1", .kind = RibbonCommandKind::gallery, .gallery = drop_down});
     require(refused(ribbon, std::move(wrong_form)), "a drop-down gallery cannot sit in the ribbon");
+    // add_child refuses a disposed control; validation refuses it first, so
+    // the previous tabs are kept rather than half replaced
+    // (A-gf-controls-11-F1).
+    std::shared_ptr<RibbonGallery> disposed = make_control<RibbonGallery>(StableId("disposed"));
+    (*disposed).dispose();
+    std::vector<RibbonTabSpec> dead_gallery;
+    dead_gallery.push_back(three_groups({}));
+    dead_gallery[0].groups[0].commands.push_back(
+        {.stable_id = "g1", .kind = RibbonCommandKind::gallery, .gallery = disposed});
+    require(refused(ribbon, std::move(dead_gallery)), "a disposed gallery is refused");
+    std::shared_ptr<Panel> dead_panel = make_control<Panel>(StableId("dead.panel"));
+    (*dead_panel).dispose();
+    std::vector<RibbonTabSpec> dead_panel_tab;
+    dead_panel_tab.push_back(RibbonTabSpec{.stable_id = "panel.tab", .text = "Panel", .panel = dead_panel});
+    require(refused(ribbon, std::move(dead_panel_tab)), "a disposed tab panel is refused");
     require(ribbon.tabs().size() == 1U && ribbon.tabs()[0].reduction_order.empty() &&
                 ribbon.group_layouts(0U, 0U).size() == 3U,
             "every refusal keeps the previous tabs");
@@ -767,11 +785,11 @@ void golden_ladder() {
         const std::vector<RibbonLadderEntry> ladder = (*fixture.ribbon).reduction_ladder(0U);
         for (std::size_t entry = 0; entry < ladder.size(); ++entry) {
             resize(fixture, {ladder[entry].width, 400.0});
-            require((*fixture.ribbon).ladder_step() == entry && !(*fixture.ribbon).scrolling(),
+            require((*fixture.ribbon).ladder_step() == stxlib::Optional<std::size_t>::of(entry) && !(*fixture.ribbon).scrolling(),
                     "an entry shows at exactly its width");
             resize(fixture, {ladder[entry].width - 1.0, 400.0});
             const bool last = entry + 1U == ladder.size();
-            require(last ? (*fixture.ribbon).scrolling() : (*fixture.ribbon).ladder_step() == entry + 1U,
+            require(last ? (*fixture.ribbon).scrolling() : (*fixture.ribbon).ladder_step() == stxlib::Optional<std::size_t>::of(entry + 1U),
                     "one unit narrower shows the next entry, or scrolls after the last");
         }
     }
@@ -865,7 +883,7 @@ void scrolling_never_hides() {
     require(!ribbon.scrolling(), "approached from wider, the band does not scroll");
     resize(fixture, {narrowest - 2.0, 400.0});
     resize(fixture, {narrowest + 4.0, 400.0});
-    require(ribbon.scrolling() && ribbon.ladder_step() == std::size_t{ladder.size() - 1U} &&
+    require(ribbon.scrolling() && ribbon.ladder_step() == stxlib::Optional<std::size_t>::of(ladder.size() - 1U) &&
                 ribbon.realized_groups().size() < 5U,
             "approached from narrower, the band keeps scrolling with the right button over the last group");
 }
@@ -1172,7 +1190,7 @@ void panel_tab() {
     Ribbon& ribbon = *fixture.ribbon;
     require((*palette).parent() == fixture.ribbon && !(*palette).effectively_visible(),
             "a panel tab's control is the ribbon's child, hidden while another tab is selected");
-    ribbon.selected_tab = std::size_t{1U};
+    ribbon.selected_tab = stxlib::Optional<std::size_t>::of(1U);
     (*fixture.window).perform_layout();
     const Ribbon::Parts parts = ribbon.parts();
     require((*palette).effectively_visible() && parts.command_plane.present &&
@@ -1184,7 +1202,7 @@ void panel_tab() {
             "the panel follows the command plane's width");
     ribbon.set_tabs(tabs);
     (*fixture.window).perform_layout();
-    require((*palette).parent() == fixture.ribbon && ribbon.selected_tab.read() == std::size_t{1U} &&
+    require((*palette).parent() == fixture.ribbon && ribbon.selected_tab.read() == stxlib::Optional<std::size_t>::of(1U) &&
                 (*palette).effectively_visible(),
             "set_tabs carries the panel over by identity, with the selection");
     std::vector<RibbonTabSpec> with_groups = tabs;

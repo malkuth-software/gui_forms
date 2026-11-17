@@ -9,6 +9,8 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace gui_forms::host {
 
@@ -71,17 +73,39 @@ public:
     void set_supported_chrome(WindowChromeFields supported) noexcept { supported_chrome_ = supported; }
     [[nodiscard]] const WindowChrome& native_chrome() const noexcept { return native_chrome_; }
     [[nodiscard]] std::uint64_t chrome_requests() const noexcept { return chrome_requests_; }
+    // The simulated pointer's relative mode: the last request
+    // set_relative_pointer applied (inactive until one), and where the last
+    // warp put the pointer (empty until one). Tests then dispatch the
+    // samples themselves (HostRelativeMotionEvent).
+    [[nodiscard]] const HostRelativePointerRequest& relative_pointer_request() const& noexcept {
+        return relative_pointer_request_;
+    }
+    const HostRelativePointerRequest& relative_pointer_request() const&& = delete;
+    [[nodiscard]] std::optional<Point> last_pointer_warp() const noexcept { return last_pointer_warp_; }
+    // The addresses open_url accepted, oldest first; nothing is opened.
+    [[nodiscard]] const std::vector<std::string>& opened_urls() const& noexcept { return opened_urls_; }
+    const std::vector<std::string>& opened_urls() const&& = delete;
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
     [[nodiscard]] HostServiceStatus set_cursor_impl(CursorKind cursor) override;
     [[nodiscard]] HostServiceStatus set_pointer_capture_impl(
         bool captured, std::uint64_t pointer_id) override;
+    [[nodiscard]] HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request) override;
+    [[nodiscard]] HostServiceStatus warp_pointer_impl(Point position) override;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    [[nodiscard]] HostServiceStatus open_url_impl(std::string_view url_utf8) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     [[nodiscard]] HostClipboardTextResult read_clipboard_text_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) override;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     [[nodiscard]] HostClipboardImageResult read_clipboard_image_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+#endif
     [[nodiscard]] HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) override;
     [[nodiscard]] HostServiceStatus play_sound_cue_impl(
@@ -107,6 +131,9 @@ private:
         HostTrayIconRequest request;
     };
     std::vector<HostMonitor> monitors_;
+    HostRelativePointerRequest relative_pointer_request_{};
+    std::optional<Point> last_pointer_warp_{};
+    std::vector<std::string> opened_urls_{};
     // The clipboard's image; absent while it holds none.
     std::optional<HostImage> clipboard_image_;
     std::string clipboard_text_;

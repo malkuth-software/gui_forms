@@ -2,9 +2,12 @@
 
 include(CMakeFindDependencyMacro)
 find_dependency(Threads)
+# STXlib, installed with the stx packages: the static Controls link it.
+find_dependency(stxlib CONFIG)
 find_dependency(stx_zlib CONFIG)
 find_dependency(stx_png CONFIG)
 find_dependency(stx_conv CONFIG)
+find_dependency(stx_raster3d CONFIG)
 find_dependency(stx_rtf2md CONFIG)
 # The stx package's red/blue swap kernel, installed beside the static Core and
 # Controls that link it (CMakeLists.txt), under the name GUIFormsTargets uses.
@@ -19,6 +22,10 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsApplicationTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsApplicationTargets.cmake")
 endif()
 # The optional lab library (audit F9), installed with GUI_FORMS_INSTALL_LAB.
+# `import gui_forms;`: present when the SDK was built with GUI_FORMS_BUILD_MODULE.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsModuleTargets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsModuleTargets.cmake")
+endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsLabTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsLabTargets.cmake")
 endif()
@@ -42,9 +49,14 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsAudioTargets.cmake")
 endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextMasksTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextMasksTargets.cmake")
-endif()
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
-    include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
+    # The text masks are inside the Application library (one module), so
+    # TextMasks is an interface on it. The link is made here, after both are
+    # imported, because the build's export cannot name GUIForms::Application
+    # (cmake/ApplicationText.cmake); a consumer linking only TextMasks still
+    # gets the headers and the library.
+    if(TARGET GUIForms::TextMasks AND TARGET GUIForms::Application)
+        set_property(TARGET GUIForms::TextMasks APPEND PROPERTY INTERFACE_LINK_LIBRARIES GUIForms::Application)
+    endif()
 endif()
 # The Gallery model (GUI_FORMS_INSTALL_GALLERY_MODEL): a static library that
 # names no GUI.Forms library; link it with Application (a program) or Controls
@@ -52,11 +64,15 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsGalleryModelTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsGalleryModelTargets.cmake")
 endif()
-# The C ABI (cmake/CAbi.cmake): a shared library with a C header. It links the
-# Application library (one engine per process), so it is installed only with it.
-# Its conformance kit, GUIForms::CAbiConformance, is a static library that
-# links Threads (found above).
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake" AND TARGET GUIForms::Application)
+# The C ABI (cmake/CAbi.cmake): the one self-contained shared library a C or
+# C# program loads, with the C headers gui_forms/c/*.h, the drawing ABI
+# (gui_forms/drawing_c_api.h) and its raster (the drawing table's
+# raster_initialize) folded in. It holds its own engine and
+# imports only system libraries, so it names no other GUIForms target. Its
+# conformance kit, GUIForms::CAbiConformance, is a static library that links
+# Threads (found above). A process uses either this library or a statically
+# linked C++ engine, never both.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake")
 endif()
 
@@ -123,9 +139,12 @@ function(gui_forms_verify_effects target)
                  COMPILE_DEFINITIONS GUI_FORMS_EFFECTS_UNVERIFIED)
 endfunction()
 
+# The bundled faces' licences and attribution. Since font pack stage 4 no face file is installed:
+# the libraries read every face from the font pack compiled into them.
 set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fonts")
-# Whether the producer installed the Noto fallback faces (install component fallback_fonts,
-# GUI_FORMS_INSTALL_FALLBACK_FONTS). Without them the runtime falls back as for any missing face.
+# Whether the producer embedded the Noto fallback faces and installed their licences (install
+# component fallback_fonts, GUI_FORMS_INSTALL_FALLBACK_FONTS). Without them the runtime falls back
+# as for any missing face.
 set(GUIForms_FALLBACK_FONTS @GUI_FORMS_INSTALL_FALLBACK_FONTS@)
 # Whether the producer was built with checked borrowed views (the sanitizer
 # tree, GUI_FORMS_CHECKED_BORROWS). A consumer is built the same way: the
@@ -143,9 +162,30 @@ if(GUIForms_CHECKED_BORROWS)
     unset(_gui_forms_borrow_target)
 endif()
 
+# Whether the producer was built in the high-integrity configuration
+# (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake), and with which
+# allowances. Its public headers declare fewer entries in that mode, so a
+# consumer compiles them the same way; a consumer built the other way fails at
+# link time (gui_forms_build_profile_*_v1, gui_forms/build_profile/build_profile.hpp).
+set(GUIForms_HIGH_INTEGRITY @GUI_FORMS_HIGH_INTEGRITY@)
+set(GUIForms_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT @GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT@)
+if(GUIForms_HIGH_INTEGRITY)
+    foreach(_gui_forms_profile_target IN ITEMS Core Controls Application)
+        if(TARGET GUIForms::${_gui_forms_profile_target})
+            set_property(TARGET GUIForms::${_gui_forms_profile_target} APPEND PROPERTY
+                         INTERFACE_COMPILE_DEFINITIONS GUI_FORMS_HIGH_INTEGRITY=1)
+            if(GUIForms_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+                set_property(TARGET GUIForms::${_gui_forms_profile_target} APPEND PROPERTY
+                             INTERFACE_COMPILE_DEFINITIONS GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT=1)
+            endif()
+        endif()
+    endforeach()
+    unset(_gui_forms_profile_target)
+endif()
+
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.
-foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi CAbiConformance GalleryModel Lab DemoControls)
+foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading HostedClient Application Audio TextMasks AudioLoopTransport CAbi CAbiConformance GalleryModel Lab DemoControls)
     if(TARGET GUIForms::${_gui_forms_component})
         set(GUIForms_${_gui_forms_component}_FOUND TRUE)
     else()
@@ -155,7 +195,7 @@ endforeach()
 foreach(_gui_forms_component IN LISTS GUIForms_FIND_COMPONENTS)
     if(NOT GUIForms_${_gui_forms_component}_FOUND)
         set(GUIForms_NOT_FOUND_MESSAGE
-            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
+            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components (the drawing ABI is part of CAbi); HostedClient is the hosted program's library. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
     endif()
 endforeach()
 unset(_gui_forms_component)

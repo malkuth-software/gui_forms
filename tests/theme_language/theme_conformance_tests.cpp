@@ -38,6 +38,7 @@
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -193,7 +194,7 @@ std::string selector_text(const RuleSelector& selector) {
     if (!selector.stable_id.empty()) text += "id=" + selector.stable_id + " ";
     for (const std::string& name : selector.classes) text += "class=" + name + " ";
     if (!selector.part.empty()) text += "part=" + selector.part + " ";
-    if (selector.role) text += "role=" + std::string(part_role_name(*selector.role)) + " ";
+    if (selector.role.present()) text += "role=" + std::string(part_role_name(*selector.role.value())) + " ";
     if (!selector.states.empty()) text += "states=" + states_text(selector.states) + " ";
     if (!selector.custom_states.empty()) text += "custom=" + custom_states_text(selector.custom_states) + " ";
     if (!selector.family.empty()) text += "family=" + selector.family + " ";
@@ -224,11 +225,11 @@ std::string selector_text(const RuleSelector& selector) {
 std::string media_text(const MediaCondition& media) {
     if (media_condition_unconditional(media)) return "";
     std::string text = "  media";
-    if (media.dark_scheme) text += *media.dark_scheme ? " dark" : " light";
-    if (media.forced_colours) text += *media.forced_colours ? " forced" : " unforced";
-    if (media.reduced_motion) text += *media.reduced_motion ? " reduced" : " full-motion";
-    if (media.minimum_resolution) text += " min=" + number_text(*media.minimum_resolution);
-    if (media.maximum_resolution) text += " max=" + number_text(*media.maximum_resolution);
+    if (media.dark_scheme.present()) text += *media.dark_scheme.value() ? " dark" : " light";
+    if (media.forced_colours.present()) text += *media.forced_colours.value() ? " forced" : " unforced";
+    if (media.reduced_motion.present()) text += *media.reduced_motion.value() ? " reduced" : " full-motion";
+    if (media.minimum_resolution.present()) text += " min=" + number_text(*media.minimum_resolution.value());
+    if (media.maximum_resolution.present()) text += " max=" + number_text(*media.maximum_resolution.value());
     return text + "\n";
 }
 
@@ -294,7 +295,7 @@ std::string transition_text(const PropertyTransition& transition) {
     std::string text = "  transition " + transition.property + " " + curve_text(transition.curve) + "\n";
     for (const PresentationState& state : transition.states) {
         text += "    state when=" + states_text(state.when) + " target=" + number_text(state.target);
-        if (state.enter_from) text += " from=" + number_text(*state.enter_from);
+        if (state.enter_from.present()) text += " from=" + number_text(*state.enter_from.value());
         if (state.target_em != 0.0) text += " target-em=" + number_text(state.target_em);
         if (state.enter_from_em != 0.0) text += " from-em=" + number_text(state.enter_from_em);
         for (const MotionStop& stop : state.stops) {
@@ -331,23 +332,40 @@ std::string material_text(const MaterialDeclaration& declaration) {
     for (const MaterialImageRepeat repeat : declaration.image_repeats) {
         text += " repeat(" + std::to_string(static_cast<unsigned int>(repeat)) + ")";
     }
-    if (declaration.border_style) {
-        text += " border-style=" + std::to_string(static_cast<unsigned int>(*declaration.border_style));
+    if (declaration.border_style.present()) {
+        text += " border-style=" + std::to_string(static_cast<unsigned int>(*declaration.border_style.value()));
     }
     if (declaration.edge_lines != MaterialEdgeLines::single) {
         text += " edge-lines=" + std::to_string(static_cast<unsigned int>(declaration.edge_lines));
     }
     if (declaration.border_image) text += " border-image";
-    if (declaration.drop_shadow) text += " drop-shadow";
-    if (declaration.mask) text += " mask";
-    if (declaration.reflection) {
-        const MaterialReflection& reflection = *declaration.reflection;
+    if (declaration.drop_shadow.present()) text += " drop-shadow";
+    if (declaration.masks.size() == 1U) text += " mask";
+    if (declaration.masks.size() > 1U) text += " masks=" + std::to_string(declaration.masks.size());
+    for (const MaterialMaskMode mode : declaration.mask_modes) {
+        text += " mode(" + std::to_string(static_cast<unsigned int>(mode)) + ")";
+    }
+    for (const MaterialMaskComposite composite : declaration.mask_composites) {
+        text += " composite(" + std::to_string(static_cast<unsigned int>(composite)) + ")";
+    }
+    if (declaration.reflection.present()) {
+        const MaterialReflection& reflection = (*declaration.reflection.value());
         text += " reflection edge=" + std::to_string(static_cast<unsigned int>(reflection.edge)) + " opacities=" +
                 number_text(reflection.start_opacity) + "," + number_text(reflection.end_opacity);
         if (reflection.source == MaterialReflectionSource::backplane) text += " source=backplane";
     }
     if (declaration.dither != MaterialDither::none) {
         text += " dither=" + std::to_string(static_cast<unsigned int>(declaration.dither));
+    }
+    if (!declaration.transform.identity()) {
+        const std::array<double, 4> entries{declaration.transform.xx, declaration.transform.yx,
+                                            declaration.transform.xy, declaration.transform.yy};
+        text += " transform=" + numbers_text(entries);
+    }
+    if (declaration.clip_path) {
+        const MaterialClipPath& clip = *declaration.clip_path;
+        text += " clip-path verbs=" + std::to_string(clip.verbs.size()) + " points=" +
+                std::to_string(clip.points.size()) + " rule=" + std::to_string(static_cast<unsigned int>(clip.rule));
     }
     if (declaration.number != 0.0) text += " number=" + number_text(declaration.number);
     if (declaration.relative) text += " relative";
@@ -401,6 +419,16 @@ std::string recipe_text(const RecipeDeclaration& declaration) {
         if (declaration.font_family.value != 0U) {
             text += " family=" + std::to_string(static_cast<unsigned int>(declaration.font_family.value));
         }
+        // The stack by its families: its number depends on registration order.
+        const FontFamilyStack stack = font_family_stack(declaration.font_stack);
+        if (stack.count != 0U) {
+            text += " stack=[";
+            for (std::size_t index = 0U; index < stack.count; ++index) {
+                if (index != 0U) text += ",";
+                text += std::to_string(static_cast<unsigned int>(stack.families[index].value));
+            }
+            text += "]";
+        }
     }
     if (declaration.field == RecipeField::font_style && declaration.italic) text += " italic";
     if (declaration.shadowed) {
@@ -416,26 +444,31 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     std::string text = "rule " + std::to_string(index) + " " + std::string(cascade_level_name(rule.level)) + " " +
                        selector_text(rule.selector) + "\n";
     text += "  label " + rule.label + "\n";
-    if (rule.specificity) {
-        const RuleSpecificity& given = *rule.specificity;
+    if (rule.specificity.present()) {
+        const RuleSpecificity& given = *rule.specificity.value();
         text += "  specificity " + std::to_string(given.ids) + "," + std::to_string(given.classes) + "," +
                 std::to_string(given.types) + "\n";
     }
-    if (rule.requires_engine) {
-        text += "  requires " + std::to_string((*rule.requires_engine).major) + "." +
-                std::to_string((*rule.requires_engine).minor) + "\n";
+    const EngineVersion* const needed = rule.requires_engine.value();
+    if (needed != nullptr) {
+        text += "  requires " + std::to_string((*needed).major) + "." + std::to_string((*needed).minor) + "\n";
     }
     text += media_text(rule.media);
     for (const RuleDeclaration& declaration : rule.declarations) text += declaration_text(declaration);
     for (const PropertyTransition& transition : rule.transitions) text += transition_text(transition);
-    if (rule.ambient) {
-        const AmbientEffect& ambient = *rule.ambient;
+    if (rule.ambient.present()) {
+        const AmbientEffect& ambient = *rule.ambient.value();
         text += "  ambient period=" + duration_text(ambient.period) + " fps=" + number_text(ambient.frames_per_second) +
                 " pose=" + duration_text(ambient.pose) + "\n";
     }
     for (const MaterialDeclaration& declaration : rule.materials) text += material_text(declaration);
     for (const RecipeDeclaration& declaration : rule.recipe_fields) text += recipe_text(declaration);
-    if (rule.backdrop) text += backdrop_text(*rule.backdrop);
+    if (rule.backdrop.present()) text += backdrop_text(*rule.backdrop.value());
+    // A control's content effect: its declarations as material_text
+    // prints them, after "content".
+    for (const MaterialDeclaration& declaration : rule.content_effect) {
+        text += "  content" + material_text(declaration).substr(1U);
+    }
     for (const ScopedDefinition& definition : rule.scoped_definitions) {
         text += "  defines " + definition.name + " #" + std::to_string(definition.definition) + "\n";
     }

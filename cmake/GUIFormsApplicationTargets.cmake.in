@@ -1,0 +1,32 @@
+# GUIForms::Application as the SDK installs it (cmake/ApplicationPackage.cmake):
+# the engine, linked statically into the program, which is then one module
+# holding one copy of every routine (owner decision, 2026-11-15).
+# GUIFormsConfig.cmake includes this file after GUIFormsTargets.cmake, whose
+# Threading and PlotPrimitives targets, and the STXlib and stx packages it
+# found, are named here.
+if(TARGET GUIForms::Application)
+    return()
+endif()
+include(CMakeFindDependencyMacro)
+@GUI_FORMS_PACKAGE_FIND_DEPENDENCIES@
+get_filename_component(_gui_forms_application_prefix
+    "${CMAKE_CURRENT_LIST_DIR}/@GUI_FORMS_PACKAGE_PREFIX_FROM_CONFIG@" ABSOLUTE)
+
+# stx_skia and the pinned text stack, linked ordinarily.
+add_library(GUIForms::ApplicationDependencies STATIC IMPORTED)
+set_target_properties(GUIForms::ApplicationDependencies PROPERTIES
+    IMPORTED_LOCATION "${_gui_forms_application_prefix}/@CMAKE_INSTALL_LIBDIR@/libgui_forms_application_deps.a"
+    IMPORTED_LINK_INTERFACE_LANGUAGES "C;CXX")
+
+# The engine archive is linked whole (the registries the archives fill at
+# static initialisation reach the controls and services); the program's
+# --gc-sections or -dead_strip removes what nothing reaches.
+add_library(GUIForms::Application INTERFACE IMPORTED)
+set_target_properties(GUIForms::Application PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${_gui_forms_application_prefix}/@CMAKE_INSTALL_INCLUDEDIR@"
+    INTERFACE_COMPILE_FEATURES "cxx_std_20"
+    INTERFACE_COMPILE_DEFINITIONS "@GUI_FORMS_PACKAGE_DEFINITIONS@"
+    INTERFACE_LINK_OPTIONS "@GUI_FORMS_PACKAGE_WHOLE_ARCHIVE@"
+    INTERFACE_LINK_LIBRARIES "GUIForms::ApplicationDependencies;GUIForms::Threading;GUIForms::PlotPrimitives;stxlib::boundary;stxlib::state;stxlib::algorithms;stx_zlib::stx_zlib;stx_png::stx_png;stx_conv::stx_conv;stx_raster3d::stx_raster3d;stx_rtf2md::stx_rtf2md;stx_skia::swizzle;Threads::Threads;@GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES@"
+    INTERFACE_LINK_DEPENDS "${_gui_forms_application_prefix}/@CMAKE_INSTALL_LIBDIR@/libgui_forms_application.a")
+unset(_gui_forms_application_prefix)

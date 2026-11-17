@@ -1,0 +1,4 @@
+# check_std_rules allowance: existing findings, one line per rule and file.
+# Shrink-only: lower a count (or drop the line) as findings are fixed; never raise one.
+pthread tests/control_depth_tests.cpp 6
+wide-text tests/localizable_plugin_tests.cpp 1

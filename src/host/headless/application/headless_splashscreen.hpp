@@ -4,6 +4,7 @@
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../../core/display/recording_painter/recording_painter.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -16,7 +17,7 @@ namespace gui_forms::host {
 struct GUI_FORMS_API HeadlessSplashscreenRecord final {
     std::uint64_t presented{};
     std::string status{};
-    std::optional<double> progress{};
+    stxlib::Optional<double> progress{};
     bool closed{};
 };
 

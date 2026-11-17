@@ -1,0 +1,2 @@
+parameter gui_forms::count_bytes not converted: V2: receives a literal that is not well-formed UTF-8
+parameter gui_forms::is_marker not converted: V2: compared with a literal that is not well-formed UTF-8

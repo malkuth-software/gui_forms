@@ -294,8 +294,16 @@ _WORD: re.Pattern[str] = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]
 
 
 def snake_name(winforms_name: str) -> str:
-    """The GUI.Forms spelling of a Windows Forms name: "SelectedIndexChanged" is "selected_index_changed"."""
-    return "_".join(word.lower() for word in _WORD.findall(winforms_name))
+    """The GUI.Forms spelling of a Windows Forms name: "SelectedIndexChanged" is "selected_index_changed".
+    An all-capitals word right after a digit stays with the word before it
+    ("Plot3DView" is "plot3d_view"), as control_registry.registered_id spells ids."""
+    words: list[str] = []
+    for word in _WORD.findall(winforms_name):
+        if words and words[-1][-1].isdigit() and word.isupper():
+            words[-1] = words[-1] + word
+        else:
+            words.append(word)
+    return "_".join(word.lower() for word in words)
 
 
 # --------------------------------------------------------- Windows Forms side
@@ -535,11 +543,17 @@ def header_members(record: TypeRecord) -> tuple[set[str], set[str], set[str], bo
     methods: set[str] = {method.name for method in shape.methods}
     # The extension surface: public virtuals, and protected virtuals a
     # subclass overrides (the on_<property>_changed raisers of P-8 among
-    # them, Windows Forms' protected On* hooks' counterparts).
+    # them, Windows Forms' protected On* hooks' counterparts). A final
+    # class's on_<property>_changed raisers are plain members (nothing
+    # derives from it; C and C# reach them through the class tables), and
+    # count as the same surface.
+    final: bool = re.search(r"\bfinal\b", record.declaration) is not None
     for method in shape.extension:
         if rst.is_override(method):
             continue
-        if method.access == "public" or re.search(r"\bvirtual\b", method.signature):
+        plain_raiser: bool = (final and method.access == "protected" and
+                              re.fullmatch(r"on_\w+_changed", method.name) is not None)
+        if method.access == "public" or re.search(r"\bvirtual\b", method.signature) or plain_raiser:
             methods.add(method.name)
     return properties, events, methods, bool(shape.constructors)
 

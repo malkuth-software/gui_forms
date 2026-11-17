@@ -111,7 +111,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -195,7 +195,7 @@ struct GUI_FORMS_API NodeEditEnded final {
 struct GUI_FORMS_API NodePaletteRequest final {
     WorldPoint world{};
     Point local{};
-    std::optional<PortRef> from{};
+    stxlib::Optional<PortRef> from{};
 };
 
 // The application's drawing of a node's body at full detail: `body` is the
@@ -220,7 +220,7 @@ struct GUI_FORMS_API NodeCanvasCallbacks final {
 
 struct GUI_FORMS_API NodeCanvasSelection final {
     std::size_t nodes{};
-    std::optional<LinkId> link{};
+    stxlib::Optional<LinkId> link{};
 };
 
 struct GUI_FORMS_API NodeLinkConnected final {
@@ -368,7 +368,7 @@ public:
     // The dragged link's preview state, or none while no link is dragged:
     // seeking a port, captured by one that accepts it, or over a port that
     // refuses it.
-    [[nodiscard]] std::optional<CanvasPreviewState> link_preview_state() const noexcept;
+    [[nodiscard]] stxlib::Optional<CanvasPreviewState> link_preview_state() const noexcept;
 
     // -- selection and focus ---------------------------------------------------
     [[nodiscard]] std::span<const NodeId> selection() const& noexcept {
@@ -376,7 +376,7 @@ public:
     }
     std::span<const NodeId> selection() const&& = delete;
     [[nodiscard]] bool selected(NodeId node) const noexcept;
-    [[nodiscard]] std::optional<LinkId> selected_link() const noexcept { return selected_link_; }
+    [[nodiscard]] stxlib::Optional<LinkId> selected_link() const noexcept { return selected_link_; }
     void select_only(NodeId node);
     void add_to_selection(NodeId node);
     void toggle_selection(NodeId node);
@@ -387,8 +387,8 @@ public:
     // selection, or adding to it); returns how many it added.
     std::size_t select_in_rect(const WorldRect& area, SpatialQueryMode mode, bool add);
     // The keyboard's current node (and port, after Enter), or none.
-    [[nodiscard]] std::optional<NodeId> focused_node() const noexcept { return focused_node_; }
-    [[nodiscard]] std::optional<PortIndex> focused_port() const noexcept { return focused_port_; }
+    [[nodiscard]] stxlib::Optional<NodeId> focused_node() const noexcept { return focused_node_; }
+    [[nodiscard]] stxlib::Optional<PortIndex> focused_port() const noexcept { return focused_port_; }
     // False for a stale node.
     bool set_focused_node(NodeId node);
 
@@ -418,7 +418,7 @@ public:
     // editor is removed, edit_ended raised. Nothing when no edit is open.
     void end_edit(NodeEditEnd end);
     [[nodiscard]] bool editing() const noexcept { return editor_ != nullptr; }
-    [[nodiscard]] std::optional<NodeId> edited_node() const noexcept;
+    [[nodiscard]] stxlib::Optional<NodeId> edited_node() const noexcept;
 
     // -- queries ----------------------------------------------------------------
     // Not const: they may rebuild the indexes for the current revision.
@@ -428,7 +428,7 @@ public:
     // short).
     [[nodiscard]] std::size_t links_crossing(Point from, Point to, std::span<LinkId> out);
     // A port's anchor in local units, or none for a stale port.
-    [[nodiscard]] std::optional<Point> port_view_anchor(PortRef port) const;
+    [[nodiscard]] stxlib::Optional<Point> port_view_anchor(PortRef port) const;
     // The node slots the last paint drew, in paint order.
     [[nodiscard]] std::span<const std::uint32_t> visible_nodes() const& noexcept {
         return std::span<const std::uint32_t>(visible_nodes_.data(), visible_nodes_.size());
@@ -535,9 +535,9 @@ private:
                                         std::span<Point> out) const;
     [[nodiscard]] std::size_t curve_segments() const noexcept;
     void collect_link_candidates(Point around, bool within_margin);
-    [[nodiscard]] std::optional<std::uint32_t> nearest_node_in_direction(double dx, double dy) const;
+    [[nodiscard]] stxlib::Optional<std::uint32_t> nearest_node_in_direction(double dx, double dy) const;
     void node_identity(std::uint32_t slot, std::string& identity) const;
-    [[nodiscard]] std::optional<NodeId> node_of_child_id(std::string_view stable_id) const;
+    [[nodiscard]] stxlib::Optional<NodeId> node_of_child_id(std::string_view stable_id) const;
     [[nodiscard]] Rect edit_bounds() const;
 
     // Input (node_canvas_input.cpp).
@@ -560,7 +560,7 @@ private:
     [[nodiscard]] bool handle_keyboard_link_key(std::uint32_t key);
     bool start_keyboard_link();
     void announce_keyboard_target();
-    void request_palette(Point local, std::optional<PortRef> from);
+    void request_palette(Point local, stxlib::Optional<PortRef> from);
 
     // Painting (node_canvas_paint.cpp).
     void ensure_look();
@@ -597,7 +597,7 @@ private:
     SceneDetailLevel level_{SceneDetailLevel::full};
     NodeLinkStyle link_style_{NodeLinkStyle::soft};
     LinkRouterOptions router_options_{};
-    std::optional<double> grid_spacing_set_{};
+    stxlib::Optional<double> grid_spacing_set_{};
     bool snap_{true};
 
     // The theme's look and what it was resolved for: the theme and rule
@@ -608,9 +608,11 @@ private:
     bool look_resolved_{};
     const Theme* look_theme_{};
     const CompiledThemeRules* look_inline_rules_{};
+    // The composite look (Control::look_rules) look_ was resolved with.
+    const CompiledThemeRules* look_composite_rules_{};
     bool look_dark_{};
     bool look_high_contrast_{};
-    std::optional<Color> look_back_color_{};
+    stxlib::Optional<Color> look_back_color_{};
     std::vector<std::string> look_classes_{};
     // Bumped at each resolution of look_: an item record of another stamp
     // is stale.
@@ -683,10 +685,10 @@ private:
     // Selection: identities, and one flag per node slot.
     std::vector<NodeId> selection_{};
     std::vector<std::uint8_t> selected_flags_{};
-    std::optional<LinkId> selected_link_{};
-    std::optional<NodeId> focused_node_{};
-    std::optional<PortIndex> focused_port_{};
-    std::optional<std::uint32_t> hot_node_{};
+    stxlib::Optional<LinkId> selected_link_{};
+    stxlib::Optional<NodeId> focused_node_{};
+    stxlib::Optional<PortIndex> focused_port_{};
+    stxlib::Optional<std::uint32_t> hot_node_{};
 
     // The gesture in progress and its terms.
     NodeCanvasGesture gesture_{NodeCanvasGesture::none};
@@ -697,10 +699,10 @@ private:
     bool gesture_planned_{};
     bool gesture_group_open_{};
     PortRef link_from_{};
-    std::optional<std::uint32_t> link_hit_{};
+    stxlib::Optional<std::uint32_t> link_hit_{};
     // The dangling end is over a port that refuses the link (no target).
     bool link_refused_{};
-    std::optional<NodeId> pending_click_select_{};
+    stxlib::Optional<NodeId> pending_click_select_{};
     bool knife_finished_{};
     bool space_held_{};
     // The keyboard link: candidates_ sorted nearest first, the one shown.

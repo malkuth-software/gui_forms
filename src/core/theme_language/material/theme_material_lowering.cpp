@@ -2,18 +2,22 @@
 
 #include "../source_text/theme_source_text.hpp"
 
-#include "../../resources/fonts/bundled_font_families.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -22,7 +26,10 @@
 // A filter's blur and a drop shadow's colour are part of the material the
 // engine bakes, so they are computed without fused multiply-add: the same
 // sheet gives the same material on every host.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -38,7 +45,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 92> material_properties{{
+constexpr std::array<NamedMaterialProperty, 100> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -74,6 +81,7 @@ constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "border-top-width", .property = MaterialProperty::border_top_width},
     {.name = "border-width", .property = MaterialProperty::border_width},
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
+    {.name = "clip-path", .property = MaterialProperty::clip_path},
     {.name = "color", .property = MaterialProperty::color},
     {.name = "corner-radius", .property = MaterialProperty::corner_radius},
     {.name = "default-outline", .property = MaterialProperty::default_outline},
@@ -102,7 +110,12 @@ constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "margin-bottom", .property = MaterialProperty::margin_bottom},
     {.name = "margin-top", .property = MaterialProperty::margin_top},
+    {.name = "mask-composite", .property = MaterialProperty::mask_composite},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
+    {.name = "mask-mode", .property = MaterialProperty::mask_mode},
+    {.name = "mask-position", .property = MaterialProperty::mask_position},
+    {.name = "mask-repeat", .property = MaterialProperty::mask_repeat},
+    {.name = "mask-size", .property = MaterialProperty::mask_size},
     {.name = "min-width", .property = MaterialProperty::min_width},
     {.name = "muted-color", .property = MaterialProperty::muted_color},
     {.name = "needle-shape", .property = MaterialProperty::needle_shape},
@@ -113,6 +126,7 @@ constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "outline-width", .property = MaterialProperty::outline_width},
     {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
+    {.name = "ring-style", .property = MaterialProperty::ring_style},
     {.name = "scrim-color", .property = MaterialProperty::scrim_color},
     {.name = "seat", .property = MaterialProperty::seat},
     {.name = "stripe-angle", .property = MaterialProperty::stripe_angle},
@@ -131,6 +145,7 @@ constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "taper", .property = MaterialProperty::taper},
     {.name = "text-shadow", .property = MaterialProperty::text_shadow},
+    {.name = "transform", .property = MaterialProperty::transform},
 }};
 
 // The recipe's longhands (P6f), each the one recipe field it sets.
@@ -139,7 +154,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 42> recipe_longhands{{
     {.property = MaterialProperty::height, .field = RecipeField::block_size},
     {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
     {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
@@ -161,6 +176,7 @@ constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
     {.property = MaterialProperty::glyph_color, .field = RecipeField::glyph},
     {.property = MaterialProperty::fill_text_color, .field = RecipeField::fill_text},
     {.property = MaterialProperty::needle_shape, .field = RecipeField::needle_shape},
+    {.property = MaterialProperty::ring_style, .field = RecipeField::ring_style},
     {.property = MaterialProperty::scrim_color, .field = RecipeField::scrim_colour},
     {.property = MaterialProperty::stroke_width, .field = RecipeField::stroke_width},
     {.property = MaterialProperty::stripe_pitch, .field = RecipeField::stripe_pitch},
@@ -185,9 +201,15 @@ constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
 // Sorted.
-constexpr std::array<std::string_view, 15> blend_modes_not_admitted{
-    "color", "color-burn", "color-dodge", "darken", "difference", "exclusion", "hard-light", "hue",
-    "lighten", "luminosity", "overlay", "plus-darker", "plus-lighter", "saturation", "soft-light",
+// The non-separable modes and the plus- modes are left out; the separable
+// ones are admitted (capability review, owner 2026-11-16).
+constexpr std::array<std::string_view, 6> blend_modes_not_admitted{
+    "color", "hue", "luminosity", "plus-darker", "plus-lighter", "saturation",
+};
+
+// The CSS names of MaterialBlendMode, in its order.
+constexpr std::array<std::string_view, 12> material_blend_names{
+    "normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion",
 };
 static_assert(std::is_sorted(blend_modes_not_admitted.begin(), blend_modes_not_admitted.end()),
               "binary_search needs the table sorted");
@@ -196,32 +218,53 @@ struct NamedGradient final {
     std::string_view name{};
     MaterialFillKind kind{MaterialFillKind::linear_gradient};
     bool repeating{};
+    // The theme language's reflecting- forms (owner, 2026-11-16; not CSS):
+    // repeating, each period the one before mirrored.
+    bool reflecting{};
 };
 
-constexpr std::array<NamedGradient, 6> gradient_functions{{
+constexpr std::array<NamedGradient, 9> gradient_functions{{
     {.name = "linear-gradient", .kind = MaterialFillKind::linear_gradient, .repeating = false},
     {.name = "radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = false},
     {.name = "conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = false},
     {.name = "repeating-linear-gradient", .kind = MaterialFillKind::linear_gradient, .repeating = true},
     {.name = "repeating-radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = true},
     {.name = "repeating-conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = true},
+    {.name = "reflecting-linear-gradient", .kind = MaterialFillKind::linear_gradient, .repeating = true,
+     .reflecting = true},
+    {.name = "reflecting-radial-gradient", .kind = MaterialFillKind::radial_gradient, .repeating = true,
+     .reflecting = true},
+    {.name = "reflecting-conic-gradient", .kind = MaterialFillKind::conic_gradient, .repeating = true,
+     .reflecting = true},
 }};
 
 // The built-in procedural patterns `pattern()` names (ProceduralPattern);
-// the fresco, which reads more colours, is not among them.
+// the fresco, which reads more colours, is not among them. Each hatch
+// style is a pattern name of its own, its tile one 8-unit hatch cell.
 struct NamedPattern final {
     std::string_view name{};
     ProceduralPattern pattern{ProceduralPattern::felt};
     double tile{64.0};
+    HatchStyle hatch_style{HatchStyle::horizontal};
 };
 
-constexpr std::array<NamedPattern, 6> pattern_names{{
+constexpr std::array<NamedPattern, 12> pattern_names{{
     {.name = "checker", .pattern = ProceduralPattern::checker, .tile = 2.0},
     {.name = "felt", .pattern = ProceduralPattern::felt, .tile = 64.0},
     {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain, .tile = 64.0},
     {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre, .tile = 64.0},
     {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe, .tile = 4.0},
     {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal, .tile = 64.0},
+    {.name = "hatch-horizontal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::horizontal},
+    {.name = "hatch-vertical", .pattern = ProceduralPattern::hatch, .tile = 8.0, .hatch_style = HatchStyle::vertical},
+    {.name = "hatch-forward-diagonal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::forward_diagonal},
+    {.name = "hatch-backward-diagonal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::backward_diagonal},
+    {.name = "hatch-cross", .pattern = ProceduralPattern::hatch, .tile = 8.0, .hatch_style = HatchStyle::cross},
+    {.name = "hatch-diagonal-cross", .pattern = ProceduralPattern::hatch, .tile = 8.0,
+     .hatch_style = HatchStyle::diagonal_cross},
 }};
 
 constexpr std::string_view pattern_function_name = "pattern";
@@ -253,26 +296,449 @@ constexpr std::array<NamedFinish, 13> finish_names{{
 
 constexpr std::string_view finish_function_name = "finish";
 
+// The material shape functions (owner 2026-11-16): `transform` takes
+// rotate() and scale(), `clip-path` polygon() and path().
+constexpr std::string_view rotate_function_name = "rotate";
+constexpr std::string_view scale_function_name = "scale";
+constexpr std::string_view polygon_function_name = "polygon";
+constexpr std::string_view path_function_name = "path";
+
+// The linear map rotate(degrees) names: clockwise on screen (y down), as
+// CSS turns. A multiple of 90 degrees is exact.
+[[nodiscard]] MaterialTransform rotation_transform(double degrees) noexcept {
+    // The engine's deterministic sine and cosine: the same bits on every
+    // host, and exact at every quarter turn.
+    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
+    MaterialTransform turned{};
+    turned.xx = cosine;
+    turned.yx = sine;
+    turned.xy = -sine;
+    turned.yy = cosine;
+    return turned;
+}
+
+// `first` applied after `second`: the CSS transform list applies its last
+// function to a point first.
+[[nodiscard]] MaterialTransform composed_transform(const MaterialTransform& first,
+                                                   const MaterialTransform& second) noexcept {
+    MaterialTransform product{};
+    product.xx = first.xx * second.xx + first.xy * second.yx;
+    product.yx = first.yx * second.xx + first.yy * second.yx;
+    product.xy = first.xx * second.xy + first.xy * second.yy;
+    product.yy = first.yx * second.xy + first.yy * second.yy;
+    return product;
+}
+
+// -- SVG path data for clip-path: path() ------------------------------------------
+
+// Why a path() string did not read.
+enum class SvgPathProblem : std::uint8_t {
+    none,
+    // Not SVG path data: a missing number or flag, a stray character, or a
+    // path that does not start with a move.
+    syntax,
+    // More than MaterialClipPath::maximum_points points, or a coordinate
+    // beyond MaterialClipPath::maximum_units.
+    too_large
+};
+
+// Reads SVG path data (M, L, H, V, C, S, Q, T, A, Z, each absolute or
+// relative, a command repeating over further coordinates, a move's further
+// pairs as lines) into a clip path's verbs and points, in px from the box's
+// top-left. Numbers are read exactly as decimals: at most 15 significant
+// digits and an exponent of at most 20 in size, so each is one correctly
+// rounded division or multiplication by an exact power of ten.
+//
+// S and T become a cubic and a quadratic whose first control point is the
+// previous curve's last control point reflected about the current point
+// (the current point itself after any other command), as SVG defines them.
+// An arc becomes cubic Béziers by the SVG endpoint-to-centre conversion
+// (radii scaled up when too small, a zero radius a line, equal endpoints
+// nothing) and a fixed subdivision: n = ceil(|sweep| / 90 degrees) equal
+// pieces (1 to 4; a sweep within 1e-9 radians above a multiple of 90
+// degrees takes the lower count), each the cubic with handles
+// 4/3 tan(piece / 4) of the radius, its last end the arc's exact end. The
+// count and the formulas are fixed; the points use the host's sin, cos,
+// tan, atan2 and sqrt, so they can differ in the last bits between hosts.
+class SvgPathReader final {
+public:
+    explicit SvgPathReader(std::string_view text) noexcept : text_(text) {}
+
+    [[nodiscard]] SvgPathProblem read(MaterialClipPath& clip);
+
+private:
+    void skip_separators() noexcept;
+    [[nodiscard]] bool at_number() const noexcept;
+    [[nodiscard]] bool read_number(double& value) noexcept;
+    [[nodiscard]] bool read_pair(Point& point) noexcept;
+    [[nodiscard]] bool read_flag(bool& flag) noexcept;
+    [[nodiscard]] SvgPathProblem push_arc(Point radii, double rotation_degrees, bool large_arc, bool sweep, Point end,
+                                          MaterialClipPath& clip);
+    [[nodiscard]] SvgPathProblem push(MaterialClipVerb verb, std::span<const Point> points, MaterialClipPath& clip);
+
+    std::string_view text_;
+    std::size_t at_{};
+    Point current_{};
+    Point start_{};
+    // The last control point of the previous command when it was a cubic
+    // (C or S) or a quadratic (Q or T), for S and T to reflect.
+    Point last_cubic_control_{};
+    Point last_quadratic_control_{};
+    bool after_cubic_{};
+    bool after_quadratic_{};
+};
+
+void SvgPathReader::skip_separators() noexcept {
+    while (at_ < text_.size()) {
+        const char character = text_[at_];
+        const bool separator = character == ' ' || character == '\t' || character == '\n' || character == '\r' ||
+                               character == '\f' || character == ',';
+        if (!separator) return;
+        at_ = at_ + 1U;
+    }
+}
+
+bool SvgPathReader::at_number() const noexcept {
+    if (at_ >= text_.size()) return false;
+    const char character = text_[at_];
+    const bool starts = (character >= '0' && character <= '9') || character == '.' || character == '-' ||
+                        character == '+';
+    return starts;
+}
+
+bool SvgPathReader::read_number(double& value) noexcept {
+    skip_separators();
+    bool negative = false;
+    if (at_ < text_.size() && (text_[at_] == '-' || text_[at_] == '+')) {
+        negative = text_[at_] == '-';
+        at_ = at_ + 1U;
+    }
+    std::int64_t mantissa = 0;
+    int significant = 0;
+    int scale = 0;
+    bool digits = false;
+    bool point = false;
+    while (at_ < text_.size()) {
+        const char character = text_[at_];
+        if (character == '.' && !point) {
+            point = true;
+            at_ = at_ + 1U;
+            continue;
+        }
+        if (character < '0' || character > '9') break;
+        digits = true;
+        const std::int64_t digit = static_cast<std::int64_t>(character - '0');
+        if (significant > 0 || digit != 0) {
+            if (significant >= 15) return false;
+            significant = significant + 1;
+        }
+        mantissa = mantissa * 10 + digit;
+        if (point) scale = scale - 1;
+        at_ = at_ + 1U;
+    }
+    if (!digits) return false;
+    if (at_ < text_.size() && (text_[at_] == 'e' || text_[at_] == 'E')) {
+        at_ = at_ + 1U;
+        bool exponent_negative = false;
+        if (at_ < text_.size() && (text_[at_] == '-' || text_[at_] == '+')) {
+            exponent_negative = text_[at_] == '-';
+            at_ = at_ + 1U;
+        }
+        int exponent = 0;
+        bool exponent_digits = false;
+        while (at_ < text_.size() && text_[at_] >= '0' && text_[at_] <= '9') {
+            exponent = exponent * 10 + (text_[at_] - '0');
+            if (exponent > 20) return false;
+            exponent_digits = true;
+            at_ = at_ + 1U;
+        }
+        if (!exponent_digits) return false;
+        scale = exponent_negative ? scale - exponent : scale + exponent;
+    }
+    if (scale < -22 || scale > 22) return false;
+    double power = 1.0;
+    for (int step = 0; step < std::abs(scale); ++step) power = power * 10.0;
+    const double magnitude = static_cast<double>(mantissa);
+    const double read = scale < 0 ? magnitude / power : magnitude * power;
+    value = negative ? -read : read;
+    return true;
+}
+
+bool SvgPathReader::read_pair(Point& point) noexcept {
+    double x = 0.0;
+    double y = 0.0;
+    if (!read_number(x) || !read_number(y)) return false;
+    point = Point{x, y};
+    return true;
+}
+
+bool SvgPathReader::read_flag(bool& flag) noexcept {
+    skip_separators();
+    if (at_ >= text_.size()) return false;
+    const char character = text_[at_];
+    if (character != '0' && character != '1') return false;
+    flag = character == '1';
+    at_ = at_ + 1U;
+    return true;
+}
+
+// The arc pieces' handle factor and count (SvgPathReader).
+constexpr double arc_piece_limit = 1.5707963267948966192; // 90 degrees
+constexpr double arc_piece_slack = 1.0e-9;
+
+SvgPathProblem SvgPathReader::push_arc(Point radii, double rotation_degrees, bool large_arc, bool sweep, Point end,
+                                       MaterialClipPath& clip) {
+    const Point begin = current_;
+    if (begin == end) return SvgPathProblem::none;
+    double radius_x = std::abs(radii.x);
+    double radius_y = std::abs(radii.y);
+    if (radius_x == 0.0 || radius_y == 0.0) {
+        const std::array<Point, 1> line{end};
+        return push(MaterialClipVerb::line, line, clip);
+    }
+    // The engine's deterministic trigonometry throughout, so the control
+    // points have the same bits on every host.
+    const EngineSineCosine rotation = engine_sine_cosine_degrees(rotation_degrees);
+    const double cosine = rotation.cosine;
+    const double sine = rotation.sine;
+    // The endpoints' half difference in the ellipse's own axes (SVG F.6.5).
+    const double half_x = (begin.x - end.x) * 0.5;
+    const double half_y = (begin.y - end.y) * 0.5;
+    const double turned_x = cosine * half_x + sine * half_y;
+    const double turned_y = -sine * half_x + cosine * half_y;
+    const double reach = (turned_x * turned_x) / (radius_x * radius_x) + (turned_y * turned_y) / (radius_y * radius_y);
+    if (reach > 1.0) {
+        const double grow = std::sqrt(reach);
+        radius_x = radius_x * grow;
+        radius_y = radius_y * grow;
+    }
+    const double rx2 = radius_x * radius_x;
+    const double ry2 = radius_y * radius_y;
+    const double tx2 = turned_x * turned_x;
+    const double ty2 = turned_y * turned_y;
+    const double numerator = rx2 * ry2 - rx2 * ty2 - ry2 * tx2;
+    const double denominator = rx2 * ty2 + ry2 * tx2;
+    const double ratio = denominator > 0.0 ? std::max(0.0, numerator / denominator) : 0.0;
+    const double side = large_arc == sweep ? -1.0 : 1.0;
+    const double factor = side * std::sqrt(ratio);
+    const double centre_turned_x = factor * radius_x * turned_y / radius_y;
+    const double centre_turned_y = -factor * radius_y * turned_x / radius_x;
+    const Point centre{cosine * centre_turned_x - sine * centre_turned_y + (begin.x + end.x) * 0.5,
+                       sine * centre_turned_x + cosine * centre_turned_y + (begin.y + end.y) * 0.5};
+    const double start_x = (turned_x - centre_turned_x) / radius_x;
+    const double start_y = (turned_y - centre_turned_y) / radius_y;
+    const double end_x = (-turned_x - centre_turned_x) / radius_x;
+    const double end_y = (-turned_y - centre_turned_y) / radius_y;
+    const double start_angle = engine_arctangent2(start_y, start_x);
+    double sweep_angle = engine_arctangent2(start_x * end_y - start_y * end_x, start_x * end_x + start_y * end_y);
+    if (!sweep && sweep_angle > 0.0) sweep_angle = sweep_angle - 2.0 * 3.14159265358979323846;
+    if (sweep && sweep_angle < 0.0) sweep_angle = sweep_angle + 2.0 * 3.14159265358979323846;
+    const double pieces_wanted = std::ceil(std::abs(sweep_angle) / arc_piece_limit - arc_piece_slack);
+    const std::size_t pieces = static_cast<std::size_t>(std::clamp(pieces_wanted, 1.0, 4.0));
+    const double piece = sweep_angle / static_cast<double>(pieces);
+    const double handle = 4.0 / 3.0 * engine_tangent(piece * 0.25);
+    for (std::size_t index = 0U; index < pieces; ++index) {
+        const double from = start_angle + piece * static_cast<double>(index);
+        const double to = from + piece;
+        const EngineSineCosine from_turn = engine_sine_cosine(from);
+        const EngineSineCosine to_turn = engine_sine_cosine(to);
+        const double from_cos = from_turn.cosine;
+        const double from_sin = from_turn.sine;
+        const double to_cos = to_turn.cosine;
+        const double to_sin = to_turn.sine;
+        // On the unit circle, then onto the ellipse: scaled, turned, moved.
+        const std::array<Point, 3> unit{Point{from_cos - handle * from_sin, from_sin + handle * from_cos},
+                                        Point{to_cos + handle * to_sin, to_sin - handle * to_cos},
+                                        Point{to_cos, to_sin}};
+        std::array<Point, 3> placed{};
+        for (std::size_t point = 0U; point < unit.size(); ++point) {
+            const double across = radius_x * unit[point].x;
+            const double down = radius_y * unit[point].y;
+            placed[point] = Point{centre.x + cosine * across - sine * down, centre.y + sine * across + cosine * down};
+        }
+        if (index + 1U == pieces) placed[2] = end;
+        const SvgPathProblem problem = push(MaterialClipVerb::cubic, placed, clip);
+        if (problem != SvgPathProblem::none) return problem;
+    }
+    return SvgPathProblem::none;
+}
+
+SvgPathProblem SvgPathReader::push(MaterialClipVerb verb, std::span<const Point> points, MaterialClipPath& clip) {
+    if (clip.points.size() + points.size() > MaterialClipPath::maximum_points) return SvgPathProblem::too_large;
+    for (const Point point : points) {
+        const bool bounded = std::abs(point.x) <= MaterialClipPath::maximum_units &&
+                             std::abs(point.y) <= MaterialClipPath::maximum_units;
+        if (!bounded) return SvgPathProblem::too_large;
+        MaterialClipPoint written{};
+        written.x_units = point.x;
+        written.y_units = point.y;
+        clip.points.push_back(written);
+    }
+    clip.verbs.push_back(verb);
+    return SvgPathProblem::none;
+}
+
+SvgPathProblem SvgPathReader::read(MaterialClipPath& clip) {
+    clip.verbs.clear();
+    clip.points.clear();
+    char command = '\0';
+    skip_separators();
+    while (at_ < text_.size()) {
+        const char character = text_[at_];
+        const bool letter = (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z');
+        if (letter) {
+            command = character;
+            at_ = at_ + 1U;
+        } else if (command == '\0' || !at_number()) {
+            return SvgPathProblem::syntax;
+        } else if (command == 'Z' || command == 'z') {
+            // Coordinates after a close need a command of their own.
+            return SvgPathProblem::syntax;
+        }
+        const bool relative = command >= 'a' && command <= 'z';
+        const char upper = relative ? static_cast<char>(command - 'a' + 'A') : command;
+        const Point origin = relative ? current_ : Point{0.0, 0.0};
+        if (clip.verbs.empty() && upper != 'M') return SvgPathProblem::syntax;
+        std::array<Point, 3> points{};
+        SvgPathProblem problem = SvgPathProblem::none;
+        bool cubic = false;
+        bool quadratic = false;
+        switch (upper) {
+        case 'M': {
+            if (!read_pair(points[0])) return SvgPathProblem::syntax;
+            points[0] = Point{origin.x + points[0].x, origin.y + points[0].y};
+            problem = push(MaterialClipVerb::move, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            start_ = points[0];
+            // Further pairs after a move are lines.
+            command = relative ? 'l' : 'L';
+            break;
+        }
+        case 'L': {
+            if (!read_pair(points[0])) return SvgPathProblem::syntax;
+            points[0] = Point{origin.x + points[0].x, origin.y + points[0].y};
+            problem = push(MaterialClipVerb::line, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            break;
+        }
+        case 'H': {
+            double x = 0.0;
+            if (!read_number(x)) return SvgPathProblem::syntax;
+            points[0] = Point{origin.x + x, current_.y};
+            problem = push(MaterialClipVerb::line, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            break;
+        }
+        case 'V': {
+            double y = 0.0;
+            if (!read_number(y)) return SvgPathProblem::syntax;
+            points[0] = Point{current_.x, origin.y + y};
+            problem = push(MaterialClipVerb::line, std::span<const Point>(points.data(), 1U), clip);
+            current_ = points[0];
+            break;
+        }
+        case 'Q':
+        case 'T': {
+            const bool smooth = upper == 'T';
+            std::size_t first = 0U;
+            if (smooth) {
+                // The previous quadratic's control reflected about the
+                // current point, or the current point.
+                points[0] = after_quadratic_ ? Point{2.0 * current_.x - last_quadratic_control_.x,
+                                                     2.0 * current_.y - last_quadratic_control_.y}
+                                             : current_;
+                first = 1U;
+            }
+            for (std::size_t index = first; index < 2U; ++index) {
+                if (!read_pair(points[index])) return SvgPathProblem::syntax;
+                points[index] = Point{origin.x + points[index].x, origin.y + points[index].y};
+            }
+            problem = push(MaterialClipVerb::quadratic, std::span<const Point>(points.data(), 2U), clip);
+            last_quadratic_control_ = points[0];
+            current_ = points[1];
+            quadratic = true;
+            break;
+        }
+        case 'C':
+        case 'S': {
+            const bool smooth = upper == 'S';
+            std::size_t first = 0U;
+            if (smooth) {
+                points[0] = after_cubic_ ? Point{2.0 * current_.x - last_cubic_control_.x,
+                                                 2.0 * current_.y - last_cubic_control_.y}
+                                         : current_;
+                first = 1U;
+            }
+            for (std::size_t index = first; index < 3U; ++index) {
+                if (!read_pair(points[index])) return SvgPathProblem::syntax;
+                points[index] = Point{origin.x + points[index].x, origin.y + points[index].y};
+            }
+            problem = push(MaterialClipVerb::cubic, std::span<const Point>(points.data(), 3U), clip);
+            last_cubic_control_ = points[1];
+            current_ = points[2];
+            cubic = true;
+            break;
+        }
+        case 'A': {
+            Point radii{};
+            double rotation = 0.0;
+            bool large_arc = false;
+            bool sweep = false;
+            Point end{};
+            if (!read_pair(radii) || !read_number(rotation)) return SvgPathProblem::syntax;
+            if (!read_flag(large_arc) || !read_flag(sweep) || !read_pair(end)) return SvgPathProblem::syntax;
+            end = Point{origin.x + end.x, origin.y + end.y};
+            problem = push_arc(radii, rotation, large_arc, sweep, end, clip);
+            current_ = end;
+            break;
+        }
+        case 'Z':
+            problem = push(MaterialClipVerb::close, std::span<const Point>(), clip);
+            current_ = start_;
+            break;
+        default: return SvgPathProblem::syntax;
+        }
+        if (problem != SvgPathProblem::none) return problem;
+        after_cubic_ = cubic;
+        after_quadratic_ = quadratic;
+        skip_separators();
+    }
+    if (clip.verbs.empty()) return SvgPathProblem::syntax;
+    return SvgPathProblem::none;
+}
+
 // The largest seed `finish()` admits: the finish's seed is a 32-bit signed
 // integer, written non-negative.
 constexpr double maximum_finish_seed = 2147483647.0;
 
 // The patterns a canvas texture layer names in `procedural()`
 // (`background-texture`), every tiled built-in pattern: the fresco covers
-// a box and does not tile. A layer may instead be a surface finish,
+// a box and does not tile. Each hatch style is a kind of its own, as in
+// `pattern()`. A layer may instead be a surface finish,
 // written as `finish()` is in a fill (finish_names).
 struct CanvasTextureKind final {
     std::string_view name{};
     ProceduralPattern pattern{ProceduralPattern::felt};
+    HatchStyle hatch_style{HatchStyle::horizontal};
 };
 
-constexpr std::array<CanvasTextureKind, 6> canvas_texture_kinds{{
+constexpr std::array<CanvasTextureKind, 12> canvas_texture_kinds{{
     {.name = "felt", .pattern = ProceduralPattern::felt},
     {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain},
     {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre},
     {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe},
     {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal},
     {.name = "checker", .pattern = ProceduralPattern::checker},
+    {.name = "hatch-horizontal", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::horizontal},
+    {.name = "hatch-vertical", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::vertical},
+    {.name = "hatch-forward-diagonal", .pattern = ProceduralPattern::hatch,
+     .hatch_style = HatchStyle::forward_diagonal},
+    {.name = "hatch-backward-diagonal", .pattern = ProceduralPattern::hatch,
+     .hatch_style = HatchStyle::backward_diagonal},
+    {.name = "hatch-cross", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::cross},
+    {.name = "hatch-diagonal-cross", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::diagonal_cross},
 }};
 
 constexpr std::string_view procedural_function_name = "procedural";
@@ -299,6 +765,10 @@ enum class FilterFunction : std::uint8_t {
     opacity,
     saturate,
     sepia,
+    // The theme language's colour stages (owner 2026-11-16; not CSS).
+    fill,
+    duotone,
+    tritone,
 };
 
 struct NamedFilter final {
@@ -306,7 +776,7 @@ struct NamedFilter final {
     FilterFunction function{FilterFunction::blur};
 };
 
-constexpr std::array<NamedFilter, 10> filter_functions{{
+constexpr std::array<NamedFilter, 13> filter_functions{{
     {.name = "blur", .function = FilterFunction::blur},
     {.name = "brightness", .function = FilterFunction::brightness},
     {.name = "contrast", .function = FilterFunction::contrast},
@@ -317,6 +787,9 @@ constexpr std::array<NamedFilter, 10> filter_functions{{
     {.name = "opacity", .function = FilterFunction::opacity},
     {.name = "saturate", .function = FilterFunction::saturate},
     {.name = "sepia", .function = FilterFunction::sepia},
+    {.name = "fill", .function = FilterFunction::fill},
+    {.name = "duotone", .function = FilterFunction::duotone},
+    {.name = "tritone", .function = FilterFunction::tritone},
 }};
 
 [[nodiscard]] const NamedFilter* filter_function(std::string_view name) noexcept {
@@ -457,6 +930,11 @@ private:
     bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
     bool drop_unknown_functions(MaterialProperty property);
     [[nodiscard]] std::size_t next(std::size_t index) const noexcept;
+    // The token a "one value" problem is placed at: the second top-level
+    // component's, or the last component's when the value has no second
+    // (one function with arguments, or a lone component a shape needs two
+    // of: A-gf-core-15-F1). The value has at least one component.
+    [[nodiscard]] std::uint32_t after_first_token() const noexcept;
     [[nodiscard]] std::size_t count(ComponentRange range) const noexcept;
     void split(ComponentRange range, std::vector<ComponentRange>& parts) const;
     [[nodiscard]] bool keyword(std::size_t index, std::string_view lower_name) const noexcept;
@@ -498,6 +976,7 @@ private:
     bool read_shadow(ComponentRange range, MaterialShadow& shadow);
     bool read_amount(std::size_t function, double& amount);
     bool read_colour_function(std::size_t function, FilterFunction kind, MaterialColourMatrix& matrix);
+    bool read_function_colours(std::size_t function, std::span<Color> colours);
     bool read_blur(std::size_t function, double& deviation);
     bool read_drop_shadow(std::size_t function, MaterialDropShadow& shadow);
     bool read_glow(ComponentRange range, MaterialGlow& glow);
@@ -507,9 +986,9 @@ private:
     bool lower_background_colour();
     bool lower_background_image();
     bool lower_blend_modes();
-    bool lower_positions();
-    bool lower_sizes();
-    bool lower_repeats();
+    bool lower_positions(MaterialField field, std::size_t maximum_layers);
+    bool lower_sizes(MaterialField field, std::size_t maximum_layers);
+    bool lower_repeats(MaterialField field, std::size_t maximum_layers);
     bool lower_background();
     bool lower_edges(std::size_t first_edge, std::size_t edge_count);
     bool lower_sides(std::size_t part);
@@ -522,9 +1001,17 @@ private:
     bool lower_finish();
     bool lower_seat();
     bool lower_gradient_dither();
+    bool lower_transform();
+    bool lower_clip_path();
+    bool read_scale_factor(ComponentRange part, double& factor);
+    bool read_clip_rule(ComponentRange part, bool& read, MaterialClipRule& rule);
+    bool read_polygon(std::size_t function, MaterialClipPath& clip);
+    bool read_svg_path(std::size_t function, MaterialClipPath& clip);
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
+    bool lower_mask_modes();
+    bool lower_mask_composites();
     bool lower_reflection();
     bool lower_keylines();
     [[nodiscard]] bool outline_style_word(std::size_t index) const noexcept;
@@ -535,6 +1022,7 @@ private:
     bool lower_default_outline();
     bool lower_stroke_width();
     bool lower_needle_shape();
+    bool lower_ring_style();
     bool lower_outline();
     bool lower_outline_style();
     bool lower_outline_colour();
@@ -587,6 +1075,12 @@ bool MaterialReader::drop_unknown_functions(MaterialProperty property) {
         if (equals_ascii_folded(component.text, pattern_function_name)) continue;
         if (equals_ascii_folded(component.text, finish_function_name)) continue;
         if (textured && equals_ascii_folded(component.text, procedural_function_name)) continue;
+        const bool transform_function = equals_ascii_folded(component.text, rotate_function_name) ||
+                                        equals_ascii_folded(component.text, scale_function_name);
+        if (property == MaterialProperty::transform && transform_function) continue;
+        const bool clip_function = equals_ascii_folded(component.text, polygon_function_name) ||
+                                   equals_ascii_folded(component.text, path_function_name);
+        if (property == MaterialProperty::clip_path && clip_function) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -595,6 +1089,16 @@ bool MaterialReader::drop_unknown_functions(MaterialProperty property) {
 std::size_t MaterialReader::next(std::size_t index) const noexcept {
     const std::size_t after = value_.components[index].subtree_end;
     return after;
+}
+
+std::uint32_t MaterialReader::after_first_token() const noexcept {
+    const std::size_t second = next(0U);
+    if (second < value_.components.size()) {
+        const std::uint32_t token = value_.components[second].token;
+        return token;
+    }
+    const std::uint32_t last = value_.components.back().token;
+    return last;
 }
 
 std::size_t MaterialReader::count(ComponentRange range) const noexcept {
@@ -849,8 +1353,10 @@ bool MaterialReader::read_linear_configuration(ComponentRange range, AuthoredGra
     return read_angle(range.first, gradient.angle_degrees);
 }
 
-// `[<ending-shape> || <size>]? [at <position>]?`; `configured` is false
-// for a first argument that is a colour stop.
+// `[<ending-shape> || <size>]? [at <position>]? [focus <position>]?`;
+// `configured` is false for a first argument that is a colour stop. The
+// focus (GUI.Forms, not CSS; owner, 2026-11-16) is where position 0 lies,
+// read as the centre is; a repeating gradient's periods count from it.
 bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured) {
     configured = false;
     if (range.first >= range.end) return true;
@@ -858,7 +1364,7 @@ bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGra
     const bool word = keyword(range.first, "circle") || keyword(range.first, "ellipse") ||
                       keyword(range.first, "closest-side") || keyword(range.first, "farthest-side") ||
                       keyword(range.first, "closest-corner") || keyword(range.first, "farthest-corner") ||
-                      keyword(range.first, "at");
+                      keyword(range.first, "at") || keyword(range.first, "focus");
     if (!word && first.kind != ValueComponentKind::number) return true;
     configured = true;
     bool shape = false;
@@ -866,7 +1372,7 @@ bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGra
     std::array<std::size_t, 2> lengths{};
     std::size_t length_count = 0U;
     std::size_t index = range.first;
-    for (; index < range.end && !keyword(index, "at"); index = next(index)) {
+    for (; index < range.end && !keyword(index, "at") && !keyword(index, "focus"); index = next(index)) {
         const ValueComponent& component = value_.components[index];
         if (keyword(index, "circle") || keyword(index, "ellipse")) {
             if (shape) return fail(DiagnosticCode::value_syntax, component.token, "one shape");
@@ -905,8 +1411,20 @@ bool MaterialReader::read_radial_configuration(ComponentRange range, AuthoredGra
         if (length_count == 2U && !read_length(lengths[1], true, false, gradient.radius_y)) return false;
     }
     if (index >= range.end) return true;
-    const ComponentRange position{next(index), range.end};
-    return read_position(position, gradient.centre_x, gradient.centre_y);
+    std::size_t focus = index;
+    if (keyword(index, "at")) {
+        focus = next(index);
+        while (focus < range.end && !keyword(focus, "focus")) focus = next(focus);
+        const ComponentRange position{next(index), focus};
+        if (!read_position(position, gradient.centre_x, gradient.centre_y)) return false;
+    }
+    if (focus >= range.end) return true;
+    const ComponentRange focus_position{next(focus), range.end};
+    if (focus_position.first >= focus_position.end) {
+        return fail(DiagnosticCode::value_syntax, value_.components[focus].token, "a position");
+    }
+    gradient.focused = true;
+    return read_position(focus_position, gradient.focus_x, gradient.focus_y);
 }
 
 // `[from <angle>]? [at <position>]?`; `configured` is false for a first
@@ -936,6 +1454,7 @@ bool MaterialReader::read_gradient(std::size_t index, AuthoredGradient& gradient
     gradient = AuthoredGradient{};
     gradient.kind = named.kind;
     gradient.repeating = named.repeating;
+    gradient.reflecting = named.reflecting;
     std::vector<ComponentRange> arguments{};
     split(ComponentRange{index + 1U, function.subtree_end}, arguments);
     bool configured = false;
@@ -985,11 +1504,12 @@ bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "checker, felt, wood-grain, paper-fibre, pinstripe or brushed-metal");
+                    "checker, felt, wood-grain, paper-fibre, pinstripe, brushed-metal or a hatch-* style");
     }
     ProceduralFill fill{};
     fill.pattern = (*named).pattern;
     fill.tile = (*named).tile;
+    fill.hatch_style = (*named).hatch_style;
     fill.strength = 1.0;
     if (!read_colour(arguments[1].first, fill.ground)) return false;
     if (!read_colour(arguments[2].first, fill.figure)) return false;
@@ -1208,12 +1728,15 @@ bool MaterialReader::read_image_size(ComponentRange range, MaterialImageSize& si
 
 bool MaterialReader::repeat_word(std::size_t index) const noexcept {
     const bool word = keyword(index, "repeat") || keyword(index, "no-repeat") || keyword(index, "repeat-x") ||
-                      keyword(index, "repeat-y") || keyword(index, "space") || keyword(index, "round");
+                      keyword(index, "repeat-y") || keyword(index, "space") || keyword(index, "round") ||
+                      keyword(index, "mirror") || keyword(index, "extend");
     return word;
 }
 
 // CSS's <repeat-style>: repeat, or no-repeat (one tile alone), on both
-// axes; repeating along one axis only, space and round are not admitted.
+// axes, or the theme language's mirror (every other tile reflected) and
+// extend (one tile, its edges extended; owner, 2026-11-16), also on both;
+// repeating along one axis only, space and round are not admitted.
 bool MaterialReader::read_image_repeat(ComponentRange range, MaterialImageRepeat& repeat) {
     const std::size_t values = count(range);
     const std::uint32_t token = range.first < range.end ? value_.components[range.first].token : start_;
@@ -1230,22 +1753,29 @@ bool MaterialReader::read_image_repeat(ComponentRange range, MaterialImageRepeat
     const std::size_t second = values == 2U ? next(first) : first;
     const bool both_repeat = keyword(first, "repeat") && keyword(second, "repeat");
     const bool both_alone = keyword(first, "no-repeat") && keyword(second, "no-repeat");
-    if (!both_repeat && !both_alone) {
+    const bool both_mirror = keyword(first, "mirror") && keyword(second, "mirror");
+    const bool both_extend = keyword(first, "extend") && keyword(second, "extend");
+    if (!both_repeat && !both_alone && !both_mirror && !both_extend) {
         return fail(DiagnosticCode::value_form_not_admitted, token,
                     clipped_theme_detail(value_.components[first].text));
     }
-    repeat = both_alone ? MaterialImageRepeat::no_repeat : MaterialImageRepeat::repeat;
+    repeat = MaterialImageRepeat::repeat;
+    if (both_alone) repeat = MaterialImageRepeat::no_repeat;
+    if (both_mirror) repeat = MaterialImageRepeat::mirror;
+    if (both_extend) repeat = MaterialImageRepeat::extend;
     return true;
 }
 
-bool MaterialReader::lower_positions() {
+// `background-position` or `mask-position` (as `field` says): one entry
+// per layer, at most `maximum_layers`.
+bool MaterialReader::lower_positions(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_positions;
+    declaration.field = field;
     declaration.image_positions.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_position(layers[layer], declaration.image_positions[layer])) return false;
@@ -1254,14 +1784,16 @@ bool MaterialReader::lower_positions() {
     return true;
 }
 
-bool MaterialReader::lower_sizes() {
+// `background-size` or `mask-size` (as `field` says): one entry per
+// layer, at most `maximum_layers`.
+bool MaterialReader::lower_sizes(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_sizes;
+    declaration.field = field;
     declaration.image_sizes.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_size(layers[layer], declaration.image_sizes[layer])) return false;
@@ -1270,14 +1802,16 @@ bool MaterialReader::lower_sizes() {
     return true;
 }
 
-bool MaterialReader::lower_repeats() {
+// `background-repeat` or `mask-repeat` (as `field` says): one entry per
+// layer, at most `maximum_layers`.
+bool MaterialReader::lower_repeats(MaterialField field, std::size_t maximum_layers) {
     std::vector<ComponentRange> layers{};
     split(ComponentRange{0U, value_.components.size()}, layers);
-    if (layers.size() > SurfaceMaterial::maximum_fill_layers) {
-        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_fill_layers));
+    if (layers.size() > maximum_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(maximum_layers));
     }
     MaterialDeclaration declaration{};
-    declaration.field = MaterialField::fill_repeats;
+    declaration.field = field;
     declaration.image_repeats.resize(layers.size());
     for (std::size_t layer = 0U; layer < layers.size(); ++layer) {
         if (!read_image_repeat(layers[layer], declaration.image_repeats[layer])) return false;
@@ -1311,18 +1845,18 @@ bool MaterialReader::read_style(std::size_t index, MaterialDeclaration& styled) 
         return fail(DiagnosticCode::value_wrong_kind, component.token, "a border style");
     }
     styled.edge_lines = MaterialEdgeLines::single;
-    styled.border_style = MaterialBorderStyle::solid;
+    styled.border_style.set(MaterialBorderStyle::solid);
     if (keyword(index, "none") || keyword(index, "hidden")) {
         styled.border_style.reset();
         return true;
     }
     if (keyword(index, "solid")) return true;
     if (keyword(index, "dashed")) {
-        styled.border_style = MaterialBorderStyle::dashed;
+        styled.border_style.set(MaterialBorderStyle::dashed);
         return true;
     }
     if (keyword(index, "dotted")) {
-        styled.border_style = MaterialBorderStyle::dotted;
+        styled.border_style.set(MaterialBorderStyle::dotted);
         return true;
     }
     if (keyword(index, "double")) {
@@ -1445,7 +1979,7 @@ bool MaterialReader::lower_sides(std::size_t part) {
 
 bool MaterialReader::lower_edge_field(std::size_t edge, std::size_t part) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one value");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one value");
     }
     MaterialDeclaration declaration{};
     declaration.field = edge_field(edge, part);
@@ -1674,7 +2208,7 @@ bool MaterialReader::lower_radii() {
 
 bool MaterialReader::lower_corner(std::size_t corner) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token, "elliptical radii");
+        return fail(DiagnosticCode::value_form_not_admitted, after_first_token(), "elliptical radii");
     }
     MaterialDeclaration declaration{};
     declaration.field = corner_field(corner);
@@ -1781,7 +2315,30 @@ bool MaterialReader::read_amount(std::size_t function, double& amount) {
     return true;
 }
 
+// A house colour function's colours (fill(), duotone(), tritone()):
+// exactly colours.size() comma-separated colours.
+bool MaterialReader::read_function_colours(std::size_t function, std::span<Color> colours) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{function + 1U, written.subtree_end}, arguments);
+    if (arguments.size() != colours.size()) {
+        return fail(DiagnosticCode::value_syntax, written.token,
+                    std::to_string(colours.size()) + " comma-separated colours");
+    }
+    for (std::size_t index = 0U; index < colours.size(); ++index) {
+        if (count(arguments[index]) != 1U) return fail(DiagnosticCode::value_syntax, written.token, "one colour");
+        if (!read_colour(arguments[index].first, colours[index])) return false;
+    }
+    return true;
+}
+
 bool MaterialReader::read_colour_function(std::size_t function, FilterFunction kind, MaterialColourMatrix& matrix) {
+    if (kind == FilterFunction::fill) {
+        std::array<Color, 1> colour{};
+        if (!read_function_colours(function, colour)) return false;
+        matrix = MaterialColourMatrix::fill(colour[0]);
+        return true;
+    }
     if (kind == FilterFunction::hue_rotate) {
         const ValueComponent& written = value_.components[function];
         const ComponentRange arguments{function + 1U, written.subtree_end};
@@ -1804,7 +2361,10 @@ bool MaterialReader::read_colour_function(std::size_t function, FilterFunction k
     case FilterFunction::sepia: matrix = MaterialColourMatrix::sepia(amount); return true;
     case FilterFunction::blur:
     case FilterFunction::drop_shadow:
-    case FilterFunction::hue_rotate: break;
+    case FilterFunction::hue_rotate:
+    case FilterFunction::fill:
+    case FilterFunction::duotone:
+    case FilterFunction::tritone: break;
     // A value outside the enumeration is no colour function: the matrix
     // is left as it is.
     default: break;
@@ -1868,7 +2428,15 @@ bool MaterialReader::read_drop_shadow(std::size_t function, MaterialDropShadow& 
 // blur(), whose colour the colour functions after it also turn. A
 // drop-shadow() after blur(), a second drop-shadow(), opacity() after a
 // drop-shadow() (which would fade the shadow twice) and an SVG filter
-// reference are not admitted.
+// reference are not admitted. The theme language's fill(<colour>),
+// duotone(<dark>, <light>) and tritone(<shadow>, <midtone>, <highlight>)
+// (owner 2026-11-16) are colour functions too: fill one matrix, duotone and
+// tritone the luminance matrix and then a colour table (MaterialColourTable),
+// which mixes the colours in linear light as every gradient does. After a
+// table, a colour function that reads only its own channel (brightness(),
+// contrast(), invert(), opacity()) folds into the table; one that mixes
+// channels, a second table, and a table after drop-shadow() are not
+// admitted.
 bool MaterialReader::lower_filter() {
     MaterialDeclaration colour{};
     colour.field = MaterialField::colour_filter;
@@ -1885,10 +2453,41 @@ bool MaterialReader::lower_filter() {
     bool blurred = false;
     MaterialDropShadow shadow{};
     bool shadowed = false;
+    std::optional<MaterialColourTable> table{};
     for (std::size_t index = 0U; index < whole.end && !none; index = next(index)) {
         const ValueComponent& component = value_.components[index];
         if (component.kind == ValueComponentKind::resource) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "an SVG filter reference");
+        }
+        if (component.kind == ValueComponentKind::fragment) {
+            // url(#id): a theme-declared @filter, the last of its name.
+            const NamedThemeFilter* found = nullptr;
+            for (const NamedThemeFilter& declared : lowering_.filters) {
+                if (declared.name == component.text) found = &declared;
+            }
+            if (found == nullptr) {
+                return fail(DiagnosticCode::resource_unknown, component.token,
+                            "#" + clipped_theme_detail(component.text));
+            }
+            const MaterialColourStages& stages = (*found).stages;
+            if (stages.table.present() && (table || shadowed)) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            table ? "a second colour table" : "a component-transfer after drop-shadow()");
+            }
+            if (stages.table.present()) {
+                composed = composed.then(stages.matrix);
+                table = *stages.table.value();
+            } else if (!table) {
+                composed = composed.then(stages.matrix);
+                if (shadowed) after_shadow = after_shadow.then(stages.matrix);
+            } else if (stages.matrix.per_channel()) {
+                table = (*table).then_matrix(stages.matrix);
+            } else {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            "#" + clipped_theme_detail(component.text) + " after a colour table");
+            }
+            filtered = true;
+            continue;
         }
         const NamedFilter* const named =
             component.kind == ValueComponentKind::function ? filter_function(component.text) : nullptr;
@@ -1911,16 +2510,46 @@ bool MaterialReader::lower_filter() {
         if (kind == FilterFunction::opacity && shadowed) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, "opacity() after drop-shadow()");
         }
+        if (kind == FilterFunction::tritone || kind == FilterFunction::duotone) {
+            const bool three = kind == FilterFunction::tritone;
+            if (table) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            three ? "a second tritone()" : "duotone() after a colour table");
+            }
+            if (shadowed) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                            three ? "tritone() after drop-shadow()" : "duotone() after drop-shadow()");
+            }
+            std::array<Color, 3> tones{};
+            const std::span<Color> read = three ? std::span<Color>(tones) : std::span<Color>(tones.data(), 2U);
+            if (!read_function_colours(index, read)) return false;
+            composed = composed.then(MaterialColourMatrix::luminance());
+            table = three ? MaterialColourTable::tritone(tones[0], tones[1], tones[2])
+                          : MaterialColourTable::duotone(tones[0], tones[1]);
+            filtered = true;
+            continue;
+        }
         MaterialColourMatrix matrix{};
         if (!read_colour_function(index, kind, matrix)) return false;
-        composed = composed.then(matrix);
+        if (!table) {
+            composed = composed.then(matrix);
+        } else if (matrix.per_channel()) {
+            table = (*table).then_matrix(matrix);
+        } else {
+            return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                        clipped_theme_detail(component.text) + "() after duotone() or tritone()");
+        }
         filtered = true;
         if (shadowed) after_shadow = after_shadow.then(matrix);
     }
-    if (filtered) colour.colour_filter = composed;
+    if (filtered && table) {
+        colour.colour_filter = MaterialColourFilter(composed, *table);
+    } else if (filtered) {
+        colour.colour_filter = composed;
+    }
     if (shadowed) {
         shadow.color = filtered_colour(after_shadow, shadow.color);
-        drop.drop_shadow = shadow;
+        drop.drop_shadow.set(shadow);
     }
     blur.number = 2.0 * std::sqrt(variance);
     SurfaceMaterial checked{};
@@ -1938,7 +2567,7 @@ bool MaterialReader::lower_filter() {
 // number or a percentage.
 bool MaterialReader::lower_finish() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one amount");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one amount");
     }
     const ValueComponent& component = value_.components[0];
     if (component.kind == ValueComponentKind::expression) {
@@ -1989,7 +2618,7 @@ bool MaterialReader::lower_seat() {
 // Bayer matrix, `blue-noise` by the 64 x 64 blue-noise table.
 bool MaterialReader::lower_gradient_dither() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one dither");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one dither");
     }
     const ValueComponent& component = value_.components[0];
     MaterialDeclaration declaration{};
@@ -2005,6 +2634,192 @@ bool MaterialReader::lower_gradient_dither() {
     } else {
         return fail(DiagnosticCode::value_wrong_kind, component.token, "none, ordered or blue-noise");
     }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `transform: none | <function>+` (owner 2026-11-16), on a material: the
+// functions rotate(<angle>) and scale(<number> [, <number>]) (a number or
+// a percentage; one value scales both axes), composed as CSS composes a
+// transform list, about the box's centre (MaterialTransform).
+bool MaterialReader::lower_transform() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::transform;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    MaterialTransform composed{};
+    std::vector<ComponentRange> parts;
+    for (std::size_t index = 0U; index < whole.end; index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        const bool function = component.kind == ValueComponentKind::function;
+        const bool rotate = function && equals_ascii_folded(component.text, rotate_function_name);
+        const bool scale = function && equals_ascii_folded(component.text, scale_function_name);
+        if (!rotate && !scale) return fail(DiagnosticCode::value_wrong_kind, component.token, "rotate() or scale()");
+        split(ComponentRange{index + 1U, next(index)}, parts);
+        MaterialTransform step{};
+        if (rotate) {
+            if (parts.size() != 1U || count(parts[0]) != 1U) {
+                return fail(DiagnosticCode::value_syntax, component.token, "one angle");
+            }
+            double degrees = 0.0;
+            if (!read_angle(parts[0].first, degrees)) return false;
+            step = rotation_transform(degrees);
+        } else {
+            if (parts.size() != 1U && parts.size() != 2U) {
+                return fail(DiagnosticCode::value_syntax, component.token, "one or two factors");
+            }
+            double across = 1.0;
+            if (!read_scale_factor(parts[0], across)) return false;
+            double down = across;
+            if (parts.size() == 2U && !read_scale_factor(parts[1], down)) return false;
+            step.xx = across;
+            step.yy = down;
+        }
+        composed = composed_transform(composed, step);
+    }
+    SurfaceMaterial checked{};
+    checked.transform = composed;
+    if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a transform");
+    declaration.transform = composed;
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// One scale() factor: a number, or a percentage of 1.
+bool MaterialReader::read_scale_factor(ComponentRange part, double& factor) {
+    if (count(part) != 1U) {
+        const std::uint32_t token =
+            part.first < value_.components.size() ? value_.components[part.first].token : start_;
+        return fail(DiagnosticCode::value_syntax, token, "one factor");
+    }
+    const ValueComponent& component = value_.components[part.first];
+    const bool number = component.kind == ValueComponentKind::number;
+    const bool plain = number && component.unit == ValueUnit::none;
+    const bool percent = number && component.unit == ValueUnit::percent;
+    if (!plain && !percent) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number or a percentage");
+    factor = percent ? component.number / 100.0 : component.number;
+    return true;
+}
+
+// A clip path's leading fill rule, `nonzero` or `evenodd`, when `part` is
+// one such keyword; `read` says whether it was.
+bool MaterialReader::read_clip_rule(ComponentRange part, bool& read, MaterialClipRule& rule) {
+    read = false;
+    if (count(part) != 1U || value_.components[part.first].kind != ValueComponentKind::keyword) return true;
+    if (keyword(part.first, "nonzero")) {
+        rule = MaterialClipRule::nonzero;
+    } else if (keyword(part.first, "evenodd")) {
+        rule = MaterialClipRule::even_odd;
+    } else {
+        const ValueComponent& component = value_.components[part.first];
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    read = true;
+    return true;
+}
+
+// polygon([<fill-rule>,] <x> <y>, <x> <y>, ...): at least three vertices,
+// each a length (px) or a percentage of the box; em is not admitted, so the
+// outline never depends on the part's font.
+bool MaterialReader::read_polygon(std::size_t function, MaterialClipPath& clip) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> parts;
+    split(ComponentRange{function + 1U, next(function)}, parts);
+    bool ruled = false;
+    if (!read_clip_rule(parts[0], ruled, clip.rule)) return false;
+    const std::size_t first_vertex = ruled ? 1U : 0U;
+    const std::size_t vertices = parts.size() - first_vertex;
+    if (vertices < 3U) return fail(DiagnosticCode::value_syntax, written.token, "at least three vertices");
+    if (vertices > MaterialClipPath::maximum_points) {
+        return fail(DiagnosticCode::value_out_of_range, written.token, "at most 256 vertices");
+    }
+    for (std::size_t vertex = first_vertex; vertex < parts.size(); ++vertex) {
+        const ComponentRange part = parts[vertex];
+        if (count(part) != 2U) return fail(DiagnosticCode::value_syntax, written.token, "a vertex of two lengths");
+        const std::size_t across_index = part.first;
+        const std::size_t down_index = next(part.first);
+        const std::array<std::size_t, 2> indices{across_index, down_index};
+        for (const std::size_t index : indices) {
+            const ValueComponent& component = value_.components[index];
+            if (component.kind == ValueComponentKind::number && component.unit == ValueUnit::em) {
+                return fail(DiagnosticCode::value_form_not_admitted, component.token, "an em length in a clip path");
+            }
+        }
+        BoxLength across{};
+        BoxLength down{};
+        if (!read_length(across_index, true, true, across)) return false;
+        if (!read_length(down_index, true, true, down)) return false;
+        MaterialClipPoint point{};
+        point.x_units = across.units;
+        point.x_fraction = across.fraction;
+        point.y_units = down.units;
+        point.y_fraction = down.fraction;
+        clip.points.push_back(point);
+        const MaterialClipVerb verb = vertex == first_vertex ? MaterialClipVerb::move : MaterialClipVerb::line;
+        clip.verbs.push_back(verb);
+    }
+    clip.verbs.push_back(MaterialClipVerb::close);
+    return true;
+}
+
+// path([<fill-rule>,] "<SVG path data>"): coordinates in px from the box's
+// top-left; S, T and A lowered to cubics and quadratics (SvgPathReader).
+bool MaterialReader::read_svg_path(std::size_t function, MaterialClipPath& clip) {
+    const ValueComponent& written = value_.components[function];
+    std::vector<ComponentRange> parts;
+    split(ComponentRange{function + 1U, next(function)}, parts);
+    bool ruled = false;
+    if (!read_clip_rule(parts[0], ruled, clip.rule)) return false;
+    const std::size_t data_part = ruled ? 1U : 0U;
+    if (parts.size() != data_part + 1U || count(parts[data_part]) != 1U) {
+        return fail(DiagnosticCode::value_syntax, written.token, "one string of path data");
+    }
+    const ValueComponent& data = value_.components[parts[data_part].first];
+    if (data.kind != ValueComponentKind::string) {
+        return fail(DiagnosticCode::value_wrong_kind, data.token, "a string of path data");
+    }
+    SvgPathReader reader(data.text);
+    const SvgPathProblem problem = reader.read(clip);
+    switch (problem) {
+    case SvgPathProblem::none: return true;
+    case SvgPathProblem::too_large:
+        return fail(DiagnosticCode::value_out_of_range, data.token, "at most 256 points within 100000px");
+    case SvgPathProblem::syntax:
+    default: break;
+    }
+    return fail(DiagnosticCode::value_syntax, data.token, "SVG path data");
+}
+
+// `clip-path: none | polygon() | path()` (owner 2026-11-16), on a
+// material (MaterialClipPath). Reference boxes, basic shapes other than
+// polygon() and url() references are not admitted.
+bool MaterialReader::lower_clip_path() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::clip_path;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    if (count(whole) != 1U) return fail(DiagnosticCode::value_syntax, after_first_token(), "one shape");
+    const ValueComponent& component = value_.components[0];
+    const bool function = component.kind == ValueComponentKind::function;
+    const bool polygon = function && equals_ascii_folded(component.text, polygon_function_name);
+    const bool path = function && equals_ascii_folded(component.text, path_function_name);
+    if (component.kind == ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_form_not_admitted, component.token, "a reference box");
+    }
+    if (!polygon && !path) return fail(DiagnosticCode::value_wrong_kind, component.token, "polygon() or path()");
+    MaterialClipPath clip{};
+    const bool read = polygon ? read_polygon(0U, clip) : read_svg_path(0U, clip);
+    if (!read) return false;
+    SurfaceMaterial checked{};
+    checked.clip_path = clip;
+    if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a clip path");
+    declaration.clip_path = std::move(clip);
     lowering_.declarations.push_back(std::move(declaration));
     return true;
 }
@@ -2145,10 +2960,13 @@ bool MaterialReader::lower_keylines() {
     return true;
 }
 
-// `mask-image`: none, one gradient or one image, whose alpha the engine
-// multiplies the finished part by; an image tiled at its own size (CSS's
-// initial mask size and repetition), a fixed gradient resolved now, the
-// others when the material is assembled for a part.
+// `mask-image`: none, or up to SurfaceMaterial::maximum_mask_layers
+// layers in CSS's order (the top layer first), each one gradient or one
+// image, at most one of them an image; an image tiled at its own size
+// (CSS's initial mask size and repetition), a fixed gradient resolved now,
+// the others when the material is assembled for a part. The layers are
+// stored bottom first, read by alpha and added until `mask-mode` and
+// `mask-composite` say otherwise.
 bool MaterialReader::lower_mask() {
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::mask;
@@ -2159,20 +2977,112 @@ bool MaterialReader::lower_mask() {
     }
     std::vector<ComponentRange> layers{};
     split(whole, layers);
-    if (layers.size() > 1U) return fail(DiagnosticCode::too_many_layers, start_, "1 mask layer");
-    if (count(layers[0]) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one image");
-    WrittenLayer written{};
-    if (!read_image(0U, written)) return false;
-    MaterialFillLayer layer = written.image;
-    if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_,
+                    std::to_string(SurfaceMaterial::maximum_mask_layers) + " mask layers");
+    }
+    const std::size_t layer_count = layers.size();
+    declaration.masks.resize(layer_count);
+    std::vector<AuthoredGradient> gradients(layer_count);
+    bool deferred = false;
     SurfaceMaterial checked{};
-    checked.mask = layer;
+    checked.masks.resize(layer_count);
+    for (std::size_t from_top = 0U; from_top < layer_count; ++from_top) {
+        const ComponentRange range = layers[from_top];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one image in each mask layer");
+        WrittenLayer written{};
+        if (!read_image(range.first, written)) return false;
+        const std::size_t bottom_first = layer_count - 1U - from_top;
+        MaterialFillLayer layer = written.image;
+        if (!written.imaged) resolve_authored_gradient(written.gradient, Size{100.0, 100.0}, layer);
+        checked.masks[bottom_first].source = layer;
+        if (written.imaged || fixed_gradient(written.gradient)) {
+            // Kept as written: its gradient entry is the solid placeholder
+            // (MaterialDeclaration), as push_fills writes it. A default
+            // AuthoredGradient is a linear one without stops, which
+            // material_declaration_admitted refuses once a neighbour waits
+            // for the box.
+            declaration.masks[bottom_first] = layer;
+            gradients[bottom_first].kind = MaterialFillKind::solid;
+            continue;
+        }
+        declaration.masks[bottom_first] = MaterialFillLayer{};
+        gradients[bottom_first] = std::move(written.gradient);
+        deferred = true;
+    }
     if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a mask");
-    if (written.imaged || fixed_gradient(written.gradient)) {
-        declaration.mask = layer;
-    } else {
-        declaration.mask = MaterialFillLayer{};
-        declaration.gradients.push_back(std::move(written.gradient));
+    // One authored gradient per layer when any waits for the part's box;
+    // a layer kept as written has a solid entry (MaterialDeclaration).
+    if (deferred) declaration.gradients = std::move(gradients);
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `mask-mode`: one keyword per layer, in CSS's order: `alpha`,
+// `luminance`, `match-source` (an image's alpha, as CSS reads an image
+// layer), or the theme language's `inverse-alpha` and `inverse-luminance`
+// (owner 2026-11-16; not CSS).
+bool MaterialReader::lower_mask_modes() {
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_mask_layers));
+    }
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::mask_modes;
+    declaration.mask_modes.reserve(layers.size());
+    for (const ComponentRange range : layers) {
+        const ValueComponent& component = value_.components[range.first];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, component.token, "one mask mode");
+        MaterialMaskMode mode = MaterialMaskMode::alpha;
+        if (keyword(range.first, "alpha") || keyword(range.first, "match-source")) {
+            mode = MaterialMaskMode::alpha;
+        } else if (keyword(range.first, "luminance")) {
+            mode = MaterialMaskMode::luminance;
+        } else if (keyword(range.first, "inverse-alpha")) {
+            mode = MaterialMaskMode::inverse_alpha;
+        } else if (keyword(range.first, "inverse-luminance")) {
+            mode = MaterialMaskMode::inverse_luminance;
+        } else if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        } else {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a mask mode");
+        }
+        declaration.mask_modes.push_back(mode);
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `mask-composite`: one keyword per layer, in CSS's order: `add`,
+// `subtract`, `intersect` or `exclude` (MaterialMaskComposite).
+bool MaterialReader::lower_mask_composites() {
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > SurfaceMaterial::maximum_mask_layers) {
+        return fail(DiagnosticCode::too_many_layers, start_, std::to_string(SurfaceMaterial::maximum_mask_layers));
+    }
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::mask_composites;
+    declaration.mask_composites.reserve(layers.size());
+    for (const ComponentRange range : layers) {
+        const ValueComponent& component = value_.components[range.first];
+        if (count(range) != 1U) return fail(DiagnosticCode::value_syntax, component.token, "one mask composite");
+        MaterialMaskComposite composite = MaterialMaskComposite::add;
+        if (keyword(range.first, "add")) {
+            composite = MaterialMaskComposite::add;
+        } else if (keyword(range.first, "subtract")) {
+            composite = MaterialMaskComposite::subtract;
+        } else if (keyword(range.first, "intersect")) {
+            composite = MaterialMaskComposite::intersect;
+        } else if (keyword(range.first, "exclude")) {
+            composite = MaterialMaskComposite::exclude;
+        } else if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        } else {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a mask composite");
+        }
+        declaration.mask_composites.push_back(composite);
     }
     lowering_.declarations.push_back(std::move(declaration));
     return true;
@@ -2255,9 +3165,9 @@ bool MaterialReader::lower_reflection() {
     if (opacity_count > 0U) reflection.start_opacity = opacities[0];
     if (opacity_count > 1U) reflection.end_opacity = opacities[1];
     SurfaceMaterial checked{};
-    checked.reflection = reflection;
+    checked.reflection.set(reflection);
     if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a reflection");
-    declaration.reflection = reflection;
+    declaration.reflection.set(reflection);
     lowering_.declarations.push_back(std::move(declaration));
     return true;
 }
@@ -2266,7 +3176,7 @@ bool MaterialReader::lower_reflection() {
 
 bool MaterialReader::lower_background_colour() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::background_colour;
@@ -2306,12 +3216,13 @@ bool MaterialReader::lower_blend_modes() {
     for (const ComponentRange& mode : modes) {
         if (count(mode) != 1U) return fail(DiagnosticCode::value_syntax, start_, "one blend mode per layer");
         const ValueComponent& component = value_.components[mode.first];
-        if (keyword(mode.first, "normal")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::normal);
-        } else if (keyword(mode.first, "multiply")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::multiply);
-        } else if (keyword(mode.first, "screen")) {
-            declaration.blend_modes.push_back(MaterialBlendMode::screen);
+        std::optional<MaterialBlendMode> named{};
+        for (std::size_t position = 0U; position < material_blend_names.size(); ++position) {
+            if (!keyword(mode.first, material_blend_names[position])) continue;
+            named = static_cast<MaterialBlendMode>(static_cast<std::uint8_t>(position));
+        }
+        if (named) {
+            declaration.blend_modes.push_back(*named);
         } else if (component.kind == ValueComponentKind::keyword && css_blend_mode_not_admitted(component.text)) {
             return fail(DiagnosticCode::value_form_not_admitted, component.token, clipped_theme_detail(component.text));
         } else if (component.kind == ValueComponentKind::keyword) {
@@ -2506,7 +3417,7 @@ bool MaterialReader::read_outline_width(std::size_t index, double& width) {
 // `color`: one colour, the recipe's text colour.
 bool MaterialReader::lower_text_colour() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::text);
     if (!read_colour(0U, declaration.colour)) return false;
@@ -2518,7 +3429,7 @@ bool MaterialReader::lower_text_colour() {
 // glyph colour (`field`).
 bool MaterialReader::lower_recipe_colour(RecipeField field) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     RecipeDeclaration declaration = recipe_declaration(field);
     if (!read_colour(0U, declaration.colour)) return false;
@@ -2530,7 +3441,7 @@ bool MaterialReader::lower_recipe_colour(RecipeField field) {
 // its hub, at most maximum_recipe_stroke_width.
 bool MaterialReader::lower_stroke_width() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one width");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one width");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::stroke_width);
     if (!read_width(0U, declaration.number)) return false;
@@ -2545,7 +3456,7 @@ bool MaterialReader::lower_stroke_width() {
 // `needle-shape`: `line`, `tapered` or `dot` (NeedleShape).
 bool MaterialReader::lower_needle_shape() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one needle shape");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one needle shape");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2558,6 +3469,28 @@ bool MaterialReader::lower_needle_shape() {
         declaration.needle_shape = NeedleShape::tapered;
     } else if (keyword(0U, "dot")) {
         declaration.needle_shape = NeedleShape::dot;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `ring-style`: `dots` or `arc` (RingStyle), how ProgressRing draws its
+// ring where its style property is `theme`.
+bool MaterialReader::lower_ring_style() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one ring style");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "a ring style");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::ring_style);
+    if (keyword(0U, "dots")) {
+        declaration.ring_style = RingStyle::dots;
+    } else if (keyword(0U, "arc")) {
+        declaration.ring_style = RingStyle::arc;
     } else {
         return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
     }
@@ -2631,7 +3564,7 @@ bool MaterialReader::lower_outline() {
 
 bool MaterialReader::lower_outline_style() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one outline style");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one outline style");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::outline_style);
     if (!read_outline_style(0U, declaration.outline_style)) return false;
@@ -2641,7 +3574,7 @@ bool MaterialReader::lower_outline_style() {
 
 bool MaterialReader::lower_outline_colour() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::outline_colour);
     if (!read_colour(0U, declaration.colour)) return false;
@@ -2651,7 +3584,7 @@ bool MaterialReader::lower_outline_colour() {
 
 bool MaterialReader::lower_outline_width() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one width");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one width");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::outline_width);
     if (!read_outline_width(0U, declaration.number)) return false;
@@ -2663,7 +3596,7 @@ bool MaterialReader::lower_outline_width() {
 // ±maximum_recipe_outline_offset. The theme's ring (`auto`) has none.
 bool MaterialReader::lower_outline_offset() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     BoxLength length{};
     if (!read_length(0U, false, true, length)) return false;
@@ -2685,7 +3618,7 @@ bool MaterialReader::lower_outline_offset() {
 // a gap overlapping the parts it separates).
 bool MaterialReader::lower_part_length(RecipeField field, double minimum, double maximum) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     BoxLength length{};
     const bool negatives = minimum < 0.0;
@@ -2704,7 +3637,7 @@ bool MaterialReader::lower_part_length(RecipeField field, double minimum, double
 // length from minimum_stripe_pitch to maximum_stripe_pitch.
 bool MaterialReader::lower_stripe_pitch() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "auto or one length");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_pitch);
     if (keyword(0U, "auto")) {
@@ -2727,7 +3660,7 @@ bool MaterialReader::lower_stripe_pitch() {
 // range.
 bool MaterialReader::lower_stripe_number(RecipeField field, double minimum, double maximum) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one number");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one number");
     }
     const ValueComponent& component = value_.components[0U];
     const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
@@ -2745,7 +3678,7 @@ bool MaterialReader::lower_stripe_number(RecipeField field, double minimum, doub
 // maximum_stripe_angle degrees.
 bool MaterialReader::lower_stripe_angle() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one angle");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one angle");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_angle);
     if (!read_angle(0U, declaration.number)) return false;
@@ -2761,7 +3694,7 @@ bool MaterialReader::lower_stripe_angle() {
 // (StripeSense).
 bool MaterialReader::lower_stripe_sense(RecipeField field) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "forward or backward");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "forward or backward");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2782,7 +3715,7 @@ bool MaterialReader::lower_stripe_sense(RecipeField field) {
 // `stripe-gloss`: `auto` or `none` (StripeGloss).
 bool MaterialReader::lower_stripe_gloss() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or none");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "auto or none");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2803,7 +3736,7 @@ bool MaterialReader::lower_stripe_gloss() {
 // `stripe-reduced-motion`: `still` or `none` (StripeReducedMotion).
 bool MaterialReader::lower_stripe_reduced_motion() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "still or none");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "still or none");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2902,7 +3835,7 @@ bool MaterialReader::lower_halo() {
 // (CanvasFlowStyle).
 bool MaterialReader::lower_flow_style() {
     if (next(0U) < value_.components.size()) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "none, dots or dashes");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "none, dots or dashes");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -3024,7 +3957,7 @@ bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& laye
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal or checker");
+                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal, checker or a hatch-* style");
     }
     const ValueComponent& seed = value_.components[arguments[1].first];
     const bool whole = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none &&
@@ -3047,6 +3980,7 @@ bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& laye
         return fail(DiagnosticCode::value_out_of_range, strength.token, clipped_theme_detail(strength.text));
     }
     layer.pattern = (*named).pattern;
+    layer.hatch_style = (*named).hatch_style;
     layer.seed = static_cast<std::uint32_t>(seed.number);
     layer.tile = tile.units;
     layer.strength = strength.number;
@@ -3078,9 +4012,9 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
         coloured = true;
         if (!read_colour(index, colour.colour)) return false;
     }
-    if (!sized) return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "a length");
+    if (!sized) return fail(DiagnosticCode::value_syntax, after_first_token(), "a length");
     if (colour_required && !coloured) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "a length and a colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "a length and a colour");
     }
     colour.initial = !coloured;
     lowering_.recipe_fields.push_back(length);
@@ -3088,60 +4022,138 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
     return true;
 }
 
-// `font-family` (T4 fonts; named families, owner decision of 2026-11-10):
-// one bundled font role, `control`, `content` or `monospace`, or the name of
-// a bundled family (gui_forms::detail::bundled_family_names), quoted or written as
-// words, in any ASCII case: `Selawik`, `"Portsmouth Rapids"`, `Carlito`. The
-// name of a role's face stands for that role. A numbered family (Selawik)
-// draws its own faces first and the content role's faces for anything it
-// lacks. A name no bundled family has, a generic family and a list are
-// refused: GUI.Forms draws its bundled faces, never a host font.
+// `font-family` (T4 fonts; named families, owner decision of 2026-11-10;
+// stacks and generics, owner decisions of 2026-11-13): a comma-separated
+// list of bundled family names (gui_forms/typography/font_families/font_families.hpp),
+// each quoted or written as words, in any ASCII case, and CSS generic
+// families, unquoted (`sans-serif`, `serif`, `monospace`, `system-ui`, the
+// `ui-*` names and the rest of generic_font_families, each drawing the
+// bundled family that table chooses), optionally ended by a role,
+// `control`, `content` or `monospace`:
+// `Selawik`, `"Portsmouth Rapids", Carlito`, `Selawik, sans-serif, monospace`.
+// The first available family is the font's family; the others form a
+// registered stack drawn after it; the role draws last. `monospace` last is
+// the role, elsewhere the generic. A name the registry does not have that is
+// not a generic (a host font, or a substitution table's request such as Arial) is passed over
+// with a warning (W113), never refused: GUI.Forms draws its bundled faces,
+// never a host font. When no named family is available and no role is
+// written, the declaration is dropped with that warning. Without a written
+// role, a role's family as the first family brings its role (Carlito and
+// sans-serif: content), and any other family the content role. A role's
+// family written alone stands for its role, with no family
+// (`font-family: Cousine` is the monospace role, as before stacks). In a
+// composite's look (admit_app_fonts) a name no bundled family has may name a
+// live application family, which is then a family like any other; such a
+// family has no role, so without a written role it brings the content role.
 bool MaterialReader::lower_font_family() {
-    const std::size_t count = value_.components.size();
-    const ValueComponent& first = value_.components[0];
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_family);
-    if (count == 1U && first.kind == ValueComponentKind::keyword) {
-        bool role_named = true;
-        if (keyword(0U, "control")) {
-            declaration.font_role = FontRole::control;
-        } else if (keyword(0U, "content")) {
-            declaration.font_role = FontRole::content;
-        } else if (keyword(0U, "monospace")) {
-            declaration.font_role = FontRole::monospace;
-        } else {
-            role_named = false;
+    std::vector<ComponentRange> entries{};
+    split(ComponentRange{0U, value_.components.size()}, entries);
+    // Every family named, then the ones the registry has, in order, each once.
+    constexpr std::size_t maximum_named = 1U + maximum_font_stack_families;
+    std::array<FontFamilyId, maximum_named> available{};
+    std::size_t available_count = 0U;
+    std::size_t named_count = 0U;
+    std::optional<FontRole> written_role{};
+    std::uint32_t first_unavailable_token = start_;
+    std::string first_unavailable{};
+    for (std::size_t entry_index = 0U; entry_index < entries.size(); ++entry_index) {
+        const ComponentRange entry = entries[entry_index];
+        if (entry.first == entry.end) {
+            const std::uint32_t token = entry.first < value_.components.size()
+                                            ? value_.components[entry.first].token
+                                            : start_;
+            return fail(DiagnosticCode::value_syntax, token, "a bundled font family or role");
         }
-        if (role_named) {
-            lowering_.recipe_fields.push_back(declaration);
-            return true;
+        const ValueComponent& first = value_.components[entry.first];
+        if (written_role) {
+            return fail(DiagnosticCode::value_form_not_admitted, first.token, "a font role only as the last entry");
         }
-    }
-    // A family name: one string, or words joined by single spaces.
-    std::string name{};
-    if (count == 1U && first.kind == ValueComponentKind::string) {
-        name = std::string(first.text);
-    } else if (count == 1U && first.kind != ValueComponentKind::keyword) {
-        return fail(DiagnosticCode::value_wrong_kind, first.token, "a bundled font role or family");
-    } else {
-        for (std::size_t index = 0U; index < count; ++index) {
-            const ValueComponent& component = value_.components[index];
-            if (component.kind != ValueComponentKind::keyword) {
-                return fail(DiagnosticCode::value_form_not_admitted, component.token,
-                            "one bundled font role or family");
+        const std::size_t words = count(entry);
+        if (words == 1U && first.kind == ValueComponentKind::keyword) {
+            if (keyword(entry.first, "control")) {
+                written_role = FontRole::control;
+            } else if (keyword(entry.first, "content")) {
+                written_role = FontRole::content;
+            } else if (keyword(entry.first, "monospace") && entry_index + 1U == entries.size()) {
+                // Last, `monospace` is the role (as before generics); elsewhere the generic.
+                written_role = FontRole::monospace;
             }
-            if (index != 0U) name += ' ';
-            name += component.text;
+            if (written_role) continue;
         }
+        // A family name: one string, or words joined by single spaces.
+        std::string name{};
+        if (words == 1U && first.kind == ValueComponentKind::string) {
+            name = std::string(first.text);
+        } else {
+            for (std::size_t index = entry.first; index < entry.end; index = next(index)) {
+                const ValueComponent& component = value_.components[index];
+                if (component.kind != ValueComponentKind::keyword) {
+                    return fail(DiagnosticCode::value_wrong_kind, component.token, "a bundled font family or role");
+                }
+                if (index != entry.first) name += ' ';
+                name += component.text;
+            }
+        }
+        named_count = named_count + 1U;
+        if (named_count > maximum_named) {
+            return fail(DiagnosticCode::value_form_not_admitted, first.token, "at most five font families");
+        }
+        // A CSS generic, unquoted, draws its bundled family (generic_font_families: our
+        // mapping); `emoji` names none, since the emoji fallback face serves every font.
+        const GenericFontFamily* const generic =
+            words == 1U && first.kind == ValueComponentKind::keyword ? generic_font_family(name) : nullptr;
+        if (generic != nullptr && (*generic).family.value == 0U) continue;
+        const FontFamilyRecord* const record =
+            generic != nullptr ? font_family_record((*generic).family) : font_family_named(name);
+        FontFamilyId family{};
+        if (record != nullptr) family = (*record).id;
+        if (record == nullptr && generic == nullptr && lowering_.admit_app_fonts) family = app_font_family_named(name);
+        if (family.value == 0U) {
+            std::string detail = clipped_theme_detail(name);
+            if (first_unavailable.empty()) {
+                first_unavailable = detail;
+                first_unavailable_token = first.token;
+            }
+            lowering_.warnings.push_back(
+                MaterialLoweringProblem{DiagnosticCode::font_family_unavailable, first.token, std::move(detail)});
+            continue;
+        }
+        bool listed = false;
+        for (std::size_t index = 0U; index < available_count; ++index) {
+            if (available[index] == family) listed = true;
+        }
+        if (listed) continue;
+        available[available_count] = family;
+        available_count = available_count + 1U;
     }
-    const gui_forms::detail::BundledFamilyName* const family = gui_forms::detail::bundled_family_named(name);
-    if (family == nullptr) {
-        return fail(DiagnosticCode::keyword_unknown, first.token, clipped_theme_detail(name));
+    if (available_count == 0U) {
+        // Only `emoji`: nothing to set, and nothing to warn about.
+        if (!written_role && first_unavailable.empty()) return true;
+        if (!written_role) {
+            return fail(DiagnosticCode::font_family_unavailable, first_unavailable_token, first_unavailable);
+        }
+        declaration.font_role = *written_role;
+        lowering_.recipe_fields.push_back(declaration);
+        return true;
     }
-    if ((*family).role) {
-        declaration.font_role = *(*family).role;
-    } else {
-        declaration.font_role = FontRole::content;
-        declaration.font_family = (*family).family;
+    // Null for an application family, which has no role.
+    const FontFamilyRecord* const first_family = font_family_record(available[0]);
+    stxlib::Optional<FontRole> first_role{};
+    if (first_family != nullptr) first_role = (*first_family).role;
+    FontRole role = FontRole::content;
+    if (written_role) {
+        role = *written_role;
+    } else if (first_role.present()) {
+        role = (*first_role.value());
+    }
+    declaration.font_role = role;
+    const bool role_alone = available_count == 1U && first_role.present() && (*first_role.value()) == role;
+    if (!role_alone) declaration.font_family = available[0];
+    if (available_count > 1U) {
+        const std::span<const FontFamilyId> rest(available.data() + 1U, available_count - 1U);
+        // A full stack registry leaves the font its first family and its role.
+        declaration.font_stack = register_font_family_stack(rest);
     }
     lowering_.recipe_fields.push_back(declaration);
     return true;
@@ -3152,7 +4164,7 @@ bool MaterialReader::lower_font_family() {
 // bounded when it resolves).
 bool MaterialReader::lower_font_size() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     BoxLength length{};
     if (!read_length(0U, false, false, length)) return false;
@@ -3173,7 +4185,7 @@ bool MaterialReader::lower_font_size() {
 // draw, is refused.
 bool MaterialReader::lower_font_style() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token, "normal or italic");
+        return fail(DiagnosticCode::value_form_not_admitted, after_first_token(), "normal or italic");
     }
     const ValueComponent& component = value_.components[0];
     if (component.kind != ValueComponentKind::keyword) {
@@ -3196,7 +4208,7 @@ bool MaterialReader::lower_font_style() {
 // 900. bolder and lighter, relative to a parent's weight, are refused.
 bool MaterialReader::lower_font_weight() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one weight");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one weight");
     }
     const ValueComponent& component = value_.components[0];
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_weight);
@@ -3231,7 +4243,7 @@ bool MaterialReader::lower_font_weight() {
 // em (of the resolved size); valid_font_spec bounds it at that size.
 bool MaterialReader::lower_letter_spacing() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::letter_spacing);
     if (keyword(0U, "normal")) {
@@ -3303,6 +4315,7 @@ void MaterialReader::lower(MaterialProperty property) {
     lowering_.read_current_colour = false;
     lowering_.declarations.clear();
     lowering_.recipe_fields.clear();
+    lowering_.warnings.clear();
     lowering_.problem = MaterialLoweringProblem{};
     if (value_.components.empty()) {
         fail(DiagnosticCode::value_syntax, start_, "a value");
@@ -3314,9 +4327,15 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::background_color: static_cast<void>(lower_background_colour()); return;
     case MaterialProperty::background_image: static_cast<void>(lower_background_image()); return;
     case MaterialProperty::background_blend_mode: static_cast<void>(lower_blend_modes()); return;
-    case MaterialProperty::background_position: static_cast<void>(lower_positions()); return;
-    case MaterialProperty::background_size: static_cast<void>(lower_sizes()); return;
-    case MaterialProperty::background_repeat: static_cast<void>(lower_repeats()); return;
+    case MaterialProperty::background_position:
+        static_cast<void>(lower_positions(MaterialField::fill_positions, SurfaceMaterial::maximum_fill_layers));
+        return;
+    case MaterialProperty::background_size:
+        static_cast<void>(lower_sizes(MaterialField::fill_sizes, SurfaceMaterial::maximum_fill_layers));
+        return;
+    case MaterialProperty::background_repeat:
+        static_cast<void>(lower_repeats(MaterialField::fill_repeats, SurfaceMaterial::maximum_fill_layers));
+        return;
     case MaterialProperty::border: static_cast<void>(lower_edges(0U, 4U)); return;
     case MaterialProperty::border_top: static_cast<void>(lower_edges(0U, 1U)); return;
     case MaterialProperty::border_right: static_cast<void>(lower_edges(1U, 1U)); return;
@@ -3348,10 +4367,23 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::glow: static_cast<void>(lower_glows()); return;
     case MaterialProperty::glow_placement: static_cast<void>(lower_glow_placements()); return;
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
+    case MaterialProperty::mask_mode: static_cast<void>(lower_mask_modes()); return;
+    case MaterialProperty::mask_composite: static_cast<void>(lower_mask_composites()); return;
+    case MaterialProperty::mask_position:
+        static_cast<void>(lower_positions(MaterialField::mask_positions, SurfaceMaterial::maximum_mask_layers));
+        return;
+    case MaterialProperty::mask_size:
+        static_cast<void>(lower_sizes(MaterialField::mask_sizes, SurfaceMaterial::maximum_mask_layers));
+        return;
+    case MaterialProperty::mask_repeat:
+        static_cast<void>(lower_repeats(MaterialField::mask_repeats, SurfaceMaterial::maximum_mask_layers));
+        return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
     case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
     case MaterialProperty::gradient_dither: static_cast<void>(lower_gradient_dither()); return;
+    case MaterialProperty::transform: static_cast<void>(lower_transform()); return;
+    case MaterialProperty::clip_path: static_cast<void>(lower_clip_path()); return;
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
@@ -3359,6 +4391,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::default_outline: static_cast<void>(lower_default_outline()); return;
     case MaterialProperty::stroke_width: static_cast<void>(lower_stroke_width()); return;
     case MaterialProperty::needle_shape: static_cast<void>(lower_needle_shape()); return;
+    case MaterialProperty::ring_style: static_cast<void>(lower_ring_style()); return;
     case MaterialProperty::scrim_color: static_cast<void>(lower_recipe_colour(RecipeField::scrim_colour)); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
@@ -3535,10 +4568,17 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::glow: fields.push_back(MaterialField::glows); return;
     case MaterialProperty::glow_placement: fields.push_back(MaterialField::glow_placements); return;
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
+    case MaterialProperty::mask_mode: fields.push_back(MaterialField::mask_modes); return;
+    case MaterialProperty::mask_composite: fields.push_back(MaterialField::mask_composites); return;
+    case MaterialProperty::mask_position: fields.push_back(MaterialField::mask_positions); return;
+    case MaterialProperty::mask_size: fields.push_back(MaterialField::mask_sizes); return;
+    case MaterialProperty::mask_repeat: fields.push_back(MaterialField::mask_repeats); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
     case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
     case MaterialProperty::gradient_dither: fields.push_back(MaterialField::gradient_dither); return;
+    case MaterialProperty::transform: fields.push_back(MaterialField::transform); return;
+    case MaterialProperty::clip_path: fields.push_back(MaterialField::clip_path); return;
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:
@@ -3546,6 +4586,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::default_outline:
     case MaterialProperty::stroke_width:
     case MaterialProperty::needle_shape:
+    case MaterialProperty::ring_style:
     case MaterialProperty::scrim_color:
     case MaterialProperty::color:
     case MaterialProperty::outline:
@@ -3690,6 +4731,214 @@ void lower_material_value(MaterialProperty property, const ThemeValue& value, st
                           std::span<const ThemeImageResource> images, MaterialLowering& lowering) {
     MaterialReader reader(value, start, images, lowering);
     reader.lower(property);
+}
+
+// -- @filter declarations --------------------------------------------------------
+
+namespace {
+
+// Reads one @filter declaration's value (see lower_theme_filter_declaration).
+class FilterRuleReader final {
+public:
+    FilterRuleReader(const ThemeValue& value, std::uint32_t start, NamedThemeFilter& filter,
+                     MaterialLoweringProblem& problem) noexcept
+        : value_(value), start_(start), filter_(filter), problem_(problem) {}
+
+    [[nodiscard]] bool colour_matrix();
+    [[nodiscard]] bool component_transfer();
+
+private:
+    [[nodiscard]] bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
+    // The plain number at component `index`; false, failing, for another
+    // component.
+    [[nodiscard]] bool plain_number(std::size_t index, double& number);
+    // The plain numbers that are the arguments of the function at `index`,
+    // between `least` and `most` of them.
+    [[nodiscard]] bool function_numbers(std::size_t index, std::size_t least, std::size_t most,
+                                        std::vector<double>& numbers);
+    // The component after `index` (past a function's arguments).
+    [[nodiscard]] std::size_t after(std::size_t index) const noexcept;
+    [[nodiscard]] bool transfer_function(std::size_t index, MaterialTransferFunction& function);
+
+    const ThemeValue& value_;
+    std::uint32_t start_{};
+    NamedThemeFilter& filter_;
+    MaterialLoweringProblem& problem_;
+};
+
+bool FilterRuleReader::fail(const DiagnosticCode code, const std::uint32_t token, std::string detail) {
+    problem_.code = code;
+    problem_.token = token;
+    problem_.detail = std::move(detail);
+    return false;
+}
+
+std::size_t FilterRuleReader::after(const std::size_t index) const noexcept {
+    const ValueComponent& component = value_.components[index];
+    if (component.kind == ValueComponentKind::function) return component.subtree_end;
+    return index + 1U;
+}
+
+bool FilterRuleReader::plain_number(const std::size_t index, double& number) {
+    const ValueComponent& component = value_.components[index];
+    const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
+    if (!plain) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number");
+    if (!std::isfinite(component.number)) return fail(DiagnosticCode::value_out_of_range, component.token, "a number");
+    number = component.number;
+    return true;
+}
+
+bool FilterRuleReader::function_numbers(const std::size_t index, const std::size_t least, const std::size_t most,
+                                        std::vector<double>& numbers) {
+    const ValueComponent& function = value_.components[index];
+    numbers.clear();
+    for (std::size_t argument = index + 1U; argument < function.subtree_end; argument = after(argument)) {
+        if (value_.components[argument].kind == ValueComponentKind::comma) continue;
+        if (numbers.size() == most) {
+            return fail(DiagnosticCode::value_syntax, value_.components[argument].token,
+                        "at most " + std::to_string(most) + " numbers");
+        }
+        double number = 0.0;
+        if (!plain_number(argument, number)) return false;
+        numbers.push_back(number);
+    }
+    if (numbers.size() < least) {
+        return fail(DiagnosticCode::value_syntax, function.token, "at least " + std::to_string(least) + " numbers");
+    }
+    return true;
+}
+
+bool FilterRuleReader::colour_matrix() {
+    if (filter_.stages.table.present()) {
+        return fail(DiagnosticCode::value_form_not_admitted, start_, "color-matrix after component-transfer");
+    }
+    const std::vector<ValueComponent>& components = value_.components;
+    MaterialColourMatrix matrix{};
+    const ValueComponent& first = components[0];
+    if (first.kind == ValueComponentKind::keyword && equals_ascii_folded(first.text, "luminance-to-alpha")) {
+        if (components.size() != 1U) return fail(DiagnosticCode::value_syntax, components[1].token, "one keyword");
+        // SVG's luminanceToAlpha: colour 0, alpha the luminance.
+        matrix.values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                         0.0, 0.0, 0.0, 0.0, 0.0, 0.2125, 0.7154, 0.0721, 0.0, 0.0};
+    } else if (first.kind == ValueComponentKind::function && equals_ascii_folded(first.text, "saturate")) {
+        std::vector<double> numbers{};
+        if (!function_numbers(0U, 1U, 1U, numbers)) return false;
+        if (after(0U) != components.size()) {
+            return fail(DiagnosticCode::value_syntax, components[after(0U)].token, "one function");
+        }
+        matrix = MaterialColourMatrix::saturate(numbers[0]);
+    } else if (first.kind == ValueComponentKind::function && equals_ascii_folded(first.text, "hue-rotate")) {
+        if (first.subtree_end != 2U || components.size() != 2U) {
+            return fail(DiagnosticCode::value_syntax, first.token, "one angle");
+        }
+        const ValueComponent& angle = components[1];
+        const bool degrees = angle.kind == ValueComponentKind::number &&
+                             (angle.unit == ValueUnit::degrees || (angle.unit == ValueUnit::none && angle.number == 0.0));
+        if (!degrees) return fail(DiagnosticCode::value_wrong_kind, angle.token, "an angle");
+        matrix = MaterialColourMatrix::hue_rotate(angle.number);
+    } else {
+        std::size_t written = 0U;
+        for (std::size_t index = 0U; index < components.size(); index = after(index)) {
+            if (components[index].kind == ValueComponentKind::comma) continue;
+            if (written == matrix.values.size()) {
+                return fail(DiagnosticCode::value_syntax, components[index].token, "20 numbers");
+            }
+            double number = 0.0;
+            if (!plain_number(index, number)) return false;
+            matrix.values[written] = number;
+            written = written + 1U;
+        }
+        if (written != matrix.values.size()) return fail(DiagnosticCode::value_syntax, start_, "20 numbers");
+    }
+    if (!valid_colour_matrix(matrix)) return fail(DiagnosticCode::value_out_of_range, start_, "a colour matrix");
+    filter_.stages.matrix = filter_.stages.matrix.then(matrix);
+    return true;
+}
+
+bool FilterRuleReader::transfer_function(const std::size_t index, MaterialTransferFunction& function) {
+    const ValueComponent& written = value_.components[index];
+    if (written.kind == ValueComponentKind::keyword && equals_ascii_folded(written.text, "identity")) {
+        function = MaterialTransferFunction{};
+        return true;
+    }
+    if (written.kind != ValueComponentKind::function) {
+        return fail(DiagnosticCode::value_wrong_kind, written.token, "a transfer function");
+    }
+    std::vector<double> numbers{};
+    function = MaterialTransferFunction{};
+    if (equals_ascii_folded(written.text, "table") || equals_ascii_folded(written.text, "discrete")) {
+        if (!function_numbers(index, 1U, MaterialTransferFunction::maximum_values, numbers)) return false;
+        function.kind = equals_ascii_folded(written.text, "table") ? MaterialTransferKind::table
+                                                                     : MaterialTransferKind::discrete;
+        function.values = numbers;
+    } else if (equals_ascii_folded(written.text, "linear")) {
+        if (!function_numbers(index, 2U, 2U, numbers)) return false;
+        function.kind = MaterialTransferKind::linear;
+        function.slope = numbers[0];
+        function.intercept = numbers[1];
+    } else if (equals_ascii_folded(written.text, "gamma")) {
+        if (!function_numbers(index, 3U, 3U, numbers)) return false;
+        function.kind = MaterialTransferKind::gamma;
+        function.amplitude = numbers[0];
+        function.exponent = numbers[1];
+        function.offset = numbers[2];
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, written.token, clipped_theme_detail(written.text));
+    }
+    if (!valid_transfer_function(function)) {
+        return fail(DiagnosticCode::value_out_of_range, written.token, clipped_theme_detail(written.text));
+    }
+    return true;
+}
+
+bool FilterRuleReader::component_transfer() {
+    if (filter_.stages.table.present()) return fail(DiagnosticCode::value_form_not_admitted, start_, "a second component-transfer");
+    const std::vector<ValueComponent>& components = value_.components;
+    std::array<MaterialTransferFunction, 4> functions{};
+    std::array<bool, 4> named{};
+    constexpr std::array<std::string_view, 4> channel_names{"red", "green", "blue", "alpha"};
+    std::size_t index = 0U;
+    while (index < components.size()) {
+        const ValueComponent& channel = components[index];
+        std::size_t position = channel_names.size();
+        for (std::size_t candidate = 0U; candidate < channel_names.size(); ++candidate) {
+            const bool matches =
+                channel.kind == ValueComponentKind::keyword && equals_ascii_folded(channel.text, channel_names[candidate]);
+            if (matches) position = candidate;
+        }
+        if (position == channel_names.size()) {
+            return fail(DiagnosticCode::value_wrong_kind, channel.token, "red, green, blue or alpha");
+        }
+        if (named[position]) return fail(DiagnosticCode::value_syntax, channel.token, "a channel named twice");
+        named[position] = true;
+        const std::size_t function = index + 1U;
+        if (function >= components.size()) {
+            return fail(DiagnosticCode::value_syntax, channel.token, "a transfer function after the channel");
+        }
+        if (!transfer_function(function, functions[position])) return false;
+        index = after(function);
+    }
+    filter_.stages.table.set(MaterialColourTable::transfer(functions[0], functions[1], functions[2], functions[3]));
+    return true;
+}
+
+} // namespace
+
+bool lower_theme_filter_declaration(const std::string_view property, const ThemeValue& value, const std::uint32_t start,
+                                    NamedThemeFilter& filter, MaterialLoweringProblem& problem) {
+    if (value.components.empty()) {
+        problem.code = DiagnosticCode::value_syntax;
+        problem.token = start;
+        problem.detail = "a value";
+        return false;
+    }
+    FilterRuleReader reader(value, start, filter, problem);
+    if (property == "color-matrix") return reader.colour_matrix();
+    if (property == "component-transfer") return reader.component_transfer();
+    problem.code = DiagnosticCode::property_not_admitted;
+    problem.token = start;
+    problem.detail = std::string(property) + " in @filter";
+    return false;
 }
 
 } // namespace gui_forms::theme_language

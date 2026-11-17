@@ -23,6 +23,8 @@
 
 // Identical bits on every host need the same operations in the same order:
 // no fused multiply-add in calc() (as theme_value.cpp).
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif

@@ -11,6 +11,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/status_strip.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -398,6 +399,54 @@ void kept_layout_follows_changes() {
             "a resize lays out again with the kept widths");
 }
 
+// Replaces the strip's items with one plain button when the field loses
+// focus, once, as a handler that rebuilds a toolbar for the focused object
+// does.
+struct ReplaceItemsOnBlur final {
+    ToolStrip* strip{};
+    bool* replaced{};
+    void operator()(bool focused) const {
+        if (focused || *replaced) return;
+        *replaced = true;
+        std::vector<ToolStripItemSpec> items;
+        items.push_back({.stable_id = "only", .text = "Only"});
+        (*strip).set_items(std::move(items));
+    }
+};
+
+// A-gf-controls-14-F2: opening a drop-down or the overflow menu moves focus
+// into it; a blur handler that replaces the items leaves no open item past
+// them, and the strip reports the menu as it is.
+void focus_handler_replaces_the_items() {
+    for (std::size_t round = 0U; round < 2U; ++round) {
+        const std::shared_ptr<Command> save = std::make_shared<Command>("save", "Save");
+        const std::shared_ptr<Command> choice = std::make_shared<Command>("choice", "Choice");
+        std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+        std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("field"));
+        std::shared_ptr<ToolStrip> strip = make_control<ToolStrip>(StableId("strip"));
+        (*field).set_requested_bounds({0.0, 30.0, 120.0, 24.0});
+        (*strip).set_requested_bounds({0.0, 0.0, round == 0U ? 640.0 : 160.0, 25.0});
+        (*strip).set_items(sample_items(save, choice));
+        (*root).add_child(strip);
+        (*root).add_child(field);
+        Window window(root, {640.0, 80.0});
+        window.perform_layout();
+        require(window.request_focus(field), "the field takes focus");
+        bool replaced = false;
+        SubscriptionToken token = (*field).focus_observed().subscribe(ReplaceItemsOnBlur{strip.get(), &replaced});
+        const bool opened = round == 0U ? (*strip).show_drop_down("export") : (*strip).show_overflow();
+        bool any_open = false;
+        const std::vector<ToolStrip::Item> items = (*strip).realized_items();
+        for (const ToolStrip::Item& item : items) {
+            if (item.states.open) any_open = true;
+        }
+        require(opened == (*strip).drop_down_open() && (!replaced || (*strip).realized_items().size() <= 1U) &&
+                    (!any_open || (*strip).drop_down_open()),
+                "the strip records an open menu only while it is open, on the items it has now");
+        static_cast<void>(token);
+    }
+}
+
 int main() {
     layout_and_parts();
     clicks_and_commands();
@@ -406,6 +455,7 @@ int main() {
     hosted_controls();
     cached_layout_follows_inputs();
     kept_layout_follows_changes();
+    focus_handler_replaces_the_items();
     std::cout << "ToolStrip and StatusStrip: parts, clicks, commands, split and drop-down, overflow, keys, semantics and status layout passed\n";
     return 0;
 }

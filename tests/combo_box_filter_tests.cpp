@@ -45,8 +45,8 @@ struct TraceDropDown final {
 };
 struct TraceIndex final {
     std::vector<std::string>* trace{};
-    void operator()(std::optional<std::size_t> index) const {
-        (*trace).push_back(index ? "index " + std::to_string(*index) : std::string("index none"));
+    void operator()(stxlib::Optional<std::size_t> index) const {
+        (*trace).push_back(index.present() ? "index " + std::to_string(*index.value()) : std::string("index none"));
     }
 };
 
@@ -120,9 +120,12 @@ void prefix_filter_narrows_and_widens() {
     const Control::Ptr list = window.find("filter.prefix.overlay.list");
     require(list != nullptr && (*list).anatomy().control_id == "drop_down_list",
             "the rows are a drop-down list");
+    // The rows are realized by layout: before it the list has no height, so
+    // only its first row is realized and row 3 is refused (std::out_of_range).
+    window.perform_layout();
+    require((*list).realized_item_count() == 4U, "layout realizes every filtered row");
     require((*list).realized_item_stable_id(3U) == "filter.prefix.overlay.list.item.4",
             "a row's identity is its item's, not its position");
-    window.perform_layout();
     const PartGeometry match = item_part(*list, 0U, "match");
     const PartGeometry label = item_part(*list, 0U, "label");
     require(match.present && match.states.contains(AnatomyState::hot) &&
@@ -169,16 +172,16 @@ void keyboard_and_identity() {
     std::vector<std::string> trace;
     SubscriptionToken indices = combo.selected_index_changed().subscribe(TraceIndex{&trace});
     require(type(window, "ca") && rows_are(combo, {0U, 1U, 2U, 4U}), "filtered");
-    require(press(window, PhysicalKey::down) && combo.selected_index.read() == 0U && combo.text.read() == "Calgary" &&
+    require(press(window, PhysicalKey::down) && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(0U) && combo.text.read() == "Calgary" &&
                 rows_are(combo, {0U, 1U, 2U, 4U}),
             "Down chooses the first row; showing its text does not filter again");
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::down) && press(window, PhysicalKey::down) &&
-                combo.selected_index.read() == 4U && combo.text.read() == "Cape Town",
+                combo.selected_index.read() == stxlib::Optional<std::size_t>::of(4U) && combo.text.read() == "Cape Town",
             "Down moves through the filtered rows only, skipping Dover");
-    require(press(window, PhysicalKey::down) && combo.selected_index.read() == 4U, "the last row stays chosen");
-    require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U, "Up moves back one row");
+    require(press(window, PhysicalKey::down) && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(4U), "the last row stays chosen");
+    require(press(window, PhysicalKey::up) && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(2U), "Up moves back one row");
     const Control::Ptr list = window.find("filter.keys.overlay.list");
-    require((*std::static_pointer_cast<ListBox>(list)).selected_index() == 2U,
+    require((*std::static_pointer_cast<ListBox>(list)).selected_index() == stxlib::Optional<std::size_t>::of(2U),
             "the list highlights the chosen item's row");
     window.perform_layout();
     require(!item_part(*list, 2U, "match").present && item_part(*list, 1U, "match").present,
@@ -187,10 +190,10 @@ void keyboard_and_identity() {
     // The items change under the open list: the rows and the selection
     // follow the item, not its old position.
     combo.items = {"Arcadia", "Cambridge", "Calgary", "Cape Town"};
-    require(combo.selected_index.read() == 1U && combo.text.read() == "Cambridge" && rows_are(combo, {1U, 2U, 3U}) &&
-                (*std::static_pointer_cast<ListBox>(window.find("filter.keys.overlay.list"))).selected_index() == 0U,
+    require(combo.selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && combo.text.read() == "Cambridge" && rows_are(combo, {1U, 2U, 3U}) &&
+                (*std::static_pointer_cast<ListBox>(window.find("filter.keys.overlay.list"))).selected_index() == stxlib::Optional<std::size_t>::of(0U),
             "new items keep the filter and the chosen item's row");
-    require(press(window, PhysicalKey::enter) && !combo.dropped_down.read() && combo.selected_index.read() == 1U,
+    require(press(window, PhysicalKey::enter) && !combo.dropped_down.read() && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "Enter keeps the chosen item and closes the list");
     require(trace.back() == "index 1", "the selection is reported by item index");
 }
@@ -205,12 +208,12 @@ void pointer_and_semantic_rows() {
     const Point fourth{list.x + 20.0, list.y + 2.0 + 3.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, fourth}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, fourth}) &&
-                !combo.dropped_down.read() && combo.selected_index.read() == 4U && combo.text.read() == "Cape Town",
+                !combo.dropped_down.read() && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(4U) && combo.text.read() == "Cape Town",
             "clicking the fourth filtered row chooses its item");
     (*combo.editor()).select_all();
     require(type(window, "cam") && rows_are(combo, {2U}), "filtered again");
     require(window.perform_semantic_action("filter.rows.overlay.list.item.2", SemanticAction::press) &&
-                !combo.dropped_down.read() && combo.selected_index.read() == 2U && combo.text.read() == "Cambridge",
+                !combo.dropped_down.read() && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && combo.text.read() == "Cambridge",
             "a semantic press on a row addresses it by its item's identity");
 }
 

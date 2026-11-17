@@ -4,6 +4,8 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -22,6 +24,9 @@ struct GUI_FORMS_API LinuxHostOptions final {
   // The smallest client size; a side of 0 (the default) sets no minimum
   // there beyond the host's own (ApplicationWindowOptions::minimum_size).
   Size minimum_size{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
   // Portable frame capture (identical on every host). When capture_path is
   // non-empty, after the first presented frame that covers the whole window
   // the host encodes the presented framebuffer as PNG to that path, prints
@@ -30,11 +35,17 @@ struct GUI_FORMS_API LinuxHostOptions final {
   // was saved and non-zero otherwise. Only how the adapter obtains its
   // framebuffer differs between hosts.
   std::string capture_path{};
+#endif
   // When set, the window is created at this logical size instead of
   // initial_size.
-  std::optional<Size> capture_size{};
+  stxlib::Optional<Size> capture_size{};
   bool print_metrics_on_close{true};
   bool initially_visible{true};
+  // How long a newly shown window stays unmapped waiting for its first
+  // frame, painted into the raster and copied on the first Expose
+  // (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate).
+  // Zero maps at once. A popup is never gated.
+  std::chrono::milliseconds first_frame_show_ceiling{gui_forms::first_frame_show_ceiling};
   bool hide_on_close{};
   bool minimizable{true};
   std::function<void(std::function<void()> show, std::function<void()> hide)>
@@ -76,7 +87,7 @@ struct GUI_FORMS_API LinuxApplicationWindow final {
   HostWindowFloating floating{HostWindowFloating::none};
   // A native popup window (ApplicationWindow::popup); none for every
   // other kind.
-  std::optional<HostPopupPlacement> popup{};
+  stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs: the same entry, ownership
@@ -96,8 +107,14 @@ struct GUI_FORMS_API LinuxApplicationOptions final {
 };
 
 [[nodiscard]] GUI_FORMS_API HostCapabilities linux_capabilities();
+// The host never changes the process locale; that belongs to the program.
+// Input methods named by the environment (XMODIFIERS: ibus, fcitx) and the
+// locale's compose sequences follow the process LC_CTYPE when the host opens
+// its X input method, so a program that wants them calls
+// std::setlocale(LC_CTYPE, "") before run_linux or run_linux_application.
+// In the C locale each key still delivers its own UTF-8 text.
 GUI_FORMS_API int run_linux(std::unique_ptr<Window> window, LinuxHostOptions options = {});
-GUI_FORMS_API int run_linux_application(std::vector<LinuxApplicationWindow> linux,
+GUI_FORMS_API int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application = {});
 
 } // namespace gui_forms::host

@@ -4,6 +4,7 @@
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
 #include "dock_layout_internal.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -13,6 +14,7 @@
 #include <ios>
 #include <locale>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -265,8 +267,8 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
     add_attribute(element, "id", record.id.value);
     add_attribute(element, "kind", kind_name(record.kind));
     add_attribute(element, "last", placement_name(record.last_placement));
-    if (record.docked.has_value()) {
-        const DockDockedMemory& memory = *record.docked;
+    if (record.docked.present()) {
+        const DockDockedMemory& memory = (*record.docked.value());
         XmlElement docked = element_named("docked");
         add_number(docked, "stack", memory.stack.value);
         add_number(docked, "index", memory.index);
@@ -285,8 +287,8 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
         add_unknown_fields(state, owner_of(DockUnknownOwnerKind::floating_memory, 0, record.id), floating);
         element.children.push_back(std::move(floating));
     }
-    if (record.auto_hidden.has_value()) {
-        const DockAutoHideMemory& memory = *record.auto_hidden;
+    if (record.auto_hidden.present()) {
+        const DockAutoHideMemory& memory = (*record.auto_hidden.value());
         XmlElement hidden = element_named("auto_hidden");
         add_number(hidden, "stack", memory.stack.value);
         add_attribute(hidden, "edge", side_name(memory.edge));
@@ -524,7 +526,7 @@ private:
             if (id != nullptr && !(*id).value.empty()) {
                 const DockPanelId panel((*id).value);
                 if (!seen(panel)) {
-                    seen_panels_.push_back(panel);
+                    seen_panels_.insert(panel);
                     orphans_.push_back(panel);
                     report(DockRestoreDiagnosticKind::panel_moved_to_placeholder, panel.value);
                 }
@@ -534,7 +536,7 @@ private:
     }
 
     [[nodiscard]] bool seen(const DockPanelId& panel) const {
-        const bool found = std::find(seen_panels_.begin(), seen_panels_.end(), panel) != seen_panels_.end();
+        const bool found = seen_panels_.contains(panel);
         return found;
     }
 
@@ -545,9 +547,9 @@ private:
         if (!value.has_value() || *value == 0U || *value >= dock_identity_limit) {
             return invalid(element.name, "id", (*attribute).value);
         }
-        const bool repeated = std::find(used_ids_.begin(), used_ids_.end(), *value) != used_ids_.end();
+        const bool repeated = used_ids_.contains(*value);
         if (repeated) return invalid(element.name, "id (repeated)", (*attribute).value);
-        used_ids_.push_back(*value);
+        used_ids_.insert(*value);
         largest_id_ = std::max(largest_id_, *value);
         id = *value;
         return true;
@@ -721,7 +723,7 @@ private:
             check_attributes(child, {"id"}, panel_owner);
             // A <panel> has no known children: any it has are kept whole.
             for (const XmlElement& nested : child.children) unknown_element("panel", nested, panel_owner, 0U);
-            seen_panels_.push_back(panel);
+            seen_panels_.insert(panel);
             stack.panels.push_back(panel);
         }
         if (stack.panels.empty()) return true;
@@ -901,7 +903,7 @@ private:
                 if (!read_node_reference(child, "neighbour", memory.neighbour)) return false;
                 if (!read_side(child, "side", memory.side)) return false;
                 if (!read_double(child, "ratio", memory.ratio)) return false;
-                record.docked = memory;
+                record.docked.set(memory);
             } else if (child.name == "floating") {
                 check_attributes(child, {"site", "x", "y", "width", "height", "monitor"}, memory_owner);
                 DockFloatingMemory memory{};
@@ -917,7 +919,7 @@ private:
                 if (!read_node_reference(child, "stack", memory.stack)) return false;
                 if (!read_side(child, "edge", memory.edge)) return false;
                 if (!read_double(child, "extent", memory.extent)) return false;
-                record.auto_hidden = memory;
+                record.auto_hidden.set(memory);
             }
         }
         detail::insert_dock_record(state_, std::move(record));
@@ -954,9 +956,12 @@ private:
     const XmlElement& root_;
     std::vector<DockRestoreDiagnostic>& diagnostics_;
     DockLayoutState state_{};
-    std::vector<std::uint32_t> used_ids_{};
+    // The IDs and panels read so far, as ordered sets: a layout of tens of
+    // thousands of panels searched lists once per element, quadratic
+    // (A-gf-core-04-F1). Only membership is asked.
+    std::set<std::uint32_t> used_ids_{};
     std::uint32_t largest_id_{0};
-    std::vector<DockPanelId> seen_panels_{};
+    std::set<DockPanelId> seen_panels_{};
     std::vector<DockPanelId> orphans_{};
     std::vector<DockPanelRecord> pending_records_{};
 };

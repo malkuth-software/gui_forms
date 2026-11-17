@@ -27,7 +27,7 @@ Types
    * - :cpp:class:`AssembledPartMaterial <gui_forms::AssembledPartMaterial>`
      - A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from.
    * - :cpp:class:`AuthoredGradient <gui_forms::AuthoredGradient>`
-     - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``stops``: at least one, at most maximum_authored_gradient_stops.
+     - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``reflecting``: with ``repeating``, the theme language's reflecting- form (owner, 2026-11-16; not CSS): the periods alternate direction, each the one before it mirrored (spread ``reflect``), so the colours meet without a seam; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient has one, repeating or not (a repeating one's periods are counted from it); - ``stops``: at least one, at most maximum_authored_gradient_stops.
    * - :cpp:class:`AuthoredGradientStop <gui_forms::AuthoredGradientStop>`
      - One colour stop.
    * - :cpp:class:`BackdropDeclaration <gui_forms::BackdropDeclaration>`
@@ -46,8 +46,6 @@ Types
      -  
    * - :cpp:class:`BoxLength <gui_forms::BoxLength>`
      - A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
-   * - :cpp:class:`BundledFontFamily <gui_forms::BundledFontFamily>`
-     - A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
    * - :cpp:class:`CanvasArea <gui_forms::CanvasArea>`
@@ -63,7 +61,7 @@ Types
    * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
      - Every canvas part in every state, as one theme draws them in one colour scheme and contrast.
    * - :cpp:class:`CanvasTextureLayer <gui_forms::CanvasTextureLayer>`
-     - One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+     - One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1], and for a hatch its ``hatch_style``); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
    * - :cpp:class:`CanvasTextureLayers <gui_forms::CanvasTextureLayers>`
      - The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
    * - :cpp:class:`CanvasView <gui_forms::CanvasView>`
@@ -173,7 +171,7 @@ Types
    * - :cpp:class:`EnginePrimitive <gui_forms::EnginePrimitive>`
      - One kind of effect.
    * - :cpp:class:`EngineSineCosine <gui_forms::EngineSineCosine>`
-     - The sine and cosine of ``x`` radians, computed together (E3's springs).
+     - The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50.
    * - :cpp:class:`EngineVersion <gui_forms::EngineVersion>`
      - The engine version a primitive was introduced in, and the version a theme declares it needs.
    * - :cpp:class:`ExpressionCompilation <gui_forms::ExpressionCompilation>`
@@ -200,8 +198,16 @@ Types
      -  
    * - :cpp:class:`FinishTiles <gui_forms::FinishTiles>`
      - A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
+   * - :cpp:class:`FlattenedContour <gui_forms::FlattenedContour>`
+     - One contour of a flattened path: its points are those of the flattened point array from the previous contour's ``end`` (0 for the first) to its own ``end``, exclusive.
+   * - :cpp:class:`FlattenedPath <gui_forms::FlattenedPath>`
+     - What flatten_paint_path wrote: the points and contours, and whether the storage ran out (the path is then flattened from its start only).
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
+   * - :cpp:class:`FontFamilyId <gui_forms::FontFamilyId>`
+     - A font family in the family registry (gui_forms/typography/font_families/font_families.hpp; owner decisions of 2026-11-13).
+   * - :cpp:class:`FontFamilyStackId <gui_forms::FontFamilyStackId>`
+     - A registered family stack: an ordered list of families drawn after a font's own family and before its role's faces (a theme's ``font-family: A, B``).
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
      - FontSpec carries logical role, size, weight, italic, and bounded letter-spacing inputs shared by measurement and painting.
    * - :cpp:class:`GlossColours <gui_forms::GlossColours>`
@@ -216,6 +222,10 @@ Types
      - A world-aligned grid (piece C17; the node canvas's blueprint background): lines ``spacing`` units apart through ``origin``, the point where world (0, 0) lies in the painter's current coordinates, so the lines move with a pan; every ``major_every``-th line counted from the origin (1: every line) is a major line in ``major``, the others are minor lines in ``minor``.
    * - :cpp:class:`GuiFormsThemeBuild <gui_forms::GuiFormsThemeBuild>`
      - The built theme and what building it measured.
+   * - :cpp:class:`HatchPattern <gui_forms::HatchPattern>`
+     - A hatch: square cells ``cell`` units wide, each divided into hatch_cell_squares by hatch_cell_squares squares, with the corner of a cell at ``anchor`` (so the pattern stays put while the filled rectangle moves).
+   * - :cpp:class:`ImageDrawOpacity <gui_forms::ImageDrawOpacity>`
+     - What a painter knows of an image's alpha (Painter::image_draw_opacity, for the blend study, blend_study.hpp): whether every decoded pixel is opaque, and whether it draws the image as an opaque source (a copy, nothing beneath showing through) rather than blending it.
    * - :cpp:class:`ImageId <gui_forms::ImageId>`
      - ImageId is the nonzero renderer-neutral identity returned by a Window image registry.
    * - :cpp:class:`ImageVariantRequest <gui_forms::ImageVariantRequest>`
@@ -244,6 +254,8 @@ Types
      - A rectangle of device pixels the planes are stretched over.
    * - :cpp:class:`LightPlanes <gui_forms::engine_light::LightPlanes>`
      - One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers.
+   * - :cpp:class:`LinearLightLevel <gui_forms::LinearLightLevel>`
+     - Linear light in 16-bit fixed point: 0 black, 65535 full intensity.
    * - :cpp:class:`LitKeyBake <gui_forms::engine_light::LitKeyBake>`
      - -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value.
    * - :cpp:class:`MarkerStyle <gui_forms::MarkerStyle>`
@@ -256,10 +268,18 @@ Types
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
      - Single edges (CSS border-color with differing sides).
+   * - :cpp:class:`MaterialClipPath <gui_forms::MaterialClipPath>`
+     - A material's clip path (theme ``clip-path: polygon() | path()``, owner 2026-11-16): only the inside of this outline, filled by ``rule``, is drawn: the face, its shadows, glows, filters and reflection alike.
+   * - :cpp:class:`MaterialClipPoint <gui_forms::MaterialClipPoint>`
+     - A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
    * - :cpp:class:`MaterialColourFilter <gui_forms::MaterialColourFilter>`
-     - A material's colour filter: none, or one matrix held out of line.
+     - A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable).
    * - :cpp:class:`MaterialColourMatrix <gui_forms::MaterialColourMatrix>`
      - A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1].
+   * - :cpp:class:`MaterialColourStages <gui_forms::MaterialColourStages>`
+     - A filter's stages: the matrix, then, if present, the table.
+   * - :cpp:class:`MaterialColourTable <gui_forms::MaterialColourTable>`
+     - A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255.
    * - :cpp:class:`MaterialCornerRadii <gui_forms::MaterialCornerRadii>`
      - A material's four corner radii (E9.6, CSS ``border-*-radius``), in logical units: top-left, top-right, bottom-right and bottom-left.
    * - :cpp:class:`MaterialDeclaration <gui_forms::MaterialDeclaration>`
@@ -276,10 +296,16 @@ Types
      -  
    * - :cpp:class:`MaterialKeyline <gui_forms::MaterialKeyline>`
      - One ordered physical keyline.
+   * - :cpp:class:`MaterialMaskLayer <gui_forms::MaterialMaskLayer>`
+     - One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``.
    * - :cpp:class:`MaterialReflection <gui_forms::MaterialReflection>`
      - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
+   * - :cpp:class:`MaterialTransferFunction <gui_forms::MaterialTransferFunction>`
+     -  
+   * - :cpp:class:`MaterialTransform <gui_forms::MaterialTransform>`
+     - A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y).
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
      - A rule's media condition (EC3): every feature it names must hold for the window, and an unnamed feature always holds, so the default condition holds everywhere.
    * - :cpp:class:`MediaFacts <gui_forms::MediaFacts>`
@@ -304,8 +330,18 @@ Types
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
      - A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once.
+   * - :cpp:class:`PaintGroupEffect <gui_forms::PaintGroupEffect>`
+     - A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses.
+   * - :cpp:class:`PaintPath <gui_forms::PaintPath>`
+     - An owned path built verb by verb, for callers that do not keep their own arrays.
+   * - :cpp:class:`PaintPathView <gui_forms::PaintPathView>`
+     - A borrowed path: the verbs and their points, both owned by the caller and read only for the duration of the call given the view.
    * - :cpp:class:`PaintSegment <gui_forms::PaintSegment>`
      - One independent segment of stroke_segments (no joins between segments).
+   * - :cpp:class:`PaintTransform <gui_forms::PaintTransform>`
+     - A two-dimensional affine map (Painter::begin_transform): the point (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy).
+   * - :cpp:class:`PaintTransformGroup <gui_forms::PaintTransformGroup>`
+     - A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped transform, never a free concatenation): ``bounds``, in the group's content coordinates, limits what it draws; ``transform`` maps content coordinates into those in force where the group begins.
    * - :cpp:class:`ParameterValidation <gui_forms::ParameterValidation>`
      - The first defect found and the index of the parameter it concerns.
    * - :cpp:class:`PartArc <gui_forms::PartArc>`
@@ -326,6 +362,8 @@ Types
      - A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units.
    * - :cpp:class:`PartRaster <gui_forms::PartRaster>`
      - One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale.
+   * - :cpp:class:`PartRasterInterior <gui_forms::PartRasterInterior>`
+     - A rectangle of a part raster's pixels, [left, right) by [top, bottom); empty when right <= left or bottom <= top.
    * - :cpp:class:`PartRasterRequest <gui_forms::PartRasterRequest>`
      - What a part needs drawn: the primitive a rule selected, its parameters, the part's target, and the destination extent in device pixels (normally the logical size grown by the primitive's outsets, times the scale, rounded up).
    * - :cpp:class:`PartRasterResult <gui_forms::PartRasterResult>`
@@ -382,6 +420,8 @@ Types
      -  
    * - :cpp:class:`RetainedDrawMemo <gui_forms::RetainedDrawMemo>`
      - Renderer-derived data for one retained draw command, such as shaped text.
+   * - :cpp:class:`RotatedTextBox <gui_forms::RotatedTextBox>`
+     - Where a line of text turned about its baseline start lies (Painter::draw_rotated_text_utf8).
    * - :cpp:class:`RuleAncestor <gui_forms::RuleAncestor>`
      - One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control.
    * - :cpp:class:`RuleDeclaration <gui_forms::RuleDeclaration>`
@@ -406,8 +446,14 @@ Types
      - One axis of a slice plan.
    * - :cpp:class:`StrokeStyle <gui_forms::StrokeStyle>`
      - A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates.
+   * - :cpp:class:`StrokeTrim <gui_forms::StrokeTrim>`
+     - The part of a path a stroke keeps (Lottie's and ThorVG's trim path): ``start`` and ``end`` are fractions of the path's whole length (every contour end to end, paint_path_length), each in [0, 1], and either may be the larger: the kept part runs from the smaller to the larger.
    * - :cpp:class:`SurfaceMaterial <gui_forms::SurfaceMaterial>`
      - SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
+   * - :cpp:class:`TextLanguage <gui_forms::TextLanguage>`
+     - The language text is written in, as an OpenType language system tag: four letters as one number, the first highest ('K','O','R',' ' for Korean; text_language makes one).
+   * - :cpp:class:`TextRun <gui_forms::TextRun>`
+     - One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
    * - :cpp:class:`Theme <gui_forms::Theme>`
      - Theme is an immutable validated role/state recipe table plus structural spacing, geometry, typography, and motion tokens; it resolves logical visual context without exposing renderer or platform objects.
    * - :cpp:class:`ThemeBackdropBase <gui_forms::ThemeBackdropBase>`
@@ -432,6 +478,10 @@ Types
      - The installed theme packages an ``@import`` may name (D2): each verified whole when installed (its manifest, every file's hash, and every ``@import`` of its sheet listed in its manifest), and found by its name.
    * - :cpp:class:`ThemeMotionTokens <gui_forms::ThemeMotionTokens>`
      - ThemeMotionTokens defines quick, standard, emphasized, and busy-cycle durations without prescribing an animation engine.
+   * - :cpp:class:`ThemeOverrides <gui_forms::ThemeOverrides>`
+     -  
+   * - :cpp:class:`ThemeOverrideTarget <gui_forms::ThemeOverrideTarget>`
+     - Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
    * - :cpp:class:`ThemePackage <gui_forms::ThemePackage>`
      - A theme package: its manifest's bytes and its files.
    * - :cpp:class:`ThemePackageExport <gui_forms::ThemePackageExport>`
@@ -560,6 +610,10 @@ Types
 
       The serial of the part's user theme, or 0 (T3 user themes).
 
+   .. cpp:member:: std::uint64_t look_serial
+
+      The serial of the part's composite look, or 0 (Control::look_rules).
+
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> fields
 
    .. cpp:member:: Size box
@@ -580,13 +634,15 @@ Types
 
    ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
 
-   A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``stops``: at least one, at most maximum_authored_gradient_stops.
+   A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``reflecting``: with ``repeating``, the theme language's reflecting- form (owner, 2026-11-16; not CSS): the periods alternate direction, each the one before it mirrored (spread ``reflect``), so the colours meet without a seam; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient has one, repeating or not (a repeating one's periods are counted from it); - ``stops``: at least one, at most maximum_authored_gradient_stops.
 
    .. cpp:member:: MaterialFillKind kind
 
       Default: ``{MaterialFillKind::linear_gradient}``.
 
    .. cpp:member:: bool repeating
+
+   .. cpp:member:: bool reflecting
 
    .. cpp:member:: double angle_degrees
 
@@ -613,6 +669,16 @@ Types
    .. cpp:member:: BoxLength radius_x
 
    .. cpp:member:: BoxLength radius_y
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: BoxLength focus_x
+
+      Default: ``{0.5, 0.0}``.
+
+   .. cpp:member:: BoxLength focus_y
+
+      Default: ``{0.5, 0.0}``.
 
    .. cpp:member:: std::vector<AuthoredGradientStop> stops
 
@@ -689,13 +755,13 @@ Types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:member:: std::optional<double> width
+   .. cpp:member:: stxlib::Optional<double> width
 
-   .. cpp:member:: std::optional<Color> rest_colour
+   .. cpp:member:: stxlib::Optional<Color> rest_colour
 
-   .. cpp:member:: std::optional<Color> lit_colour
+   .. cpp:member:: stxlib::Optional<Color> lit_colour
 
-   .. cpp:member:: std::optional<BandEffect> effect
+   .. cpp:member:: stxlib::Optional<BandEffect> effect
 
 .. cpp:namespace:: gui_forms
 
@@ -798,16 +864,6 @@ Types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: BundledFontFamily
-
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
-
-   A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``). Zero is none: the role's own faces. Only families bundled with the library have numbers (the table in src/core/resources/fonts/bundled_font_families.hpp); a host font never has one, so a family can never reach a font the application did not ship.
-
-   .. cpp:member:: std::uint8_t value
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: CachedPartRaster final
 
    ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
@@ -828,7 +884,7 @@ Types
 
    .. cpp:member:: std::uint64_t image_revision
 
-   .. cpp:member:: std::optional<std::uint64_t> awaited_patterns
+   .. cpp:member:: stxlib::Optional<std::uint64_t> awaited_patterns
 
       Set when ``raster`` drew a procedural fill's ground because its pattern was not ready (E10): the table's pattern generation then. Such a raster is current only until the table makes another pattern.
 
@@ -1008,7 +1064,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+   One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1], and for a hatch its ``hatch_style``); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
 
    .. cpp:member:: CanvasTextureSource source
 
@@ -1027,6 +1083,10 @@ Types
    .. cpp:member:: double strength
 
       Default: ``{1.0}``.
+
+   .. cpp:member:: HatchStyle hatch_style
+
+      Default: ``{HatchStyle::horizontal}``.
 
    .. cpp:member:: FinishFill finish
 
@@ -1139,7 +1199,7 @@ Types
 
    .. cpp:function:: std::uint64_t theme_serial() const noexcept
 
-      The serial of the theme an inline style was compiled against, 0 for none (P12b).
+      The serial of the theme an inline style or a look was compiled against, 0 for none (P12b).
 
    .. cpp:function:: std::size_t read_name_count() const noexcept
 
@@ -1152,6 +1212,10 @@ Types
    .. cpp:function:: bool user_theme() const noexcept
 
       Whether the rules are a user theme (compile_user).
+
+   .. cpp:function:: bool look() const noexcept
+
+      Whether the rules are a composite control's look (compile_look).
 
    .. cpp:function:: std::size_t built_in_rule_count() const noexcept
 
@@ -1179,6 +1243,10 @@ Types
 
       How many inputs the sheet's expressions are evaluated with: the engine inputs and the sheet's published values.
 
+   .. cpp:function:: bool has_content_effects() const noexcept
+
+      Whether any rule, or the user theme's, has a content effect.
+
    .. cpp:function:: std::uint64_t serial() const noexcept
 
       This compilation's serial number, unique among the compilations of the process: a cache keyed by the addresses of the rules' declarations (an assembled material, EC1) compares it first. A copy takes a new one, since its declarations lie elsewhere; a move keeps it with the declarations.
@@ -1202,7 +1270,11 @@ Types
 
       Compiles a user theme (USER_THEMES.md section 4): rules at :cpp:func:`user_theme <gui_forms::CompiledThemeRules::user_theme>` and ``important_user_theme`` only, a set of their own that every part of a program's windows consults beside its theme's (PartFacts::user_rules). Its opacity is at least user_theme_minimum_opacity. It publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own.
 
-   .. cpp:function:: std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
+   .. cpp:function:: static CompiledThemeRules compile_look(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry, const CompiledThemeRules* theme = nullptr)
+
+      Compiles a composite control's look (its definition's <look> sheet): rules at the sheet levels, a set of their own that the composite and the controls its definition made consult beside their theme's (PartFacts::look_rules), so the look layers over whatever theme is in effect and stands over the theme's rules only where it says something. Without ``theme`` it publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own: one compilation serves every theme. With ``theme`` (the theme in effect's rules), the sheet is a look lowered with that theme's text (detail::compile_theme_look: it reads the theme's application roles or custom properties) and holds copies of the theme's definitions of the names it reads; its expressions read the theme's published values at the theme's positions, and it is used with that theme alone (theme_serial). ``theme`` is read during the call only.
+
+   .. cpp:function:: stxlib::Optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
 
       The position of the published value ``name``, or none when the sheet does not read it.
 
@@ -1222,6 +1294,10 @@ Types
 
       The band of the window ``facts`` name (PartFacts::surface window, its root control's classes and ID): each field from the last matching rule that sets it, among the compiled rules and the user theme's. Empty where none does, and for any surface but a window. Linear in the number of rules.
 
+   .. cpp:function:: void resolve_content_effect(const PartFacts& facts, std::array<const MaterialDeclaration*, material_field_count>& fields) const noexcept
+
+      The content effect of the control ``facts`` name (no part, no surface): each content-effect field (content_effect_field) from the last matching rule that sets it, among the compiled rules and the user theme's, written into ``fields`` at the field's position; every other position, and every field no rule sets, is null. Linear in the number of rules; returns at once where no rule has a content effect (has_content_effects).
+
    .. cpp:function:: Resolution resolve(const PartFacts& facts) const noexcept
 
       The cascade for one part: the winning primitive declaration, then each of that primitive's parameters from the winning declaration of it among the matching rules that select the same primitive, else its declared default; and each material field from its winning declaration among all the matching rules. Linear in the number of rules; tables are small, and a theme with no rules returns at once.
@@ -1238,7 +1314,7 @@ Types
 
    .. cpp:member:: double target
 
-   .. cpp:member:: std::optional<double> enter_from
+   .. cpp:member:: stxlib::Optional<double> enter_from
 
    .. cpp:member:: std::vector<MotionStop> stops
 
@@ -1331,6 +1407,10 @@ Types
    .. cpp:member:: const CompiledThemeRules* user_rules
 
       The program's user theme (compile_user), or null: its rules join the cascade at the user levels. Borrowed for the call.
+
+   .. cpp:member:: const CompiledThemeRules* look_rules
+
+      The look of the part's control's composite (compile_look, Control::look_rules), or null: its rules join the cascade at their sheet levels, ordered by level alone, after the theme's rules of the same level. Borrowed for the call.
 
    .. cpp:member:: bool forced_high_contrast
 
@@ -1452,11 +1532,11 @@ Types
 
    .. cpp:member:: bool effect_declared
 
-   .. cpp:member:: std::optional<EffectColourDeclaration> effect_primary
+   .. cpp:member:: stxlib::Optional<EffectColourDeclaration> effect_primary
 
       The part's effect colours (effect_primary_property, effect_secondary_property): the last matching rule's of each, or none.
 
-   .. cpp:member:: std::optional<EffectColourDeclaration> effect_secondary
+   .. cpp:member:: stxlib::Optional<EffectColourDeclaration> effect_secondary
 
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> materials
 
@@ -1471,6 +1551,10 @@ Types
    .. cpp:member:: std::uint64_t user_serial
 
       The serial of the part's user theme (PartFacts::user_rules), or 0, likewise.
+
+   .. cpp:member:: std::uint64_t look_serial
+
+      The serial of the part's look (PartFacts::look_rules), or 0, likewise.
 
 .. cpp:namespace:: gui_forms
 
@@ -1516,7 +1600,7 @@ Types
 
    .. cpp:member:: Rect paint_bounds
 
-   .. cpp:member:: std::optional<ConnectedControlSeam> leading_seam
+   .. cpp:member:: stxlib::Optional<ConnectedControlSeam> leading_seam
 
 .. cpp:namespace:: gui_forms
 
@@ -1526,33 +1610,33 @@ Types
 
    A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` holds no layer for ``background-texture: none``.
 
-   .. cpp:member:: std::optional<Color> fill
+   .. cpp:member:: stxlib::Optional<Color> fill
 
-   .. cpp:member:: std::optional<Color> stroke
+   .. cpp:member:: stxlib::Optional<Color> stroke
 
-   .. cpp:member:: std::optional<double> stroke_width
+   .. cpp:member:: stxlib::Optional<double> stroke_width
 
-   .. cpp:member:: std::optional<double> dash
+   .. cpp:member:: stxlib::Optional<double> dash
 
-   .. cpp:member:: std::optional<double> gap
+   .. cpp:member:: stxlib::Optional<double> gap
 
-   .. cpp:member:: std::optional<double> halo_width
+   .. cpp:member:: stxlib::Optional<double> halo_width
 
-   .. cpp:member:: std::optional<Color> halo
+   .. cpp:member:: stxlib::Optional<Color> halo
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
-   .. cpp:member:: std::optional<double> grid_spacing
+   .. cpp:member:: stxlib::Optional<double> grid_spacing
 
-   .. cpp:member:: std::optional<double> grid_band
+   .. cpp:member:: stxlib::Optional<double> grid_band
 
-   .. cpp:member:: std::optional<CanvasTextureLayers> texture
+   .. cpp:member:: stxlib::Optional<CanvasTextureLayers> texture
 
-   .. cpp:member:: std::optional<CanvasFlowStyle> flow
+   .. cpp:member:: stxlib::Optional<CanvasFlowStyle> flow
 
-   .. cpp:member:: std::optional<double> flow_speed
+   .. cpp:member:: stxlib::Optional<double> flow_speed
 
-   .. cpp:member:: std::optional<double> flow_spacing
+   .. cpp:member:: stxlib::Optional<double> flow_spacing
 
 .. cpp:namespace:: gui_forms
 
@@ -1560,25 +1644,25 @@ Types
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
 
-   .. cpp:member:: std::optional<double> block_size
+   .. cpp:member:: stxlib::Optional<double> block_size
 
-   .. cpp:member:: std::optional<double> minimum_inline_size
+   .. cpp:member:: stxlib::Optional<double> minimum_inline_size
 
-   .. cpp:member:: std::optional<double> padding_inline
+   .. cpp:member:: stxlib::Optional<double> padding_inline
 
-   .. cpp:member:: std::optional<double> gap
+   .. cpp:member:: stxlib::Optional<double> gap
 
-   .. cpp:member:: std::optional<double> margin_block_start
+   .. cpp:member:: stxlib::Optional<double> margin_block_start
 
-   .. cpp:member:: std::optional<double> margin_block_end
+   .. cpp:member:: stxlib::Optional<double> margin_block_end
 
    .. cpp:member:: double taper
 
-   .. cpp:member:: std::optional<Color> taper_colour
+   .. cpp:member:: stxlib::Optional<Color> taper_colour
 
    .. cpp:member:: double flare
 
-   .. cpp:member:: std::optional<Color> flare_colour
+   .. cpp:member:: stxlib::Optional<Color> flare_colour
 
    .. cpp:member:: double edge_shadow_width
 
@@ -1666,25 +1750,25 @@ Types
 
    A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing. A part's stripe pattern (RecipeField::stripe_pitch to stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each unset where no rule sets it, when the stripe effect keeps its own value: pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4, 45 degrees, a backward lean travelling forward at 0.8 pitches a second, the fill as the theme paints it under translucent pale bands, a gloss over opaque stripe colours, and still bands under reduced motion. A pitch of 0 is ``auto``.
 
-   .. cpp:member:: std::optional<double> pitch
+   .. cpp:member:: stxlib::Optional<double> pitch
 
-   .. cpp:member:: std::optional<double> ratio
+   .. cpp:member:: stxlib::Optional<double> ratio
 
-   .. cpp:member:: std::optional<double> angle_degrees
+   .. cpp:member:: stxlib::Optional<double> angle_degrees
 
-   .. cpp:member:: std::optional<StripeSense> lean
+   .. cpp:member:: stxlib::Optional<StripeSense> lean
 
-   .. cpp:member:: std::optional<StripeSense> direction
+   .. cpp:member:: stxlib::Optional<StripeSense> direction
 
-   .. cpp:member:: std::optional<double> speed
+   .. cpp:member:: stxlib::Optional<double> speed
 
-   .. cpp:member:: std::optional<Color> colour
+   .. cpp:member:: stxlib::Optional<Color> colour
 
-   .. cpp:member:: std::optional<Color> ground
+   .. cpp:member:: stxlib::Optional<Color> ground
 
-   .. cpp:member:: std::optional<StripeGloss> gloss
+   .. cpp:member:: stxlib::Optional<StripeGloss> gloss
 
-   .. cpp:member:: std::optional<StripeReducedMotion> reduced_motion
+   .. cpp:member:: stxlib::Optional<StripeReducedMotion> reduced_motion
 
 .. cpp:namespace:: gui_forms
 
@@ -1778,7 +1862,7 @@ Types
 
       Default: ``{1.0, 1.0}``.
 
-   .. cpp:member:: std::optional<ControlTextShadow> text_shadow
+   .. cpp:member:: stxlib::Optional<ControlTextShadow> text_shadow
 
       The shadow under the recipe's text, if any (E9.6, data only).
 
@@ -1786,7 +1870,7 @@ Types
 
       The part's metrics and shape, where a rule naming the part sets them.
 
-   .. cpp:member:: std::optional<Color> fill_text
+   .. cpp:member:: stxlib::Optional<Color> fill_text
 
       The text's colour where it lies over a fill (``fill-text-color``, the value bar study's section 3.6), if the theme sets one; none, the built-in recipes' value, draws such text in the fill's own selected text colour.
 
@@ -1797,6 +1881,10 @@ Types
    .. cpp:member:: NeedleShape needle_shape
 
       Default: ``{NeedleShape::tapered}``.
+
+   .. cpp:member:: RingStyle ring_style
+
+      How a ring of progress is drawn (RecipeField::ring_style): every built-in recipe draws dots. Default: ``{RingStyle::dots}``.
 
    .. cpp:member:: Color scrim
 
@@ -2271,6 +2359,12 @@ Types
 
       The colours the next frames are given (EffectFrame::colours); the host sets them before each paint. Kept across attach and detach.
 
+   .. cpp:function:: double transition() const noexcept
+
+   .. cpp:function:: void set_transition(double progress) noexcept
+
+      The part's transition progress, which the next paint gives a transition-model effect as EffectFrame::transition: ``progress`` held to [0, 1], a NaN as 0. The host drives it (its own timeline); an ambient or static effect ignores it. 0 until set.
+
    .. cpp:function:: std::uint64_t state_checksum() const noexcept
 
       The state's bytes, hashed (FNV-1a): the motion checksum.
@@ -2517,7 +2611,7 @@ Types
 
    .. cpp:member:: std::string item
 
-   .. cpp:member:: std::optional<std::size_t> item_index
+   .. cpp:member:: stxlib::Optional<std::size_t> item_index
 
       Set only for the index fallback (PartKey::index_fallback).
 
@@ -2565,7 +2659,7 @@ Types
 
    .. cpp:member:: AnatomyStateSet face_states
 
-   .. cpp:member:: std::optional<AnatomyStateSet> keyframe_states
+   .. cpp:member:: stxlib::Optional<AnatomyStateSet> keyframe_states
 
       The states whose keyframes were last queued for idle frames (E7r): queued again when the part's states change.
 
@@ -2634,7 +2728,7 @@ Types
 
       The record for ``control_id`` and ``key``, made if there is none, and marked the most recently painted item record when it is an item's. A new record reuses a released slot before the table grows; a new item record beyond the cap evicts the least recently painted settled item record (O(1) unless records with unsettled motion are passed over). If an allocation fails, std::bad_alloc propagates and the table is unchanged.
 
-   .. cpp:function:: std::optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const
+   .. cpp:function:: stxlib::Optional<PartRecordHandle> find(std::string_view control_id, const PartKey& key) const
 
       The live record for ``control_id`` and ``key``, if there is one. For inspection: it builds its lookup text in a string of its own.
 
@@ -2668,7 +2762,7 @@ Types
 
    .. cpp:function:: std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter, std::uint64_t paint_sequence)
 
-      World finish tiles (cp31). finish_tile returns the tile held for ``key``, marked used by ``paint_sequence``, or null after queueing it (unless queued already or the queue is full) and noting ``waiter``, the part that asked, to be repainted. Nothing is painted inside a paint. generate_finish_tiles paints queued tiles, oldest first, until an idle frame's effort (finish_tile_idle_effort) is spent, at least one; it returns true when it held a tile and the queue is then empty: the waiters are to be repainted (take_finish_tile_waiters), once for the whole queue rather than once a tile. Allocation failure propagates as std::bad_alloc and leaves the tile being painted unheld.
+      World finish tiles (cp31). finish_tile returns the tile held for ``key``, marked used by ``paint_sequence``, or null after queueing it (unless queued already or the queue is full) and noting ``waiter``, the part that asked, to be repainted. Nothing is painted inside a paint. generate_finish_tiles paints queued tiles, oldest first, until an idle frame's effort (finish_tile_idle_effort) is spent, at least one; it returns true when it held a tile and the queue is then empty: the waiters are to be repainted (take_finish_tile_waiters), once for the whole queue rather than once a tile. Allocation failure propagates as std::bad_alloc and leaves this frame's tiles unheld (their keys are queued again when a paint next asks for them). Parallel material bakes (claude/geometry-1): an idle frame's tiles are chosen, their rasters made and their room found first, in queue order, on the window's thread; then each is painted with its own scratch rows, on the table's bake pool when two or more are chosen and a pool runs, else in turn on the window's thread; then they are held in queue order. A tile's pixels depend on its key alone, so the tiles held, their order and their bytes are the same however the frame was painted. While the pool paints, each task reads only its tile's key and writes only its tile's raster and scratch; the window's thread waits for every task (AtomicThreadPool::run returns after the last), and nothing else in the table is read or written meanwhile. A pool that cannot start or run paints the frame on the window's thread instead.
 
    .. cpp:function:: bool generate_finish_tiles(std::uint64_t paint_sequence)
 
@@ -2686,7 +2780,7 @@ Types
 
    .. cpp:function:: void invalidate_rasters() noexcept
 
-      Makes every cached raster stale and drops every slice reference, as when the theme changes.
+      Makes every cached raster stale and drops every slice reference and queued keyframe, as when the theme changes. Held and queued procedural patterns and finish tiles depend on their keys alone and are kept.
 
    .. cpp:function:: void note_paint(PartRecordHandle handle, std::uint64_t inputs_read, std::string_view painted_by, Rect extent)
 
@@ -2715,6 +2809,10 @@ Types
    .. cpp:function:: const EnginePartRecord* record_in_slot(std::size_t slot) const noexcept
 
       The live record in ``slot`` (below slot_count()), or null for a free slot: for scans over the table. Valid until the next acquire() or release.
+
+   .. cpp:function:: void set_finish_bake_threads(std::uint32_t threads)
+
+      The bake pool's threads: 0 chooses the default (one per hardware thread less one, at most maximum_finish_bake_threads); 1 paints every tile on the window's thread; more are capped at maximum_finish_bake_threads. The pool is made when a frame first needs it and kept for the table's life; a change joins and drops a pool already made (no batch is in flight then, since a batch ends before generate_finish_tiles returns). Shutdown: the table's destructor joins the pool's idle threads.
 
 .. cpp:namespace:: gui_forms
 
@@ -2752,7 +2850,7 @@ Types
 
       How far inside a part of ``logical`` size, at display ``scale`` and the window's ``text_scale``, its text may begin (E8, T1's hand-off: text is published as a layout slot, ThemeEngine::text_slot). In logical units; the slot inside them lies within the shape the primitive draws. None unless the primitive says otherwise. ``parameters`` match the declarations; ``logical`` and ``scale`` are positive and finite.
 
-   .. cpp:function:: virtual std::optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters, ControlVisualRole family) const noexcept
+   .. cpp:function:: virtual stxlib::Optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters, ControlVisualRole family) const noexcept
 
       The recipe role (ControlVisualRole) whose theme material the primitive draws with ``parameters`` (E8-1) on a part of recipe family ``family``: the engine then resolves the role's recipe for the part's state and lends its material in the target, with the material fields the theme's rules set in place of the recipe's (EC1). None unless the primitive says otherwise. ``parameters`` match the declarations.
 
@@ -2760,11 +2858,11 @@ Types
 
       Whether the primitive draws the theme's overlay shadow (E9, GIVEN E1-1): the engine then lends the theme's overlay shadow layers for the part's presentation as a material of one transparent fill and those shadows, at the part's corner radius, and draws nothing when the theme casts none. False unless the primitive says otherwise.
 
-   .. cpp:function:: virtual std::optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters, Size part) const noexcept
+   .. cpp:function:: virtual stxlib::Optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters, Size part) const noexcept
 
       How the primitive is composited over a part of ``part`` size when it stands behind the overlay seam (PointerOverlay); none for a primitive drawn over the part's own box, unless the primitive says otherwise. ``parameters`` match the declarations.
 
-   .. cpp:function:: virtual std::optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters, DeviceScale scale) const noexcept
+   .. cpp:function:: virtual stxlib::Optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters, DeviceScale scale) const noexcept
 
       How many device pixels past the destination, on every side, the primitive reads the backplane at display ``scale`` (PrimitiveTarget:: backplane); none for a primitive that does not sample it, unless the primitive says otherwise. ``parameters`` match the declarations.
 
@@ -2790,7 +2888,7 @@ Types
 
    ``#include <gui_forms/engine/engine_math/engine_math.hpp>``
 
-   The sine and cosine of ``x`` radians, computed together (E3's springs). For x of magnitude at most 2^20 the absolute error of each is at most 2^-50; beyond that, and for infinities and NaN, both are NaN. Exact case: x = 0 gives sine 0 and cosine 1. The argument is reduced by the nearest multiple of π/2, with π/2 split in three parts (Cody and Waite) so that the reduction is exact to about 2^-100 relative.
+   The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50. The argument is reduced by the nearest multiple of π/2: up to 2^20 with π/2 split in three parts (Cody and Waite), exact to about 2^-100 relative; above that by Payne and Hanek's method, in integers against a fixed 1280-bit table of 2/π, which is exact for every finite double up to the largest. Exact case: x = 0 gives sine 0 and cosine 1. Infinities and NaN have no angle and give the stated value sine 0 and cosine 1, the turn of angle 0, so no NaN reaches geometry from here.
 
    .. cpp:member:: double sine
 
@@ -3046,6 +3144,32 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: FlattenedContour final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   One contour of a flattened path: its points are those of the flattened point array from the previous contour's ``end`` (0 for the first) to its own ``end``, exclusive. A closed contour repeats its start point last.
+
+   .. cpp:member:: std::size_t end
+
+   .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FlattenedPath final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   What flatten_paint_path wrote: the points and contours, and whether the storage ran out (the path is then flattened from its start only).
+
+   .. cpp:member:: std::size_t point_count
+
+   .. cpp:member:: std::size_t contour_count
+
+   .. cpp:member:: bool truncated
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FontDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -3057,6 +3181,26 @@ Types
       Default: ``{TextRole::ui}``.
 
    .. cpp:member:: bool inherit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyId
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A font family in the family registry (gui_forms/typography/font_families/font_families.hpp; owner decisions of 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the families bundled with the library, fixed for every release; values from 256 are application families, loaded by the program from its own bytes (gui_forms/typography/app_fonts/app_fonts.hpp) and drawn only inside composites and sub-surfaces. A host font never has a number, so a family can never reach a font the application did not ship.
+
+   .. cpp:member:: std::uint16_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyStackId
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A registered family stack: an ordered list of families drawn after a font's own family and before its role's faces (a theme's ``font-family: A, B``). Zero is none. The process's stack registry numbers stacks in registration order, so a number names the same list for the life of the process and is not stable across processes.
+
+   .. cpp:member:: std::uint16_t value
 
 .. cpp:namespace:: gui_forms
 
@@ -3084,9 +3228,15 @@ Types
 
       Additional logical pixels inserted between shaped grapheme clusters. This is a layout input: painters and measurement must apply the same value. Zero preserves the typeface's native spacing.
 
-   .. cpp:member:: BundledFontFamily family
+   .. cpp:member:: FontFamilyId family
 
-      A named bundled family whose faces draw before the role's. The role still chooses the faces for characters the family does not cover, and a family whose faces could not be loaded leaves the role's faces in charge.
+      The family whose faces draw first, the face nearest the weight and slant (no synthesis), then the stack's families in order, then the role's faces, which still draw what no family covers. A family whose faces could not be loaded is passed over.
+
+   .. cpp:member:: FontFamilyStackId stack
+
+   .. cpp:member:: TextLanguage language
+
+      The paragraph's language (TextLanguage): it reaches every run shaped in this font. A layout input, as letter_spacing is.
 
 .. cpp:namespace:: gui_forms
 
@@ -3214,6 +3364,40 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HatchPattern final
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   A hatch: square cells ``cell`` units wide, each divided into hatch_cell_squares by hatch_cell_squares squares, with the corner of a cell at ``anchor`` (so the pattern stays put while the filled rectangle moves). The squares hatch_square_marked names are ``fore``, the others ``back``. A cell of 8 units at scale 1 is GUI.Drawing's HatchBrush, square for square: lines one unit wide.
+
+   .. cpp:member:: HatchStyle style
+
+      Default: ``{HatchStyle::horizontal}``.
+
+   .. cpp:member:: double cell
+
+      Default: ``{8.0}``.
+
+   .. cpp:member:: Color fore
+
+   .. cpp:member:: Color back
+
+   .. cpp:member:: Point anchor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ImageDrawOpacity final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   What a painter knows of an image's alpha (Painter::image_draw_opacity, for the blend study, blend_study.hpp): whether every decoded pixel is opaque, and whether it draws the image as an opaque source (a copy, nothing beneath showing through) rather than blending it. A painter that does not know says neither.
+
+   .. cpp:member:: bool pixels_opaque
+
+   .. cpp:member:: bool drawn_as_copy
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ImageId
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
@@ -3246,7 +3430,7 @@ Types
 
    .. cpp:member:: DeviceScale scale
 
-   .. cpp:member:: std::optional<ProceduralFill> procedural
+   .. cpp:member:: stxlib::Optional<ProceduralFill> procedural
 
 .. cpp:namespace:: gui_forms
 
@@ -3399,7 +3583,7 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit LightPlaneCache(std::filesystem::path directory)
+   .. cpp:function:: explicit LightPlaneCache(FilePath directory)
 
 
    .. rubric:: Properties
@@ -3480,6 +3664,16 @@ Types
    .. cpp:member:: std::vector<float> lamps
 
    .. cpp:member:: std::vector<float> coverage
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LinearLightLevel final
+
+   ``#include <gui_forms/types/linear_light/linear_light.hpp>``
+
+   Linear light in 16-bit fixed point: 0 black, 65535 full intensity. A type of its own so that it is never mistaken for an sRGB byte.
+
+   .. cpp:member:: std::uint16_t value
 
 .. cpp:namespace:: gui_forms::engine_light
 
@@ -3591,13 +3785,57 @@ Types
 
    .. cpp:function:: static MaterialBorderEdges from_parts(const MaterialBorder* top, const MaterialBorder* right, const MaterialBorder* bottom, const MaterialBorder* left)
 
-   .. cpp:member:: std::optional<MaterialBorder> top
+   .. cpp:member:: stxlib::Optional<MaterialBorder> top
 
-   .. cpp:member:: std::optional<MaterialBorder> right
+   .. cpp:member:: stxlib::Optional<MaterialBorder> right
 
-   .. cpp:member:: std::optional<MaterialBorder> bottom
+   .. cpp:member:: stxlib::Optional<MaterialBorder> bottom
 
-   .. cpp:member:: std::optional<MaterialBorder> left
+   .. cpp:member:: stxlib::Optional<MaterialBorder> left
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialClipPath final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A material's clip path (theme ``clip-path: polygon() | path()``, owner 2026-11-16): only the inside of this outline, filled by ``rule``, is drawn: the face, its shadows, glows, filters and reflection alike. It lies in the box's coordinates and turns with the material's transform. Both paths draw it through Painter::clip_path, so a raster composite under it takes its coverage mask. Valid when the first verb is a move, the verbs take exactly ``points``, there are at most maximum_points points, and every coordinate is finite with units at most maximum_units and fractions at most maximum_fraction in size.
+
+   .. cpp:member:: constexpr std::size_t maximum_points
+
+      Default: ``256U``.
+
+   .. cpp:member:: constexpr double maximum_units
+
+      Default: ``100000.0``.
+
+   .. cpp:member:: constexpr double maximum_fraction
+
+      Default: ``100.0``.
+
+   .. cpp:member:: std::vector<MaterialClipVerb> verbs
+
+   .. cpp:member:: std::vector<MaterialClipPoint> points
+
+   .. cpp:member:: MaterialClipRule rule
+
+      Default: ``{MaterialClipRule::nonzero}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialClipPoint final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
+
+   .. cpp:member:: double x_units
+
+   .. cpp:member:: double x_fraction
+
+   .. cpp:member:: double y_units
+
+   .. cpp:member:: double y_fraction
 
 .. cpp:namespace:: gui_forms
 
@@ -3605,7 +3843,7 @@ Types
 
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
 
-   A material's colour filter: none, or one matrix held out of line. Every recipe of every theme holds a SurfaceMaterial, so a matrix held inline (160 bytes) would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its matrix; a copy copies the matrix, a move leaves the source empty, and two filters are equal when both are empty or their matrices are equal.
+   A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable). Every recipe of every theme holds a SurfaceMaterial, so stages held inline would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its stages; a copy copies them, a move leaves the source empty, and two filters are equal when both are empty or their stages are equal.
 
 
    .. rubric:: Construction
@@ -3616,6 +3854,10 @@ Types
 
       Implicit, as std::optional's is: ``material.colour_filter = matrix;``. Throws std::bad_alloc when the matrix cannot be held.
 
+   .. cpp:function:: MaterialColourFilter(const MaterialColourMatrix& matrix, const MaterialColourTable& table)
+
+      The matrix, then the table. Throws std::bad_alloc when they cannot be held.
+
    .. cpp:function:: MaterialColourFilter(const MaterialColourFilter& other)
 
    .. cpp:function:: MaterialColourFilter(MaterialColourFilter&& other) noexcept
@@ -3624,6 +3866,10 @@ Types
    .. rubric:: Properties
 
    .. cpp:function:: bool has_value() const noexcept
+
+   .. cpp:function:: const MaterialColourTable* table() const noexcept
+
+      The table after the matrix, or null for none (or no filter).
 
 
    .. rubric:: Methods
@@ -3639,6 +3885,13 @@ Types
    ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
 
    A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1]. Its rows give red, green, blue and alpha; its columns read red, green, blue and alpha, and the fifth is a constant. Each result is clamped to [0, 1]. The factories are the CSS functions, with CSS's matrices (Filter Effects Level 1). A list of functions composes into one matrix with :cpp:func:`then <gui_forms::MaterialColourMatrix::then>`, in source order. CSS clamps between the functions of a list; one matrix does not, which differs only where an intermediate colour leaves [0, 1].
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool per_channel() const noexcept
+
+      Whether each row reads only its own channel and the constant, as a colour table can (MaterialColourTable::then_matrix).
 
 
    .. rubric:: Methods
@@ -3663,6 +3916,14 @@ Types
 
       Turns hues by ``degrees`` (any finite angle), with the engine's sine and cosine so that the matrix has the same bits on every host.
 
+   .. cpp:function:: static MaterialColourMatrix fill(Color colour) noexcept
+
+      The theme language's colour stages (owner 2026-11-16; not CSS): - fill: every colour channel ``colour``'s, and alpha the pixel's times the colour's (a covered pixel recoloured, its coverage kept); - duotone (tint): with L = 0.2126 R + 0.7152 G + 0.0722 B, each colour channel dark + L (light - dark), a straight line on the sRGB-encoded values; alpha kept, the colours' own alpha not read. The theme language's duotone() no longer lowers to this matrix but to luminance() and MaterialColourTable::duotone, which mixes in linear light as every gradient does (owner, 2026-11-16); - luminance: each colour channel L (the first stage of duotone() and tritone(), whose second is MaterialColourTable::duotone or ::tritone); alpha kept.
+
+   .. cpp:function:: static MaterialColourMatrix duotone(Color dark, Color light) noexcept
+
+   .. cpp:function:: static MaterialColourMatrix luminance() noexcept
+
    .. cpp:function:: MaterialColourMatrix then(const MaterialColourMatrix& after) const noexcept
 
       This filter, then ``after``: one matrix applying both.
@@ -3678,6 +3939,61 @@ Types
    .. cpp:member:: std::array<double, rows * columns> values
 
       Row-major: values[row × 5 + column]. The identity by default. Default: ``{detail::identity_colour_entries}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialColourStages final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   A filter's stages: the matrix, then, if present, the table.
+
+   .. cpp:member:: MaterialColourMatrix matrix
+
+   .. cpp:member:: stxlib::Optional<MaterialColourTable> table
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialColourTable final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255. Red's levels first, then green's, blue's and alpha's. The identity by default. The table is made once, from transfer functions evaluated at each level; drawing it is a lookup, the same on every host.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static MaterialColourTable transfer(const MaterialTransferFunction& red, const MaterialTransferFunction& green, const MaterialTransferFunction& blue, const MaterialTransferFunction& alpha)
+
+      The four channels' functions, each evaluated at level / 255 and stored floor(clamp(f, 0, 1) × 255 + 0.5). An invalid function throws std::invalid_argument.
+
+   .. cpp:function:: static MaterialColourTable tritone(Color shadow, Color midtone, Color highlight)
+
+      Tritone's table (after MaterialColourMatrix::luminance()): levels 0 to 127 from the shadow to the midtone, 128 to 255 from the midtone to the highlight, interpolated in linear light as every gradient is (gui_forms/types/linear_light/linear_light.hpp); alpha kept.
+
+   .. cpp:function:: static MaterialColourTable duotone(Color dark, Color light) noexcept
+
+      Duotone's table (after MaterialColourMatrix::luminance()): levels 0 to 255 from ``dark`` to ``light``, interpolated in linear light as every gradient is; alpha kept, the colours' own alpha not read.
+
+   .. cpp:function:: MaterialColourTable then(const MaterialColourTable& after) const noexcept
+
+      This table, then ``after``: one table applying both.
+
+   .. cpp:function:: MaterialColourTable then_matrix(const MaterialColourMatrix& matrix) const noexcept
+
+      This table, then ``matrix``, which must be per_channel(): each entry e becomes floor(clamp(m e / 255 + c, 0, 1) × 255 + 0.5) with its row's own coefficient m and constant c.
+
+   .. cpp:member:: constexpr std::size_t channels
+
+      Default: ``4U``.
+
+   .. cpp:member:: constexpr std::size_t levels
+
+      Default: ``256U``.
+
+   .. cpp:member:: std::array<std::uint8_t, channels * levels> entries
+
+      Default: ``{detail::identity_colour_table_entries()}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3701,7 +4017,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``masks``, the mask's layers, bottom first, at most SurfaceMaterial::maximum_mask_layers, empty for none, and ``gradients``, empty or one per layer, as for the fills; - mask_modes, mask_composites: ``mask_modes`` and ``mask_composites``, in CSS's order (the top layer's first), repeated over the mask's layers; - mask_positions, mask_sizes, mask_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, likewise, read by an image layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3727,7 +4043,7 @@ Types
 
    .. cpp:member:: std::vector<MaterialGlowPlacement> glow_placements
 
-   .. cpp:member:: std::optional<MaterialBorderStyle> border_style
+   .. cpp:member:: stxlib::Optional<MaterialBorderStyle> border_style
 
    .. cpp:member:: MaterialEdgeLines edge_lines
 
@@ -3745,15 +4061,23 @@ Types
 
    .. cpp:member:: MaterialColourFilter colour_filter
 
-   .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
+   .. cpp:member:: stxlib::Optional<MaterialDropShadow> drop_shadow
 
-   .. cpp:member:: std::optional<MaterialFillLayer> mask
+   .. cpp:member:: std::vector<MaterialFillLayer> masks
 
-   .. cpp:member:: std::optional<MaterialReflection> reflection
+   .. cpp:member:: std::vector<MaterialMaskMode> mask_modes
+
+   .. cpp:member:: std::vector<MaterialMaskComposite> mask_composites
+
+   .. cpp:member:: stxlib::Optional<MaterialReflection> reflection
 
    .. cpp:member:: MaterialDither dither
 
       Default: ``{MaterialDither::none}``.
+
+   .. cpp:member:: MaterialTransform transform
+
+   .. cpp:member:: std::optional<MaterialClipPath> clip_path
 
    .. cpp:member:: ColourOrigin origin
 
@@ -3920,6 +4244,14 @@ Types
 
       Default: ``{360.0}``.
 
+   .. cpp:member:: bool focused
+
+      A radial gradient's focus (owner, 2026-11-16: the focal radial gradient reaches the theme language), read when ``focused``: position 0 lies at ``focus``, in the layer's coordinate space, and offset t is the ellipse of radii t × radii centred at focus + t × (center − focus), as Painter::fill_focal_radial_gradient draws. The focus lies strictly inside the ellipse (focus_inside_ellipse).
+
+   .. cpp:member:: Point focus
+
+      Default: ``{0.5, 0.5}``.
+
    .. cpp:member:: MaterialBlendMode blend
 
       Default: ``{MaterialBlendMode::normal}``.
@@ -4002,6 +4334,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MaterialMaskLayer final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``. An image layer's size, position and repetition are its fill's image_scale, image_anchor, image_offset and image_mode, as a background image's are.
+
+   .. cpp:member:: MaterialFillLayer source
+
+   .. cpp:member:: MaterialMaskMode mode
+
+      Default: ``{MaterialMaskMode::alpha}``.
+
+   .. cpp:member:: MaterialMaskComposite composite
+
+      Default: ``{MaterialMaskComposite::add}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MaterialReflection final
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -4054,29 +4404,98 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MaterialTransferFunction final
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   .. cpp:member:: constexpr std::size_t maximum_values
+
+      Default: ``32U``.
+
+   .. cpp:member:: MaterialTransferKind kind
+
+      Default: ``{MaterialTransferKind::identity}``.
+
+   .. cpp:member:: std::vector<double> values
+
+   .. cpp:member:: double slope
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double intercept
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double amplitude
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double exponent
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialTransform final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y). The identity by default. Both paths draw it as a transform group (Painter::begin_transform) cut to the box grown by its visual outsets, so the turned or scaled face never paints outside what the part already damages. Valid when every entry is finite and at most maximum_entry in size, and the determinant is at least minimum_paint_transform_determinant in size.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool identity() const noexcept
+
+   .. cpp:member:: constexpr double maximum_entry
+
+      Default: ``64.0``.
+
+   .. cpp:member:: double xx
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double yx
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double xy
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double yy
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MediaCondition final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
    A rule's media condition (EC3): every feature it names must hold for the window, and an unnamed feature always holds, so the default condition holds everywhere. The resolution bounds are inclusive, in device pixels per logical unit; each is finite and above zero. A condition no window meets, such as a minimum above the maximum, is admitted: its rule never matches. The theme language's ``@media`` blocks lower to these (one rule a query of a comma list).
 
-   .. cpp:member:: std::optional<bool> dark_scheme
+   .. cpp:member:: stxlib::Optional<bool> dark_scheme
 
       ``prefers-color-scheme``: dark (true) or light (false).
 
-   .. cpp:member:: std::optional<bool> forced_colours
+   .. cpp:member:: stxlib::Optional<bool> forced_colours
 
       ``forced-colors``: active (true) or none (false).
 
-   .. cpp:member:: std::optional<bool> reduced_motion
+   .. cpp:member:: stxlib::Optional<bool> reduced_motion
 
       ``prefers-reduced-motion``: reduce (true) or no-preference (false).
 
-   .. cpp:member:: std::optional<double> minimum_resolution
+   .. cpp:member:: stxlib::Optional<double> minimum_resolution
 
       ``min-resolution`` and ``max-resolution``.
 
-   .. cpp:member:: std::optional<double> maximum_resolution
+   .. cpp:member:: stxlib::Optional<double> maximum_resolution
 
 .. cpp:namespace:: gui_forms
 
@@ -4389,6 +4808,17 @@ Types
    Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: std::size_t fit_text_utf8(std::string_view text, FontSpec font, double max_width)
+
+      The longest prefix of ``text``, in whole code points, whose measure_text_utf8 width is at most ``max_width`` (the flame graph demonstrator's F2): its byte count. A binary search over byte lengths, so about log2(bytes) measures; 0 when nothing fits or ``max_width`` is not a finite non-negative number.
+
+   .. cpp:function:: double draw_text_utf8_fitted(Point origin, std::string_view text, FontSpec font, Color color, double max_width, TextTrim trim)
+
+      ``text`` at ``origin``, shortened to ``max_width`` when it does not fit: ``trim`` cut draws the fitted prefix, ellipsis the prefix that leaves room for U+2026 and then U+2026. Returns the width drawn (0 when nothing was). Trailing spaces before the ellipsis are dropped. Two draw_text_utf8 calls at most, no allocation.
+
+
    .. rubric:: Extension points
 
    .. cpp:function:: virtual void begin_group(const PaintGroup& group)
@@ -4396,6 +4826,12 @@ Types
       Paint groups (see PaintGroup). begin_group and end_group pair like save and restore and nest like them, up to maximum_paint_group_depth: the state in force at end_group (transform, clips, saves) must be the one at its begin_group. Within a retained display chunk every group ends in the chunk that begins it; the recorder refuses a chunk left unbalanced. The recording and Skia painters isolate; each keeps one reusable scratch image per nesting level, grown to the largest clipped bounds it has met and released with the painter. The base implementation is a minimal painter's fallback without isolation: save() and clip_rect(bounds), then restore().
 
    .. cpp:function:: virtual void end_group()
+
+   .. cpp:function:: virtual void begin_transform(const PaintTransformGroup& group)
+
+      Transform groups (see PaintTransformGroup). Between begin_transform and its end_transform, coordinates are the group's content coordinates: a point p drawn there lands at transform(p) in the coordinates in force at begin_transform. ``bounds`` limits the content as clip_rect(bounds) under the map would, so everything the group draws lies inside transformed_paint_bounds(transform, bounds) in the enclosing coordinates: the rectangle a control damages for it. The pair nests like save and restore, and inside and around paint groups (each ends in the scope it began in), up to maximum_paint_transform_depth; the saves inside must balance. A transform that is not valid (valid_paint_transform), or a group begun too deep, draws nothing until its end_transform. Inside a group that does more than translate, text is shaped as outside and its glyph outlines are rasterized under the map (no picture of the upright run is turned); that rasterization is the seam where glyphs from the STXlib face seat enter (GlyphRunRasterizer::rasterize_transformed in the Skia painter). The raster's own direct composites, which address device pixels (text coverage, part rasters, isolated paint groups), give way to drawing through the map; nothing new is blended. The base implementation, a minimal painter's fallback, draws a translation as save, translate and clip_rect(bounds), and any other map as nothing (save and clip_rect of an empty rectangle); end_transform restores. The recording and Skia painters draw every valid map.
+
+   .. cpp:function:: virtual void end_transform()
 
    .. cpp:function:: virtual std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
@@ -4421,6 +4857,10 @@ Types
 
       Narrows the clip to ``rect`` with each corner rounded by its own radius (EP-6: an effect clipped to its part's shape). The fallback rounds every corner by the largest of the four, so it never shows more than the exact clip at a corner.
 
+   .. cpp:function:: virtual void clip_path(PaintPathView path, PolygonFillRule rule)
+
+      Narrows the clip to ``path``'s interior under ``rule``: every contour, open ones closed by a straight segment, as fill_path fills them. Any fill drawn under it (a gradient, a pattern, an image, text) then shows in an arbitrary shape: a radial gradient in a star is clip_path, then fill_radial_gradient over the path's bounds. The clip lasts until the matching restore, as clip_rect's does. An invalid path (valid_paint_path) or a rule outside the enumeration clips everything away until that restore, so a refused clip never shows what it was to hide. The base implementation clips to paint_path_bounds(path): a minimal painter shows the path's bounding box, never more.
+
    .. cpp:function:: virtual void fill_rect(Rect rect, Color color) = 0
 
    .. cpp:function:: virtual void fill_rounded_rect(Rect rect, double radius, Color color)
@@ -4434,6 +4874,14 @@ Types
    .. cpp:function:: virtual void fill_linear_gradient_spread(Rect rect, Point start, Point end, std::span<const GradientStop> stops, GradientSpreadMode spread)
 
    .. cpp:function:: virtual void fill_radial_gradient(Rect rect, Point center, Size radii, std::span<const GradientStop> stops)
+
+   .. cpp:function:: virtual void fill_radial_gradient_spread(Rect rect, Point center, Size radii, std::span<const GradientStop> stops, GradientSpreadMode spread)
+
+      fill_radial_gradient with ``spread`` outside the ellipse: ``pad`` keeps the last stop's colour, ``repeat`` starts the stops again at each further radius (concentric rings, CSS repeating-radial-gradient), and ``reflect`` runs them back and forth so the rings join without a seam. A spread outside the enumeration draws nothing. The base implementation draws as fill_radial_gradient (padded), as fill_linear_gradient_spread's does.
+
+   .. cpp:function:: virtual void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus, std::span<const GradientStop> stops, GradientSpreadMode spread)
+
+      A radial gradient whose stops start at ``focus`` instead of the centre (SVG's fx, fy; a highlight off the middle of a sphere): offset t lies on the ellipse of radii t * ``radii`` centred at focus + t * (center - focus), so 0 is the focus itself and 1 the ellipse of ``radii`` about ``center`` (the HTML two-circle gradient from a point to the ellipse), with ``spread`` beyond. ``focus`` must lie strictly inside the ellipse; a focus on or outside it, an empty rectangle, radii that are not positive, invalid stops or an unknown spread draw nothing. The base implementation draws rings, each centred on its point along the focus-to-centre line, padded as fill_radial_gradient's are.
 
    .. cpp:function:: virtual void draw_box_shadow(Rect rect, double corner_radius, Point offset, double blur_radius, double spread, Color color)
 
@@ -4456,6 +4904,14 @@ Types
    .. cpp:function:: virtual void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule)
 
       A closed polygon through ``points`` (at least 3, all finite), filled by ``rule``.
+
+   .. cpp:function:: virtual void fill_path(PaintPathView path, Color color, PolygonFillRule rule)
+
+      A curved path (paint_path.hpp, exhibit gap E7) filled by ``rule``: every contour, open ones closed by a straight segment. An invalid path (valid_paint_path) draws nothing. The base implementation flattens the path at paint_path_flattening_tolerance into fixed storage (maximum_fallback_path_points points, maximum_fallback_path_contours contours; a longer path is drawn from its start) and fills the contours together by scan rows, as fill_polygon's fallback does.
+
+   .. cpp:function:: virtual void stroke_path(PaintPathView path, const StrokeStyle& style)
+
+      A curved path stroked with ``style``'s width, joins, caps and dashes; closed contours join at their start instead of capping. A trim (StrokeStyle::trim) strokes only the sub-path trim_paint_path keeps at stroke_trim_tolerance; every implementation cuts it with that core function, so all painters stroke the same sub-path (a recording keeps the whole path and the trim). An invalid path or style draws nothing. The base implementation flattens as fill_path's does and strokes each contour as stroke_polyline's fallback does (solid, no joins of its own).
 
    .. cpp:function:: virtual void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color)
 
@@ -4489,6 +4945,10 @@ Types
 
       The grid lines of ``pattern`` that cross ``rect``, clipped to it (piece C17). Refused patterns (valid_grid_pattern) draw nothing.
 
+   .. cpp:function:: virtual void fill_hatch(Rect rect, const HatchPattern& pattern)
+
+      ``rect`` filled with a hatch (paint_marks.hpp HatchPattern): ``back``, then the marked squares in ``fore``. Refused patterns (valid_hatch_pattern) draw nothing. The base implementation fills the squares as rectangles (every edge snapped as fill_rect's are); past maximum_hatch_squares marked squares it fills the rectangle with the average of the two colours, as fill_checker does.
+
    .. cpp:function:: virtual void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color)
 
       A rounded rectangle with each corner rounded by its own radius (piece C1; joined segments round only a row's outer ends). The base implementation fills under clip_rounded_rect_corners; the stroke's draws stroke_rounded_rect with the largest radius.
@@ -4509,6 +4969,18 @@ Types
 
       One line of glyph runs a provider shaped earlier (GlyphRunsView, as a paragraph layout fills them), drawn at ``origin`` (the start of the baseline, as for draw_text_utf8) in ``font``'s size and colour without shaping again. A painter whose own engine shaped them, in its current face table (view.source), draws exactly the pixels draw_text_utf8 draws for view.text; for any other source, or runs whose glyph indices fall outside view.glyphs, it draws view.text with draw_text_utf8. That fallback is the base implementation, which the recording painter keeps (a recorded line is shaped again on replay); the Skia painter draws the runs.
 
+   .. cpp:function:: virtual void draw_text_runs(FontSpec font, std::span<const TextRun> runs)
+
+      Many runs in one font (the flame graph demonstrator's F3), each at its origin in its colour, in order. The base implementation draws each with draw_text_utf8; a renderer may share the font's setup across them. Each run is as draw_text_utf8 would draw it.
+
+   .. cpp:function:: virtual void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font, Color color, double degrees)
+
+      One line of text turned ``degrees`` about ``anchor`` (D5 ruling of 2026-11-13: text at any angle). ``anchor`` is the start of the baseline, as for draw_text_utf8, and stays where it is; the run turns about it, positive degrees anticlockwise as seen on the surface (90 reads up it as TextOrientation::bottom_to_top does, -90 down it). The run is shaped as draw_text_utf8 shapes it, in the same face, and its glyph runs are rasterized under the turn (no picture of the horizontal run is turned): the Skia painter draws them as STXlib's turned text, whose turn (exact at quarter turns) rotated_text_bounds and rotated_text_anchor also use. Its ink lies inside rotated_text_bounds of its measured extent, which is what a control keeps inside the area it damages. 0 draws as draw_text_utf8, the same pixels; a non-finite angle draws nothing. The base implementation, a minimal painter's fallback, draws the run horizontally from ``anchor``, unturned; the recording and Skia painters turn it.
+
+   .. cpp:function:: virtual void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font, Color color, double degrees)
+
+      draw_glyph_runs turned as draw_rotated_text_utf8 turns text: runs this painter's engine shaped in its current face table (view.source) are rasterized under the turn without shaping again, the pixels draw_rotated_text_utf8 draws for view.text; any other runs are drawn as view.text with draw_rotated_text_utf8. That fallback is the base implementation and the recording painter's (a recorded line is shaped again on replay); the Skia painter draws the runs.
+
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
       Text controls need the same metrics used by the painter for caret hit testing, selection geometry, and horizontal viewport maintenance. The renderer owns those metrics; controls must not guess a fixed glyph width.
@@ -4526,6 +4998,10 @@ Types
    .. cpp:function:: virtual Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface, Rect destination, double opacity)
 
       The part of ``destination``, in the current coordinates, that draw_live_surface(surface, destination, opacity) would overwrite with opaque pixels if drawn now, whatever lay beneath: replay then need not paint what an opaque live surface hides (a panned canvas's sheet). Empty when the painter cannot promise it (the default): the newest frame is not opaque, the opacity is below one, the transform is not a scale and translation, or a clip has soft edges. Reads only.
+
+   .. cpp:function:: virtual ImageDrawOpacity image_draw_opacity(ImageId image) const noexcept
+
+      What this painter knows of ``image``'s alpha as it would draw it now (ImageDrawOpacity); the default knows nothing. Reads only.
 
    .. cpp:function:: virtual void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double opacity = 1.0)
 
@@ -4551,7 +5027,7 @@ Types
 
    .. cpp:function:: virtual void fill_image_pattern(ImageId image, Size source_pixel_size, Rect destination, Size logical_tile_size, ImagePatternWrap wrap = ImagePatternWrap::tile, double opacity = 1.0)
 
-      One retained command regardless of repetition count. Production painters realize the pattern exactly; the base implementation is a bounded compatibility fallback for deliberately minimal hosts.
+      One retained command regardless of repetition count. Production painters realize the pattern exactly; the base implementation is a bounded compatibility fallback for deliberately minimal hosts. The first tile's top-left corner lies at ``destination``'s; ``wrap`` says what lies beyond it (ImagePatternWrap). The base implementation draws ``tile`` (one image when the tiles exceed its bound), ``clamp`` as the tile and its stretched edges, and ``mirror`` as ``tile`` (it cannot flip an image: every tile shows unflipped).
 
 .. cpp:namespace:: gui_forms
 
@@ -4559,7 +5035,7 @@ Types
 
    ``#include <gui_forms/types/painter/painter.hpp>``
 
-   A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly.
+   A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly. - ``effect`` (capability review decision 1, owner 2026-11-16), when set, filters and masks the group's image before it is composited (PaintGroupEffect, declared in surface_material/paint_group_effect, which this header does not include). A group with an effect is isolated at any opacity, and its image reaches past ``bounds`` by the effect's reach (paint_group_effect_reach): its commands are still limited to ``bounds``, and the blur spreads into the margin. An invalid effect (valid_paint_group_effect) is ignored and counted as a group refusal. Shared read-only: a recording keeps it alive.
 
    .. cpp:member:: Rect bounds
 
@@ -4575,6 +5051,72 @@ Types
 
       Default: ``{false}``.
 
+   .. cpp:member:: std::shared_ptr<const PaintGroupEffect> effect
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintGroupEffect final
+
+   ``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+
+   A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses. In order, over the group's premultiplied image: 1. ``colour_filter``: each pixel through the colour stages (matrix, then table), as a material's colour filter is (pixel_kernel's colour_staged), rounded once to bytes. 2. ``blur``: the engine's integer three-box blur (box_blur), radius in logical units as a material's filter_blur (2σ), 0 to maximum_paint_group_effect_blur. The image spreads past the group's bounds by up to paint_group_effect_reach logical units: the group draws there too, beneath its content's own limit. 3. ``masks``: the mask layers of a material (SurfaceMaterial::masks), laid over the group's bounds as a material's masks are over its box (mask positions and sizes are relative to the bounds), each pixel's alpha weighted by the joined mask. Image masks are refused: a painter holds no window resources. Beyond the bounds the mask is 0. Then the image is composited by the group's opacity and composite. A painter that cannot isolate the group, or whose mask bake exceeds the material bake budget, draws the group without its effect and counts a group refusal (Painter::begin_group).
+
+   .. cpp:member:: MaterialColourFilter colour_filter
+
+   .. cpp:member:: double blur
+
+   .. cpp:member:: std::vector<MaterialMaskLayer> masks
+
+      Up to SurfaceMaterial::maximum_mask_layers layers, bottom first.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PaintPath final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   An owned path built verb by verb, for callers that do not keep their own arrays. Each builder call appends one verb and its points; nothing is validated until it is drawn (valid_paint_path). reserve() allocates once before a long build; clear() keeps the storage for the next build.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: PaintPathView view() const& noexcept
+
+      The path, borrowed from this object: valid until the next builder call, clear() or destruction. Not for a temporary path.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t verb_capacity, std::size_t point_capacity)
+
+   .. cpp:function:: void clear() noexcept
+
+   .. cpp:function:: void move_to(Point point)
+
+   .. cpp:function:: void line_to(Point point)
+
+   .. cpp:function:: void quad_to(Point control, Point end)
+
+   .. cpp:function:: void cubic_to(Point first_control, Point second_control, Point end)
+
+   .. cpp:function:: void arc_to(Point center, Size radii, double start_degrees, double sweep_degrees)
+
+      An elliptical arc as arc_to above: ``radii`` x and y the horizontal and vertical radius, angles in degrees, clockwise (y down) from +x.
+
+   .. cpp:function:: void close()
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintPathView final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   A borrowed path: the verbs and their points, both owned by the caller and read only for the duration of the call given the view.
+
+   .. cpp:member:: std::span<const PaintPathVerb> verbs
+
+   .. cpp:member:: std::span<const Point> points
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PaintSegment final
@@ -4586,6 +5128,50 @@ Types
    .. cpp:member:: Point from
 
    .. cpp:member:: Point to
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintTransform final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   A two-dimensional affine map (Painter::begin_transform): the point (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy). The default is the identity.
+
+   .. cpp:member:: double xx
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double yx
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double xy
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double yy
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double dx
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double dy
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintTransformGroup final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped transform, never a free concatenation): ``bounds``, in the group's content coordinates, limits what it draws; ``transform`` maps content coordinates into those in force where the group begins.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: PaintTransform transform
 
 .. cpp:namespace:: gui_forms
 
@@ -4660,7 +5246,7 @@ Types
 
    .. cpp:member:: std::string_view item
 
-   .. cpp:member:: std::optional<std::size_t> item_index
+   .. cpp:member:: stxlib::Optional<std::size_t> item_index
 
 .. cpp:namespace:: gui_forms
 
@@ -4753,11 +5339,11 @@ Types
 
    .. cpp:member:: ImageId image
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
       A focus or preselect ring follows the same shape: a connected segment's square corners, for one.
 
-   .. cpp:member:: std::optional<double> point
+   .. cpp:member:: stxlib::Optional<double> point
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
@@ -4765,7 +5351,7 @@ Types
 
       The nose is at the left edge instead, its tip at the middle of the left edge: a right-to-left breadcrumb segment's (Control:: right_to_left). Read only with ``point``.
 
-   .. cpp:member:: std::optional<PartProfile> profile
+   .. cpp:member:: stxlib::Optional<PartProfile> profile
 
       The part's profile beside its rectangle (PartProfile), or none. Only surface roles read it; a pointed face ignores it.
 
@@ -4773,21 +5359,21 @@ Types
 
       Whether the part draws its frame. A surface part with frame none is its material's ground: the material's border and per-edge borders are left out, and its fills, keylines, shadows and shape are kept. It is the field of a borderless TextBox (Windows Forms BorderStyle.None), whose composite (a ComboBox, an up-down, the grid's cell editor) draws the frame itself. A primitive that draws no theme material has no ground apart from its frame, so a frameless part it would draw is drawn by the built-in recipe instead. A pointed face with frame none draws no nose edges. Roles that are not surfaces ignore it. Default: ``{PartFrame::drawn}``.
 
-   .. cpp:member:: std::optional<AccentIndex> accent
+   .. cpp:member:: stxlib::Optional<AccentIndex> accent
 
       The part's position in the theme's accent ramp (§8.5), or none. A surface part with an accent is tinted from the ramp over its material; text and mark roles ignore it.
 
-   .. cpp:member:: std::optional<Color> content_color
+   .. cpp:member:: stxlib::Optional<Color> content_color
 
-      The colour the part shows as its content (design language 8.5; owner decision W-7), such as a colour picker's sample, or none. Only the fill role honours it: a fill with a content colour is painted that colour, flat, in the part's shape (corner_radius, else square), in place of the recipe's material; every other role ignores it. A swatch is therefore a fill inside a well part that frames it. The colour is data, as an image is: it is drawn as given in ordinary and high-contrast presentation alike (the framing well follows the high-contrast recipe, so the sample stays outlined), and when the part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds it, so a disabled swatch shows through its well, edge and label).
+      The colour the part shows as its content (design language 8.5; owner decision W-7), such as a colour picker's sample, or none. Only the fill role honours it: a fill with a content colour is painted that colour, flat, in the part's shape (corner_radius, else square), in place of the recipe's material; every other role ignores it. A swatch is therefore a fill inside a well part that frames it. The colour is data, as an image is: it is drawn as given in ordinary and high-contrast presentation alike (the framing well follows the high-contrast recipe, so the sample stays outlined), and when the part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds it, so a disabled swatch shows through its well, edge and label). A surface part (face or well) with a content colour draws its material, and the colours its theme rules write as CSS's currentcolor take the content colour instead of the text colour: a colour picker's field, spectrum and alpha ramp are gradient rules over the colour they show (the ColorPicker parts in the default and familiar themes' content rules). The dark variant's rule does not darken such a part's material. In forced high contrast (owner ruling, W-7: content is data, not chrome) the part keeps those fills inside high contrast's material: its border (or, without one, a 1-unit border in high contrast's text colour) frames them, and its shadows and glows are dropped. Without the theme engine (no window, or a theme whose rules write no fills for the part), the part draws its recipe and the colour is not shown.
 
-   .. cpp:member:: std::optional<Color> authored_background
+   .. cpp:member:: stxlib::Optional<Color> authored_background
 
       The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text, and a glyph colour declared important for marks. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
 
-   .. cpp:member:: std::optional<Color> authored_foreground
+   .. cpp:member:: stxlib::Optional<Color> authored_foreground
 
-   .. cpp:member:: std::optional<PartKey> key
+   .. cpp:member:: stxlib::Optional<PartKey> key
 
       The part's identity across frames (T2 GIVEN H3-1), or none. A part with a key has a record in its window's engine part table; one without is drawn statically, with no transitions and no cached raster. It is identity, not vocabulary: it changes nothing a part looks like today. Its views are borrowed for the call.
 
@@ -4799,17 +5385,29 @@ Types
 
       How far past ``bounds`` the control lets the part be drawn when a theme scales it (T2 GIVEN D5-1, E8), in logical units. The presentational scale grows the part about its centre only as far as this allows: with none granted, the default, a part never grows. Layout and the part's hit region ignore it.
 
-   .. cpp:member:: std::optional<Size> measured_text
+   .. cpp:member:: stxlib::Optional<Size> measured_text
 
       The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
 
-   .. cpp:member:: std::optional<PartArc> arc
+   .. cpp:member:: stxlib::Optional<PartArc> arc
 
       The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
 
-   .. cpp:member:: std::optional<PartLightPlanes> light_planes
+   .. cpp:member:: stxlib::Optional<PartLightPlanes> light_planes
 
       The baked light planes the part is composited from (PartLightPlanes), or none. Such a part is drawn as the bake's light, room · R + Σ colour · power · L_i toned (engine_light::composite_light_planes), stretched over ``bounds`` at the window's scale, in place of its recipe and of any primitive a rule would choose: the bake carries the part's whole look, its body included. The composite is transparent where the bake's coverage is 0, so its light never reaches past the part; a part with a corner radius is clipped to that shape as well. The recipe draws the part instead in forced high contrast, where the role's colours stand, and when no raster of the part's size can be made (ornament gives way first).
+
+   .. cpp:member:: std::shared_ptr<LiveSurface> live_surface
+
+      A content surface's newest frame (the consumer's picture of a ContentSurface or ContentTextEditor), or none. Only the image role reads it: the frame is composed into ``bounds`` exactly as given (Painter::draw_live_surface), in ordinary and high-contrast presentation alike and disabled or not, as a content colour is (GIVEN E2-1); no rule or primitive restyles it. Shared for the call.
+
+   .. cpp:member:: double text_angle
+
+      A text part's turn (D5 ruling of 2026-11-13: text at any angle), in degrees anticlockwise as seen, or 0. The text is laid out in ``bounds`` as an unturned horizontal line is, then the line turns this far about the bounds' centre (Painter::draw_rotated_text_utf8), clipped to the rectangle bounding the turned bounds; ``orientation`` is not read. The caller keeps that rectangle inside the control's paint area, so its damage covers the text. Only text roles read it; a non-finite angle draws no text.
+
+   .. cpp:member:: std::shared_ptr<const PartRaster> raster
+
+      A picture the control rendered itself (a PartRaster, such as a 3D plot's frame), or null. The image role draws it as given, never tinted, dimmed or resampled, its top left at the top left of ``bounds`` (Painter::draw_part_raster); a raster of another display scale than the painter's is not drawn. It stands in place of ``image``. Shared read-only for the call; a recording keeps it for as long as the recording lives, so its maker writes a raster again only while it holds the last reference. Every other role ignores it.
 
 .. cpp:namespace:: gui_forms
 
@@ -4821,7 +5419,7 @@ Types
 
    .. cpp:member:: double taper
 
-   .. cpp:member:: std::optional<Color> taper_colour
+   .. cpp:member:: stxlib::Optional<Color> taper_colour
 
    .. cpp:member:: double flare
 
@@ -4846,6 +5444,10 @@ Types
 
       Whether record_opacity found every pixel opaque since the last view().
 
+   .. cpp:function:: PartRasterInterior opaque_interior() const noexcept
+
+      What record_opaque_interior recorded since the last view(), or empty.
+
    .. cpp:function:: BorrowedSpan<std::uint8_t> pixels() const& noexcept
 
       Borrowed from the raster: the sanitizer tree reports a use after the raster died (the last shared owner let it go).
@@ -4865,11 +5467,31 @@ Types
 
    .. cpp:function:: PartRasterView view() noexcept
 
-      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only. Clears the recorded opacity, since the pixels may change through the view.
+      The raster as a destination for a primitive: valid while the raster lives and is not shared read-only. Clears the recorded opacity, since the pixels may change through the view, and the opaque interior.
 
    .. cpp:function:: void record_opacity() noexcept
 
       Records whether every pixel's alpha is 255. The maker calls it after its last write through view(), before sharing the raster; the composite then copies the raster's rows rather than blending them.
+
+   .. cpp:function:: void record_opaque_interior(PartRasterInterior interior) noexcept
+
+      Records ``interior`` as the raster's opaque interior when it lies inside the raster and every pixel in it has alpha 255 (checked here, one pass that stops at the first row that is not), else records none. The maker calls it after its last write through view(), with the rectangle its geometry promises (a material's box less its corners); the composite then copies those pixels' rows at full opacity instead of blending them, which writes the same bytes (blend study, 2026-11-16).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PartRasterInterior final
+
+   ``#include <gui_forms/engine/part_raster/part_raster.hpp>``
+
+   A rectangle of a part raster's pixels, [left, right) by [top, bottom); empty when right <= left or bottom <= top.
+
+   .. cpp:member:: std::uint32_t left
+
+   .. cpp:member:: std::uint32_t top
+
+   .. cpp:member:: std::uint32_t right
+
+   .. cpp:member:: std::uint32_t bottom
 
 .. cpp:namespace:: gui_forms
 
@@ -4985,7 +5607,7 @@ Types
 
    .. cpp:member:: std::size_t machine
 
-   .. cpp:member:: std::optional<std::size_t> state
+   .. cpp:member:: stxlib::Optional<std::size_t> state
 
    .. cpp:member:: std::optional<MotionValue> value
 
@@ -5025,7 +5647,7 @@ Types
 
    .. cpp:member:: double target
 
-   .. cpp:member:: std::optional<double> enter_from
+   .. cpp:member:: stxlib::Optional<double> enter_from
 
    .. cpp:member:: std::vector<MotionStop> stops
 
@@ -5229,7 +5851,7 @@ Types
 
    .. cpp:member:: const SurfaceMaterial* material
 
-   .. cpp:member:: std::optional<double> corner_radius
+   .. cpp:member:: stxlib::Optional<double> corner_radius
 
    .. cpp:member:: const ImageRegistry* images
 
@@ -5286,6 +5908,10 @@ Types
    .. cpp:member:: Color bloom
 
       Default: ``{Color::rgba(255, 255, 255, 0)}``.
+
+   .. cpp:member:: HatchStyle hatch_style
+
+      Read only by the hatch. Default: ``{HatchStyle::horizontal}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5415,13 +6041,17 @@ Types
 
    .. cpp:member:: std::size_t finish_tiles_queued
 
+   .. cpp:member:: std::uint64_t finish_tile_parallel_batches
+
+      Idle frames whose finish tiles were painted on the bake pool, two tiles or more at once (EnginePartTable::set_finish_bake_threads).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RecipeDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, ``font_family`` (FontSpec::family, zero for the role's faces alone) and ``font_stack`` (FontSpec::stack, the families listed after the first; zero for none); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``; - ring_style: ``ring_style``.
 
    .. cpp:member:: RecipeField field
 
@@ -5440,6 +6070,10 @@ Types
    .. cpp:member:: NeedleShape needle_shape
 
       Default: ``{NeedleShape::tapered}``.
+
+   .. cpp:member:: RingStyle ring_style
+
+      Default: ``{RingStyle::dots}``.
 
    .. cpp:member:: StripeSense stripe_sense
 
@@ -5485,7 +6119,9 @@ Types
 
       Default: ``{FontRole::control}``.
 
-   .. cpp:member:: BundledFontFamily font_family
+   .. cpp:member:: FontFamilyId font_family
+
+   .. cpp:member:: FontFamilyStackId font_stack
 
    .. cpp:member:: bool italic
 
@@ -5596,6 +6232,22 @@ Types
    ``#include <gui_forms/types/painter/painter.hpp>``
 
    Renderer-derived data for one retained draw command, such as shaped text. The command's recording owns it: a Window creates it when a control records the command and releases it when that control's display chunk is rebuilt or retired. A renderer fills, validates and replaces the memo.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RotatedTextBox final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   Where a line of text turned about its baseline start lies (Painter::draw_rotated_text_utf8). The run's box is its advance ``width`` along the baseline and its line box ``ascent`` above and ``descent`` below it; turned ``degrees`` anticlockwise as seen about ``anchor``, the box's corners are anchor + s * (cos, -sin) + t * (sin, cos) for s in [0, width] and t in [-ascent, descent].
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double ascent
+
+   .. cpp:member:: double descent
+
+   .. cpp:member:: double degrees
 
 .. cpp:namespace:: gui_forms
 
@@ -5748,7 +6400,7 @@ Types
 
    .. cpp:member:: std::string part
 
-   .. cpp:member:: std::optional<PartRole> role
+   .. cpp:member:: stxlib::Optional<PartRole> role
 
    .. cpp:member:: std::vector<AnatomyState> states
 
@@ -5848,7 +6500,7 @@ Types
 
    ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
 
-   A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates. ``dash_count`` of the ``dashes`` are live, alternately on and off lengths; 0 (or an odd count, which is refused as solid) draws solid. ``dash_phase`` shifts the pattern's start along the stroke (an effect moving it on the motion clock animates the dashes, piece C13).
+   A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates. ``dash_count`` of the ``dashes`` are live, alternately on and off lengths; 0 (or an odd count, which is refused as solid) draws solid. ``dash_phase`` shifts the pattern's start along the stroke (an effect moving it on the motion clock animates the dashes, piece C13). ``trim`` keeps part of a stroked path (paint_path.hpp, StrokeTrim; the default keeps it whole): Painter::stroke_path cuts the path in the core with trim_paint_path at stroke_trim_tolerance, so every painter strokes the same sub-path, and the dashes then run along the kept part from its start. The other stroke calls (stroke_polyline, stroke_segments) draw their whole geometry whatever the trim.
 
    .. cpp:member:: Color color
 
@@ -5873,6 +6525,28 @@ Types
    .. cpp:member:: std::size_t dash_count
 
    .. cpp:member:: double dash_phase
+
+   .. cpp:member:: StrokeTrim trim
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StrokeTrim final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   The part of a path a stroke keeps (Lottie's and ThorVG's trim path): ``start`` and ``end`` are fractions of the path's whole length (every contour end to end, paint_path_length), each in [0, 1], and either may be the larger: the kept part runs from the smaller to the larger. ``offset`` (any finite value, in the same fractions) moves that part along the path and wraps it across the path's start. Start 0 and end 1 (in either order) keep the whole path whatever the offset; equal start and end keep nothing.
+
+   .. cpp:member:: double start
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double end
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5919,13 +6593,23 @@ Types
 
       The farthest a reflection reaches outside the box, gap and reach together, in logical units (T5-Q15: the blur and glow cap). Default: ``8.0``.
 
+   .. cpp:member:: constexpr std::size_t maximum_mask_layers
+
+      The most mask layers, and the most of them that are images: an image mask's resampled variant has one slot (image_mask_variant_layer). Default: ``4U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_image_mask_layers
+
+      Default: ``1U``.
+
    .. cpp:member:: std::vector<MaterialFillLayer> fills
+
+      Default: ``{MaterialFillLayer::solid(Color::rgba(255, 255, 255))}``.
 
    .. cpp:member:: std::vector<MaterialShadow> shadows
 
    .. cpp:member:: std::vector<MaterialGlow> glows
 
-   .. cpp:member:: std::optional<MaterialBorder> border
+   .. cpp:member:: stxlib::Optional<MaterialBorder> border
 
    .. cpp:member:: MaterialBorderEdges border_edges
 
@@ -5933,7 +6617,7 @@ Types
 
    .. cpp:member:: double corner_radius
 
-   .. cpp:member:: std::optional<MaterialCornerRadii> corner_radii
+   .. cpp:member:: stxlib::Optional<MaterialCornerRadii> corner_radii
 
       Corners that differ (E9.6): when present they replace corner_radius in the engine's material primitive. The built-in path, paint_surface_material, rounds every corner by corner_radius, so a theme sets that to the radius the fallback should draw.
 
@@ -5941,7 +6625,7 @@ Types
 
       The part filters (E9.6, CSS ``filter``), applied to the baked raster in this order: the colour filter to each pixel, then the drop shadow beneath, then the blur over the whole. A theme's filter list lowers to that order. The engine's material primitive draws them; the built-in path, paint_surface_material, draws none of them, and the window's backplane image draws only the colour filter.
 
-   .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
+   .. cpp:member:: stxlib::Optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: double filter_blur
 
@@ -5951,17 +6635,49 @@ Types
 
       The surface finish (E9.6, CSS coverage row 9), from 0, the material as authored, to 1, a full gloss derived from its first fill (finished_surface_material, which both paths draw). A finish above 0 needs a solid or linear first fill and room for one more keyline.
 
-   .. cpp:member:: std::optional<MaterialFillLayer> mask
+   .. cpp:member:: std::vector<MaterialMaskLayer> masks
 
-      An alpha mask (E9.6, CSS ``mask-image``): a solid, gradient or image fill whose alpha, times its opacity for an image, multiplies the whole finished part, its shadows and glows included; outside the box it extends at its edge value, so that a shadow fades with the face beside it. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
+      The mask (E9.6, CSS ``mask-image``, ``mask-mode``, ``mask-composite``): up to maximum_mask_layers layers, bottom first (CSS lists the top layer first), at most maximum_image_mask_layers of them images. Each layer's weight at a pixel is its fill's sample there read by its mode (an image's times its opacity); the weights combine from the bottom up by each upper layer's composite, and the result multiplies the whole finished part, its shadows and glows included. Outside the box each layer extends at its edge value, so that a shadow fades with the face beside it. Empty for none. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
 
-   .. cpp:member:: std::optional<MaterialReflection> reflection
+   .. cpp:member:: stxlib::Optional<MaterialReflection> reflection
 
       A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
 
    .. cpp:member:: MaterialDither dither
 
       The final quantization (MaterialDither); none by default. Default: ``{MaterialDither::none}``.
+
+   .. cpp:member:: MaterialTransform transform
+
+      The material's own transform (MaterialTransform); the identity by default.
+
+   .. cpp:member:: std::optional<MaterialClipPath> clip_path
+
+      The material's clip path (MaterialClipPath); none by default.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextLanguage
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   The language text is written in, as an OpenType language system tag: four letters as one number, the first highest ('K','O','R',' ' for Korean; text_language makes one). Zero is none. Shaping applies the tag's language system where a face has one (Korean forms, Turkish dotted i), and fallback prefers the faces registered for the language (the Korean CJK face over the Japanese one for Han characters in Korean text); none keeps each script's default forms and the registered order.
+
+   .. cpp:member:: std::uint32_t tag
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextRun final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: Color color
 
 .. cpp:namespace:: gui_forms
 
@@ -6041,13 +6757,17 @@ Types
 
       Whether the rules matching ``control`` at rest (its type, classes and stable ID, no part or role, the window's media and the control's user theme and inline style) declare it clear (owner decision 2026-11-04): ``background: transparent``, a background colour of alpha 0 and no visible background layer, so that the surface's backdrop shows through it. A colour or layer left to the floor is not clear.
 
-   .. cpp:function:: std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept
+   .. cpp:function:: stxlib::Optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept
 
       The backdrop chain the rules selecting ``window`` declare (``window { backdrop: ... }``, owner decisions 2026-11-05): the winning ``backdrop:`` among the theme's and the user theme's rules, matched against the window's media and its root control's classes and stable ID, lowered operation by operation. A role colour in tint() is the colour the matching rules give it under the window's scheme. Nullopt where no rule declares one or the winner is ``none``. ``popup`` rules are not read here: they wait for native popup windows (stage T5).
 
    .. cpp:function:: BandDeclaration window_band(const Window& window) const noexcept
 
       The band the rules selecting ``window`` declare (``window { band-width: ...; band-color: ...; band-lit-color: ...; band-effect: ... }``; owner, 2026-11-08): each field from the last matching rule that sets it, among the theme's and the user theme's rules, matched as window_backdrop_chain matches. Empty where no rule sets one.
+
+   .. cpp:function:: std::shared_ptr<const PaintGroupEffect> control_content_effect(const Control& control) const
+
+      The content effect the rules give ``control`` (a rule with no part writing ``filter`` or ``mask-*``; owner 2026-11-16), among the theme's, the window's user theme's, the control's inline style's and its look's rules (CompiledThemeRules::resolve_content_effect), with its gradient masks resolved for the control's arranged size. Null where no rule sets one, where the fields give no filter, blur or mask, or where the result is not a valid group effect. Allocates the effect.
 
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
@@ -6061,13 +6781,17 @@ Types
 
       The overlay shadow's layers (owner decision RB-37) for ordinary or high-contrast presentation; empty when the theme casts none.
 
-   .. cpp:function:: std::optional<ImageId> icon_override(std::string_view identifier) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageId> icon_override(std::string_view identifier) const noexcept
 
       The image a compiled user theme gives the program icon ``identifier`` (its ``icons/<identifier>.png``), held by the theme while it lives; nullopt where it gives none (T3 user themes). Whether the program lets the icon be replaced is the application's (ApplicationResources:: icon).
 
-   .. cpp:function:: std::optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
+   .. cpp:function:: std::shared_ptr<const StockIconVectors> stock_icon_replacement(const StockIcon& icon) const noexcept
 
-      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. Nullopt where the theme declares no such role.
+      The theme's own drawing of the stock icon variant ``icon`` (ThemeDefinition::stock_icons), shared with the theme; null where the theme keeps the built-in drawing.
+
+   .. cpp:function:: stxlib::Optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
+
+      The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. None where the theme declares no such role.
 
 .. cpp:namespace:: gui_forms
 
@@ -6231,6 +6955,10 @@ Types
 
       The colour schemes the theme has variants for (T4 theme variants): light alone by default. A window in a scheme its theme lacks shows GUI.Forms' own theme in that scheme (Window::theme_fallback). A sheet declaring ``color-scheme`` (rules.colour_schemes) replaces it when the theme is made.
 
+   .. cpp:member:: std::vector<StockIconReplacement> stock_icons
+
+      Stock icon variants the theme draws its own way (exhibit gap E10): each replaces the built-in drawing of its icon (a name in stock_icon_names, a style and a size) wherever that variant is shown. Theme::create refuses a replacement without vectors or of an unknown name. Empty by default: every icon keeps the built-in drawing.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeEngine final
@@ -6311,6 +7039,12 @@ Types
       The raster's size for a primitive, in device pixels.
 
    .. cpp:member:: DeviceScale scale
+
+   .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> content_materials
+
+      Under forced high contrast only: the material fields the rules author for the part without the pass, which a content part (W-7, ruling 9) shows inside high contrast's frame; the pass itself admits no rule below an important inline style, so ``resolution`` never holds a theme's content fills there. They belong to the compiled rules; ``content_materials_authored`` is whether any is set.
+
+   .. cpp:member:: bool content_materials_authored
 
 .. cpp:namespace:: gui_forms
 
@@ -6435,6 +7169,66 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ThemeOverrides final
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+      The number of entries, roles included.
+
+   .. cpp:function:: std::string sheet_text() const
+
+      The program theme sheet the entries write: the roles in one ``:root`` block, then one rule per target in the order targets were first set, its properties in the order they were first set. Deterministic: the same entries write the same text. Empty overrides write an empty sheet.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void clear() noexcept
+
+      Removes every entry.
+
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, stxlib::Optional<Color> background = {})
+
+      Redefines a colour role: ``foreground`` alone for a single role, ``foreground`` on ``background`` for a paired one (colour_role_paired). Setting a role again replaces its colours in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background)
+
+      The standard form, kept for one stage (D15 Q3).
+
+   .. cpp:function:: ThemeOverrideCheck set_colour(const ThemeOverrideTarget& target, ThemeOverrideProperty property, Color colour)
+
+      Sets a colour property (background_colour, border_colour or text_colour) for ``target``. Setting the same target and property again replaces the value in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_length(const ThemeOverrideTarget& target, ThemeOverrideProperty property, double value)
+
+      Sets a length or fraction property (corner_radius, border_width or opacity) for ``target``, within the property's range.
+
+   .. cpp:member:: constexpr std::size_t maximum_entries
+
+      The most entries, roles and properties together, a set holds. Default: ``4096U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeOverrideTarget final
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
+
+   .. cpp:member:: std::string control
+
+   .. cpp:member:: std::string part
+
+   .. cpp:member:: stxlib::Optional<AnatomyState> state
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ThemePackage final
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -6499,15 +7293,15 @@ Types
 
    .. cpp:member:: RuleSelector selector
 
-   .. cpp:member:: std::optional<RuleSpecificity> specificity
+   .. cpp:member:: stxlib::Optional<RuleSpecificity> specificity
 
    .. cpp:member:: std::vector<RuleDeclaration> declarations
 
-   .. cpp:member:: std::optional<EngineVersion> requires_engine
+   .. cpp:member:: stxlib::Optional<EngineVersion> requires_engine
 
    .. cpp:member:: std::vector<PropertyTransition> transitions
 
-   .. cpp:member:: std::optional<AmbientEffect> ambient
+   .. cpp:member:: stxlib::Optional<AmbientEffect> ambient
 
    .. cpp:member:: std::vector<MaterialDeclaration> materials
 
@@ -6529,13 +7323,17 @@ Types
 
    .. cpp:member:: std::uint32_t source_position
 
-   .. cpp:member:: std::optional<BackdropDeclaration> backdrop
+   .. cpp:member:: stxlib::Optional<BackdropDeclaration> backdrop
 
       A surface rule's backdrop (``backdrop:``), or none.
 
-   .. cpp:member:: std::optional<BandDeclaration> band
+   .. cpp:member:: stxlib::Optional<BandDeclaration> band
 
       A window rule's band (``band-*``), or none.
+
+   .. cpp:member:: std::vector<MaterialDeclaration> content_effect
+
+      A control rule's content effect (owner 2026-11-16): what a rule with no part, role or surface writes as ``filter`` and ``mask-*``, a filter and mask on the control and its descendants together (Control::set_content_effect). Material declarations of the content effect's fields only (content_effect_field), at most one per field; empty for none.
 
    .. cpp:member:: RuleProvenance provenance
 
@@ -6557,7 +7355,7 @@ Types
 
    .. cpp:member:: std::vector<std::string> published_values
 
-   .. cpp:member:: std::optional<ColourSchemeSet> colour_schemes
+   .. cpp:member:: stxlib::Optional<ColourSchemeSet> colour_schemes
 
       The colour schemes the sheet declares (``:root { color-scheme: ... }``, T4 theme variants), or none where it declares none. Theme::create takes a declared set as the theme's (ThemeDefinition::colour_schemes).
 
@@ -6694,7 +7492,7 @@ Types
 
    .. cpp:member:: AssembledPartMaterial assembled
 
-   .. cpp:member:: std::optional<ControlVisualRole> darkened
+   .. cpp:member:: stxlib::Optional<ControlVisualRole> darkened
 
    .. cpp:member:: bool filled
 
@@ -7171,6 +7969,8 @@ Enumerations
 
    .. cpp:enumerator:: resize_diagonal_up
 
+   .. cpp:enumerator:: help
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DockShapeRegion
@@ -7513,11 +8313,33 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HatchStyle
+
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+
+   .. cpp:enumerator:: horizontal
+
+   .. cpp:enumerator:: vertical
+
+   .. cpp:enumerator:: forward_diagonal
+
+   .. cpp:enumerator:: backward_diagonal
+
+   .. cpp:enumerator:: cross
+
+   .. cpp:enumerator:: diagonal_cross
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ImagePatternWrap
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
 
    .. cpp:enumerator:: tile
+
+   .. cpp:enumerator:: mirror
+
+   .. cpp:enumerator:: clamp
 
 .. cpp:namespace:: gui_forms
 
@@ -7625,6 +8447,24 @@ Enumerations
 
    .. cpp:enumerator:: screen
 
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: MaterialBorderStyle
@@ -7636,6 +8476,32 @@ Enumerations
    .. cpp:enumerator:: dashed
 
    .. cpp:enumerator:: dotted
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialClipRule
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: nonzero
+
+   .. cpp:enumerator:: even_odd
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialClipVerb
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: move
+
+   .. cpp:enumerator:: line
+
+   .. cpp:enumerator:: quadratic
+
+   .. cpp:enumerator:: cubic
+
+   .. cpp:enumerator:: close
 
 .. cpp:namespace:: gui_forms
 
@@ -7763,6 +8629,20 @@ Enumerations
 
    .. cpp:enumerator:: gradient_dither
 
+   .. cpp:enumerator:: transform
+
+   .. cpp:enumerator:: clip_path
+
+   .. cpp:enumerator:: mask_modes
+
+   .. cpp:enumerator:: mask_composites
+
+   .. cpp:enumerator:: mask_positions
+
+   .. cpp:enumerator:: mask_sizes
+
+   .. cpp:enumerator:: mask_repeats
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -7809,6 +8689,10 @@ Enumerations
 
    .. cpp:enumerator:: single
 
+   .. cpp:enumerator:: mirror
+
+   .. cpp:enumerator:: extend
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: MaterialImageRepeat
@@ -7818,6 +8702,10 @@ Enumerations
    .. cpp:enumerator:: repeat
 
    .. cpp:enumerator:: no_repeat
+
+   .. cpp:enumerator:: mirror
+
+   .. cpp:enumerator:: extend
 
 .. cpp:namespace:: gui_forms
 
@@ -7849,6 +8737,34 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: MaterialMaskComposite
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: add
+
+   .. cpp:enumerator:: subtract
+
+   .. cpp:enumerator:: intersect
+
+   .. cpp:enumerator:: exclude
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialMaskMode
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: alpha
+
+   .. cpp:enumerator:: luminance
+
+   .. cpp:enumerator:: inverse_alpha
+
+   .. cpp:enumerator:: inverse_luminance
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MaterialReflectionSource
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -7856,6 +8772,22 @@ Enumerations
    .. cpp:enumerator:: face
 
    .. cpp:enumerator:: backplane
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialTransferKind
+
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+
+   .. cpp:enumerator:: identity
+
+   .. cpp:enumerator:: table
+
+   .. cpp:enumerator:: discrete
+
+   .. cpp:enumerator:: linear
+
+   .. cpp:enumerator:: gamma
 
 .. cpp:namespace:: gui_forms
 
@@ -7957,6 +8889,56 @@ Enumerations
 
    .. cpp:enumerator:: copy
 
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PaintPathTrimResult
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   .. cpp:enumerator:: trimmed
+
+   .. cpp:enumerator:: whole
+
+   .. cpp:enumerator:: empty
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PaintPathVerb
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   .. cpp:enumerator:: move_to
+
+   .. cpp:enumerator:: line_to
+
+   .. cpp:enumerator:: quad_to
+
+   .. cpp:enumerator:: cubic_to
+
+   .. cpp:enumerator:: arc_to
+
+   .. cpp:enumerator:: close
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: ParameterAssignment
@@ -8000,6 +8982,24 @@ Enumerations
    .. cpp:enumerator:: multiply
 
    .. cpp:enumerator:: screen
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: darken
+
+   .. cpp:enumerator:: lighten
+
+   .. cpp:enumerator:: color_dodge
+
+   .. cpp:enumerator:: color_burn
+
+   .. cpp:enumerator:: hard_light
+
+   .. cpp:enumerator:: soft_light
+
+   .. cpp:enumerator:: difference
+
+   .. cpp:enumerator:: exclusion
 
 .. cpp:namespace:: gui_forms
 
@@ -8219,6 +9219,8 @@ Enumerations
 
    .. cpp:enumerator:: checker
 
+   .. cpp:enumerator:: hatch
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RadialExtent
@@ -8383,6 +9385,8 @@ Enumerations
 
    .. cpp:enumerator:: flow_spacing
 
+   .. cpp:enumerator:: ring_style
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -8436,6 +9440,16 @@ Enumerations
    .. cpp:enumerator:: input_out_of_range
 
    .. cpp:enumerator:: choices_invalid
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RingStyle
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: dots
+
+   .. cpp:enumerator:: arc
 
 .. cpp:namespace:: gui_forms
 
@@ -8643,6 +9657,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: TextTrim
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   .. cpp:enumerator:: cut
+
+   .. cpp:enumerator:: ellipsis
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ThemeBase
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -8715,6 +9739,44 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ThemeOverrideCheck
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: unknown_control
+
+   .. cpp:enumerator:: unknown_part
+
+   .. cpp:enumerator:: unknown_state
+
+   .. cpp:enumerator:: wrong_value_kind
+
+   .. cpp:enumerator:: value_out_of_range
+
+   .. cpp:enumerator:: too_many
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeOverrideProperty
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   .. cpp:enumerator:: background_colour
+
+   .. cpp:enumerator:: border_colour
+
+   .. cpp:enumerator:: text_colour
+
+   .. cpp:enumerator:: corner_radius
+
+   .. cpp:enumerator:: border_width
+
+   .. cpp:enumerator:: opacity
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ThemeRuleSet
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
@@ -8732,9 +9794,19 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_connected_control_topology(ConnectedControlTopology topology) noexcept
 
-.. cpp:function:: ConnectedControlSegment connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: ConnectedControlSegment connected_control_segment(stxlib::Optional<ConnectedControlTopology> topology) noexcept
 
-.. cpp:function:: ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: inline stxlib::Optional<ConnectedControlTopology> connected_topology_from_standard(const std::optional<ConnectedControlTopology>& topology) noexcept
+
+   The standard topology, as the forms above take it: the deprecated std::optional overloads below convert through it.
+
+.. cpp:function:: inline ConnectedControlSegment connected_control_segment(std::optional<ConnectedControlTopology> topology) noexcept
+
+   The standard forms, kept for one stage (D15 Q3). A plain topology is refused rather than routed to them: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+
+.. cpp:function:: inline ConnectedControlVisualGeometry resolve_connected_control_visual_geometry(Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -8746,11 +9818,23 @@ Functions, constants and aliases
 
 .. cpp:function:: void disconnect_button_group(std::span<const std::shared_ptr<ButtonBase>> controls)
 
-.. cpp:function:: void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
+.. cpp:function:: void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology)
 
    Renderer-neutral material composition used by ButtonBase and available to custom controls which need the same explicit connected physical grammar.
 
-.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: Insets connected_surface_visual_outsets(const SurfaceMaterial& material, stxlib::Optional<ConnectedControlTopology> topology, Size box) noexcept
+
+   As above for a material drawn over a box of ``box``: its reach includes the material's own transform (surface_material_visual_outsets with a size).
+
+.. cpp:function:: inline void paint_connected_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology)
+
+   The standard forms, kept for one stage (D15 Q3); a plain topology is refused: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+
+.. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology) noexcept
+
+.. cpp:function:: inline Insets connected_surface_visual_outsets(const SurfaceMaterial& material, std::optional<ConnectedControlTopology> topology, Size box) noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -8758,7 +9842,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept
 
-   Whether ``gradient`` is one a layer can draw: a gradient kind; one to maximum_authored_gradient_stops stops; finite numbers; radii not negative; a circle's radius a length, without a fraction; a conic stop without units.
+   Whether ``gradient`` is one a layer can draw: a gradient kind; one to maximum_authored_gradient_stops stops; finite numbers; radii not negative; a circle's radius a length, without a fraction; a conic stop without units; ``reflecting`` only with ``repeating``, and a reflecting radial gradient at most maximum_reflecting_radial_stops stops.
 
 .. cpp:function:: bool authored_gradient_fixed(const AuthoredGradient& gradient) noexcept
 
@@ -8766,11 +9850,15 @@ Functions, constants and aliases
 
 .. cpp:function:: void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, MaterialFillLayer& layer)
 
-   Writes a valid ``gradient``, for a part's box ``box`` in logical units, into ``layer``, which is reset first: its kind, geometry, spread and stops, the other fields at MaterialFillLayer's defaults. A fixed gradient (authored_gradient_fixed) ignores ``box``. The layer: - places the stops as CSS does: a first stop without a position at 0, a last one at 1, a stop before an earlier one at the earlier one, the others evenly between their neighbours; - for a gradient that does not repeat, keeps the stops within the drawn range and adds the colours at its ends, interpolated as the engine interpolates (straight colour, rounded to 8 bits: at most half a step from the exact colour); - for a repeating one, scales its geometry to the span from the first stop to the last; a radial one's stops are rotated to begin at its centre. A span of 0 draws CSS's average colour, a solid; - separates coincident stops (CSS's hard stops) by 2^-20 of the gradient, which the layer's validity requires: under a tenth of a device pixel on a gradient shorter than 100,000 device pixels; - is a solid for a single stop.
+   Writes a valid ``gradient``, for a part's box ``box`` in logical units, into ``layer``, which is reset first: its kind, geometry, spread and stops, the other fields at MaterialFillLayer's defaults. A fixed gradient (authored_gradient_fixed) ignores ``box``. The layer: - places the stops as CSS does: a first stop without a position at 0, a last one at 1, a stop before an earlier one at the earlier one, the others evenly between their neighbours; - for a gradient that does not repeat, keeps the stops within the drawn range and adds the colours at its ends, interpolated as the engine interpolates (straight colour, rounded to 8 bits: at most half a step from the exact colour); - for a repeating one, scales its geometry to the span from the first stop to the last; a radial one's stops are rotated to begin at its centre (or focus). A reflecting one draws spread ``reflect``, except a radial one whose periods do not begin at its centre: that one draws twice the period, the stops then their mirror image, rotated so, with spread ``repeat``. A span of 0 draws CSS's average colour, a solid; - separates coincident stops (CSS's hard stops) by 2^-20 of the gradient, which the layer's validity requires: under a tenth of a device pixel on a gradient shorter than 100,000 device pixels; - is a solid for a single stop; - keeps a focus (resolved as the centre is) only where it lies strictly inside the resolved ellipse for this box; elsewhere the gradient is drawn about its centre.
 
 .. cpp:var:: constexpr std::size_t maximum_authored_gradient_stops
 
    The most stops one gradient may have: resolving adds at most two, the colours at the ends of a clipped or rotated stop list. Value: ``maximum_gradient_stops - 2U``.
+
+.. cpp:var:: constexpr std::size_t maximum_reflecting_radial_stops
+
+   The most stops a reflecting radial gradient may have: when its periods do not begin at its centre, it is resolved as a repeating gradient of twice the period, the stops and their mirror image, begun part way in (two stops more), which must fit maximum_gradient_stops. Value: ``(maximum_gradient_stops - 2U) / 2U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -8994,6 +10082,18 @@ Functions, constants and aliases
 
    The angle of the point (x, y) from the positive x axis, in radians in [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0) gives 0, and a point on an axis gives 0, ±π/2 or π. NaN in either argument gives NaN. The ratio of the smaller to the larger magnitude is reduced twice (by π/4 and by the half-angle formula) to at most 0.2, where a 13-term series converges past 2^-60.
 
+.. cpp:function:: EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept
+
+   The sine and cosine of ``degrees``, for every finite angle (the theme language's rotate() and arc rotations, drawing replay's gradient directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270 give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is reduced exactly (fmod by 360, then the nearest multiple of 90, both without rounding), the remainder of at most 45 degrees is turned into radians (one rounding) and passed to engine_sine_cosine, and the quarter turns are applied by swapping and negating. Absolute error at most 2^-49. Infinities and NaN give the stated value sine 0 and cosine 1, as engine_sine_cosine does. This and the radian functions above are the only trigonometry the raster and theme paths call, so a later move to STXlib's certified kernels (stxlib/math.hpp's sincos and atan2, once gui_forms_core links stxlib::algorithms at a pin that carries them) changes their bodies only; STXlib's glyph seat needs the same exact quarter turns for rotated text.
+
+.. cpp:function:: double engine_tangent(double x) noexcept
+
+   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with \|piece/4\| at most π/8). For \|x\| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Every finite x has a finite result (no double but 0 is a multiple of π/2); infinities and NaN give the stated value 0.
+
+.. cpp:function:: double engine_hypotenuse(double x, double y) noexcept
+
+   The length of (x, y), as sqrt(x² + y²): each square, the sum and the root round once, so the result has the same bits on every host, where the host's hypot need not. Relative error at most 2^-52 (about one unit in the last place). No scaling: the squares overflow for magnitudes above about 1e154 and lose precision below about 1e-154, far outside the coordinates and colours this serves. NaN in either gives NaN.
+
 .. cpp:namespace:: gui_forms::engine_light
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
@@ -9008,7 +10108,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down, std::span<const LampDrive> drives, const LightComposite& settings, LightPlaneRect rect, const PartRasterView& destination) noexcept
 
-   Composites ``up`` and ``down`` (the same bake for a key that is not pressed) with one drive per lamp over ``rect`` in ``destination`` (premultiplied BGRA8), writing every pixel of ``rect`` inside the destination: the key's pixels with their coverage as alpha, transparent where it covers nothing. The planes are sampled bilinearly in linear, premultiplied light, so a 240-pixel bake shown 180 units wide (the owner's choice) is filtered before it is toned; a rectangle the bake's own size reads each plane pixel exactly. Returns the pixels written; none when the two bakes' shapes or lamp counts differ, ``drives`` holds fewer than the lamp count, or ``rect`` is empty.
+   Composites ``up`` and ``down`` (the same bake for a key that is not pressed) with one drive per lamp over ``rect`` in ``destination`` (premultiplied BGRA8), writing every pixel of ``rect`` inside the destination: the key's pixels with their coverage as alpha, transparent where it covers nothing. The planes are sampled bilinearly in linear, premultiplied light, so a 240-pixel bake shown 180 units wide (the owner's choice) is filtered before it is toned; a rectangle the bake's own size reads each plane pixel exactly. Returns the pixels written; none when the two bakes' shapes or lamp counts differ, ``drives`` holds fewer than the lamp count, ``rect`` is empty or its far edge overflows, or ``destination``'s shape does not fit its buffer (validate_raster_view).
 
 .. cpp:function:: double lamp_power(bool on, double seconds, bool reduced_motion) noexcept
 
@@ -9089,6 +10189,8 @@ Functions, constants and aliases
    Value: ``0.12``.
 
 .. cpp:var:: constexpr LitKeyBake dialog_key_study_bake
+
+   Value: ``{.height_share = 0.57, .camera_tilt_degrees = 16.0, .bake_width = 240U, .display_width = 180.0, .room = 1.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -9178,7 +10280,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::array<std::string_view, part_shape_kind_count> part_shape_names
 
-   The shapes' registered names, in PartShapeKind order: the choices of a primitive's ``shape`` parameter.
+   The shapes' registered names, in PartShapeKind order: the choices of a primitive's ``shape`` parameter. Value: ``{"rounded_rectangle", "pill", "circle", "cap_start", "cap_end"}``.
 
 .. cpp:var:: constexpr double minimum_hit_target
 
@@ -9232,6 +10334,10 @@ Functions, constants and aliases
 
    The most parts waiting for finish tiles at once; a part beyond it is repainted when the window next repaints it. Value: ``32U``.
 
+.. cpp:var:: constexpr std::uint32_t maximum_finish_bake_threads
+
+   The most threads a window's finish-tile bake pool runs (claude/geometry-1, parallel material bakes). By default the pool has one thread per hardware thread less one, at most this many; fewer than two bakes serially on the window's thread. Value: ``4U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
@@ -9244,7 +10350,7 @@ Functions, constants and aliases
 
    Checks every value against its declaration.
 
-.. cpp:function:: std::optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor, std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor, std::string_view name) noexcept
 
 .. cpp:function:: ParameterAssignment set_number_parameter(PrimitiveParameterBlock& block, const PrimitiveDescriptor& descriptor, std::string_view name, double value) noexcept
 
@@ -9256,7 +10362,7 @@ Functions, constants and aliases
 
    A choice by its name; an unknown choice is out_of_range.
 
-.. cpp:function:: std::optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration, std::string_view choice) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration, std::string_view choice) noexcept
 
    The position of ``choice`` among a choice parameter's choices, or none.
 
@@ -9338,7 +10444,7 @@ Functions, constants and aliases
 
    The role's name in kebab case, such as ``ink-on-paper``; empty for count.
 
-.. cpp:function:: std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<ColourRole> colour_role_from_name(std::string_view name) noexcept
 
    The role ``name`` (kebab case, exact) names, or none.
 
@@ -9358,11 +10464,15 @@ Functions, constants and aliases
 
    Whether ``band`` is one the engine admits: a width, if set, finite from 0 to maximum_theme_band_width; an effect, if set, in the enumeration.
 
+.. cpp:function:: PaintGroupComposite part_blend_composite(PartBlend blend) noexcept
+
+   The paint group composite that draws a part of ``blend``; source-over for normal. PaintGroupComposite is declared opaquely here (painter.hpp defines it), so that this header does not include the painter's, which reaches back through gui_forms/types.hpp; a caller that reads the result includes painter.hpp.
+
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
 
-.. cpp:function:: std::optional<TextRole> text_role_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<TextRole> text_role_from_name(std::string_view name) noexcept
 
    The role ``name`` names exactly, if any.
 
@@ -9405,6 +10515,10 @@ Functions, constants and aliases
    With ``context``, each declaration's em lengths are first added at the part's em (add_material_em) and its current colours set (set_material_current_colour); the overload without it assembles at an em of 0, its current colours as written.
 
 .. cpp:function:: void assemble_material(const SurfaceMaterial& floor, const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box, SurfaceMaterial& material)
+
+.. cpp:function:: bool content_effect_field(MaterialField field) noexcept
+
+   Whether ``field`` is one a control's content effect takes (ThemeRule::content_effect): the colour filter, the filter blur, the mask's layers and their modes and composites. A drop shadow and the image placement longhands are not.
 
 .. cpp:function:: bool material_fields_read_em(const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept
 
@@ -9530,7 +10644,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::string_view blend_property
 
-   The engine's blend property (E9.6): a declaration of this name, whose value is the name ``normal``, ``multiply`` or ``screen``, draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it multiplies or screens what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
+   The engine's blend property (E9.6): a declaration of this name, whose value is a mode's CSS name (``normal``, ``multiply``, ``screen``, ``overlay``, ``darken``, ``lighten``, ``color-dodge``, ``color-burn``, ``hard-light``, ``soft-light``, ``difference`` or ``exclusion``), draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it blends with what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
 
 .. cpp:var:: constexpr std::string_view effect_property
 
@@ -9804,6 +10918,8 @@ Functions, constants and aliases
 
    Every entry finite and at most 256 in magnitude.
 
+.. cpp:function:: bool valid_transfer_function(const MaterialTransferFunction& function) noexcept
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
@@ -9826,6 +10942,34 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+
+.. cpp:var:: constexpr MaterialBlendMode material_blend_mode_last
+
+   The last enumerator of MaterialBlendMode, for range checks. Value: ``MaterialBlendMode::exclusion``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+
+.. cpp:function:: bool valid_paint_group_effect(const PaintGroupEffect& effect) noexcept
+
+   Whether ``effect`` is valid: a finite blur from 0 to the cap, and colour stages and masks a material could hold (valid_surface_material), with no image mask layer.
+
+.. cpp:function:: double paint_group_effect_reach(const PaintGroupEffect& effect) noexcept
+
+   How far, in logical units on every side, a valid effect's image reaches past the group's bounds: 1.5 × blur rounded up, plus 3, or 0 without a blur. Three boxes of half width h reach 3h device pixels, and h, rounded from √(blur² × scale² + 1) / 2 − 1/2, is at most blur × scale / 2 + 1/2; the 3 covers that half pixel's 1.5 device pixels at any scale from minimum_device_scale (1/2). A control that paints an effect group grants that overflow and invalidates its changed content grown by it, so that damage covers the blur's spread.
+
+.. cpp:function:: SurfaceMaterial paint_group_effect_mask_material(const PaintGroupEffect& effect)
+
+   The material whose baked alpha is ``effect``'s joined mask over a box: one opaque white fill under ``effect.masks``. Throws std::bad_alloc when it cannot be held.
+
+.. cpp:var:: constexpr double maximum_paint_group_effect_blur
+
+   The largest effect blur, in logical units (glass's cap of 8 doubled for a group's larger content). Value: ``16.0``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/surface_material/painting/surface_material_painting.hpp>``
 
 .. cpp:function:: bool valid_surface_material(const SurfaceMaterial& material) noexcept
@@ -9833,6 +10977,16 @@ Functions, constants and aliases
 .. cpp:function:: void paint_surface_material(Painter& painter, Rect bounds, const SurfaceMaterial& material)
 
 .. cpp:function:: Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept
+
+   How far a material reaches outside its box, untransformed: its outer shadows, under glows and reflection. A material's own transform (MaterialTransform) widens its reach by an amount that depends on the box: see the overload taking the box's size.
+
+.. cpp:function:: Insets surface_material_visual_outsets(const SurfaceMaterial& material, Size box) noexcept
+
+   How far a material drawn over a box of ``box`` reaches outside it, transform included: the box grown by the untransformed reach, turned and scaled about its centre, bounds what the material paints, and these outsets cover that bound. With the identity they are the untransformed reach. For a transform, each horizontal outset is max(\|xx\|, 1) A + \|xy\| B - w / 2 and each vertical one \|yx\| A + max(\|yy\|, 1) B - h / 2 (at least the untransformed outset), where A = w / 2 + the larger horizontal reach and B = h / 2 + the larger vertical reach: never less than the exact transformed bound, exact for a scale of at least 1 without rotation, and never smaller for a larger box, so a caller that knows only a box enclosing the material's (a control's arranged box around a glyph) may pass that.
+
+.. cpp:function:: Rect surface_material_paint_bounds(Rect box, const SurfaceMaterial& material) noexcept
+
+   ``box`` grown by surface_material_visual_outsets(material, its size): the rectangle the material paints and damages.
 
 .. cpp:function:: bool surface_material_opaque(const SurfaceMaterial& material) noexcept
 
@@ -9842,13 +10996,31 @@ Functions, constants and aliases
 
    Whether paint_surface_material draws each pixel of its bounds the same whatever the bounds' size: a valid, unfinished material with square corners, no border, shadow, visual outset, filter, mask or reflection, whose fills are all solid. Its pixels inside an old extent then stay right when the extent changes (Panel::paint_depends_on_size).
 
-.. cpp:function:: std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept
+.. cpp:function:: stxlib::Optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept
 
    How far in from the bounds' right and bottom edges a size change can alter what paint_surface_material draws, in logical units, when nothing else moves: 0 for a size-invariant material; for one whose only size-dependent parts are square or rounded corners and a solid border of one width on every edge, the larger of the corner radius and the border width. Empty for any other material (a gradient, an image, shadows, outsets, filters, masks, reflections, per-edge borders), which a size change alters anywhere.
 
 .. cpp:function:: Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexcept
 
    How far the outer (not inset) shadows among ``shadows`` reach outside the rect that casts them: three blur radii plus any positive spread, shifted by each offset.
+
+.. cpp:function:: bool surface_material_shaped(const SurfaceMaterial& material) noexcept
+
+   Whether ``material`` is drawn through a shape: a transform that is not the identity (MaterialTransform) or a clip path (MaterialClipPath).
+
+.. cpp:function:: void resolve_material_clip_path(const MaterialClipPath& clip, Rect bounds, PaintPath& path)
+
+   Writes ``clip`` placed in a box at ``bounds`` into ``path`` (cleared first). ``clip`` must be valid, as valid_surface_material holds it.
+
+.. cpp:function:: PolygonFillRule material_clip_fill_rule(MaterialClipRule rule) noexcept
+
+   The fill rule a clip path's rule names.
+
+.. cpp:function:: void begin_surface_material_shape(Painter& painter, Rect bounds, const SurfaceMaterial& material, PaintPath& scratch)
+
+   Begins drawing a material of ``bounds`` through its shape, when it has one (surface_material_shaped); otherwise does nothing. In order: a save, a clip to surface_material_paint_bounds(bounds, material) (the transformed bound, so a scaled or turned face widens what it paints rather than being cut), the transform group of its transform about the box's centre (bounded, in the group's own coordinates, by the box grown by the untransformed reach), then a save and the clip path resolved into ``scratch`` inside the group. end_surface_material_shape, given the same material, undoes them in reverse order; draw the material between the two. The painter's state is as it was once both have run. ``scratch`` is storage the caller reuses; it is only read while the clip is set.
+
+.. cpp:function:: void end_surface_material_shape(Painter& painter, const SurfaceMaterial& material)
 
 .. cpp:namespace:: gui_forms
 
@@ -10008,7 +11180,7 @@ Functions, constants and aliases
 
    The theme's id (``classic``, ``modern-flat``, ``xp-style``, ``windows7-style``, ``macos-style``, ``windows-professional``); empty for ``count``.
 
-.. cpp:function:: std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
+.. cpp:function:: stxlib::Optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept
 
    The theme ``id`` names, or none.
 
@@ -10108,9 +11280,9 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 9> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 10> part_value_names
 
-   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
+   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in. Value: ``{{"accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face", "part_profile", "arc_angles", "text_angle"}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -10252,11 +11424,47 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/types/linear_light/linear_light.hpp>``
+
+.. cpp:function:: constexpr LinearLightLevel linear_light_of_srgb(std::uint8_t encoded) noexcept
+
+   An sRGB byte's linear light (the table's entry, exact to half a step).
+
+.. cpp:function:: constexpr std::uint8_t srgb_of_linear_light(LinearLightLevel linear) noexcept
+
+   The sRGB byte nearest ``linear`` on the encoded scale, halves up: the number of encoding thresholds at or below it. Every byte survives the round trip: srgb_of_linear_light(linear_light_of_srgb(v)) is v.
+
+.. cpp:function:: constexpr std::uint32_t linear_light_weight(double fraction) noexcept
+
+   ``fraction`` of the way as a weight, rounded to the nearest 1/65536 (halves up); clamped to [0, 1], NaN taken as 0. Scaling by 65536 is exact, so the weight is the same with or without fused multiply-add.
+
+.. cpp:function:: constexpr Color interpolate_linear_light(Color from, Color to, std::uint32_t weight) noexcept
+
+   The colour ``weight`` of the way from ``from`` to ``to`` (straight alpha in, straight alpha out), interpolated premultiplied in linear light: a stop fading to transparent fades the other stop's colour, never towards black. A weight of 0 is ``from`` and one of linear_light_weight_one or more ``to``, exactly; equal colours give that colour. A result whose alpha is zero is transparent black. Alpha is rounded to the nearest byte, halves up.
+
+.. cpp:var:: constexpr std::uint32_t linear_light_weight_one
+
+   The interpolation weight of the second colour, in 1/65536: 0 the first colour, linear_light_weight_one the second. Value: ``65536U``.
+
+.. cpp:var:: constexpr std::size_t maximum_linear_light_stops
+
+   The capacity expand_linear_light_stops (linear_light_stops.hpp) needs for any valid stops (valid_gradient_stops: at most maximum_gradient_stops): the stops themselves and the stops added between them. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/linear_light/linear_light_stops.hpp>``
+
+.. cpp:function:: std::size_t expand_linear_light_stops(stxlib::View<GradientStop> stops, stxlib::MutableView<GradientStop> expanded) noexcept
+
+   For a renderer that interpolates its stops in sRGB-encoded space (Skia's gradient shaders, set to premultiplied sRGB interpolation): writes into ``expanded`` the stops of ``stops`` with stops added between each two of different colour, so that interpolating the expanded stops in sRGB follows interpolating ``stops`` in linear light. Returns the number written. Between two stops, the span is halved where its middle colour (exact, by interpolate_linear_light) differs from the premultiplied sRGB chord of its ends by more than half a step in any colour channel, at most eight times deep; added stops lie strictly between the two and keep their order, so hard stops (two at one offset), solid spans and the spread outside [0, 1] are kept. A black-to-white span takes 17 stops, red to blue 29; sampled at 1001 points the expanded gradient stays within 1.3 steps of the exact colour (half a step of which is the exact colour's own rounding). Stops are added only while ``expanded`` keeps room for every remaining original stop, from the first span on; with maximum_linear_light_stops of room only gradients of very many contrasting stops reach that bound, and their later spans then follow less closely. Writes nothing and returns 0 when ``stops`` is empty or ``expanded`` is shorter than ``stops``. ``stops`` and ``expanded`` must not overlap.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
 
 .. cpp:function:: bool valid_stroke_style(const StrokeStyle& style) noexcept
 
-   Whether ``style`` can be drawn: a finite positive width, a finite miter limit of at least 1, at most maximum_dash_intervals dashes, an even dash count whose entries are finite, non-negative and not all zero, and a finite phase.
+   Whether ``style`` can be drawn: a finite positive width, a finite miter limit of at least 1, at most maximum_dash_intervals dashes, an even dash count whose entries are finite, non-negative and not all zero, a finite phase, and a valid trim (valid_stroke_trim).
 
 .. cpp:function:: bool valid_marker_style(const MarkerStyle& style) noexcept
 
@@ -10267,6 +11475,14 @@ Functions, constants and aliases
 .. cpp:function:: std::size_t marker_lines(MarkerShape shape, Point center, double size, std::array<PaintSegment, maximum_marker_lines>& lines) noexcept
 
    Fills ``lines`` with the strokes of a stroked marker (cross, plus, asterisk) and returns how many it wrote; 0 for the filled shapes.
+
+.. cpp:function:: bool hatch_square_marked(HatchStyle style, std::uint32_t column, std::uint32_t row) noexcept
+
+   Whether the square ``column`` across and ``row`` down (each below hatch_cell_squares) of a cell is ``fore`` in ``style``: horizontal marks row 3, vertical column 3, forward_diagonal the squares where column + row is 7 (a line rising to the right, y down), backward_diagonal those where column equals row, cross and diagonal_cross the two lines of each pair. False for a square outside the cell or a style outside the enumeration.
+
+.. cpp:function:: bool valid_hatch_pattern(const HatchPattern& pattern) noexcept
+
+   Whether ``pattern`` can be drawn: a known style, a finite cell of at least one unit, and a finite anchor.
 
 .. cpp:function:: bool valid_grid_pattern(const GridPattern& pattern) noexcept
 
@@ -10290,6 +11506,10 @@ Functions, constants and aliases
 
    The most lines a stroked marker draws (the asterisk's three). Value: ``3U``.
 
+.. cpp:var:: constexpr std::uint32_t hatch_cell_squares
+
+   The squares across and down one hatch cell. Value: ``8U``.
+
 .. cpp:var:: constexpr double minimum_grid_spacing
 
    The fewest units between two grid lines a painter draws: a finer grid is refused (draws nothing), which bounds a fill to its area divided by this squared. Value: ``2.0``.
@@ -10297,6 +11517,78 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double grid_level_ratio
 
    Value: ``4.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+.. cpp:function:: std::size_t paint_path_points_for(PaintPathVerb verb) noexcept
+
+   The point slots ``verb`` consumes (above); 0 for close and for a value outside the enumeration.
+
+.. cpp:function:: bool valid_paint_path(PaintPathView path) noexcept
+
+   Whether ``path`` can be drawn: at least one verb, every verb known, the points exactly as many as the verbs consume, all finite, every contour starting with move_to or arc_to, arc radii positive, and the counts within the maxima above.
+
+.. cpp:function:: Rect paint_path_bounds(PaintPathView path) noexcept
+
+   A bounding box of a valid path's geometry: the box of its positions and control points (a Bezier curve lies inside its control points' hull) and of each arc's whole ellipse. It may be larger than the drawn geometry, never smaller. Empty for an invalid path. A stroke's bounds add half its width (more where miters reach: stroke_bounds_outset).
+
+.. cpp:function:: double stroke_bounds_outset(double width, double miter_limit) noexcept
+
+   How far a stroke ``width`` wide with miter limit ``miter_limit`` may reach beyond the path's geometry, whatever its joins and caps: half the width times the larger of the miter limit and the square cap's diagonal (the square root of 2). Meant for damage and bounds; finite for a valid StrokeStyle.
+
+.. cpp:function:: FlattenedPath flatten_paint_path(PaintPathView path, double tolerance, std::span<Point> points, std::span<FlattenedContour> contours) noexcept
+
+   Fills ``points`` and ``contours``, which the caller owns, with ``path`` flattened to polylines: lines as they are, curves and arcs subdivided into chords no farther than ``tolerance`` (positive, finite) from the curve. Writes nothing and returns zeros for an invalid path or a tolerance that is not positive and finite. When either array fills, the last contour is ended where the storage ran out and ``truncated`` is set. The arrays must not overlap the path's (they cannot: different types).
+
+.. cpp:function:: stxlib::Optional<double> paint_path_length(PaintPathView path, double tolerance) noexcept
+
+   The length of ``path``: each contour's segments end to end, in order, including the straight joins arc_to makes and each close's closing segment, measured on its chords (above) at ``tolerance`` (positive, finite). A chord never exceeds the curve it spans, so the result is at most the exact length. Empty for an invalid path or tolerance; 0 for a path of points only.
+
+.. cpp:function:: bool valid_stroke_trim(StrokeTrim trim) noexcept
+
+   Whether ``trim`` is valid: start and end finite and within [0, 1], offset finite.
+
+.. cpp:function:: bool stroke_trim_keeps_whole(StrokeTrim trim) noexcept
+
+   Whether a valid ``trim`` keeps the whole path (start and end are 0 and 1).
+
+.. cpp:function:: PaintPathTrimResult trim_paint_path(PaintPathView path, StrokeTrim trim, double tolerance, PaintPath& kept)
+
+   Writes into ``kept`` the part of ``path`` that ``trim`` keeps, measured at ``tolerance`` (positive, finite; the painters use stroke_trim_tolerance). The kept part is cut from the path's own verbs: a whole segment is copied as it is, and a cut segment becomes the same kind of verb over a sub-range of its parameter (a line's end, a Bezier curve's control points by de Casteljau's blossoms, an arc's start and sweep). Only the cut positions come from the chords: the parameter where the measured length reaches the cut, interpolated within its chord. A contour the kept part covers wholly keeps its close (a stroke joins there); a cut contour is open. Each kept piece starts with move_to. A kept part that wraps across the path's start is two pieces, written in path order (the one from the start first), except for a path of one closed contour, where the piece up to the contour's end continues through its start into the other as one open contour, so a ring's stroke has no cut where it passes the start. Validates everything before clearing ``kept``. Reserves ``kept`` once for the common case (twice the path's verbs and points); a cut into many pieces may grow it. Throws only what PaintPath's builder throws (allocation), leaving ``kept`` partial.
+
+.. cpp:var:: constexpr std::size_t maximum_paint_path_verbs
+
+   The most verbs and the most points a path holds; a longer path is refused (valid_paint_path), as a batched mark of more than a million elements is. Value: ``1'000'000U``.
+
+.. cpp:var:: constexpr std::size_t maximum_paint_path_points
+
+   Value: ``3'000'000U``.
+
+.. cpp:var:: constexpr double paint_path_flattening_tolerance
+
+   The default flattening tolerance, in the painter's units: the farthest a flattened chord may lie from the curve (the base painter's fallbacks use a quarter unit, below a device pixel at scale 2 and above). Value: ``0.25``.
+
+.. cpp:var:: constexpr std::size_t maximum_measured_curve_chords
+
+   Path length and trimming (owner, 2026-11-16: trim paths in the core). Both measure a path on chords, in + - * / and sqrt only (engine_math), so the same path and tolerance give the same bits on every host. The chord counts are fixed by the geometry: a Bezier curve takes Wang's count for ``tolerance`` (at most maximum_measured_curve_chords), an arc enough equal angular steps that no chord's sagitta exceeds ``tolerance`` and none turns more than a quarter (at most maximum_measured_arc_chords). These are counts of their own, finer for arcs than flatten_paint_path's. Value: ``1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_measured_arc_chords
+
+   Value: ``4096U``.
+
+.. cpp:var:: constexpr double stroke_trim_tolerance
+
+   The tolerance the painters measure a trimmed stroke at (StrokeStyle::trim), in painter units: a sixteenth, so a cut lies within a small fraction of a device pixel of its exact arc-length position at any display scale up to 4. Value: ``1.0 / 16.0``.
+
+.. cpp:var:: constexpr std::size_t maximum_fallback_path_points
+
+   The fixed storage of the base Painter's path fallbacks (Painter::fill_path, Painter::stroke_path): a flattened path longer than this is drawn from its start. Value: ``2048U``.
+
+.. cpp:var:: constexpr std::size_t maximum_fallback_path_contours
+
+   Value: ``64U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -10340,6 +11632,8 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept
 
+.. cpp:function:: constexpr TextLanguage text_language(const char first, const char second, const char third, const char fourth) noexcept
+
 .. cpp:function:: inline bool valid_font_spec(FontSpec font) noexcept
 
 .. cpp:var:: constexpr std::size_t maximum_gradient_stops
@@ -10356,10 +11650,82 @@ Functions, constants and aliases
 
 ``#include <gui_forms/types/painter/painter.hpp>``
 
+.. cpp:function:: bool valid_paint_transform(const PaintTransform& transform) noexcept
+
+   Whether ``transform`` is finite and its determinant at least minimum_paint_transform_determinant in size.
+
+.. cpp:function:: bool paint_transform_is_translation(const PaintTransform& transform) noexcept
+
+   Whether ``transform`` only moves the plane (xx = yy = 1, xy = yx = 0).
+
+.. cpp:function:: Point transform_paint_point(const PaintTransform& transform, Point point) noexcept
+
+   Where ``transform`` takes ``point``.
+
+.. cpp:function:: Rect transformed_paint_bounds(const PaintTransform& transform, Rect rect) noexcept
+
+   The rectangle bounding ``rect`` mapped by ``transform`` (its four corners): the area a control damages for a transform group of bounds ``rect``. An empty or non-finite rectangle, or a transform that is not valid, gives an empty rectangle.
+
+.. cpp:function:: PaintTransform paint_rotation_about(Point centre, double degrees) noexcept
+
+   The turn of ``degrees`` about ``centre``, positive anticlockwise as seen on the surface, as Painter::draw_rotated_text_utf8 turns: (1, 0) about the origin goes to (cos, -sin). A non-finite input gives the identity.
+
+.. cpp:function:: bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept
+
+   Whether ``focus`` lies strictly inside the ellipse of ``radii`` (both positive) about ``center``, as Painter::fill_focal_radial_gradient requires; false for radii that are not positive or a non-finite result.
+
+.. cpp:function:: Rect rotated_text_bounds(Point anchor, const RotatedTextBox& box) noexcept
+
+   The rectangle bounding the turned box placed at ``anchor``: the area a control keeps inside its bounds (or its visual outsets) for the run, so its damage covers every pixel the run inks. Negative or non-finite extents, or a non-finite angle or anchor, give an empty rectangle at the anchor.
+
+.. cpp:function:: Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept
+
+   The anchor that centres the turned box on ``centre`` (a label placed by its middle, such as an axis title along its edge). Non-finite input gives ``centre``.
+
+.. cpp:var:: constexpr PaintGroupComposite paint_group_composite_last
+
+   The last enumerator of PaintGroupComposite, for range checks of recorded values. Value: ``PaintGroupComposite::exclusion``.
+
 .. cpp:var:: constexpr std::size_t maximum_paint_group_depth
 
    The deepest groups nest (T2, coordinator decision Q2/Q3). A group begun deeper is refused by name: it draws without isolation (as clip_rect(bounds) under a save), and the refusal is counted. Value: ``4``.
 
+.. cpp:var:: constexpr double minimum_paint_transform_determinant
+
+   The smallest \|xx * yy - xy * yx\| a transform group accepts: a map that flattens the plane, or nearly, has no usable inverse to clip by. Value: ``1.0e-6``.
+
+.. cpp:var:: constexpr std::size_t maximum_paint_transform_depth
+
+   The deepest transform groups nest. One begun deeper draws nothing, as does every group begun inside a group that draws nothing. Value: ``8U``.
+
 .. cpp:var:: constexpr std::size_t maximum_checker_cells
 
    The most cells Painter::fill_checker draws one by one. Value: ``65536U``.
+
+.. cpp:var:: constexpr std::size_t maximum_hatch_squares
+
+   The most marked squares the base Painter::fill_hatch fills one by one. Value: ``65536U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/platform_types/platform_types.hpp>``
+
+.. cpp:type:: FilePath = std::filesystem::path
+
+   A file system path (a font, a light-plane or a resource directory, an executable to host, a sound file).
+
+.. cpp:type:: IntervalPoint = std::chrono::steady_clock::time_point
+
+   A point on the monotonic clock: intervals between two of them are meaningful, the points themselves are not times of day.
+
+.. cpp:type:: Thread = std::thread
+
+   A thread the library starts and joins (a sub-surface's).
+
+.. cpp:type:: Mutex = std::mutex
+
+   A mutual-exclusion lock.
+
+.. cpp:type:: ThreadId = std::thread::id
+
+   A thread's identity (an owner thread, a UI thread); default-constructed, no thread.

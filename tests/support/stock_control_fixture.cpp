@@ -69,6 +69,7 @@
 
 #include <algorithm>
 #include <array>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms::test_support {
@@ -541,7 +542,7 @@ void place_layout(FixtureBuilder& builder) {
     (*overflow_view).set_requested_bounds({0.0, 0.0, 80.0, 24.0});
     (*overflow_group).add_child(overflow_view);
     (*overflow).add_child(overflow_group);
-    (*overflow).group_spec[*overflow_group] = CommandOverflowGroupSpec{120.0, 120.0, 120.0, 1U};
+    (*overflow).group_spec[*overflow_group] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{120.0, 120.0, 120.0, stxlib::Optional<std::uint16_t>::of(1U)});
     std::shared_ptr<MasterDetailView> master_detail = builder.place(
         make_control<MasterDetailView>(StableId("master-detail-view")), 60.0);
     (*master_detail).accessible_name = "Master detail";

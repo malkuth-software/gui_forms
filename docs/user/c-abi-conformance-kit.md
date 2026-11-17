@@ -38,21 +38,40 @@ Two rules apply to the call:
   no GUI.Forms object may exist when the kit starts. Give it a process of its
   own, which is what a test program is, and do not create GUI.Forms objects
   before it in that process.
-- **Pick the window flag.** `GF_CONFORMANCE_FLAGS_WINDOW` adds the window
-  checks, which show a window briefly and need a display. They include a
-  threaded sub-surface (`GF_TABLE_SUBSURFACES`, since 1.1): its build and
-  posted callbacks on its own thread, objects owned by the thread that made
-  them, and stale identities once it stops. They also make binding sources
-  over `windows.run`'s root and a control of its tree from the run's ready
-  callback (since 1.1).
-  The rules table (`GF_TABLE_RULES`, since 1.1) is checked on a created
-  window in both modes: an interaction trigger with set, toggle and callback
-  actions, a negated condition, consume, duplicates, refusals, stale rules
-  and freed tokens. The data grid table (`GF_TABLE_DATA_GRID`, since 1.1) is
-  checked on a created window's root in both modes: columns, rows in bulk,
-  cells by row ID, the bulk read into caller storage, the current cell, the
-  selection, an edit and the change events.
-  `GF_CONFORMANCE_FLAGS_NONE` leaves them out, for headless CI.
+- **Pick the window flag.** `GF_CONFORMANCE_FLAGS_NONE` runs the checks
+  that need no display, for headless CI. `GF_CONFORMANCE_FLAGS_WINDOW` adds
+  the window checks, which show a window briefly and need a display.
+
+Without a display the kit checks, on created windows and controls:
+
+- ownership, values, the control schema, callbacks, the thread handover,
+  the application (`GF_TABLE_APPLICATION`), events, themes, the control
+  families, custom controls and bindings;
+- the rules table (`GF_TABLE_RULES`, since 1.1): an interaction trigger
+  with set, toggle and callback actions, a negated condition, consume,
+  duplicates, refusals, stale rules and freed tokens;
+- the data grid table (`GF_TABLE_DATA_GRID`, since 1.2): columns, rows in
+  bulk, cells by row ID, the bulk read into caller storage, the current cell,
+  the selection, an edit and the change events;
+- the list view table (`GF_TABLE_LIST_VIEW`, since 1.5): columns, items
+  with sub-items, groups, sorting, the selection, the focus cue, the view,
+  activation and header style properties, and its events;
+- the docking table (`GF_TABLE_DOCKING`, since 1.2) and the help table
+  (`GF_TABLE_HELP`, since 1.2);
+- the class tables (`GF_TABLE_CLASSES`, since 1.3): for each raiser, that
+  the entry runs once per raise before the subscribers, that code after
+  `base` runs after them, that an entry which skips `base` suppresses them,
+  and the refusals after disposal and from another thread;
+- the host services, the diagnostics, and the refusals of the modal-window,
+  window-property, focus and splashscreen calls.
+
+With `GF_CONFORMANCE_FLAGS_WINDOW` it also checks the splashscreen, a
+window run and its handle, modal windows, the window properties, focus,
+binding sources over `windows.run`'s root and a control of its tree made from
+the run's ready callback (since 1.1), and a threaded sub-surface
+(`GF_TABLE_SUBSURFACES`, since 1.1): its build and posted callbacks on its own
+thread, objects owned by the thread that made them, and stale identities once
+it stops.
 
 A complete test program, as the SDK's own installed example builds it
 (`examples/reference/c_abi_conformance.c`):
@@ -91,8 +110,8 @@ library (`gui_forms_abi1.dll` beside the program or on `PATH` on Windows,
 
 ## Reading a result
 
-A passing run ends with its summary, for example
-`gf_conformance: 695 checks, 0 failed`, and the program exits 0. Each
+A passing run ends with its summary,
+`gf_conformance: <n> checks, 0 failed`, and the program exits 0. Each
 failed check is a line naming the check and, for a call that returned the
 wrong status, the status it got. Every failure is a defect, either in
 GUI.Forms or in how the product builds against it, and is never a flake to

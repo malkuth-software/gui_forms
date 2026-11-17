@@ -8,7 +8,7 @@
 #include "gui_forms/controls/text_block_capabilities.hpp"
 
 #include <cstddef>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -44,9 +44,9 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     // The first line's baseline, from the top of the border box; none for a
     // block with no text, which has no line box.
-    [[nodiscard]] std::optional<double> first_baseline(double width) override;
+    [[nodiscard]] stxlib::Optional<double> first_baseline(double width) override;
     // The last line's baseline at `width` (the border box's width).
-    [[nodiscard]] std::optional<double> last_baseline(double width) override;
+    [[nodiscard]] stxlib::Optional<double> last_baseline(double width) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -132,10 +132,11 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_text_changed();
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_text_changed();
+    void on_font_changed();
 
 private:
     friend struct TextCapability<TextBlock>;
@@ -145,11 +146,11 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(text)& cell, std::string& incoming);
     void written(const decltype(text)& cell);
-    void prepare_write(const decltype(font)& cell, std::optional<FontSpec>& incoming);
+    void prepare_write(const decltype(font)& cell, stxlib::Optional<FontSpec>& incoming);
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(text_align)& cell, TextAlignment& incoming);
     void written(const decltype(text_align)& cell);
-    void prepare_write(const decltype(line_height)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(line_height)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(line_height)& cell);
     // property_codemod end TextBlock
 };

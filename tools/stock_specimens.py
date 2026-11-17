@@ -58,6 +58,7 @@ MAKERS: Mapping[str, str] = {
     "sweep_scope": "make_sweep_scope",
     "sparkline": "make_sparkline",
     "plot_view": "make_plot_view",
+    "plot3d_view": "make_plot3d_view",
     "plot_axis_item": "make_plot_axis_item",
     "plot_series_item": "make_plot_series_item",
     "plot_annotation_item": "make_plot_annotation_item",
@@ -75,6 +76,7 @@ MAKERS: Mapping[str, str] = {
     "range_control": "make_range_control",
     "numeric_up_down": "make_numeric_up_down",
     "domain_up_down": "make_domain_up_down",
+    "color_picker": "make_color_picker",
     "color_value_editor": "make_color_value_editor",
     "flags_value_editor": "make_flags_value_editor",
     "property_grid": "make_property_grid",
@@ -102,6 +104,7 @@ MAKERS: Mapping[str, str] = {
     "flow_layout_panel_compat": "make_filled<FlowLayoutPanelCompat>",
     "table_layout_panel_compat": "make_table_layout_panel",
     "scaled_panel": "make_scaled_panel",
+    "form_layout": "make_form_layout",
     "split_container": "make_split_container",
     "splitter_panel": "make_splitter_panel",
     "splitter": "make_splitter",
@@ -160,6 +163,8 @@ BLANK_REASONS: Mapping[str, str] = {
     "range_control": "the ranged controls' base paints no face of its own",
     "ribbon_color_picker": "a small split button: with no icon image in the catalogue only its colour bar shows",
     "sub_surface_host": "hosts a program's own surface and is empty until one is attached",
+    "content_surface": "shows the frames a consumer renders and is empty until content publishes one",
+    "content_text_editor": "shows the text a consumer renders and is empty until content publishes a frame",
 }
 
 # Sample text by control id, where the id as words would not suit.
@@ -175,6 +180,7 @@ TEXTS: Mapping[str, str] = {
     "label": "Display name",
     "toast": "Theme saved",
     "callout": "Pinned panels stay open while you work.",
+    "plot3d_view": "3D plot",
 }
 
 # Logical sizes by registry category, then by control id.
@@ -210,6 +216,7 @@ SIZES: Mapping[str, tuple[float, float]] = {
     "sweep_scope": (240.0, 80.0),
     "sparkline": (224.0, 48.0),
     "plot_view": (340.0, 200.0),
+    "plot3d_view": (340.0, 260.0),
     "node_canvas": (368.0, 152.0),
     "plot_axis_item": (340.0, 200.0),
     "plot_series_item": (340.0, 200.0),
@@ -222,6 +229,8 @@ SIZES: Mapping[str, tuple[float, float]] = {
     "combo_box": (224.0, 30.0),
     "lookup_combo_box": (224.0, 30.0),
     "domain_up_down": (160.0, 30.0),
+    "color_picker": (220.0, 180.0),
+    "form_layout": (300.0, 120.0),
     "numeric_up_down": (160.0, 30.0),
     "choice_group": (288.0, 32.0),
     "breadcrumb_trail": (320.0, 30.0),

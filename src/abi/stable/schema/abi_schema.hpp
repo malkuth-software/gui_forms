@@ -76,6 +76,12 @@ struct Schema final {
 // The gf_value_kind of a property kind.
 [[nodiscard]] gf_value_kind value_kind_of(BindingValueKind kind) noexcept;
 
+// A property as the schema lists it: its kind, category, enumeration and
+// choices, flags and serialization, from its descriptor. Throws
+// std::bad_alloc. Composite listings (abi_composite.hpp) use it for their
+// declared properties.
+[[nodiscard]] SchemaProperty schema_property_of(const PropertyDescriptor& descriptor);
+
 // The registry's types, in the schema's order, without building the schema:
 // how many there are, the index of the one named in any spelling of its id
 // (the count when none is), its id (static storage), and a new object of
@@ -86,6 +92,16 @@ struct Schema final {
 [[nodiscard]] std::size_t find_catalog_type(std::string_view name);
 [[nodiscard]] std::string_view catalog_type_id(std::size_t index);
 [[nodiscard]] Component::Ptr create_catalog_type(std::size_t index, StableId stable_id);
+// The recipe create_catalog_type calls for the type at index, as a
+// function a composite's child type keeps (abi_composite.hpp); it makes
+// null for a type made neither from a stable id nor from nothing. Throws
+// std::out_of_range past the types.
+using CatalogCreator = Component::Ptr (*)(StableId stable_id);
+[[nodiscard]] CatalogCreator catalog_type_creator(std::size_t index);
+// Whether the registry type at index (below catalog_type_count()) is made
+// only from a definition (CompositeControl): never by objects.create or
+// create_with, only by the custom controls table.
+[[nodiscard]] bool catalog_type_made_from_definition(std::size_t index);
 // The window type (windows.create's object, since 1.1): listed after the
 // registry's types, with Window's chrome properties and its interactions.
 // objects.create does not make it.

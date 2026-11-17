@@ -21,6 +21,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 
@@ -105,7 +107,7 @@ void test_date_time_picker() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*picker).drop_down_alignment.read() == DateTimeDropDownAlignment::left,
+    require(refused && (*picker).drop_down_alignment.read() == DateTimeDropDownAlignment::start,
             "an undeclared alignment is refused");
     (*picker).show_up_down = true;
     require((*picker).show_up_down.read() && !(*picker).dropped_down.read(), "the arrows replace the calendar");
@@ -130,6 +132,16 @@ void test_color_value_editor() {
         refused = true;
     }
     require(refused && (*editor).swatch_width.read() == 30.0, "a swatch wider than 96 is refused");
+
+    // Alpha survives the value and the text form (the D3 demonstrator's I11).
+    const Color translucent = Color::rgba(17, 34, 51, 128);
+    (*editor).value = translucent;
+    require((*editor).value.read().alpha == 128U, "the value keeps its alpha");
+    require((*(*editor).editor()).text.read() == "#11223380", "the text shows the alpha as a fourth pair");
+    const stxlib::Optional<Color> parsed = ColorValueEditor::parse_value("#11223380");
+    require(parsed == stxlib::Optional<Color>::of(translucent), "eight digits parse with their alpha");
+    const stxlib::Optional<Color> opaque = ColorValueEditor::parse_value("#112233");
+    require(opaque.present() && (*opaque.value()).alpha == 255U, "six digits parse as opaque");
 }
 
 PropertyEnumDescriptor edges_descriptor() {

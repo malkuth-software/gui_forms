@@ -187,7 +187,7 @@ void test_semantic_actions_use_control_behavior() {
     const bool chosen = window.perform_semantic_action("actions.combo.overlay.list.item.1", SemanticAction::press);
     const SemanticSnapshot closed = window.semantic_snapshot();
     require(chosen &&
-                (*combo).selected_index.read() == 1U && !(*combo).dropped_down.read() &&
+                (*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && !(*combo).dropped_down.read() &&
                 window.focus_scope_depth() == 0U &&
                 !find_node(closed.roots,
                            "actions.combo.overlay.list"),
@@ -231,7 +231,7 @@ void test_virtual_list_items_are_selectable() {
             "painted ListBox rows must publish selectable virtual semantic children");
     require(window.perform_semantic_action("virtual.list.item.1",
                                             SemanticAction::select) &&
-                (*list).selected_index() == 1U && window.focused_control() == list,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(1U) && window.focused_control() == list,
             "virtual list-item selection must route through retained ListBox behavior");
     const SemanticSnapshot after = window.semantic_snapshot();
     const SemanticNode* selected = find_node(after.roots, "virtual.list.item.1");
@@ -243,7 +243,7 @@ void test_virtual_list_items_are_selectable() {
         test_support::RecordValue<std::size_t>(activated));
     require(window.perform_semantic_action("virtual.list.item.2",
                                             SemanticAction::press) &&
-                (*list).selected_index() == 2U && activated == 2U,
+                (*list).selected_index() == stxlib::Optional<std::size_t>::of(2U) && activated == 2U,
             "virtual list-item press must complete selection then activation");
 }
 
@@ -544,16 +544,16 @@ public:
         SemanticDescriptor descriptor;
         descriptor.role = SemanticRole::tree_item;
         descriptor.name = "Item";
-        descriptor.level = 3U;
+        descriptor.level.set(3U);
         descriptor.modal = true;
-        descriptor.row_index = 4U;
-        descriptor.column_index = 2U;
-        descriptor.row_count = 10U;
-        descriptor.column_count = 5U;
+        descriptor.row_index.set(4U);
+        descriptor.column_index.set(2U);
+        descriptor.row_count.set(10U);
+        descriptor.column_count.set(5U);
         descriptor.access_key = "F";
-        descriptor.small_step = 1.0;
-        descriptor.large_step = 10.0;
-        descriptor.text_selection = SemanticTextSelection{Utf8Offset(1U), Utf8Offset(3U)};
+        descriptor.small_step.set(1.0);
+        descriptor.large_step.set(10.0);
+        descriptor.text_selection.set(SemanticTextSelection{Utf8Offset(1U), Utf8Offset(3U)});
         descriptor.multiline = true;
         descriptor.announces_on_appearance = true;
         descriptor.states = SemanticState::checkable | SemanticState::multiselectable;
@@ -581,11 +581,16 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
     Window window(root, {100, 50});
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* node = find_node(snapshot.roots, "stage-a.item");
-    require(node != nullptr && (*node).role == SemanticRole::tree_item && (*node).level == 3U && (*node).modal &&
-                (*node).row_index == 4U && (*node).column_index == 2U && (*node).row_count == 10U &&
-                (*node).column_count == 5U && (*node).access_key == "F" && (*node).small_step == 1.0 &&
-                (*node).large_step == 10.0 && (*node).text_selection &&
-                (*(*node).text_selection).anchor == Utf8Offset(1U) && (*(*node).text_selection).caret == Utf8Offset(3U) &&
+    require(node != nullptr && (*node).role == SemanticRole::tree_item &&
+                (*node).level == stxlib::Optional<std::size_t>::of(3U) && (*node).modal &&
+                (*node).row_index == stxlib::Optional<std::size_t>::of(4U) &&
+                (*node).column_index == stxlib::Optional<std::size_t>::of(2U) &&
+                (*node).row_count == stxlib::Optional<std::size_t>::of(10U) &&
+                (*node).column_count == stxlib::Optional<std::size_t>::of(5U) && (*node).access_key == "F" &&
+                (*node).small_step == stxlib::Optional<double>::of(1.0) &&
+                (*node).large_step == stxlib::Optional<double>::of(10.0) && (*node).text_selection.present() &&
+                (*(*node).text_selection.value()).anchor == Utf8Offset(1U) &&
+                (*(*node).text_selection.value()).caret == Utf8Offset(3U) &&
                 (*node).multiline && (*node).announces_on_appearance &&
                 has_semantic_state((*node).states, SemanticState::checkable) &&
                 has_semantic_state((*node).states, SemanticState::multiselectable),
@@ -650,9 +655,9 @@ public:
         descriptor.role = SemanticRole::meter;
         descriptor.name = "Signal level";
         descriptor.value = "-12 dB";
-        descriptor.numeric_value = -12.0;
-        descriptor.minimum_value = -60.0;
-        descriptor.maximum_value = 0.0;
+        descriptor.numeric_value.set(-12.0);
+        descriptor.minimum_value.set(-60.0);
+        descriptor.maximum_value.set(0.0);
         descriptor.states = SemanticState::read_only;
         descriptor.exposed = true;
         return descriptor;
@@ -672,10 +677,16 @@ void test_specialised_roles() {
     require(static_cast<std::size_t>(SemanticRole::toggle_switch) == meter + 1U &&
                 static_cast<std::size_t>(SemanticRole::search_box) == meter + 2U,
             "the switch and search roles are appended after meter");
-    require(static_cast<std::size_t>(SemanticRole::figure) + 1U == semantic_role_count &&
+    require(static_cast<std::size_t>(SemanticRole::figure) + 3U == semantic_role_count &&
                 std::string_view(semantic_role_name(SemanticRole::figure)) == "figure" &&
                 semantic_role_fallback(SemanticRole::figure) == SemanticRole::image,
-            "the plots' figure role is appended last and falls back to image");
+            "the plots' figure role is appended after search and falls back to image");
+    require(static_cast<std::size_t>(SemanticRole::heading) + 1U == semantic_role_count &&
+                std::string_view(semantic_role_name(SemanticRole::document)) == "document" &&
+                std::string_view(semantic_role_name(SemanticRole::heading)) == "heading" &&
+                semantic_role_fallback(SemanticRole::document) == SemanticRole::pane &&
+                semantic_role_fallback(SemanticRole::heading) == SemanticRole::static_text,
+            "the help roles are appended last: document falls back to pane, heading to static text");
     require(semantic_role_fallback(SemanticRole::toggle_switch) == SemanticRole::check_box &&
                 semantic_role_fallback(SemanticRole::search_box) == SemanticRole::text_box,
             "a switch falls back to a check box, a search box to a text box");
@@ -683,7 +694,8 @@ void test_specialised_roles() {
     for (std::size_t index = 0U; index < semantic_role_count; ++index) {
         const SemanticRole role = static_cast<SemanticRole>(index);
         const bool specialised = role == SemanticRole::toggle_switch || role == SemanticRole::search_box ||
-                                 role == SemanticRole::figure;
+                                 role == SemanticRole::figure || role == SemanticRole::document ||
+                                 role == SemanticRole::heading;
         if (!specialised && semantic_role_fallback(role) != role) own = false;
     }
     require(own, "every other role is its own fallback");
@@ -721,7 +733,7 @@ void test_search_field_is_one_node() {
     require(node != nullptr && (*node).role == SemanticRole::search_box && (*node).value == "ab" &&
                 (*node).children.empty() && !find_node(snapshot.roots, "single.search.editor"),
             "the field is one search_box node and its editor is not published");
-    require((*node).text_selection.has_value() && has_semantic_state((*node).states, SemanticState::focused),
+    require((*node).text_selection.present() && has_semantic_state((*node).states, SemanticState::focused),
             "the node carries the editor's selection and its focus");
     SemanticTextLayout layout;
     require(window.semantic_text_layout((*field).runtime_id(), layout) == SemanticTextResult::done &&
@@ -729,7 +741,7 @@ void test_search_field_is_one_node() {
             "the node's text layout is the editor's");
     const SemanticTextSelection all{Utf8Offset(0U), Utf8Offset(2U)};
     require(window.set_semantic_text_selection((*field).runtime_id(), all) == SemanticTextResult::done &&
-                (*(*field).editor()).semantic_descriptor().text_selection == std::optional<SemanticTextSelection>{all},
+                (*(*field).editor()).semantic_descriptor().text_selection == stxlib::Optional<SemanticTextSelection>::of(all),
             "a selection set on the node selects in the editor");
 }
 
@@ -746,9 +758,9 @@ void test_meter_role_reaches_the_snapshot() {
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* node = find_node(snapshot.roots, "meter.level");
     require(node != nullptr && (*node).role == SemanticRole::meter && (*node).name == "Signal level" &&
-                (*node).numeric_value == std::optional<double>{-12.0} &&
-                (*node).minimum_value == std::optional<double>{-60.0} &&
-                (*node).maximum_value == std::optional<double>{0.0} &&
+                (*node).numeric_value == stxlib::Optional<double>::of(-12.0) &&
+                (*node).minimum_value == stxlib::Optional<double>::of(-60.0) &&
+                (*node).maximum_value == stxlib::Optional<double>::of(0.0) &&
                 has_semantic_state((*node).states, SemanticState::read_only),
             "a meter node carries its reading, its range and read-only");
     const std::string json = snapshot.to_json();

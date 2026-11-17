@@ -19,8 +19,10 @@ sheets it imports (imported sheets first, as in CSS) and returns either a
 The sheets compile onto a built-in theme, whose recipes stand wherever they
 set nothing: `ThemeCompileOptions::base`, which defaults to
 `default_theme_base`, GUI.Forms' own theme `gui-forms`; or
-`ThemeBase::windows_professional`, whose recipes stand alone, with no sheet
-and no dark variant. Onto GUI.Forms' own theme (`gui-forms`), its
+`ThemeBase::windows_professional`, the stock Windows-familiar theme
+`windows-professional`, whose floor recipes (light and an authored dark) and
+parts sheet (`windows-professional/parts.css` in diagnostics) come first in
+the cascade, so the package's sheets override them. Onto GUI.Forms' own theme (`gui-forms`), its
 light sheet comes first in the cascade, so the package's rules override it
 and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in
@@ -67,7 +69,7 @@ there is one, and one detail argument.
 The theme in effect for a control is its own override
 (`Control::set_theme_override`), else its window's, else the program's
 (`ApplicationResources::set_theme`), else the built-in default theme
-(GUI.Forms' own from 0.5).
+(GUI.Forms' own, `gui-forms`).
 
 Every compiled rule keeps where it was written (`ThemeRule::provenance`):
 its layer (`ThemeLayer`: built-in, library pack, project theme, user
@@ -260,17 +262,33 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
-| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
+| filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`, and the GUI.Forms additions `fill()`, `duotone()` and `tritone()`), `mix-blend-mode` and `background-blend-mode` (`normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`), `isolation`, `mask-image` (up to 4 layers), `mask-mode`, `mask-composite`, `mask-size`, `mask-position`, `mask-repeat` |
 | presentation | `opacity`, `scale`, `translate` |
+| shape | `transform` (`rotate()`, `scale()`) and `clip-path` (`polygon()`, `path()`), on a material |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `muted-color`, `glyph-color` and `fill-text-color` (the recipe's secondary text and glyph colours, and its text's colour where it lies over a fill such as a value bar's, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
-| dials and overlays | `stroke-width` (0 to 32px: an `arc` part's thickness and a `needle` part's width at its hub), `needle-shape` (`line`, `tapered`, `dot`), `scrim-color` (the colour, with its alpha as the opacity, a `scrim` part dims what lies behind with); each on a control or a named part, such as `radial-gauge::part(value-arc)`; not on a role |
+| dials and overlays | `stroke-width` (0 to 32px: an `arc` part's thickness and a `needle` part's width at its hub), `needle-shape` (`line`, `tapered`, `dot`), `scrim-color` (the colour, with its alpha as the opacity, a `scrim` part dims what lies behind with), `ring-style` (`dots`, the default, or `arc`: a progress ring whose own `ring_style` is `theme` draws one continuous arc, its `arc-track` part the full circle and its `value-arc` part trimmed to the value, instead of forty dots); each on a control or a named part, such as `radial-gauge::part(value-arc)`; not on a role |
 | progress stripes | the marching stripes over a progress bar's fill, on `progress-bar::part(fill)` only: `stripe-pitch` (`auto`, the fill's thickness, or 4px to 64px), `stripe-ratio` (0.1 to 0.9: the pale band's share of the pitch; default 0.4), `stripe-angle` (15deg to 75deg; default 45deg), `stripe-lean` (`backward`, the default, leans each band back from the leading edge; `forward`), `stripe-direction` (`forward`, the default, travels toward the leading edge, the way the fill grows; `backward`), `stripe-speed` (0 to 3 pitches a second on the motion clock; default 0.8), `stripe-color` (the pale band), `stripe-ground` (an opaque colour painted under the bands; none by default, so the fill shows between them), `stripe-gloss` (`auto`: a gloss over a painted ground; `none`), `stripe-reduced-motion` (`still`, the default, holds the bands; `none` hides them); the bands are clipped to the fill inside its rim and follow its direction |
-| node canvas | on a named part of `node-canvas` (part fields; refused on a control): `fill-color` and `stroke-color` (an area's fill and its line), `stroke-width` (0 to 32px), `stroke-dash` (`none`, or a dash and a gap, each up to 64px; a dash of 0 is refused, a gap of 0 is solid), `halo` (`none`, or a width of 0 to 16px and a colour in either order: a wider stroke drawn under a link), `corner-radius` (0 to 64px), `grid-spacing` (the minor grid's spacing in world units at zoom 1, 2px to 512px; default 16px), `grid-band` (the smallest minor spacing on screen, 2px to 128px; the band runs to 4 times it, default 6px, so minor lines show fully at zoom 1), `background-texture` (`none`, or one to three comma-separated layers, bottom first, each `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>` or `finish(...) multiply <percentage>`: a baked surface, never an image, under the grid, anchored to the canvas's world coordinates; a procedural kind is `felt`, `wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal` or `checker`, its seed a whole number from 0 to 4294967295, its tile 2px to 96px, its strength 0 to 1, and the canvas chooses its colours; a finish is written as in a fill (`finish(orange-peel, #ffffff, #c8c8c8, 5)`), any finish but a glint, in the colours written, evaluated at the canvas's world coordinates so it is continuous everywhere and pans and zooms with the canvas; the contrast is 0% to 3%; anything outside refuses the theme), `flow` (`none`, `dots`, `dashes`: marks moving along a link at rest), `flow-speed` (0 to 512 world units a second; default 48), `flow-spacing` (4px to 128px; default 16px); the parts are listed under "The node canvas" below |
-| fonts | `font-family` (`control`, `content`, `monospace`, or a bundled family: `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+| node canvas | on a named part of `node-canvas` (part fields; refused on a control): `fill-color` and `stroke-color` (an area's fill and its line), `stroke-width` (0 to 32px), `stroke-dash` (`none`, or a dash and a gap, each up to 64px; a dash of 0 is refused, a gap of 0 is solid), `halo` (`none`, or a width of 0 to 16px and a colour in either order: a wider stroke drawn under a link), `corner-radius` (0 to 64px), `grid-spacing` (the minor grid's spacing in world units at zoom 1, 2px to 512px; default 16px), `grid-band` (the smallest minor spacing on screen, 2px to 128px; the band runs to 4 times it, default 6px, so minor lines show fully at zoom 1), `background-texture` (`none`, or one to three comma-separated layers, bottom first, each `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>` or `finish(...) multiply <percentage>`: a baked surface, never an image, under the grid, anchored to the canvas's world coordinates; a procedural kind is `felt`, `wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal`, `checker` or a hatch (`hatch-horizontal`, `hatch-vertical`, `hatch-forward-diagonal`, `hatch-backward-diagonal`, `hatch-cross`, `hatch-diagonal-cross`, whose seed is not read), its seed a whole number from 0 to 4294967295, its tile 2px to 96px, its strength 0 to 1, and the canvas chooses its colours; a finish is written as in a fill (`finish(orange-peel, #ffffff, #c8c8c8, 5)`), any finish but a glint, in the colours written, evaluated at the canvas's world coordinates so it is continuous everywhere and pans and zooms with the canvas; the contrast is 0% to 3%; anything outside refuses the theme), `flow` (`none`, `dots`, `dashes`: marks moving along a link at rest), `flow-speed` (0 to 512 world units a second; default 48), `flow-spacing` (4px to 128px; default 16px); the parts are listed under "The node canvas" below |
+| fonts | `font-family` (bundled families, `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`, in a list ended by `control`, `content` or `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+
+Gradients interpolate in linear light, not on the sRGB-encoded values CSS
+uses by default. Between two colour stops, both are decoded from sRGB to
+linear light, mixed premultiplied there, and the mixture encoded back to an
+sRGB colour: a gradient from red to blue passes through a brighter purple
+(188, 0, 188 at the middle) than CSS draws (128, 0, 128), and a black to
+white gradient is 188 grey at its middle. Alpha mixes as it is, and a stop
+fading to transparent fades the other stop's colour. The conversions are
+tables in integers, so a gradient has the same bytes on every host. This
+holds for every gradient the engine makes: material layers, the painter's
+gradient fills, GUI.Drawing brushes and the `duotone()` and `tritone()`
+tables. Hard stops, solid fills and `color-mix(in srgb, ...)` are unchanged.
+The ColorPicker's saturation and value field and its hue strip are not
+gradients: a picker must show the exact colour under the pointer, so they
+are drawn pixel by pixel from HSV.
 
 `gradient-dither: none | ordered | blue-noise` sets how the engine's
 material kernel quantizes a part's finished pixels to 8 bits. `none`
@@ -294,12 +312,183 @@ colour. Any theme can copy that rule.
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
 pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
 50% dither of logical pixels, as a Windows scroll track), `felt`,
-`wood-grain`, `paper-fibre`, `pinstripe` and `brushed-metal`. The tile is a
-length from 2px to 256px (by default 2px for the checker, 4px for the
-pinstripe and 64px for the rest). The engine generates the pattern for each
+`wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal`, and the hatches
+`hatch-horizontal`, `hatch-vertical`, `hatch-forward-diagonal`,
+`hatch-backward-diagonal`, `hatch-cross` and `hatch-diagonal-cross` (one
+cell of 8 by 8 squares per tile, the lines in the figure colour). The tile is
+a length from 2px to 256px (by default 2px for the checker, 4px for the
+pinstripe, 8px for the hatches and 64px for the rest). The engine generates the pattern for each
 display scale in an idle frame and draws the ground until it is ready; a
 pattern layer takes no position, size or repetition. For example,
 `background: pattern(checker, #d4d0c8, #ffffff)`.
+
+A `radial-gradient()` may name a focus after its centre, `focus
+<position>` (a GUI.Forms addition, not CSS): the first stop lies there and
+the rings grow from it to the ending shape, so a lens can be lit off centre,
+as in `radial-gradient(at 50% 50% focus 30% 40%, white, #4060a0)`. The focus
+must lie inside the ending shape (for a box where it does not, the gradient
+is drawn about its centre). A `repeating-radial-gradient()` or
+`reflecting-radial-gradient()` takes one too: its periods are counted from
+the focus, which must lie inside one period's ellipse.
+
+`reflecting-linear-gradient()`, `reflecting-radial-gradient()` and
+`reflecting-conic-gradient()` (GUI.Forms additions, not CSS) are written as
+the `repeating-` forms and repeat in the same periods, but each period is
+the one before it mirrored, so the colours run there and back without a
+seam: `reflecting-linear-gradient(90deg, #303030, #a0a0a0 8px)` is a
+brushed bar of soft ridges. A reflecting conic gradient whose periods do
+not divide the turn into an even count meets unmirrored at its `from`
+angle. A reflecting radial gradient takes at most 15 colour stops.
+
+A material's `transform` (`none`, or a list of `rotate(<angle>)` and
+`scale(<number> [, <number>])`, a scale factor a number or a percentage)
+turns and scales the whole material, shadows and glows included, about
+the centre of its box. The list composes as CSS composes it, the last
+function first: `transform: rotate(90deg) scale(2)` doubles the face, then
+turns it a quarter clockwise. What the material paints and repaints
+grows with it: the box and the reach of its shadows and glows, turned and
+scaled about the centre, bound both, so a face scaled to 1.5 repaints its
+whole scaled box and a turned box its turned corners, nothing cut. (For a
+turn the repainted rectangle is a little larger than the turned box: it
+is computed so that it never shrinks for a larger box.) A transform's entries are limited to 64 in
+size and it must not flatten the face (`scale(0)` refuses the theme).
+There is no `transform-origin`: the centre is the only origin.
+
+A material's `clip-path` (`none`, `polygon()` or `path()`) draws only the
+inside of an outline: the face, its shadows, glows, filters and
+reflection alike. `polygon([nonzero | evenodd,] <x> <y>, ...)` takes three
+to 256 vertices, each a length or a percentage of the box (an em length
+refuses the theme, so the outline never follows the font).
+`path([nonzero | evenodd,] "<SVG path data>")` takes every SVG path
+command (`M`, `L`, `H`, `V`, `C`, `S`, `Q`, `T`, `A`, `Z`), absolute or
+relative, in pixels from the box's top-left corner, up to 256 points
+after lowering. `S` and `T` become a cubic and a quadratic whose first
+control point is the previous curve's last one reflected about the
+current point, as in SVG. An arc becomes cubic curves by a fixed
+subdivision: SVG's conversion to a centre and sweep (radii enlarged when
+too small for the endpoints, a zero radius drawn as a line, an arc to its
+own start drawn as nothing), then ceil(sweep / 90°) equal pieces (one to
+four), each a cubic whose handles are 4/3 tan(piece / 4) of the radius,
+ending exactly at the arc's end point. The outline lies in the box's own coordinates, so a `transform`
+turns it with the face. The reference box is always the part's box: a
+box keyword, another basic shape or a `url()` refuses the theme. Both
+are drawn by a transform group and a path clip around however the part
+is drawn, so a baked face composites under the path's coverage mask, the
+same on every host. For example, a tab's slanted face:
+`clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%)`.
+
+A `filter` list may also use three GUI.Forms colour functions, house
+extensions (not CSS).
+`fill(<colour>)` paints every covered pixel in the colour and keeps its
+coverage: the colour channels become the colour's, and the alpha is the
+pixel's times the colour's. `duotone(<dark>, <light>)` (a tint) maps each
+pixel's luminance L = 0.2126 R + 0.7152 G + 0.0722 B (on the sRGB-encoded
+values) from dark at 0 to light at 1, keeping its alpha; the colours' own
+alpha is not read. `tritone(<shadow>, <midtone>, <highlight>)` maps
+luminance through the three colours, shadow at 0, midtone at one half and
+highlight at 1. Both mix their colours in linear light, as a gradient does.
+`fill()` is a colour matrix, composed with the CSS colour functions in
+order. `duotone()` and `tritone()` are the luminance matrix followed by a
+colour table: each straight channel, rounded to 8 bits once, looked up in a
+table of 256 levels made when the theme compiles, the same bytes on every
+host. After either, a function that reads only its own channel
+(`brightness()`, `contrast()`, `invert()`, `opacity()`) folds into the
+table; one that mixes channels (`saturate()`, `grayscale()`, `sepia()`,
+`hue-rotate()`, `fill()`), a second `duotone()` or `tritone()`, and either
+after `drop-shadow()` refuse the theme. For
+example, `filter: tritone(#14213d, #fca311, #e5e5e5)`.
+
+A filter may also be declared once and named. `@filter <id> { ... }`
+declares it at the top level of a sheet, and `filter: url(#<id>)` (or
+`url("#<id>")`) composes it into a list where it stands, anywhere a colour
+function may stand; a rule may name a filter declared after it, and the
+last of a name wins. The block holds two declarations, SVG's colour
+primitives in CSS form:
+- `color-matrix` is feColorMatrix: 20 numbers (the red, green, blue and
+  alpha rows, each four factors and an offset, on straight colour from 0
+  to 1), or `saturate(<number>)`, `hue-rotate(<angle>)` or
+  `luminance-to-alpha`. Several compose in order.
+- `component-transfer` is feComponentTransfer: up to four
+  `<channel> <function>` pairs, the channel `red`, `green`, `blue` or
+  `alpha`, the function `identity`, `table(<n> ...)`, `discrete(<n> ...)`
+  (1 to 32 values), `linear(<slope> <intercept>)` or
+  `gamma(<amplitude> <exponent> <offset>)`. A channel not named is
+  unchanged. At most one, after every `color-matrix`.
+A filter lowers to the same colour stages as `tritone()`: the matrix, then
+a 256-level table per channel, so a list may hold at most one table (a
+`tritone()` or a filter with a `component-transfer`). A name no `@filter`
+declares is an error (`E413`). For example,
+`@filter warm { color-matrix: saturate(0.6); component-transfer: red linear(0.9 0.1) }`
+and `filter: url(#warm) brightness(1.1)`.
+
+A material's mask fades the whole finished part, its shadows and glows
+included. `mask-image` is `none` or up to 4 comma-separated layers, the
+top layer first as in CSS, each a gradient or an image; at most one of
+them may be an image (a house limit; CSS allows any number). `mask-mode` reads each layer's weight: `alpha`, the
+layer's alpha (also `match-source`, since every layer is an image or a
+gradient); `luminance`, 0.2126 R + 0.7152 G + 0.0722 B of the layer's
+premultiplied colour, on its sRGB-encoded values; or the house
+extensions `inverse-alpha` and `inverse-luminance` (not CSS), one minus
+either.
+`mask-composite` joins each layer to the layers beneath it, with w the
+layer's weight and c theirs: `add` gives w + c (1 - w), `subtract` w
+(1 - c), `intersect` w c and `exclude` w (1 - c) + c (1 - w); the bottom
+layer's is not read. `mask-size`, `mask-position` and `mask-repeat` place
+an image layer as the matching `background-` properties place an image
+(including `mirror` and `extend`); a gradient layer covers the box. Each
+of these lists is in CSS's order, the top layer first, and a short list
+repeats over the layers. Outside the box each layer carries on at its
+edge value, so a shadow fades with the face beside it. The `mask`
+shorthand, `mask-clip`, `mask-origin` and `mask-type` are not built. For
+example, a face that fades from the top except under a hole:
+`mask-image: linear-gradient(black, transparent), radial-gradient(circle 6px, black, transparent); mask-composite: subtract`.
+
+On a rule that names no part, role or item, `filter` and `mask-*` are the
+control's content effect, as CSS's `filter` and `mask` apply to an
+element with its descendants (owner decision 2026-11-16): the control and
+everything drawn inside it, its children included, are drawn into one
+group, and the group's image passes the filter's colour stages, then its
+blur, then the mask, before it is shown. `button { filter: grayscale(1)
+blur(1px); mask-image: linear-gradient(black, transparent) }` greys,
+softens and fades a button with its label and glyph together, where
+`button::part(face) { ... }` does it to the face alone. The effect takes
+the colour functions, `url(#<id>)` and `blur()`; its blur is in logical
+units read as `filter_blur` is (the standard deviation is half of it),
+at most 16, a named limit (`maximum_paint_group_effect_blur`). Its mask
+takes up to 4 gradient layers with `mask-mode` and `mask-composite`. Not
+admitted on a control, each naming `::part(face)` in its detail:
+`drop-shadow()` and an image mask layer refuse the theme (`E405`); an em
+length or `currentcolor` in the effect refuses it too; `mask-size`,
+`mask-position` and `mask-repeat`, which place only an image, are warnings
+that drop the declaration (`W107`). A damage inside the control spreads by
+the effect's reach (1.5 times the blur, rounded up, plus 3 units). Code
+sets the same effect with `Control::set_content_effect` (C:
+`gf_controls_table.set_content_effect`), which wins over the theme's. Under
+forced high contrast the effect's colour stages (the colour functions,
+`fill()`, `duotone()`, `tritone()`, the colour matrix and the tables) are
+not applied, so the user's contrast colours are not recoloured; its blur
+and mask stay, and an effect of colour stages alone draws no group. This
+holds for the theme's effect and the one set in code alike.
+
+Migrating a theme written before 2026-11-16, where a rule without a part
+gave `filter` and `mask-*` to the control's own material:
+- To keep the old look, add the part: `track-bar { mask-image: ... }`
+  becomes `track-bar::part(track) { mask-image: ... }`, and `button {
+  filter: ... }` becomes `button::part(face) { filter: ... }` (each control
+  type's part that its material paints: `face` for a button, `track` for a
+  track bar).
+- A `drop-shadow()`, an image mask, or `mask-size`, `mask-position` or
+  `mask-repeat` on a rule without a part must move to a part; the theme is
+  refused (or the declaration dropped) until it does.
+- A rule without a part that keeps `filter` or `mask-*` now affects the
+  control's children as well: a panel's filter greys everything in it.
+
+An image layer's `background-repeat` may also be `mirror` or `extend`
+(GUI.Forms additions, not CSS), written once or twice: `mirror` tiles the
+image with every other tile reflected, so its neighbours join without a
+seam; `extend` draws the one tile, placed as `no-repeat` places it, with its
+edge pixels carried out to the box's edges. For example,
+`background: url("resource:grain") mirror`.
 
 `finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
 finish: paint or metal lit by one light from the upper left, painted for
@@ -365,16 +554,32 @@ For example, `reflection: below 1px 6px 40% 0` or `reflection: below 6px 30% bac
 built-in recipe's value.
 
 The font properties style a control's own text, the font it holds; its
-fixed secondary text keeps its fonts. `font-family` names a bundled face,
-never a host font: one of the three roles, or the name of a family bundled
-with every program, quoted or not and in any case (`font-family: Selawik`,
-`font-family: "Portsmouth Rapids"`). The names of the roles' faces stand for
-their roles (`Portsmouth Rapids` is `control`, `Carlito` is `content`,
-`Cousine` is `monospace`). Selawik, the Segoe UI-like face, draws its
-Regular, Semibold and Bold faces first, by weight (it has no italic), and
-the content faces for any character it lacks. Any other name, a generic
-family such as `sans-serif`, and a list are errors (E406 for a name no
-bundled family has). They belong to rules that match a control:
+fixed secondary text keeps its fonts. `font-family` names bundled
+families, never a host font: a comma-separated list of families bundled
+with every program, quoted or not and in any case, optionally ended by one
+of the three roles (`font-family: Selawik`,
+`font-family: "Portsmouth Rapids", Carlito`, `font-family: Selawik, monospace`).
+The first listed family the program has draws first, with its face nearest
+the requested weight and slant (never synthesized: Selawik has no italic,
+so italic text draws its upright face); the other families follow in
+order, and the role's faces draw whatever no family covers. A role's
+family written alone stands for its role (`Portsmouth Rapids` is
+`control`, `Carlito` is `content`, `Cousine` is `monospace`); without a
+written role, a list beginning with a role's family takes that role, and
+any other the content role. CSS generic families, unquoted, may appear
+anywhere in the list and draw bundled families. The mapping is GUI.Forms'
+choice, not a CSS rule (CSS leaves a generic's face to the browser):
+`sans-serif`, `system-ui`, `ui-sans-serif` and `ui-rounded` draw Carlito;
+`serif`, `ui-serif`, `cursive`, `fantasy`, `math` and `fangsong` draw
+Carlito too, until a serif or display face is bundled; `monospace` and
+`ui-monospace` draw Cousine; `emoji` names no family, since the bundled
+emoji face already draws emoji in every font. `monospace` as the last entry
+is the monospace role, as before. A name no bundled family has that is not
+a generic (a host font such as Arial, or a quoted `"serif"`) is passed over
+with warning W113 (`font_family_unavailable`), and the next family or the
+role draws; when no family in the list is available and no role is written, the
+declaration is dropped with that warning. A list holds at most five
+families. They belong to rules that match a control:
 a rule naming a part, or a state such as `:hover`, may not declare them,
 since a font is a layout input and states change without a layout. They
 may differ by colour scheme under `@media (prefers-color-scheme: dark)`.
@@ -396,14 +601,32 @@ follows the colour scheme and forced high contrast. In any other rule
 second blur, an amount out of range or a ninth operation is an error. For
 example, `window { backdrop: blur(12px) saturate(140%) tint(role(ink-on-paper) / 0.6) }`.
 
+`backdrop-filter` is CSS's spelling of the same chain, with the same
+functions, rules and warning; the two set one chain, so the later of them in
+a rule wins. CSS's other filter functions (`brightness()`, `contrast()`,
+`drop-shadow()`, `grayscale()`, `hue-rotate()`, `invert()`, `opacity()`,
+`sepia()`) and `url()` are errors (`E405`): no system
+material takes them. `tint()` is a GUI.Forms addition in either spelling.
+For example, `popup { backdrop-filter: blur(8px) saturate(120%) }`.
+
+The separable blend modes (`mix-blend-mode` on a part, `background-blend-mode`
+between a material's fill layers) follow Compositing and Blending Level 1:
+each colour channel is s × (1 − αd) + d × (1 − αs) + αs × αd × B(d, s), with
+B the mode's function of the straight colours. A part's blend is drawn in
+integers on premultiplied 8-bit colour (soft-light's square root an exact
+integer one), so it gives the same bytes on every platform; a fill layer's
+blend is drawn in the material kernel's precision. `hue`, `saturation`,
+`color`, `luminosity`, `plus-lighter` and `plus-darker` are refused.
+
 The winning `window` rule's backdrop, matched against the window's media and
 its root control's classes and stable ID, becomes the window's backdrop chain
 (`Window::set_backdrop_chain`). It is lowered again when the window shows
 another theme, when its presentation settings (scheme, contrast, motion)
 change and when its scale changes; changing the root's classes later takes
 effect at the next of these. An application that sets its own chain keeps
-it. `popup` rules are compiled and held: they apply once native popup
-windows exist.
+it. `popup` rules are compiled and held but not yet applied to native popup
+windows; a program gives a Popup window its backdrop chain through
+`NativePopupOptions::backdrop`.
 
 The window outer band, a thin strip along the edges of a top-level window's
 client area that the program declares with `Window::declare_band`, takes its
@@ -438,7 +661,7 @@ programs and textures on the band are planned after 0.5 (owner ruling,
 2026-11-08). The band never takes a resize-edge role: a frameless window
 stays frameless.
 
-`clip-path`, `rotate`, `transform`, text
+`rotate`, `transform-origin` and the other `transform-` longhands, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
 warnings: geometry and layout belong to the engine and to forms.
 
@@ -715,7 +938,6 @@ rewrite it. A program that parses its own arguments passes them over with
 
 ## Not yet built
 
-- `backdrop-filter` is refused (`E999 not_yet_built`).
 - A gradient positioned at the pointer, which the plan lowers to the `sheen`
   primitive, is refused (`E405`).
 - Procedural backgrounds (`felt()` and the rest) are warnings until the

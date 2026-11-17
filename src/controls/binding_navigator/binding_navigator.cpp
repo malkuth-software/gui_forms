@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <charconv>
 #include <cstddef>
@@ -211,9 +212,9 @@ void BindingNavigator::on_add_new(const CommandInvocation&) {
     BindingNavigatorAddNew request{std::string(stable_id().value()), std::nullopt};
     adding_new_.emit(request);
     if (!request.row || !is_alive() || !(*source).is_alive() || !(*source).allow_new()) return;
-    const std::optional<std::size_t> index = (*source).add(std::move(*request.row));
+    const stxlib::Optional<std::size_t> index = (*source).add(std::move(*request.row));
     // A row the source's filter hides is added but not shown.
-    if (index) static_cast<void>((*source).set_position(static_cast<std::ptrdiff_t>(*index)));
+    if (index.present()) static_cast<void>((*source).set_position(static_cast<std::ptrdiff_t>((*index.value()))));
 }
 
 void BindingNavigator::on_delete(const CommandInvocation&) {

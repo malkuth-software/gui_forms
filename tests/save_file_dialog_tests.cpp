@@ -93,8 +93,9 @@ void settings() {
     SaveFileDialog dialog;
     require(dialog.title.read().empty() && dialog.filter.read().empty() && dialog.default_ext.read().empty() &&
                 dialog.add_extension.read() && dialog.overwrite_prompt.read() && dialog.file_name.read().empty() &&
-                dialog.file_names().empty() && dialog.status().accepted(),
-            "a new dialog has the defaults");
+                dialog.file_names().empty() && dialog.status().accepted() && !dialog.check_file_exists.read() &&
+                dialog.check_path_exists.read() && !dialog.create_prompt.read(),
+            "a new dialog has the defaults: no file check or create prompt, the path check on");
     dialog.default_ext = ".txt";
     require(dialog.default_ext.read() == "txt", "a leading dot is removed from the default extension");
     dialog.default_ext = "tar.gz";
@@ -110,6 +111,9 @@ void settings() {
     dialog.filter = "Reports|*.txt|All files|*.*";
     dialog.add_extension = false;
     dialog.overwrite_prompt = false;
+    dialog.check_file_exists = true;
+    dialog.check_path_exists = false;
+    dialog.create_prompt = true;
     dialog.file_name = "/srv/report.txt";
     bool refused = false;
     try {
@@ -123,7 +127,8 @@ void settings() {
     dialog.reset();
     require(dialog.title.read().empty() && dialog.filter.read().empty() && dialog.filters().empty() &&
                 dialog.default_ext.read().empty() && dialog.add_extension.read() && dialog.overwrite_prompt.read() &&
-                dialog.file_names().empty(),
+                dialog.file_names().empty() && !dialog.check_file_exists.read() && dialog.check_path_exists.read() &&
+                !dialog.create_prompt.read(),
             "reset restores the defaults");
 
     const std::vector<InteractionDeclaration> interactions = dialog.interactions();
@@ -184,7 +189,8 @@ void shown_through_host() {
     const HostSaveFileDialogRequest* const sent = save_request(script.requests[0]);
     require(sent != nullptr && (*sent).title == "Export a report" && (*sent).initial_directory == "/srv/reports" &&
                 (*sent).suggested_name == "summary" && (*sent).default_extension == "txt" &&
-                (*sent).confirm_overwrite && (*sent).filters.size() == 2U,
+                (*sent).confirm_overwrite && (*sent).filters.size() == 2U && !(*sent).check_file_exists &&
+                (*sent).check_path_exists && !(*sent).create_prompt,
             "the request carries the settings");
     require(dialog.file_name.read() == "/srv/reports/summary.txt" && dialog.file_names().size() == 1U &&
                 log.seen.size() == 1U && log.seen[0] == "/srv/reports/summary.txt",
@@ -203,12 +209,15 @@ void shown_through_host() {
 
     dialog.add_extension = false;
     dialog.overwrite_prompt = false;
+    dialog.create_prompt = true;
+    dialog.check_path_exists = false;
     script.answers.push_back(accepted("/srv/reports/plain"));
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/srv/reports/plain",
             "with add_extension off the name is kept as chosen");
     const HostSaveFileDialogRequest* const plain = save_request(script.requests[3]);
-    require(plain != nullptr && (*plain).default_extension.empty() && !(*plain).confirm_overwrite,
-            "with add_extension off the host is given no extension to add, and no overwrite prompt");
+    require(plain != nullptr && (*plain).default_extension.empty() && !(*plain).confirm_overwrite &&
+                (*plain).create_prompt && !(*plain).check_path_exists,
+            "with add_extension off the host is given no extension to add, and the prompts as set");
     dialog.add_extension = true;
 
     require(dialog.show_dialog(window) == DialogResult::cancel && dialog.file_name.read() == "/srv/reports/plain" &&
@@ -317,7 +326,7 @@ void filter_index_and_extension() {
     dialog.default_ext = "log";
     dialog.filter_index = 2U;
     HostPathDialogResult answer = accepted("/tmp/notes");
-    answer.chosen_filter = 1U;
+    answer.chosen_filter.set(1U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
     const HostSaveFileDialogRequest* const sent = save_request(script.requests[0]);
@@ -325,7 +334,7 @@ void filter_index_and_extension() {
                 dialog.file_name.read() == "/tmp/notes.md",
             "the chosen filter's first extension is added and its index taken");
 
-    answer.chosen_filter = 2U;
+    answer.chosen_filter.set(2U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes.log" &&
                 dialog.filter_index.read() == 2U,
@@ -336,7 +345,7 @@ void filter_index_and_extension() {
                 dialog.filter_index.read() == 2U,
             "a host that does not tell the filter adds the default extension and keeps the index");
 
-    answer.chosen_filter = 0U;
+    answer.chosen_filter.set(0U);
     script.answers.push_back(answer);
     dialog.add_extension = false;
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name.read() == "/tmp/notes" &&

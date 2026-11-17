@@ -50,4 +50,14 @@ using TextWidthResolver = std::function<double(std::string_view)>;
 void paint_theme_cues(Painter& painter, Rect bounds,
                       const ControlVisualRecipe& recipe,
                       ControlVisualContext context);
+// The bytes label wrapping breaks at: the six ASCII whitespace characters
+// that std::isspace reports in the C locale, tested directly, so a program's
+// single-byte locale cannot make a UTF-8 continuation byte (0xA0 in Latin-1)
+// a break (A-gf-controls-06-F7, 01-F2). label_lines and Label's min-content
+// width must agree, so both use this.
+[[nodiscard]] constexpr bool is_wrap_space(char byte) noexcept {
+    const bool space = byte == ' ' || byte == '\t' || byte == '\n' || byte == '\v' || byte == '\f' || byte == '\r';
+    return space;
+}
+
 } // namespace gui_forms

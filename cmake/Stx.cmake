@@ -1,9 +1,11 @@
 # Everything GUI.Forms takes from malkuth-software/stx, consumed as one built
 # package (cmake/stx_package/CMakeLists.txt): the stx libraries (stx_zlib,
-# stx_png, stx_conv, stx_rtf2md and, for audio builds, stx_vorbis; owner ruling
+# stx_png, stx_conv, stx_raster3d, stx_rtf2md and, for audio builds, stx_vorbis; owner ruling
 # 2026-11-03, decision 3(a)), stx_skia, and the third-party sources of stx
-# third_party/ (FreeType, HarfBuzz, SheenBidi, libunibreak, MD4C; owner,
-# 2026-11-05: this repository carries no third-party sources). This build
+# third_party/ (now only the Unicode data and its licence; owner, 2026-11-05:
+# this repository carries no third-party sources). Markdown, bidi, line breaking, script runs and
+# shaping are STXlib's since 2026-11-16 (stxlib::markdown,
+# stxlib::textlayout, stxlib::glyphs; HarfBuzz is no longer built). This build
 # compiles none of them: it links the package.
 #
 # Inputs:
@@ -11,7 +13,7 @@
 # - GUI_FORMS_STX_PREFIX=<dir> names a package already built (an SDK build, a
 #   product's lockstep build): nothing is fetched or built, and the configure
 #   stops unless the package was built from stx.lock's commit with the
-#   renderer, text and audio choices of this configuration.
+#   renderer and audio choices of this configuration.
 # - GUI_FORMS_STX_PACKAGE_DIR=<dir> (default <build>/stx-package) is where the
 #   package is built, and reused while its stamp matches: the stx commit, this
 #   file and the package recipe, and the compilers, build type, flags,
@@ -22,22 +24,22 @@
 # - FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir> replaces the pinned commit with
 #   a local stx checkout (lockstep development); the package is then brought up
 #   to date before every build, so edits there reach this build.
-# - GUI_FORMS_ENABLE_SKIA, GUI_FORMS_ENABLE_HARFBUZZ_TEXT, and
+# - GUI_FORMS_ENABLE_SKIA and
 #   GUI_FORMS_BUILD_AUDIO with GUI_FORMS_AUDIO_VORBIS_BACKEND=stx choose what
 #   the package holds.
 #
 # Outputs:
-# - the imported targets stx_zlib::stx_zlib, stx_png::stx_png,
-#   stx_conv::stx_conv, stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
-#   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; stx_text::md4c
-#   (objects) and, with the text engine, stx_text::freetype, stx_text::harfbuzz,
-#   stx_text::sheenbidi, stx_text::linebreak and stx_text::linebreak_conformance;
+# - the imported targets stxlib::state (a static archive: one module per
+#   program, owner decision 2026-11-15), stxlib::boundary and stxlib::algorithms
+#   (STXlib at stx's stxlib.lock commit),
+#   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv, stx_raster3d::stx_raster3d,
+#   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
+#   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia;
 # - GUI_FORMS_STX_PREFIX_DIR, the package's stx libraries (<package>/stx), which
 #   the SDK install copies whole (GUIFormsConfig finds the packages beside
 #   GUI.Forms);
 # - GUI_FORMS_STX_BUILD_PREFIX_DIR, what only this build links
-#   (<package>/build), with the MD4C header (include/md4c), the libunibreak
-#   conformance data (share/stx_text/linebreak), the markdown corpus
+#   (<package>/build), with the markdown corpus
 #   (share/stx_text/rtf2md_corpus) and the licences the SDK and the programs
 #   ship (share/stx_text/notices, at their paths in the stx source);
 # - GUI_FORMS_STX_SOURCE_DIR, the stx source when this configure fetched it (or
@@ -63,11 +65,13 @@ set(_gui_stx_with_skia OFF)
 if(GUI_FORMS_ENABLE_SKIA)
     set(_gui_stx_with_skia ON)
 endif()
-set(_gui_stx_with_text OFF)
-if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
-    set(_gui_stx_with_text ON)
+set(_gui_stx_choices "skia = ${_gui_stx_with_skia}\nvorbis = ${_gui_stx_with_vorbis}\n")
+# The high-integrity configuration's STXlib settings (cmake/HighIntegrity.cmake):
+# a line of their own, only when on, so an ordinary package's stamp is unchanged.
+if(GUI_FORMS_HIGH_INTEGRITY)
+    string(REPLACE ";" " " _gui_stx_high_integrity "${GUI_FORMS_HIGH_INTEGRITY_STX_ARGUMENTS}")
+    string(APPEND _gui_stx_choices "high_integrity = ${_gui_stx_high_integrity}\n")
 endif()
-set(_gui_stx_choices "skia = ${_gui_stx_with_skia}\ntext = ${_gui_stx_with_text}\nvorbis = ${_gui_stx_with_vorbis}\n")
 
 file(STRINGS "${_gui_stx_root}/stx.lock" _gui_stx_lock REGEX "^(repository|commit) = ")
 set(_gui_stx_repository "")
@@ -102,8 +106,7 @@ macro(_gui_stx_fetch_source)
     FetchContent_MakeAvailable(gui_forms_stx)
     set(GUI_FORMS_STX_SOURCE_DIR "${gui_forms_stx_SOURCE_DIR}")
     if(NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/CMakeLists.txt" OR
-       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/third_party/md4c/md4c.c")
+       NOT EXISTS "${GUI_FORMS_STX_SOURCE_DIR}/stx_skia/CMakeLists.txt")
         message(FATAL_ERROR "the stx source at ${GUI_FORMS_STX_SOURCE_DIR} is not an stx checkout with stx_skia/ "
                             "and third_party/ (stx.lock must name a commit after the move of 2026-11-08)")
     endif()
@@ -135,16 +138,39 @@ else()
     string(TOUPPER "${CMAKE_BUILD_TYPE}" _gui_stx_build_type)
     set(_gui_stx_arguments
         -DGUI_FORMS_STX_PACKAGE_SKIA=${_gui_stx_with_skia}
-        -DGUI_FORMS_STX_PACKAGE_TEXT=${_gui_stx_with_text}
         -DSTX_WITH_VORBIS=${_gui_stx_with_vorbis}
+        # One module (owner decision, 2026-11-15): STXlib's state is a static
+        # archive linked into the one module that holds it, a program or the C
+        # ABI library, whose shared object needs position-independent code.
+        -DSTXLIB_STATE_SHARED=OFF
+        ${GUI_FORMS_HIGH_INTEGRITY_STX_ARGUMENTS}
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+    # A local STXlib checkout for stx's own STXlib fetch (stx cmake/Stxlib.cmake,
+    # FETCHCONTENT_SOURCE_DIR_STXLIB), for lockstep STXlib work; recorded in
+    # the stamp by its path like the other settings.
+    if(DEFINED FETCHCONTENT_SOURCE_DIR_STXLIB AND NOT FETCHCONTENT_SOURCE_DIR_STXLIB STREQUAL "")
+        list(APPEND _gui_stx_arguments "-DFETCHCONTENT_SOURCE_DIR_STXLIB=${FETCHCONTENT_SOURCE_DIR_STXLIB}")
+    endif()
     set(_gui_stx_settings CMAKE_BUILD_TYPE CMAKE_TOOLCHAIN_FILE CMAKE_MAKE_PROGRAM
         CMAKE_C_FLAGS CMAKE_CXX_FLAGS CMAKE_EXE_LINKER_FLAGS CMAKE_POSITION_INDEPENDENT_CODE
         CMAKE_INSTALL_LIBDIR CMAKE_OSX_ARCHITECTURES CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_SYSROOT
-        CMAKE_MSVC_RUNTIME_LIBRARY FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB)
+        CMAKE_MSVC_RUNTIME_LIBRARY)
     if(NOT _gui_stx_build_type STREQUAL "")
         list(APPEND _gui_stx_settings CMAKE_C_FLAGS_${_gui_stx_build_type} CMAKE_CXX_FLAGS_${_gui_stx_build_type})
+    endif()
+    # The MSVC target's C++ library and runtime choices
+    # (cmake/llvm22-windows-msvc.cmake), so that anything the package links
+    # links the same startup objects and exception runtime as this build.
+    if(GUI_FORMS_WINDOWS_MSVC_TARGET)
+        list(APPEND _gui_stx_settings GUI_FORMS_LIBCXX_PREFIX GUI_FORMS_MSVC_VCRUNTIME GUI_FORMS_MSVC_STARTUP
+            GUI_FORMS_MSVC_STARTUP_PREFIX GUI_FORMS_MSVC_EH_RUNTIME
+            GUI_FORMS_MSVC_RUNTIME GUI_FORMS_OWN_RUNTIME_SOURCE GUI_FORMS_OWN_RUNTIME_PREFIX GUI_FORMS_LINK_MAP)
+        if(NOT GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES STREQUAL "")
+            string(REPLACE ";" "\;" _gui_stx_eh_libraries "${GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES}")
+            list(APPEND _gui_stx_arguments "-DGUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES=${_gui_stx_eh_libraries}")
+        endif()
     endif()
     # The stamp names the toolchain file by its content, not its path: the
     # native and programs jobs spell the same file differently on Windows.
@@ -170,17 +196,7 @@ else()
     endforeach()
     gui_forms_text_digest("${CMAKE_CURRENT_LIST_FILE}" _gui_stx_this_digest)
     gui_forms_text_digest("${_gui_stx_recipe}/CMakeLists.txt" _gui_stx_recipe_digest)
-    gui_forms_text_digest("${_gui_stx_root}/cmake/freetype/gui_forms_ftoption.h" _gui_stx_options_digest)
-    # The text stack's allocation hooks, which the recipe compiles into
-    # HarfBuzz and SheenBidi (cmake/stx_text_allocation/).
-    set(_gui_stx_allocation_digests "")
-    foreach(_gui_stx_allocation_file IN ITEMS stx_text_allocation.h stx_harfbuzz_allocation.c
-                                              stx_sheenbidi_allocation.c)
-        gui_forms_text_digest("${_gui_stx_root}/cmake/stx_text_allocation/${_gui_stx_allocation_file}"
-                              _gui_stx_allocation_digest)
-        string(APPEND _gui_stx_allocation_digests "${_gui_stx_allocation_digest};")
-    endforeach()
-    string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${_gui_stx_options_digest};${_gui_stx_allocation_digests}${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
+    string(SHA256 _gui_stx_inputs "${_gui_stx_this_digest};${_gui_stx_recipe_digest};${CMAKE_GENERATOR};${_gui_stx_stamped_arguments}")
     set(_gui_stx_stamp "commit = ${_gui_stx_commit}\n${_gui_stx_choices}inputs = ${_gui_stx_inputs}\n")
     set(_gui_stx_recorded "")
     if(EXISTS "${_gui_stx_package}/${_gui_stx_stamp_name}")
@@ -275,12 +291,27 @@ set(GUI_FORMS_STX_PACKAGE_ROOT "${_gui_stx_package}")
 set(GUI_FORMS_STX_PREFIX_DIR "${_gui_stx_package}/stx")
 set(GUI_FORMS_STX_BUILD_PREFIX_DIR "${_gui_stx_package}/build")
 list(PREPEND CMAKE_PREFIX_PATH "${GUI_FORMS_STX_PREFIX_DIR}" "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")
+# STXlib, which stx builds at its stxlib.lock commit and installs beside its
+# packages: stx_conv's SIMD level and the controls' row height index.
+find_package(stxlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
+# stxlib::state is a static archive (STXLIB_STATE_SHARED OFF above): each
+# module, a program or the C ABI library, holds the one allocator, identity
+# issuer and SIMD selection, which the engine's STXlib code and the module's
+# own reach alike. A package built with a shared state (an older stamp, or one
+# given read-only through GUI_FORMS_STX_PREFIX) would put a second module in
+# every program, so it is refused.
+get_target_property(_gui_stxlib_state_type stxlib::state TYPE)
+if(NOT _gui_stxlib_state_type STREQUAL "STATIC_LIBRARY")
+    message(FATAL_ERROR "the stx package at ${_gui_stx_package} has a shared stxlib_state; GUI.Forms links "
+                        "STXlib's state statically into each module (stx's cmake/Stxlib.cmake: "
+                        "STXLIB_STATE_SHARED OFF; cmake/Stx.cmake passes it when it builds the package)")
+endif()
 find_package(stx_zlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_png CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_conv CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
+find_package(stx_raster3d CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_rtf2md CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 if(_gui_stx_with_vorbis)
     find_package(stx_vorbis CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 endif()
 find_package(stx_skia CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")
-find_package(stx_text CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")

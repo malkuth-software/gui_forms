@@ -403,7 +403,8 @@ private:
             {.name = "kind", .header_text = "Kind", .kind = DataGridViewColumnKind::combo_box, .width = 130.0,
              .items = kinds},
             {.name = "size", .header_text = "Size", .width = 80.0, .read_only = true,
-             .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}},
+             .default_cell_style = {.alignment = stxlib::Optional<DataGridViewContentAlignment>::of(
+                                         DataGridViewContentAlignment::middle_end)}},
             {.name = "keep", .header_text = "Keep", .kind = DataGridViewColumnKind::check_box, .width = 56.0},
             {.name = "note", .header_text = "Note", .width = 300.0},
             {.name = "open", .header_text = "", .kind = DataGridViewColumnKind::button, .width = 70.0,
@@ -743,11 +744,11 @@ private:
 
     // VirtualRowsView
     void on_message_selected(const VirtualRowSelection& change) {
-        if (!change.current.has_value()) {
+        if (change.current.absent()) {
             (*status_).text = "VirtualRowsView selection cleared";
             return;
         }
-        const std::size_t row = (*change.current).value;
+        const std::size_t row = (*change.current.value()).value;
         (*status_).text = "VirtualRowsView message " + std::to_string(row + 1U) + " from " +
                           std::string(SeededMessages::sender_of(row)) + " selected";
     }
@@ -764,12 +765,12 @@ private:
     }
 
     void on_tree_list_sorted(const TreeListSortChange& change) {
-        if (!change.column) {
+        if (change.column.absent()) {
             (*status_).text = "TreeListView back in fixture order";
             return;
         }
         (*status_).text = "TreeListView siblings sorted by " +
-                            (*tree_list_).columns()[*change.column].text +
+                            (*tree_list_).columns()[*change.column.value()].text +
                             (change.order == TreeListSortOrder::ascending ? " ascending" : " descending") +
                             " · every folder keeps its children";
     }

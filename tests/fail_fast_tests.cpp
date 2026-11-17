@@ -1,6 +1,7 @@
-// The fail-fast boundary (owner, 2026-11-11): an exception reaching
-// call_failing_fast prints the site, the exception's text and a stack, then
-// ends the process. Each mode triggers one boundary and prints "survived" only
+// The fail-fast boundary (owner, 2026-11-11; STXlib's fail-fast gate since
+// the A2 swap-in): an exception reaching call_failing_fast prints the site,
+// the exception's whole text, the record, the shadow frames and a stack,
+// then ends the process. Each mode triggers one boundary and prints "survived" only
 // if the process was not ended; CTest passes a mode when its report line
 // appears and "survived" does not.
 
@@ -25,6 +26,7 @@
 #include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 
 #if defined(_WIN32)
@@ -66,6 +68,12 @@ int throw_in_frame(int value) {
     return value;
 }
 
+// Throws a message longer than an STXlib error record keeps (200 bytes).
+int throw_long(int value) {
+    if (value != 0) throw std::runtime_error(std::string(300U, 'L') + "END");
+    return value;
+}
+
 class ThrowingTick final {
 public:
     void operator()(FrameTime) const { throw std::runtime_error("injected timer failure"); }
@@ -97,6 +105,15 @@ void direct_mode() {
 void shadow_frames_mode() {
     const int result = gui_forms::detail::call_failing_fast("test.frames", &throw_in_frame, 1);
     std::printf("returned %d\n", result);
+}
+
+void long_message_mode() {
+    const int result = gui_forms::detail::call_failing_fast("test.long", &throw_long, 1);
+    std::printf("returned %d\n", result);
+}
+
+void invariant_mode() {
+    gui_forms::detail::fail_fast("test.invariant", "an invariant broke");
 }
 
 void ui_timer_mode() {
@@ -135,7 +152,7 @@ void host_dispatch_mode() {
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        std::fprintf(stderr, "usage: gui_forms_fail_fast_tests direct|ui_timer|motion_listener|host_dispatch|shadow_frames\n");
+        std::fprintf(stderr, "usage: gui_forms_fail_fast_tests direct|ui_timer|motion_listener|host_dispatch|shadow_frames|long_message|invariant\n");
         return EXIT_FAILURE;
     }
     quiet_crash_reporting();
@@ -145,6 +162,8 @@ int main(int argc, char** argv) {
     else if (mode == "motion_listener") motion_listener_mode();
     else if (mode == "host_dispatch") host_dispatch_mode();
     else if (mode == "shadow_frames") shadow_frames_mode();
+    else if (mode == "long_message") long_message_mode();
+    else if (mode == "invariant") invariant_mode();
     else {
         std::fprintf(stderr, "unknown mode\n");
         return EXIT_FAILURE;

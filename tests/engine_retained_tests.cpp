@@ -129,7 +129,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         part.granted_overflow = overflow;
         if (hot) part.states.insert(AnatomyState::hot);
         paint_part(painter, *this, part);

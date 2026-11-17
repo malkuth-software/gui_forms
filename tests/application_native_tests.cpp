@@ -3,6 +3,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -514,8 +515,8 @@ void show_tool_tip_window(RuntimeWindowsProbe& state, Window& window) {
     (*anchor).tool_tip_text = "Main Menu";
     (*window.root()).add_child(anchor);
     window.perform_layout();
-    window.show_tool_tip(anchor, std::chrono::milliseconds(0));
-    const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+    window.show_tool_tip(anchor, stxlib::Optional<std::chrono::milliseconds>::of(std::chrono::milliseconds(0)));
+    const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
     if (main_window == nullptr || !window.tool_tip_visible()) {
         state.tool_tip_windows = "no tooltip showed";
         static_cast<void>((*window.root()).remove_child((*anchor).runtime_id()));
@@ -556,12 +557,12 @@ void open_splash_window(RuntimeWindowsProbe& state, const ApplicationWindows& wi
     HostPopupPlacement placement{};
     placement.kind = HostTransientKind::tool_tip;
     placement.origin = DesktopLogicalPoint{40.0, 40.0};
-    entry.popup = placement;
+    entry.popup.set(placement);
     const ApplicationWindowOpenResult opened = windows.open_window(std::move(entry));
     state.splash_open = opened.status;
     if (!opened.status.accepted()) return;
 #if defined(_WIN32)
-    const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+    const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
     if (main_window != nullptr) check_splash_window(state, main_window);
 #endif
     static_cast<void>(windows.destroy_window(opened.window));
@@ -577,7 +578,7 @@ void open_native_popups(RuntimeWindowsProbe& state, Window& window) {
     state.passive_refusal = passive.refusal();
 #if defined(_WIN32)
     if (passive.surface() == NativePopupSurface::native) {
-        const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+        const HWND main_window = test_support::own_gui_forms_window(L"GUI.Forms runtime windows fixture");
         state.native_owner = main_window != nullptr;
         if (state.native_owner) check_native_popup(state, main_window, bounds);
     }
@@ -762,7 +763,7 @@ struct AutomationOrder final {
 };
 
 LRESULT send_automation(const char* const command) {
-    const HWND target = FindWindowW(nullptr, automation_fixture_title);
+    const HWND target = test_support::own_gui_forms_window(automation_fixture_title);
     if (target == nullptr) return FALSE;
     const std::string message = std::string("GUI.Forms.Automation/1 ") + command;
     COPYDATASTRUCT data{};
@@ -820,7 +821,36 @@ struct AutomationReady final {
     }
 };
 
+// A-gf-host-03-F6: GUI_FORMS_WINDOWS_AUTOMATION alone, before the program
+// calls host::accept_automation_environment, leaves the channel closed: the
+// first command is refused and the run ends. Runs before any opt-in, which
+// is process-wide and never withdrawn.
+void check_automation_needs_opt_in() {
+    if (_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", "1") != 0) throw std::runtime_error("environment refused");
+    AutomationOrder order{};
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("native.automation.root"));
+    const std::shared_ptr<AutomationTarget> first =
+        make_control<AutomationTarget>(StableId("native.automation.first"), order, true);
+    (*first).set_requested_bounds(Rect{10.0, 10.0, 60.0, 24.0});
+    (*root).add_child(first);
+    ApplicationWindowOptions options{};
+    options.title = "GUI.Forms automation interleaving fixture";
+    options.initial_size = {200, 120};
+    options.print_metrics_on_close = false;
+    options.ready = AutomationReady{&order};
+    const ApplicationResult result =
+        test_application().run(std::make_unique<Window>(root, Size{200.0, 120.0}), std::move(options));
+    static_cast<void>(_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", ""));
+    automation_order = nullptr;
+    if (result.callback_exception) std::rethrow_exception(result.callback_exception);
+    require(result.accepted(), "automation opt-in fixture failed");
+    require(order.events.size() == 1U && order.events[0] == "refused",
+            "the automation variable without the program's opt-in opens no channel");
+}
+
+#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
 void check_automation_interleaving() {
+    gui_forms::host::accept_automation_environment();
     if (_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", "1") != 0) throw std::runtime_error("environment refused");
     AutomationOrder order{};
     const std::shared_ptr<Control> root = make_control<Control>(StableId("native.automation.root"));
@@ -850,6 +880,7 @@ void check_automation_interleaving() {
             "an automation command sent inside model code runs after it, whole: " + seen);
     require(order.nested_result == TRUE, "the waiting command is accepted");
 }
+#endif
 #endif
 #if defined(__APPLE__)
 struct ForeignShutdown final {
@@ -916,7 +947,10 @@ void run_checks() {
             "dispatch exception escaped the portable application boundary");
     check_runtime_windows();
 #if defined(_WIN32)
+    check_automation_needs_opt_in();
+#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
     check_automation_interleaving();
+#endif
 #endif
     check_shutdown();
     std::cout << "portable application API: native attach, cancel/retry, close, expiry, recursion, exception containment, runtime windows and shutdown passed\n";

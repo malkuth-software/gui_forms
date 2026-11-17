@@ -16,6 +16,7 @@ constexpr ControlAnatomy v_scroll_bar_anatomy{
     .parts = scroll_bar_detail::parts,
     .states = scroll_bar_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

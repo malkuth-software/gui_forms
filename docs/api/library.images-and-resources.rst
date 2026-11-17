@@ -60,6 +60,18 @@ Related types
      - The digest in the standard byte order (the first byte is the high byte of the first word).
    * - :cpp:class:`Sha256Hasher <gui_forms::Sha256Hasher>`
      - A streaming hasher: feed the message in any number of pieces of any length, then finish.
+   * - :cpp:class:`StockIcon <gui_forms::StockIcon>`
+     - One stock icon: its name (lowercase words joined by hyphens, as stock_icon_names lists them), its style and its size variant.
+   * - :cpp:class:`StockIconBakeCounts <gui_forms::StockIconBakeCounts>`
+     - The stock icon bake counters (instrumentation): coverage rasterizations, coloured rasters made from them, the entries the process cache holds of each, and the scales Window has baked the status icons for.
+   * - :cpp:class:`StockIconImage <gui_forms::StockIconImage>`
+     - What a stock icon id names: the icon's name (static storage), its style, and its fixed size if it has one (else the nearest is chosen when drawn).
+   * - :cpp:class:`StockIconLayer <gui_forms::StockIconLayer>`
+     - One layer of an icon's vectors: the layer's verbs end at ``verb_end`` and its points at ``point_end`` (each layer starts where the previous one ended, the first at zero); a stroke is ``stroke_width`` grid units wide with ``cap`` at its open ends and round joins.
+   * - :cpp:class:`StockIconReplacement <gui_forms::StockIconReplacement>`
+     - A theme's drawing for one stock icon variant (ThemeDefinition::stock_icons): shown wherever ``icon`` would be, in the same colour.
+   * - :cpp:class:`StockIconVectors <gui_forms::StockIconVectors>`
+     - An icon's drawing on its grid: layers of curved paths (PaintPath's verbs and points, in grid units with y down), each filled or stroked.
 
 .. cpp:namespace:: gui_forms
 
@@ -141,6 +153,16 @@ Related types
 
       The registered icons, in registration order, for a user theme's compilation (ThemeCompileOptions::icons).
 
+   .. cpp:function:: const HostLocale& locale() const noexcept
+
+      The locale these windows format dates and numbers with (exhibit gap E11): the portable default until the first HostSession seeds it with the host's (HostCapabilities::locale, when the host reports HostCapability::locale), or until the program sets one, which then stays over the host's. A change lays out and repaints every sharing window. locale_generation() changes with every change (0 for the portable default never changed), for a control's cache.
+
+   .. cpp:function:: void set_locale(HostLocale locale)
+
+      Sets the locale (a program's own choice, or a test's fixture). Throws std::invalid_argument, changing nothing, for a locale valid_host_locale refuses. On the UI thread (std::logic_error elsewhere).
+
+   .. cpp:function:: std::uint64_t locale_generation() const noexcept
+
    .. cpp:function:: std::size_t window_count() const noexcept
 
       The windows currently sharing these resources.
@@ -176,11 +198,11 @@ Related types
 
       Program icons (T3 user themes). Registers ``image``, an image of these resources, as the icon ``identifier``. std::invalid_argument when the identifier is invalid or already registered, or the image is not one of these resources'; nothing changes then. The image stays the program's: removing it leaves icon() naming an image no longer there.
 
-   .. cpp:function:: std::optional<ImageId> icon(std::string_view identifier) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageId> icon(std::string_view identifier) const noexcept
 
       The image to draw for the icon ``identifier``: the selected user theme's override of an overridable icon, else the program's image; nullopt for an identifier not registered. A user theme is selected before the first window, so a window resolves the same image for its whole life.
 
-   .. cpp:function:: std::optional<ImageId> program_icon(std::string_view identifier) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageId> program_icon(std::string_view identifier) const noexcept
 
       The program's own image for the icon ``identifier``, whatever user theme is selected; nullopt for an identifier not registered.
 
@@ -198,9 +220,9 @@ Related types
 
    .. cpp:function:: bool remove_image(ImageId image)
 
-   .. cpp:function:: void set_light_plane_directory(std::filesystem::path directory)
+   .. cpp:function:: void set_light_plane_directory(FilePath directory)
 
-      Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property), read from ``directory`` the first time each is asked for and kept (LightPlaneCache). An empty path, the default, holds none, so every such part draws its theme's look. A new directory forgets the bakes read so far and repaints every sharing window. On the UI thread (std::logic_error elsewhere).
+      Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property), read from ``directory`` the first time each is asked for and kept (LightPlaneCache). An empty path, the default, holds none, so every such part draws its theme's look. A new directory forgets the bakes read so far and lays out and repaints every sharing window (a bake's presence changes a part's aspect). On the UI thread (std::logic_error elsewhere).
 
 .. cpp:namespace:: gui_forms
 
@@ -486,7 +508,7 @@ Related types
 
       Retires every occupied slot and resets byte/resource totals while preserving future generation safety.
 
-   .. cpp:function:: std::optional<ImageResourceView> find(ImageId image) const noexcept
+   .. cpp:function:: stxlib::Optional<ImageResourceView> find(ImageId image) const noexcept
 
       Resolves only an exact current generational ID and returns a mutation-scoped byte view.
 
@@ -676,6 +698,120 @@ Related types
 
       Forgets the message fed so far.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StockIcon final
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   One stock icon: its name (lowercase words joined by hyphens, as stock_icon_names lists them), its style and its size variant.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: StockIconStyle style
+
+      Default: ``{StockIconStyle::solid}``.
+
+   .. cpp:member:: StockIconSize size
+
+      Default: ``{StockIconSize::grid_24}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StockIconBakeCounts final
+
+   ``#include <gui_forms/resources/stock_icons/stock_icons.hpp>``
+
+   The stock icon bake counters (instrumentation): coverage rasterizations, coloured rasters made from them, the entries the process cache holds of each, and the scales Window has baked the status icons for.
+
+   .. cpp:member:: std::uint64_t coverage_bakes
+
+   .. cpp:member:: std::uint64_t raster_bakes
+
+   .. cpp:member:: std::size_t cached_coverage
+
+   .. cpp:member:: std::size_t cached_rasters
+
+   .. cpp:member:: std::size_t prebaked_scales
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StockIconImage final
+
+   ``#include <gui_forms/resources/stock_icons/stock_icons.hpp>``
+
+   What a stock icon id names: the icon's name (static storage), its style, and its fixed size if it has one (else the nearest is chosen when drawn).
+
+   .. cpp:member:: std::string_view name
+
+   .. cpp:member:: StockIconStyle style
+
+      Default: ``{StockIconStyle::solid}``.
+
+   .. cpp:member:: stxlib::Optional<StockIconSize> size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StockIconLayer final
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   One layer of an icon's vectors: the layer's verbs end at ``verb_end`` and its points at ``point_end`` (each layer starts where the previous one ended, the first at zero); a stroke is ``stroke_width`` grid units wide with ``cap`` at its open ends and round joins.
+
+   .. cpp:member:: std::size_t verb_end
+
+   .. cpp:member:: std::size_t point_end
+
+   .. cpp:member:: StockIconPaint paint
+
+      Default: ``{StockIconPaint::fill_nonzero}``.
+
+   .. cpp:member:: double stroke_width
+
+   .. cpp:member:: StrokeCap cap
+
+      Default: ``{StrokeCap::round}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: StockIconReplacement final
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   A theme's drawing for one stock icon variant (ThemeDefinition::stock_icons): shown wherever ``icon`` would be, in the same colour.
+
+   .. cpp:member:: StockIcon icon
+
+   .. cpp:member:: std::shared_ptr<const StockIconVectors> vectors
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: StockIconVectors final
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   An icon's drawing on its grid: layers of curved paths (PaintPath's verbs and points, in grid units with y down), each filled or stroked. Immutable once made and shared read-only (the built-in set holds one per variant for the process's life; a theme holds its replacements while it lives).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: double grid() const noexcept
+
+   .. cpp:function:: std::size_t layer_count() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static std::shared_ptr<const StockIconVectors> create(double grid, std::vector<PaintPathVerb> verbs, std::vector<Point> points, std::vector<StockIconLayer> layers)
+
+      Makes the vectors, taking the arrays. Throws std::invalid_argument, making nothing, unless :cpp:func:`grid <gui_forms::StockIconVectors::grid>` is finite and in (0, 256], there is at least one layer, the layers' ends rise and the last ends at the arrays' sizes, every layer's path is valid (valid_paint_path) and every stroke width is finite and in (0, grid].
+
+   .. cpp:function:: const StockIconLayer& layer(std::size_t index) const& noexcept
+
+      Layer ``index`` (below layer_count()) and its path, borrowed from these vectors: valid while they live. Not for a temporary.
+
+   .. cpp:function:: PaintPathView layer_path(std::size_t index) const& noexcept
+
 Enumerations
 ------------
 
@@ -831,6 +967,40 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: StockIconPaint
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   .. cpp:enumerator:: fill_nonzero
+
+   .. cpp:enumerator:: fill_even_odd
+
+   .. cpp:enumerator:: stroke
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StockIconSize
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   .. cpp:enumerator:: grid_16
+
+   .. cpp:enumerator:: grid_20
+
+   .. cpp:enumerator:: grid_24
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StockIconStyle
+
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+
+   .. cpp:enumerator:: outline
+
+   .. cpp:enumerator:: solid
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: UserThemePolicy
 
    ``#include <gui_forms/resources/application_resources/application_resources.hpp>``
@@ -895,6 +1065,82 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t image_atlas_pending_every_slot
 
    ImageAtlasLayout::pending_fills: one pending cell for every slot. Value: ``0xffffffffU``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/resources/stock_icons/stock_alert_icon.hpp>``
+
+.. cpp:function:: std::optional<HostImage> stock_alert_icon_image(const Window& window, HostMessageIcon icon)
+
+   The stock icon a message dialog shows for ``icon`` (exhibit gap E10: the MessageBox and window alerts use the set): information-circle, exclamation-triangle, x-circle or question-mark-circle, solid, 32 logical units square, baked at ``window``'s scale in its root control's theme: the panel recipe's glyph colour, in its invalid state for an error and its pending state for a warning or a question, so dark schemes and high contrast follow. The pixels are HostImage's premultiplied BGRA, top row first. Empty for HostMessageIcon::none, a value outside the enumeration, a window without a root, or a scale out of a part raster's range. HostMessageDialogRequest::icon_image carries it to the host.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/resources/stock_icons/stock_icons.hpp>``
+
+.. cpp:function:: std::span<const std::string_view> stock_icon_names() noexcept
+
+   Every icon name in the set, sorted bytewise; static storage.
+
+.. cpp:function:: bool has_stock_icon(const StockIcon& icon) noexcept
+
+   Whether the set holds ``icon`` (its name in its style on its grid). Outline icons exist on the 24-unit grid only; a few solid icons lack the 16-unit drawing.
+
+.. cpp:function:: std::optional<StockIcon> nearest_stock_icon(std::string_view name, StockIconStyle style, double logical_side)
+
+   The variant of ``name`` in ``style`` to show ``logical_side`` units wide: the authored size nearest it (a tie goes to the larger, a choice: it keeps more of the drawing's detail). Empty for an unknown name, a style the name has no drawing in, or a side that is not finite and positive.
+
+.. cpp:function:: std::shared_ptr<const StockIconVectors> stock_icon_vectors(const StockIcon& icon)
+
+   The built-in vectors of ``icon``, or null when the set lacks it. Read from the embedded records once, on the first call for any icon (thread-safe), and kept for the process's life.
+
+.. cpp:function:: ImageId stock_icon_image(std::string_view name, StockIconStyle style) noexcept
+
+   Stock icons as images (the ImageSource kind of the E10 note): an ImageId naming an icon, accepted wherever an image is (PictureBox::image, a menu item's image, ErrorProvider::icon, a part's image). Such an id never names an image registry entry: registry ids leave the top bit clear and stock icon ids set it. The first form shows the variant nearest the drawn size; the second always shows ``icon``'s own size, as long as the set has it. ImageId{} (no image) for an unknown name or variant.
+
+.. cpp:function:: ImageId stock_icon_image(const StockIcon& icon) noexcept
+
+.. cpp:function:: bool is_stock_icon_image(ImageId image) noexcept
+
+.. cpp:function:: stxlib::Optional<StockIconImage> stock_icon_image_parts(ImageId image) noexcept
+
+.. cpp:function:: std::optional<StockIcon> stock_icon_for_image(ImageId image, double logical_side)
+
+   The icon chosen to draw ``image`` over a square ``logical_side`` units wide: its fixed size, else the nearest (nearest_stock_icon). Empty for an id that is not a stock icon's.
+
+.. cpp:function:: bool rasterize_stock_icon(const StockIconVectors& vectors, std::uint32_t side, std::span<std::uint8_t> coverage)
+
+   ``vectors`` rasterized as coverage into ``coverage``, which the caller owns: side by side bytes, row by row, 0 uncovered to 255 covered, the grid mapped onto the square. Fills are sampled on sixteen sub-rows per pixel with exact horizontal coverage under their fill rule; strokes cover by the distance to the flattened path (round joins, the layer's caps). Overlapping layers combine as one colour painted over itself. Returns false, writing nothing, when ``side`` is 0 or above 4096 or ``coverage`` is smaller than side * side.
+
+.. cpp:function:: std::shared_ptr<const PartRaster> bake_stock_icon(const StockIconVectors& vectors, std::uint32_t side, DeviceScale scale, Color colour)
+
+   ``vectors`` baked ``side`` device pixels square for display scale ``scale`` in ``colour`` (premultiplied, its alpha times the coverage): a part raster for Painter::draw_part_raster. Null when the side or the scale is out of PartRaster's range.
+
+.. cpp:function:: void paint_stock_icon(Painter& painter, const Control& control, ImageId image, Rect destination, Color colour, double opacity = 1.0)
+
+   Draws the stock icon ``image`` names centred in ``destination`` (a square as wide as its shorter side), in ``colour`` at ``opacity``, for ``control``: the variant stock_icon_for_image chooses, or its theme's replacement (Theme::stock_icon_replacement). Attached, the icon is the baked raster for the window's scale from the process's cache (made on first use); detached, its vectors are drawn with fill_path and stroke_path. Draws nothing for an id that is not a stock icon's.
+
+.. cpp:function:: StockIconBakeCounts stock_icon_bake_counts() noexcept
+
+.. cpp:var:: constexpr std::string_view stock_icon_information
+
+   The names of the icons the status marks use. Value: ``"information-circle"``.
+
+.. cpp:var:: constexpr std::string_view stock_icon_warning
+
+   Value: ``"exclamation-triangle"``.
+
+.. cpp:var:: constexpr std::string_view stock_icon_error
+
+   Value: ``"exclamation-circle"``.
+
+.. cpp:var:: constexpr std::string_view stock_icon_question
+
+   Value: ``"question-mark-circle"``.
+
+.. cpp:var:: constexpr std::string_view stock_icon_success
+
+   Value: ``"check-circle"``.
 
 .. cpp:namespace:: gui_forms
 

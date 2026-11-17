@@ -3,7 +3,11 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/numeric_up_down_capabilities.hpp"
+#include "gui_forms/animation/animation_timeline/animation_timeline.hpp"
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -13,6 +17,10 @@
 namespace gui_forms {
 
 class NumericUpDownScrub;
+
+// The scrub glow's rise as a scrub starts and its fade as it ends.
+inline constexpr FrameInterval scrub_glow_rise = std::chrono::milliseconds(120);
+inline constexpr FrameInterval scrub_glow_fall = std::chrono::milliseconds(240);
 
 // Scrub mode (scrub, off by default; the value bar study, section 3.2):
 // a primary press on the unfocused field arms the shared scrub gesture on
@@ -24,6 +32,13 @@ class NumericUpDownScrub;
 // click: the field is focused with its text selected. Once the field has
 // focus the pointer edits text as before. The begin_keyboard_drag rule
 // action scrubs from the keyboard in this mode.
+//
+// While a scrub runs the field glows (the effect program scrub_glow,
+// numeric_up_down_effects.hpp; roadmap row 2.6): the glow rises over
+// scrub_glow_rise once the scrub passes its threshold (or the keyboard mode
+// starts) and fades over scrub_glow_fall when it ends, on a paint-gated
+// timer (ADR-016). Under reduced motion, in an occluded window or with no
+// window, it jumps to its end at once and no timer runs.
 class GUI_FORMS_API NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -49,6 +64,13 @@ public:
     // Whether a scrub (scrub mode) is past its threshold or in the keyboard
     // mode.
     [[nodiscard]] bool scrubbing() const noexcept;
+    // The glow's level now, 0 (none) to 1 (lit), and the level it moves
+    // to: 1 while scrubbing, else 0.
+    [[nodiscard]] double scrub_glow() const noexcept { return scrub_glow_; }
+    [[nodiscard]] double scrub_glow_target() const noexcept { return scrub_glow_to_; }
+    // The glow's effect instance, attached at its first paint.
+    [[nodiscard]] const EffectInstance& scrub_glow_effect() const noexcept { return scrub_glow_effect_; }
+    void on_detached_from_window() noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
                             std::string_view value_text) override;
@@ -94,6 +116,11 @@ private:
         std::weak_ptr<NumericUpDown> target;
         void operator()(int direction) const;
     };
+    // The glow timer's target. Observes the control.
+    struct ScrubGlowTick final {
+        std::weak_ptr<NumericUpDown> target;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
 
     void step(int direction);
     void commit_editor_text();
@@ -101,15 +128,36 @@ private:
     [[nodiscard]] std::string formatted_value() const;
     // Moves value into [minimum, maximum] when a bound has passed it.
     void clamp_value();
+    // Moves the glow toward 1 (`lit`) or 0 from where it is now; at once
+    // when motion is suppressed. Invalidates the field.
+    void set_scrub_glow_target(bool lit);
+    // One glow tick: the level from the timeline, the field invalidated.
+    AnimationTickResult on_scrub_glow_tick(FrameTime now);
+    // Ends the glow's transition at its target and stops the timer.
+    void complete_scrub_glow() noexcept;
 
     bool synchronizing_{};
     // Set while the editor's own text is committed to value, so the write
     // leaves the text as the user typed it.
     bool committing_{};
+    // The locale generation the editor's text was last written for
+    // (Control::effective_locale_generation): arrange writes the text again
+    // with the separators of a locale that has changed since.
+    std::uint64_t shown_locale_generation_{};
     Event<double> value_changed_;
     // The scrub mode's drag client and target, made with the control
     // (numeric_up_down.cpp); idle unless scrub is on.
     std::unique_ptr<NumericUpDownScrub> scrub_;
+    // The field's place in the control, from arrange: where the glow draws.
+    Rect field_bounds_{};
+    // The glow: its level now, the levels its transition runs between, the
+    // transition's timeline and its paint-gated timer, and the effect.
+    double scrub_glow_{};
+    double scrub_glow_from_{};
+    double scrub_glow_to_{};
+    AnimationTimeline scrub_glow_timeline_{};
+    AnimationTimer scrub_glow_frames_{};
+    EffectInstance scrub_glow_effect_{};
     // property_codemod begin NumericUpDown (tools/property_families/numeric_up_down.json; generated, do not edit)
 public:
     // NumericUpDown's property table: Panel's entries, then its own.
@@ -119,9 +167,10 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_value_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_value_changed();
 
 private:
     friend struct NumericUpDownValueCapability<NumericUpDown>;

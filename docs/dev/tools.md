@@ -68,6 +68,8 @@ template_harness, checked out beside this repository at the commit
   (`tools/check_member_views.py`): an inline accessor returning a view of a
   data member (`std::span`, `std::string_view`, `BorrowedSpan`,
   `BorrowedText`) is qualified `const&` and has a deleted `&&` overload.
+  The `house-style` CI job calls the harness's checker directly, so this
+  member-accessor rule runs only through the shim.
   `python3 -B tools/check_lifetime_rules.py tests/semantic_tests.cpp`
 
 `tools/lifetime_lint.py`
@@ -117,15 +119,128 @@ template_harness, checked out beside this repository at the commit
   so it runs on macOS.
   `tools/house_policy_check/run_inventory.sh "$PWD/build" ledger.json`
 
+## The C ABI and other generated sources
+
+The `house-style` CI job runs each of these with `--check` (or `check`), so a
+stale generated file fails it. Run the generator and commit its output with
+the change that needs it.
+
+`tools/abi_audit.py`
+: Records and audits the C ABI (`include/gui_forms/c/gf_abi.h`). `extract`
+  writes or checks the manifest under `manifests/abi/`, `check` applies the
+  ABI rules and the recorded baselines (`--mode blocking` fails on any
+  break), `probe` writes or checks the layout probe, `exports` checks a built
+  library's exports and `coverage` requires every slot to be called. It
+  parses with clang, so pass `--clang` with LLVM 22.1.8. ctest runs the
+  blocking check in every native build (`gui_forms_abi_audit`).
+  `python3 -B tools/abi_audit.py check --clang /path/to/clang --mode blocking`
+
+`tools/abi_bindings.py`
+: Generates the C# interop (`csharp`) and the C++ wrappers (`cpp`) from the
+  audited manifest.
+  `python3 -B tools/abi_bindings.py csharp --check`
+
+`tools/abi_class_tables.py`
+: Generates the C ABI 1.3 class tables, through which C and C# code
+  overrides a control's `on_*` hooks, and checks that the ledger only grows
+  (`--previous`).
+  `python3 -B tools/abi_class_tables.py --check`
+
+`tools/abi_event_catalog.py`
+: Generates the C ABI's event catalog from the interaction declarations.
+  `python3 -B tools/abi_event_catalog.py --check`
+
+`tools/drawing_bridge.py`
+: Generates the System.Drawing facade's native bridge
+  (`generated/facade-v1/System.Drawing.Common/DrawingBridge.g.cs`) from its
+  template, `tools/drawing_bridge/DrawingBridge.cs.in`, the retired facade
+  generator's bridge template. Both imports load the C ABI library,
+  `gui_forms_abi<GF_ABI_MAJOR>`, which holds the drawing ABI and its raster
+  service. Edit the template, not the generated file.
+  `python3 -B tools/drawing_bridge.py --check`
+
+`tools/export_annotations.py`
+: Checks that every public declaration carries its library's export macro
+  (`check`), adds missing ones (`apply`) and writes the export lists under
+  `cmake/exports/` (`exports`).
+  `python3 -B tools/export_annotations.py check`
+
+`tools/property_codemod.py`
+: Generates and checks the property families' code from
+  `tools/property_families/*.json` (`generate`, `rewrite`, `check`,
+  `selftest`).
+  `python3 -B tools/property_codemod.py check`
+
+`tools/control_schema.py`, `tools/stock_anatomies.py`, `tools/stock_specimens.py`
+: Check and render the control schema (`manifests/control-schema.json`,
+  written from a laid-out Gallery), and project it into the stock anatomy
+  table the core compiles and the stock specimen catalogue.
+  `python3 tools/control_schema.py check`
+  `python3 -B tools/stock_anatomies.py --check`
+
+`tools/dither_tables.py`
+: Writes the engine's blue-noise dither table for gradient dithering.
+  `python3 -B tools/dither_tables.py --check`
+
+`tools/paint_census.py`
+: Counts control code that paints without the theme engine; the count in
+  `manifests/paint_census.json` may only fall.
+  `python3 -B tools/paint_census.py check`
+
+`tools/host_trig_check.py`
+: Refuses the host's `sin`, `cos`, `tan`, `atan2` and `hypot` (and their C
+  forms) in `src/core`, `src/controls` and `src/render`, which call the
+  deterministic functions of `engine_math.hpp` instead; the allowance in
+  `manifests/host_trig_allowance.json` may only shrink.
+  `python3 -B tools/host_trig_check.py check`
+
+`tools/check_test_registration.py`, `tools/check_test_asserts.py`
+: Refuse test programs the build never runs, and checks in test code that
+  `NDEBUG` would remove.
+  `python3 -B tools/check_test_registration.py`
+
+`tools/warning_baseline.py`
+: Counts the distinct warning sites per directory in a build's compiler
+  output and compares them with `tools/warning_baseline.json`, per host.
+  `python3 -B tools/warning_baseline.py check --log build.log --host macos`
+
+## Migrations
+
+`tools/flatten_control_headers.py`
+: Moved the control headers to `include/gui_forms/controls/<name>.hpp`
+  (checkpoint 29); `check` fails on any remaining old include spelling, and
+  `tools/control_header_moves.json` lists the moves for consumers.
+  `python3 -B tools/flatten_control_headers.py check`
+
+`tools/migrate_right_to_left.py`
+: Rewrites the retired `layout_direction` spelling to `right_to_left`.
+  `python3 -B tools/migrate_right_to_left.py --write src/`
+
+`tools/relocate_colours.py`
+: Moves colours written in form documents into a theme sheet.
+  `python3 -B tools/relocate_colours.py --sheet themes/app/app.theme.css --no-dark forms/main.form`
+
 ## Build, install and packaging
 
 `tools/ci_build.py`
-: Builds and tests the toolkit exactly as the native CI job does: fetches the
-  text stack and Skia, configures with `cmake/llvm22.cmake`, runs `ctest`,
-  installs into a scratch SDK and builds `examples/reference/` against it.
-  It expects the checkout in a directory named `gui_forms` and writes to
-  `../.build/native-<host>-<arch>/`. `--gallery` also builds the programs.
+: Builds and tests the toolkit exactly as the native CI job does: builds or
+  reuses the stx package (the CPU renderer and the text stack), configures
+  with `cmake/llvm22.cmake`, runs `ctest`, installs into a scratch SDK and
+  builds `examples/reference/` against it. It expects the checkout in a
+  directory named `gui_forms` and writes to `.build/native-<host>-<arch>/`
+  in the workspace that holds it. `--gallery` also builds the programs;
+  `--sanitize` builds the sanitizer tree ([Contributing](contributing.md));
+  `--test-targets-only` is the pull-request build (the whole suite, nothing
+  installed); `--install-only` installs the SDK without running the tests.
   `python3 tools/ci_build.py --jobs 4`
+
+`tools/build_sdk.py`, `tools/package_sdk.py`
+: The source SDK. `package_sdk.py` archives a release's tree with the stx
+  checkout `stx.lock` names as `gui-forms-sdk-<version>-source.tar.gz`;
+  `build_sdk.py` builds and installs GUI.Forms from that archive (or this
+  tree) for one target, with `--features all` adding the optional
+  components.
+  `python3 tools/build_sdk.py --target macos-arm64 --prefix /path/to/sdk`
 
 `tools/verify_install.py`
 : Builds an independent consumer against an installed SDK prefix and checks
@@ -136,7 +251,26 @@ template_harness, checked out beside this repository at the commit
   (with `--native`) also builds and runs `tests/installed_feature_consumer/`
   against a `build_sdk.py --features all` prefix, through the `TextMasks` and
   `AudioLoopTransport` components. Without it, those two must be rejected.
+  `--sdk-consumer` (with `--native`) builds and runs `tests/sdk_consumer/`,
+  which links every public component from the prefix's archives (the
+  controls, a composite, an application font family, the drawing raster
+  seam, `TextMasks` and the C ABI with `gd_get_api_v0`);
+  `--sdk-consumer-text-masks OFF` and `--sdk-consumer-c-abi OFF` describe a
+  prefix without those components.
   `python3 tools/verify_install.py /path/to/prefix --native`
+
+`tools/sdk_consumer_link.py`
+: The SDK-consumer link test, the `gui_forms_sdk_consumer_link` test: installs
+  a build tree into a temporary prefix and builds `tests/sdk_consumer/`
+  against that prefix alone, configured as the tree was. A symbol the
+  installed archives lack fails the link; a separate program links
+  `GUIForms::TextMasks` alone, so an empty interface fails too. The suite
+  registers it in an installable tree (a native host, and no development
+  prepared text). CI's tree builds the text masks for it
+  (`GUI_FORMS_BUILD_TEXT_MASKS=ON`, as `build_sdk.py --features all`); in a
+  tree without them, or without the C ABI library, it says what it could not
+  check and CTest reports it skipped, not passed.
+  `python3 tools/sdk_consumer_link.py --build-dir build --scratch build/sdk-consumer-link -- -GNinja`
 
 `tools/package_programs.py`
 : Packages the programs listed in `packaging/programs.json` from a build
@@ -192,6 +326,26 @@ template_harness, checked out beside this repository at the commit
 
 ## Measurement, data and test machines
 
+`tools/code_statistics.py`
+: Counts the C++ and C at HEAD of this repository and of the checkouts named
+  after it (stx, STXlib): files, lines (blank, comment, code), characters
+  and bytes, by component, language and provenance, and the first-party
+  C++ headline figure, from the git trees with no build. `--markdown` and `--json` write the other forms;
+  `.github/workflows/code-statistics.yml` runs it on `main`
+  ([code statistics](../user/code-statistics.md)).
+  `python3 -B tools/code_statistics.py ../stx ../stxlib`
+
+`tools/integrity_counts.py`
+: Counts audit findings found, fixed and declined, by source and severity,
+  for the high-integrity report (owner, 2026-11-16). It reads only records:
+  the audit folders' findings and decline sections, the queue entries, and
+  the commit messages of the named histories, and resolves the coders' short
+  forms (`02-F7`, `F1 to F5`) against the last full finding ID in the same
+  record. Each finding is traceable to its IDs, commits and queue entries;
+  `--markdown` and `--json` write the other forms. The audit folders live
+  outside the repository, so every path is an argument.
+  `python3 -B tools/integrity_counts.py --audit <audit folder> --queue <queue> --repo gui_forms=.@HEAD --repo stx=../stx@<pin>`
+
 `tools/png_admission_probe/`
 : A standalone consumer of an installed SDK that times `validate_png` and
   `ImageRegistry::load_png` separately on generated uncompressed PNGs and
@@ -217,8 +371,8 @@ template_harness, checked out beside this repository at the commit
   `python3 gui_forms/tools/profile_hot_paths.py run --output hot-paths --jobs 4`
 
 `tools/linux_vm/`
-: A Lima definition for an Alpine aarch64 (musl) guest with Clang 22, Xvfb
-  and Weston, for building and graphically testing the Linux host. It covers
+: A Lima definition for an Alpine aarch64 (musl) guest with Clang 22 and
+  libc++ 22 (with LLVM's unwinder and compiler-rt), Xvfb and Weston, for building and graphically testing the Linux host. It covers
   aarch64 musl only; CI's Ubuntu jobs cover glibc and x86-64.
   `limactl create --name=gui-forms-linux tools/linux_vm/gui-forms-linux.yaml`
 

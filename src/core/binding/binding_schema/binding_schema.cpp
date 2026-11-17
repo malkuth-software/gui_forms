@@ -5,6 +5,9 @@
 
 #include "binding_key_order.hpp"
 
+#include <stxlib/optional.hpp>
+#include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -26,22 +29,23 @@ BindingSchema::BindingSchema(std::vector<BindingColumn> columns) {
         throw std::invalid_argument("GUI.Forms binding schema has more than binding_maximum_columns columns");
     }
     columns_.reserve(columns.size());
+    spellings_.reserve(columns.size());
     for (BindingColumn& column : columns) {
         static_cast<void>(append(std::move(column)));
     }
 }
 
-std::optional<std::size_t> BindingSchema::find(std::string_view name) const {
+stxlib::Optional<std::size_t> BindingSchema::find(std::string_view name) const {
     if (blank_name(name)) {
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
     const std::string canonical = canonical_binding_name(name);
     for (std::size_t index = 0U; index < columns_.size(); ++index) {
         if (columns_[index].name == canonical) {
-            return index;
+            return stxlib::Optional<std::size_t>::of(index);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::size_t BindingSchema::append(BindingColumn column) {
@@ -51,11 +55,20 @@ std::size_t BindingSchema::append(BindingColumn column) {
     if (columns_.size() >= binding_maximum_columns) {
         throw std::invalid_argument("GUI.Forms binding schema has more than binding_maximum_columns columns");
     }
+    // The provider's spelling, trimmed as canonical_binding_name trims.
+    const std::string::size_type first = column.name.find_first_not_of(" \t\r\n");
+    const std::string::size_type last = column.name.find_last_not_of(" \t\r\n");
+    std::string spelling = column.name.substr(first, last - first + 1U);
     column.name = canonical_binding_name(column.name);
-    if (find(column.name)) {
+    if (find(column.name).present()) {
         throw std::invalid_argument("GUI.Forms binding schema repeats the column " + column.name);
     }
+    // Both vectors grow before either changes, so a refused allocation
+    // leaves the schema as it was; the moves below do not throw.
+    columns_.reserve(columns_.size() + 1U);
+    spellings_.reserve(spellings_.size() + 1U);
     columns_.push_back(std::move(column));
+    spellings_.push_back(std::move(spelling));
     const std::size_t index = columns_.size() - 1U;
     return index;
 }
@@ -162,38 +175,63 @@ int three_way(const Value& left, const Value& right) noexcept {
     return 0;
 }
 
-// A number's value as a long double: exact for every 64-bit integer where
-// long double has a 64-bit significand (x87), and the nearest otherwise.
-long double wide_value(const BindingKeyView& key) noexcept {
-    if (key.kind == BindingValueKind::signed_integer) {
-        return static_cast<long double>(key.signed_value);
+// Two integer keys (signed or unsigned), exactly across signedness.
+int compare_integers(const BindingKeyView& left, const BindingKeyView& right) noexcept {
+    const bool left_negative = left.kind == BindingValueKind::signed_integer && left.signed_value < 0;
+    const bool right_negative = right.kind == BindingValueKind::signed_integer && right.signed_value < 0;
+    if (left_negative != right_negative) {
+        return left_negative ? -1 : 1;
     }
-    if (key.kind == BindingValueKind::unsigned_integer) {
-        return static_cast<long double>(key.unsigned_value);
+    if (left_negative) {
+        return three_way(left.signed_value, right.signed_value);
     }
-    return static_cast<long double>(key.number);
+    const std::uint64_t left_magnitude = left.kind == BindingValueKind::signed_integer
+                                             ? static_cast<std::uint64_t>(left.signed_value)
+                                             : left.unsigned_value;
+    const std::uint64_t right_magnitude = right.kind == BindingValueKind::signed_integer
+                                              ? static_cast<std::uint64_t>(right.signed_value)
+                                              : right.unsigned_value;
+    return three_way(left_magnitude, right_magnitude);
+}
+
+// An integer key against a double that is not NaN, exactly (A-gf-core-01-F7):
+// no conversion to a wider floating type, whose significand may be 53 bits
+// (long double is a double on arm64 macOS). Outside [-2^63, 2^64) the double
+// lies beyond every integer key; inside, its truncated integer part converts
+// exactly, is compared as an integer, and its fraction's sign breaks a tie.
+int compare_integer_with_number(const BindingKeyView& integer, double number) noexcept {
+    // 2^64 and -2^63, both exact as doubles.
+    constexpr double above_unsigned = 18446744073709551616.0;
+    constexpr double lowest_signed = -9223372036854775808.0;
+    if (number >= above_unsigned) {
+        return -1;
+    }
+    if (number < lowest_signed) {
+        return 1;
+    }
+    const double whole = std::trunc(number);
+    const double fraction = number - whole;
+    BindingKeyView whole_key{};
+    if (whole < 0.0) {
+        whole_key.kind = BindingValueKind::signed_integer;
+        whole_key.signed_value = static_cast<std::int64_t>(whole);
+    } else {
+        whole_key.kind = BindingValueKind::unsigned_integer;
+        whole_key.unsigned_value = static_cast<std::uint64_t>(whole);
+    }
+    const int order = compare_integers(integer, whole_key);
+    if (order != 0) {
+        return order;
+    }
+    const int tie = fraction > 0.0 ? -1 : (fraction < 0.0 ? 1 : 0);
+    return tie;
 }
 
 int compare_numbers(const BindingKeyView& left, const BindingKeyView& right) noexcept {
     const bool left_integer = left.kind != BindingValueKind::number;
     const bool right_integer = right.kind != BindingValueKind::number;
     if (left_integer && right_integer) {
-        // Exact across signedness.
-        const bool left_negative = left.kind == BindingValueKind::signed_integer && left.signed_value < 0;
-        const bool right_negative = right.kind == BindingValueKind::signed_integer && right.signed_value < 0;
-        if (left_negative != right_negative) {
-            return left_negative ? -1 : 1;
-        }
-        if (left_negative) {
-            return three_way(left.signed_value, right.signed_value);
-        }
-        const std::uint64_t left_magnitude = left.kind == BindingValueKind::signed_integer
-                                                 ? static_cast<std::uint64_t>(left.signed_value)
-                                                 : left.unsigned_value;
-        const std::uint64_t right_magnitude = right.kind == BindingValueKind::signed_integer
-                                                  ? static_cast<std::uint64_t>(right.signed_value)
-                                                  : right.unsigned_value;
-        return three_way(left_magnitude, right_magnitude);
+        return compare_integers(left, right);
     }
     // A NaN orders after every number, and equal to another NaN.
     const bool left_nan = !left_integer && left.number != left.number;
@@ -201,7 +239,14 @@ int compare_numbers(const BindingKeyView& left, const BindingKeyView& right) noe
     if (left_nan || right_nan) {
         return three_way(left_nan, right_nan);
     }
-    return three_way(wide_value(left), wide_value(right));
+    if (left_integer) {
+        return compare_integer_with_number(left, right.number);
+    }
+    if (right_integer) {
+        const int reversed = compare_integer_with_number(right, left.number);
+        return -reversed;
+    }
+    return three_way(left.number, right.number);
 }
 
 // A code point of text at offset, advancing offset. A byte that does not

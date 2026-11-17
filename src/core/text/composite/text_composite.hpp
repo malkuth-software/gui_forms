@@ -30,10 +30,23 @@ struct TextCompositeTarget final {
     bool opaque{};
 };
 
+// A path clip's coverage mask (clip_mask.hpp), borrowed for the call: one
+// entry per device pixel, 0..256 (an entry above 256 is read as 256),
+// row-major with stride width, its top-left pixel at (left, top). A pixel
+// outside it has coverage 0.
+struct TextClipMask final {
+    std::span<const std::uint16_t> coverage{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::int64_t left{};
+    std::int64_t top{};
+};
+
 // Clip in device pixels. Edges at fractional positions give partial coverage
 // equal to the covered area of the pixel; a rounded clip's corners give
 // coverage from the pixel centre's signed distance to the arc. All coverage
-// is computed in 1/256-pixel fixed point.
+// is computed in 1/256-pixel fixed point. A masked clip multiplies that
+// coverage c by the mask's m at the pixel, (c * m + 128) / 256.
 struct TextCompositeClip final {
     Rect rect{};
     bool rounded{};
@@ -46,6 +59,11 @@ struct TextCompositeClip final {
     bool outer_rounded{};
     Rect outer_rounded_rect{};
     double outer_radius{};
+    // A clip_path in force (TextClipMask): it must hold at least width *
+    // height entries and lie within the coordinate limit, or the composite
+    // is refused as invalid geometry.
+    bool masked{};
+    TextClipMask mask{};
 };
 
 // Grayscale coverage, 0..255, row-major with stride == width, placed with its
@@ -89,8 +107,49 @@ enum class TextCompositeMode : std::uint8_t { source_over, source };
 // weighted source, transparent source pixels included, each channel
 // (s × w + 32640) / 65280 + (d × (65280 − w) + 32640) / 65280, clamped at
 // 255, so that full weight writes the source exactly (alpha 255 on an
-// opaque target).
-enum class PartCompositeBlend : std::uint8_t { source_over, plus, multiply, screen, copy };
+// opaque target);
+// or the other separable modes (PaintGroupComposite, capability review),
+// as multiply with the mode's term T in place of s × d, all in units of
+// 255 × 255 and rounded once with the rest:
+//   (s × (255 − αd) + d × (255 − αs) + T + 127) / 255, clamped at 255,
+// where, with a = αs and b = αd:
+//   darken      T = min(s × b, d × a)
+//   lighten     T = max(s × b, d × a)
+//   difference  T = |s × b − d × a|
+//   exclusion   T = s × b + d × a − 2 × s × d
+//   hard-light  T = 2 × s × d when 2s ≤ a, else a × b − 2 × (b − d)(a − s)
+//   overlay     hard-light with the test on the destination, 2d ≤ b
+//   color-dodge T = 0 when d = 0, a × b when s = a, else
+//               min(a × b, (d × a × a + (a − s) / 2) / (a − s))
+//   color-burn  T = a × b when d = b, 0 when s = 0, else
+//               a × b − min(a × b, ((b − d) × a × a + s / 2) / s)
+//   soft-light  T = (a × b × B + 32768) >> 16, with B Compositing and
+//               Blending's soft-light of the straight colours in 1/65536
+//               (soft_light_term), its square root an integer one.
+// All are integer and deterministic.
+enum class PartCompositeBlend : std::uint8_t {
+    source_over,
+    plus,
+    multiply,
+    screen,
+    copy,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
+
+// The soft-light function of Compositing and Blending Level 1, in integers:
+// `backdrop` and `source` are straight colours in 1/65536 (0..65536); the
+// result is B(backdrop, source) in 1/65536. D(x) is ((16x − 12)x + 4)x for
+// x ≤ 1/4 and √x beyond, the root the floor of the exact integer root of
+// x × 65536. Exposed for tests.
+[[nodiscard]] std::uint32_t soft_light_term(std::uint32_t backdrop, std::uint32_t source) noexcept;
 
 // The same blend for the theme engine's part rasters (T2 plan, "One blend";
 // GIVEN A2-2 and C1-1). A part raster is premultiplied BGRA8, memory order
@@ -122,6 +181,16 @@ struct PartRasterSource final {
     // unscaled interior's rows. A source not wholly opaque must leave it
     // false: its rows would be copied, not blended.
     bool opaque{};
+    // Source pixels, [opaque_left, opaque_right) by [opaque_top,
+    // opaque_bottom), whose alpha its maker proved 255
+    // (PartRaster::opaque_interior); empty when right <= left. Unscaled
+    // source-over at full opacity copies them where the clip covers them
+    // whole, as it copies a wholly opaque source. Anything not proved opaque
+    // must stay outside: it would be copied, not blended.
+    std::uint32_t opaque_left{};
+    std::uint32_t opaque_top{};
+    std::uint32_t opaque_right{};
+    std::uint32_t opaque_bottom{};
 };
 
 // A part opacity in [0, 1] as the byte the blend reads: floor(o * 255 + 0.5),

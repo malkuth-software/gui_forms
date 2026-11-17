@@ -46,6 +46,13 @@ if(GUI_FORMS_HARDENING AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     if(MINGW)
         list(APPEND GUI_FORMS_HARDENING_COMPILE_OPTIONS -mguard=cf)
         list(APPEND GUI_FORMS_HARDENING_LINK_OPTIONS LINKER:--guard-cf)
+    elseif(WIN32 AND CMAKE_CXX_SIMULATE_ID STREQUAL "MSVC")
+        # The MSVC target: the same control-flow guard. The GNU driver takes
+        # -mguard=cf for MinGW only, so the compiler's own -cfguard (what
+        # clang-cl's /guard:cf passes) is given through -Xclang; SHELL: keeps
+        # the pair together.
+        list(APPEND GUI_FORMS_HARDENING_COMPILE_OPTIONS "SHELL:-Xclang -cfguard")
+        list(APPEND GUI_FORMS_HARDENING_LINK_OPTIONS LINKER:/guard:cf)
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         list(APPEND GUI_FORMS_HARDENING_LINK_OPTIONS LINKER:-z,relro LINKER:-z,now)
     endif()

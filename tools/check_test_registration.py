@@ -32,7 +32,17 @@ SHARED: dict[str, str] = {
     'tests/image/png_decode_probe.cpp': 'audit P12 decode timing probe, built on demand (EXCLUDE_FROM_ALL), never a test',
     'tests/text_mask_cost_probe.cpp': 'by-hand text mask cost probe (EXCLUDE_FROM_ALL)',
     'tests/windows_message_queue_native_probe.cpp': 'local probe that needs an interactive desktop window',
-    'tests/installed_feature_consumer/text_stack.cpp': 'installed-package consumer, built by tools/verify_install.py',
+    'tests/hosted_child.cpp': 'the hosted program gui_forms_hosted_content_tests starts (GUI_FORMS_HOSTED_CHILD)',
+    'tests/hosted_client_consumer/parent.cpp': 'installed-package hosted-content parent, built by tools/verify_install.py --hosted-client',
+    'tests/hosted_client_consumer/child.cpp': 'installed-package hosted program, built by tools/verify_install.py --hosted-client',
+    'tests/cmake/form_shared_source/fake_form_compiler.cpp': 'built inside gui_forms_form_shared_source\'s nested project (tests/cmake/form_shared_source_test.cmake), which runs it',
+    'tests/cmake/form_shared_source/form_reader.cpp': 'built and run inside gui_forms_form_shared_source\'s nested project (tests/cmake/form_shared_source_test.cmake)',
+    'tests/cmake/form_shared_source/other_reader.cpp': 'built inside gui_forms_form_shared_source\'s nested project, the target that shares a source with the form target',
+    'tests/control_language/control_model_tests.cpp': 'added and registered by CMakeLists.txt\'s foreach(control_test ...): add_executable and add_test of gui_forms_${control_test}',
+    'tests/control_language/control_lock_tests.cpp': 'added and registered by CMakeLists.txt\'s foreach(control_test ...)',
+    'tests/control_language/composite_control_tests.cpp': 'added and registered by CMakeLists.txt\'s foreach(control_test ...)',
+    'tests/control_language/control_generator_tests.cpp': 'added and registered by CMakeLists.txt\'s foreach(control_test ...)',
+    'tests/control_language/composite_form_tests.cpp': 'added and registered by CMakeLists.txt\'s foreach(control_test ...)',
     'tests/theme_language/theme_request_app.cpp': 'launched by the gui_forms_theme_request_app_* tests, whose add_test names it through gui_forms_theme_request_case',
 }
 

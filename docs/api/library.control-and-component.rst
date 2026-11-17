@@ -5,7 +5,7 @@
 Control and component
 =====================
 
-The base classes every control and nonvisual component derives from, with layout, docking, anchoring and validation vocabularies (layout constraints, intrinsic sizes and layout direction among them), and the anatomy each control publishes: named parts, part roles and states, and the interactions each type raises.
+The base classes every control and nonvisual component derives from, with layout, docking, anchoring and validation vocabularies (layout constraints, intrinsic sizes and layout direction among them), and the anatomy each control publishes: named parts, part roles and states, and the interactions each type raises; composite controls, the control types a ``.control`` document defines.
 
 .. list-table::
    :class: autosummary longtable
@@ -42,6 +42,14 @@ Related types
      - The description assistive technology announces.
    * - :cpp:class:`AccessibleNameCapability <gui_forms::AccessibleNameCapability>`
      - The name assistive technology announces.
+   * - :cpp:class:`ActiveBorder <gui_forms::ActiveBorder>`
+     - What the program asks for.
+   * - :cpp:class:`ActiveBorderConditions <gui_forms::ActiveBorderConditions>`
+     - What the window is like when the border paints.
+   * - :cpp:class:`ActiveBorderPath <gui_forms::ActiveBorderPath>`
+     - The rectangle the stroke's centre line follows around a box of ``size``, and the radius it uses there (the corner radius grown by the distance from the box to the centre line, not below 0).
+   * - :cpp:class:`ActiveBorderPose <gui_forms::ActiveBorderPose>`
+     - What the border paints after the limiter: the colours, the motion and its frequency (0 when steady), and the width.
    * - :cpp:class:`AlignSelfCapability <gui_forms::AlignSelfCapability>`
      - Where the control sits across its layout region's block axis (CSS align-self).
    * - :cpp:class:`AllowDropCapability <gui_forms::AllowDropCapability>`
@@ -407,6 +415,88 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ActiveBorder final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   What the program asks for. Lengths are logical units. ``colour`` empty is the theme's accent; ``alternate`` empty is the lit colour fully transparent, so a flash blinks the border off. ``offset`` is the gap between the control's box and the stroke's inner edge: negative draws inside the box. ``frequency`` is in cycles a second, for flashing and cycling only.
+
+   .. cpp:member:: stxlib::Optional<Color> colour
+
+   .. cpp:member:: stxlib::Optional<Color> alternate
+
+   .. cpp:member:: double width
+
+      Default: ``{2.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double corner_radius
+
+   .. cpp:member:: ActiveBorderMotion motion
+
+      Default: ``{ActiveBorderMotion::steady}``.
+
+   .. cpp:member:: double frequency
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorderConditions final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   What the window is like when the border paints.
+
+   .. cpp:member:: Color theme_colour
+
+      The theme's accent and the high-contrast stroke colour.
+
+   .. cpp:member:: Color high_contrast_colour
+
+   .. cpp:member:: bool rest
+
+      Reduced motion, ambient motion off or an occluded window.
+
+   .. cpp:member:: bool high_contrast
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorderPath final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   The rectangle the stroke's centre line follows around a box of ``size``, and the radius it uses there (the corner radius grown by the distance from the box to the centre line, not below 0).
+
+   .. cpp:member:: Rect rect
+
+   .. cpp:member:: double radius
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorderPose final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   What the border paints after the limiter: the colours, the motion and its frequency (0 when steady), and the width.
+
+   .. cpp:member:: Color lit
+
+   .. cpp:member:: Color alternate
+
+   .. cpp:member:: ActiveBorderMotion motion
+
+      Default: ``{ActiveBorderMotion::steady}``.
+
+   .. cpp:member:: double frequency
+
+   .. cpp:member:: double width
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> AlignSelfCapability
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
@@ -575,9 +665,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(BackColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, BackColorCapability<Declaring>> back_color
 
 .. cpp:namespace:: gui_forms
 
@@ -1163,15 +1253,15 @@ Related types
 
       The plain tooltip text; empty never shows.
 
-   .. cpp:member:: std::optional<CursorKind> cursor
+   .. cpp:member:: stxlib::Optional<CursorKind> cursor
 
       The pointer's cursor; empty takes the parent's (Cursor).
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
       The own background colour; empty takes the parent's.
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
       The own text colour; empty takes the parent's.
 
@@ -1328,9 +1418,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> incoming)
+   .. cpp:function:: static void assign(CursorCapability& capability, stxlib::Optional<CursorKind> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor
+   .. cpp:member:: PropertyCell<stxlib::Optional<CursorKind>, CursorCapability<Declaring>> cursor
 
 .. cpp:namespace:: gui_forms
 
@@ -1736,9 +1826,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(ForeColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, ForeColorCapability<Declaring>> fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2402,6 +2492,8 @@ Related types
 
    .. cpp:member:: BoxSides<AutoLengthPercentage> inset
 
+      Default: ``{AutoLengthPercentage{true, {}}, AutoLengthPercentage{true, {}}, AutoLengthPercentage{true, {}}, AutoLengthPercentage{true, {}}}``.
+
    .. cpp:member:: SizeValue width
 
    .. cpp:member:: SizeValue height
@@ -2565,7 +2657,7 @@ Related types
 
    .. cpp:member:: std::string display_text
 
-   .. cpp:member:: std::optional<char32_t> mnemonic
+   .. cpp:member:: stxlib::Optional<char32_t> mnemonic
 
 .. cpp:namespace:: gui_forms
 
@@ -2594,13 +2686,15 @@ Related types
 
    .. cpp:member:: Size size
 
-   .. cpp:member:: std::optional<double> left
+   .. cpp:member:: stxlib::Optional<double> left
 
-   .. cpp:member:: std::optional<double> top
+      Offsets from the owner's edges: exactly one of left and right, and one of top and bottom, is present (set_owned_decorations checks).
 
-   .. cpp:member:: std::optional<double> right
+   .. cpp:member:: stxlib::Optional<double> top
 
-   .. cpp:member:: std::optional<double> bottom
+   .. cpp:member:: stxlib::Optional<double> right
+
+   .. cpp:member:: stxlib::Optional<double> bottom
 
    .. cpp:member:: double rotation_degrees
 
@@ -2684,19 +2778,19 @@ Related types
 
    .. cpp:member:: AnatomyStateSet states
 
-   .. cpp:member:: std::optional<AccentIndex> accent
+   .. cpp:member:: stxlib::Optional<AccentIndex> accent
 
       The accent the part is tinted with, or none (see AccentIndex).
 
-   .. cpp:member:: std::optional<Color> content_color
+   .. cpp:member:: stxlib::Optional<Color> content_color
 
       The colour the part shows as its content, or none: a colour swatch's sample (PartPaint::content_color; owner decision W-7).
 
-   .. cpp:member:: std::optional<Color> authored_background
+   .. cpp:member:: stxlib::Optional<Color> authored_background
 
       The colours the application authored for the part, or none (PartPaint::authored_background and authored_foreground; owner decision T4-1).
 
-   .. cpp:member:: std::optional<Color> authored_foreground
+   .. cpp:member:: stxlib::Optional<Color> authored_foreground
 
 .. cpp:namespace:: gui_forms
 
@@ -2789,7 +2883,7 @@ Related types
 
 .. cpp:struct:: RuntimeId
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/runtime_id/runtime_id.hpp>``
 
    RuntimeId is the monotonic process-local identity used for exact retained instances and child operations.
 
@@ -3004,6 +3098,18 @@ Related types
 
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ActiveBorderMotion
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   .. cpp:enumerator:: steady
+
+   .. cpp:enumerator:: flashing
+
+   .. cpp:enumerator:: cycling
 
 .. cpp:namespace:: gui_forms
 
@@ -3922,23 +4028,23 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view engine_input_name(EngineInput input) noexcept
 
-.. cpp:function:: std::optional<PartRole> part_role_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<PartRole> part_role_from_name(std::string_view name) noexcept
 
-.. cpp:function:: std::optional<AnatomyState> anatomy_state_from_name(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<AnatomyState> anatomy_state_from_name(std::string_view name) noexcept
 
-.. cpp:function:: std::optional<PartIndex> find_declared_part(std::span<const PartDeclaration> declared, std::string_view part_name) noexcept
+.. cpp:function:: stxlib::Optional<PartIndex> find_declared_part(std::span<const PartDeclaration> declared, std::string_view part_name) noexcept
 
    Lookup by declared name within one declaration list, within a control type's own parts, or within one of its item systems.
 
-.. cpp:function:: std::optional<PartIndex> find_part(const ControlAnatomy& anatomy, std::string_view part_name) noexcept
+.. cpp:function:: stxlib::Optional<PartIndex> find_part(const ControlAnatomy& anatomy, std::string_view part_name) noexcept
 
-.. cpp:function:: std::optional<ItemSystemIndex> find_item_system(const ControlAnatomy& anatomy, std::string_view system_name) noexcept
+.. cpp:function:: stxlib::Optional<ItemSystemIndex> find_item_system(const ControlAnatomy& anatomy, std::string_view system_name) noexcept
 
-.. cpp:function:: std::optional<PartIndex> find_item_part(const ItemSystemDeclaration& system, std::string_view part_name) noexcept
+.. cpp:function:: stxlib::Optional<PartIndex> find_item_part(const ItemSystemDeclaration& system, std::string_view part_name) noexcept
 
-.. cpp:function:: std::optional<CustomStateIndex> find_custom_state(const ControlAnatomy& anatomy, std::string_view state_name) noexcept
+.. cpp:function:: stxlib::Optional<CustomStateIndex> find_custom_state(const ControlAnatomy& anatomy, std::string_view state_name) noexcept
 
-.. cpp:function:: std::optional<CustomStateIndex> find_item_custom_state(const ItemSystemDeclaration& system, std::string_view state_name) noexcept
+.. cpp:function:: stxlib::Optional<CustomStateIndex> find_item_custom_state(const ItemSystemDeclaration& system, std::string_view state_name) noexcept
 
 .. cpp:function:: bool declares_state(const ControlAnatomy& anatomy, AnatomyState state) noexcept
 
@@ -4014,6 +4120,8 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::array<CustomStateDeclaration, 2> admitted_custom_states
 
+   Value: ``{{modified_custom_state, pinned_custom_state}}``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
@@ -4036,6 +4144,64 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/control/active_border/active_border.hpp>``
+
+.. cpp:function:: bool active_border_valid(const ActiveBorder& border) noexcept
+
+   Whether ``border`` may be set: width finite in (0, maximum_active_border_width], offset finite within plus or minus maximum_active_border_offset, radius finite in [0, maximum_active_border_radius], frequency finite and not negative, and the motion one of the enumerators. A frequency above the limit is valid: the limiter lowers it.
+
+.. cpp:function:: bool active_border_saturated_red(Color colour) noexcept
+
+   Whether ``colour`` is a saturated red for the flash rule: its red channel is at least 0.8 of the sum of its channels and the colour is not transparent.
+
+.. cpp:function:: ActiveBorderPose resolve_active_border(const ActiveBorder& border, const ActiveBorderConditions& conditions) noexcept
+
+   The border's pose under ``conditions``, by the rules in this header's comment. A valid ``border`` is assumed; a frequency that is not above 0 makes the border steady.
+
+.. cpp:function:: Color active_border_colour_at(const ActiveBorderPose& pose, double seconds) noexcept
+
+   The colour ``pose`` shows ``seconds`` after its motion started (a negative or non-finite time is time 0): flashing is lit in the first half of each cycle, cycling mixes the channels by 0.5 - 0.5 cos(2 pi frequency t).
+
+.. cpp:function:: FrameInterval active_border_interval(const ActiveBorderPose& pose) noexcept
+
+   How often a moving pose must repaint: half a cycle for flashing, the cycling frame rate for cycling; zero when steady.
+
+.. cpp:function:: double active_border_reach(const ActiveBorder& border) noexcept
+
+   How far a border reaches outside the control's box on every side: the offset plus the width, not below 0.
+
+.. cpp:function:: ActiveBorderPath active_border_path(const ActiveBorder& border, Size size) noexcept
+
+.. cpp:var:: constexpr double maximum_active_border_width
+
+   The bounds a border's numbers must keep (active_border_valid). Value: ``8.0``.
+
+.. cpp:var:: constexpr double maximum_active_border_offset
+
+   Value: ``8.0``.
+
+.. cpp:var:: constexpr double maximum_active_border_radius
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_active_border_frequency
+
+   Cycles a second: one cycle is two luminance transitions, so 1.5 is three transitions a second. Value: ``1.5``.
+
+.. cpp:var:: constexpr double minimum_active_border_frequency
+
+   The slowest motion: one cycle a minute. A flash or cycle asked for below it stays steady (A-gf-core-16-F1): a half period of 0.5 / frequency seconds past what the frame clock's ticks hold converted out of range and woke at once, losing the limit above. Value: ``1.0 / 60.0``.
+
+.. cpp:var:: constexpr double minimum_high_contrast_active_border_width
+
+   Value: ``2.0``.
+
+.. cpp:var:: constexpr double active_border_cycling_frames_per_second
+
+   A cycling border repaints at this rate; a flashing one only at its transitions. Value: ``30.0``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/control/control/control.hpp>``
 
 .. cpp:function:: constexpr bool has_validation_constraint(ValidationConstraints value, ValidationConstraints flag) noexcept
@@ -4047,6 +4213,10 @@ Functions, constants and aliases
    The character the first '&' marks, as UTF-8 (a semantic node's access_key, 12.13), or empty when ``text`` marks none.
 
 .. cpp:function:: bool is_mnemonic(char32_t character, std::string_view text) noexcept
+
+.. cpp:function:: bool is_first_letter(char32_t character, std::string_view text) noexcept
+
+   Whether ``text`` marks no mnemonic and its first displayed scalar matches ``character`` (the same folding as is_mnemonic): a menu's first-letter jump for items without a mnemonic, as Windows menus and ToolStripDropDown do.
 
 .. cpp:function:: constexpr bool has_bounds_specified(BoundsSpecified value, BoundsSpecified flag) noexcept
 
@@ -4080,7 +4250,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/control/control_property_traits/control_property_traits.hpp>``
 
-.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
+.. cpp:var:: constexpr TypeTag<stxlib::Optional<CursorKind>> optional_cursor_kind
 
 .. cpp:namespace:: gui_forms
 

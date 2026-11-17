@@ -16,6 +16,7 @@
 #include "gui_forms/binding/property_table/property_table.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -121,6 +122,7 @@ constexpr ControlAnatomy block_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The item_style child property: a child's block flow settings as one CSS
@@ -223,30 +225,31 @@ void BlockPanel::set_style_property(const BindingValue& value) {
 }
 
 LineStrut BlockPanel::used_line_strut() const {
-    const std::optional<LineStrut>& own = line_strut.read();
-    if (own) return *own;
+    const LineStrut* own = line_strut.read().value();
+    if (own != nullptr) return *own;
     const FontSpec used = text_font(resolved_font());
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", used);
-    const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
+    const LineBoxMetrics line = line_box_metrics(primary, stxlib::Optional<double>::none());
     const LineStrut strut{line.baseline, std::max(0.0, line.height - line.baseline), line.x_height};
     return strut;
 }
 
 FontSpec BlockPanel::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     return effective_theme().structure().typography.field;
 }
 
-void BlockPanel::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void BlockPanel::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) throw std::invalid_argument("BlockPanel font is invalid");
-    set_font_from_code(incoming.has_value());
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) throw std::invalid_argument("BlockPanel font is invalid");
+    set_font_from_code(face != nullptr);
 }
 
 // The font feeds only the strut, so a set strut makes a font change moot.
 void BlockPanel::written(const decltype(font)&) {
-    if (!line_strut.read()) invalidate(invalidation::bounds);
+    if (line_strut.read().absent()) invalidate(invalidation::bounds);
 }
 
 void BlockPanel::set_item_layout(const Control& child, const BlockFlowItemLayout& layout) {
@@ -396,9 +399,9 @@ void BlockPanel::resolve_item_inputs(const SolveRequest& request) {
         if (!block) {
             // An inline item sits on the line by its last line box's
             // baseline, as an inline-block does.
-            const std::optional<double> baseline = child.last_baseline(width);
+            const stxlib::Optional<double> baseline = child.last_baseline(width);
             if (!is_alive()) return;
-            if (baseline) input.baseline = *baseline;
+            if (baseline.present()) input.baseline = *baseline.value();
             continue;
         }
 
@@ -746,9 +749,10 @@ void BlockPanel::written(const decltype(text_align)&) {
     invalidate(invalidation::bounds);
 }
 
-void BlockPanel::prepare_write(const decltype(line_strut)&, std::optional<LineStrut>& incoming) {
+void BlockPanel::prepare_write(const decltype(line_strut)&, stxlib::Optional<LineStrut>& incoming) {
     require_mutable();
-    if (incoming && !admitted_strut(*incoming)) {
+    const LineStrut* strut = incoming.value();
+    if (strut != nullptr && !admitted_strut(*strut)) {
         throw std::invalid_argument("BlockPanel line strut values must be finite and nonnegative");
     }
 }

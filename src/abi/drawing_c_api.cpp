@@ -1,19 +1,24 @@
 #include "gui_forms/drawing_c_api.h"
+#include "gui_forms/c/gf_abi.h"
 
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "drawing_platform.hpp"
+#include "drawing_raster_service.h"
 #include "font_resolution_record.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <functional>
 #include <limits>
 #include <memory>
+#include <new>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -21,19 +26,77 @@
 
 namespace {
 
-thread_local gd_result last_error_code = GD_OK;
-thread_local std::string last_error_message;
+// The longest last-error message a thread keeps, in bytes. A longer one is
+// cut at the last whole UTF-8 sequence that fits.
+constexpr std::size_t last_error_capacity = 512U;
 
-gd_result fail(gd_result result, std::string message) noexcept {
-    last_error_code = result;
-    try {
-        last_error_message = std::move(message);
-    } catch (...) {
-        last_error_message.clear();
+// One thread's last error, which gd_last_error reports. Plain data (owner
+// rule 2: every thread_local trivially destructible), so recording a failure
+// never allocates and a thread's exit releases nothing. Each thread reads
+// and writes only its own; gd_last_error lends the message until the
+// thread's next failure.
+struct LastError final {
+    gd_result code{GD_OK};
+    std::size_t message_size{};
+    std::array<char, last_error_capacity> message{};
+};
+
+thread_local LastError last_error{};
+
+// The number of leading bytes of text that end on a whole UTF-8 sequence and
+// fit in capacity: a cut never lands on a continuation byte (10xxxxxx).
+std::size_t utf8_prefix_length(std::string_view text, std::size_t capacity) noexcept {
+    if (text.size() <= capacity) return text.size();
+    std::size_t length = capacity;
+    while (length > 0U && (static_cast<unsigned char>(text[length]) & 0xC0U) == 0x80U) {
+        --length;
     }
+    return length;
+}
+
+// Records the failure as the calling thread's last error and returns it.
+gd_result fail(gd_result result, std::string_view message) noexcept {
+    const std::size_t kept = utf8_prefix_length(message, last_error_capacity);
+    last_error.code = result;
+    if (kept != 0U) std::memcpy(last_error.message.data(), message.data(), kept);
+    last_error.message_size = kept;
     return result;
 }
 
+// Records the failure with a message of two parts, joined in place in the
+// last-error buffer: no allocation, so an error path called outside
+// translate cannot throw std::bad_alloc through a C entry
+// (A-gf-abi-01-F13). Each part is cut on a whole UTF-8 sequence.
+gd_result fail_joined(gd_result result, std::string_view first, std::string_view second) noexcept {
+    const std::size_t first_kept = utf8_prefix_length(first, last_error_capacity);
+    const std::size_t room = last_error_capacity - first_kept;
+    const std::size_t second_kept = utf8_prefix_length(second, room);
+    last_error.code = result;
+    if (first_kept != 0U) std::memcpy(last_error.message.data(), first.data(), first_kept);
+    if (second_kept != 0U) std::memcpy(last_error.message.data() + first_kept, second.data(), second_kept);
+    last_error.message_size = first_kept + second_kept;
+    return result;
+}
+
+// A count of caller elements checked before any element is read: below
+// minimum, or nonzero with no array, it is an argument fault; above maximum
+// it is over its limit (seal decision 4: every over-limit count gives
+// GD_ERROR_LIMIT_EXCEEDED).
+gd_result check_count(const void* elements, std::uint64_t count, std::uint64_t minimum,
+                      std::uint64_t maximum, const char* refusal) {
+    if (count > maximum) {
+        return fail_joined(GD_ERROR_LIMIT_EXCEEDED, refusal, " (the count is over its limit)");
+    }
+    if (count < minimum || (count != 0U && elements == nullptr)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, refusal);
+    }
+    return GD_OK;
+}
+
+// The C++ failures as codes (seal decision 4). A plain std::logic_error is
+// GUI.Drawing's state refusal (a closed recorder, a bitmap under a lock or
+// an edit); its argument refusals are std::invalid_argument, std::out_of_range
+// and std::domain_error, and its limits std::length_error.
 template <typename Operation, typename... Arguments>
 gd_result translate(Operation operation, Arguments&&... arguments) noexcept {
     try {
@@ -45,12 +108,18 @@ gd_result translate(Operation operation, Arguments&&... arguments) noexcept {
             return std::invoke(operation,
                                std::forward<Arguments>(arguments)...);
         }
+    } catch (const std::bad_alloc& error) {
+        return fail(GD_ERROR_OUT_OF_MEMORY, error.what());
     } catch (const std::length_error& error) {
         return fail(GD_ERROR_LIMIT_EXCEEDED, error.what());
     } catch (const std::invalid_argument& error) {
         return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
-    } catch (const std::logic_error& error) {
+    } catch (const std::out_of_range& error) {
         return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
+    } catch (const std::domain_error& error) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
+    } catch (const std::logic_error& error) {
+        return fail(GD_ERROR_INVALID_STATE, error.what());
     } catch (const std::exception& error) {
         return fail(GD_ERROR_INTERNAL, error.what());
     } catch (...) {
@@ -108,6 +177,10 @@ struct ObjectRecord final {
     // lock makes the selected operation order the order in which ABI calls
     // acquire each object. Concurrent access is deliberately serialized.
     std::recursive_mutex operation_mutex;
+    // A bitmap's native surface refresh staging (drawing_platform.hpp):
+    // empty until its first copying refresh, then kept at its size; used
+    // under operation_mutex and destroyed once, with this record.
+    gui_drawing::abi::platform::SurfaceStagingOwner surface_staging{};
 };
 
 struct Slot final {
@@ -138,34 +211,40 @@ public:
                          std::move(object));
     }
 
+    // Lock order (A-gf-abi-01-F1): an operation holds its object's
+    // operation_mutex and may then take mutex_ (adopting a clone, a nested
+    // with). So nothing waits for an operation_mutex while it holds mutex_:
+    // retain and release find the record under mutex_, let it go, take the
+    // operation lock, and check under mutex_ again that the handle still
+    // names that record.
     gd_result retain(gd_handle handle) {
-        std::scoped_lock lock(mutex_);
-        Slot* slot = find_locked(handle);
-        if (slot == nullptr) return stale("retain");
-        std::scoped_lock operation_lock((*(*slot).record).operation_mutex);
-        if ((*(*slot).record).owner_thread != std::this_thread::get_id()) {
-            (*(*(*slot).record).object).handoff_to_current_thread();
-            (*(*slot).record).owner_thread = std::this_thread::get_id();
+        std::shared_ptr<ObjectRecord> record;
+        if (!find_record(handle, record)) return stale("retain");
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if (!still_names(handle, record)) return stale("retain");
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            (*(*record).object).handoff_to_current_thread();
+            (*record).owner_thread = std::this_thread::get_id();
         }
-        if ((*(*slot).record).owner_thread != std::this_thread::get_id()) {
+        if ((*record).owner_thread != std::this_thread::get_id()) {
             return wrong_thread("retain");
         }
-        if ((*(*slot).record).external_references ==
+        if ((*record).external_references ==
             std::numeric_limits<std::uint64_t>::max()) {
             return fail(GD_ERROR_LIMIT_EXCEEDED, "drawing reference count overflow");
         }
-        ++(*(*slot).record).external_references;
+        ++(*record).external_references;
         return GD_OK;
     }
 
     gd_result release(gd_handle handle) {
-        std::scoped_lock lock(mutex_);
-        Slot* slot = find_locked(handle);
-        if (slot == nullptr) return stale("release");
-        // Recycling removes the registry reference. Keep the record and its
-        // mutex alive until the operation lock has released it.
-        const std::shared_ptr<ObjectRecord> record = (*slot).record;
+        // Recycling removes the registry reference; the local one keeps the
+        // record and its mutex alive until the operation lock has released
+        // it.
+        std::shared_ptr<ObjectRecord> record;
+        if (!find_record(handle, record)) return stale("release");
         const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if (!still_names(handle, record)) return stale("release");
         if ((*record).owner_thread != std::this_thread::get_id()) {
             (*(*record).object).handoff_to_current_thread();
             (*record).owner_thread = std::this_thread::get_id();
@@ -177,15 +256,30 @@ public:
             if (!(*(*record).object).is_disposed()) {
                 (*(*record).object).dispose();
             }
-            recycle_locked(*slot);
+            // Taken after the operation lock, the order every operation
+            // uses. The slot is recycled only while it still holds this
+            // record: every other path that recycles also holds the record's
+            // operation lock, so it cannot have changed meanwhile.
+            const std::scoped_lock<std::mutex> lock(mutex_);
+            Slot* const slot = find_locked(handle);
+            if (slot != nullptr && (*slot).record == record) {
+                recycle_locked(*slot);
+            }
         }
         return GD_OK;
     }
 
+    // dispose, object_state and object_kind hold the object for the whole
+    // call (drawing_c_api.h: "Calls on one object are serialized"), with the
+    // owner thread checked under the lock (A-gf-abi-01-F2).
     gd_result dispose(gd_handle handle) {
         std::shared_ptr<ObjectRecord> record;
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
+        }
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            return wrong_thread("dispose");
         }
         return translate(&gui_drawing::DrawingObject::dispose,
                          (*record).object.get());
@@ -199,8 +293,13 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
-        *state = static_cast<std::uint32_t>((*(*record).object).state());
-        return GD_OK;
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            return wrong_thread("object_state");
+        }
+        // state() verifies its thread and may throw: through translate, so
+        // no exception leaves the C entry.
+        return translate(&Registry::read_object_state, (*record).object.get(), state);
     }
 
     gd_result object_kind(gd_handle handle, std::uint32_t* kind) {
@@ -211,6 +310,7 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
+        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
         *kind = (*record).kind;
         return GD_OK;
     }
@@ -237,6 +337,30 @@ public:
                          std::static_pointer_cast<Object>((*record).object);
         if (!object) return fail(GD_ERROR_WRONG_HANDLE_KIND, "drawing handle type mismatch");
         return translate(operation, *object,
+                         std::forward<Arguments>(arguments)...);
+    }
+
+    // with<Bitmap> for a native surface refresh: the operation also gets
+    // the handle record's surface staging, under the same operation lock.
+    template <typename Operation, typename... Arguments>
+    gd_result with_surface_staging(gd_handle handle, Operation operation, Arguments&&... arguments) {
+        std::shared_ptr<ObjectRecord> record;
+        constexpr bool serialized_handoff = true;
+        if (const gd_result result = get(handle, GD_OBJECT_BITMAP, record, false,
+                                         serialized_handoff); result != GD_OK) {
+            return result;
+        }
+        std::scoped_lock operation_lock((*record).operation_mutex);
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            (*(*record).object).handoff_to_current_thread();
+            (*record).owner_thread = std::this_thread::get_id();
+        }
+        if ((*(*record).object).is_disposed()) {
+            return fail(GD_ERROR_DISPOSED, "drawing object is disposed");
+        }
+        std::shared_ptr<gui_drawing::Bitmap> bitmap =
+            std::static_pointer_cast<gui_drawing::Bitmap>((*record).object);
+        return translate(operation, *bitmap, (*record).surface_staging,
                          std::forward<Arguments>(arguments)...);
     }
 
@@ -327,6 +451,42 @@ public:
                          std::forward<Arguments>(arguments)...);
     }
 
+    // with_text_objects without a brush (recorder_draw_strings, ABI 0.5):
+    // the recorder, the font and the format, locked together for the call.
+    template <typename Operation, typename... Arguments>
+    gd_result with_strings_objects(gd_handle recorder_handle, gd_handle font_handle, gd_handle format_handle,
+                                   Operation operation, Arguments&&... arguments) {
+        std::shared_ptr<ObjectRecord> recorder_record;
+        std::shared_ptr<ObjectRecord> font_record;
+        std::shared_ptr<ObjectRecord> format_record;
+        if (const gd_result result = get(recorder_handle, GD_OBJECT_RECORDER,
+                                    recorder_record, false, true); result != GD_OK) return result;
+        if (const gd_result result = get(font_handle, GD_OBJECT_FONT,
+                                    font_record, false, true); result != GD_OK) return result;
+        if (const gd_result result = get(format_handle, GD_OBJECT_STRING_FORMAT,
+                                    format_record, false, true); result != GD_OK) return result;
+        std::scoped_lock operation_lock((*recorder_record).operation_mutex,
+                                        (*font_record).operation_mutex,
+                                        (*format_record).operation_mutex);
+        const std::thread::id current_thread = std::this_thread::get_id();
+        for (ObjectRecord* record : {recorder_record.get(), font_record.get(), format_record.get()}) {
+            if ((*record).owner_thread != current_thread) {
+                (*(*record).object).handoff_to_current_thread();
+                (*record).owner_thread = current_thread;
+            }
+            if ((*(*record).object).is_disposed()) {
+                return fail(GD_ERROR_DISPOSED, "drawing object is disposed");
+            }
+        }
+        std::shared_ptr<gui_drawing::GraphicsRecorder> recorder = std::dynamic_pointer_cast<gui_drawing::GraphicsRecorder>((*recorder_record).object);
+        std::shared_ptr<gui_drawing::Font> font = std::dynamic_pointer_cast<gui_drawing::Font>((*font_record).object);
+        std::shared_ptr<gui_drawing::StringFormat> format = std::dynamic_pointer_cast<gui_drawing::StringFormat>((*format_record).object);
+        if (!recorder || !font || !format) {
+            return fail(GD_ERROR_WRONG_HANDLE_KIND, "drawing text handle type mismatch");
+        }
+        return translate(operation, *recorder, *font, *format, std::forward<Arguments>(arguments)...);
+    }
+
 private:
     template <typename Object, typename... Arguments>
     gd_result create_record(std::uint32_t kind, gd_handle* output,
@@ -400,6 +560,28 @@ private:
         return {static_cast<std::uint32_t>(slots_.size()), slots_.back().generation};
     }
 
+    // The record handle names, copied under mutex_ (released on return).
+    bool find_record(gd_handle handle, std::shared_ptr<ObjectRecord>& record) {
+        const std::scoped_lock<std::mutex> lock(mutex_);
+        Slot* const slot = find_locked(handle);
+        if (slot == nullptr) return false;
+        record = (*slot).record;
+        return true;
+    }
+
+    // Whether handle still names record (called under the record's
+    // operation lock, so mutex_ is taken in the operation order).
+    bool still_names(gd_handle handle, const std::shared_ptr<ObjectRecord>& record) {
+        const std::scoped_lock<std::mutex> lock(mutex_);
+        Slot* const slot = find_locked(handle);
+        const bool same = slot != nullptr && (*slot).record == record;
+        return same;
+    }
+
+    static void read_object_state(gui_drawing::DrawingObject* object, std::uint32_t* state) {
+        *state = static_cast<std::uint32_t>((*object).state());
+    }
+
     Slot* find_locked(gd_handle handle) noexcept {
         if (handle.slot == 0U || handle.slot > slots_.size()) return nullptr;
         Slot& slot = slots_[handle.slot - 1U];
@@ -412,40 +594,61 @@ private:
         if (slot.generation == 0U) ++slot.generation;
     }
 
-    static gd_result stale(std::string_view operation) {
-        return fail(GD_ERROR_STALE_HANDLE,
-                    std::string(operation) + " received a stale drawing handle");
+    static gd_result stale(std::string_view operation) noexcept {
+        return fail_joined(GD_ERROR_STALE_HANDLE, operation, " received a stale drawing handle");
     }
 
-    static gd_result wrong_thread(std::string_view operation) {
-        return fail(GD_ERROR_WRONG_THREAD,
-                    std::string(operation) + " must run on the drawing owner thread");
+    static gd_result wrong_thread(std::string_view operation) noexcept {
+        return fail_joined(GD_ERROR_WRONG_THREAD, operation, " must run on the drawing owner thread");
     }
 
     std::mutex mutex_;
     std::vector<Slot> slots_;
 };
 
+// The registry and the raster service's lock are never destroyed, as the
+// stable ABI's registry is not (termination releases none of our state,
+// rule 1; A-gf-abi-01-F5): a thread still inside a gd_* call at exit never
+// meets a destroyed mutex or record, and no record's staging is released
+// under Windows' loader lock at process detach.
 Registry& registry() {
-    static Registry value;
-    return value;
+    static Registry* const value = new Registry();
+    return *value;
 }
 
-std::mutex raster_service_mutex;
+std::mutex& raster_service_mutex() {
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
+
 gd_raster_service_v0 raster_service{};
 
 
 [[nodiscard]] bool load_raster_service(gd_raster_service_v0& output) {
-    std::scoped_lock lock(raster_service_mutex);
+    std::scoped_lock lock(raster_service_mutex());
     if (raster_service.abi_version == 0U) return false;
     output = raster_service;
     return true;
 }
 
-gd_result verify_bitmap_is_not_leased(gui_drawing::Bitmap& bitmap) {
-    return gui_drawing::abi::platform::has_hdc_lease(bitmap) ?
-        fail(GD_ERROR_INVALID_ARGUMENT,
-             "bitmap cannot be disposed during an HDC lease") : GD_OK;
+// A-gf-abi-01-F12: an HDC lease, a pixel lock and a bounded edit each lend
+// pointers into the bitmap's storage, so dispose waits for all three to be
+// returned. A release that reaches zero is not refused: the caller's
+// reference is gone either way, and refusing would leave it counted.
+gd_result verify_bitmap_is_not_lent(gui_drawing::Bitmap& bitmap) {
+    if (gui_drawing::abi::platform::has_hdc_lease(bitmap)) {
+        return fail(GD_ERROR_INVALID_STATE,
+                    "bitmap cannot be disposed during an HDC lease");
+    }
+    if (bitmap.locked()) {
+        return fail(GD_ERROR_INVALID_STATE,
+                    "bitmap cannot be disposed during a pixel lock");
+    }
+    if (bitmap.editing()) {
+        return fail(GD_ERROR_INVALID_STATE,
+                    "bitmap cannot be disposed during a bounded edit");
+    }
+    return GD_OK;
 }
 
 gd_result create_solid_brush(gd_color color, gd_handle* output) {
@@ -579,6 +782,26 @@ gd_result draw_recorder_string_from_c(gd_handle recorder,
     return registry().with_text_objects(
         recorder, font, brush, format, &draw_recorder_string, native_text,
         origin);
+}
+
+gd_result draw_recorder_string_rotated(gui_drawing::GraphicsRecorder& graphics,
+                                       gui_drawing::Font& font,
+                                       gui_drawing::SolidBrush& brush,
+                                       gui_drawing::StringFormat& format,
+                                       const std::string& text, gd_point origin,
+                                       double degrees) {
+    graphics.draw_string_rotated(text, font, brush, point_from_c(origin), degrees, format);
+    return GD_OK;
+}
+
+gd_result draw_recorder_string_rotated_from_c(gd_handle recorder,
+                                              gd_string_view text, gd_handle font,
+                                              gd_handle brush, gd_point origin,
+                                              double degrees, gd_handle format) {
+    const std::string native_text = string_from_c(text, "draw string text");
+    return registry().with_text_objects(
+        recorder, font, brush, format, &draw_recorder_string_rotated, native_text,
+        origin, degrees);
 }
 
 gd_result query_recorder_command_count(
@@ -881,6 +1104,42 @@ gd_result read_path_points(gui_drawing::GraphicsPath& path, gd_point* points,
     return GD_OK;
 }
 
+// graphics_path_flatten: counted first, so short arrays are reported
+// before anything is written; the C++ flattening writes into scratch that
+// is then copied into the caller's three arrays.
+gd_result flatten_path(gui_drawing::GraphicsPath& path, double tolerance, gd_point* points,
+                       std::uint64_t point_capacity, std::uint64_t* figure_ends,
+                       std::uint32_t* figure_closed, std::uint64_t figure_capacity,
+                       std::uint64_t* point_count, std::uint64_t* figure_count) {
+    *point_count = 0U;
+    *figure_count = 0U;
+    const gui_drawing::PathFlattening needed = path.flattened_size(tolerance);
+    if (needed.status == gui_drawing::PathFlatteningStatus::limit_exceeded) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "path flattening exceeds its point limit");
+    }
+    *point_count = needed.point_count;
+    *figure_count = needed.figure_count;
+    if (point_capacity < needed.point_count || figure_capacity < needed.figure_count ||
+        (needed.point_count != 0U && points == nullptr) ||
+        (needed.figure_count != 0U && (figure_ends == nullptr || figure_closed == nullptr))) {
+        return fail(GD_ERROR_BUFFER_TOO_SMALL, "path flattening arrays are smaller than the counts");
+    }
+    std::vector<gui_drawing::PointF> native_points(needed.point_count);
+    std::vector<gui_drawing::FlattenedFigure> native_figures(needed.figure_count);
+    const gui_drawing::PathFlattening written = path.flatten(tolerance, native_points, native_figures);
+    if (written.status != gui_drawing::PathFlatteningStatus::complete) {
+        return fail(GD_ERROR_INTERNAL, "path flattening changed between counting and writing");
+    }
+    for (std::size_t index = 0U; index < native_points.size(); ++index) {
+        points[index] = {native_points[index].x, native_points[index].y};
+    }
+    for (std::size_t index = 0U; index < native_figures.size(); ++index) {
+        figure_ends[index] = native_figures[index].end;
+        figure_closed[index] = native_figures[index].closed ? 1U : 0U;
+    }
+    return GD_OK;
+}
+
 gd_result clone_path(gui_drawing::GraphicsPath& path, gd_handle* output) {
     return registry().adopt(GD_OBJECT_GRAPHICS_PATH, output, path.clone());
 }
@@ -922,6 +1181,11 @@ gd_result set_pen_line_join(gui_drawing::Pen& pen, std::uint32_t join, double mi
 
 gd_result set_pen_line_cap(gui_drawing::Pen& pen, std::uint32_t cap) {
     pen.set_line_cap(static_cast<gui_drawing::LineCap>(cap));
+    return GD_OK;
+}
+
+gd_result set_pen_trim(gui_drawing::Pen& pen, double start, double end, double offset) {
+    pen.set_trim(start, end, offset);
     return GD_OK;
 }
 
@@ -992,6 +1256,40 @@ gd_result create_checker_brush(double cell_size, gd_color first, gd_color second
                                                         color_from_c(first), color_from_c(second));
 }
 
+gd_result create_texture_brush(gui_drawing::Bitmap& bitmap, gui_drawing::WrapMode wrap_mode, gd_handle* output) {
+    std::unique_ptr<gui_drawing::TextureBrush> brush = std::make_unique<gui_drawing::TextureBrush>(bitmap, wrap_mode);
+    return registry().adopt(GD_OBJECT_TEXTURE_BRUSH, output, std::move(brush));
+}
+
+gd_result set_texture_brush_transform(gui_drawing::TextureBrush& brush, gd_matrix transform) {
+    brush.set_transform(matrix_from_c(transform));
+    return GD_OK;
+}
+
+gd_result create_radial_gradient_brush(gd_point center, double radius, gd_color center_color,
+                                       gd_color edge_color, gui_drawing::WrapMode wrap_mode, gd_handle* output) {
+    return registry().create<gui_drawing::RadialGradientBrush>(GD_OBJECT_RADIAL_GRADIENT_BRUSH, output,
+                                                               point_from_c(center), radius,
+                                                               color_from_c(center_color),
+                                                               color_from_c(edge_color), wrap_mode);
+}
+
+gd_result set_radial_gradient_focus(gui_drawing::RadialGradientBrush& brush, gd_point focus) {
+    brush.set_focus(point_from_c(focus));
+    return GD_OK;
+}
+
+// The two radii of an elliptical radial gradient.
+struct RadialRadii final {
+    double across{};
+    double down{};
+};
+
+gd_result set_radial_gradient_radii(gui_drawing::RadialGradientBrush& brush, RadialRadii radii) {
+    brush.set_radii(radii.across, radii.down);
+    return GD_OK;
+}
+
 gd_result read_contrast_ratio(gd_color first, gd_color second, double* ratio) {
     *ratio = gui_drawing::contrast_ratio(color_from_c(first), color_from_c(second));
     return GD_OK;
@@ -1044,6 +1342,13 @@ gd_result apply_conic_gradient_interpolation(
     return GD_OK;
 }
 
+gd_result apply_radial_gradient_interpolation(
+    gui_drawing::RadialGradientBrush& brush,
+    const gui_drawing::ColorBlend& blend) {
+    brush.set_interpolation_colors(blend);
+    return GD_OK;
+}
+
 gd_result apply_path_gradient_interpolation(
     gui_drawing::PathGradientBrush& brush,
     const gui_drawing::ColorBlend& blend) {
@@ -1069,6 +1374,10 @@ gd_result apply_gradient_interpolation(gd_handle handle,
     if (kind == GD_OBJECT_CONIC_GRADIENT_BRUSH) {
         return registry().with<gui_drawing::ConicGradientBrush>(
             handle, kind, &apply_conic_gradient_interpolation, blend);
+    }
+    if (kind == GD_OBJECT_RADIAL_GRADIENT_BRUSH) {
+        return registry().with<gui_drawing::RadialGradientBrush>(
+            handle, kind, &apply_radial_gradient_interpolation, blend);
     }
     return registry().with<gui_drawing::PathGradientBrush>(
         handle, kind, &apply_path_gradient_interpolation, blend);
@@ -1271,11 +1580,12 @@ gd_result present_native_surface(gui_drawing::Bitmap& bitmap,
 }
 
 gd_result refresh_native_surface(gui_drawing::Bitmap& bitmap,
+                                 gui_drawing::abi::platform::SurfaceStagingOwner& staging,
                                  std::uintptr_t source, std::uint32_t kind,
                                  gd_rect* refreshed_bounds) {
     gui_drawing::RectF bounds;
     const gd_result result = gui_drawing::abi::platform::refresh_surface(
-        source, kind, bitmap, bounds);
+        source, kind, bitmap, staging, bounds);
     if (result != GD_OK) {
         return fail(result, "native surface refresh is unavailable");
     }
@@ -1313,8 +1623,8 @@ gd_result release_bitmap_hdc(gui_drawing::Bitmap& bitmap,
 
 gd_result api_last_error(gd_error_view* error) {
     if (error == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "last_error requires output");
-    (*error).code = static_cast<std::uint32_t>(last_error_code);
-    (*error).message = {last_error_message.data(), last_error_message.size()};
+    (*error).code = static_cast<std::uint32_t>(last_error.code);
+    (*error).message = {last_error.message.data(), last_error.message_size};
     return GD_OK;
 }
 
@@ -1329,9 +1639,9 @@ gd_result api_dispose(gd_handle handle) {
     if (const gd_result result = registry().object_kind(handle, &kind);
         result != GD_OK) return result;
     if (kind == GD_OBJECT_BITMAP) {
-        const gd_result lease_check = registry().with<gui_drawing::Bitmap>(
-            handle, GD_OBJECT_BITMAP, &verify_bitmap_is_not_leased);
-        if (lease_check != GD_OK) return lease_check;
+        const gd_result lend_check = registry().with<gui_drawing::Bitmap>(
+            handle, GD_OBJECT_BITMAP, &verify_bitmap_is_not_lent);
+        if (lend_check != GD_OK) return lend_check;
     }
     return registry().dispose(handle);
 }
@@ -1368,9 +1678,10 @@ gd_result api_pen_set_dash_style(gd_handle handle, std::uint32_t style) {
 
 gd_result api_pen_set_dash_pattern(gd_handle handle, const double* entries,
                                    std::uint64_t count) {
-    if ((count != 0U && entries == nullptr) ||
-        count > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "dash pattern is not a bounded array");
+    if (const gd_result counted = check_count(entries, count, 1U, 256U,
+                                              "dash pattern requires 1 through 256 entries");
+        counted != GD_OK) {
+        return counted;
     }
     const std::span<const double> pattern(
         entries, static_cast<std::size_t>(count));
@@ -1395,7 +1706,7 @@ gd_result api_string_format_create(std::uint32_t flags, gd_handle* output) {
 gd_result api_string_format_set(gd_handle handle, std::uint32_t alignment,
                                 std::uint32_t line_alignment,
                                 std::uint32_t trimming, std::uint32_t flags) {
-    if (alignment > GD_STRING_FAR || line_alignment > GD_STRING_FAR ||
+    if (alignment > GD_STRING_END || line_alignment > GD_STRING_END ||
         trimming > GD_TRIM_ELLIPSIS_PATH) {
         return fail(GD_ERROR_INVALID_ARGUMENT, "string format enum is invalid");
     }
@@ -1496,6 +1807,17 @@ gd_result api_recorder_draw_string(gd_handle recorder, gd_string_view text,
                                    gd_point origin, gd_handle format) {
     return translate(&draw_recorder_string_from_c, recorder, text, font,
                      brush, origin, format);
+}
+
+gd_result api_recorder_draw_string_rotated(gd_handle recorder, gd_string_view text,
+                                           gd_handle font, gd_handle brush,
+                                           gd_point origin, double degrees,
+                                           gd_handle format) {
+    if (!std::isfinite(degrees)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "text rotation must be finite");
+    }
+    return translate(&draw_recorder_string_rotated_from_c, recorder, text, font,
+                     brush, origin, degrees, format);
 }
 
 gd_result api_recorder_close(gd_handle handle) {
@@ -1626,10 +1948,13 @@ gd_result api_recorder_fill_ellipse(gd_handle recorder, gd_handle brush,
 gd_result api_recorder_fill_polygon(gd_handle recorder, gd_handle brush,
                                     const gd_point* points, std::uint64_t count,
                                     std::uint32_t fill_mode) {
-    if (points == nullptr || count < 3U ||
-        count > gui_drawing::GraphicsPath::maximum_elements || fill_mode > 1U) {
-        return fail(GD_ERROR_INVALID_ARGUMENT,
-                    "polygon requires bounded points and a declared fill mode");
+    if (const gd_result counted = check_count(points, count, 3U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "polygon requires 3 or more bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (fill_mode > 1U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "polygon fill mode is outside the declared enum");
     }
     return translate(&fill_recorder_polygon_from_c, recorder, brush, points,
                      count, fill_mode);
@@ -1840,6 +2165,21 @@ gd_result api_graphics_path_points(gd_handle handle, gd_point* points,
         required_count);
 }
 
+gd_result api_graphics_path_flatten(gd_handle handle, double tolerance, gd_point* points,
+                                    std::uint64_t point_capacity, std::uint64_t* figure_ends,
+                                    std::uint32_t* figure_closed, std::uint64_t figure_capacity,
+                                    std::uint64_t* point_count, std::uint64_t* figure_count) {
+    if (point_count == nullptr || figure_count == nullptr) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "path flattening requires count outputs");
+    }
+    if (!std::isfinite(tolerance) || !(tolerance > 0.0)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "path flattening tolerance must be positive and finite");
+    }
+    return registry().with<gui_drawing::GraphicsPath>(
+        handle, GD_OBJECT_GRAPHICS_PATH, &flatten_path, tolerance, points, point_capacity,
+        figure_ends, figure_closed, figure_capacity, point_count, figure_count);
+}
+
 gd_result api_graphics_path_clone(gd_handle handle, gd_handle* output) {
     if (output == nullptr) {
         return fail(GD_ERROR_INVALID_ARGUMENT, "path clone requires output");
@@ -1851,8 +2191,9 @@ gd_result api_graphics_path_clone(gd_handle handle, gd_handle* output) {
 gd_result api_image_attributes_set_remap_table(gd_handle handle,
                                                const gd_color_remap* entries,
                                                std::uint64_t count) {
-    if ((count != 0U && entries == nullptr) || count > 4096U) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "image remap table is not bounded");
+    if (const gd_result counted = check_count(entries, count, 0U, 4096U, "image remap table is not bounded");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&set_image_remap_table, handle, entries, count);
 }
@@ -1887,9 +2228,11 @@ gd_result api_linear_gradient_set_blend(gd_handle handle,
                                         const double* factors,
                                         const double* positions,
                                         std::uint64_t count) {
-    if (count < 2U || count > 4096U || factors == nullptr || positions == nullptr) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "gradient blend arrays are not bounded");
+    if (const gd_result counted = check_count(factors, count, 2U, 4096U, "gradient blend arrays are not bounded");
+        counted != GD_OK) {
+        return counted;
     }
+    if (positions == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "gradient blend arrays are not bounded");
     return registry().with<gui_drawing::LinearGradientBrush>(
         handle, GD_OBJECT_LINEAR_GRADIENT_BRUSH,
         &set_linear_gradient_blend, factors, positions, count);
@@ -1898,9 +2241,13 @@ gd_result api_linear_gradient_set_blend(gd_handle handle,
 [[nodiscard]] gd_result set_gradient_interpolation(
     gd_handle handle, std::uint32_t kind, const gd_color* colors,
     const double* positions, std::uint64_t count) {
-    if (count < 2U || count > 4096U || colors == nullptr || positions == nullptr) {
-        return fail(GD_ERROR_INVALID_ARGUMENT,
-                    "gradient interpolation arrays are not bounded");
+    if (const gd_result counted = check_count(colors, count, 2U, 4096U,
+                                              "gradient interpolation arrays are not bounded");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (positions == nullptr) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "gradient interpolation arrays are not bounded");
     }
     return translate(&apply_gradient_interpolation, handle, kind, colors,
                      positions, count);
@@ -1929,10 +2276,13 @@ gd_result api_path_gradient_brush_create(const gd_point* points,
                                          std::uint64_t count,
                                          std::uint32_t wrap_mode,
                                          gd_handle* output) {
-    if (points == nullptr || count < 3U ||
-        count > gui_drawing::GraphicsPath::maximum_elements ||
-        wrap_mode > GD_WRAP_CLAMP) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "path gradient inputs are not bounded");
+    if (const gd_result counted = check_count(points, count, 3U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "path gradient requires 3 or more bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (wrap_mode > GD_WRAP_CLAMP) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "gradient wrap mode is invalid");
     }
     return translate(&create_path_gradient_brush, points, count, wrap_mode,
                      output);
@@ -1951,9 +2301,10 @@ gd_result api_path_gradient_set_center_point(gd_handle handle, gd_point point) {
 gd_result api_path_gradient_set_surround_colors(gd_handle handle,
                                                 const gd_color* colors,
                                                 std::uint64_t count) {
-    if (count == 0U || count > gui_drawing::GraphicsPath::maximum_elements ||
-        colors == nullptr) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "surround color array is not bounded");
+    if (const gd_result counted = check_count(colors, count, 1U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "surround color array is not bounded");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&set_path_gradient_surround_colors, handle, colors,
                      count);
@@ -2021,7 +2372,7 @@ gd_result api_raster_service_install(const gd_raster_service_v0* service) {
         return fail(GD_ERROR_INVALID_ARGUMENT,
                     "raster service requires a complete ABI 0.1 callback table");
     }
-    std::scoped_lock lock(raster_service_mutex);
+    std::scoped_lock lock(raster_service_mutex());
     if (raster_service.abi_version != 0U &&
         (raster_service.execute != (*service).execute ||
          raster_service.encode_png != (*service).encode_png ||
@@ -2043,7 +2394,7 @@ gd_result api_recorder_execute_from(gd_handle recorder, gd_handle bitmap,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Bitmap>(
         recorder, GD_OBJECT_RECORDER, bitmap, GD_OBJECT_BITMAP,
@@ -2064,7 +2415,7 @@ gd_result api_bitmap_encode_png(gd_handle bitmap, void* buffer,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     return registry().with<gui_drawing::Bitmap>(
         bitmap, GD_OBJECT_BITMAP, &encode_bitmap_png, service, buffer,
@@ -2079,7 +2430,7 @@ gd_result api_bitmap_decode_png(const void* data, std::uint64_t size,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     void* decoded = nullptr;
     const gd_result result = service.decode_png(data, size, &decoded);
@@ -2121,7 +2472,7 @@ gd_result api_measure_string(gd_string_view text, gd_handle font,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     const gd_string_view view{native_text.data(), native_text.size()};
     if (format.slot == 0U && format.generation == 0U) {
@@ -2201,9 +2552,8 @@ gd_result api_native_surface_refresh(std::uintptr_t source, std::uint32_t kind,
                     "native surface refresh requires a handle, kind, and bounds output");
     }
     *refreshed_bounds = {};
-    return registry().with<gui_drawing::Bitmap>(
-        handle, GD_OBJECT_BITMAP, &refresh_native_surface, source, kind,
-        refreshed_bounds);
+    return registry().with_surface_staging(
+        handle, &refresh_native_surface, source, kind, refreshed_bounds);
 }
 
 gd_result api_native_surface_publish_retained(std::uintptr_t destination,
@@ -2247,11 +2597,10 @@ gd_result api_bitmap_release_hdc(gd_handle handle, std::uint64_t lease_token) {
     return registry().release(handle);
 }
 
-// A caller array of `count` elements, the batch bounds checked before any
-// element is read.
-[[nodiscard]] bool bounded_batch(const void* elements, std::uint64_t count, std::uint64_t minimum) noexcept {
-    return elements != nullptr && count >= minimum &&
-           count <= gui_drawing::GraphicsRecorder::maximum_batch_elements;
+// A caller array of `count` batch elements, checked before any element is
+// read (check_count with the batch limit).
+gd_result check_batch(const void* elements, std::uint64_t count, std::uint64_t minimum, const char* refusal) {
+    return check_count(elements, count, minimum, gui_drawing::GraphicsRecorder::maximum_batch_elements, refusal);
 }
 
 gd_result api_pen_set_line_join(gd_handle handle, std::uint32_t join, double miter_limit) {
@@ -2281,17 +2630,20 @@ gd_result draw_recorder_lines_from_c(gd_handle recorder, gd_handle pen, const gd
 
 gd_result api_recorder_draw_lines(gd_handle recorder, gd_handle pen, const gd_point* points,
                                   std::uint64_t count) {
-    if (!bounded_batch(points, count, 2U)) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "polyline requires 2 or more bounded points");
+    if (const gd_result counted = check_batch(points, count, 2U, "polyline requires 2 or more bounded points");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&draw_recorder_lines_from_c, recorder, pen, points, count, false);
 }
 
 gd_result api_recorder_draw_line_segments(gd_handle recorder, gd_handle pen, const gd_point* points,
                                           std::uint64_t count) {
-    if (!bounded_batch(points, count, 2U) || count % 2U != 0U) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "line segments require bounded points in pairs");
+    if (const gd_result counted = check_batch(points, count, 2U, "line segments require bounded points in pairs");
+        counted != GD_OK) {
+        return counted;
     }
+    if (count % 2U != 0U) return fail(GD_ERROR_INVALID_ARGUMENT, "line segments require bounded points in pairs");
     return translate(&draw_recorder_lines_from_c, recorder, pen, points, count, true);
 }
 
@@ -2306,8 +2658,9 @@ gd_result fill_recorder_rectangles_from_c(gd_handle recorder, gd_handle brush, c
 
 gd_result api_recorder_fill_rectangles(gd_handle recorder, gd_handle brush, const gd_rect* rects,
                                        std::uint64_t count) {
-    if (!bounded_batch(rects, count, 1U)) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "fill rectangles requires 1 or more bounded rectangles");
+    if (const gd_result counted = check_batch(rects, count, 1U, "fill rectangles requires 1 or more bounded rectangles");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&fill_recorder_rectangles_from_c, recorder, brush, rects, count);
 }
@@ -2327,8 +2680,12 @@ gd_result draw_recorder_markers_from_c(gd_handle recorder, const gd_point* cente
 
 gd_result api_recorder_draw_markers(gd_handle recorder, const gd_point* centers, std::uint64_t count,
                                     const gd_marker_style* style) {
-    if (!bounded_batch(centers, count, 1U) || style == nullptr || (*style).shape > GD_MARKER_ASTERISK) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "markers require bounded centres and a declared shape");
+    if (const gd_result counted = check_batch(centers, count, 1U, "markers require 1 or more bounded centres");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (style == nullptr || (*style).shape > GD_MARKER_ASTERISK) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "markers require a style with a declared shape");
     }
     return translate(&draw_recorder_markers_from_c, recorder, centers, count, style);
 }
@@ -2403,8 +2760,552 @@ gd_result api_graphics_path_add_rounded_rectangle(gd_handle handle, gd_rect rect
                                                       rectangle, radii);
 }
 
+gd_result add_path_quadratic(gui_drawing::GraphicsPath& path, gd_point from, gd_point control, gd_point to) {
+    path.add_quadratic(point_from_c(from), point_from_c(control), point_from_c(to));
+    return GD_OK;
+}
+
+gd_result add_path_bezier(gui_drawing::GraphicsPath& path, gd_point from, gd_point first_control,
+                          gd_point second_control, gd_point to) {
+    path.add_bezier(point_from_c(from), point_from_c(first_control), point_from_c(second_control),
+                    point_from_c(to));
+    return GD_OK;
+}
+
+gd_result add_path_beziers(gui_drawing::GraphicsPath& path, const std::vector<gui_drawing::PointF>& points) {
+    path.add_beziers(points);
+    return GD_OK;
+}
+
+gd_result add_path_polygon(gui_drawing::GraphicsPath& path, const std::vector<gui_drawing::PointF>& points) {
+    path.add_polygon(points);
+    return GD_OK;
+}
+
+gd_result add_path_pie(gui_drawing::GraphicsPath& path, gd_rect bounds, double start_angle, double sweep_angle) {
+    path.add_pie(rect_from_c(bounds), start_angle, sweep_angle);
+    return GD_OK;
+}
+
+gd_result set_path_fill_mode(gui_drawing::GraphicsPath& path, std::uint32_t fill_mode) {
+    path.set_fill_mode(static_cast<gui_drawing::FillMode>(fill_mode));
+    return GD_OK;
+}
+
+gd_result read_path_fill_mode(gui_drawing::GraphicsPath& path, std::uint32_t* fill_mode) {
+    *fill_mode = static_cast<std::uint32_t>(path.fill_mode());
+    return GD_OK;
+}
+
+gd_result add_path_point_list(gd_handle handle, const gd_point* points, std::uint64_t count, bool beziers) {
+    const std::vector<gui_drawing::PointF> native = points_from_c(points, count);
+    if (beziers) {
+        return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_beziers, native);
+    }
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_polygon, native);
+}
+
+gd_result api_graphics_path_add_quadratic(gd_handle handle, gd_point from, gd_point control, gd_point to) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_quadratic, from,
+                                                      control, to);
+}
+
+gd_result api_graphics_path_add_bezier(gd_handle handle, gd_point from, gd_point first_control,
+                                       gd_point second_control, gd_point to) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_bezier, from,
+                                                      first_control, second_control, to);
+}
+
+gd_result api_graphics_path_add_beziers(gd_handle handle, const gd_point* points, std::uint64_t count) {
+    if (const gd_result counted = check_count(points, count, 4U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "joined Bezier curves require 4 + 3n bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    if ((count - 1U) % 3U != 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "joined Bezier curves require 4 + 3n bounded points");
+    }
+    return translate(&add_path_point_list, handle, points, count, true);
+}
+
+gd_result api_graphics_path_add_polygon(gd_handle handle, const gd_point* points, std::uint64_t count) {
+    if (const gd_result counted = check_count(points, count, 3U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "a path polygon requires 3 or more bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    return translate(&add_path_point_list, handle, points, count, false);
+}
+
+gd_result api_graphics_path_add_pie(gd_handle handle, gd_rect bounds, double start_angle, double sweep_angle) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_pie, bounds,
+                                                      start_angle, sweep_angle);
+}
+
+gd_result api_graphics_path_set_fill_mode(gd_handle handle, std::uint32_t fill_mode) {
+    if (fill_mode > 1U) return fail(GD_ERROR_INVALID_ARGUMENT, "path fill mode is outside the declared enum");
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &set_path_fill_mode,
+                                                      fill_mode);
+}
+
+gd_result api_graphics_path_fill_mode(gd_handle handle, std::uint32_t* fill_mode) {
+    if (fill_mode == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "path fill mode requires output");
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &read_path_fill_mode,
+                                                      fill_mode);
+}
+
+// ABI 0.4: the gapped and per-element marks. Each copies the caller's
+// arrays once, after the counts are bounded, and the recorder validates
+// the copies before it records.
+
+gd_result fill_recorder_band(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Brush& fill,
+                             const std::vector<gui_drawing::PointF>& upper,
+                             const std::vector<gui_drawing::PointF>& lower) {
+    graphics.fill_band(fill, upper, lower);
+    return GD_OK;
+}
+
+gd_result fill_recorder_band_from_c(gd_handle recorder, gd_handle brush, const gd_point* upper,
+                                    const gd_point* lower, std::uint64_t count) {
+    const std::vector<gui_drawing::PointF> native_upper = points_from_c(upper, count);
+    const std::vector<gui_drawing::PointF> native_lower = points_from_c(lower, count);
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Brush>(
+        recorder, GD_OBJECT_RECORDER, brush, 0U, &fill_recorder_band, native_upper, native_lower);
+}
+
+gd_result api_recorder_fill_band(gd_handle recorder, gd_handle brush, const gd_point* upper,
+                                 const gd_point* lower, std::uint64_t count) {
+    const char* const band_refusal = "band requires 2 through 500000 samples in both arrays";
+    const gd_result upper_counted = check_batch(upper, count, 2U, band_refusal);
+    if (upper_counted != GD_OK) {
+        return upper_counted;
+    }
+    const gd_result lower_counted = check_batch(lower, count, 2U, band_refusal);
+    if (lower_counted != GD_OK) {
+        return lower_counted;
+    }
+    if (count > gui_drawing::GraphicsRecorder::maximum_band_samples) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, band_refusal);
+    }
+    return translate(&fill_recorder_band_from_c, recorder, brush, upper, lower, count);
+}
+
+gd_result draw_recorder_polyline_runs(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Pen& stroke,
+                                      const std::vector<gui_drawing::PointF>& points) {
+    graphics.draw_polyline_runs(stroke, points);
+    return GD_OK;
+}
+
+gd_result draw_recorder_polyline_runs_from_c(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                             std::uint64_t count) {
+    const std::vector<gui_drawing::PointF> native = points_from_c(points, count);
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Pen>(
+        recorder, GD_OBJECT_RECORDER, pen, GD_OBJECT_PEN, &draw_recorder_polyline_runs, native);
+}
+
+gd_result api_recorder_draw_polyline_runs(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                          std::uint64_t count) {
+    const gd_result counted = check_batch(points, count, 2U, "polyline runs require 2 or more bounded points");
+    if (counted != GD_OK) {
+        return counted;
+    }
+    return translate(&draw_recorder_polyline_runs_from_c, recorder, pen, points, count);
+}
+
+gd_result fill_recorder_rectangles_each(gui_drawing::GraphicsRecorder& graphics,
+                                        const std::vector<gui_drawing::RectF>& rects,
+                                        const std::vector<gui_drawing::Color>& colors) {
+    graphics.fill_rectangles_each(rects, colors);
+    return GD_OK;
+}
+
+gd_result fill_recorder_rectangles_each_from_c(gd_handle recorder, const gd_rect* rects, const gd_color* colors,
+                                               std::uint64_t count) {
+    std::vector<gui_drawing::RectF> native_rects;
+    std::vector<gui_drawing::Color> native_colors;
+    native_rects.reserve(static_cast<std::size_t>(count));
+    native_colors.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) {
+        native_rects.push_back(rect_from_c(rects[index]));
+        native_colors.push_back(color_from_c(colors[index]));
+    }
+    return registry().with<gui_drawing::GraphicsRecorder>(
+        recorder, GD_OBJECT_RECORDER, &fill_recorder_rectangles_each, native_rects, native_colors);
+}
+
+gd_result api_recorder_fill_rectangles_each(gd_handle recorder, const gd_rect* rects, const gd_color* colors,
+                                            std::uint64_t count) {
+    const char* const each_refusal = "fill rectangles each requires 1 or more bounded rectangles and colours";
+    const gd_result rects_counted = check_batch(rects, count, 1U, each_refusal);
+    if (rects_counted != GD_OK) {
+        return rects_counted;
+    }
+    const gd_result colors_counted = check_batch(colors, count, 1U, each_refusal);
+    if (colors_counted != GD_OK) {
+        return colors_counted;
+    }
+    return translate(&fill_recorder_rectangles_each_from_c, recorder, rects, colors, count);
+}
+
+// ABI 1.1, provisional: shaded triangles.
+
+gd_result fill_recorder_triangles(gui_drawing::GraphicsRecorder& graphics,
+                                  const std::vector<gui_drawing::PointF>& points,
+                                  const std::vector<gui_drawing::Color>& colors) {
+    const gui_drawing::TriangleFillStatus status = graphics.fill_triangles(points, colors);
+    switch (status) {
+    case gui_drawing::TriangleFillStatus::recorded:
+        return GD_OK;
+    case gui_drawing::TriangleFillStatus::closed:
+        return fail(GD_ERROR_INVALID_STATE, "GUI.Drawing recorder is closed");
+    case gui_drawing::TriangleFillStatus::command_limit:
+    case gui_drawing::TriangleFillStatus::too_many_points:
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "shaded triangles exceed a recorder limit");
+    case gui_drawing::TriangleFillStatus::count_mismatch:
+    case gui_drawing::TriangleFillStatus::not_whole_triangles:
+    case gui_drawing::TriangleFillStatus::non_finite_point:
+    default:
+        break;
+    }
+    return fail(GD_ERROR_INVALID_ARGUMENT, "shaded triangles require whole finite triangles with a colour per point");
+}
+
+gd_result fill_recorder_triangles_from_c(gd_handle recorder, const gd_point* points, const gd_color* colors,
+                                         std::uint64_t count) {
+    const std::vector<gui_drawing::PointF> native_points = points_from_c(points, count);
+    std::vector<gui_drawing::Color> native_colors;
+    native_colors.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) native_colors.push_back(color_from_c(colors[index]));
+    return registry().with<gui_drawing::GraphicsRecorder>(recorder, GD_OBJECT_RECORDER, &fill_recorder_triangles,
+                                                          native_points, native_colors);
+}
+
+gd_result api_recorder_fill_triangles(gd_handle recorder, const gd_point* points, const gd_color* colors,
+                                      std::uint64_t count) {
+    const char* const triangle_refusal = "shaded triangles require 3 through 999,999 points, a colour each";
+    const gd_result points_counted = check_batch(points, count, 3U, triangle_refusal);
+    if (points_counted != GD_OK) {
+        return points_counted;
+    }
+    const gd_result colors_counted = check_batch(colors, count, 3U, triangle_refusal);
+    if (colors_counted != GD_OK) {
+        return colors_counted;
+    }
+    if (count % 3U != 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, triangle_refusal);
+    }
+    return translate(&fill_recorder_triangles_from_c, recorder, points, colors, count);
+}
+
+// ABI 0.5: text in a box, batched strings, reuse and the fitted measure.
+
+gd_result draw_recorder_string_in_rect(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Font& font,
+                                       gui_drawing::SolidBrush& brush, gui_drawing::StringFormat& format,
+                                       const std::string& text, gd_rect layout) {
+    graphics.draw_string_in_rect(text, font, brush, rect_from_c(layout), format);
+    return GD_OK;
+}
+
+gd_result draw_recorder_string_in_rect_from_c(gd_handle recorder, gd_string_view text, gd_handle font,
+                                              gd_handle brush, gd_rect layout, gd_handle format) {
+    const std::string native_text = string_from_c(text, "draw string text");
+    return registry().with_text_objects(recorder, font, brush, format, &draw_recorder_string_in_rect, native_text,
+                                        layout);
+}
+
+gd_result api_recorder_draw_string_in_rect(gd_handle recorder, gd_string_view text, gd_handle font,
+                                           gd_handle brush, gd_rect layout, gd_handle format) {
+    return translate(&draw_recorder_string_in_rect_from_c, recorder, text, font, brush, layout, format);
+}
+
+// The items' texts are copied once into `texts` (which the recorder's items
+// borrow for the call) after the count is bounded.
+gd_result draw_recorder_strings(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Font& font,
+                                gui_drawing::StringFormat& format,
+                                const std::vector<gui_drawing::GraphicsRecorder::TextItem>& items) {
+    graphics.draw_strings(font, format, items);
+    return GD_OK;
+}
+
+gd_result draw_recorder_strings_from_c(gd_handle recorder, gd_handle font, gd_handle format,
+                                       const gd_text_item* items, std::uint64_t count) {
+    std::vector<std::string> texts;
+    std::vector<gui_drawing::GraphicsRecorder::TextItem> native;
+    texts.reserve(static_cast<std::size_t>(count));
+    native.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) {
+        texts.push_back(string_from_c(items[index].text, "draw strings text"));
+    }
+    for (std::uint64_t index = 0; index < count; ++index) {
+        gui_drawing::GraphicsRecorder::TextItem item{};
+        item.text = texts[static_cast<std::size_t>(index)];
+        item.origin = point_from_c(items[index].origin);
+        item.color = color_from_c(items[index].color);
+        native.push_back(item);
+    }
+    return registry().with_strings_objects(recorder, font, format, &draw_recorder_strings, native);
+}
+
+gd_result api_recorder_draw_strings(gd_handle recorder, gd_handle font, gd_handle format,
+                                    const gd_text_item* items, std::uint64_t count) {
+    if (items == nullptr || count == 0U || count > gui_drawing::GraphicsRecorder::maximum_text_items) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "draw strings requires 1 through 65536 items");
+    }
+    return translate(&draw_recorder_strings_from_c, recorder, font, format, items, count);
+}
+
+gd_result api_recorder_reset(gd_handle handle) {
+    return registry().with<gui_drawing::GraphicsRecorder>(handle, GD_OBJECT_RECORDER,
+                                                         &gui_drawing::GraphicsRecorder::reset);
+}
+
+// The fitted prefix by binary search over byte lengths moved back to code
+// point boundaries: about log2(bytes) one-line measures.
+gd_result measure_fitted_prefix(gui_drawing::Font& font, gui_drawing::StringFormat* format,
+                                const gd_raster_service_v0& service, const std::string& text, double max_width,
+                                std::uint64_t* bytes_fitted, double* fitted_width) {
+    std::size_t low = 0U;
+    std::size_t high = text.size();
+    double low_width = 0.0;
+    // low and high are code-point boundaries (high starts at the end and is
+    // only ever moved back to one), and the answer lies in [low, high].
+    while (low < high) {
+        const std::size_t first = low + (high - low + 1U) / 2U;
+        std::size_t middle = first;
+        while (middle > low && middle < text.size() && (static_cast<unsigned char>(text[middle]) & 0xC0U) == 0x80U) {
+            --middle;
+        }
+        // The midpoint fell inside the character that starts at low: measure
+        // at the next boundary after it instead (at most high, itself a
+        // boundary), so a final multi-byte character is measured too
+        // (A-gf-abi-01-F3).
+        if (middle == low) {
+            middle = first;
+            while (middle < high && (static_cast<unsigned char>(text[middle]) & 0xC0U) == 0x80U) {
+                ++middle;
+            }
+        }
+        if (middle == low) break;
+        gd_size measured{};
+        const gd_string_view prefix{text.data(), static_cast<std::uint64_t>(middle)};
+        const gd_result result = service.measure_string(&font, format, prefix, 0.0, &measured);
+        if (result != GD_OK) return fail(result, "GUI.Drawing raster text measurement failed");
+        if (measured.width <= max_width) {
+            low = middle;
+            low_width = measured.width;
+        } else {
+            high = middle - 1U;
+            while (high > low && high < text.size() && (static_cast<unsigned char>(text[high]) & 0xC0U) == 0x80U) {
+                --high;
+            }
+        }
+    }
+    *bytes_fitted = static_cast<std::uint64_t>(low);
+    *fitted_width = low_width;
+    return GD_OK;
+}
+
+gd_result measure_fitted_without_format(gui_drawing::Font& font, const gd_raster_service_v0& service,
+                                        const std::string& text, double max_width, std::uint64_t* bytes_fitted,
+                                        double* fitted_width) {
+    return measure_fitted_prefix(font, nullptr, service, text, max_width, bytes_fitted, fitted_width);
+}
+
+gd_result measure_fitted_with_format(gui_drawing::Font& font, gui_drawing::StringFormat& format,
+                                     const gd_raster_service_v0& service, const std::string& text, double max_width,
+                                     std::uint64_t* bytes_fitted, double* fitted_width) {
+    return measure_fitted_prefix(font, &format, service, text, max_width, bytes_fitted, fitted_width);
+}
+
+gd_result api_measure_string_fitted(gd_string_view text, gd_handle font, gd_handle format, double max_width,
+                                    std::uint64_t* bytes_fitted, double* fitted_width) {
+    if (bytes_fitted == nullptr || fitted_width == nullptr || !std::isfinite(max_width) || max_width < 0.0) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "fitted measurement requires a valid width and outputs");
+    }
+    std::string native_text;
+    try {
+        native_text = string_from_c(text, "measure string text");
+    } catch (const std::exception& error) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
+    }
+    if (native_text.size() > gui_drawing::GraphicsRecorder::maximum_text_bytes) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "measure string text exceeds its byte limit");
+    }
+    gd_raster_service_v0 service{};
+    if (!load_raster_service(service)) {
+        // As every other raster entry answers (A-gf-abi-01-F14).
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
+    }
+    if (format.slot == 0U && format.generation == 0U) {
+        return registry().with<gui_drawing::Font>(font, GD_OBJECT_FONT, &measure_fitted_without_format, service,
+                                                  native_text, max_width, bytes_fitted, fitted_width);
+    }
+    return registry().with_two<gui_drawing::Font, gui_drawing::StringFormat>(
+        font, GD_OBJECT_FONT, format, GD_OBJECT_STRING_FORMAT, &measure_fitted_with_format, service, native_text,
+        max_width, bytes_fitted, fitted_width);
+}
+
+// ABI 1.0, the bridge to a GUI.Forms paint target (seal decision 12: the
+// drawing ABI may take GUI.Forms' own types).
+
+// A gf_paint_target checked and reduced to what recorder_paint_target draws
+// with: the lent pixels, the scale, and the damage in whole device pixels
+// inside the target.
+struct PaintTargetFrame final {
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::size_t row_bytes{};
+    std::byte* pixels{};
+    double scale{};
+    gui_drawing::RectF device_clip{};
+};
+
+// Checks the lent target before anything is drawn: argument faults give
+// GD_ERROR_INVALID_ARGUMENT and sizes over the bitmap limits
+// GD_ERROR_LIMIT_EXCEEDED. Fills frame only on GD_OK.
+gd_result frame_paint_target(const gf_paint_target* target, PaintTargetFrame& frame) {
+    if (target == nullptr || (*target).struct_size < sizeof(gf_paint_target)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target requires a gf_paint_target of its 1.0 size");
+    }
+    const gf_paint_target& lent = *target;
+    if (lent.pixels == nullptr || lent.width == 0U || lent.height == 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target requires pixels and a nonzero size");
+    }
+    if (lent.width > gui_drawing::Bitmap::maximum_dimension || lent.height > gui_drawing::Bitmap::maximum_dimension) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "a paint target is larger than a bitmap may be");
+    }
+    const std::uint64_t pixel_count = static_cast<std::uint64_t>(lent.width) * lent.height;
+    if (pixel_count > gui_drawing::Bitmap::maximum_pixels) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "a paint target has more pixels than a bitmap may");
+    }
+    const std::uint64_t row_minimum = static_cast<std::uint64_t>(lent.width) * 4U;
+    if (lent.row_bytes < row_minimum || lent.row_bytes % 4U != 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target's row_bytes must be a multiple of 4 holding a row");
+    }
+    if (lent.row_bytes > std::numeric_limits<std::size_t>::max() / lent.height) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "a paint target's rows do not fit in memory");
+    }
+    if (!std::isfinite(lent.scale) || lent.scale <= 0.0) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target's scale must be finite and positive");
+    }
+    const gf_logical_rect damage = lent.damage;
+    if (!std::isfinite(damage.x) || !std::isfinite(damage.y) || !std::isfinite(damage.width) ||
+        !std::isfinite(damage.height) || damage.width < 0.0 || damage.height < 0.0) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target's damage must be finite with a non-negative size");
+    }
+    // Rounded out to whole device pixels and held to the target (a product
+    // that overflows to infinity is held to the target's edge).
+    const double target_width = static_cast<double>(lent.width);
+    const double target_height = static_cast<double>(lent.height);
+    const double left = std::clamp(std::floor(damage.x * lent.scale), 0.0, target_width);
+    const double top = std::clamp(std::floor(damage.y * lent.scale), 0.0, target_height);
+    const double right = std::clamp(std::ceil((damage.x + damage.width) * lent.scale), left, target_width);
+    const double bottom = std::clamp(std::ceil((damage.y + damage.height) * lent.scale), top, target_height);
+    frame.width = lent.width;
+    frame.height = lent.height;
+    frame.row_bytes = static_cast<std::size_t>(lent.row_bytes);
+    frame.pixels = reinterpret_cast<std::byte*>(lent.pixels);
+    frame.scale = lent.scale;
+    frame.device_clip = {left, top, right - left, bottom - top};
+    return GD_OK;
+}
+
+// The recording framed into device pixels and the damage (a copy, so the
+// recording is unchanged), then drawn by the raster module into a bitmap
+// borrowing the target's pixels. Both the copy and the bitmap live for the
+// call only.
+gd_result paint_recorder_onto_target(gui_drawing::GraphicsRecorder& recorder,
+                                     const gd_raster_service_v0& service,
+                                     const PaintTargetFrame& frame,
+                                     std::uint64_t* commands_executed) {
+    gui_drawing::GraphicsRecorder framed;
+    recorder.frame_into(framed, frame.scale, frame.device_clip);
+    const std::unique_ptr<gui_drawing::Bitmap> surface =
+        gui_drawing::Bitmap::borrow(frame.width, frame.height, frame.row_bytes, frame.pixels);
+    const gd_result result = service.execute(&framed, surface.get(), 0U, commands_executed);
+    if (result == GD_OK) return GD_OK;
+    return fail(result, "GUI.Drawing could not draw the recording into the paint target");
+}
+
+gd_result api_recorder_paint_target(gd_handle recorder, const gf_paint_target* target,
+                                    std::uint64_t* commands_executed) {
+    if (commands_executed == nullptr) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "painting a target requires a count output");
+    }
+    *commands_executed = 0U;
+    PaintTargetFrame frame{};
+    if (const gd_result framed = frame_paint_target(target, frame); framed != GD_OK) return framed;
+    gd_raster_service_v0 service{};
+    if (!load_raster_service(service)) {
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
+    }
+    return registry().with<gui_drawing::GraphicsRecorder>(
+        recorder, GD_OBJECT_RECORDER, &paint_recorder_onto_target, service, frame, commands_executed);
+}
+
+// The texture and radial gradient brushes (1.1, provisional).
+gd_result api_texture_brush_create(gd_handle bitmap, std::uint32_t wrap_mode, gd_handle* output) {
+    if (output == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "texture brush creation requires an output handle");
+    if (wrap_mode > GD_WRAP_CLAMP) return fail(GD_ERROR_INVALID_ARGUMENT, "texture wrap mode is invalid");
+    const gui_drawing::WrapMode native_mode = static_cast<gui_drawing::WrapMode>(wrap_mode);
+    return registry().with<gui_drawing::Bitmap>(bitmap, GD_OBJECT_BITMAP, &create_texture_brush, native_mode,
+                                                output);
+}
+
+gd_result api_texture_brush_set_wrap_mode(gd_handle brush, std::uint32_t wrap_mode) {
+    if (wrap_mode > GD_WRAP_CLAMP) return fail(GD_ERROR_INVALID_ARGUMENT, "texture wrap mode is invalid");
+    const gui_drawing::WrapMode native_mode = static_cast<gui_drawing::WrapMode>(wrap_mode);
+    return registry().with<gui_drawing::TextureBrush>(brush, GD_OBJECT_TEXTURE_BRUSH,
+                                                      &gui_drawing::TextureBrush::set_wrap_mode, native_mode);
+}
+
+gd_result api_texture_brush_set_transform(gd_handle brush, gd_matrix transform) {
+    return registry().with<gui_drawing::TextureBrush>(brush, GD_OBJECT_TEXTURE_BRUSH, &set_texture_brush_transform,
+                                                      transform);
+}
+
+gd_result api_radial_gradient_brush_create(gd_point center, double radius, gd_color center_color,
+                                           gd_color edge_color, std::uint32_t wrap_mode, gd_handle* output) {
+    if (wrap_mode > GD_WRAP_CLAMP) return fail(GD_ERROR_INVALID_ARGUMENT, "gradient wrap mode is invalid");
+    const gui_drawing::WrapMode native_mode = static_cast<gui_drawing::WrapMode>(wrap_mode);
+    return translate(&create_radial_gradient_brush, center, radius, center_color, edge_color, native_mode, output);
+}
+
+gd_result api_radial_gradient_brush_set_interpolation(gd_handle brush, const gd_color* colors,
+                                                      const double* positions, std::uint64_t count) {
+    return set_gradient_interpolation(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH, colors, positions, count);
+}
+
+gd_result api_radial_gradient_brush_set_focus(gd_handle brush, gd_point focus) {
+    return registry().with<gui_drawing::RadialGradientBrush>(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH,
+                                                             &set_radial_gradient_focus, focus);
+}
+
+gd_result api_radial_gradient_brush_set_radii(gd_handle brush, double radius_x, double radius_y) {
+    const RadialRadii radii{radius_x, radius_y};
+    return registry().with<gui_drawing::RadialGradientBrush>(brush, GD_OBJECT_RADIAL_GRADIENT_BRUSH,
+                                                             &set_radial_gradient_radii, radii);
+}
+
+// pen_set_trim (1.1, provisional): Pen::set_trim, whose refusal (a value
+// out of range or not finite) becomes GD_ERROR_INVALID_ARGUMENT.
+gd_result api_pen_set_trim(gd_handle pen, double start, double end, double offset) {
+    return registry().with<gui_drawing::Pen>(pen, GD_OBJECT_PEN, &set_pen_trim, start, end, offset);
+}
+
+// raster_initialize (1.1, provisional): the raster objects' installer, or
+// the absent one in a build without the renderer.
+gd_result api_raster_initialize() {
+    const gd_result installed = gui_drawing_raster_module_initialize();
+    if (installed == GD_ERROR_NOT_AVAILABLE) {
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing was built without its raster");
+    }
+    if (installed != GD_OK) return fail(installed, "GUI.Drawing raster could not be installed");
+    return GD_OK;
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_3,
+    sizeof(gd_api_v0), GD_ABI_VERSION_1_1,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2472,6 +3373,32 @@ const gd_api_v0 api_table{
     &api_recorder_draw_string_over_fill,
     &api_contrast_ratio, &api_contrasting_text_color,
     &api_graphics_path_add_rounded_rectangle,
+    &api_recorder_fill_band, &api_recorder_draw_polyline_runs,
+    &api_recorder_fill_rectangles_each,
+    &api_recorder_draw_string_in_rect, &api_recorder_draw_strings,
+    &api_recorder_reset, &api_measure_string_fitted,
+    &api_graphics_path_add_quadratic, &api_graphics_path_add_bezier,
+    &api_graphics_path_add_beziers, &api_graphics_path_add_polygon,
+    &api_graphics_path_add_pie,
+    &api_graphics_path_set_fill_mode, &api_graphics_path_fill_mode,
+    &api_recorder_draw_string_rotated,
+    &api_recorder_paint_target,
+    // The <kind>_gradient_brush_set_* aliases: the 0.x setters' functions.
+    &api_linear_gradient_set_blend, &api_linear_gradient_set_interpolation,
+    &api_linear_gradient_set_wrap_mode,
+    &api_path_gradient_set_center_color, &api_path_gradient_set_center_point,
+    &api_path_gradient_set_surround_colors, &api_path_gradient_set_interpolation,
+    &api_conic_gradient_set_interpolation,
+    // 1.1, provisional.
+    &api_graphics_path_flatten,
+    &api_raster_initialize,
+    &api_texture_brush_create, &api_texture_brush_set_wrap_mode,
+    &api_texture_brush_set_transform,
+    &api_radial_gradient_brush_create, &api_radial_gradient_brush_set_interpolation,
+    &api_radial_gradient_brush_set_focus,
+    &api_radial_gradient_brush_set_radii,
+    &api_pen_set_trim,
+    &api_recorder_fill_triangles,
 };
 
 } // namespace
@@ -2484,7 +3411,13 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
     }
     if (requested_version != GD_ABI_VERSION_0_1 &&
         requested_version != GD_ABI_VERSION_0_2 &&
-        requested_version != GD_ABI_VERSION_0_3) {
+        requested_version != GD_ABI_VERSION_0_3 &&
+        requested_version != GD_ABI_VERSION_0_4 &&
+        requested_version != GD_ABI_VERSION_0_5 &&
+        requested_version != GD_ABI_VERSION_0_6 &&
+        requested_version != GD_ABI_VERSION_0_7 &&
+        requested_version != GD_ABI_VERSION_1_0 &&
+        requested_version != GD_ABI_VERSION_1_1) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2495,6 +3428,18 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, bitmap_edit_begin);
     } else if (requested_version == GD_ABI_VERSION_0_2) {
         available = offsetof(gd_api_v0, pen_set_line_join);
+    } else if (requested_version == GD_ABI_VERSION_0_3) {
+        available = offsetof(gd_api_v0, recorder_fill_band);
+    } else if (requested_version == GD_ABI_VERSION_0_4) {
+        available = offsetof(gd_api_v0, recorder_draw_string_in_rect);
+    } else if (requested_version == GD_ABI_VERSION_0_5) {
+        available = offsetof(gd_api_v0, graphics_path_add_quadratic);
+    } else if (requested_version == GD_ABI_VERSION_0_6) {
+        available = offsetof(gd_api_v0, recorder_draw_string_rotated);
+    } else if (requested_version == GD_ABI_VERSION_0_7) {
+        available = offsetof(gd_api_v0, recorder_paint_target);
+    } else if (requested_version == GD_ABI_VERSION_1_0) {
+        available = offsetof(gd_api_v0, graphics_path_flatten);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

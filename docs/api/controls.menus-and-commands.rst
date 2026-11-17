@@ -237,9 +237,13 @@ Related types
    * - :cpp:class:`RibbonGalleryVisibleRowsCapability <gui_forms::RibbonGalleryVisibleRowsCapability>`
      - In-ribbon form: the rows shown (1 to 8).
    * - :cpp:class:`RibbonGroupLayout <gui_forms::RibbonGroupLayout>`
-     - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column.
+     - One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many compact commands stack in a column.
    * - :cpp:class:`RibbonGroupSpec <gui_forms::RibbonGroupSpec>`
      - A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner.
+   * - :cpp:class:`RibbonHelpButtonVisibleCapability <gui_forms::RibbonHelpButtonVisibleCapability>`
+     - Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows.
+   * - :cpp:class:`RibbonHelpRequest <gui_forms::RibbonHelpRequest>`
+     - A click on the help button (help_button_visible): the ribbon and the tab selected then (empty when none is).
    * - :cpp:class:`RibbonLadderEntry <gui_forms::RibbonLadderEntry>`
      - One entry of a tab's reduction ladder: every group's state and the width, in logical units, the groups need side by side.
    * - :cpp:class:`RibbonLadderGroupState <gui_forms::RibbonLadderGroupState>`
@@ -440,7 +444,7 @@ Related types
 
       The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<std::size_t> selected_topic
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_topic
 
       The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
 
@@ -472,11 +476,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(BackstageViewSelectedTopicCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const BackstageViewSelectedTopicCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, BackstageViewSelectedTopicCapability<Declaring>> selected_topic
 
 .. cpp:namespace:: gui_forms
 
@@ -641,7 +645,7 @@ Related types
 
       How the item joins another strip's menu when its strip merges (MergeAction), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
-   .. cpp:member:: std::optional<std::size_t> merge_index
+   .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 
@@ -813,7 +817,7 @@ Related types
 
       How the menu joins another menu strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
-   .. cpp:member:: std::optional<std::size_t> merge_index
+   .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 
@@ -1089,7 +1093,9 @@ Related types
 
    .. cpp:member:: PartGeometry help_button
 
-      Reserved for the help button (owner, N4); never present yet.
+      The help button at the right end of the tab row and its question mark (owner ruling N4); present while help_button_visible holds.
+
+   .. cpp:member:: PartGeometry help_label
 
    .. cpp:member:: PartGeometry focus
 
@@ -1190,7 +1196,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>, public RibbonTabsActivateOnReleaseCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>, public RibbonTabsActivateOnReleaseCapability<Declaring>, public RibbonHelpButtonVisibleCapability<Declaring>
 
    ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
 
@@ -1236,13 +1242,17 @@ Related types
 
       The font of the control's text (Font).
 
-   .. cpp:member:: std::optional<std::size_t> selected_tab
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_tab
 
       The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 
    .. cpp:member:: bool tabs_activate_on_release
 
       Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.
+
+   .. cpp:member:: bool help_button_visible
+
+      Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -1258,7 +1268,7 @@ Related types
 
       Default: ``{RibbonPaletteEntryKind::palette}``.
 
-   .. cpp:member:: std::optional<Color> color
+   .. cpp:member:: stxlib::Optional<Color> color
 
    .. cpp:member:: PaletteEntryParts parts
 
@@ -1338,7 +1348,7 @@ Related types
 
       The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
 
-   .. cpp:member:: std::optional<Color> value
+   .. cpp:member:: stxlib::Optional<Color> value
 
       The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
 
@@ -1391,11 +1401,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(RibbonColorPickerValueCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:function:: static std::optional<Color> read(const RibbonColorPickerValueCapability& capability)
+   .. cpp:function:: static stxlib::Optional<Color> read(const RibbonColorPickerValueCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
+   .. cpp:member:: PropertyView<stxlib::Optional<Color>, RibbonColorPickerValueCapability<Declaring>> value
 
 .. cpp:namespace:: gui_forms
 
@@ -1415,7 +1425,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon.hpp>``
 
-   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a small command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row. ``beside_previous`` places a small or hosted command in the previous command's row, to its right, instead of in a row of its own (the Windows Ribbon Framework's control groups, which stay together in a row): Save over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of commands side by side counts as one of the layout's rows, and the column is as wide as its widest row. It is ignored where the command, or the one before it, is large or a gallery in the layout in force; the group's first command may not set it.
+   One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a compact command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row. ``beside_previous`` places a compact or hosted command in the previous command's row, to its right, instead of in a row of its own (the Windows Ribbon Framework's control groups, which stay together in a row): Save over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of commands side by side counts as one of the layout's rows, and the column is as wide as its widest row. It is ignored where the command, or the one before it, is large or a gallery in the layout in force; the group's first command may not set it.
 
    .. cpp:member:: std::string stable_id
 
@@ -1849,7 +1859,7 @@ Related types
 
    ``#include <gui_forms/controls/ribbon.hpp>``
 
-   One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many small commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of small and hosted command rows per column. The rows stand from the top of the plane at the three-row pitch, so a column of one or two rows aligns with the tops of the large commands beside it rather than centring in the plane.
+   One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many compact commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of compact and hosted command rows per column. The rows stand from the top of the plane at the three-row pitch, so a column of one or two rows aligns with the tops of the large commands beside it rather than centring in the plane.
 
    .. cpp:member:: RibbonGroupSize size
 
@@ -1884,6 +1894,35 @@ Related types
    .. cpp:member:: std::uint32_t modes
 
       Default: ``{ribbon_all_modes}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RibbonHelpButtonVisibleCapability
+
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+
+   Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RibbonHelpButtonVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, RibbonHelpButtonVisibleCapability<Declaring>> help_button_visible
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RibbonHelpRequest final
+
+   ``#include <gui_forms/controls/ribbon.hpp>``
+
+   A click on the help button (help_button_visible): the ribbon and the tab selected then (empty when none is).
+
+   .. cpp:member:: std::string ribbon_id
+
+   .. cpp:member:: std::string tab_id
 
 .. cpp:namespace:: gui_forms
 
@@ -2014,11 +2053,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(RibbonSelectedTabCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const RibbonSelectedTabCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab
 
 .. cpp:namespace:: gui_forms
 
@@ -2133,7 +2172,7 @@ Related types
 
    .. cpp:member:: std::shared_ptr<Control> panel
 
-   .. cpp:member:: std::optional<double> width
+   .. cpp:member:: stxlib::Optional<double> width
 
    .. cpp:member:: bool enabled
 
@@ -2590,7 +2629,7 @@ Related types
 
       How the item joins another strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
-   .. cpp:member:: std::optional<std::size_t> merge_index
+   .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 
@@ -2781,6 +2820,8 @@ Enumerations
 
    .. cpp:enumerator:: scroll_right
 
+   .. cpp:enumerator:: help
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: Ribbon::RealizedItem::Kind
@@ -2833,7 +2874,7 @@ Enumerations
 
    .. cpp:enumerator:: large
 
-   .. cpp:enumerator:: small
+   .. cpp:enumerator:: compact
 
 .. cpp:namespace:: gui_forms
 
@@ -2855,7 +2896,7 @@ Enumerations
 
    .. cpp:enumerator:: medium
 
-   .. cpp:enumerator:: small
+   .. cpp:enumerator:: compact
 
    .. cpp:enumerator:: collapsed
 

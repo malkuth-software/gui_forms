@@ -29,6 +29,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -141,7 +142,7 @@ void test_role_names() {
     for (std::size_t index = 0U; index < colour_role_count; ++index) {
         const ColourRole role = static_cast<ColourRole>(index);
         const std::string_view name = colour_role_name(role);
-        require(colour_role_from_name(name) == role, std::string("the name round-trips: ") + std::string(name));
+        require(colour_role_from_name(name) == stxlib::Optional<ColourRole>::of(role), std::string("the name round-trips: ") + std::string(name));
         if (colour_role_paired(role)) paired = paired + 1U;
     }
     require(paired == 17U, "the pairs are the design language's");
@@ -149,8 +150,8 @@ void test_role_names() {
                 colour_role_name(ColourRole::command_link_ink_on_paper) == "command-link-ink-on-paper" &&
                 colour_role_name(ColourRole::selection_line) == "selection-line",
             "roles are named in kebab case");
-    require(!colour_role_from_name("Ink-On-Paper") && !colour_role_from_name("ink_on_paper") &&
-                !colour_role_from_name(""),
+    require(colour_role_from_name("Ink-On-Paper").absent() && colour_role_from_name("ink_on_paper").absent() &&
+                colour_role_from_name("").absent(),
             "a name matches exactly");
     require(!colour_role_paired(ColourRole::focus) && !colour_role_paired(ColourRole::chrome),
             "focus and the relief ramp are single colours");
@@ -328,19 +329,19 @@ void test_refusals() {
 
 MediaCondition dark() {
     MediaCondition condition{};
-    condition.dark_scheme = true;
+    condition.dark_scheme.set(true);
     return condition;
 }
 
 MediaCondition light() {
     MediaCondition condition{};
-    condition.dark_scheme = false;
+    condition.dark_scheme.set(false);
     return condition;
 }
 
 MediaCondition forced() {
     MediaCondition condition{};
-    condition.forced_colours = true;
+    condition.forced_colours.set(true);
     return condition;
 }
 
@@ -368,7 +369,7 @@ void test_conditional_palettes() {
     require(compiled_clean(joined) && joined.sheet.rules.size() == 2U, "a conditional rule is copied too");
     if (joined.sheet.rules.size() == 2U) {
         MediaCondition both = forced();
-        both.dark_scheme = true;
+        both.dark_scheme.set(true);
         require(joined.sheet.rules[0].media == forced() && joined.sheet.rules[1].media == both,
                 "its copy holds where both conditions do");
     }
@@ -638,34 +639,34 @@ void test_application_role_lookup() {
     dark_facts.dark_scheme = true;
     MediaFacts forced_facts{};
     forced_facts.forced_colours = true;
-    const std::optional<ThemeRoleColours> light = (*theme).application_role("syntax-keyword", light_facts);
-    require(light && (*light).foreground == Color::rgba(0, 0, 192) && (*light).background == Color::rgba(255, 255, 240) &&
-                (*light).fallback == ColourRole::ink_on_paper && (*light).paired,
+    const stxlib::Optional<ThemeRoleColours> light = (*theme).application_role("syntax-keyword", light_facts);
+    require(light.present() && (*light.value()).foreground == Color::rgba(0, 0, 192) && (*light.value()).background == Color::rgba(255, 255, 240) &&
+                (*light.value()).fallback == ColourRole::ink_on_paper && (*light.value()).paired,
             "the light colours");
-    const std::optional<ThemeRoleColours> dark = (*theme).application_role("syntax-keyword", dark_facts);
-    require(dark && (*dark).foreground == Color::rgba(128, 160, 255), "the dark colours");
-    const std::optional<ThemeRoleColours> forced = (*theme).application_role("syntax-keyword", forced_facts);
-    require(forced && (*forced).foreground == Color::rgba(255, 255, 255) && (*forced).background == Color::rgba(0, 0, 0),
+    const stxlib::Optional<ThemeRoleColours> dark = (*theme).application_role("syntax-keyword", dark_facts);
+    require(dark.present() && (*dark.value()).foreground == Color::rgba(128, 160, 255), "the dark colours");
+    const stxlib::Optional<ThemeRoleColours> forced = (*theme).application_role("syntax-keyword", forced_facts);
+    require(forced.present() && (*forced.value()).foreground == Color::rgba(255, 255, 255) && (*forced.value()).background == Color::rgba(0, 0, 0),
             "forced colours: the fallback's high-contrast pair");
-    const std::optional<ThemeRoleColours> declared = (*theme).application_role("find-mark", forced_facts);
-    require(declared && (*declared).foreground == Color::rgba(255, 255, 0),
+    const stxlib::Optional<ThemeRoleColours> declared = (*theme).application_role("find-mark", forced_facts);
+    require(declared.present() && (*declared.value()).foreground == Color::rgba(255, 255, 0),
             "forced colours: the role's own forced-colors declaration wins");
-    require(!(*theme).application_role("gutter-line", light_facts), "a role without colours has none");
-    require(!(*theme).application_role("missing", light_facts), "an undeclared role has none");
+    require((*theme).application_role("gutter-line", light_facts).absent(), "a role without colours has none");
+    require((*theme).application_role("missing", light_facts).absent(), "an undeclared role has none");
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
     const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
     (*root).add_child(pad);
     Window window(root, Size{200.0, 100.0});
     window.set_theme(theme);
-    const std::optional<ThemeRoleColours> through_control = (*pad).theme_role_colours("syntax-keyword");
-    require(through_control && (*through_control).foreground == Color::rgba(0, 0, 192),
+    const stxlib::Optional<ThemeRoleColours> through_control = (*pad).theme_role_colours("syntax-keyword");
+    require(through_control.present() && (*through_control.value()).foreground == Color::rgba(0, 0, 192),
             "a control reads the role through its window's theme");
     PresentationSettings settings = window.presentation_settings();
     settings.colour_scheme = ColourScheme::dark;
     window.set_presentation_settings(settings);
-    const std::optional<ThemeRoleColours> dark_control = (*pad).theme_role_colours("syntax-keyword");
-    require(dark_control && (*dark_control).foreground == Color::rgba(128, 160, 255),
+    const stxlib::Optional<ThemeRoleColours> dark_control = (*pad).theme_role_colours("syntax-keyword");
+    require(dark_control.present() && (*dark_control.value()).foreground == Color::rgba(128, 160, 255),
             "switched dark, the control reads the dark colours");
 }
 

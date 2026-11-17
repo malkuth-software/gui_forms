@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -97,11 +98,11 @@ public:
 
     [[nodiscard]] bool succeeded() const noexcept;
     // The losses of a conversion that succeeded; none for a failure.
-    [[nodiscard]] std::optional<MarkdownLossReport> losses() const noexcept;
+    [[nodiscard]] stxlib::Optional<MarkdownLossReport> losses() const noexcept;
     // An import's body size; none for an export or a failure.
-    [[nodiscard]] std::optional<RtfBodySize> body() const noexcept;
+    [[nodiscard]] stxlib::Optional<RtfBodySize> body() const noexcept;
     // The error of a conversion that failed; none when it succeeded.
-    [[nodiscard]] std::optional<RtfConversionError> error() const noexcept;
+    [[nodiscard]] stxlib::Optional<RtfConversionError> error() const noexcept;
     // Where a failed conversion stopped reading; 0 when it succeeded.
     [[nodiscard]] std::uint64_t offset() const noexcept;
 

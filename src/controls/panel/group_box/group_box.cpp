@@ -37,8 +37,8 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         ground.family = ControlVisualRole::panel;
         ground.role = PartRole::fill;
         ground.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
-        ground.corner_radius = 0.0;
-        ground.authored_background = background();
+        ground.corner_radius.set(0.0);
+        ground.authored_background.set(background());
         paint_part(painter, *this, ground);
     } else if (face_selected_by_rule()) {
         // A theme rule that selects the face (G3) draws it over the frame,
@@ -46,7 +46,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         PartPaint face;
         face.family = ControlVisualRole::panel;
         face.role = PartRole::face;
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         face.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
         paint_part(painter, *this, face);
     }
@@ -60,7 +60,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     const ControlVisualContext context = part_visual_context(*this, states);
     const ControlVisualRecipe& panel = effective_theme().resolve(ControlVisualRole::panel, context);
     const MaterialBorderEdges& edges = panel.material.border_edges;
-    const bool etched = edges.top && edges.bottom && !context.high_contrast;
+    const bool etched = edges.top.present() && edges.bottom.present() && !context.high_contrast;
     const double inset = etched ? 2.0 : 1.0;
     const double top = rule_y - 0.5;
     const double right = std::max(0.0, bounds.width - inset);
@@ -76,7 +76,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     PartPaint rule;
     rule.family = ControlVisualRole::panel;
     rule.role = PartRole::keyline;
-    if (etched) rule.authored_foreground = (*edges.top).color;
+    if (etched) rule.authored_foreground.set((*edges.top.value()).color);
     for (const Rect& side : sides) {
         rule.bounds = side;
         paint_part(painter, *this, rule);
@@ -84,7 +84,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     if (etched) {
         // The light lines: each rule moved one pixel down (a horizontal
         // rule) or right (a vertical one).
-        rule.authored_foreground = (*edges.bottom).color;
+        rule.authored_foreground.set((*edges.bottom.value()).color);
         const std::array<Rect, 5> lights{{
             {1.0, top + 1.0, std::max(0.0, gap.x - 1.0), 1.0},
             {gap_right, top + 1.0, std::max(0.0, right - gap_right), 1.0},
@@ -101,7 +101,7 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     label.family = ControlVisualRole::panel;
     label.role = PartRole::caption;
     // The `caption` part, so a theme's `::part(caption) { color }` colours it.
-    label.key = PartKey{"caption", {}, {}};
+    label.key.set(PartKey{"caption", {}, {}});
     label.states = states;
     label.text = lend_paint_text(caption);
     label.font = caption_font;
@@ -139,6 +139,7 @@ constexpr ControlAnatomy group_box_anatomy{
     .parts = group_box_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

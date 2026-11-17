@@ -39,15 +39,15 @@ gui_forms::Label
          The text, including any ``&`` mnemonic marker. Setting a different value
          raises :cpp:func:`text_changed <gui_forms::Label::text_changed>`.
 
-      **font** : ``std::optional<FontSpec>``, default empty
+      **font** : ``stxlib::Optional<FontSpec>``, default empty
          The label's own font. While empty, the label uses the theme's font for
          :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`; :cpp:func:`resolved_font <gui_forms::Label::resolved_font>` reports the font in use. It is scaled
          by the window's text scale. An invalid specification throws
          ``std::invalid_argument``; writing ``std::nullopt`` returns to the theme's
          font.
 
-      **alignment** : ``HorizontalAlignment``, default ``HorizontalAlignment::near``
-         Horizontal position of each line: near (left), center or far (right).
+      **alignment** : ``HorizontalAlignment``, default ``HorizontalAlignment::start``
+         Horizontal position of each line: start (left; right in right to left), center or end.
 
       **vertical_alignment** : ``VerticalAlignment``, default ``VerticalAlignment::center``
          Vertical position of the block of lines within the label.
@@ -181,7 +181,7 @@ gui_forms::Label
       The text, including any ``&`` mnemonic marker. Setting a different value
       raises :cpp:func:`text_changed <gui_forms::Label::text_changed>`.
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The label's own font. While empty, the label uses the theme's font for
       :cpp:member:`text_style_role <gui_forms::Label::text_style_role>`; :cpp:func:`resolved_font <gui_forms::Label::resolved_font>` reports the font in use. It is scaled
@@ -191,7 +191,7 @@ gui_forms::Label
 
    .. cpp:member:: HorizontalAlignment alignment
 
-      Horizontal position of each line: near (left), center or far (right).
+      Horizontal position of each line: start (left; right in right to left), center or end.
 
    .. cpp:member:: VerticalAlignment vertical_alignment
 
@@ -276,6 +276,12 @@ gui_forms::Label
       *Protected.*
 
       Min-content is the widest unbreakable segment: the widest whitespace-delimited word of any paragraph, so word wrapping never has to break a word (CSS ``overflow-wrap: break-word``). Max-content is the widest paragraph unwrapped. Both include the 4 px text inset, and the height is the wrapped height at that width. A label that does not wrap, or has a requested width, answers both from its preferred size. The label does not wrap within 4 px of content width, so when the widest word is at most 4 px wide min-content equals max-content.
+
+   .. cpp:function:: bool sizes_unrequested_extents_from_content() const noexcept override
+
+      *Protected.*
+
+      A requested width or height of 0 is the text's (coordinator ruling, exhibit gap E12): wrapped lines at the arranged width with word wrap, one line otherwise.
 
    .. cpp:function:: virtual std::string display_text() const
 

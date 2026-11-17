@@ -36,21 +36,21 @@ Greeter::Greeter()
 
 Write one object for each control you made. Use the same stable IDs, and
 nest each object as it is nested in the tree. The property values you set
-become declarations:
+become attributes:
 
-```text
-form example.window {
-  text: "GUI.Forms example";
-  client-size: 420 360;
-  accept-button: example.greet;
-
-  panel example.root {
-    label example.greeting { text: "Type a name, then press Greet."; bounds: 20 20 380 28; }
-    text-box example.name { bounds: 20 60 260 30; tab-index: 0; }
-    button example.greet { text: "Greet"; bounds: 292 60 108 30; tab-index: 1; }
-    list-box example.greeted { bounds: 20 136 380 164; tab-index: 2; }
-  }
-}
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="urn:gui-forms:form:1" id="example.window"
+    text="GUI.Forms example"
+    client-size="420 360"
+    accept-button="example.greet">
+  <panel id="example.root">
+    <label id="example.greeting" text="Type a name, then press Greet." bounds="20 20 380 28"/>
+    <text-box id="example.name" bounds="20 60 260 30" tab-index="0"/>
+    <button id="example.greet" text="Greet" bounds="292 60 108 30" tab-index="1"/>
+    <list-box id="example.greeted" bounds="20 136 380 164" tab-index="2"/>
+  </panel>
+</form>
 ```
 
 The window's own settings move into the document as well. The title, the
@@ -85,9 +85,9 @@ struct GreeterModel final {
 };
 ```
 
-```css
-button example.greet { text: "Greet"; bounds: 292 60 108 30; command: bind(greet); }
-check-box example.shout { text: "Shout the greeting"; bounds: 20 100 380 28; checked: bind(shout); }
+```xml
+<button id="example.greet" text="Greet" bounds="292 60 108 30" command="bind(greet)"/>
+<check-box id="example.shout" text="Shout the greeting" bounds="20 100 380 28" checked="bind(shout)"/>
 ```
 
 Switch the CMake call to `MODEL example_app::GreeterModel MODEL_HEADER
@@ -148,8 +148,8 @@ A form document cannot hold colour or font properties (E813). Every inline
 `back_color`, `fore_color` and font you set moves into a theme package, and
 the object names its role instead:
 
-```css
-label example.greeting { text: "Type a name, then press Greet."; bounds: 20 20 380 28; classes: "greeting"; }
+```xml
+<label id="example.greeting" text="Type a name, then press Greet." bounds="20 20 380 28" classes="greeting"/>
 ```
 
 ```css
@@ -194,4 +194,4 @@ These parts stay in C++:
 - **Your own control types.** Name them in documents with
   `gui_forms_add_form(... TYPES ...)`.
 - **A window built at run time from data.** Only build-time generation is
-  public in 0.5.
+  public.

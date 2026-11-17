@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Composite controls in a form (cp34): the card's slot takes the label;
+     the pill takes none. Compiled with gui_forms_add_form COMPOSITES. -->
+<user-control xmlns="urn:gui-forms:form:1" id="panel.root">
+  <card-with-action id="panel.card" title="Storage" action-text="Manage">
+    <label id="panel.note" text="Inside the card"/>
+  </card-with-action>
+  <toggle-pill id="panel.pill" checked="true" text="Wi-Fi"/>
+</user-control>

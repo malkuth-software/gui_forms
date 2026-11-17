@@ -3,12 +3,14 @@
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/control/shared_capabilities/shared_capabilities.hpp"
+#include "gui_forms/controls/shared_property_enums.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/controls/label_values.hpp"
 
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -30,9 +32,9 @@ namespace gui_forms {
 // The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
 template <typename Declaring>
 struct LabelFontCapability {
-    PropertyCell<std::optional<FontSpec>, LabelFontCapability<Declaring>> font{};
+    PropertyCell<stxlib::Optional<FontSpec>, LabelFontCapability<Declaring>> font{};
 
-    static void assign(LabelFontCapability& capability, std::optional<FontSpec> incoming) {
+    static void assign(LabelFontCapability& capability, stxlib::Optional<FontSpec> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.font), incoming);
         if (!capability.font.replace(std::move(incoming))) return;
@@ -40,10 +42,10 @@ struct LabelFontCapability {
     }
 };
 
-// Horizontal placement of the text: near, center or far.
+// Horizontal placement of the text: start, center or end.
 template <typename Declaring>
 struct LabelAlignmentCapability {
-    PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment{HorizontalAlignment::near};
+    PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment{HorizontalAlignment::start};
 
     static void assign(LabelAlignmentCapability& capability, HorizontalAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
@@ -53,7 +55,7 @@ struct LabelAlignmentCapability {
     }
 };
 
-// Vertical placement of the text: near, center or far.
+// Vertical placement of the text: start, center or end.
 template <typename Declaring>
 struct LabelVerticalAlignmentCapability {
     PropertyCell<VerticalAlignment, LabelVerticalAlignmentCapability<Declaring>> vertical_alignment{VerticalAlignment::center};
@@ -142,14 +144,6 @@ struct LabelUseMnemonicCapability {
         if (!capability.use_mnemonic.replace(std::move(incoming))) return;
         control.written(std::as_const(capability.use_mnemonic));
     }
-};
-
-// HorizontalAlignment as a property value; defined beside Label's table.
-template <>
-struct PropertyValueTraits<HorizontalAlignment> {
-    static PropertyType type();
-    static BindingValue to_binding(HorizontalAlignment value);
-    static HorizontalAlignment from_binding(const BindingValue& value);
 };
 
 // VerticalAlignment as a property value; defined beside Label's table.

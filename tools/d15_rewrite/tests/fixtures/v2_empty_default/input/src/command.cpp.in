@@ -1,0 +1,15 @@
+#include <gui_forms/command.hpp>
+
+#include <string_view>
+
+namespace gui_forms {
+
+bool execute(const std::string_view source_id) {
+    return source_id.empty();
+}
+
+bool execute_titled(const std::string_view title) {
+    return execute() && title.empty();
+}
+
+} // namespace gui_forms

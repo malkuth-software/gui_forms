@@ -3,6 +3,7 @@
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <stdexcept>
@@ -447,7 +448,7 @@ void HelpCatalog::resolve_field(std::string_view stable_id, HelpField field, Hel
             const std::optional<std::string>& value = help_entry_field(*entry, field);
             if (value.has_value()) {
                 resolved.text = *value;
-                resolved.origin = HelpLayer::user;
+                resolved.origin.set(HelpLayer::user);
                 return;
             }
         }
@@ -455,7 +456,7 @@ void HelpCatalog::resolve_field(std::string_view stable_id, HelpField field, Hel
             const std::optional<std::string>& value = help_entry_field(*entry, field);
             if (value.has_value()) {
                 resolved.text = *value;
-                resolved.origin = HelpLayer::translation;
+                resolved.origin.set(HelpLayer::translation);
                 return;
             }
         }
@@ -464,7 +465,7 @@ void HelpCatalog::resolve_field(std::string_view stable_id, HelpField field, Hel
         const std::optional<std::string>& value = help_entry_field(*entry, field);
         if (value.has_value()) {
             resolved.text = *value;
-            resolved.origin = HelpLayer::built_in;
+            resolved.origin.set(HelpLayer::built_in);
             resolved.fallback = !built_in_only_ && !translation_.empty();
         }
     }
@@ -477,8 +478,8 @@ HelpResolvedRecord HelpCatalog::resolve(std::string_view stable_id) const {
     resolve_field(stable_id, HelpField::help_line, record.help_line);
     resolve_field(stable_id, HelpField::help, record.help);
     resolve_field(stable_id, HelpField::keywords, record.keywords);
-    record.found = record.title.origin.has_value() || record.help_line.origin.has_value() ||
-                   record.help.origin.has_value() || record.keywords.origin.has_value();
+    record.found = record.title.origin.present() || record.help_line.origin.present() ||
+                   record.help.origin.present() || record.keywords.origin.present();
     return record;
 }
 

@@ -215,7 +215,7 @@ private:
     void written(const decltype(animation_period)& cell);
     void prepare_write(const decltype(effect)& cell, std::string& incoming);
     void written(const decltype(effect)& cell);
-    void prepare_write(const decltype(effect_seed)& cell, std::optional<std::uint64_t>& incoming);
+    void prepare_write(const decltype(effect_seed)& cell, stxlib::Optional<std::uint64_t>& incoming);
     void written(const decltype(effect_seed)& cell);
     void prepare_write(const decltype(effect_input)& cell, EffectInputKind& incoming);
     void written(const decltype(effect_input)& cell);

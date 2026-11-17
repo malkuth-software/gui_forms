@@ -83,9 +83,36 @@ internal static class Program
         }
     }
 
+    // Control.pointer_location (windows.pointer_location, ABI 1.3): a control
+    // in no window is refused; in a window that has seen no pointer event it
+    // reads zero and outside.
+    private static unsafe void pointer_location_tests()
+    {
+        using Panel root = new Panel("forms.pointer.root");
+        using Button loose = new Button("forms.pointer.loose");
+        bool refused = false;
+        try
+        {
+            _ = loose.pointer_location;
+        }
+        catch (GuiFormsException failure)
+        {
+            refused = failure.status == Constants.GF_STATUS_INVALID_STATE;
+        }
+        expect(refused, "pointer_location refuses a control in no window");
+        gf_object window = 0;
+        Abi.check(Abi.windows.create(root.handle.value, &window));
+        PointerLocation read = root.pointer_location;
+        expect(read.location.x == 0.0 && read.location.y == 0.0 && read.window_position.x == 0.0 &&
+                   read.window_position.y == 0.0 && !read.inside,
+               "a window that has seen no pointer event reads zero, outside");
+        Abi.check(Abi.objects.release(window));
+    }
+
     private static unsafe int Main()
     {
         ClassHookTests.run(expect);
+        pointer_location_tests();
         ulong invoked = 0;
         Abi.check(Abi.dispatch.run_pending(&invoked));
         Console.WriteLine(failures == 0 ? "GuiForms.Forms: all checks passed" : $"GuiForms.Forms: {failures} failed");

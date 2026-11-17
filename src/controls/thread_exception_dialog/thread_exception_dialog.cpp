@@ -1,9 +1,13 @@
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 
 #include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/text/types/text_types.hpp"
 
 #include <array>
+#include <cstddef>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms {
@@ -14,13 +18,36 @@ namespace {
 constexpr std::string_view continue_id = "continue";
 constexpr std::string_view quit_id = "quit";
 
+// `text` as valid UTF-8: each malformed or truncated byte becomes U+FFFD.
+// An exception's message (a system message in another encoding, a file
+// name, quoted binary) is not checked by whoever threw it, and TaskDialog
+// refuses page text that is not UTF-8; the reporter must show the error,
+// not throw a second one (A-gf-controls-14-F1). Valid text is copied as is.
+std::string valid_report_text(const std::string_view text) {
+    if (validate_utf8(text).valid()) return std::string(text);
+    constexpr std::string_view replacement = "\xEF\xBF\xBD";
+    std::string repaired;
+    repaired.reserve(text.size() + text.size() / 2U);
+    std::size_t offset = 0U;
+    while (offset < text.size()) {
+        const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
+        if (decoded.valid) {
+            repaired.append(text.substr(offset, decoded.length));
+        } else {
+            repaired.append(replacement);
+        }
+        offset += decoded.length;
+    }
+    return repaired;
+}
+
 // The page a report shows. The heading says what happened, the text is the
 // exception's message, the footnote says what each button does, and the
 // details sit behind the expander.
 TaskDialogPage report_page(const ThreadExceptionReport& report) {
     TaskDialogPage page;
-    page.caption = report.caption.empty() ? std::string("Unhandled exception") : report.caption;
-    page.text = report.message;
+    page.caption = report.caption.empty() ? std::string("Unhandled exception") : valid_report_text(report.caption);
+    page.text = valid_report_text(report.message);
     page.buttons.push_back({.stable_id = std::string(continue_id), .standard = TaskDialogStandardButton::continue_});
     if (report.warning) {
         page.heading = "This application raised a warning.";
@@ -33,7 +60,7 @@ TaskDialogPage report_page(const ThreadExceptionReport& report) {
         page.buttons.push_back({.stable_id = std::string(quit_id), .text = "Quit"});
     }
     page.default_button = std::string(continue_id);
-    if (!report.details.empty()) page.expander = TaskDialogExpander{.text = report.details};
+    if (!report.details.empty()) page.expander = TaskDialogExpander{.text = valid_report_text(report.details)};
     // Escape continues, as the Windows Forms dialog's cancel button does.
     page.allow_cancel = true;
     return page;
@@ -47,7 +74,7 @@ ThreadExceptionReport describe_exception(const std::exception_ptr& error) {
     try {
         std::rethrow_exception(error);
     } catch (const std::exception& exception) {
-        report.message = exception.what();
+        report.message = valid_report_text(exception.what());
     } catch (...) {
         report.message = "An exception of unknown type was thrown.";
     }

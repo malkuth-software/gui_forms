@@ -27,6 +27,8 @@ Flow, table, split, master/detail, responsive and scaled layout containers.
      - For Windows Forms migration: Windows Forms' TableLayoutPanel, arranging its children in a grid of sized rows and columns.
    * - :cpp:class:`ResponsiveTrackPanel <gui_forms::ResponsiveTrackPanel>`
      - A container that divides one axis into tracks which shrink, grow and collapse in an order you set.
+   * - :cpp:class:`FormLayout <gui_forms::FormLayout>`
+     - Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.
    * - :cpp:class:`ScaledPanel <gui_forms::ScaledPanel>`
      - A panel that places its children in a fixed design space and scales them with the panel.
    * - :cpp:class:`SplitContainer <gui_forms::SplitContainer>`
@@ -51,6 +53,7 @@ Flow, table, split, master/detail, responsive and scaled layout containers.
    generated/gui_forms.FlowLayoutPanelCompat
    generated/gui_forms.TableLayoutPanelCompat
    generated/gui_forms.ResponsiveTrackPanel
+   generated/gui_forms.FormLayout
    generated/gui_forms.ScaledPanel
    generated/gui_forms.SplitContainer
    generated/gui_forms.SplitterPanel
@@ -135,6 +138,8 @@ Related types
      - The distance, in logical units along either axis, a caption press moves before it drags (owner decision DK-26, D5-1: 4, or a host's metric; no host reports one yet).
    * - :cpp:class:`DockSiteKeyboardIncrementCapability <gui_forms::DockSiteKeyboardIncrementCapability>`
      - The step of a keyboard seam move, in logical units; 8 by default.
+   * - :cpp:class:`DropPulse <gui_forms::DropPulse>`
+     - The drop-cue pulse: an edge inside the drop part and a faint tint over it, their opacity breathing between a low and a high level once every ``drop_pulse_period_seconds``.
    * - :cpp:class:`FlexItemLayout <gui_forms::FlexItemLayout>`
      - One child's flex item properties (CSS Flexbox's names; PLAN section 2.2).
    * - :cpp:class:`FlexPanelAlignContentCapability <gui_forms::FlexPanelAlignContentCapability>`
@@ -167,6 +172,16 @@ Related types
      - Every FlowLayoutPanelCompat capability, in the order the declaring class takes them.
    * - :cpp:class:`FlowLayoutWrapContentsCapability <gui_forms::FlowLayoutWrapContentsCapability>`
      - Whether a child that does not fit the rest of the line starts a new one.
+   * - :cpp:class:`FormLayoutCapabilities <gui_forms::FormLayoutCapabilities>`
+     - Every FormLayout capability, in the order the declaring class takes them.
+   * - :cpp:class:`FormLayoutCaptionAlignmentCapability <gui_forms::FormLayoutCaptionAlignmentCapability>`
+     - Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
+   * - :cpp:class:`FormLayoutCaptionWidthCapability <gui_forms::FormLayoutCaptionWidthCapability>`
+     - The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+   * - :cpp:class:`FormLayoutColumnSpacingCapability <gui_forms::FormLayoutColumnSpacingCapability>`
+     - The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`FormLayoutRowSpacingCapability <gui_forms::FormLayoutRowSpacingCapability>`
+     - The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
    * - :cpp:class:`GridAreaCapability <gui_forms::GridAreaCapability>`
      - The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other.
    * - :cpp:class:`GridCellCapability <gui_forms::GridCellCapability>`
@@ -391,11 +406,11 @@ Related types
 
       The line boxes' inline alignment; start by default. justify is not admitted (std::invalid_argument).
 
-   .. cpp:member:: std::optional<LineStrut> line_strut
+   .. cpp:member:: stxlib::Optional<LineStrut> line_strut
 
       The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -410,9 +425,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BlockPanelFontCapability& capability, std::optional<FontSpec> incoming)
+   .. cpp:function:: static void assign(BlockPanelFontCapability& capability, stxlib::Optional<FontSpec> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<FontSpec>, BlockPanelFontCapability<Declaring>> font
+   .. cpp:member:: PropertyCell<stxlib::Optional<FontSpec>, BlockPanelFontCapability<Declaring>> font
 
 .. cpp:namespace:: gui_forms
 
@@ -425,9 +440,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BlockPanelLineStrutCapability& capability, std::optional<LineStrut> incoming)
+   .. cpp:function:: static void assign(BlockPanelLineStrutCapability& capability, stxlib::Optional<LineStrut> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut
+   .. cpp:member:: PropertyCell<stxlib::Optional<LineStrut>, BlockPanelLineStrutCapability<Declaring>> line_strut
 
 .. cpp:namespace:: gui_forms
 
@@ -452,16 +467,16 @@ Related types
 
    ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
-   The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names. ``(*tracks).child_track[*child] = 2U;``
+   The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names. ``(*tracks).child_track[*child] = stxlib::Optional<std::uint32_t>::of(2U);``
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ChildTrackCapability& capability, const Control& child, std::optional<std::uint32_t> value)
+   .. cpp:function:: static void assign(ChildTrackCapability& capability, const Control& child, stxlib::Optional<std::uint32_t> value)
 
-   .. cpp:function:: static std::optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child)
+   .. cpp:function:: static stxlib::Optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child)
 
-   .. cpp:member:: ChildPropertyView<std::optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track
+   .. cpp:member:: ChildPropertyView<stxlib::Optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track
 
 .. cpp:namespace:: gui_forms
 
@@ -494,7 +509,7 @@ Related types
 
    .. cpp:member:: bool collapsed
 
-   .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+   .. cpp:member:: stxlib::Optional<std::uint16_t> collapse_priority
 
 .. cpp:namespace:: gui_forms
 
@@ -510,7 +525,7 @@ Related types
 
    .. cpp:member:: double maximum
 
-   .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+   .. cpp:member:: stxlib::Optional<std::uint16_t> collapse_priority
 
 .. cpp:namespace:: gui_forms
 
@@ -976,6 +991,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: DropPulse final
+
+   ``#include <gui_forms/controls/dock_site_effects.hpp>``
+
+   The drop-cue pulse: an edge inside the drop part and a faint tint over it, their opacity breathing between a low and a high level once every ``drop_pulse_period_seconds``. The edge is the frame's primary colour and the tint its secondary. Still: the edge at its middle level, no tint.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<DockSite>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = DockSite
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "drop_pulse", .engine_version = 2U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 2000U, .per_device_pixel = 2U}, .state_budget = 16U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FlexItemLayout final
 
    ``#include <gui_forms/controls/flex_panel.hpp>``
@@ -1306,6 +1340,101 @@ Related types
    .. cpp:member:: PropertyCell<bool, FlowLayoutWrapContentsCapability<Declaring>> wrap_contents
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutCapabilities : public FormLayoutCaptionWidthCapability<Declaring>, public FormLayoutCaptionAlignmentCapability<Declaring>, public FormLayoutRowSpacingCapability<Declaring>, public FormLayoutColumnSpacingCapability<Declaring>
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   Every FormLayout capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double caption_width
+
+      The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+
+   .. cpp:member:: HorizontalAlignment caption_alignment
+
+      Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
+
+   .. cpp:member:: double row_spacing
+
+      The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+   .. cpp:member:: double column_spacing
+
+      The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutCaptionAlignmentCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutCaptionAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, FormLayoutCaptionAlignmentCapability<Declaring>> caption_alignment
+
+      Default: ``{HorizontalAlignment::start}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutCaptionWidthCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutCaptionWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FormLayoutCaptionWidthCapability<Declaring>> caption_width
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutColumnSpacingCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutColumnSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FormLayoutColumnSpacingCapability<Declaring>> column_spacing
+
+      Default: ``{8.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutRowSpacingCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutRowSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FormLayoutRowSpacingCapability<Declaring>> row_spacing
+
+      Default: ``{6.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1653,16 +1782,16 @@ Related types
 
    ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
-   The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width. ``(*shelf).group_spec[*group] = CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};`` In a ``.form`` it is text: the three extents, then optionally ``priority`` and the priority, as in "176 176 176 priority 2".
+   The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width. ``(*shelf).group_spec[*group] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U});`` In a ``.form`` it is text: the three extents, then optionally ``priority`` and the priority, as in "176 176 176 priority 2".
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(GroupSpecCapability& capability, const Control& child, std::optional<CommandOverflowGroupSpec> value)
+   .. cpp:function:: static void assign(GroupSpecCapability& capability, const Control& child, stxlib::Optional<CommandOverflowGroupSpec> value)
 
-   .. cpp:function:: static std::optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability, const Control& child)
+   .. cpp:function:: static stxlib::Optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability, const Control& child)
 
-   .. cpp:member:: ChildPropertyView<std::optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec
+   .. cpp:member:: ChildPropertyView<stxlib::Optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec
 
 .. cpp:namespace:: gui_forms
 
@@ -1781,6 +1910,8 @@ Related types
 
    .. cpp:member:: ResponsiveTrackOrientation orientation
 
+      Default: ``{ResponsiveTrackOrientation::horizontal}``.
+
    .. cpp:member:: ResponsiveTrackResolution resolution
 
    .. cpp:member:: LayoutTransactionState transaction
@@ -1897,6 +2028,8 @@ Related types
 
    .. cpp:member:: ResponsiveTrackCollapseReason collapse_reason
 
+      Default: ``{ResponsiveTrackCollapseReason::none}``.
+
    .. cpp:member:: bool collapse_protected
 
 .. cpp:namespace:: gui_forms
@@ -1923,7 +2056,7 @@ Related types
 
    .. cpp:member:: bool hidden
 
-   .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+   .. cpp:member:: stxlib::Optional<std::uint16_t> collapse_priority
 
 .. cpp:namespace:: gui_forms
 
@@ -2075,11 +2208,11 @@ Related types
 
       The least extent of the second panel (Windows Forms' Panel2MinSize, default 25). Refused as first_minimum is.
 
-   .. cpp:member:: std::optional<double> first_maximum
+   .. cpp:member:: stxlib::Optional<double> first_maximum
 
       The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.
 
-   .. cpp:member:: std::optional<double> second_maximum
+   .. cpp:member:: stxlib::Optional<double> second_maximum
 
       The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.
 
@@ -2131,9 +2264,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(SplitContainerFirstMaximumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(SplitContainerFirstMaximumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum
 
 .. cpp:namespace:: gui_forms
 
@@ -2214,9 +2347,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(SplitContainerSecondMaximumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(SplitContainerSecondMaximumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum
 
 .. cpp:namespace:: gui_forms
 
@@ -2356,6 +2489,8 @@ Related types
       Default: ``{3.0}``.
 
    .. cpp:member:: SplitSeamThicknessPolicy thickness_policy
+
+      Default: ``{SplitSeamThicknessPolicy::logical}``.
 
    .. cpp:member:: double hit_before
 
@@ -3006,7 +3141,7 @@ Enumerations
 
    .. cpp:enumerator:: idle
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: nearby
 
    .. cpp:enumerator:: hot
 
@@ -3078,6 +3213,18 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/dock_site_effects.hpp>``
+
+.. cpp:function:: void register_dock_site_effects(EffectRegistry& registry)
+
+   Adds the drop pulse to ``registry``.
+
+.. cpp:var:: constexpr double drop_pulse_period_seconds
+
+   One breath of the pulse. Value: ``1.2``.
 
 .. cpp:namespace:: gui_forms
 

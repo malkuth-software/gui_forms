@@ -13,6 +13,7 @@
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/dial.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
 #include "gui_forms/controls/linear_gauge.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -32,9 +33,12 @@
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/delegate.hpp"
@@ -45,6 +49,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -85,6 +90,13 @@ struct Refuser final {
     bool refuse{true};
     void changing(WizardPageChangingEvent& event) { event.cancel = refuse; }
     void closing(ModalLayerClosingEvent& event) { event.cancel = refuse; }
+};
+
+// A page_changing handler that removes a page from the wizard.
+struct PageRemover final {
+    Wizard* wizard{};
+    Control* page{};
+    void changing(WizardPageChangingEvent&) { static_cast<void>((*wizard).remove_child((*page).runtime_id())); }
 };
 
 PointerEvent press(Point at) {
@@ -185,15 +197,15 @@ void test_gauge_values_and_alarms() {
     require((*gauge).tick_ratios().empty(), "a zero frequency draws no marks");
 
     require(!(*gauge).in_alarm(), "without limits there is no alarm");
-    (*gauge).high_alarm = std::optional<double>{40.0};
+    (*gauge).high_alarm = stxlib::Optional<double>::of(40.0);
     require((*gauge).in_alarm(), "a value over the high limit is in alarm");
     require((*gauge).anatomy_states().contains(AnatomyState::invalid), "an alarm is the invalid state");
     SemanticDescriptor semantics = (*gauge).semantic_descriptor();
     require(semantics.role == SemanticRole::meter && semantics.value == "50.0 kPa (high alarm)" &&
                 has_semantic_state(semantics.states, SemanticState::invalid),
             "assistive technology hears the alarm");
-    (*gauge).high_alarm = std::optional<double>{};
-    (*gauge).low_alarm = std::optional<double>{60.0};
+    (*gauge).high_alarm = stxlib::Optional<double>::none();
+    (*gauge).low_alarm = stxlib::Optional<double>::of(60.0);
     semantics = (*gauge).semantic_descriptor();
     require(semantics.value == "50.0 kPa (low alarm)", "a value under the low limit is a low alarm");
     bool refused = false;
@@ -205,11 +217,11 @@ void test_gauge_values_and_alarms() {
     require(refused, "more than six decimals are refused");
     refused = false;
     try {
-        (*gauge).low_alarm = std::optional<double>{std::nan("")};
+        (*gauge).low_alarm = stxlib::Optional<double>::of(std::nan(""));
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*gauge).low_alarm.read() == std::optional<double>{60.0}, "a limit that is not finite is refused");
+    require(refused && (*gauge).low_alarm.read() == stxlib::Optional<double>::of(60.0), "a limit that is not finite is refused");
 }
 
 void test_gauges_in_window() {
@@ -217,7 +229,7 @@ void test_gauges_in_window() {
     std::shared_ptr<LinearGauge> linear = make_control<LinearGauge>(StableId("final.gauges.linear"));
     (*linear).set_requested_bounds(Rect{10.0, 10.0, 240.0, 30.0});
     (*linear).value = 50.0;
-    (*linear).high_alarm = std::optional<double>{80.0};
+    (*linear).high_alarm = stxlib::Optional<double>::of(80.0);
     (*root).add_child(linear);
     std::shared_ptr<LinearGauge> vertical = make_control<LinearGauge>(StableId("final.gauges.vertical"));
     (*vertical).set_requested_bounds(Rect{260.0, 10.0, 48.0, 160.0});
@@ -249,7 +261,7 @@ void test_gauges_in_window() {
                 dial.caption.present,
             "a radial gauge publishes its face, scale arc, value arc, needle and value");
     require(!dial.alarm_arc.present, "without limits no alarm segment is published");
-    (*radial).high_alarm = std::optional<double>{90.0};
+    (*radial).high_alarm = stxlib::Optional<double>::of(90.0);
     window.perform_layout();
     require((*radial).parts().alarm_arc.present, "a high limit draws an alarm segment");
     (*radial).value = 0.0;
@@ -287,6 +299,14 @@ void test_dial() {
     require(window.dispatch_pointer(move) && near((*dial).value.read(), 100.0), "the gap keeps the nearer end");
     require(window.dispatch_pointer(release(Point{centre.x, centre.y + 40.0})), "the release is handled");
     require(!(*dial).anatomy_states().contains(AnatomyState::pressed), "a released dial is not pressed");
+    // A press whose capture is taken away stops tracking (A-gf-controls-05-F4).
+    require(window.dispatch_pointer(press(Point{centre.x, centre.y - 40.0})) && near((*dial).value.read(), 50.0),
+            "a second press is handled");
+    (*dial).set_pointer_capture(false);
+    move.position = Point{centre.x + 40.0, centre.y};
+    static_cast<void>(window.dispatch_pointer(move));
+    require(near((*dial).value.read(), 50.0) && !(*dial).anatomy_states().contains(AnatomyState::pressed),
+            "after its capture is lost a hover move leaves the dial alone");
 
     require(window.request_focus(dial), "the dial takes focus");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::home}) && near((*dial).value.read(), 0.0), "Home is the minimum");
@@ -295,7 +315,8 @@ void test_dial() {
             "Page Up adds the large change");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) && near((*dial).value.read(), 100.0), "End is the maximum");
     const SemanticDescriptor semantics = (*dial).semantic_descriptor();
-    require(semantics.role == SemanticRole::slider && semantics.numeric_value && near(*semantics.numeric_value, 100.0),
+    require(semantics.role == SemanticRole::slider && semantics.numeric_value.present() &&
+                near(*semantics.numeric_value.value(), 100.0),
             "a dial is a slider to assistive technology");
     require((*dial).on_semantic_action(SemanticAction::set_value, "25") && near((*dial).value.read(), 25.0),
             "the set-value action moves the dial");
@@ -343,7 +364,7 @@ void test_step_indicator() {
     require(parts.chip.present && parts.glyph.present && parts.divider.present && parts.caption.present,
             "the indicator publishes its chips, checks, connectors and names");
     // Columns are 100 units wide; the first chip is centred at 50.
-    require((*steps).step_at(Point{50.0, 12.0}) == std::optional<std::size_t>{0U}, "the first chip is step 0");
+    require((*steps).step_at(Point{50.0, 12.0}) == stxlib::Optional<std::size_t>::of(0U), "the first chip is step 0");
     require(window.dispatch_pointer(press(Point{50.0, 12.0})) && recorder.seen.size() == 1U &&
                 recorder.seen[0] == "step:0",
             "a completed step can be pressed");
@@ -428,6 +449,14 @@ void test_wizard() {
     require(refused, "a page past the last is refused");
     (*wizard).back_text = std::string{"Previous"};
     require((*(*wizard).back_button()).text.read() == "Previous", "the button texts are properties");
+
+    // A page_changing handler that removes the target page refuses the move
+    // instead of throwing (A-gf-controls-14-F8).
+    PageRemover remover{wizard.get(), third.get()};
+    SubscriptionToken removing =
+        (*wizard).page_changing().subscribe(Delegate<WizardPageChangingEvent&>::bind<PageRemover, &PageRemover::changing>(remover));
+    require(!(*wizard).go_to(2U) && (*wizard).current_page.read() == 0U && (*wizard).page_count() == 2U,
+            "a target removed by page_changing is refused");
 }
 
 // -- overlays ----------------------------------------------------------------------
@@ -494,6 +523,36 @@ void test_callout() {
     require(!(*callout).close(), "closing a closed callout does nothing");
 }
 
+// A one-shot callout whose program let it go (A-gf-controls-01-F7): while
+// shown, its layer holds the only reference, so a press outside that
+// dismisses it would destroy it inside finish. The callout holds itself
+// to the end of finish: closed is raised, then it goes.
+void test_released_callout_closes_whole() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.oneshot.root"));
+    std::shared_ptr<Button> target = make_control<Button>(StableId("final.oneshot.target"), "New");
+    (*target).set_requested_bounds(Rect{20.0, 20.0, 80.0, 28.0});
+    (*root).add_child(target);
+    Window window(root, Size{500.0, 400.0});
+    window.perform_layout();
+    Recorder recorder;
+    std::weak_ptr<Callout> observed;
+    {
+        std::shared_ptr<Callout> callout = make_control<Callout>(StableId("final.oneshot"));
+        (*callout).title = std::string{"Once"};
+        (*callout).light_dismiss = true;
+        recorder.tokens.push_back(
+            (*callout).closed().subscribe(Delegate<CalloutCloseReason>::bind<Recorder, &Recorder::callout_closed>(recorder)));
+        require((*callout).show(target), "the one-shot callout opens");
+        observed = callout;
+    }
+    window.perform_layout();
+    require(!observed.expired(), "while shown, the layer keeps the released callout");
+    require(window.dispatch_pointer(press(Point{450.0, 380.0})), "the press outside is handled");
+    static_cast<void>(window.dispatch_pointer(release(Point{450.0, 380.0})));
+    require(!recorder.seen.empty() && recorder.seen.back() == "callout:2", "the released callout reports click-away");
+    require(observed.expired(), "closed, the released callout is gone");
+}
+
 void test_modal_layer() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.modal.root"));
     std::shared_ptr<Button> behind = make_control<Button>(StableId("final.modal.behind"), "Behind");
@@ -514,6 +573,7 @@ void test_modal_layer() {
     require(!(*layer).show(behind, nullptr), "a layer needs content");
     require((*layer).show(behind, content) && (*layer).is_shown(), "the layer shows its content");
     window.perform_layout();
+    require((*layer).scrim_opacity() == 0.0, "the scrim fades in from nothing (row 2.6)");
     const Rect placed = (*content).absolute_bounds();
     require(near(placed.x, 150.0) && near(placed.y, 140.0), "the content is centred");
     require((*layer).parts().shadow.present, "the content casts the shadow");
@@ -541,11 +601,20 @@ void test_modal_layer() {
     require(!(*layer).close(DialogResult::ok) && (*layer).is_shown(), "closing may refuse");
     refusing.disconnect();
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*layer).is_shown() &&
-                recorder.seen.back() == "modal:2" && (*layer).result() == std::optional<DialogResult>{DialogResult::cancel},
+                recorder.seen.back() == "modal:2" && (*layer).result() == stxlib::Optional<DialogResult>::of(DialogResult::cancel),
             "Escape closes as cancel");
     require(!(*content).parent(), "the content leaves the layer");
+    require((*layer).scrim_opacity() == 1.0, "a closed layer's fade is over");
     require((*layer).show(behind, content), "the layer shows again");
     require((*layer).close(DialogResult::ok) && recorder.seen.back() == "modal:1", "close reports its result");
+
+    // Under reduced motion the scrim is full at once.
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    require((*layer).show(behind, content) && (*layer).scrim_opacity() == 1.0,
+            "under reduced motion the scrim does not fade");
+    require((*layer).close(DialogResult::ok), "the calm layer closes");
 }
 
 void test_lookup_combo_box() {
@@ -586,7 +655,7 @@ void test_lookup_combo_box() {
     open.modifiers = Modifier::alt;
     require(window.dispatch_key(open) && (*lookup).is_dropped_down() && recorder.seen.back() == "open",
             "Alt+Down opens the list");
-    require((*lookup).filtered_rows().size() == 3U && (*lookup).highlighted() == std::optional<std::size_t>{2U},
+    require((*lookup).filtered_rows().size() == 3U && (*lookup).highlighted() == stxlib::Optional<std::size_t>::of(2U),
             "the open list highlights the chosen row");
     TextInputEvent typed{};
     typed.text_utf8 = "an";
@@ -596,12 +665,19 @@ void test_lookup_combo_box() {
     require(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}) && (*lookup).filter() == "a",
             "Backspace removes the last typed character");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::home}) &&
-                (*lookup).highlighted() == std::optional<std::size_t>{0U},
+                (*lookup).highlighted() == stxlib::Optional<std::size_t>::of(0U),
             "Home highlights the first row");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::enter}) && !(*lookup).is_dropped_down() &&
                 (*lookup).selected_key.read() == "de" && recorder.seen.back() == "closed",
             "Enter chooses the highlighted row and closes");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::f4}) && (*lookup).is_dropped_down(), "F4 opens the list");
+    // A-gf-controls-06-F6: whether or not a row fits the open list yet, Page Down moves the
+    // highlight down, never up (a page of 0 - 1 rows wrapped to -1).
+    const stxlib::Optional<std::size_t> before_page = (*lookup).highlighted();
+    require(before_page.present(), "the open list has a highlight before Page Down");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::page_down}), "Page Down is handled");
+    const stxlib::Optional<std::size_t> after_page = (*lookup).highlighted();
+    require(after_page.present() && *after_page.value() > *before_page.value(), "Page Down moves the highlight down");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*lookup).is_dropped_down() &&
                 (*lookup).selected_key.read() == "de",
             "Escape closes without choosing");
@@ -612,6 +688,43 @@ void test_lookup_combo_box() {
     require((*lookup).parts().well.present && (*lookup).parts().actuator.present, "the field publishes its parts");
     (*lookup).set_rows({{"fr", {"FR", "France"}}});
     require((*lookup).selected_key.read().empty() && recorder.seen.back() == "key:", "a vanished key is cleared");
+}
+
+// Removes the lookup from its parent and drops the test's pointer when a
+// key is chosen, as a picker that closes its panel on choice might.
+struct ReleaseLookupOnChoice final {
+    std::shared_ptr<Panel> parent;
+    std::shared_ptr<LookupComboBox>* held{};
+    void operator()(const std::string& key) const {
+        if (key.empty() || !*held) return;
+        static_cast<void>((*parent).remove_child((*(*held)).runtime_id()));
+        (*held).reset();
+    }
+};
+
+// A selected_key_changed handler that removes and drops the lookup while
+// its open list chooses (A-gf-controls-06-F5): the lookup holds itself
+// across the choice, closes its list and goes once the key is handled.
+// Enter is used here; the row press runs the same on_row_activated path
+// with only the list held by the dispatch.
+void test_lookup_released_by_its_choice() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.lookup.release.root"));
+    std::shared_ptr<LookupComboBox> lookup = make_control<LookupComboBox>(StableId("final.lookup.release"));
+    (*lookup).set_requested_bounds(Rect{20.0, 20.0, 220.0, 24.0});
+    (*root).add_child(lookup);
+    Window window(root, Size{500.0, 400.0});
+    window.perform_layout();
+    (*lookup).set_columns({{"Code", 60.0}, {"Country", 140.0}});
+    (*lookup).set_rows({{"de", {"DE", "Germany"}}, {"fr", {"FR", "France"}}});
+    const std::weak_ptr<LookupComboBox> observed = lookup;
+    require(window.request_focus(lookup), "the lookup takes focus");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::f4}) && (*lookup).is_dropped_down(), "F4 opens the list");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::home}), "Home highlights the first row");
+    const SubscriptionToken token = (*lookup).selected_key_changed().subscribe(ReleaseLookupOnChoice{root, &lookup});
+    static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::enter}));
+    require(!lookup, "the handler released the lookup");
+    window.perform_layout();
+    require(observed.expired(), "the released lookup is gone after its key");
 }
 
 void test_about_dialog() {
@@ -670,6 +783,172 @@ void test_dial_parts_in_the_stock_themes() {
     const ControlVisualRecipe& thin = (*professional).resolve(ControlVisualRole::progress, resting);
     require(near(thin.stroke_width, 3.0) && thin.needle_shape == NeedleShape::line && thin.scrim.alpha == 77U,
             "windows-professional draws thin arcs, a line needle and a light scrim");
+    require(gauge.ring_style == RingStyle::dots && forced.ring_style == RingStyle::dots &&
+                thin.ring_style == RingStyle::dots,
+            "every stock theme keeps the progress ring's dots");
+}
+
+// GAPS T1: in forced high contrast the track is the band's outline (one-unit
+// strokes) and the reading a solid band, so the two differ in shape where
+// they share a colour.
+class LinePainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double width) override { widths.push_back(width); }
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::vector<double> widths;
+};
+
+void test_high_contrast_gauge_arcs() {
+    const std::shared_ptr<const Theme> house = gui_forms_theme();
+    ControlVisualContext contrast{};
+    contrast.high_contrast = true;
+    const ControlVisualRecipe& forced = (*house).resolve(ControlVisualRole::progress, contrast);
+    PartPaint track{.role = PartRole::arc, .bounds = Rect{0.0, 0.0, 120.0, 120.0},
+                    .family = ControlVisualRole::progress};
+    track.arc.set(PartArc{-2.0, 4.0});
+    LinePainter outlined;
+    paint_part_from_recipe(outlined, track, forced, contrast);
+    bool hairlines = !outlined.widths.empty();
+    for (const double width : outlined.widths) {
+        if (!near(width, 1.0)) hairlines = false;
+    }
+    require(hairlines, "high contrast draws the track as one-unit outline strokes");
+    PartPaint reading = track;
+    reading.states.insert(AnatomyState::selected);
+    LinePainter solid;
+    paint_part_from_recipe(solid, reading, forced, contrast);
+    require(!solid.widths.empty() && near(solid.widths.front(), forced.stroke_width) && forced.stroke_width > 1.0,
+            "the reading stays a solid band");
+    PartPaint alarm = track;
+    alarm.states.insert(AnatomyState::invalid);
+    LinePainter warned;
+    paint_part_from_recipe(warned, alarm, forced, contrast);
+    require(!warned.widths.empty() && near(warned.widths.front(), forced.stroke_width),
+            "an alarm range keeps its solid band");
+    ControlVisualContext resting{};
+    const ControlVisualRecipe& ordinary = (*house).resolve(ControlVisualRole::progress, resting);
+    LinePainter plain;
+    paint_part_from_recipe(plain, track, ordinary, resting);
+    require(!plain.widths.empty() && near(plain.widths.front(), ordinary.stroke_width),
+            "outside high contrast the track is a solid band");
+}
+
+// The collapsing-header reveal (row 2.6): a section's body sits in a
+// clipping host at its full height while the host opens from 0; closing
+// hides the body at once; under reduced motion both jump.
+void test_expandable_sections_reveal() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.sections.root"));
+    std::shared_ptr<ExpandableSections> sections = make_control<ExpandableSections>(StableId("final.sections"));
+    (*sections).set_requested_bounds(Rect{0.0, 0.0, 300.0, 300.0});
+    (*root).add_child(sections);
+    std::shared_ptr<Panel> first = make_control<Panel>(StableId("final.sections.first"));
+    (*first).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::shared_ptr<Panel> second = make_control<Panel>(StableId("final.sections.second"));
+    (*second).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::vector<SectionItem> items{};
+    items.push_back(SectionItem{1, "First", first, nullptr});
+    items.push_back(SectionItem{2, "Second", second, nullptr});
+    (*sections).set_items(std::move(items));
+    Window window(root, Size{400.0, 400.0});
+    window.perform_layout();
+    require(near((*sections).section_reveal(0), 0.0) && near((*sections).section_reveal(1), 0.0) &&
+                !(*sections).revealing(),
+            "the sections start closed, with no reveal");
+    require((*first).parent() != nullptr && (*first).parent().get() != sections.get() &&
+                (*(*first).parent()).parent().get() == sections.get(),
+            "each body sits in a host inside the sections");
+
+    (*sections).set_expanded(0, true);
+    window.perform_layout();
+    require((*first).visible.read() && (*sections).revealing() && (*sections).section_reveal(0) < 1.0,
+            "opening shows the body at once and starts the reveal");
+    require(near((*first).absolute_bounds().height, 80.0),
+            "the body keeps its full height while its host opens");
+    require((*(*first).parent()).absolute_bounds().height < 80.0, "the host is still lower than the body");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    (*sections).set_expanded(1, true);
+    window.perform_layout();
+    require(near((*sections).section_reveal(1), 1.0) && (*second).visible.read(),
+            "under reduced motion a section opens at once");
+    require(near((*(*second).parent()).absolute_bounds().height, 80.0), "its host is the body's height");
+    (*sections).set_expanded(1, false);
+    window.perform_layout();
+    require(near((*sections).section_reveal(1), 0.0) && !(*second).visible.read(),
+            "and closes at once, the body hidden");
+    (*sections).set_expanded(0, false);
+    require(!(*first).visible.read(), "closing hides the body at once");
+}
+
+// Replaces the sections' items when a host is hidden, as a handler reached
+// from a host's events might.
+struct ReplaceSectionsWhenHidden final {
+    ExpandableSections* sections{};
+    std::shared_ptr<Panel> replacement;
+    void operator()(bool visible) const {
+        if (visible || !replacement) return;
+        std::vector<SectionItem> items{};
+        items.push_back(SectionItem{7, "Replacement", replacement, nullptr});
+        (*sections).set_items(std::move(items));
+    }
+};
+
+// Runs the window's frames until the sections' reveal ends, at most
+// `frames` of them.
+void run_reveal(Window& window, const ExpandableSections& sections, int frames) {
+    // The reveal's animation is paint-gated: one tick, then a paint before
+    // the next is scheduled, so each frame lays out and paints first.
+    LinePainter painter;
+    for (int frame = 0; frame < frames && sections.revealing(); ++frame) {
+        window.perform_layout();
+        window.paint(painter);
+        const stxlib::Optional<FrameTime> wake = window.next_wake();
+        if (wake.absent()) return;
+        static_cast<void>(window.poll_frame_schedule(*wake.value()));
+    }
+}
+
+// A host's visibility handler that replaces the items while the reveal
+// tick walks them (A-gf-controls-01-F8): the tick holds the revision it
+// walks and stops when it is no longer current.
+void test_expandable_sections_replaced_during_a_reveal() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.replaced.root"));
+    std::shared_ptr<ExpandableSections> sections = make_control<ExpandableSections>(StableId("final.replaced"));
+    (*sections).set_requested_bounds(Rect{0.0, 0.0, 300.0, 300.0});
+    (*root).add_child(sections);
+    std::shared_ptr<Panel> first = make_control<Panel>(StableId("final.replaced.first"));
+    (*first).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::shared_ptr<Panel> second = make_control<Panel>(StableId("final.replaced.second"));
+    (*second).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::vector<SectionItem> items{};
+    items.push_back(SectionItem{1, "First", first, nullptr});
+    items.push_back(SectionItem{2, "Second", second, nullptr});
+    (*sections).set_items(std::move(items));
+    Window window(root, Size{400.0, 400.0});
+    window.perform_layout();
+    (*sections).set_expanded(0, true);
+    run_reveal(window, *sections, 1000);
+    require(!(*sections).revealing() && near((*sections).section_reveal(0), 1.0), "the first section opens");
+    const Control::Ptr host = (*first).parent();
+    require(host != nullptr, "the first body sits in a host");
+    std::shared_ptr<Panel> replacement = make_control<Panel>(StableId("final.replaced.third"));
+    (*replacement).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    const SubscriptionToken token =
+        (*host).visible_changed().subscribe(ReplaceSectionsWhenHidden{sections.get(), replacement});
+    (*sections).set_expanded(0, false);
+    run_reveal(window, *sections, 1000);
+    require((*sections).items().size() == 1U && (*sections).items()[0].id == 7,
+            "the handler's items replaced the sections during the reveal");
 }
 
 int main() {
@@ -681,10 +960,15 @@ int main() {
     test_step_indicator();
     test_wizard();
     test_callout();
+    test_released_callout_closes_whole();
     test_modal_layer();
     test_lookup_combo_box();
+    test_lookup_released_by_its_choice();
     test_about_dialog();
     test_dial_parts_in_the_stock_themes();
+    test_high_contrast_gauge_arcs();
+    test_expandable_sections_reveal();
+    test_expandable_sections_replaced_during_a_reveal();
     std::cout << "final control tests passed\n";
     return EXIT_SUCCESS;
 }

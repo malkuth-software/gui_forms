@@ -31,6 +31,9 @@
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -236,6 +239,8 @@ LONG expected_role(SemanticRole role) noexcept {
     case SemanticRole::progress_bar: return ROLE_SYSTEM_PROGRESSBAR;
     case SemanticRole::image: return ROLE_SYSTEM_GRAPHIC;
     case SemanticRole::figure: return ROLE_SYSTEM_CHART;
+    case SemanticRole::document: return ROLE_SYSTEM_DOCUMENT;
+    case SemanticRole::heading: return ROLE_SYSTEM_STATICTEXT;
     case SemanticRole::tab_group: return ROLE_SYSTEM_PAGETABLIST;
     case SemanticRole::tab: return ROLE_SYSTEM_PAGETAB;
     case SemanticRole::split_pane: return ROLE_SYSTEM_PANE;
@@ -1153,8 +1158,9 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<FontDialog>(StableId("off-tree.font-dialog")),
           Rect{10.0, 390.0, 640.0, 400.0});
     // The visual registry controls no Gallery page attaches: the instruments
-    // and the plot, and the wizard, callout, modal layer and help viewer
-    // controls, each placed bare (a callout and a modal layer not shown).
+    // and the plots, and the wizard, callout, modal layer, help viewer,
+    // business card and window capsule controls, each placed bare (a callout
+    // and a modal layer not shown).
     place(*root, make_control<Sparkline>(StableId("off-tree.sparkline")), Rect{670.0, 390.0, 160.0, 30.0});
     place(*root, make_control<ValueBar>(StableId("off-tree.value-bar")), Rect{850.0, 390.0, 160.0, 24.0});
     place(*root, make_control<PlotView>(StableId("off-tree.plot-view")), Rect{670.0, 430.0, 300.0, 150.0});
@@ -1162,6 +1168,14 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<Callout>(StableId("off-tree.callout")), Rect{670.0, 600.0, 200.0, 80.0});
     place(*root, make_control<ModalLayer>(StableId("off-tree.modal-layer")), Rect{890.0, 600.0, 160.0, 80.0});
     place(*root, make_control<HelpBookViewer>(StableId("off-tree.help-book-viewer")), Rect{1060.0, 600.0, 200.0, 190.0});
+    place(*root, make_control<BusinessCard>(StableId("off-tree.business-card")), Rect{990.0, 60.0, 272.0, 164.0});
+    // The 3D plot, bare, and the window capsule as the surface window
+    // manager's title strip shows it (not interactive), as the headless
+    // semantic test places them.
+    place(*root, make_control<Plot3DView>(StableId("off-tree.plot3d-view")), Rect{990.0, 240.0, 270.0, 170.0});
+    const std::shared_ptr<WindowCapsule> capsule = make_control<WindowCapsule>(StableId("off-tree.window-capsule"));
+    (*capsule).set_interactive(false);
+    place(*root, capsule, Rect{1060.0, 10.0, 80.0, 20.0});
     const Size size{1280.0, 820.0};
     std::unique_ptr<Window> window = std::make_unique<Window>(root, size);
     return window;

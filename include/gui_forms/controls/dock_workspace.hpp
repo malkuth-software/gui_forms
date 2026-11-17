@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -50,6 +51,13 @@ struct GUI_FORMS_API DockPanelRegistration final {
     DockPanelDescriptor descriptor{};
     std::string title{};
     Delegate<DockPanelCreation&> factory{};
+};
+
+// What DockWorkspace::add_panels did: how many panels it registered and how
+// many of those the layout then placed.
+struct GUI_FORMS_API DockPanelsAdded final {
+    std::size_t registered{};
+    std::size_t shown{};
 };
 
 // Why documents are asked to close (stage DK phase D6, owner decision
@@ -137,6 +145,12 @@ struct GUI_FORMS_API DockActivationChange final {
 // nothing. One main DockSite and one DockSite per floating site may be bound
 // at a time.
 //
+// Docked only (the ImGui-class demonstrator's I1): a workspace whose panels
+// all stay docked or auto-hidden needs no host windows. A DockSite bound to
+// it and set as a Window's root realizes the main site, headless runs and
+// offscreen captures included; attach_windows is needed only once a panel
+// floats. add_panels registers and places a list of panels in one call.
+//
 // Floating windows (stage DK phase D4; owner decisions DK-1, DK-6 to DK-12,
 // DK-41, DK-44): once attach_windows binds the run's main window, the
 // workspace keeps one owned floating window per floating site of the layout.
@@ -185,6 +199,16 @@ public:
     // nothing, when the layout refuses the descriptor (an empty or repeated
     // identity).
     bool register_panel(DockPanelRegistration registration);
+    // Registers each panel, then shows each in the list's order
+    // (register_panel, then show_panel with the program origin): a tool
+    // panel goes to its descriptor's default placement, a document to the
+    // document area, and the last panel shown is active. The list is
+    // checked first: an empty identity, one repeated within the list or one
+    // already registered refuses the whole list, changing nothing and
+    // returning zeroes. A show the layout refuses (a default placement the
+    // panel's own restrictions forbid) leaves that panel registered and
+    // not placed, and the rest go on.
+    DockPanelsAdded add_panels(std::vector<DockPanelRegistration> panels);
     [[nodiscard]] const DockPanelRegistration* find_registration(const DockPanelId& panel) const noexcept;
     // Retitles a registered panel's caption, tab and navigator row. False
     // for an unregistered panel.
@@ -206,7 +230,7 @@ public:
     // One floating site's override of the option above (none: the
     // workspace's). Kept for the site while it exists, through a window
     // opened again for it.
-    void set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown);
+    void set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown);
     // Whether document stacks show their tab strip; off is a single
     // document interface (DockPanel Suite's DocumentStyle.DockingSdi).
     void set_document_tabs_shown(bool shown);
@@ -217,8 +241,18 @@ public:
     [[nodiscard]] bool auto_hide_opens_on_hover() const noexcept { return auto_hide_opens_on_hover_; }
     // The colour the sites paint their document area with in place of the
     // theme's well (DockPanel Suite's DockBackColor); none: the theme's.
-    void set_area_background(std::optional<Color> colour);
-    [[nodiscard]] std::optional<Color> area_background() const noexcept { return area_background_; }
+    void set_area_background(stxlib::Optional<Color> colour);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<Color>")]]
+    void set_area_background(std::optional<Color> colour) {
+        stxlib::Optional<Color> owned{};
+        if (colour.has_value()) owned.set(*colour);
+        set_area_background(owned);
+    }
+    // A plain colour is refused rather than routed to the deprecated form:
+    // pass stxlib::Optional<Color>::of(colour).
+    void set_area_background(Color colour) = delete;
+    [[nodiscard]] stxlib::Optional<Color> area_background() const noexcept { return area_background_; }
     // The registered title, or the identity for a panel without one.
     [[nodiscard]] std::string panel_title(const DockPanelId& panel) const;
 
@@ -499,7 +533,7 @@ private:
     // window is being moved under the pointer: the next window below it,
     // floating windows before the main one).
     [[nodiscard]] ApplicationWindowHandle window_of(const DockSite& site) const;
-    [[nodiscard]] std::optional<Point> desktop_origin(const DockSite& site) const;
+    [[nodiscard]] stxlib::Optional<Point> desktop_origin(const DockSite& site) const;
     [[nodiscard]] DockSite* site_at(Point desktop, const DockSite* excluded) const;
     [[nodiscard]] bool site_contains(const DockSite& site, Point desktop) const;
     // Records `panel` as active without moving focus (the site calls it when
@@ -550,7 +584,7 @@ private:
     std::vector<FloatingVisibility> floating_visibility_{};
     bool document_tabs_shown_{true};
     bool auto_hide_opens_on_hover_{true};
-    std::optional<Color> area_background_{};
+    stxlib::Optional<Color> area_background_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
     // property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)

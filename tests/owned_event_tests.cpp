@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "../src/core/control/control/control_input_access.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -732,7 +733,7 @@ void test_shared_scalar_state() {
     require(allocations == 0U && first.value.read() == 99.0 && second.value.read() == 99.0,
             "steady state scalar propagation must allocate nothing");
     const gf::SemanticDescriptor semantic = first.semantic_descriptor();
-    require(semantic.numeric_value == 99.0,
+    require(semantic.numeric_value == stxlib::Optional<double>::of(99.0),
             "accessibility must observe the bound value");
     gf::KeyEvent input{.action = gf::KeyAction::down,
                       .physical_key = gf::PhysicalKey::left};
@@ -745,6 +746,13 @@ void test_shared_scalar_state() {
     try { first.value = 75.0; } catch (const std::out_of_range&) { rejected = true; }
     require(rejected && first.value.read() == prior && volume.get() == prior,
             "another control constraint must reject before the originating control changes");
+    // A-gf-controls-11-F8: from input the same refusal means "no change",
+    // never an exception out of key handling.
+    gf::KeyEvent end{.action = gf::KeyAction::down, .physical_key = gf::PhysicalKey::end};
+    bool key_threw = false;
+    try { gui_forms::detail::ControlInputAccess::on_key(first, end); } catch (const std::exception&) { key_threw = true; }
+    require(!key_threw && first.value.read() == prior && volume.get() == prior && second.value.read() == prior,
+            "a refused End key must leave every bound control and the model unchanged");
     volume.dispose();
     first.value = 30.0;
     require(second.value.read() != 30.0, "disposed model must detach its bindings");
@@ -847,7 +855,7 @@ void test_command_bar_rebuild_and_keyboard() {
     StateObserver command_observer{};
     gf::on(run.invoked(), command_observer, &StateObserver::command);
     gf::on((*bar).invoked(), observer, &CollectionObserver::command);
-    (*bar).set_items({{.id = 1, .label = "Run", .shortcut = gf::KeyGesture{gf::PhysicalKey::r, gf::Modifier::control}, .command = &run},
+    (*bar).set_items({{.id = 1, .label = "Run", .shortcut = stxlib::Optional<gui_forms::KeyGesture>::of(gf::KeyGesture{gf::PhysicalKey::r, gf::Modifier::control}), .command = &run},
                      {.id = 2, .label = "Help"}});
     window.flush();
     require((*bar).item(0).arranged_bounds().width == 150.0 &&
@@ -925,6 +933,19 @@ void test_choice_group_state_and_rebuild() {
     gui_forms::detail::ControlInputAccess::on_key(*group, right);
     require(right.handled && model.get() == 0 && observer.choices == before + 1,
             "arrow keys select choices through the shared model");
+    // A-gf-controls-11-F8: a second group bound to the same model refuses
+    // a selection outside its one item; a click on the wider group's second
+    // item is then no change rather than an exception out of activation.
+    (*group).set_items({{.id = 10, .label = "First"}, {.id = 20, .label = "Second"}});
+    const std::shared_ptr<gf::ChoiceGroup> narrow =
+        gf::make_control<gf::ChoiceGroup>(gf::StableId("narrow-choices"));
+    (*narrow).set_items({{.id = 10, .label = "Only"}});
+    (*narrow).bind(model);
+    const int selected_before = model.get();
+    bool click_threw = false;
+    try { (*group).item(1).perform_click(); } catch (const std::exception&) { click_threw = true; }
+    require(!click_threw && model.get() == selected_before && (*group).selected_index.read() == selected_before,
+            "a refused choice activation must leave the shared selection unchanged");
 }
 
 void test_expandable_sections_state() {
@@ -955,7 +976,13 @@ void test_expandable_sections_state() {
     require(allocations == 0U, "section changes must allocate nothing after configuration");
     (*sections).set_items({{.id = 1, .label = "First", .content = second, .expanded = &first_open},
                           {.id = 2, .label = "Second", .content = first, .expanded = &second_open}});
-    require((*first).parent() == sections && (*second).parent() == sections,
+    // Each body sits in its section's clipping host, a child of the
+    // sections (`<id>.body.<section id>`): swapped bodies change hosts.
+    const gf::Control::Ptr first_host = (*first).parent();
+    const gf::Control::Ptr second_host = (*second).parent();
+    require(first_host && second_host && (*first_host).parent() == sections &&
+                (*second_host).parent() == sections && (*first_host).stable_id().value() == "sections.body.2" &&
+                (*second_host).stable_id().value() == "sections.body.1",
             "swapping section contents must preserve both tree attachments");
     gf::Control* const reused = (*sections).part("header", 0);
     (*sections).set_items({{.id = 1, .label = "Renamed", .content = first, .expanded = &first_open}});

@@ -40,9 +40,10 @@ all eleven:
    the fallback when an owner disappears (reject stale identities, stop
    revoked callbacks).
 5. **Callbacks and execution:** named targets with explicit context; specify
-   event order, reentrancy and revocation; name asynchronous work,
-   completion, cancellation and shutdown; one execution context per piece of
-   mutable state.
+   event order, reentrancy and revocation; complete a state change before
+   notifying, and carry nothing taken from state across a call into
+   application code; name asynchronous work, completion, cancellation and
+   shutdown; one execution context per piece of mutable state.
 6. **Procedures and data:** state inputs, outputs and permitted mutation;
    fill caller-supplied storage for bulk work; name intermediate forms; state
    overlap rules.
@@ -79,6 +80,8 @@ python3 -B tools/check_lifetime_rules.py include src lab demo tests examples too
 python3 -B tools/export_annotations.py check
 python3 -B tools/control_registry.py members --check
 python3 -B tools/abi_class_tables.py --check
+python3 -I tools/check_std_rules.py --config tools/std_rules.toml
+python3 -I tools/std_surface_census.py check
 ```
 
 The third fails on a public declaration under `include/gui_forms/` that lacks
@@ -102,10 +105,33 @@ bridges, the C# hook classes, the conformance part and their ledger
 reorder or renumber an entry, a segment or a class id (append-only, the class
 tables decision). `python3 -B tools/abi_class_tables.py` writes them again.
 
-`stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
-md4c, SheenBidi, the Unicode data) live in the stx repository since
-2026-11-08; this repository pins that checkout in `stx.lock` and carries no
-third-party sources. `stx_skia/`'s own style check, with its shrink-only
+The sixth (D15, decision 6a) checks the standard-library rules STXlib's audit
+B governs (`rand`, `strerror`, `setlocale`, `atoi`, pthread and `wchar_t`
+outside native code, and the rest; `--list-rules` prints them). It is
+STXlib's `check_std_rules.py`, copied with its source commit in its first
+lines, configured by `tools/std_rules.toml` (whose `host_paths` name the
+native code), and fails on any finding its shrink-only allowance
+(`tools/std_rules_allowance.txt`) does not admit. Fix a finding and lower its
+count, or allow one use in the source with `// std-rules: allow(<rule>)
+<reason>`; never raise a count.
+
+The seventh (D15, stage V0) counts the standard vocabulary D15 and its Q2
+replace at the C++ surface (`std::string`, `std::vector`, the ownership
+pointers, `std::optional`, `std::string_view`, `std::span`; qualified names
+in `include/gui_forms/` without `c/`, read with `check_std_rules.py`'s
+comment and literal stripping). The baseline,
+`manifests/std_surface_census.json`, is a ratchet: the check fails when a
+count rises, and also when one falls, until `python3 -I
+tools/std_surface_census.py update` lowers it in the same change (update
+refuses to raise a count). Conversions between the two vocabularies inside
+GUI.Forms go through the private bridge, `src/platform/stxlib_bridge.hpp`.
+
+`stx_skia/` and what remains of the third-party data (the Unicode data) live
+in the stx repository since 2026-11-08; this repository pins that checkout in
+`stx.lock` and carries no third-party sources. Fonts, shaping, hinting, bidi,
+line breaking, script runs and Markdown are STXlib's since 2026-11-16
+(stxlib::glyphs, stxlib::textlayout, stxlib::markdown); FreeType, HarfBuzz,
+SheenBidi, libunibreak and MD4C are no longer built. `stx_skia/`'s own style check, with its shrink-only
 allowance, runs there (`stx_skia/AGENTS.md` in stx).
 
 The second checks two rules of sections 5 and 9: a function returning a
@@ -171,10 +197,17 @@ directory.
 
 ## Hard boundaries
 
-- C++20 is admitted. Objective-C++ is admitted only in the macOS host adapter.
+- C++20 is admitted. Objective-C++ is admitted only in the macOS host adapter
+  (`src/surface/macos/`) and the macOS program entry points in
+  `src/host/macos/`.
 - No .NET, Java, browser engine, or Godot dependency.
 - GUI.Forms has no GPU capability. Do not compile, link, initialize, probe, or
   expose Ganesh, Graphite, GL, Vulkan, Metal, Direct3D, Dawn, or WebGPU.
+  One written exception (owner, 2026-10-27, confirmed 2026-11-15): the
+  Emscripten browser host (`src/surface/web/`) presents the window manager's
+  CPU-composed surface with WebGL2, uploading its pixels to one texture and
+  drawing it as a quad. WebGL2 is only that host's present backend; nothing
+  renders with it, and no other target may use it.
 - Skia may be used only through a private CPU renderer adapter. No Skia type may
   appear in public headers, DML, demo-facing control APIs, C ABI, or tests of the
   renderer-neutral core.
@@ -189,8 +222,16 @@ directory.
   `src/core/image/`, for resources, the clipboard, imports, export and
   GUI.Drawing. The registry, renderers and hosts see codec-neutral types
   only. Other codecs are excluded.
-- AppKit types remain inside `src/host/macos/`.
-- Win32, COM, WIC, MSAA, and UIA types remain inside `src/host/windows/`.
+- Platform API calls (owner, 2026-11-16, host adapter consolidation) live in
+  `src/surface/<platform>/`: AppKit, CoreGraphics, CoreText and IOSurface
+  in `src/surface/macos/`; Win32, COM, WIC, MSAA and UIA in
+  `src/surface/windows/`; Xlib, xcb and Wayland in
+  `src/surface/linux/`; POSIX memory mapping, sockets and processes in
+  `src/surface/posix/`; Emscripten in `src/surface/web/`. The rest of
+  `src/host/` is platform-neutral host logic and includes no platform
+  header. After 1.0 this folder moves into STXlib as its surface.
+- AppKit types remain inside `src/surface/macos/`.
+- Win32, COM, WIC, MSAA, and UIA types remain inside `src/surface/windows/`.
 - The core is retained; do not introduce an immediate-mode control API or a
   perpetual redraw loop.
 - ADR-013's reservation of persistent side panels to File Manager was retired
@@ -201,8 +242,9 @@ directory.
   default semantic adapters; File Manager requires native accessibility
   publication and does not treat it as a user-disabled product mode.
 - Portsmouth Rapids 1.0 faces are supplied for the Gallery.
-  **GIVEN forward direction:** M4/M9 use HarfBuzz, FreeType, bundled
-  Portsmouth control faces, a selected bundled Tahoma/Calibri-like body face,
+  **GIVEN forward direction:** M4/M9 use STXlib's glyph library (font
+  reader, shaper and hinter, in place of FreeType and HarfBuzz since
+  2026-11-16), bundled Portsmouth control faces, a selected bundled Tahoma/Calibri-like body face,
   and bounded bundled fallback packs. Portsmouth is the repository owner's own
   typeface, bundled under MIT (`assets/fonts/LICENSE-PortsmouthRapids.txt`);
   body-face coverage assets remain a gate; do not silently use arbitrary host
@@ -215,8 +257,17 @@ directory.
 - Renderer-neutral implementation lives under `src/core/` and
   `src/controls/`.
 - Skia implementation lives under `src/render/skia/`.
-- Native macOS code lives under `src/host/macos/`.
-- Native Windows code lives under `src/host/windows/`.
+- Native macOS code lives under `src/surface/macos/`; its program entry
+  points and platform-neutral rules under `src/host/macos/`.
+- GUI.Forms' own window manager for single-surface hosts lives under
+  `src/host/surface/` (portable C++; owner decision, 2026-11-15).
+- Browser (Emscripten) code lives under `src/surface/web/` and its
+  platform-neutral rules under `src/host/web/`; its page half is
+  `src/surface/web/page/web_host.js` and the hosted page shell `web/paint/`.
+- Native Windows code lives under `src/surface/windows/`; its program entry
+  points under `src/host/windows/`.
+- Native Linux code lives under `src/surface/linux/`; its program entry
+  points and platform-neutral rules under `src/host/linux/`.
 - Demonstrations and their provisional static descriptions live under `demo/`;
   authoritative Web.Forms language work lives in the sibling `web_forms/`
   project and consumes only an explicitly negotiated public manifest.

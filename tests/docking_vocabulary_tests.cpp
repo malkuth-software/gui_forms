@@ -289,14 +289,14 @@ void turned_text_is_retained_and_replayed() {
 }
 
 constexpr std::array<PartDeclaration, 1> tab_parts{{
-    {.name = "tab_face", .role = PartRole::face, .composed_from = {}},
+    {.name = "tab_face", .role = PartRole::face, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<AnatomyState, 2> tab_states{{AnatomyState::hot, AnatomyState::selected}};
 constexpr std::array<ItemSystemDeclaration, 1> tab_systems{{
     {.name = "page", .parts = tab_parts, .states = tab_states, .custom_states = admitted_custom_states},
 }};
 constexpr std::array<PartDeclaration, 1> strip_parts{{
-    {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr ControlAnatomy strip_anatomy{
     .control_id = "page_strip_fixture",
@@ -311,18 +311,18 @@ void custom_states() {
                 admitted_custom_states.size() == 2U,
             "the custom states modified and pinned are admitted");
     for (const CustomStateDeclaration& state : admitted_custom_states) {
-        require(snake_case(state.name) && !anatomy_state_from_name(state.name).has_value(),
+        require(snake_case(state.name) && anatomy_state_from_name(state.name).absent(),
                 "an admitted custom state is snake_case and shadows no standard state");
     }
     const AnatomyValidation validation = validate_control_anatomy(strip_anatomy);
     require(validation.defect == AnatomyDefect::none, "an item system declaring the admitted states validates");
-    const std::optional<CustomStateIndex> modified = find_item_custom_state(tab_systems[0], "modified");
-    const std::optional<CustomStateIndex> pinned = find_item_custom_state(tab_systems[0], "pinned");
-    require(modified && pinned && (*modified).value == 0U && (*pinned).value == 1U,
+    const stxlib::Optional<CustomStateIndex> modified = find_item_custom_state(tab_systems[0], "modified");
+    const stxlib::Optional<CustomStateIndex> pinned = find_item_custom_state(tab_systems[0], "pinned");
+    require(modified.present() && pinned.present() && (*modified.value()).value == 0U && (*pinned.value()).value == 1U,
             "the admitted states are found by name in the item system that declares them");
     AnatomyStateSet item_states;
-    item_states.insert(*pinned);
-    require(item_states.contains(*pinned) && !item_states.contains(*modified),
+    item_states.insert(*pinned.value());
+    require(item_states.contains(*pinned.value()) && !item_states.contains(*modified.value()),
             "an item carries the admitted states as custom states");
 }
 
@@ -361,7 +361,8 @@ void roles_actions_and_fields() {
     require(items[0].controlled_panel == "tabs.first" && items[1].controlled_panel == "tabs.second",
             "each tab names its page as its panel");
     require((*first).semantic_descriptor().role == SemanticRole::tab_panel, "a tab page is a tab panel");
-    require((*tabs).semantic_descriptor().orientation == SemanticOrientation::horizontal,
+    require((*tabs).semantic_descriptor().orientation ==
+                stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::horizontal),
             "a tab row along the top is horizontal");
 
     const std::string json = window.semantic_snapshot().to_json();
@@ -371,12 +372,13 @@ void roles_actions_and_fields() {
                 json.find("\"orientation\":null") != std::string::npos,
             "semantic snapshots carry the tab panel role, the relation and the orientation");
     require(window.perform_semantic_action("tabs.second.tab", SemanticAction::select) &&
-                (*tabs).selected_index.read() == 1U,
+                (*tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "selecting a tab still works");
 
     (*tabs).alignment = TabAlignment::left;
     window.perform_layout();
-    require((*tabs).semantic_descriptor().orientation == SemanticOrientation::vertical,
+    require((*tabs).semantic_descriptor().orientation ==
+                stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::vertical),
             "a tab column along a side is vertical");
 }
 
@@ -401,7 +403,8 @@ void ribbon_tabs() {
         if (node.stable_id == "ribbon.command-plane") plane = &node;
     }
     require(row != nullptr && plane != nullptr, "the ribbon publishes its tab row and command plane");
-    require((*row).orientation == SemanticOrientation::horizontal, "the ribbon's tab row is horizontal");
+    require((*row).orientation == stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::horizontal),
+            "the ribbon's tab row is horizontal");
     require((*plane).role == SemanticRole::tab_panel, "the command plane is the selected tab's panel");
     for (const SemanticNode& tab : (*row).children) {
         const bool press = std::find(tab.actions.begin(), tab.actions.end(), SemanticAction::press) !=

@@ -112,6 +112,18 @@ public:
     void clip_rect(Rect rect) override;
     void clip_rounded_rect(Rect rect, double radius) override;
     void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override;
+    // An antialiased Skia path clip for Skia's own draws, and for the
+    // raster's own composites (text coverage, part rasters, isolated paint
+    // groups) a coverage mask in device pixels (clip_mask.hpp, 1/256-pixel
+    // fixed point) that the shared integer blend multiplies into its clip.
+    // Nested path clips multiply their masks. Where no mask can describe the
+    // clip (a perspective matrix, a turning transform group, a path too long
+    // to flatten or beyond the mask's coordinate range) the composites give
+    // way to Skia draws that follow the path: text draws its coverage mask
+    // through Skia, a part raster draws as a Skia image (source-over at its
+    // opacity), and under such a path clip a paint group that would isolate
+    // draws directly, counted as a refusal (group_refusals).
+    void clip_path(PaintPathView path, PolygonFillRule rule) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;
     void stroke_rect(Rect rect, Color color, double width) override;
@@ -127,6 +139,10 @@ public:
     void fill_radial_gradient(
         Rect rect, Point center, Size radii,
         std::span<const GradientStop> stops) override;
+    void fill_radial_gradient_spread(
+        Rect rect, Point center, Size radii,
+        std::span<const GradientStop> stops,
+        GradientSpreadMode spread) override;
     void draw_box_shadow(Rect rect, double corner_radius, Point offset,
                          double blur_radius, double spread,
                          Color color) override;
@@ -146,6 +162,11 @@ public:
     // which draw through fill_rect and so snap every edge to device pixels.
     void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override;
     void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) override;
+    // Curved paths as one Skia path each: the verbs drawn exactly (quads,
+    // cubics and elliptical arcs, no flattening here), antialiased; a sweep
+    // of a full turn is drawn as two half turns.
+    void fill_path(PaintPathView path, Color color, PolygonFillRule rule) override;
+    void stroke_path(PaintPathView path, const StrokeStyle& style) override;
     void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) override;
     void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) override;
     void draw_markers(std::span<const Point> centers, const MarkerStyle& style) override;
@@ -153,6 +174,15 @@ public:
     // snapped rectangle.
     void fill_conic_gradient(Rect rect, Point center, double start_degrees,
                              std::span<const GradientStop> stops) override;
+    // One hatch cell as an 8 x 8 tile (hatch_square_marked), repeated by a
+    // nearest-sampled shader scaled to the cell and anchored at the
+    // pattern's anchor, over the snapped rectangle.
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override;
+    // A two-point conical shader from the focus (radius 0) to the unit
+    // circle, drawn in the ellipse's own coordinates (the centre at the
+    // origin, the radii scaled to 1) under a clip to the rectangle.
+    void fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                    std::span<const GradientStop> stops, GradientSpreadMode spread) override;
     // As fill_rounded_rect and stroke_rounded_rect, with each corner's
     // radius; a corner of radius 0 stays square on both sides of a stroke.
     void fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) override;
@@ -193,6 +223,17 @@ public:
     // through the same rasterization and compositing as draw_text_utf8
     // (the same pixels for the same glyphs); anything else as its text.
     void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font_spec, Color color) override;
+    // Rasterizes the shaped run under the turn and the canvas's linear part
+    // (the engine's general, unhinted placement) and composites its coverage
+    // with the shared rule, as draw_text_utf8 composites; where the canvas
+    // pixels cannot be addressed, Skia blends the coverage as a mask. 0
+    // draws as draw_text_utf8. No coverage is retained.
+    void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font_spec, Color color,
+                                double degrees) override;
+    // Runs this raster's engine shaped, turned as draw_rotated_text_utf8
+    // turns a run; anything else as its text.
+    void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font_spec, Color color,
+                                 double degrees) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;
     void draw_live_surface(const std::shared_ptr<LiveSurface> surface,
                            const Rect destination, const double opacity) override;
@@ -206,6 +247,9 @@ public:
     // its publication repaints the surface's area.
     [[nodiscard]] Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
                                                  Rect destination, double opacity) override;
+    // From the decode (ResourcePixelResult::every_pixel_opaque) and the
+    // image's alpha type; an image not synchronized is unknown.
+    [[nodiscard]] ImageDrawOpacity image_draw_opacity(ImageId image) const noexcept override;
     // Composites the raster into the canvas pixels with the shared blend
     // (detail::composite_part_raster) under the recorded clips, as text is
     // composited. Draws nothing when the canvas is not a plain scale and
@@ -250,6 +294,25 @@ public:
     // allocated. Each draws its content directly, clipped to its bounds,
     // without its opacity or composite.
     [[nodiscard]] std::uint64_t group_refusals() const noexcept;
+    // Transform groups (Painter::begin_transform). A translation is drawn as
+    // translate(); any other valid map is concatenated onto the canvas
+    // matrix under a save, and while it is in force the raster's direct
+    // composites (text coverage, part rasters, isolated paint groups) give
+    // way to Skia draws through the map: text through the transformed glyph
+    // rasterizer, part rasters as images, first area-resampled down to the
+    // map's minimum scale where the draw would minify them (rotation tier
+    // 1, counted in transformed_resamples), and a paint group that asks for
+    // isolation isolated in device pixels through the map, its image
+    // composited by Skia under the map's clip and the group's bounds.
+    void begin_transform(const PaintTransformGroup& group) override;
+    void end_transform() override;
+    // Transform groups refused: not valid, begun deeper than
+    // maximum_paint_transform_depth or inside a refused one. Each drew
+    // nothing.
+    [[nodiscard]] std::uint64_t transform_refusals() const noexcept;
+    // Part rasters area-resampled (stx_conv, pixel area) to the map's
+    // minimum scale before a draw through a non-translating map.
+    [[nodiscard]] std::uint64_t transformed_resamples() const noexcept;
 
 private:
     [[nodiscard]] bool apply_image_patch(const ImageResourceView& resource);
@@ -263,6 +326,9 @@ private:
     // opaque_live_surface_cover has promised.
     bool direct_patterns_{};
     std::uint64_t covers_promised_{};
+    // stroke_path's trimmed sub-path (StrokeStyle::trim), cleared and
+    // refilled by each trimmed stroke on the painting thread.
+    PaintPath trimmed_stroke_{};
 };
 
 } // namespace gui_forms::render

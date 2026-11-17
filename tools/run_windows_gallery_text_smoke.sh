@@ -17,7 +17,10 @@ test -f "$gallery"
 test -f "$probe"
 text_tests="$build_directory/gui_forms_windows_text_tests.exe"
 test -f "$text_tests"
-font_directory=${GUI_FORMS_FONT_DIR:-"$build_directory/fonts"}
+# The text tests read the faces from a directory; programs carry only the
+# licences (the faces are in the embedded pack), so the checkout's own.
+repository_directory=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+font_directory=${GUI_FORMS_FONT_DIR:-"$repository_directory/assets/fonts"}
 # The shared-engine test replaces the removed GDI trace assertions: it checks
 # script coverage, cached/cold pixels, weights, scales, and identity hashes.
 (
@@ -61,7 +64,7 @@ wait "$gallery_pid"
 trap - EXIT INT TERM
 
 test -s "$capture"
-rg -q '"renderer_name":"Win32 DIB · Skia CPU raster · HarfBuzz/FreeType text · owned PNG · bundled fonts"' "$log"
+rg -q '"renderer_name":"Win32 DIB · Skia CPU raster · STXlib text · owned PNG · bundled fonts"' "$log"
 rg -q '"events_rejected":0' "$log"
 rg -q '"close_requests":1' "$log"
 rg -q '"closed":true' "$log"

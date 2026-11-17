@@ -2,6 +2,7 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "tool_tips/tool_tip_presenter.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -24,6 +25,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <exception>
 #include <functional>
 #include <new>
@@ -42,9 +44,38 @@ namespace {
 // mark asked. Read once: a layout mark is a hot path, and getenv walks the
 // environment on every call. The trace is a diagnostic switch for a whole
 // run, so a variable set later in the process is not seen.
+// A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake):
+// neither trace is ever on.
 bool layout_invalidation_traced() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return false;
+#else
     static const bool traced = std::getenv("GUI_FORMS_TRACE_LAYOUT_INVALIDATION") != nullptr;
     return traced;
+#endif
+}
+
+// Whether GUI_FORMS_TRACE_PRESS was set when the first press was traced:
+// then every primary press's trace (SurfaceRoot::last_press_trace) is also
+// written to stderr, one line. Read once, as above.
+bool press_traced() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return false;
+#else
+    static const bool traced = std::getenv("GUI_FORMS_TRACE_PRESS") != nullptr;
+    return traced;
+#endif
+}
+
+const char* press_outcome_name(PressOutcome outcome) noexcept {
+    switch (outcome) {
+    case PressOutcome::no_target: return "no_target";
+    case PressOutcome::preview_handled: return "preview_handled";
+    case PressOutcome::focus_refused: return "focus_refused";
+    case PressOutcome::delivered: return "delivered";
+    case PressOutcome::none:
+    default: return "none";
+    }
 }
 
 constexpr std::uint32_t maximum_layout_passes = 4;
@@ -53,17 +84,17 @@ constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
 // (audit B11: its own bound, no longer the semantic snapshot's).
 constexpr std::uint32_t maximum_hit_test_passes = 4;
 
-[[nodiscard]] std::optional<char32_t> physical_mnemonic(
+[[nodiscard]] stxlib::Optional<char32_t> physical_mnemonic(
     std::uint32_t physical_key) noexcept {
     // USB HID keyboard usages are contiguous for A-Z and for 1-9,0.
     if (physical_key >= 0x04U && physical_key <= 0x1DU) {
-        return U'a' + static_cast<char32_t>(physical_key - 0x04U);
+        return stxlib::Optional<char32_t>::of(U'a' + static_cast<char32_t>(physical_key - 0x04U));
     }
     if (physical_key >= 0x1EU && physical_key <= 0x26U) {
-        return U'1' + static_cast<char32_t>(physical_key - 0x1EU);
+        return stxlib::Optional<char32_t>::of(U'1' + static_cast<char32_t>(physical_key - 0x1EU));
     }
-    if (physical_key == 0x27U) return U'0';
-    return std::nullopt;
+    if (physical_key == 0x27U) return stxlib::Optional<char32_t>::of(U'0');
+    return stxlib::Optional<char32_t>::none();
 }
 
 // The position after `visited` (found at `position`) in `parent`'s child
@@ -111,6 +142,25 @@ bool single_allowed_effect(DragEffect effect, DragEffect allowed) noexcept {
            (effect == DragEffect::copy || effect == DragEffect::move ||
             effect == DragEffect::link) &&
            has_drag_effect(allowed, effect);
+}
+
+// Whether the window that `lifetime` named when `presenting` was read has
+// since been destroyed: a raiser closed it. Nothing of the SurfaceRoot may be
+// touched then (A-gf-core-17-F1).
+bool window_destroyed(const detail::WindowLifetime& lifetime, const Window* presenting) noexcept {
+    const bool destroyed = lifetime.window != presenting;
+    return destroyed;
+}
+
+// A drag route's result from its event alone, for a route whose window a
+// raiser destroyed.
+DragDispatchResult drag_result_of(const DragEvent& event) noexcept {
+    DragDispatchResult result;
+    result.handled = event.handled;
+    if (single_allowed_effect(event.accepted_effect, event.allowed_effects)) {
+        result.accepted_effect = event.accepted_effect;
+    }
+    return result;
 }
 
 double bounded_visual_outset(double value) noexcept {
@@ -439,6 +489,11 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
         return;
     }
     (*root).metrics_.record_callback_emitted();
+    // A raiser may destroy the root itself (a focus_observed handler that
+    // closes the window): the root is read only while its lifetime record
+    // still names the window it named before the raisers.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = (*root).lifetime_;
+    Window* const presenting = (*lifetime).window;
     // Gaining focus: on_enter, on_focus_changed, on_got_focus (its base
     // raises focus_observed). Losing it: on_focus_changed, on_lost_focus,
     // on_leave. A raiser may dispose the control; nothing more runs then.
@@ -453,7 +508,7 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
         }
     }
     if (!focused && (*control).is_alive()) (*control).on_leave();
-    if (!(*control).is_alive()) return;
+    if (window_destroyed(*lifetime, presenting) || !(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate((*control).focus_invalidation());
         if (focused) (*root).reveal_focused(control);
@@ -500,6 +555,8 @@ void SurfaceRoot::DeferredInputVisitor::operator()(InputEvent&& event) const {
         static_cast<void>((*root).dispatch_text(std::move(event)));
     } else if constexpr (std::is_same_v<EventType, DragEvent>) {
         static_cast<void>((*root).dispatch_drag(std::move(event)));
+    } else if constexpr (std::is_same_v<EventType, HostRelativeMotionEvent>) {
+        static_cast<void>((*root).dispatch_relative_motion(event));
     } else if (event.owner.value != 0U) {
         static_cast<void>((*root).perform_semantic_action(
             event.owner, event.stable_id, event.action, event.value));
@@ -541,6 +598,15 @@ void SurfaceRoot::note_image_refusal(std::string_view operation, ImageId image,
 void SurfaceRoot::repaint_for_image_replacement() {
     add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
     touch_paint();
+}
+
+void SurfaceRoot::relayout_for_resource_content() {
+    if (root_ && (*root_).is_alive()) mark_subtree_dirty(*root_, invalidation::resource_content);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            mark_subtree_dirty(*overlay_root, invalidation::resource_content);
+        }
+    }
 }
 
 void SurfaceRoot::repaint_for_image_removal() {
@@ -817,6 +883,11 @@ bool SurfaceRoot::request_help(bool keyboard_initiated) {
     const std::weak_ptr<detail::WindowLifetime> watched = lifetime_;
     help_requested_.emit(request);
     if (request.handled) return true;
+    // A handler that disposed the window (the C ABI's objects.dispose on a
+    // window that has not run) leaves help_fallbacks_ freed: test before
+    // the copy reads it (A-gf-abi-03-F1).
+    const std::shared_ptr<detail::WindowLifetime> survived = watched.lock();
+    if (!survived || (*survived).window == nullptr) return false;
     // Offered to a copy, skipping a provider a handler disposed meanwhile.
     const std::vector<detail::WindowHelpFallback*> offered = help_fallbacks_;
     for (detail::WindowHelpFallback* const fallback : offered) {
@@ -928,11 +999,16 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
                     !focus_allowed_by_active_scope(control))) {
         return false;
     }
+    // The publications' handlers may destroy this root: nothing of it is
+    // read once its lifetime record no longer names the window.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     if (previous) {
         focused_.reset();
         (*previous).publish_change(
             static_cast<const void*>(&(*previous).focus_observed_),
             FocusChangePublication{this, previous, false});
+        if (window_destroyed(*lifetime, presenting)) return false;
     }
     if (control && eligible(control) && (*control).focusable.read()) {
         focused_ = control;
@@ -943,6 +1019,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         (*control).publish_change(
             static_cast<const void*>(&(*control).focus_observed_),
             FocusChangePublication{this, control, true});
+        if (window_destroyed(*lifetime, presenting)) return false;
     }
     metrics_.record_focus_transition();
     FocusedControlChange moved{};
@@ -953,6 +1030,9 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         moved.stable_id = std::string((*current).stable_id().value());
     }
     if (tool_tips_) (*tool_tips_).focus_changed(current);
+    // Focus moving outside the relative pointer's owner gives the pointer
+    // back, before the change is announced.
+    end_relative_pointer_for_focus(current);
     focused_control_changed_.emit(moved);
     return true;
 }
@@ -1207,9 +1287,9 @@ bool SurfaceRoot::dispatch_dialog_key(const KeyEvent& event) {
     const bool control = has_modifier(event.modifiers, Modifier::control);
     const bool meta = has_modifier(event.modifiers, Modifier::meta);
     if (alt && !control && !meta) {
-        const std::optional<char32_t> character =
+        const stxlib::Optional<char32_t> character =
             physical_mnemonic(event.physical_key);
-        if (character) return dispatch_mnemonic(*character);
+        if (character.present()) return dispatch_mnemonic(*character.value());
     }
     if (!alt && !control && !meta) {
         if (event.physical_key == PhysicalKey::enter) {
@@ -1415,8 +1495,10 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     focus_scopes_.push_back(state);
     ++semantic_generation_;
     // A modal layer or menu over the window ends the pointer sequences in
-    // progress (input order rule 5).
+    // progress (input order rule 5), and a relative pointer mode whose owner
+    // it does not hold.
     break_pointer_sequences();
+    end_relative_pointer_for_scope(root);
 
     const std::size_t depth = focus_scope_depth();
     metrics_.record_focus_scope_opened(depth);
@@ -1571,15 +1653,18 @@ std::vector<Control::Ptr> SurfaceRoot::focus_candidates(
     return result;
 }
 
-std::optional<Rect> SurfaceRoot::text_input_caret() {
+stxlib::Optional<Rect> SurfaceRoot::text_input_caret() {
     require_root_thread("text input caret");
     const Control::Ptr focused = focused_.lock();
-    if (!focused || !eligible(focused)) return std::nullopt;
+    if (!focused || !eligible(focused)) return stxlib::Optional<Rect>::none();
     const Rect bounds = (*focused).absolute_bounds();
-    const std::optional<Rect> local = (*focused).text_input_caret();
+    const stxlib::Optional<Rect> local = (*focused).text_input_caret();
     Rect caret{bounds.x, bounds.y, 1.0, bounds.height};
-    if (local) caret = Rect{bounds.x + (*local).x, bounds.y + (*local).y, (*local).width, (*local).height};
-    return caret;
+    if (local.present()) {
+        const Rect& own = *local.value();
+        caret = Rect{bounds.x + own.x, bounds.y + own.y, own.width, own.height};
+    }
+    return stxlib::Optional<Rect>::of(caret);
 }
 
 bool SurfaceRoot::move_focus(bool forward) {
@@ -1676,7 +1761,7 @@ void SurfaceRoot::remember_region_focus(const Control::Ptr& control) {
 
 // Focuses the region's remembered control while it is still inside the
 // region and can take focus, or else the region's first Tab stop.
-bool SurfaceRoot::focus_into_region(FocusRegion& entry) {
+bool SurfaceRoot::focus_into_region(const FocusRegion& entry) {
     const Control::Ptr region = entry.region.lock();
     if (!region || !(*region).is_alive() || (*region).surface_root() != this || !eligible(region)) {
         return false;
@@ -1695,12 +1780,17 @@ bool SurfaceRoot::focus_into_region(FocusRegion& entry) {
 bool SurfaceRoot::move_focus_region(bool forward) {
     require_root_thread("focus region traversal");
     if (!focus_scopes_.empty() || focus_regions_.empty()) return false;
-    const std::size_t count = focus_regions_.size();
+    // The regions as declared when the traversal starts: each attempt's
+    // request_focus runs application handlers, which may declare other
+    // regions (set_focus_regions swaps the list), so the walk keeps its own
+    // copy and never indexes the live list past a handler (A-gf-core-17-F2).
+    const std::vector<FocusRegion> regions = focus_regions_;
+    const std::size_t count = regions.size();
     // The region holding the focused control, if any.
     const Control::Ptr focused = focused_.lock();
     std::optional<std::size_t> current{};
     for (std::size_t index = 0; index < count && focused; ++index) {
-        const Control::Ptr region = focus_regions_[index].region.lock();
+        const Control::Ptr region = regions[index].region.lock();
         if (region && region_holds(*region, *focused)) {
             current = index;
             break;
@@ -1719,7 +1809,7 @@ bool SurfaceRoot::move_focus_region(bool forward) {
     }
     for (std::size_t step = 0; step < attempts; ++step) {
         const std::size_t index = forward ? (origin + 1U + step) % count : (origin + count - 1U - step) % count;
-        if (focus_into_region(focus_regions_[index])) return true;
+        if (focus_into_region(regions[index])) return true;
     }
     return false;
 }
@@ -1808,6 +1898,20 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    // A raiser below (a hover crossing, the route, the mouse events) may
+    // close and destroy this window; each stops as soon as it has.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    // An event nobody stamped carries its dispatch time
+    // (PointerEvent::timestamp_nanoseconds).
+    if (event.timestamp_nanoseconds == 0U) {
+        const FrameTime stamped = input_now();
+        event.timestamp_nanoseconds = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(stamped.time_since_epoch()).count());
+    }
+    // A confined or locked relative pointer takes buttons and the wheel as
+    // its samples (no routing, no derived clicks); free mode routes on.
+    if (relative_pointer_.active && relative_pointer_takes_pointer(event)) return true;
     // The input state sees the event before any control does.
     detail::InteractionState& interaction = interaction_state();
     interaction.note_pointer(event);
@@ -1836,8 +1940,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
                 // crossing (its override) and then the subscribers, before
                 // the observers of the raw leave.
                 (*previous_hover).on_mouse_leave();
+                if (window_destroyed(*lifetime, presenting)) return true;
                 if ((*previous_hover).is_alive()) {
                     (*previous_hover).publish_change((*previous_hover).pointer_observed_, leave);
+                    if (window_destroyed(*lifetime, presenting)) return true;
                 }
             }
             hovered_ = next_hover;
@@ -1851,8 +1957,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
                 metrics_.record_callback_emitted();
                 set_pointer_over(*next_hover, true);
                 (*next_hover).on_mouse_enter();
+                if (window_destroyed(*lifetime, presenting)) return true;
                 if ((*next_hover).is_alive()) {
                     (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
+                    if (window_destroyed(*lifetime, presenting)) return true;
                 }
             }
         } else {
@@ -1873,6 +1981,7 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
             set_pointer_over(*previous_hover, false);
             if (eligible(previous_hover)) {
                 (*previous_hover).on_mouse_leave();
+                if (window_destroyed(*lifetime, presenting)) return true;
             }
         }
         hovered_.reset();
@@ -1882,13 +1991,10 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
     sync_hover_wake();
     Control::Ptr pressed_for_release;
     Control::Ptr target;
-    // A raiser in the route may close and destroy this window.
-    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
-    Window* const presenting = (*lifetime).window;
     const std::uint64_t sequence_breaks = input_sequence_breaks_;
     bool click_suppressed = false;
     const bool handled = route_pointer(event, pressed_for_release, target, hit, click_suppressed);
-    if ((*lifetime).window != presenting) return true;
+    if (window_destroyed(*lifetime, presenting)) return true;
     raise_mouse_events(event, target, pressed_for_release, hit, click_suppressed, sequence_breaks);
     return handled;
 }
@@ -1916,10 +2022,14 @@ Control::Ptr SurfaceRoot::reuse_pointer_hit(PointerHit& hit, Point position) {
 bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
                                 PointerHit& hit, bool& click_suppressed) {
     Control::Ptr target = captured_.lock();
+    if (!target && event.action == PointerAction::wheel) target = wheel_latch_target(event);
     if (!target) {
         target = reuse_pointer_hit(hit, event.position);
     }
+    if (event.action == PointerAction::wheel && event.wheel_phase == WheelPhase::began) wheel_latch_ = target;
+    const bool primary_press = event.action == PointerAction::down && event.button == PointerButton::primary;
     if (!target) {
+        if (primary_press) trace_press(event, nullptr, nullptr, PressOutcome::no_target);
         return false;
     }
 
@@ -1958,6 +2068,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
             (*control).publish_change((*control).pointer_preview_observed_, event);
         }
         if (event.handled) {
+            if (primary_press) trace_press(event, target.get(), control.get(), PressOutcome::preview_handled);
             return true;
         }
     }
@@ -1968,12 +2079,18 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
 
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
+        // The focus change's handlers may destroy this window: the route
+        // ends there, as dispatch_pointer_in_frame then sees.
+        const std::shared_ptr<detail::WindowLifetime> focus_lifetime = lifetime_;
+        Window* const focus_presenting = (*focus_lifetime).window;
         const bool accepts_press = !(*target).focusable.read() || request_focus(target);
+        if (window_destroyed(*focus_lifetime, focus_presenting)) return true;
         if (!accepts_press) {
             // Prevent-mode validation rejects the input transaction that
             // attempted to enter this focusable target. In particular, a
             // Button must not publish Click after focus validation failed.
             event.handled = true;
+            trace_press(event, target.get(), nullptr, PressOutcome::focus_refused);
             return true;
         }
         if (eligible(target)) {
@@ -1986,6 +2103,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     }
 
     if (eligible(target)) {
+        if (primary_press) trace_press(event, target.get(), nullptr, PressOutcome::delivered);
         target_out = target;
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
@@ -2015,30 +2133,80 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     return event.handled;
 }
 
-MouseEventArgs SurfaceRoot::mouse_arguments(const Control& target, const PointerEvent& event) {
-    const bool press = event.action == PointerAction::down;
-    const bool release = event.action == PointerAction::up;
+void SurfaceRoot::trace_press(const PointerEvent& event, const Control* target, const Control* handled_by,
+                              PressOutcome outcome) {
+    press_trace_.presses = press_trace_.presses + 1U;
+    press_trace_.position = event.position;
+    press_trace_.outcome = outcome;
+    press_trace_.target_stable_id.clear();
+    press_trace_.target_control_id.clear();
+    press_trace_.handled_by.clear();
+    if (target != nullptr) {
+        press_trace_.target_stable_id = std::string((*target).stable_id().value());
+        press_trace_.target_control_id = std::string((*target).anatomy().control_id);
+    }
+    if (handled_by != nullptr) press_trace_.handled_by = std::string((*handled_by).stable_id().value());
+    if (!press_traced()) return;
+    std::fprintf(stderr, "gui-forms-press: %s target=%s (%s) handled-by=%s at %.1f,%.1f\n",
+                 press_outcome_name(outcome), press_trace_.target_stable_id.c_str(),
+                 press_trace_.target_control_id.c_str(), press_trace_.handled_by.c_str(), event.position.x,
+                 event.position.y);
+}
+
+// Scroll latching (WheelPhase): the control a gesture's later events go to.
+// A new gesture, an event outside any gesture, and the gesture's last event
+// (cancelled, momentum_ended) release the latch; the last event still goes
+// to the latched control. Returns null, routing by hit test, without a
+// latch or when the latched control is no longer eligible.
+Control::Ptr SurfaceRoot::wheel_latch_target(const PointerEvent& event) {
+    Control::Ptr latched = wheel_latch_.lock();
+    switch (event.wheel_phase) {
+    case WheelPhase::changed:
+    case WheelPhase::ended:
+    case WheelPhase::momentum:
+        break;
+    case WheelPhase::cancelled:
+    case WheelPhase::momentum_ended:
+        wheel_latch_.reset();
+        break;
+    case WheelPhase::none:
+    case WheelPhase::began:
+    default:
+        wheel_latch_.reset();
+        latched.reset();
+        break;
+    }
+    if (latched && !eligible(latched)) latched.reset();
+    return latched;
+}
+
+MouseEventArgs SurfaceRoot::mouse_event_arguments(const Control& target, const PointerEvent& event) const {
     // WinForms' MouseEventArgs: the press's click count (the release
     // carries the count of the press it ends), the control-relative
     // position and the wheel delta; then the routed event's own fields.
     const Rect bounds = target.absolute_bounds();
-    MouseEventArgs arguments{};
-    arguments.button = event.button;
-    arguments.clicks = press || release ? interaction_state().last_click_count() : 0U;
-    arguments.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
-    arguments.window_position = event.position;
-    arguments.wheel_delta = event.wheel_delta;
-    arguments.modifiers = event.modifiers;
-    arguments.action = event.action;
-    arguments.wheel_unit = event.wheel_unit;
-    arguments.pointer_id = event.pointer_id;
-    arguments.phase = event.phase;
-    arguments.handled = event.handled;
+    const Point origin{bounds.x, bounds.y};
+    const std::uint32_t press_clicks = interaction_ ? (*interaction_).last_click_count() : 0U;
+    const MouseEventArgs arguments = gui_forms::mouse_event_arguments(event, origin, press_clicks);
     return arguments;
 }
 
+bool SurfaceRoot::pointer_seen() const noexcept {
+    const bool seen = interaction_ && (*interaction_).pointer_seen();
+    return seen;
+}
+
+PointerLocation SurfaceRoot::pointer_location() const noexcept {
+    PointerLocation location{};
+    if (!pointer_seen()) return location;
+    location.window_position = (*interaction_).pointer_position();
+    location.location = location.window_position;
+    location.inside = (*interaction_).pointer_inside();
+    return location;
+}
+
 bool SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
-    MouseEventArgs arguments = mouse_arguments(target, event);
+    MouseEventArgs arguments = mouse_event_arguments(target, event);
     switch (event.action) {
     case PointerAction::down:
         target.on_mouse_down(arguments);
@@ -2114,7 +2282,7 @@ void SurfaceRoot::raise_release_clicks(const PointerEvent& event, Control& targe
     // sequence breaks (rule 5: click_sequence_intact after every handler).
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
-    MouseEventArgs args = mouse_arguments(target, event);
+    MouseEventArgs args = mouse_event_arguments(target, event);
     const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
     const bool primary = event.button == PointerButton::primary;
     const bool clicked = !click_suppressed && pressed_for_release && pressed_for_release == released_over &&
@@ -2168,20 +2336,6 @@ bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& contr
     return consumed;
 }
 
-namespace {
-
-KeyEventArgs key_arguments(const KeyEvent& event) {
-    KeyEventArgs arguments;
-    arguments.key_code = key_code_from_physical_key(event.physical_key);
-    arguments.physical_key = event.physical_key;
-    arguments.scan_code = event.scan_code;
-    arguments.modifiers = event.modifiers;
-    arguments.repeat = event.repeat;
-    return arguments;
-}
-
-} // namespace
-
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
     require_root_thread("key dispatch");
     ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
@@ -2213,6 +2367,8 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
     }
     // A lifted drop-down or picker's Popup window takes the key first.
     if (forward_to_popup(event)) return true;
+    // Escape ends a relative pointer mode, and the key goes no further.
+    if (relative_pointer_takes_key(event)) return true;
     // A running drag takes the keys it uses (Escape; the keyboard mode's
     // arrows, Tab and Enter) before the rules and the focused control.
     if (drag_engine_ && (*drag_engine_).key(event)) return true;
@@ -2313,7 +2469,7 @@ bool SurfaceRoot::route_key(KeyEvent event) {
 }
 
 bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
-    KeyEventArgs arguments = key_arguments(event);
+    KeyEventArgs arguments = key_event_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     if (event.action == KeyAction::down) {
@@ -2334,7 +2490,7 @@ bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
 }
 
 bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, bool& closed) {
-    KeyEventArgs arguments = key_arguments(event);
+    KeyEventArgs arguments = key_event_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     // Counted where the events have subscribers, as before the raisers,
@@ -2576,17 +2732,28 @@ void SurfaceRoot::drain_deferred_input() {
     if (draining_deferred_input_ || deferred_inputs_.empty()) return;
 
     draining_deferred_input_ = true;
+    // A drained event's handler may close and destroy this window (a
+    // deferred click that closes its dialog): after each, the drain stops,
+    // touching nothing, when it has (A-gf-core-17-F1).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     std::exception_ptr first_fault;
     while (!deferred_inputs_.empty()) {
         DeferredInput input = std::move(deferred_inputs_.front());
         deferred_inputs_.pop_front();
+        bool delivered = false;
         try {
             std::visit(DeferredInputVisitor{this}, std::move(input));
-            ++deferred_inputs_delivered_;
+            delivered = true;
         } catch (...) {
-            ++deferred_input_faults_;
             if (!first_fault) first_fault = std::current_exception();
         }
+        if (window_destroyed(*lifetime, presenting)) {
+            if (first_fault) std::rethrow_exception(first_fault);
+            return;
+        }
+        if (delivered) ++deferred_inputs_delivered_;
+        else ++deferred_input_faults_;
     }
     draining_deferred_input_ = false;
     ++deferred_input_drains_;
@@ -2634,6 +2801,11 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
     if (!target || !eligible(target) || !(*target).allow_drop.read()) {
         return result;
     }
+    // A raiser may close and destroy this window (a drop that closes its
+    // dialog): after each, the route returns what the event holds, touching
+    // nothing of the window (A-gf-core-17-F1).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     const std::vector<Control::Ptr> route = route_to(target);
     event.phase = EventPhase::preview;
     for (const std::shared_ptr<gui_forms::Control>& control : route) {
@@ -2642,6 +2814,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
         }
         metrics_.record_callback_emitted();
         (*control).on_drag_preview(event);
+        if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
         if (event.handled) {
             break;
         }
@@ -2650,6 +2823,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_drag(event);
+        if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
         // The per-action raiser, after the target's on_drag.
         if (eligible(target)) {
             switch (event.action) {
@@ -2669,6 +2843,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
                 // A future action has no raiser yet.
                 break;
             }
+            if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
         }
     }
     if (!event.handled) {
@@ -2680,15 +2855,13 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
             }
             metrics_.record_callback_emitted();
             (*(*iterator)).on_drag_bubble(event);
+            if (window_destroyed(*lifetime, presenting)) return drag_result_of(event);
             if (event.handled) {
                 break;
             }
         }
     }
-    result.handled = event.handled;
-    if (single_allowed_effect(event.accepted_effect, event.allowed_effects)) {
-        result.accepted_effect = event.accepted_effect;
-    }
+    result = drag_result_of(event);
     return result;
 }
 
@@ -2704,6 +2877,8 @@ void SurfaceRoot::merge_drag_route(DragDispatchResult& aggregate,
 
 void SurfaceRoot::leave_drag_target(const DragEvent& event,
                                DragDispatchResult& aggregate) {
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     const Control::Ptr previous = drag_target_.lock();
     if (previous) {
         DragEvent leave = event;
@@ -2711,6 +2886,8 @@ void SurfaceRoot::leave_drag_target(const DragEvent& event,
         leave.accepted_effect = DragEffect::none;
         leave.handled = false;
         merge_drag_route(aggregate, previous, std::move(leave));
+        // The leave's raisers may have destroyed the window.
+        if (window_destroyed(*lifetime, presenting)) return;
     }
     drag_target_.reset();
 }
@@ -2739,11 +2916,17 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
     }
     metrics_.record_input();
 
+    // The routes' raisers may close and destroy this window (a drop that
+    // closes its dialog): after each, the session fields are left alone
+    // when it has (A-gf-core-17-F1).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     DragDispatchResult aggregate;
 
     if (event.action == DragAction::leave) {
         if (drag_session_id_ == event.session_id) {
             leave_drag_target(event, aggregate);
+            if (window_destroyed(*lifetime, presenting)) return aggregate;
             drag_session_id_ = 0;
             drag_last_accepted_effect_ = DragEffect::none;
         }
@@ -2752,6 +2935,7 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
 
     if (drag_session_id_ != 0 && drag_session_id_ != event.session_id) {
         leave_drag_target(event, aggregate);
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
         drag_session_id_ = 0;
         drag_last_accepted_effect_ = DragEffect::none;
     }
@@ -2763,6 +2947,7 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
     Control::Ptr previous = drag_target_.lock();
     if (candidate != previous) {
         leave_drag_target(event, aggregate);
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
         if (candidate) {
             drag_target_ = candidate;
             DragEvent enter = event;
@@ -2770,6 +2955,7 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
             enter.accepted_effect = DragEffect::none;
             enter.handled = false;
             merge_drag_route(aggregate, candidate, std::move(enter));
+            if (window_destroyed(*lifetime, presenting)) return aggregate;
         }
     }
 
@@ -2778,10 +2964,12 @@ DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
         event.accepted_effect = DragEffect::none;
         event.handled = false;
         merge_drag_route(aggregate, candidate, std::move(event));
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
     } else if (action == DragAction::drop && candidate) {
         event.accepted_effect = DragEffect::none;
         event.handled = false;
         merge_drag_route(aggregate, candidate, std::move(event));
+        if (window_destroyed(*lifetime, presenting)) return aggregate;
         drag_target_.reset();
         drag_session_id_ = 0;
     } else if (action == DragAction::drop) {
@@ -2844,6 +3032,9 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     // Its content regions' pending items go: no window gathers them now.
     static_cast<void>((*control).fold_content_regions());
     (*control).on_detaching_from_window(*this);
+    // Detached, the control shows no theme: its look's compilation is no
+    // longer held for it.
+    (*control).release_composite_look();
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
     (*control).layout_deferred_listed_in_ = nullptr;
@@ -2922,6 +3113,9 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
         // The theme in effect may have changed with the window or the parent
         // (P12b).
         for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
+        // Composite looks are compiled for the theme in effect here, before
+        // anything resolves them.
+        for (const Control::Ptr& current : controls) (*current).prepare_composite_look();
         // Rules with ancestor compounds read the new ancestors (selector
         // step 4): a cached font is resolved again; the subtree's paint and
         // layout are marked below.
@@ -2977,6 +3171,18 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
     }
     update_display_cache_metrics();
     mark_subtree_dirty(*control, invalidation::visual_tree);
+    // Theme sheets set while detached, or compiled into other resources,
+    // compile once the attachment is committed. A handler of their event
+    // may change the tree, so each is checked again before it compiles.
+    ControlList sheets;
+    for (const Control::Ptr& current : controls) {
+        if ((*current).theme_sheet_due()) sheets.push_back(current);
+    }
+    for (const Control::Ptr& current : sheets) {
+        if ((*current).surface_root_ == this && (*current).theme_sheet_due()) {
+            static_cast<void>((*current).compile_theme_sheet());
+        }
+    }
 }
 
 void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
@@ -3087,14 +3293,20 @@ void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
         metrics_.record_focus_transition();
         metrics_.record_focus_revocation();
         if (notify_focus && focused && (*focused).is_alive()) {
+            // The publication's handlers may destroy this root: the rest of
+            // the revocation reads it, so it ends there.
+            const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+            Window* const presenting = (*lifetime).window;
             (*focused).publish_change(
                 static_cast<const void*>(&(*focused).focus_observed_),
                 FocusChangePublication{this, focused, false});
+            if (window_destroyed(*lifetime, presenting)) return;
         }
     }
     if (contains_control(control, captured_.lock())) {
         change_pointer_capture({}, 0, true);
     }
+    end_relative_pointer_for_subtree(control);
     if (contains_control(control, pressed_.lock())) {
         pressed_.reset();
         metrics_.record_press_revocation();
@@ -3641,7 +3853,10 @@ void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
         // Audit B5: no fallback to requested_bounds_ (parent-relative, not a
         // window rectangle). Empty bounds are a control that paints nothing
         // or is not arranged; the arrange that places it damages where it
-        // lands.
+        // lands. The theme's content effect is resolved first, so the
+        // damage spreads by its reach (the walk is pre-order: an ancestor's
+        // is already current).
+        control.refresh_theme_content_effect();
         const Rect bounds = paint_damage_bounds_of(control);
         // Structural invalidation recomposes every plane so vacated pixels
         // cannot survive beneath a transparent or detached control.
@@ -3768,7 +3983,7 @@ void SurfaceRoot::sync_invalidation_overlay() {
     }
 }
 
-void SurfaceRoot::set_invalidation_overlay(std::optional<bool> enabled) {
+void SurfaceRoot::set_invalidation_overlay(stxlib::Optional<bool> enabled) {
     require_root_thread("invalidation overlay setting");
     invalidation_overlay_setting_ = enabled;
     // Applied by the next sync, as a process switch change is.
@@ -3838,6 +4053,53 @@ void SurfaceRoot::attribute_painted_damage(std::span<const Rect> painted) {
         if (!asked) overlay.record(rectangle, InvalidationCause::host_expose, std::string_view{}, now);
     }
     invalidation_causes_.clear();
+    fill_overlay_counters();
+}
+
+namespace {
+
+// One counters card line: snprintf into `line`, cut to the card's width.
+// The card's font shows letters, digits and `. - : / ( ) # , ?` only.
+using CounterLine = std::array<char, maximum_overlay_counter_characters + 1U>;
+
+std::string_view counter_text(const CounterLine& line, int written) noexcept {
+    if (written <= 0) return std::string_view{};
+    const std::size_t length = std::min(static_cast<std::size_t>(written), maximum_overlay_counter_characters);
+    return std::string_view(line.data(), length);
+}
+
+unsigned long long counter_value(std::uint64_t value) noexcept {
+    return static_cast<unsigned long long>(value);
+}
+
+} // namespace
+
+void SurfaceRoot::fill_overlay_counters() {
+    const MetricsSnapshot figures = metrics_.snapshot();
+    constexpr std::size_t line_count = 7U;
+    std::array<CounterLine, line_count> lines{};
+    std::array<std::string_view, line_count> views{};
+    views[0] = counter_text(lines[0], std::snprintf(lines[0].data(), lines[0].size(), "renderer %s",
+                                                    figures.renderer_name.c_str()));
+    views[1] = counter_text(lines[1], std::snprintf(lines[1].data(), lines[1].size(), "controls %llu ids %llu",
+                                                    counter_value(figures.control_count),
+                                                    counter_value(figures.stable_id_count)));
+    views[2] = counter_text(lines[2], std::snprintf(lines[2].data(), lines[2].size(), "measure %llu arrange %llu",
+                                                    counter_value(figures.measure_passes),
+                                                    counter_value(figures.arrange_passes)));
+    views[3] = counter_text(lines[3], std::snprintf(lines[3].data(), lines[3].size(), "paint %llu damage %llu",
+                                                    counter_value(figures.paint_passes),
+                                                    counter_value(figures.damage_rectangles_painted)));
+    views[4] = counter_text(lines[4], std::snprintf(lines[4].data(), lines[4].size(), "input %llu focus %llu",
+                                                    counter_value(figures.input_events),
+                                                    counter_value(figures.focus_transitions)));
+    views[5] = counter_text(lines[5], std::snprintf(lines[5].data(), lines[5].size(), "wake %llu ticks %llu",
+                                                    counter_value(figures.scheduler_wakes),
+                                                    counter_value(figures.ui_timer_ticks)));
+    const double worst = static_cast<double>(figures.worst_present_duration_nanoseconds) / 1'000'000.0;
+    views[6] = counter_text(lines[6], std::snprintf(lines[6].data(), lines[6].size(), "present %llu worst %.2f ms",
+                                                    counter_value(figures.frames_presented), worst));
+    (*invalidation_overlay_).set_counters(std::span<const std::string_view>(views.data(), views.size()));
 }
 
 void SurfaceRoot::add_damage_all_planes(Rect damage) {
@@ -4129,6 +4391,8 @@ bool SurfaceRoot::keeps_pixels_on_resize(const Control& control) const noexcept 
     if (!(control.effective_visual_outsets() == Insets{})) return false;
     if (!(control.last_painted_visual_outsets_ == Insets{})) return false;
     if (!control.owned_decorations_.empty()) return false;
+    // A border around the box moves with its size, inside the box too.
+    if (control.active_border_) return false;
     const bool surface_invariant = !control.authored_surface_material_ ||
                                    surface_material_size_invariant(*control.authored_surface_material_);
     return surface_invariant;
@@ -4149,6 +4413,17 @@ void SurfaceRoot::request_paint_wake() noexcept {
         // mutation fail. Clearing the coalescing bit permits a later mutation
         // or exposure transition to retry.
         paint_wake_pending_ = false;
+    }
+}
+
+void SurfaceRoot::request_schedule_wake() noexcept {
+    if (in_frame_poll_ || schedule_wake_pending_ || !schedule_wake_handler_) return;
+    schedule_wake_pending_ = true;
+    try {
+        schedule_wake_handler_();
+    } catch (...) {
+        // Advisory, as the paint wake: a later request retries.
+        schedule_wake_pending_ = false;
     }
 }
 
@@ -4188,10 +4463,11 @@ PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
 
 void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     const DamageCauseScope cause(*this, InvalidationCause::control, control.get());
+    (*control).refresh_theme_content_effect();
     const Rect covered = paint_damage_bounds_of(*control);
     add_damage_all_planes(covered);
     const Rect placed = absolute_bounds_of(*control);
-    add_descendant_damage(*control, Point{placed.x, placed.y}, covered);
+    add_descendant_damage(*control, Point{placed.x, placed.y}, covered, effect_reach_above(*control));
 }
 
 // Each descendant's paint bounds, placed from its parent's origin; a
@@ -4199,17 +4475,26 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
 // adds nothing to the damage's union, so only those leaving it are added.
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
-void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered) {
+void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered,
+                                        double parent_reach) {
     for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
         if (!child) continue;
         const Control& current = *child;
         const Rect placed{parent_origin.x + current.arranged_bounds_.x,
                           parent_origin.y + current.arranged_bounds_.y,
                           current.arranged_bounds_.width, current.arranged_bounds_.height};
-        const Rect damage = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
+        const Rect united = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
                                          visual_bounds_at(placed, current.last_painted_visual_outsets_));
+        // Spread by the effects above and at the child, as
+        // paint_damage_bounds_of spreads a damage.
+        const double reach = parent_reach + own_effect_reach(current);
+        Rect damage = united;
+        if (reach > 0.0 && !united.empty()) {
+            damage = Rect{united.x - reach, united.y - reach, united.width + 2.0 * reach,
+                          united.height + 2.0 * reach};
+        }
         if (!covered.contains(damage)) add_damage_all_planes(damage);
-        add_descendant_damage(current, Point{placed.x, placed.y}, covered);
+        add_descendant_damage(current, Point{placed.x, placed.y}, covered, reach);
     }
 }
 
@@ -4250,7 +4535,8 @@ void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
     }
     if (owed.damages_bounds) {
         // Audit B5: as in mark_subtree's paint, no requested_bounds_
-        // fallback.
+        // fallback. The theme's content effect first, as there.
+        control.refresh_theme_content_effect();
         const Rect bounds = paint_damage_bounds_of(control);
         const DamageCauseScope cause(*this, InvalidationCause::control, &control);
         add_damage(bounds, control.paint_plane_);
@@ -4315,8 +4601,10 @@ void SurfaceRoot::settle_dirty() {
         const Control* const control = control_table_.control_at(pending.slot);
         if (control == nullptr) continue;
         const Rect bounds = absolute_bounds_of(*control);
-        const Rect window_damage{bounds.x + pending.local_damage.x, bounds.y + pending.local_damage.y,
-                                 pending.local_damage.width, pending.local_damage.height};
+        // Spread by the content effects above it, as paint_damage_bounds_of.
+        const double reach = effect_reach_above(*control);
+        const Rect window_damage{bounds.x + pending.local_damage.x - reach, bounds.y + pending.local_damage.y - reach,
+                                 pending.local_damage.width + 2.0 * reach, pending.local_damage.height + 2.0 * reach};
         const DamageCauseScope cause(*this, InvalidationCause::control, control);
         add_damage(window_damage, (*control).paint_plane_);
         metrics_.record_requested_damage(window_damage.area());
@@ -5031,6 +5319,9 @@ bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point pare
         (*control).layout_collapsed_) {
         return false;
     }
+    // A content effect needs its whole subtree drawn inside its group: no
+    // cover path passes through it.
+    if ((*control).shown_content_effect()) return false;
     const Rect bounds = placed_bounds(*control, parent_origin);
     const Rect local_viewport = (*control).child_viewport_rectangle();
     const Rect child_viewport{bounds.x + local_viewport.x, bounds.y + local_viewport.y, local_viewport.width,
@@ -5165,6 +5456,19 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         return;
     }
     const Rect visual_bounds = visual_bounds_at(bounds, current_outsets);
+    // A content effect in this plane (Control::set_content_effect): the
+    // control and its descendants draw inside one group carrying it, and
+    // what they draw within the damage grown by the effect's reach is
+    // drawn, since the blur reads that far; the group composites within
+    // the painter's clip, the damage itself.
+    const std::shared_ptr<const PaintGroupEffect> content_effect =
+        (*control).paint_plane_ == plane ? painted_content_effect(*control) : nullptr;
+    const double effect_reach = content_effect ? paint_group_effect_reach(*content_effect) : 0.0;
+    const Rect shown_damage = window_damage;
+    if (effect_reach > 0.0) {
+        window_damage = Rect{window_damage.x - effect_reach, window_damage.y - effect_reach,
+                             window_damage.width + 2.0 * effect_reach, window_damage.height + 2.0 * effect_reach};
+    }
     const Rect paint_intersection = Rect::intersection(visual_bounds, window_damage);
     const Rect local_child_viewport = (*control).child_viewport_rectangle();
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
@@ -5180,18 +5484,38 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
     if (paint_intersection.empty() && child_intersection.empty()) {
         return;
     }
+    // Every return below, until the group ends, ends it first.
+    const bool grouped = content_effect != nullptr;
+    if (grouped) {
+        // The composite stays within the damage as it came: the margin the
+        // reach adds is drawn into the group, never shown past the damage.
+        painter.save();
+        painter.clip_rect(shown_damage);
+        PaintGroup group{};
+        group.bounds = Rect::united(visual_bounds, child_viewport);
+        group.effect = content_effect;
+        painter.begin_group(group);
+    }
 
     if ((*control).paint_plane_ == plane && !paint_intersection.empty()) {
         const Rect logical_bounds{0.0, 0.0, bounds.width, bounds.height};
-        const bool invalidated = has_dirty((*control).dirty_, Dirty::paint);
-        const bool rebuild = invalidated || !(*control).display_chunk_ ||
+        // A capture at another scale records afresh at its scale, into
+        // transient_chunk, and leaves the control's retained chunk and dirt
+        // alone (transient_recording_scale_).
+        const bool transient = transient_recording_scale_ > 0.0;
+        std::shared_ptr<const detail::DisplayChunk> transient_chunk{};
+        const bool invalidated = !transient && has_dirty((*control).dirty_, Dirty::paint);
+        const bool rebuild = transient || invalidated || !(*control).display_chunk_ ||
                              (*(*control).display_chunk_).plane() != plane ||
                              (*(*control).display_chunk_).logical_bounds() != logical_bounds;
         if (rebuild) {
-            if (paint_checkpointing_) paint_checkpoints_.push_back({control, (*control).display_chunk_});
-            (*control).clear_dirty(Dirty::paint);
-            detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
-            recorder.inherit_caches((*control).display_chunk_);
+            if (!transient) {
+                if (paint_checkpointing_) paint_checkpoints_.push_back({control, (*control).display_chunk_});
+                (*control).clear_dirty(Dirty::paint);
+            }
+            const double recording_scale = transient ? transient_recording_scale_ : scale();
+            detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{recording_scale});
+            if (!transient) recorder.inherit_caches((*control).display_chunk_);
             recorder.refuse_stale_images(image_resources());
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.
@@ -5207,6 +5531,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).on_paint_background(background);
             if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
+                if (grouped) {
+                    painter.end_group();
+                    painter.restore();
+                }
                 return;
             }
             (*control).paint_owned_decorations(
@@ -5215,31 +5543,47 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).on_paint(recorder, logical_bounds);
             if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
+                if (grouped) {
+                    painter.end_group();
+                    painter.restore();
+                }
                 return;
             }
             (*control).on_paint_overlay(recorder, logical_bounds);
             if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
+                if (grouped) {
+                    painter.end_group();
+                    painter.restore();
+                }
                 return;
             }
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,
                 OwnerDecorationLayer::after_content);
-            const bool had_chunk = (*control).display_chunk_ != nullptr;
-            (*control).display_chunk_ = recorder.finish(++display_generation_, plane,
-                                                      logical_bounds);
-            note_display_chunk_change(*control, had_chunk);
+            (*control).paint_active_border(recorder);
+            if (transient) {
+                // Shown by this capture alone; the generation is not
+                // advanced, as the capture's own recording does not.
+                transient_chunk = recorder.finish(display_generation_, plane, logical_bounds);
+            } else {
+                const bool had_chunk = (*control).display_chunk_ != nullptr;
+                (*control).display_chunk_ = recorder.finish(++display_generation_, plane,
+                                                          logical_bounds);
+                note_display_chunk_change(*control, had_chunk);
+                ++chunks_rebuilt;
+                consumed_invalidations += invalidated ? 1U : 0U;
+            }
             if (recorder.group_refusals() > 0U) metrics_.record_paint_group_refusals(recorder.group_refusals());
             if (recorder.stale_image_draws() > 0U) {
                 metrics_.record_stale_image_refusals("draw", recorder.first_stale_image().value,
                                                      recorder.stale_image_draws());
             }
-            ++chunks_rebuilt;
-            consumed_invalidations += invalidated ? 1U : 0U;
         } else {
             ++chunks_reused;
         }
 
+        const detail::DisplayChunk& shown = transient ? *transient_chunk : *(*control).display_chunk_;
         painter.save();
         painter.translate({bounds.x, bounds.y});
         const Rect local_damage{paint_intersection.x - bounds.x,
@@ -5247,11 +5591,13 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                 paint_intersection.width,
                                 paint_intersection.height};
         painter.clip_rect(local_damage);
-        commands_replayed +=
-        detail::replay_display_chunk(*(*control).display_chunk_, painter);
+        commands_replayed += detail::replay_display_chunk(shown, painter);
         painter.restore();
-        (*control).last_painted_visual_outsets_ = current_outsets;
+        if (!transient) (*control).last_painted_visual_outsets_ = current_outsets;
         ++painted_controls;
+    }
+    if ((*control).paint_plane_ == plane && transient_recording_scale_ <= 0.0) {
+        (*control).last_painted_effect_reach_ = effect_reach;
     }
 
     if (!child_intersection.empty()) {
@@ -5268,6 +5614,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             }
             position = next_child_position(*control, child.get(), position, revision);
         }
+    }
+    if (grouped) {
+        painter.end_group();
+        painter.restore();
     }
 
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
@@ -5369,16 +5719,54 @@ Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
         placed.x += (*ancestor).arranged_bounds_.x;
         placed.y += (*ancestor).arranged_bounds_.y;
     }
-    const Rect result = Rect::united(visual_bounds_at(placed, control.effective_visual_outsets()),
+    const Rect united = Rect::united(visual_bounds_at(placed, control.effective_visual_outsets()),
                                      visual_bounds_at(placed, control.last_painted_visual_outsets_));
+    // An ancestor's content effect spreads the damage by its blur's reach.
+    const double reach = effect_reach_above(control);
+    if (!(reach > 0.0) || united.empty()) return united;
+    const Rect result{united.x - reach, united.y - reach, united.width + 2.0 * reach, united.height + 2.0 * reach};
     return result;
+}
+
+double SurfaceRoot::effect_reach_above(const Control& control) noexcept {
+    double reach = 0.0;
+    for (const Control* level = &control; level != nullptr; level = (*level).parent_link_) {
+        reach = reach + own_effect_reach(*level);
+    }
+    return reach;
+}
+
+double SurfaceRoot::own_effect_reach(const Control& control) noexcept {
+    const std::shared_ptr<const PaintGroupEffect>& effect = control.shown_content_effect();
+    const double shown = effect ? paint_group_effect_reach(*effect) : 0.0;
+    const double reach = std::max(shown, control.last_painted_effect_reach_);
+    return reach;
+}
+
+std::shared_ptr<const PaintGroupEffect> SurfaceRoot::painted_content_effect(Control& control) {
+    const std::shared_ptr<const PaintGroupEffect>& shown = control.shown_content_effect();
+    if (!shown || !presentation_settings_.high_contrast || !(*shown).colour_filter) return shown;
+    if (control.contrast_effect_source_ != shown) {
+        // Under forced high contrast the colour stages are suppressed; the
+        // blur and masks keep their reach and shape.
+        std::shared_ptr<const PaintGroupEffect> suppressed{};
+        if ((*shown).blur > 0.0 || !(*shown).masks.empty()) {
+            PaintGroupEffect copy{};
+            copy.blur = (*shown).blur;
+            copy.masks = (*shown).masks;
+            suppressed = std::make_shared<const PaintGroupEffect>(std::move(copy));
+        }
+        control.contrast_content_effect_ = std::move(suppressed);
+        control.contrast_effect_source_ = shown;
+    }
+    return control.contrast_content_effect_;
 }
 
 bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
     return control && (*control).surface_root_ == this && (*control).eligible_for_input();
 }
 
-std::optional<HostCloseReason> Window::host_close_reason() const noexcept {
+stxlib::Optional<HostCloseReason> Window::host_close_reason() const noexcept {
     return host_close_reason_;
 }
 

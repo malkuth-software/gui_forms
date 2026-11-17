@@ -23,7 +23,9 @@
 
 namespace gui_forms {
 
+class Ribbon;
 class RibbonToolTip;
+struct RibbonHelpRequest;
 class Window;
 struct HelpRequestEvent;
 struct RibbonToolTipHelpRequest;
@@ -115,8 +117,9 @@ struct GUI_FORMS_API HelpBookSystemSnapshot final {
 //
 // - F1 shows the focused control's page, walking up to the window's page
 //   and then home when the control has none (resolve);
-// - Shift+F1 enters What's This mode: the next click shows the clicked
-//   control's help in a paper popup, Escape leaves the mode;
+// - Shift+F1 enters What's This mode: the pointer becomes the help cursor
+//   (CursorKind::help), the next click shows the clicked control's help in
+//   a paper popup, Escape leaves the mode;
 // - a window card (show_card): the control's help line and "More..." to
 //   its page;
 // - the ribbon's "?" and RibbonToolTip's F1 (on_ribbon_help);
@@ -191,6 +194,10 @@ public:
     void set_viewer(std::shared_ptr<HelpBookViewer> viewer);
     [[nodiscard]] std::shared_ptr<HelpBookViewer> active_viewer() const;
     void attach_ribbon_tool_tip(RibbonToolTip& tool_tip);
+    // Answers the ribbon's help button (Ribbon::help_button_clicked) with the
+    // window card: the ribbon's window's help line and "More..." to its
+    // page, beside the ribbon. The ribbon must sit in an attached window.
+    void attach_ribbon(Ribbon& ribbon);
 
     [[nodiscard]] HelpTarget resolve(const Control& control);
     bool show(std::string_view stable_id, std::string_view anchor = {});
@@ -216,6 +223,9 @@ public:
     // help topic, else the target's page).
     void on_help_requested(HelpRequestEvent& request);
     void on_ribbon_help(const RibbonToolTipHelpRequest& request);
+    // The ribbon's help button: the window card of the attached window that
+    // holds the ribbon, beside it; nothing when no attached window holds it.
+    void on_ribbon_button_help(const RibbonHelpRequest& request);
 
     [[nodiscard]] HelpBookSystemSnapshot snapshot() const noexcept;
     [[nodiscard]] Event<HelpLinkActivation&>& external_link() noexcept { return external_link_; }
@@ -247,6 +257,9 @@ private:
     void on_window_viewer_created(HelpBookViewer& viewer);
     [[nodiscard]] std::shared_ptr<HelpBookViewer> present();
     bool open_popup(HelpPageModel page, const Control::Ptr& anchor);
+    // The card of `subject` (its help line, else the nearest above it)
+    // beside `anchor`; show_card is the card of the anchor itself.
+    bool show_card_for(const Control::Ptr& subject, const Control::Ptr& anchor);
     void on_viewer_external(HelpLinkActivation& activation);
     void on_viewer_popup(HelpLinkActivation& activation);
     void on_viewer_print(HelpPrintRequest& request);

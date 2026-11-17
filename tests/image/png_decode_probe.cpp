@@ -8,6 +8,7 @@
 #include "gui_forms/resources.hpp"
 #include "stx_png/encoder.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -66,8 +67,8 @@ int main() {
         std::cerr << "png decode probe: the registry refused the fixture\n";
         return 1;
     }
-    const std::optional<gui_forms::ImageResourceView> view = registry.find(loaded.image);
-    if (!view.has_value()) {
+    const stxlib::Optional<gui_forms::ImageResourceView> view = registry.find(loaded.image);
+    if (view.absent()) {
         std::cerr << "png decode probe: the admitted image is missing\n";
         return 1;
     }
@@ -78,7 +79,7 @@ int main() {
     std::array<double, rounds> milliseconds{};
     for (std::size_t round = 0; round < rounds; ++round) {
         const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-        const gui_forms::image::ResourcePixelResult decoded = decoder.decode(*view, target, pixels, row_bytes);
+        const gui_forms::image::ResourcePixelResult decoded = decoder.decode((*view.value()), target, pixels, row_bytes);
         const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         if (decoded.error != gui_forms::image::ResourcePixelError::none) {
             std::cerr << "png decode probe: the decode failed\n";

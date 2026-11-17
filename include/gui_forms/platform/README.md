@@ -8,6 +8,17 @@ options struct. Native types never appear here; honest platform differences are
 reported through `HostCapabilities` (`macos_capabilities()`,
 `windows_capabilities()`, `linux_capabilities()`).
 
+## Linux: the program sets the character-type locale
+
+The Linux host never calls `setlocale`: the process locale is the program's,
+not the library's. Xlib opens the input method under the process `LC_CTYPE`,
+so input methods named by the environment (`XMODIFIERS`, such as ibus or
+fcitx) and the locale's compose sequences work only when the program has set
+it. An application calls `std::setlocale(LC_CTYPE, "")` at the start of `main`,
+before `run_linux` or `run_linux_application`. Without it, in the C locale,
+each key still delivers its own UTF-8 text, but no input method or compose
+sequence takes part. Every Linux program this repository ships does so.
+
 ## Frame capture contract
 
 Every options struct carries the same two fields with identical semantics:

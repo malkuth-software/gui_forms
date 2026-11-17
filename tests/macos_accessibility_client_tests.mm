@@ -20,11 +20,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <spawn.h>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <sys/wait.h>
 #include <thread>
 #include <utility>
@@ -306,31 +308,34 @@ SemanticNode node_from_json(NSDictionary* object) {
     node.name = ns_text(object[@"name"]);
     node.value = ns_text(object[@"value"]);
     node.description = ns_text(object[@"description"]);
-    node.numeric_value = ns_number(object[@"numeric_value"]);
+    const std::optional<double> numeric = ns_number(object[@"numeric_value"]);
+    if (numeric) node.numeric_value.set(*numeric);
     // The stage A fields the AX projection reads (12.13); null in the dump
     // is no value.
     const std::optional<double> level = ns_number(object[@"level"]);
-    if (level) node.level = static_cast<std::size_t>(*level);
+    if (level) node.level.set(static_cast<std::size_t>(*level));
     const std::optional<double> row_index = ns_number(object[@"row_index"]);
-    if (row_index) node.row_index = static_cast<std::size_t>(*row_index);
+    if (row_index) node.row_index.set(static_cast<std::size_t>(*row_index));
     const std::optional<double> column_index = ns_number(object[@"column_index"]);
-    if (column_index) node.column_index = static_cast<std::size_t>(*column_index);
+    if (column_index) node.column_index.set(static_cast<std::size_t>(*column_index));
     const std::optional<double> row_count = ns_number(object[@"row_count"]);
-    if (row_count) node.row_count = static_cast<std::size_t>(*row_count);
+    if (row_count) node.row_count.set(static_cast<std::size_t>(*row_count));
     const std::optional<double> column_count = ns_number(object[@"column_count"]);
-    if (column_count) node.column_count = static_cast<std::size_t>(*column_count);
+    if (column_count) node.column_count.set(static_cast<std::size_t>(*column_count));
     node.modal = ns_number(object[@"modal"]).value_or(0.0) != 0.0;
     node.multiline = ns_number(object[@"multiline"]).value_or(0.0) != 0.0;
     NSDictionary* selection = object[@"text_selection"];
     if ([selection isKindOfClass:[NSDictionary class]]) {
         const double anchor = ns_number(selection[@"anchor"]).value_or(0.0);
         const double caret = ns_number(selection[@"caret"]).value_or(0.0);
-        node.text_selection = gui_forms::SemanticTextSelection{
+        node.text_selection.set(gui_forms::SemanticTextSelection{
             .anchor = gui_forms::Utf8Offset(static_cast<std::size_t>(anchor)),
-            .caret = gui_forms::Utf8Offset(static_cast<std::size_t>(caret))};
+            .caret = gui_forms::Utf8Offset(static_cast<std::size_t>(caret))});
     }
-    node.minimum_value = ns_number(object[@"minimum_value"]);
-    node.maximum_value = ns_number(object[@"maximum_value"]);
+    const std::optional<double> minimum = ns_number(object[@"minimum_value"]);
+    if (minimum) node.minimum_value.set(*minimum);
+    const std::optional<double> maximum = ns_number(object[@"maximum_value"]);
+    if (maximum) node.maximum_value.set(*maximum);
     const std::optional<double> states = ns_number(object[@"states"]);
     node.states = static_cast<SemanticState>(states ? static_cast<std::uint32_t>(*states) : 0U);
     for (id name in (NSArray*)object[@"actions"]) {
@@ -877,7 +882,7 @@ Dump check_text_ranges(const std::string& path, AXUIElementRef application, Dump
     AxElement surface = find_surface(application);
     AxElement field = find_identified(surface.get(), "text-box");
     const SemanticNode* node = find_semantic_node(dump.snapshot.roots, "text-box");
-    if (field.get() == nullptr || node == nullptr || !(*node).text_selection) {
+    if (field.get() == nullptr || node == nullptr || (*node).text_selection.absent()) {
         report.failures.push_back("text ranges: the fixture's text box is not published with a selection");
         return dump;
     }
@@ -932,9 +937,9 @@ Dump check_text_ranges(const std::string& path, AXUIElementRef application, Dump
     const AXError set = AXUIElementSetAttributeValue(field.get(), kAXSelectedTextRangeAttribute, wanted_range.get());
     Dump after = wait_for_new_dump(path, dump, 1500);
     const SemanticNode* changed = find_semantic_node(after.snapshot.roots, "text-box");
-    const bool selected = set == kAXErrorSuccess && changed != nullptr && (*changed).text_selection &&
-                          (*(*changed).text_selection).anchor.value() == 1U &&
-                          (*(*changed).text_selection).caret.value() == 2U;
+    const bool selected = set == kAXErrorSuccess && changed != nullptr && (*changed).text_selection.present() &&
+                          (*(*changed).text_selection.value()).anchor.value() == 1U &&
+                          (*(*changed).text_selection.value()).caret.value() == 2U;
     if (!selected) {
         report.failures.push_back("text ranges: setting AXSelectedTextRange {1, 1} (AX error " +
                                   std::to_string(static_cast<int>(set)) + ") did not select byte 1 to 2");
@@ -947,7 +952,10 @@ Dump check_text_ranges(const std::string& path, AXUIElementRef application, Dump
 // The Gallery: every page through its navigation row.
 
 void collect_page_rows(const SemanticNode& node, std::vector<std::string>& rows) {
-    if (node.stable_id.rfind("gallery.page.", 0) == 0) rows.push_back(node.stable_id);
+    // The rows only: a details row's cells (gallery.page.<page>.cell.<column>)
+    // carry no action of their own; the row takes them.
+    const bool row = node.role != SemanticRole::cell;
+    if (row && node.stable_id.rfind("gallery.page.", 0) == 0) rows.push_back(node.stable_id);
     for (const SemanticNode& child : node.children) collect_page_rows(child, rows);
 }
 
@@ -1018,9 +1026,36 @@ bool parse_options(int argc, char** argv, Options& options) {
     return !options.app.empty() && !options.dump.empty();
 }
 
-bool launch_app(const Options& options) {
-    std::remove(options.dump.c_str());
-    std::vector<std::string> arguments{"/usr/bin/open", "-n", options.app, "--args", "--semantic-dump", options.dump};
+// The launched app may not write to a build tree on a removable volume
+// (macOS asks a per-app privacy approval there), so it writes its dump and
+// reads its requests in a fresh directory under the temporary directory,
+// as the probe runners do, and run() copies the last dump to --dump at the
+// end. Empty when the directory cannot be made.
+std::string make_scratch_directory() {
+    const char* const temporary = std::getenv("TMPDIR");
+    std::string pattern = temporary != nullptr && temporary[0] != '\0' ? std::string(temporary) : std::string("/tmp");
+    if (pattern.back() != '/') pattern.push_back('/');
+    pattern += "gui_forms_ax_client.XXXXXX";
+    std::vector<char> buffer(pattern.begin(), pattern.end());
+    buffer.push_back('\0');
+    if (mkdtemp(buffer.data()) == nullptr) return std::string();
+    const std::string made(buffer.data());
+    return made;
+}
+
+// Copies the working dump to the build tree's --dump path and removes the
+// scratch directory; a failed copy is reported, not fatal.
+void keep_dump(const std::string& working, const std::string& kept, const std::string& scratch) {
+    std::error_code copied;
+    std::filesystem::copy_file(working, kept, std::filesystem::copy_options::overwrite_existing, copied);
+    if (copied) std::cerr << "note: the semantic dump was not copied to " << kept << '\n';
+    std::error_code removed;
+    std::filesystem::remove_all(scratch, removed);
+}
+
+bool launch_app(const Options& options, const std::string& dump_path) {
+    std::remove(dump_path.c_str());
+    std::vector<std::string> arguments{"/usr/bin/open", "-n", options.app, "--args", "--semantic-dump", dump_path};
     std::vector<char*> argv_pointers;
     for (std::string& argument : arguments) argv_pointers.push_back(argument.data());
     argv_pointers.push_back(nullptr);
@@ -1081,17 +1116,26 @@ int run(const Options& options) {
                      "(System Settings > Privacy & Security > Accessibility); the AX client test did not run\n";
         return unsupported_exit;
     }
-    if (!launch_app(options)) {
+    const std::string scratch = make_scratch_directory();
+    if (scratch.empty()) {
+        std::cerr << "could not make a directory under the temporary directory for the app's dump\n";
+        return 1;
+    }
+    const std::string working = scratch + "/semantic_dump.json";
+    std::remove(options.dump.c_str());
+    if (!launch_app(options, working)) {
         std::cerr << "could not launch " << options.app << '\n';
+        keep_dump(working, options.dump, scratch);
         return 1;
     }
     Dump dump;
     for (int waited = 0; waited < 15000 && !dump.valid; waited += 50) {
-        dump = read_dump(options.dump);
+        dump = read_dump(working);
         if (!dump.valid) sleep_milliseconds(50);
     }
     if (!dump.valid) {
         std::cerr << "the app wrote no semantic dump\n";
+        keep_dump(working, options.dump, scratch);
         return 1;
     }
     AxElement application(AXUIElementCreateApplication(dump.pid));
@@ -1102,26 +1146,27 @@ int run(const Options& options) {
         if (surface.get() == nullptr) sleep_milliseconds(100);
     }
     Report report;
-    dump = settled_dump(options.dump, report, "initial");
+    dump = settled_dump(working, report, "initial");
     if (report.settle_failed) {
         // Named by settled_dump; nothing later could be compared.
     } else if (surface.get() == nullptr) {
         report.failures.push_back("the app's retained surface is not published through AX");
     } else if (options.gallery) {
         compare_surface(dump, surface.get(), report, "initial");
-        dump = compare_gallery_pages(options.dump, application.get(), dump, report);
+        dump = compare_gallery_pages(working, application.get(), dump, report);
     } else {
         compare_surface(dump, surface.get(), report, "initial");
-        dump = perform_default_actions(options.dump, application.get(), dump, report);
-        dump = settled_dump(options.dump, report, "after-actions");
+        dump = perform_default_actions(working, application.get(), dump, report);
+        dump = settled_dump(working, report, "after-actions");
         if (!report.settle_failed) {
             AxElement after_surface = find_surface(application.get());
             compare_surface(dump, after_surface.get(), report, "after-actions");
-            dump = check_stale_element(options.dump, application.get(), dump, report);
-            dump = check_text_ranges(options.dump, application.get(), dump, report);
+            dump = check_stale_element(working, application.get(), dump, report);
+            dump = check_text_ranges(working, application.get(), dump, report);
         }
     }
     close_app(application.get(), dump.pid);
+    keep_dump(working, options.dump, scratch);
     print_report(report);
     return report.mismatches.empty() && report.failures.empty() ? 0 : 1;
 }

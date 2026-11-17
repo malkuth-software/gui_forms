@@ -7,11 +7,12 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -123,6 +124,8 @@ protected:
                                         std::span<PartGeometry> geometry) const override;
 
 private:
+    // Throws std::out_of_range for an item past realized_item_count().
+    void require_realized_item(std::size_t item) const;
     enum class VisibleKind : std::uint8_t { segment, overflow, edit };
     struct VisibleItem final {
         VisibleKind kind{VisibleKind::segment};
@@ -143,9 +146,11 @@ private:
     void editor_cancelled();
     void rebuild_layout(double width, double height);
     [[nodiscard]] double natural_width(const BreadcrumbSegment& segment) const;
-    [[nodiscard]] std::optional<std::size_t> segment_index(
+    [[nodiscard]] stxlib::Optional<std::size_t> segment_index(
         std::string_view stable_id) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> visible_index_at(Point absolute) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> visible_index_at(Point absolute) const noexcept;
+    // Whether `held` (the hovered or pressed visible item) holds `index`.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept;
     [[nodiscard]] std::string_view visible_stable_id(const VisibleItem& item) const noexcept;
     void activate_visible(std::size_t index);
     void normalize_active();
@@ -163,8 +168,8 @@ private:
     std::shared_ptr<TextBox> editor_{};
     SubscriptionToken editor_commit_{};
     SubscriptionToken editor_cancel_{};
-    std::optional<std::size_t> hovered_visible_{};
-    std::optional<std::size_t> pressed_visible_{};
+    stxlib::Optional<std::size_t> hovered_visible_{};
+    stxlib::Optional<std::size_t> pressed_visible_{};
     bool focused_{};
     Event<const std::string&> segment_activated_{};
     Event<> overflow_activated_{};
@@ -178,9 +183,10 @@ private:
     // property_codemod begin BreadcrumbTrail (tools/property_families/breadcrumb_trail.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_font_changed();
 
 private:
     friend struct FontCapability<BreadcrumbTrail>;

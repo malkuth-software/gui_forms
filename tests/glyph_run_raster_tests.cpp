@@ -1,16 +1,25 @@
 #include "../src/render/text/glyph_run/glyph_run_raster.hpp"
+#include "../src/core/resources/fonts/program_typefaces.hpp"
+#include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/view.hpp>
+
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-// ADR-004 glyph-run rasterization: light auto-hinting, grayscale, integer
-// 26.6 placement with a snapped baseline and a 1/64 pixel horizontal phase.
+// ADR-004 glyph-run rasterization through STXlib's glyph face: light
+// auto-hinting, grayscale, integer 26.6 placement with a snapped baseline
+// and a 1/64 pixel horizontal phase.
 namespace {
 using namespace gui_forms;
 using namespace gui_forms::render::text;
@@ -87,49 +96,53 @@ std::uint64_t coverage_hash(const GlyphRunCoverage& coverage) {
     return value;
 }
 
-// Expected hashes in report order (rapids then carlito; size; scale; phase),
-// identical on macOS arm64 and Alpine aarch64 musl, 2026-10-11. Every CI
-// platform must reproduce them.
+// Expected hashes in report order (rapids then carlito; size; scale; phase).
+// STXlib's glyph face (face_profile_version 1) moved every text pixel once
+// (owner, 2026-11-16); the values are taken from this test's printed output
+// on the first build with it, and every CI platform must then reproduce
+// them. Recorded 2026-11-16 on macOS arm64.
 constexpr std::uint64_t expected_identity[36]{
-    0xc5214daa69de2890ULL,  // rapids 9 1 0
-    0xc90c2fd02163deefULL,  // rapids 9 1 23
-    0x64405a9166c0a3a9ULL,  // rapids 9 1.5 0
-    0xc8375f0cd99fbb67ULL,  // rapids 9 1.5 23
-    0x5e168d691cb0de4dULL,  // rapids 9 2 0
-    0x24e647927da5a5bdULL,  // rapids 9 2 23
-    0x7d7dba25a3eac0fULL,  // rapids 13 1 0
-    0x62f300fa8b54567aULL,  // rapids 13 1 23
-    0x1413749b73e00469ULL,  // rapids 13 1.5 0
-    0x79e7eb9b291a9442ULL,  // rapids 13 1.5 23
-    0x57a38740bff65ca1ULL,  // rapids 13 2 0
-    0xeb1ece057f8e50fdULL,  // rapids 13 2 23
-    0xf8185b254e18bd6bULL,  // rapids 20 1 0
-    0xc0ffb19c5f732c24ULL,  // rapids 20 1 23
-    0x808b1880a380e506ULL,  // rapids 20 1.5 0
-    0xb5ac0ec84e0bc0f7ULL,  // rapids 20 1.5 23
-    0x20453454113ca2d2ULL,  // rapids 20 2 0
-    0xc683469cb990571cULL,  // rapids 20 2 23
-    0x1fe2c22874baa87ULL,  // carlito 9 1 0
-    0xae3f9580e1f2be27ULL,  // carlito 9 1 23
-    0x4e53156bb6f6a168ULL,  // carlito 9 1.5 0
-    0xb1703db90555fb4ULL,  // carlito 9 1.5 23
-    0x8b378aa0547e6fc9ULL,  // carlito 9 2 0
-    0x3b71d356a2251cc6ULL,  // carlito 9 2 23
-    0x402f75218c874ea7ULL,  // carlito 13 1 0
-    0x5acd323bbe73f564ULL,  // carlito 13 1 23
-    0xd3ae1596e22aa3d8ULL,  // carlito 13 1.5 0
-    0xae12c2447d728a4bULL,  // carlito 13 1.5 23
-    0x167ec98c14fbe984ULL,  // carlito 13 2 0
-    0xc9832d66402bfbecULL,  // carlito 13 2 23
-    0x3710d46d4095643fULL,  // carlito 20 1 0
-    0xccfa8f070265b808ULL,  // carlito 20 1 23
-    0xea2b90c0c5764bd8ULL,  // carlito 20 1.5 0
-    0xda97a2a42763cefeULL,  // carlito 20 1.5 23
-    0x1d1f6592b02fdc77ULL,  // carlito 20 2 0
-    0xee09aa358d62088aULL,  // carlito 20 2 23
+    0xf2216845d3db4324ULL,  // rapids 9 1 0
+    0x5875e3dd64481d62ULL,  // rapids 9 1 23
+    0x4339980fb6c81fa4ULL,  // rapids 9 1.5 0
+    0x6ac76dcc87dfedd8ULL,  // rapids 9 1.5 23
+    0xedffde3263d16282ULL,  // rapids 9 2 0
+    0x6019387173adab3bULL,  // rapids 9 2 23
+    0x0c6b9d56df6ccee6ULL,  // rapids 13 1 0
+    0x86a4f0b52734a665ULL,  // rapids 13 1 23
+    0xa7ffae22bc1878f3ULL,  // rapids 13 1.5 0
+    0x4a788e31ecbb4dacULL,  // rapids 13 1.5 23
+    0x3deef7d00f032e61ULL,  // rapids 13 2 0
+    0xb76fc353157ec13bULL,  // rapids 13 2 23
+    0x57bee2fba4420ad8ULL,  // rapids 20 1 0
+    0x88ac01e1958b5f40ULL,  // rapids 20 1 23
+    0x12e434d7abc90a87ULL,  // rapids 20 1.5 0
+    0x91566b0600fc02c2ULL,  // rapids 20 1.5 23
+    0x21ed4e6172219f5bULL,  // rapids 20 2 0
+    0x145525afa9dfc9c4ULL,  // rapids 20 2 23
+    0xad488071546243b0ULL,  // carlito 9 1 0
+    0x634475f2431c4fb2ULL,  // carlito 9 1 23
+    0x4955edfe852762c3ULL,  // carlito 9 1.5 0
+    0xdeb471a57c9f12d7ULL,  // carlito 9 1.5 23
+    0x838586b0a0a9eb7cULL,  // carlito 9 2 0
+    0x6e7fea22916ff85fULL,  // carlito 9 2 23
+    0xadc7b95b58a14d8cULL,  // carlito 13 1 0
+    0x105c2820f359a885ULL,  // carlito 13 1 23
+    0xb7833f77111a732bULL,  // carlito 13 1.5 0
+    0x7a146d0d8ad43fd4ULL,  // carlito 13 1.5 23
+    0x18abde9712d6d6c5ULL,  // carlito 13 2 0
+    0x284536afa630cabbULL,  // carlito 13 2 23
+    0x7ca20dc4c0198e6eULL,  // carlito 20 1 0
+    0xd22c7675dcac07bdULL,  // carlito 20 1 23
+    0x462882802705cea4ULL,  // carlito 20 1.5 0
+    0x752620f9abafac1eULL,  // carlito 20 1.5 23
+    0xc5cc51b5c95e2525ULL,  // carlito 20 2 0
+    0xeefd68169ee0d822ULL,  // carlito 20 2 23
 };
 
 std::size_t identity_index = 0;
+// Mismatches are counted, not thrown, so one run prints every identity hash.
+std::size_t identity_mismatches = 0;
 
 void report_identity_hashes(const char* name, const char* font_path) {
     HarfBuzzFontEngine engine;
@@ -147,8 +160,8 @@ void report_identity_hashes(const char* name, const char* font_path) {
                 const std::uint64_t observed = coverage_hash(coverage);
                 std::cout << "identity " << name << ' ' << size << ' ' << scale << ' ' << phase << ' ' << std::hex
                           << observed << std::dec << '\n';
-                require(identity_index < 36U && observed == expected_identity[identity_index],
-                        "glyph-run coverage differs from the cross-platform expectation");
+                require(identity_index < 36U, "a reference hash for each identity case");
+                if (observed != expected_identity[identity_index]) ++identity_mismatches;
                 ++identity_index;
             }
         }
@@ -166,10 +179,12 @@ void synthesis_and_transforms(const char* font_path, const std::uint64_t (&expec
     const GlyphRunCoverage plain = rasterizer.rasterize(shaped, font, 1.0, 0);
     const GlyphRunCoverage bold = rasterizer.rasterize(shaped, font, 1.0, 0, {true, false});
     const double bold_ratio = ink(bold) / ink(plain);
-    require(bold_ratio > 1.15 && bold_ratio < 1.8, "embolden thickens strokes");
+    require(bold_ratio > 1.15 && bold_ratio < 1.8, "synthesized bold thickens strokes");
     const GlyphRunCoverage oblique = rasterizer.rasterize(shaped, font, 1.0, 0, {false, true});
     require(oblique.pixels != plain.pixels, "oblique changes coverage");
-    require(std::abs(ink(oblique) - ink(plain)) / ink(plain) < 0.06, "oblique preserves ink");
+    // Oblique is drawn unhinted (STXlib takes a matrix only with Fit::none),
+    // so it is compared with the hinted plain run as the identity transform is.
+    require(std::abs(ink(oblique) - ink(plain)) / ink(plain) < 0.08, "oblique preserves ink");
     // Shear leans tops right: ascenders reach past the plain mask's right edge.
     require(oblique.left + static_cast<std::int32_t>(oblique.width) > plain.left + static_cast<std::int32_t>(plain.width),
             "oblique leans right");
@@ -205,14 +220,18 @@ void synthesis_and_transforms(const char* font_path, const std::uint64_t (&expec
         refused = true;
     }
     require(refused, "singular transform is refused");
-    // Bold, oblique, identity, quarter turn, quarter turn bold-oblique;
-    // identical on macOS arm64 and Alpine aarch64 musl, 2026-10-11.
+    // Bold, oblique, identity, quarter turn, quarter turn bold-oblique; from
+    // the first build with STXlib's glyph face, as expected_identity (recorded
+    // 2026-11-16 on macOS arm64; Linux checks them in CI).
     const std::uint64_t observed[5]{coverage_hash(bold), coverage_hash(oblique), coverage_hash(identity),
                                     coverage_hash(turned), coverage_hash(turned_bold)};
+    // Every hash is printed before any is checked, so one run shows them all.
+    bool all_match = true;
     for (std::size_t index = 0; index < 5U; ++index) {
         std::cout << "synthesis " << index << ' ' << std::hex << observed[index] << std::dec << '\n';
-        require(observed[index] == expected[index], "synthesized coverage differs from the cross-platform expectation");
+        if (observed[index] != expected[index]) all_match = false;
     }
+    require(all_match, "synthesized coverage differs from the cross-platform expectation");
 }
 
 bool same_coverage(const GlyphRunCoverage& left, const GlyphRunCoverage& right) {
@@ -221,10 +240,74 @@ bool same_coverage(const GlyphRunCoverage& left, const GlyphRunCoverage& right) 
     return same;
 }
 
-// The rasterizer loads each distinct glyph of a run once and places that
+// Turned text is STXlib's (rasterize_turned, and rasterize_transformed of an
+// even scale and a turn):
+// - a quarter turn anticlockwise of one glyph placed on a whole pixel is
+//   its fitted upright mask turned pixel for pixel (STXlib draws quarter
+//   turns by quarters): upright pixel (column c, row r) of a w-wide mask at
+//   (left, top) lands at column top + r, row -(left + c) - 1;
+// - rasterize_transformed of that quarter turn ([0 1; -1 0] on the y-down
+//   surface) draws rasterize_turned's bytes, at scale 2 as well;
+// - at 30 degrees (the mask's surface) the run keeps the upright run's ink
+//   within 8%, its ink spans the turned advance, and the drawing repeats.
+void turned_text_is_stxlibs(const char* font_path) {
+    HarfBuzzFontEngine engine;
+    require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
+    const FontSpec font{FontRole::control, 13.0, 400, false};
+    GlyphRunRasterizer rasterizer(engine);
+
+    const ShapedText letter = engine.shape("H", font);
+    const GlyphRunCoverage upright = rasterizer.rasterize(letter, font, 1.0, 0);
+    GlyphRunOrigin origin{};
+    const GlyphRunCoverage quarter = rasterizer.rasterize_turned(letter, font, 90.0, 1.0, 0.0, 0.0, {}, origin);
+    require(origin.pixel_x == 0 && origin.pixel_y == 0, "a turned run's origin pixel is its floored origin");
+    require(!upright.pixels.empty() && quarter.width == upright.height && quarter.height == upright.width,
+            "a quarter turn swaps the mask's sides");
+    require(quarter.left == upright.top &&
+                quarter.top == -(upright.left + static_cast<std::int32_t>(upright.width)),
+            "a quarter turn places the mask turned about the origin");
+    bool turned_pixel_for_pixel = true;
+    for (std::size_t row = 0; row < upright.height; ++row) {
+        for (std::size_t column = 0; column < upright.width; ++column) {
+            const std::size_t turned_row = upright.width - 1U - column;
+            const std::uint8_t up = upright.pixels[row * upright.width + column];
+            const std::uint8_t turned = quarter.pixels[turned_row * quarter.width + row];
+            if (up != turned) turned_pixel_for_pixel = false;
+        }
+    }
+    require(turned_pixel_for_pixel, "a quarter turn is the fitted upright mask turned pixel for pixel");
+
+    const ShapedText shaped = engine.shape(corpus, font);
+    const GlyphRunCoverage by_angle = rasterizer.rasterize_turned(shaped, font, 90.0, 1.0, 10.25, 20.5, {}, origin);
+    const GlyphRunCoverage by_matrix =
+        rasterizer.rasterize_transformed(shaped, font, {0.0, 1.0, -1.0, 0.0}, 10.25, 20.5, {}, origin);
+    require(same_coverage(by_angle, by_matrix), "an even turn through rasterize_transformed is rasterize_turned");
+    const GlyphRunCoverage doubled_angle = rasterizer.rasterize_turned(shaped, font, 90.0, 2.0, 3.5, 4.75, {}, origin);
+    const GlyphRunCoverage doubled_matrix =
+        rasterizer.rasterize_transformed(shaped, font, {0.0, 2.0, -2.0, 0.0}, 3.5, 4.75, {}, origin);
+    require(same_coverage(doubled_angle, doubled_matrix), "a scaled even turn is the turn at the scaled size");
+
+    const GlyphRunCoverage level = rasterizer.rasterize(shaped, font, 1.0, 0);
+    const GlyphRunCoverage thirty = rasterizer.rasterize_turned(shaped, font, 30.0, 1.0, 0.0, 0.0, {}, origin);
+    require(std::abs(ink(thirty) - ink(level)) / ink(level) < 0.08, "a turn keeps the run's ink");
+    const double reach = static_cast<double>(thirty.width);
+    require(reach > shaped.width * 0.8 && reach < shaped.width + 2.0 * font.size,
+            "a run turned by 30 degrees spans its turned advance");
+    const GlyphRunCoverage again = rasterizer.rasterize_turned(shaped, font, 30.0, 1.0, 0.0, 0.0, {}, origin);
+    require(same_coverage(thirty, again), "turned text repeats");
+    bool refused = false;
+    try {
+        static_cast<void>(rasterizer.rasterize_turned(shaped, font, std::nan(""), 1.0, 0.0, 0.0, {}, origin));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "a non-finite turn is refused");
+}
+
+// STXlib's face fits each distinct glyph of a run once and places that
 // outline at each occurrence. The run must equal its glyphs rasterized one
-// by one (each loaded afresh) and combined in run order as documented,
-// c + p * (255 - c) / 255, for every synthesis.
+// by one and combined in run order as documented, c + p * (255 - c) / 255,
+// for every synthesis.
 void repeated_glyphs_match_single_glyph_runs(const char* font_path) {
     HarfBuzzFontEngine engine;
     require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
@@ -260,25 +343,136 @@ void repeated_glyphs_match_single_glyph_runs(const char* font_path) {
     }
 }
 
-// FT_Render_Glyph refuses a glyph box reaching ten ems from its origin; the
-// run then fails as a whole, and the rasterizer stays usable.
-void glyphs_beyond_ten_ems_are_refused(const char* font_path) {
+// Glyphs at sixteen times their size under a transform (a glyph box ten
+// ems from its origin, which FreeType refused) draw, and the rasterizer
+// stays usable for ordinary runs afterwards.
+void large_transformed_glyphs_draw(const char* font_path) {
     HarfBuzzFontEngine engine;
     require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
     const FontSpec font{FontRole::control, 16.0, 400, false};
     const ShapedText shaped = engine.shape(corpus, font);
     GlyphRunRasterizer rasterizer(engine);
     GlyphRunOrigin origin{};
-    bool refused = false;
-    try {
-        static_cast<void>(rasterizer.rasterize_transformed(shaped, font, {16.0, 0.0, 0.0, 16.0}, 0.0, 0.0, {}, origin));
-    } catch (const std::runtime_error&) {
-        refused = true;
-    }
-    require(refused, "a glyph box beyond ten ems is refused");
+    const GlyphRunCoverage large = rasterizer.rasterize_transformed(shaped, font, {16.0, 0.0, 0.0, 16.0}, 0.0, 0.0, {}, origin);
+    require(!large.oversized && !large.pixels.empty() && large.missing_glyphs == 0U, "large transformed glyphs draw");
     GlyphRunRasterizer fresh(engine);
     require(same_coverage(rasterizer.rasterize(shaped, font, 1.0, 9), fresh.rasterize(shaped, font, 1.0, 9)),
-            "a refused run leaves the rasterizer usable");
+            "a large run leaves the rasterizer as a fresh one");
+    bool refused = false;
+    try {
+        static_cast<void>(rasterizer.rasterize_transformed(shaped, font, {40000.0, 0.0, 0.0, 1.0}, 0.0, 0.0, {}, origin));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused, "a transform beyond a 16.16 matrix is refused");
+}
+
+// Every coverage carries the glyph face's profile, which retained coverage
+// is checked against.
+void coverage_carries_the_face_profile(const char* font_path) {
+    HarfBuzzFontEngine engine;
+    require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
+    const FontSpec font{FontRole::control, 13.0, 400, false};
+    GlyphRunRasterizer rasterizer(engine);
+    const GlyphRunCoverage coverage = rasterizer.rasterize(engine.shape(corpus, font), font, 1.0, 0);
+    require(coverage.profile_version == face_profile_version && face_profile_version != 0U,
+            "coverage records the glyph face's profile");
+}
+
+// The store is per program (owner, 2026-11-16): two engines over the same
+// shared bytes, in two rasterizers, draw from one typeface, which is let go
+// when the last rasterizer is. Faces' and typefaces' bytes are counted
+// under text_layout and uncounted when they go.
+void typefaces_are_shared_and_counted(const char* font_path) {
+    const std::shared_ptr<const std::vector<std::byte>> bytes =
+        std::make_shared<const std::vector<std::byte>>(read_file(font_path));
+    const std::size_t before = gui_forms::detail::program_typeface_count();
+    const AllocationCounts counted_before = thread_allocation_statistics().of(AllocationSubsystem::text_layout);
+    {
+        HarfBuzzFontEngine first_engine;
+        HarfBuzzFontEngine second_engine;
+        require(first_engine.register_shared_typeface(FontRole::control, 400, false, bytes).has_value() &&
+                    second_engine.register_shared_typeface(FontRole::control, 400, false, bytes).has_value(),
+                "shared bytes register in both engines");
+        const FontSpec font{FontRole::control, 13.0, 400, false};
+        GlyphRunRasterizer first(first_engine);
+        GlyphRunRasterizer second(second_engine);
+        const GlyphRunCoverage a = first.rasterize(first_engine.shape(corpus, font), font, 1.0, 5);
+        require(gui_forms::detail::program_typeface_count() == before + 1U, "the first rasterizer opens one typeface");
+        const GlyphRunCoverage b = second.rasterize(second_engine.shape(corpus, font), font, 1.0, 5);
+        require(gui_forms::detail::program_typeface_count() == before + 1U, "the second draws from the same typeface");
+        require(same_coverage(a, b), "both draw the same coverage");
+        const AllocationCounts drawing = thread_allocation_statistics().of(AllocationSubsystem::text_layout);
+        require(drawing.allocated_bytes > counted_before.allocated_bytes, "the faces' bytes are counted");
+    }
+    require(gui_forms::detail::program_typeface_count() == before, "the typeface goes with its last holder");
+    const AllocationCounts after = thread_allocation_statistics().of(AllocationSubsystem::text_layout);
+    require(after.allocated_bytes - counted_before.allocated_bytes == after.released_bytes - counted_before.released_bytes,
+            "every counted byte is uncounted when the faces go");
+}
+
+// A registered typeface (program_typefaces.hpp) is the one every executor
+// drawing its owner's bytes draws: two engines registering the bytes with
+// the registering owner open no typeface of their own. It goes with its
+// owner, not with the executors. Retiring it (an unloaded application
+// family) rejects a face open over it on its next draw, which releases the
+// face, and refuses new faces.
+struct RegisteredFont final {
+    // Declared first, destroyed last: the typeface reads the bytes.
+    std::vector<std::byte> bytes{};
+    std::unique_ptr<gui_forms::detail::ProgramTypeface> typeface{};
+};
+
+void registered_typefaces_serve_every_executor(const char* font_path) {
+    const std::size_t before = gui_forms::detail::program_typeface_count();
+    {
+        std::shared_ptr<RegisteredFont> font = std::make_shared<RegisteredFont>();
+        (*font).bytes = read_file(font_path);
+        const std::span<const std::byte> bytes((*font).bytes.data(), (*font).bytes.size());
+        (*font).typeface = gui_forms::detail::open_program_typeface(bytes, 0U);
+        require((*font).typeface != nullptr, "the registry opens the face's typeface");
+        const std::shared_ptr<const void> owner = font;
+        require(gui_forms::detail::register_program_typeface(bytes, 0U, owner, *(*font).typeface),
+                "the typeface registers");
+        require(gui_forms::detail::program_typeface_count() == before + 1U, "one registered typeface");
+        const gui_forms::detail::TypefaceBorrow found = gui_forms::detail::program_typeface(bytes, owner, 0U);
+        require(found.typeface == (*font).typeface.get() && found.keeper.get() == owner.get(),
+                "executors borrow the registered typeface, kept by its owner");
+        {
+            HarfBuzzFontEngine first_engine;
+            HarfBuzzFontEngine second_engine;
+            require(first_engine.register_owned_typeface(FontRole::control, 400, false, bytes, owner).has_value() &&
+                        second_engine.register_owned_typeface(FontRole::control, 400, false, bytes, owner).has_value(),
+                    "the owned bytes register in both engines");
+            const FontSpec spec{FontRole::control, 13.0, 400, false};
+            GlyphRunRasterizer first(first_engine);
+            GlyphRunRasterizer second(second_engine);
+            const GlyphRunCoverage a = first.rasterize(first_engine.shape(corpus, spec), spec, 1.0, 5);
+            const GlyphRunCoverage b = second.rasterize(second_engine.shape(corpus, spec), spec, 1.0, 5);
+            require(gui_forms::detail::program_typeface_count() == before + 1U,
+                    "both rasterizers draw the registered typeface and open none");
+            require(!a.pixels.empty() && same_coverage(a, b), "both draw the same coverage");
+        }
+        require(gui_forms::detail::program_typeface_count() == before + 1U,
+                "the registered typeface outlives the executors");
+
+        gui_forms::detail::ExecutorFace face;
+        require(face.open(found, gui_forms::detail::FaceByteLimits{}), "a face opens over the registered typeface");
+        const std::array<stxlib::glyphs::RunGlyph, 1> glyph{{{36U, 0, 832}}};
+        const stxlib::View<stxlib::glyphs::RunGlyph> run(glyph.data(), glyph.size());
+        stxlib::glyphs::DrawStyle style{};
+        style.size = 13 * 64;
+        style.fit = stxlib::glyphs::Fit::light;
+        stxlib::glyphs::RunCoverage drawn{};
+        require(!face.draw_run(run, style, drawn).failed(), "the face draws before retirement");
+        (*(*font).typeface).retire();
+        require(face.draw_run(run, style, drawn).failed() && !face.is_open(),
+                "a retired typeface's face is rejected and released on its next draw");
+        gui_forms::detail::ExecutorFace late;
+        require(!late.open(gui_forms::detail::program_typeface(bytes, owner, 0U), gui_forms::detail::FaceByteLimits{}),
+                "no face opens over a retired typeface");
+    }
+    require(gui_forms::detail::program_typeface_count() == before, "the registered typeface goes with its owner");
 }
 
 void unknown_faces_are_reported() {
@@ -293,6 +487,49 @@ void unknown_faces_are_reported() {
     require(coverage.missing_glyphs == 1U && coverage.pixels.empty(), "unknown face draws nothing and is counted");
 }
 
+// A-gf-core-10-F1: a line whose ink is wider than glyph_run_maximum_extent
+// is reported as oversized and draws nothing, rather than throwing out of
+// paint; with a window, only the glyphs that can show are rendered, so the
+// same line draws its visible part.
+void long_lines_fail_soft_and_window_limits_glyphs(const char* font_path) {
+    HarfBuzzFontEngine engine;
+    require(engine.register_typeface(FontRole::control, 400, false, read_file(font_path)).has_value(), "font registers");
+    const FontSpec font{FontRole::control, 13.0, 400, false};
+    std::string line;
+    while (line.size() < 6000U) line += corpus;
+    line += ' ';
+    const ShapedText shaped = engine.shape(line, font);
+    require(shaped.width * 2.0 > static_cast<double>(glyph_run_maximum_extent), "the line is wider than the extent at scale 2");
+    GlyphRunRasterizer rasterizer(engine);
+    bool thrown = false;
+    GlyphRunCoverage whole{};
+    try {
+        whole = rasterizer.rasterize(shaped, font, 2.0, 0);
+    } catch (const std::exception&) {
+        thrown = true;
+    }
+    require(!thrown, "an over-wide line does not throw");
+    require(whole.oversized && whole.pixels.empty() && whole.width == 0U, "an over-wide line is reported and draws nothing");
+
+    const GlyphRunWindow window{0, -200, 800, 200};
+    const GlyphRunCoverage shown = rasterizer.rasterize(shaped, font, 2.0, 0, {}, window);
+    require(!shown.oversized && !shown.pixels.empty(), "the visible part of the line draws");
+    require(shown.outside_glyphs > 0U, "glyphs outside the window are left out");
+    require(static_cast<std::int64_t>(shown.left) + static_cast<std::int64_t>(shown.width) <= window.right + 64,
+            "the coverage ends near the window's right edge");
+    require(static_cast<std::int64_t>(shown.width) < glyph_run_maximum_extent, "the coverage is bounded by the window");
+
+    // The window's part equals the same glyphs rasterized without a window.
+    const ShapedText head = engine.shape(corpus, font);
+    const GlyphRunCoverage head_whole = rasterizer.rasterize(head, font, 2.0, 0);
+    const GlyphRunCoverage head_windowed = rasterizer.rasterize(head, font, 2.0, 0, {}, GlyphRunWindow{-64, -200, 4096, 200});
+    require(head_windowed.outside_glyphs == 0U && same_coverage(head_whole, head_windowed),
+            "a window that holds the whole run changes nothing");
+
+    const GlyphRunCoverage none = rasterizer.rasterize(shaped, font, 2.0, 0, {}, GlyphRunWindow{0, 5000, 800, 5100});
+    require(none.pixels.empty() && !none.oversized && none.outside_glyphs > 0U, "a window below the line draws nothing");
+}
+
 } // namespace
 
 int main() {
@@ -302,12 +539,19 @@ int main() {
     unknown_faces_are_reported();
     repeated_glyphs_match_single_glyph_runs(GUI_FORMS_TEST_RAPIDS_REGULAR);
     repeated_glyphs_match_single_glyph_runs(GUI_FORMS_TEST_CARLITO_REGULAR);
-    glyphs_beyond_ten_ems_are_refused(GUI_FORMS_TEST_CARLITO_REGULAR);
-    synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0xa2199bda6d0e05e7ULL, 0xf3fdfff6b1ef2453ULL, 0x3509b246406a7aadULL,
-                                                             0xeece270b10c7e4b9ULL, 0xb26a36159298eee6ULL});
-    synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0x740132e6ee72d463ULL, 0x21207356b2411a38ULL, 0x535dbda7fa2302b1ULL,
-                                                              0xda491c0d10f163a9ULL, 0x2f4536e59ea96f93ULL});
+    large_transformed_glyphs_draw(GUI_FORMS_TEST_CARLITO_REGULAR);
+    coverage_carries_the_face_profile(GUI_FORMS_TEST_RAPIDS_REGULAR);
+    typefaces_are_shared_and_counted(GUI_FORMS_TEST_CARLITO_REGULAR);
+    registered_typefaces_serve_every_executor(GUI_FORMS_TEST_CARLITO_REGULAR);
+    long_lines_fail_soft_and_window_limits_glyphs(GUI_FORMS_TEST_RAPIDS_REGULAR);
+    turned_text_is_stxlibs(GUI_FORMS_TEST_RAPIDS_REGULAR);
+    turned_text_is_stxlibs(GUI_FORMS_TEST_CARLITO_REGULAR);
+    synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0xf9373881ed4b7f9aULL, 0xba00332e573428c8ULL, 0xb423dc9c649de555ULL,
+                                                             0x403ff932b44982c2ULL, 0x9e45d4c92486c478ULL});
+    synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0xbb59eff858163080ULL, 0x055596f78b1aebbdULL, 0x02abdb32a0e81885ULL,
+                                                              0x9d4bf4c5f8282964ULL, 0x4bf7e657d40ea310ULL});
     report_identity_hashes("rapids", GUI_FORMS_TEST_RAPIDS_REGULAR);
     report_identity_hashes("carlito", GUI_FORMS_TEST_CARLITO_REGULAR);
+    require(identity_mismatches == 0U, "glyph-run coverage differs from the cross-platform expectation");
     return 0;
 }

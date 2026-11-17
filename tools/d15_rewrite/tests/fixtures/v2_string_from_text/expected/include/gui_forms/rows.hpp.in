@@ -1,0 +1,12 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::string moved_row(stxlib::TextView id);
+[[nodiscard]] std::string owned_key(stxlib::TextView key);
+
+} // namespace gui_forms

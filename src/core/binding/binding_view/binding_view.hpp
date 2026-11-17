@@ -32,6 +32,7 @@
 
 #include "../binding_schema/binding_key_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -98,7 +99,7 @@ public:
     [[nodiscard]] std::size_t row_of(std::size_t position) const;
     // The view position of a source row (below row_count()), or empty when
     // the filter hides it.
-    [[nodiscard]] std::optional<std::size_t> position_of(std::size_t row) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> position_of(std::size_t row) const;
     // Whether the view reads column (a sort or filter column).
     [[nodiscard]] bool uses_column(std::size_t column) const noexcept;
     // Whether the index has grown sparse enough to rebuild (erasures leave

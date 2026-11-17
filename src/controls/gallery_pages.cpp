@@ -1,4 +1,5 @@
 #include "gallery_pages.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -10,7 +11,11 @@
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/list_view_values.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
@@ -29,6 +34,7 @@
 #include <cstdio>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -116,6 +122,103 @@ void arm(RuleSet& rules, const RuleTrigger& trigger, PageContext& context,
 }
 
 // The one place the retained page context is recovered from the root Tag.
+// The shell's handlers (a Component, the documented handler owner): a
+// navigation row's activation opens its page; F6 and Shift+F6 on the
+// window's key_down (its KeyPreview) cycle the shell's panes (owner ruling
+// 3): the command strip, the navigation, the page area, the status strip,
+// then the diagnostics while shown, each entered at its first Tab stop.
+// Inside a focus region a page registered (the docking page's panes) F6
+// stays the window's, cycling those regions; Tab leaves them. The context
+// owns this component; the window outlives it.
+class ShellActions final : public Component {
+public:
+    ShellActions(std::weak_ptr<PageContext> context, GalleryWindow& window) noexcept
+        : context_(std::move(context)), window_(&window) {
+        panes_ = {window.gallery_command_strip, window.gallery_sidebar, window.gallery_content,
+                  window.gallery_status, window.gallery_diagnostics};
+    }
+
+    void navigation_activated(const ListViewItemActivation& activation) {
+        const std::shared_ptr<PageContext> context = context_.lock();
+        if (!context) return;
+        (*context).select_page(activation.index);
+    }
+
+    void shell_key_down(KeyEventArgs& arguments) {
+        if (arguments.handled || arguments.physical_key != PhysicalKey::f6) return;
+        const bool forward = arguments.modifiers == Modifier::none;
+        if (!forward && arguments.modifiers != Modifier::shift) return;
+        const Control::Ptr focused = (*window_).focused_control();
+        if (focused && in_page_region(*focused)) return;
+        const std::size_t count = panes_.size();
+        std::size_t current = count;
+        for (std::size_t index = 0U; index < count && focused; ++index) {
+            const Control::Ptr pane = panes_[index].lock();
+            if (pane && holds(*pane, *focused)) current = index;
+        }
+        for (std::size_t step = 1U; step <= count; ++step) {
+            std::size_t index = 0U;
+            if (current == count) {
+                index = forward ? step - 1U : count - step;
+            } else {
+                index = forward ? (current + step) % count : (current + count - step) % count;
+            }
+            const Control::Ptr pane = panes_[index].lock();
+            if (!pane || !(*pane).eligible_for_input()) continue;
+            const Control::Ptr first = first_tab_stop(pane);
+            if (first && (*window_).request_focus(first)) {
+                arguments.handled = true;
+                return;
+            }
+        }
+    }
+
+private:
+    // Whether `control` is inside a focus region a page registered that can
+    // take input now (a hidden page's regions do not count).
+    [[nodiscard]] bool in_page_region(const Control& control) const {
+        const std::vector<Control::Ptr> regions = (*window_).focus_regions();
+        for (const Control::Ptr& region : regions) {
+            if (region && (*region).eligible_for_input() && holds(*region, control)) return true;
+        }
+        return false;
+    }
+
+    // Whether `control` is `pane` or below it.
+    [[nodiscard]] static bool holds(const Control& pane, const Control& control) noexcept {
+        const Control* walker = &control;
+        while (walker != nullptr) {
+            if (walker == &pane) return true;
+            const Control::Ptr up = (*walker).parent();
+            walker = up.get();
+        }
+        return false;
+    }
+
+    // The first focusable Tab stop under `root` in Tab order (siblings by
+    // tab_index, then insertion), depth first; null when there is none.
+    // Recurses once per control level: bounded by maximum_control_tree_depth.
+    [[nodiscard]] static Control::Ptr first_tab_stop(const Control::Ptr& root) {
+        if (!(*root).eligible_for_input()) return nullptr;
+        if ((*root).focusable.read() && (*root).tab_stop.read()) return root;
+        std::vector<Control::Ptr> children((*root).children().begin(), (*root).children().end());
+        std::stable_sort(children.begin(), children.end(), &ShellActions::tab_order_less);
+        for (const Control::Ptr& child : children) {
+            Control::Ptr found = first_tab_stop(child);
+            if (found) return found;
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] static bool tab_order_less(const Control::Ptr& left, const Control::Ptr& right) noexcept {
+        return (*left).tab_index.read() < (*right).tab_index.read();
+    }
+
+    std::weak_ptr<PageContext> context_;
+    GalleryWindow* window_{};
+    std::array<std::weak_ptr<Control>, 5> panes_{};
+};
+
 std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     const std::shared_ptr<gui_forms::Panel> root =
         std::dynamic_pointer_cast<Panel>(window.root());
@@ -134,7 +237,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     (*context).compiled = std::move(compiled);
     // Pages capture the status line while they are built; the form made it.
     (*context).status = window.gallery_status_text;
-    (*(*context).status).font = FontSpec{FontRole::content, 11.0, 600, false};
+    (*(*context).status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 11.0, 600, false});
     static_cast<void>((*(*context).status).add_class("heading"));
     // The form lays the shell out (demo/gallery.form): nothing scales with
     // the window, so a resize moves or resizes only the docked parts it
@@ -159,52 +262,65 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
 
     const std::vector<NavigationEntry> order = navigation_order();
 
-    // select_page keeps the chosen row in view. The sidebar runs down to the
-    // window's bottom edge, beside the status strip (sweep defect D20).
-    constexpr double sidebar_height = 786.0;
+    // The page navigation (owner rulings 2026-11-13): one ListView, one Tab
+    // stop, a single details column without a header, one group per
+    // category. Up, Down, Home and End move between pages without opening
+    // one; a click (activation one_click), Enter or the accessible press
+    // opens the page (item_activated, ShellActions::navigation_activated).
+    // Rows keep the stable IDs gallery.page.<page>. The list fills the
+    // sidebar, which runs down to the window's bottom edge beside the status
+    // strip (sweep defect D20), and scrolls itself.
     ScrollableControl& sidebar = *window.gallery_sidebar;
-    // The paper is the sidebar's first child, so it paints beneath the rows;
-    // sized to the content below.
-    Panel& sidebar_paper = *window.gallery_sidebar_paper;
-    double navigation_y = 8.0;
+    sidebar.auto_scroll = false;
+    sidebar.auto_scroll_min_size = Size{};
+    std::shared_ptr<ListView> navigation = make_control<ListView>(StableId("gallery.sidebar.pages"));
+    (*navigation).accessible_name = "Pages";
+    // Shell chrome: the control typography role (gallery.theme.css).
+    static_cast<void>((*navigation).add_class("navigation-list"));
+    (*navigation).multi_select = false;
+    (*navigation).full_row_select = true;
+    (*navigation).activation = ListViewActivation::one_click;
+    (*navigation).header_style = ListViewHeaderStyle::none;
+    (*navigation).set_columns({ListViewColumn{.stable_id = "page", .text = "Page", .width = 206.0}});
+    std::vector<ListViewGroup> groups;
+    std::vector<ListViewItem> rows;
+    rows.reserve(order.size());
     std::string_view current_group;
-    std::size_t group_index = 0;
     for (const NavigationEntry& entry : order) {
         if (entry.group != current_group) {
             current_group = entry.group;
-            // The heading's ink is the Gallery theme's `heading` role
-            // (shell_blue_dark in light), so that it turns light in dark.
-            std::shared_ptr<Label> heading = make_control<Label>(
-                StableId("gallery.sidebar.group." + std::to_string(group_index)), std::string(entry.group));
-            static_cast<void>((*heading).add_class("heading"));
-            static_cast<void>((*heading).add_class("navigation-heading"));
-            (*heading).set_bounds({18.0, navigation_y, 180.0, 16.0});
-            sidebar.add_child(heading);
-            navigation_y += 18.0;
-            ++group_index;
+            ListViewGroup group{};
+            group.stable_id = "gallery.sidebar.group." + std::to_string(groups.size());
+            group.header = std::string(entry.group);
+            groups.push_back(std::move(group));
         }
-        std::shared_ptr<gui_forms::Button> navigation = make_control<Button>(
-            StableId(std::string(navigation_id_prefix) + std::string((*entry.page).id)),
-            std::string((*entry.page).title));
-        // The row's type and colours are the theme's: the Gallery theme's
-        // `control-body` class sizes it, and the window's theme draws it as a
-        // command, checked while its page is open (PageContext::select_page).
-        static_cast<void>((*navigation).add_class("control-body"));
-        (*navigation).visual_style = ButtonVisualStyle::command;
-        (*navigation).set_bounds({16.0, navigation_y, 190.0, 24.0});
-        sidebar.add_child(navigation);
-        navigation_y += 24.0;
-        (*context).navigation.push_back(navigation);
+        ListViewItem row{};
+        row.stable_id = std::string(navigation_id_prefix) + std::string((*entry.page).id);
+        row.text = std::string((*entry.page).title);
+        row.group = groups.back().stable_id;
+        rows.push_back(std::move(row));
         (*context).page_ids.push_back((*entry.page).id);
         (*context).page_titles.push_back((*entry.page).title);
         if ((*entry.page).id == "timing-and-tooltips") {
             (*context).timing_page = (*context).page_ids.size() - 1U;
         }
     }
-    // Narrower than the viewport beside the vertical bar, so no horizontal
-    // scrollbar appears; the column's own background shows at the edge.
-    sidebar_paper.set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
-    sidebar.auto_scroll_min_size = {206.0, navigation_y + 8.0};
+    (*navigation).set_groups(std::move(groups));
+    (*navigation).set_items(std::move(rows));
+    (*navigation).dock = DockStyle::fill;
+    sidebar.add_child(navigation);
+    (*context).navigation = navigation;
+
+    // Tab order follows reading order across the shell (owner ruling 2):
+    // the command strip, the navigation, the page area, then the status
+    // strip and the diagnostics. GUI.Forms orders Tab by tab_index, then
+    // child order (as Windows Forms); the form puts the status strip before
+    // the page area so that it docks first, so the shell sets the indices.
+    (*window.gallery_command_strip).tab_index = 0U;
+    (*window.gallery_sidebar).tab_index = 1U;
+    (*window.gallery_content).tab_index = 2U;
+    (*window.gallery_status).tab_index = 3U;
+    (*window.gallery_diagnostics).tab_index = 4U;
 
     // The page area: each page's viewport is anchored to all four edges,
     // keeping its 20-unit left margin.
@@ -242,7 +358,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, "heading");
-        (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
+        (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15.0, 700, false});
         (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",
@@ -267,8 +383,8 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         // below 660 was cut off with no way to reach it (sweep defect D3).
         double body_height = 660.0;
         for (const Control::Ptr& child : (*body).children()) {
-            const std::optional<Rect> slot = (*body).design_bounds(*child);
-            const Rect placed = slot ? *slot : (*child).requested_bounds();
+            const stxlib::Optional<Rect> slot = (*body).design_bounds(*child);
+            const Rect placed = slot.value_or((*child).requested_bounds());
             body_height = std::max(body_height, placed.y + placed.height + 16.0);
         }
         const double page_height = strip_height + body_height;
@@ -284,10 +400,10 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     }
 
     RuleSet& rules = window.rules();
-    for (const std::shared_ptr<Button>& navigation : (*context).navigation) {
-        Button& row = *navigation;
-        arm(rules, trigger::interaction(row, row.clicked()), *context, &PageContext::navigation_clicked);
-    }
+    const std::shared_ptr<ShellActions> shell = std::make_shared<ShellActions>(context, window);
+    (*context).components.add(shell);
+    on((*navigation).item_activated(), *shell, &ShellActions::navigation_activated);
+    on(window.key_down(), *shell, &ShellActions::shell_key_down);
     arm(rules, trigger::value_changed((*(*context).compiled).model.live_motion), *context,
         &PageContext::live_motion_changed);
     (*context).live_motion = (*(*context).compiled).model.live_motion.get();
@@ -453,7 +569,7 @@ public:
         const double cycle = static_cast<double>((*context).timer_ticks % 20U) / 19.0;
         (*(*context).timer_progress).value = cycle * 100.0;
         constexpr double travel = 98.0;
-        const double eased = 0.5 - std::cos(cycle * 6.283185307179586) * 0.5;
+        const double eased = 0.5 - engine_sine_cosine(cycle * 6.283185307179586).cosine * 0.5;
         (*(*context).timer_motion).set_design_bounds(
             *(*context).timer_motion_target, {14.0 + travel * eased, 39.0, 168.0, 34.0});
         (*(*context).timer_status).text = "Running · tick " + std::to_string((*context).timer_ticks) + " · " +
@@ -564,9 +680,8 @@ void initialize_gallery_runtime(Window& window) {
     (*(*context).tooltips).set_tool_tip(
         (*context).timer_motion_target,
         "The overlay re-anchors when this retained target moves on UI Timer ticks.");
-    for (const std::shared_ptr<gui_forms::Button>& navigation : (*context).navigation) {
-        (*(*context).tooltips).set_tool_tip(
-            navigation, "Open the " + (*navigation).text.read() + " Gallery page.");
+    if ((*context).navigation) {
+        (*(*context).tooltips).set_tool_tip((*context).navigation, "Open a Gallery page: click it, or press Enter.");
     }
 
     // Enhanced tooltips on the commands page's ToolStrip items: title,

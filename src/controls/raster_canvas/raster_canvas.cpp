@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../basic/number_text.hpp"
 
 #include <array>
 #include <algorithm>
@@ -26,7 +27,7 @@ namespace {
 RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
     tab_stop = true;
-    cursor = CursorKind::crosshair;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::crosshair);
 }
 
 // The bitmap is a view onto bitmap_, so disposal can drop it without a
@@ -225,7 +226,7 @@ bool RasterCanvas::synchronize_bitmap() {
     Window* owner = window();
     if (!owner) return false;
     for (std::size_t index = 0; index < tiles_.size(); ++index) {
-        if (!(*owner).image_resources().find(tiles_[index].image)) {
+        if ((*owner).image_resources().find(tiles_[index].image).absent()) {
             release_tiles(*owner);
             break;
         }
@@ -376,9 +377,13 @@ SemanticDescriptor RasterCanvas::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     if (bitmap_) {
-        descriptor.value = std::to_string((*bitmap_).width()) + " x " +
-            std::to_string((*bitmap_).height()) + " at " +
-            std::to_string(zoom_ * 100.0) + "%";
+        // std::to_string(double) is "%f" in the C locale a program may set;
+        // this is the same text in the C locale's form (A-gf-controls-11-F5).
+        std::string value = std::to_string((*bitmap_).width()) + " x " +
+            std::to_string((*bitmap_).height()) + " at ";
+        number_text::append_number_text(value, zoom_ * 100.0, std::chars_format::fixed, 6);
+        value += "%";
+        descriptor.value = value;
     }
     descriptor.exposed = bitmap_ != nullptr || !descriptor.name.empty() ||
                          !descriptor.description.empty();
@@ -413,13 +418,13 @@ void RasterCanvas::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<RasterCanvas::Parts>, 4> raster_canvas_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::face},
-    {.declaration = {.name = "image", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "image", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::image},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RasterCanvas::Parts::focus},
 }};
 
@@ -441,6 +446,7 @@ constexpr ControlAnatomy raster_canvas_anatomy{
     .parts = raster_canvas_parts,
     .states = raster_canvas_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

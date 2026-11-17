@@ -1,13 +1,14 @@
 #include "gui_forms/controls/label.hpp"
+#include "horizontal_alignment_property.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <iterator>
 #include <memory>
@@ -46,17 +47,10 @@ struct PainterLabelWidth final {
         return extent.logical_size.width;
     }
 };
-std::shared_ptr<const PropertyEnumDescriptor> horizontal_alignment_enum() {
-    static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
-    return value;
-}
-
 std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "vertical_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+            "vertical_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
@@ -88,13 +82,20 @@ const PropertyDescriptor& describe_label_fore_color() {
 
 } // namespace
 
+std::shared_ptr<const PropertyEnumDescriptor> label_detail::horizontal_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
+    return value;
+}
+
 Label::Label(StableId stable_id, std::string initial_text) : Control(std::move(stable_id)) {
     text = std::move(initial_text);
 }
 
 FontSpec Label::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     const ThemeTypographyTokens& typography = effective_theme().structure().typography;
     switch (text_style_role.read()) {
     case TextStyleRole::body: return typography.field;
@@ -111,8 +112,8 @@ FontSpec Label::resolved_font() const noexcept {
 // theme's text with the fields of the rules that select this label (its
 // type, stable ID, classes and states) in place (G3).
 Color Label::foreground() const {
-    const std::optional<Color>& own = fore_color.read();
-    if (own) return *own;
+    const Color* own = fore_color.read().value();
+    if (own != nullptr) return *own;
     const ResolvedControlRecipe resolved =
         effective_theme().resolve(*this, ControlVisualRole::panel, visual_context());
     const Color theme_text = resolved.recipe().text;
@@ -125,16 +126,16 @@ BindingValue Label::font_property_value() const {
 }
 
 void Label::reset_font() {
-    font = std::nullopt;
+    font = stxlib::Optional<FontSpec>::none();
 }
 
 bool Label::font_serialized() const {
-    const bool own = font.read().has_value();
+    const bool own = font.read().present();
     return own;
 }
 
 PropertyValueOrigin Label::font_property_origin() const noexcept {
-    return font.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return font.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue Label::fore_color_property_value() const {
@@ -143,20 +144,20 @@ BindingValue Label::fore_color_property_value() const {
 }
 
 void Label::write_fore_color_property(const BindingValue& value) {
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 void Label::reset_fore_color_property() {
-    fore_color = std::nullopt;
+    fore_color = stxlib::Optional<Color>::none();
 }
 
 bool Label::fore_color_serialized() const {
-    const bool own = fore_color.read().has_value();
+    const bool own = fore_color.read().present();
     return own;
 }
 
 PropertyValueOrigin Label::fore_color_property_origin() const noexcept {
-    return fore_color.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return fore_color.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 // Text only changes retained geometry when this label is content-sized.
@@ -178,12 +179,13 @@ void Label::written(const decltype(text)&) {
 
 // A present font must be valid; writing one records that code chose it,
 // and clearing it lets the theme's typography return.
-void Label::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void Label::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) {
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) {
         throw std::invalid_argument("Label font specification is invalid");
     }
-    set_font_from_code(incoming.has_value());
+    set_font_from_code(face != nullptr);
 }
 
 void Label::written(const decltype(font)&) {
@@ -208,7 +210,7 @@ void Label::prepare_write(const decltype(text_style_role)&, TextStyleRole& incom
 
 // The role chooses the font only while the label has none of its own.
 void Label::written(const decltype(text_style_role)&) {
-    if (!font.read().has_value()) {
+    if (font.read().absent()) {
         invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     } else {
         invalidate(Dirty::semantics);
@@ -229,6 +231,8 @@ Size Label::measure(const Size available) {
     const Size measured = measure_wrapped_text(std::max(0.0, wrap_width - horizontal_insets), available);
     return measured;
 }
+
+bool Label::sizes_unrequested_extents_from_content() const noexcept { return true; }
 
 Size Label::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind kind = constraint.width.kind;
@@ -272,12 +276,12 @@ double Label::widest_unbreakable_segment(const std::string_view shown,
     std::size_t cursor = 0U;
     while (cursor < shown.size()) {
         while (cursor < shown.size() &&
-               std::isspace(static_cast<unsigned char>(shown[cursor])) != 0) {
+               is_wrap_space(shown[cursor])) {
             ++cursor;
         }
         std::size_t word_end = cursor;
         while (word_end < shown.size() &&
-               std::isspace(static_cast<unsigned char>(shown[word_end])) == 0) {
+               !is_wrap_space(shown[word_end])) {
             ++word_end;
         }
         if (word_end > cursor) {
@@ -362,7 +366,7 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
     double top = vertical_inset;
     if (vertical_alignment.read() == VerticalAlignment::center) {
         top = std::max(vertical_inset, (arranged.height - block_height) * 0.5);
-    } else if (vertical_alignment.read() == VerticalAlignment::far) {
+    } else if (vertical_alignment.read() == VerticalAlignment::end) {
         top = std::max(vertical_inset, arranged.height - block_height - vertical_inset);
     }
     layout.origins.reserve(layout.lines.size());
@@ -377,7 +381,7 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
         double x = horizontal_inset;
         if (placed_alignment == HorizontalAlignment::center) {
             x = std::max(horizontal_inset, (arranged.width - text_width) * 0.5);
-        } else if (placed_alignment == HorizontalAlignment::far) {
+        } else if (placed_alignment == HorizontalAlignment::end) {
             x = std::max(horizontal_inset, arranged.width - text_width - horizontal_inset);
         }
         const double leading = std::max(
@@ -415,9 +419,9 @@ void Label::paint_label_text(Painter& painter, const std::string_view shown) con
 namespace {
 
 constexpr std::array<PartField<Label::Parts>, 2> label_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Label::Parts::region},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Label::Parts::label},
 }};
 
@@ -436,6 +440,7 @@ constexpr ControlAnatomy label_anatomy{
     .parts = label_parts,
     .states = label_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -550,11 +555,11 @@ PropertyDescriptor label_alignment_descriptor() {
     descriptor.name = "alignment";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
-    descriptor.description = "Horizontal placement of the text: near, center or far.";
-    descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "near", 0}};
+    descriptor.description = "Horizontal placement of the text: start, center or end.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "start", 0}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
-    descriptor.enumeration = horizontal_alignment_enum();
+    descriptor.enumeration = label_detail::horizontal_alignment_enum();
     descriptor.assignable_member = true;
     return descriptor;
 }
@@ -570,7 +575,7 @@ PropertyDescriptor label_vertical_alignment_descriptor() {
     descriptor.name = "vertical_alignment";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
-    descriptor.description = "Vertical placement of the text: near, center or far.";
+    descriptor.description = "Vertical placement of the text: start, center or end.";
     descriptor.default_value = BindingValue{PropertyEnumValue{"vertical_alignment", "center", 1}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
@@ -625,25 +630,6 @@ const PropertyDescriptor& describe_label_maximum_lines() {
 }
 
 } // namespace
-
-PropertyType PropertyValueTraits<HorizontalAlignment>::type() {
-    return PropertyType{BindingValueKind::enumeration, false, horizontal_alignment_enum()};
-}
-
-BindingValue PropertyValueTraits<HorizontalAlignment>::to_binding(HorizontalAlignment value) {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = horizontal_alignment_enum();
-    const std::optional<BindingValue> converted =
-        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
-    return *converted;
-}
-
-HorizontalAlignment PropertyValueTraits<HorizontalAlignment>::from_binding(const BindingValue& value) {
-    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    return static_cast<HorizontalAlignment>(choice.value);
-}
 
 PropertyType PropertyValueTraits<VerticalAlignment>::type() {
     return PropertyType{BindingValueKind::enumeration, false, vertical_alignment_enum()};
@@ -744,7 +730,7 @@ void Label::on_font_changed() {}
 
 void Label::prepare_write(const decltype(alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::far)) throw std::invalid_argument("Label horizontal alignment is invalid");
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(HorizontalAlignment::end)) throw std::invalid_argument("Label horizontal alignment is invalid");
 }
 
 void Label::written(const decltype(alignment)&) {
@@ -756,7 +742,7 @@ void Label::on_alignment_changed() {}
 
 void Label::prepare_write(const decltype(vertical_alignment)&, VerticalAlignment& incoming) {
     require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::far)) throw std::invalid_argument("Label vertical alignment is invalid");
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(VerticalAlignment::end)) throw std::invalid_argument("Label vertical alignment is invalid");
 }
 
 void Label::written(const decltype(vertical_alignment)&) {

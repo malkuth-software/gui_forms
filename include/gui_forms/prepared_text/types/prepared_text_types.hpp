@@ -4,6 +4,7 @@
 #include "gui_forms/document_view/types/document_view_types.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -25,9 +26,9 @@ struct GUI_FORMS_API PreparedTextPaintResult final {
 };
 
 enum class PreparedTextSlot { empty, queued, running, ready };
-// ADR-004: light_gray_v2 is FreeType light auto-hinting, grayscale, the one
-// GUI.Forms text profile. outline_gray_72dpi_v1 (bytecode hinting) is retired
-// and refused as unsupported.
+// ADR-004: light_gray_v2 is light auto-hinting (STXlib's, after FreeType's),
+// grayscale, the one GUI.Forms text profile. outline_gray_72dpi_v1 (bytecode
+// hinting) is retired and refused as unsupported.
 enum class PreparedRasterProfile : std::uint32_t { outline_gray_72dpi_v1 = 1, light_gray_v2 = 2 };
 
 struct GUI_FORMS_API LayoutAuthority final {
@@ -66,12 +67,18 @@ struct GUI_FORMS_API PreparedParagraphProof final {
     bool complete_end{};
 };
 
+// One face of a font bank: a role's face (`role`), a face of a registered
+// family (`family`, a FontFamilyId the family registry has; text whose
+// family order lists the family draws it first, its face nearest the weight
+// and slant), or a fallback face (neither). A face is never both a role's
+// and a family's.
 struct GUI_FORMS_API PreparedFontSource final {
     std::span<const std::byte> encoded{};
-    std::optional<FontRole> role{};
+    stxlib::Optional<FontRole> role{};
     std::uint16_t weight{400};
     bool italic{};
     std::uint32_t face_index{};
+    FontFamilyId family{};
 };
 
 struct GUI_FORMS_API PreparedTextLimits final {
@@ -88,6 +95,12 @@ struct GUI_FORMS_API PreparedTextLimits final {
     static constexpr std::size_t mask_dimension = 4096;
     static constexpr std::size_t mask_bytes = 4U * 1024U * 1024U;
     static constexpr std::size_t mask_owners = 2;
+    // Glyph faces, in bytes (owner, 2026-11-16): each face's glyph store
+    // (its glyphs in font units, read once for every size) and each
+    // rasterization's fitted outlines per face. STXlib takes storage as it
+    // is needed and never more than these.
+    static constexpr std::size_t glyph_store_bytes = 1U * 1024U * 1024U;
+    static constexpr std::size_t fitted_glyph_bytes = 1U * 1024U * 1024U;
 };
 
 struct GUI_FORMS_API PreparedTextMetrics final {
@@ -108,6 +121,12 @@ struct GUI_FORMS_API PreparedTextBudgetSnapshot final {
     std::size_t input_bytes{};
     std::size_t mask_owners{};
     std::size_t mask_bytes{};
+    // The font banks' glyph faces: their typefaces' bytes as STXlib holds
+    // them after the latest rasterization (bytes_held), and the most one
+    // rasterization has held, typefaces and faces together (bytes_peak),
+    // since the service began.
+    std::size_t glyph_face_bytes{};
+    std::size_t glyph_face_peak_bytes{};
     // Reports requested controlled payload only, not allocator/vendor/RSS quota.
 };
 

@@ -6,6 +6,7 @@
 #include <charconv>
 #include <chrono>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms::correspondence {
@@ -50,8 +51,8 @@ constexpr double search_width = 220.0;
                                                 const FontSpec font, const Color color,
                                                 const double height) {
     std::shared_ptr<Label> label = make_control<Label>(StableId(std::string(id)));
-    (*label).font = font;
-    (*label).fore_color = color;
+    (*label).font = stxlib::Optional<FontSpec>::of(font);
+    (*label).fore_color = stxlib::Optional<Color>::of(color);
     (*label).dock = DockStyle::top;
     (*label).set_requested_bounds({0.0, 0.0, 0.0, height});
     (*label).use_mnemonic = false;
@@ -142,8 +143,8 @@ void CorrespondenceShell::initialize_control_tree() {
     build_menu();
     build_command_row();
     status_ = make_control<Label>(StableId(std::string(ids::status)));
-    (*status_).font = status_font;
-    (*status_).fore_color = muted;
+    (*status_).font = stxlib::Optional<FontSpec>::of(status_font);
+    (*status_).fore_color = stxlib::Optional<Color>::of(muted);
     (*status_).dock = DockStyle::bottom;
     (*status_).set_requested_bounds({0.0, 0.0, 0.0, status_height});
     (*status_).use_mnemonic = false;
@@ -265,22 +266,22 @@ void CorrespondenceShell::build_command_row() {
     std::vector<CommandItem> items;
     items.push_back({.id = command_new_message, .label = "New message",
                      .accessible_name = "New message",
-                     .shortcut = KeyGesture{PhysicalKey::n, Modifier::control},
+                     .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::n, Modifier::control}),
                      .command = new_message_command_.get()});
     items.push_back({.id = command_reply, .label = "Reply", .accessible_name = "Reply",
-                     .shortcut = KeyGesture{PhysicalKey::r, Modifier::control},
+                     .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::r, Modifier::control}),
                      .command = reply_command_.get()});
     items.push_back({.id = command_forward, .label = "Forward", .accessible_name = "Forward",
-                     .shortcut = KeyGesture{PhysicalKey::f, Modifier::control | Modifier::shift},
+                     .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::f, Modifier::control | Modifier::shift}),
                      .command = forward_command_.get()});
     items.push_back({.id = command_archive, .label = "Archive", .accessible_name = "Archive",
-                     .shortcut = KeyGesture{PhysicalKey::e, Modifier::control},
+                     .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::e, Modifier::control}),
                      .command = archive_command_.get()});
     items.push_back({.id = command_delete, .label = "Delete", .accessible_name = "Delete",
-                     .shortcut = KeyGesture{PhysicalKey::delete_forward, Modifier::none},
+                     .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::delete_forward, Modifier::none}),
                      .command = delete_command_.get()});
     items.push_back({.id = command_flag, .label = "Flag", .accessible_name = "Flag",
-                     .shortcut = KeyGesture{PhysicalKey::l, Modifier::control},
+                     .shortcut = stxlib::Optional<KeyGesture>::of(KeyGesture{PhysicalKey::l, Modifier::control}),
                      .command = flag_command_.get()});
     (*bar_).set_items(std::move(items));
     for (int index = 0; index < static_cast<int>((*bar_).items().size()); ++index) {

@@ -7,6 +7,7 @@
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -74,9 +75,9 @@ std::string spec_text(const ResponsiveTrackSpec& spec) {
         append_number(text, spec.remaining_weight);
     }
     if (spec.hidden) text.append(" hidden");
-    if (spec.collapse_priority) {
+    if (spec.collapse_priority.present()) {
         text.append(" priority ");
-        text.append(std::to_string(*spec.collapse_priority));
+        text.append(std::to_string((*spec.collapse_priority.value())));
     }
     return text;
 }
@@ -114,7 +115,7 @@ ResponsiveTrackSpec spec_from_text(std::string_view item) {
             const char* const end = word.data() + word.size();
             const std::from_chars_result parsed = std::from_chars(word.data(), end, priority);
             valid = parsed.ec == std::errc{} && parsed.ptr == end;
-            spec.collapse_priority = priority;
+            spec.collapse_priority.set(priority);
             index += 2U;
         } else {
             valid = false;
@@ -148,8 +149,8 @@ const PropertyDescriptor& describe_child_track() {
 
 BindingValue read_child_track(const Component& container, const Control& child) {
     const ResponsiveTrackPanel& panel = static_cast<const ResponsiveTrackPanel&>(container);
-    const std::optional<std::uint32_t> track = panel.child_track[child].read();
-    const BindingValue value = PropertyValueTraits<std::optional<std::uint32_t>>::to_binding(track);
+    const stxlib::Optional<std::uint32_t> track = panel.child_track[child].read();
+    const BindingValue value = PropertyValueTraits<stxlib::Optional<std::uint32_t>>::to_binding(track);
     return value;
 }
 
@@ -158,18 +159,30 @@ BindingValue read_child_track(const Component& container, const Control& child) 
 void write_child_track(Component& container, const Control& child, const BindingValue& value) {
     ResponsiveTrackPanel& panel = static_cast<ResponsiveTrackPanel&>(container);
     if (std::holds_alternative<std::monostate>(value)) {
-        panel.child_track[child] = std::nullopt;
+        panel.child_track[child] = stxlib::Optional<std::uint32_t>::none();
         return;
     }
     const std::uint64_t index = std::get<std::uint64_t>(value);
     if (index > std::numeric_limits<std::uint32_t>::max()) {
         throw std::out_of_range("ResponsiveTrackPanel child track index");
     }
-    panel.child_track[child] = static_cast<std::uint32_t>(index);
+    panel.child_track[child] = stxlib::Optional<std::uint32_t>::of(static_cast<std::uint32_t>(index));
 }
 
 constexpr std::size_t maximum_responsive_tracks = 64U;
 constexpr double maximum_track_extent = 1'000'000.0;
+
+// An extent or demand as the solver takes it. Layout hands a max-content
+// query practical_unbounded_extent (1e9), and a child may answer a size above
+// the solver's limit; both mean "more than the solver resolves", so they are
+// clamped to maximum_track_extent rather than refused from measure or
+// arrange, which run inside host event delivery (A-gf-controls-12-F2).
+// Extents within the limit pass through unchanged; NaN becomes 0.
+[[nodiscard]] double solver_extent(const double extent) noexcept {
+    if (!(extent > 0.0)) return 0.0;
+    const double bounded = std::min(extent, maximum_track_extent);
+    return bounded;
+}
 
 [[nodiscard]] double bounded_maximum(const ResponsiveTrackSpec& spec) noexcept {
     return spec.maximum > 0.0 ? spec.maximum
@@ -206,8 +219,8 @@ void validate_track_specs(std::span<const ResponsiveTrackSpec> specs) {
                     "ResponsiveTrackPanel remaining weight must be positive and at most 1024");
             }
         }
-        if (spec.collapse_priority &&
-            !priorities.insert(*spec.collapse_priority).second) {
+        if (spec.collapse_priority.present() &&
+            !priorities.insert((*spec.collapse_priority.value())).second) {
             throw std::invalid_argument(
                 "ResponsiveTrackPanel collapse priorities must be unique");
         }
@@ -236,10 +249,10 @@ struct CollapsePriorityOrder final {
 
     [[nodiscard]] bool operator()(std::size_t left,
                                   std::size_t right) const noexcept {
-        if (*specs[left].collapse_priority !=
-            *specs[right].collapse_priority) {
-            return *specs[left].collapse_priority <
-                   *specs[right].collapse_priority;
+        if ((*specs[left].collapse_priority.value()) !=
+            (*specs[right].collapse_priority.value())) {
+            return (*specs[left].collapse_priority.value()) <
+                   (*specs[right].collapse_priority.value());
         }
         return left < right;
     }
@@ -250,7 +263,7 @@ struct CollapsePriorityOrder final {
     std::span<const ResponsiveTrackResult> tracks) {
     std::vector<std::size_t> candidates;
     for (std::size_t index = 0U; index < specs.size(); ++index) {
-        if (specs[index].hidden || !specs[index].collapse_priority ||
+        if (specs[index].hidden || specs[index].collapse_priority.absent() ||
             tracks[index].collapse_protected) {
             continue;
         }
@@ -557,10 +570,11 @@ void ResponsiveTrackPanel::set_track_spec(
 }
 
 void ResponsiveTrackPanel::prepare_write(const Control& child,
-                                         const std::optional<std::uint32_t>& incoming) const {
+                                         const stxlib::Optional<std::uint32_t>& incoming) const {
     require_mutable();
     require_direct_child(child);
-    if (incoming && *incoming >= track_specs_.size()) {
+    const std::uint32_t* track = incoming.value();
+    if (track != nullptr && *track >= track_specs_.size()) {
         throw std::out_of_range("ResponsiveTrackPanel child track index");
     }
 }
@@ -570,24 +584,25 @@ void ResponsiveTrackPanel::written(const Control& child) {
     invalidate(invalidation::bounds);
 }
 
-bool ResponsiveTrackPanel::replace_child_track(const Control& child, std::optional<std::uint32_t> value) {
+bool ResponsiveTrackPanel::replace_child_track(const Control& child, stxlib::Optional<std::uint32_t> value) {
     const std::uint64_t id = child.runtime_id().value;
     const ChildTrackMap::iterator found = child_tracks_.find(id);
-    if (!value) {
+    const std::uint32_t* track = value.value();
+    if (track == nullptr) {
         if (found == child_tracks_.end()) return false;
         child_tracks_.erase(found);
         return true;
     }
-    if (found != child_tracks_.end() && (*found).second == *value) return false;
-    child_tracks_[id] = *value;
+    if (found != child_tracks_.end() && (*found).second == *track) return false;
+    child_tracks_[id] = *track;
     return true;
 }
 
-std::optional<std::uint32_t> ResponsiveTrackPanel::stored_child_track(const Control& child) const {
+stxlib::Optional<std::uint32_t> ResponsiveTrackPanel::stored_child_track(const Control& child) const {
     require_direct_child(child);
     const ChildTrackMap::const_iterator found = child_tracks_.find(child.runtime_id().value);
-    if (found == child_tracks_.end()) return std::nullopt;
-    const std::optional<std::uint32_t> value = static_cast<std::uint32_t>((*found).second);
+    if (found == child_tracks_.end()) return stxlib::Optional<std::uint32_t>::none();
+    const stxlib::Optional<std::uint32_t> value = stxlib::Optional<std::uint32_t>::of(static_cast<std::uint32_t>((*found).second));
     return value;
 }
 
@@ -673,7 +688,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
         std::max(0.0, available.height - vertical_extent(inset))};
     const bool horizontal =
         orientation.read() == ResponsiveTrackOrientation::horizontal;
-    const double main_extent = horizontal ? inner.width : inner.height;
+    const double main_extent = solver_extent(horizontal ? inner.width : inner.height);
 
     struct Item final {
         Control::Ptr control;
@@ -711,7 +726,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
         const double demand = horizontal
             ? desired.width + horizontal_extent(margin)
             : desired.height + vertical_extent(margin);
-        measured[track] = std::max(measured[track], demand);
+        measured[track] = std::max(measured[track], solver_extent(demand));
         items.push_back({child, track, desired, margin});
     }
 
@@ -855,6 +870,7 @@ constexpr ControlAnatomy responsive_track_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

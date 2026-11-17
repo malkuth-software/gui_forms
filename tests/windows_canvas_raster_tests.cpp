@@ -3,7 +3,7 @@
 #include "gui_forms/canvas.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 #include <fstream>
 #include <iterator>
 #include <algorithm>
@@ -49,7 +49,7 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     DamageRegion damage;
     damage.add({0, 0, size.width, size.height});
     tiled.begin_frame();
-    require(window.paint(tiled.painter()).has_value());
+    require(window.paint(tiled.painter()).present());
 
     if (edited) {
         (*bitmap).set_pixel(511, 511, gui_drawing::Color::from_name("red"));
@@ -57,7 +57,7 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
         require((*canvas).synchronize_bitmap());
         require(tiled.synchronize_images(window.image_resources()));
         tiled.begin_frame();
-        require(window.paint(tiled.painter()).has_value());
+        require(window.paint(tiled.painter()).present());
     
     }
     const gui_drawing::ImageSnapshot snapshot = (*bitmap).snapshot();

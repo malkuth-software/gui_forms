@@ -22,4 +22,17 @@ namespace gui_forms {
 //   tile's height allows.
 enum class ListViewView : std::uint8_t { details, list, small_icon, large_icon, tile };
 
+// How the user activates an item (Windows Forms' ItemActivation):
+// - standard: a double click;
+// - one_click: a single click;
+// - two_click: a click on the item that was already selected and focused.
+// Enter and the semantic press action activate in every mode.
+enum class ListViewActivation : std::uint8_t { standard, one_click, two_click };
+
+// The details view's column headers (Windows Forms' ColumnHeaderStyle):
+// - clickable: headers respond to clicks (column_click);
+// - nonclickable: headers are shown but do not respond to clicks;
+// - none: no header row.
+enum class ListViewHeaderStyle : std::uint8_t { clickable, nonclickable, none };
+
 } // namespace gui_forms

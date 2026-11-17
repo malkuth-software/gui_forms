@@ -1,4 +1,5 @@
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -69,7 +70,7 @@ Rect grown(Rect bounds, double margin) noexcept {
 double polyline_length(std::span<const Point> points) noexcept {
     double length = 0.0;
     for (std::size_t index = 1U; index < points.size(); ++index) {
-        length = length + std::hypot(points[index].x - points[index - 1U].x, points[index].y - points[index - 1U].y);
+        length = length + engine_hypotenuse(points[index].x - points[index - 1U].x, points[index].y - points[index - 1U].y);
     }
     return length;
 }
@@ -164,7 +165,7 @@ void EffectCanvas::stroke_line(Point from, Point to, Color color, double width) 
     const double half = width * 0.5;
     const Rect bounds{std::min(from.x, to.x) - half, std::min(from.y, to.y) - half,
                       std::abs(to.x - from.x) + width, std::abs(to.y - from.y) + width};
-    const double length = std::hypot(to.x - from.x, to.y - from.y);
+    const double length = engine_hypotenuse(to.x - from.x, to.y - from.y);
     if (!finite_point(from) || !finite_point(to) || !(width > 0.0) ||
         !charge(bounds, (length + width) * width, 2U)) {
         return;
@@ -206,7 +207,7 @@ void EffectCanvas::soft_dot(Point center, double radius, Color color) noexcept {
 void EffectCanvas::streak(Point head, Point tail, double width, Color color) noexcept {
     const Rect bounds{std::min(head.x, tail.x) - width, std::min(head.y, tail.y) - width,
                       std::abs(head.x - tail.x) + width * 2.0, std::abs(head.y - tail.y) + width * 2.0};
-    const double length = std::hypot(head.x - tail.x, head.y - tail.y);
+    const double length = engine_hypotenuse(head.x - tail.x, head.y - tail.y);
     if (!finite_point(head) || !finite_point(tail) || !(width > 0.0) ||
         !charge(bounds, (length + width * 4.0) * width, 4U)) {
         return;
@@ -283,7 +284,7 @@ void EffectCanvas::stroke_segments(const EffectSegments& segments, const StrokeS
     for (std::size_t index = 0U; index < live.size(); ++index) {
         ends[2U * index] = live[index].from;
         ends[2U * index + 1U] = live[index].to;
-        length = length + std::hypot(live[index].to.x - live[index].from.x, live[index].to.y - live[index].from.y);
+        length = length + engine_hypotenuse(live[index].to.x - live[index].from.x, live[index].to.y - live[index].from.y);
     }
     const std::span<const Point> points(ends.data(), 2U * live.size());
     const double coverage = (length + style.width * static_cast<double>(live.size())) * style.width;

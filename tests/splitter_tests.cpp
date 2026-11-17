@@ -57,6 +57,14 @@ bool near(double left, double right) {
     return result;
 }
 
+// True when the splitter has a target and its split position is near `expected`.
+bool split_near(const Splitter& splitter, double expected) {
+    const stxlib::Optional<double> position = splitter.split_position();
+    if (position.absent()) return false;
+    const bool result = near(*position.value(), expected);
+    return result;
+}
+
 class CountingPainter final : public Painter {
 public:
     void save() override {}
@@ -157,7 +165,7 @@ void left_drag() {
     on(splitter.splitter_moving(), recorder, &Recorder::on_moving);
     on(splitter.splitter_moved(), recorder, &Recorder::on_moved);
 
-    require(splitter.target() == fixture.pane && splitter.split_position() && near(*splitter.split_position(), 100.0),
+    require(splitter.target() == fixture.pane && split_near(splitter, 100.0),
             "a left splitter's target is the left-docked sibling before it");
     const ControlAnatomy& anatomy = splitter.anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none && anatomy.control_id == "splitter",
@@ -174,40 +182,41 @@ void left_drag() {
             "dragging right widens the target live and raises splitter_moving");
     require(near(splitter.committed_arranged_bounds().x, 150.0), "the splitter follows its target's edge");
     pointer(window, PointerAction::move, {start.x + 1000.0, start.y});
-    require(near(*splitter.split_position(), 400.0 - 4.0 - 25.0), "min_extra leaves room for the fill");
+    require(split_near(splitter, 400.0 - 4.0 - 25.0), "min_extra leaves room for the fill");
     pointer(window, PointerAction::move, {start.x - 1000.0, start.y});
-    require(near(*splitter.split_position(), 25.0), "min_size bounds the target");
+    require(split_near(splitter, 25.0), "min_size bounds the target");
     pointer(window, PointerAction::up, {start.x + 20.0, start.y});
     require(recorder.moved.size() == 1U && near(recorder.moved.back(), 120.0) &&
-                near(*splitter.split_position(), 120.0) && !splitter.states().pressed,
+                split_near(splitter, 120.0) && !splitter.states().pressed,
             "release ends the drag and raises splitter_moved with the target's extent");
 
     recorder.snap = 50.0;
     const Point again = centre(splitter);
     pointer(window, PointerAction::down, again);
     pointer(window, PointerAction::move, {again.x + 22.0, again.y});
-    require(near(*splitter.split_position(), 150.0), "a splitter_moving handler may change the position");
+    require(split_near(splitter, 150.0), "a splitter_moving handler may change the position");
     pointer(window, PointerAction::up, {again.x + 22.0, again.y});
 
     splitter.set_split_position(200.0);
     window.perform_layout();
-    require(near(*splitter.split_position(), 200.0), "set_split_position resizes the target");
+    require(split_near(splitter, 200.0), "set_split_position resizes the target");
     splitter.set_split_position(5.0);
     window.perform_layout();
-    require(near(*splitter.split_position(), 25.0), "set_split_position is clamped");
+    require(split_near(splitter, 25.0), "set_split_position is clamped");
     require(throws_invalid(SetMinSize{&splitter, -1.0}) && throws_invalid(SetPosition{&splitter, std::nan("")}),
             "invalid limits and positions are refused");
 
     const SemanticDescriptor descriptor = splitter.semantic_descriptor();
-    require(descriptor.role == SemanticRole::separator && descriptor.numeric_value && near(*descriptor.numeric_value, 25.0) &&
-                descriptor.maximum_value && near(*descriptor.maximum_value, 371.0),
+    require(descriptor.role == SemanticRole::separator && descriptor.numeric_value.present() &&
+                near(*descriptor.numeric_value.value(), 25.0) &&
+                descriptor.maximum_value.present() && near(*descriptor.maximum_value.value(), 371.0),
             "the splitter publishes a separator with its position and limits");
     require(splitter.on_semantic_action(SemanticAction::set_value, "90"), "set_value is taken");
     window.perform_layout();
-    require(near(*splitter.split_position(), 90.0), "set_value moves the splitter");
+    require(split_near(splitter, 90.0), "set_value moves the splitter");
     require(splitter.on_semantic_action(SemanticAction::increment, {}), "increment is taken");
     window.perform_layout();
-    require(near(*splitter.split_position(), 100.0), "increment moves by its step");
+    require(split_near(splitter, 100.0), "increment moves by its step");
     require(!splitter.on_semantic_action(SemanticAction::set_value, "wide"), "a value that is not a number is refused");
 
     CountingPainter painter;
@@ -242,7 +251,7 @@ void without_a_target() {
     Splitter& splitter = *fixture.splitter;
     splitter.dock = DockStyle::none;
     (*fixture.window).perform_layout();
-    require(splitter.target() == nullptr && !splitter.split_position(), "an undocked splitter has no target");
+    require(splitter.target() == nullptr && splitter.split_position().absent(), "an undocked splitter has no target");
     splitter.set_split_position(150.0);
     (*fixture.window).perform_layout();
     require(near((*fixture.pane).committed_arranged_bounds().width, 100.0), "a splitter without a target moves nothing");
@@ -327,33 +336,33 @@ void cancels_restore() {
     const Point start = centre(splitter);
     pointer(window, PointerAction::down, start);
     pointer(window, PointerAction::move, {start.x + 50.0, start.y});
-    require(near(*splitter.split_position(), 150.0), "the drag resizes live");
+    require(split_near(splitter, 150.0), "the drag resizes live");
     require(window.dispatch_key(key_down(PhysicalKey::escape)), "the window gives the drag Escape");
     window.perform_layout();
-    require(near(*splitter.split_position(), 100.0) && recorder.moved.empty() && !splitter.states().pressed,
+    require(split_near(splitter, 100.0) && recorder.moved.empty() && !splitter.states().pressed,
             "Escape puts the target back at its extent before the drag, as Windows Forms does");
 
     const Point again = centre(splitter);
     pointer(window, PointerAction::down, again);
     pointer(window, PointerAction::move, {again.x + 30.0, again.y});
-    require(near(*splitter.split_position(), 130.0), "a second drag resizes live");
+    require(split_near(splitter, 130.0), "a second drag resizes live");
     splitter.set_pointer_capture(false);
     window.perform_layout();
-    require(near(*splitter.split_position(), 100.0) && recorder.moved.empty(), "a lost capture restores as well");
+    require(split_near(splitter, 100.0) && recorder.moved.empty(), "a lost capture restores as well");
 
     window.set_active(true);
     pointer(window, PointerAction::down, again);
     pointer(window, PointerAction::move, {again.x + 40.0, again.y});
     window.set_active(false);
     window.perform_layout();
-    require(near(*splitter.split_position(), 100.0) && window.drag_engine().phase() == DragPhase::idle,
+    require(split_near(splitter, 100.0) && window.drag_engine().phase() == DragPhase::idle,
             "the window's deactivation cancels and restores");
 
     // Escape right after the press changed nothing, so nothing is restored.
     pointer(window, PointerAction::down, again);
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::escape)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 100.0), "Escape before any move leaves the extent as it was");
+    require(split_near(splitter, 100.0), "Escape before any move leaves the extent as it was");
 }
 
 void keyboard_drag() {
@@ -374,16 +383,16 @@ void keyboard_drag() {
             "the rule action starts the keyboard drag on a splitter that takes no focus");
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::right)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 110.0) && recorder.moving.size() == 1U, "Right steps 10 and previews");
+    require(split_near(splitter, 110.0) && recorder.moving.size() == 1U, "Right steps 10 and previews");
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::right, Modifier::control)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 210.0), "Ctrl takes a coarse step");
+    require(split_near(splitter, 210.0), "Ctrl takes a coarse step");
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::left, Modifier::shift)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 209.0), "Shift takes a fine step");
+    require(split_near(splitter, 209.0), "Shift takes a fine step");
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::up)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 209.0), "an arrow across the axis moves nothing");
+    require(split_near(splitter, 209.0), "an arrow across the axis moves nothing");
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::enter)));
     window.perform_layout();
     require(recorder.moved.size() == 1U && near(recorder.moved.back(), 209.0) && !splitter.states().pressed,
@@ -393,10 +402,10 @@ void keyboard_drag() {
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::f3)));
     for (int step = 0; step < 30; ++step) static_cast<void>(window.dispatch_key(key_down(PhysicalKey::right)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 371.0), "the keyboard reaches the limit the pointer reaches");
+    require(split_near(splitter, 371.0), "the keyboard reaches the limit the pointer reaches");
     static_cast<void>(window.dispatch_key(key_down(PhysicalKey::escape)));
     window.perform_layout();
-    require(near(*splitter.split_position(), 209.0) && engine.announcement() == "Split position 209, restored",
+    require(split_near(splitter, 209.0) && engine.announcement() == "Split position 209, restored",
             "Escape restores and says so");
 
     Fixture right = make_fixture(DockStyle::right);

@@ -126,8 +126,7 @@
       "prepare": [
         "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument(\"RadioButton indicator style is invalid\");"
       ],
-      "sample": "ChoiceIndicatorStyle::modern",
-      "traits": "hand"
+      "sample": "ChoiceIndicatorStyle::modern"
     }
   ],
   "not_properties": [],

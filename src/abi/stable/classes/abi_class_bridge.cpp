@@ -5,8 +5,8 @@
 #include "abi_class_bridge.hpp"
 
 #include "../registry/abi_registry.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cstring>
 #include <limits>
@@ -24,6 +24,23 @@ thread_local HookFrame* top_frame = nullptr;
 
 // The first ABI minor with class tables.
 constexpr std::uint32_t first_class_minor = 3U;
+
+// Makes `frame` the thread's innermost entry for the scope's lifetime and
+// restores the previous one on every exit, an exception included, so
+// top_frame never points at a frame that has left the stack.
+class TopFrameScope final {
+public:
+    explicit TopFrameScope(HookFrame& frame) noexcept : frame_(frame) {
+        frame_.previous = top_frame;
+        top_frame = &frame_;
+    }
+    ~TopFrameScope() { top_frame = frame_.previous; }
+    TopFrameScope(const TopFrameScope&) = delete;
+    TopFrameScope& operator=(const TopFrameScope&) = delete;
+
+private:
+    HookFrame& frame_;
+};
 
 bool holds_class(std::span<const gf_class_id> chain, gf_class_id class_id) noexcept {
     std::size_t index = 0U;
@@ -58,6 +75,12 @@ gf_status ClassTableView::read(const gf_class_header* table, std::span<const gf_
     }
     if ((*table).segment_count > chain.size()) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the class table has more segments than its class's chain");
+    }
+    // The view stores at most max_class_segments segments; a chain longer
+    // than that (none is generated yet) is refused rather than written past
+    // segments_ (A-gf-abi-01-F7).
+    if ((*table).segment_count > max_class_segments) {
+        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "the class table has more segments than a class may have");
     }
     ClassTableView read_view{};
     const unsigned char* pointers = reinterpret_cast<const unsigned char*>(table) + header_size;
@@ -214,90 +237,98 @@ bool ClassBridge::enter_class_frame(Control& control, gf_hook_entry entry, HookK
     frame.bridge = this;
     frame.hook = hook;
     frame.event = &event;
-    frame.previous = top_frame;
     frame.arguments = arguments;
     frame.fields = with_fields ? &(*fields) : nullptr;
     frame.published_event = &event;
     frame.operations = operations;
     frame.name = name;
-    top_frame = &frame;
-    // A C function: it does not throw (the C# entries catch everything).
-    entry(instance_, self, &event, base);
-    top_frame = frame.previous;
+    {
+        const TopFrameScope frame_scope(frame);
+        // A C function: it does not throw (the C# entries catch everything). A
+        // C++ entry that lets an exception out breaks the header's rule: the
+        // callback gate records it and fails fast (survey B8, S2 = 1), so no
+        // exception unwinds past top_frame. The scope restores top_frame on
+        // every exit that leaves this block.
+        void* instance = instance_;
+        gf_object entry_self = self;
+        gf_event* entry_event = &event;
+        gf_base_raiser entry_base = base;
+        const CallbackFrame entry_frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), name};
+        call_client(entry_frame, entry, instance, entry_self, entry_event, entry_base);
+    }
     if (with_fields) {
         // What the entry wrote after base reaches the argument.
         (*fields).end_publication();
         (*operations.absorb)(*fields, arguments);
         (*fields).release();
     }
-    if (frame.failure) {
-        const std::exception_ptr failure = std::move(frame.failure);
-        std::rethrow_exception(failure);
-    }
+    // The outer gate files the raiser's own throw: its frames and trace.
+    frame.failure.rethrow();
     return true;
 }
 
-gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(base_slot.table_id, base_slot.slot_index);
-        if (event == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, base_slot, "a base function needs an event");
-        }
-        HookFrame* frame = ClassBridge::find_hook_frame(event);
-        if (frame != nullptr && (*frame).hook.class_id == hook.class_id && (*frame).hook.entry == hook.entry) {
-            ClassBridge& framed = *(*frame).bridge;
-            if (!framed.bridged_control().is_alive()) {
-                return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
-            }
-            try {
-                // What the entry wrote before base reaches the argument the
-                // raiser below receives; afterwards the event shows the
-                // argument as the subscribers left it.
-                if ((*frame).fields != nullptr) {
-                    (*(*frame).operations.absorb)(*(*frame).fields, (*frame).arguments);
-                }
-                const HookRun framed_run = framed.run_class_layer_base(hook, (*frame).arguments);
-                static_cast<void>(framed_run);
-                if ((*frame).fields != nullptr) {
-                    republish_frame(*frame);
-                }
-            } catch (...) {
-                // Rethrown once the entry returns (enter_hook); the first
-                // failure of the frame wins.
-                if (!(*frame).failure) {
-                    (*frame).failure = std::current_exception();
-                }
-                const gf_status failed = fail_with_current_exception(base_slot);
-                return failed;
-            }
-            return GF_STATUS_OK;
-        }
-        Component::Ptr component;
-        const gf_status entered = registry().enter_component(self, base_slot, component);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        ClassBridge* bridge = dynamic_cast<ClassBridge*>(component.get());
-        if (bridge == nullptr) {
-            return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object was not made from a class table");
-        }
-        if (!(*bridge).bridged_control().is_alive()) {
+namespace {
+
+gf_status run_class_base_body(gf_object self, gf_event* event, HookKey hook) {
+    if (event == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, base_slot, "a base function needs an event");
+    }
+    HookFrame* frame = ClassBridge::find_hook_frame(event);
+    if (frame != nullptr && (*frame).hook.class_id == hook.class_id && (*frame).hook.entry == hook.entry) {
+        ClassBridge& framed = *(*frame).bridge;
+        if (!framed.bridged_control().is_alive()) {
             return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
         }
-        const HookArguments outside{};
-        const HookRun run = (*bridge).run_class_layer_base(hook, outside);
-        if (run == HookRun::no_segment) {
-            return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object's class has no such segment");
-        }
-        if (run == HookRun::needs_arguments) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, base_slot,
-                        "this raiser's argument is lent only by a raise in progress; call base from its entry");
+        try {
+            // What the entry wrote before base reaches the argument the
+            // raiser below receives; afterwards the event shows the
+            // argument as the subscribers left it.
+            if ((*frame).fields != nullptr) {
+                (*(*frame).operations.absorb)(*(*frame).fields, (*frame).arguments);
+            }
+            const HookRun framed_run = framed.run_class_layer_base(hook, (*frame).arguments);
+            static_cast<void>(framed_run);
+            if ((*frame).fields != nullptr) {
+                republish_frame(*frame);
+            }
+        } catch (...) {
+            // Rethrown once the entry returns (enter_class_frame); the
+            // first failure of the frame wins. One park serves both the
+            // snapshot and the rethrow.
+            const stxlib::ShadowReference parked = (*frame).failure.park();
+            const gf_status failed = fail_with_current_exception(base_slot, parked);
+            return failed;
         }
         return GF_STATUS_OK;
-    } catch (...) {
-        const gf_status failed = fail_with_current_exception(base_slot);
-        return failed;
     }
+    Component::Ptr component;
+    const gf_status entered = registry().enter_component(self, base_slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    ClassBridge* bridge = dynamic_cast<ClassBridge*>(component.get());
+    if (bridge == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object was not made from a class table");
+    }
+    if (!(*bridge).bridged_control().is_alive()) {
+        return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
+    }
+    const HookArguments outside{};
+    const HookRun run = (*bridge).run_class_layer_base(hook, outside);
+    if (run == HookRun::no_segment) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object's class has no such segment");
+    }
+    if (run == HookRun::needs_arguments) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, base_slot,
+                    "this raiser's argument is lent only by a raise in progress; call base from its entry");
+    }
+    return GF_STATUS_OK;
+}
+
+} // namespace
+
+gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept {
+    return call_slot(base_slot, run_class_base_body, self, event, hook);
 }
 
 } // namespace gui_forms::abi1

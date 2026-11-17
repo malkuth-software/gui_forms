@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -79,9 +80,9 @@ struct GaugeBaseShowValueCapability {
 // The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 template <typename Declaring>
 struct GaugeBaseLowAlarmCapability {
-    PropertyCell<std::optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm{};
+    PropertyCell<stxlib::Optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm{};
 
-    static void assign(GaugeBaseLowAlarmCapability& capability, std::optional<double> incoming) {
+    static void assign(GaugeBaseLowAlarmCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.low_alarm), incoming);
         if (!capability.low_alarm.replace(std::move(incoming))) return;
@@ -92,9 +93,9 @@ struct GaugeBaseLowAlarmCapability {
 // The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 template <typename Declaring>
 struct GaugeBaseHighAlarmCapability {
-    PropertyCell<std::optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm{};
+    PropertyCell<stxlib::Optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm{};
 
-    static void assign(GaugeBaseHighAlarmCapability& capability, std::optional<double> incoming) {
+    static void assign(GaugeBaseHighAlarmCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.high_alarm), incoming);
         if (!capability.high_alarm.replace(std::move(incoming))) return;

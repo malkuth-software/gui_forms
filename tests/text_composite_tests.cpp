@@ -1,3 +1,4 @@
+#include "../src/core/text/composite/clip_mask.hpp"
 #include "../src/core/text/composite/text_composite.hpp"
 
 #include <array>
@@ -257,6 +258,202 @@ void interior_table_matches_coverage() {
     }
 }
 
+// -- path clip masks (clip_mask.hpp) ----------------------------------------------
+
+using detail::ClipMaskBounds;
+using detail::ClipMaskStatus;
+using detail::ClipMaskWorkspace;
+
+// Rasterizes one contour of `points` into `coverage` over `bounds`.
+ClipMaskStatus rasterize(const std::vector<Point>& points, const bool closed, const PolygonFillRule rule,
+                         const ClipMaskBounds bounds, std::vector<std::uint16_t>& coverage) {
+    ClipMaskWorkspace workspace;
+    const std::array<FlattenedContour, 1> contours{FlattenedContour{points.size(), closed}};
+    const ClipMaskStatus status = detail::rasterize_clip_mask(points, contours, rule, bounds, workspace, coverage);
+    return status;
+}
+
+std::vector<Point> box_points(const double left, const double top, const double right, const double bottom) {
+    const std::vector<Point> points{{left, top}, {right, top}, {right, bottom}, {left, bottom}, {left, top}};
+    return points;
+}
+
+// Edges across at quarters and down at multiples of 1/16 of a pixel: the
+// mask's coverage equals the clip rectangle's exact area coverage.
+void mask_of_a_box_is_its_area() {
+    const ClipMaskBounds bounds{0, 0, 8U, 8U};
+    std::vector<std::uint16_t> coverage(64U, 999U);
+    const ClipMaskStatus status =
+        rasterize(box_points(1.25, 2.5, 5.75, 6.0625), true, PolygonFillRule::nonzero, bounds, coverage);
+    require(status == ClipMaskStatus::success, "a box rasterizes");
+    const TextCompositeClip box{.rect = {1.25, 2.5, 4.5, 3.5625}};
+    for (std::int64_t y = 0; y < 8; ++y) {
+        for (std::int64_t x = 0; x < 8; ++x) {
+            const std::uint32_t expected = detail::text_clip_coverage(box, x, y);
+            const std::uint16_t value = coverage[static_cast<std::size_t>(y * 8 + x)];
+            require(value == expected, "a box's mask must equal its exact area coverage");
+        }
+    }
+}
+
+// A diagonal through pixel corners: the pixels it crosses are half covered
+// exactly, those beside it whole or empty.
+void mask_of_a_diagonal_is_exact() {
+    const ClipMaskBounds bounds{0, 0, 8U, 8U};
+    std::vector<std::uint16_t> coverage(64U, 0U);
+    const std::vector<Point> triangle{{0.0, 0.0}, {8.0, 0.0}, {8.0, 8.0}, {0.0, 0.0}};
+    require(rasterize(triangle, true, PolygonFillRule::nonzero, bounds, coverage) == ClipMaskStatus::success,
+            "a triangle rasterizes");
+    for (std::size_t y = 0U; y < 8U; ++y) {
+        for (std::size_t x = 0U; x < 8U; ++x) {
+            std::uint16_t expected = 0U;
+            if (x > y) expected = 256U;
+            if (x == y) expected = 128U;
+            require(coverage[y * 8U + x] == expected, "a diagonal's pixels must be half covered, exactly");
+        }
+    }
+}
+
+// Two overlapping boxes wound the same way: nonzero fills their overlap,
+// even-odd leaves it open. Open contours are closed as a fill closes them.
+void mask_fill_rules() {
+    ClipMaskWorkspace workspace;
+    const std::vector<Point> points{{0.0, 0.0}, {4.0, 0.0}, {4.0, 4.0}, {0.0, 4.0},
+                                    {2.0, 2.0}, {6.0, 2.0}, {6.0, 6.0}, {2.0, 6.0}};
+    const std::array<FlattenedContour, 2> open{FlattenedContour{4U, false}, FlattenedContour{8U, false}};
+    const ClipMaskBounds bounds{0, 0, 6U, 6U};
+    std::vector<std::uint16_t> nonzero(36U, 0U);
+    std::vector<std::uint16_t> even_odd(36U, 0U);
+    require(detail::rasterize_clip_mask(points, open, PolygonFillRule::nonzero, bounds, workspace, nonzero) ==
+                    ClipMaskStatus::success &&
+                detail::rasterize_clip_mask(points, open, PolygonFillRule::even_odd, bounds, workspace, even_odd) ==
+                    ClipMaskStatus::success,
+            "overlapping boxes rasterize under both rules");
+    require(nonzero[3U * 6U + 3U] == 256U && even_odd[3U * 6U + 3U] == 0U,
+            "nonzero must fill the overlap and even-odd leave it open");
+    require(nonzero[1U * 6U + 1U] == 256U && even_odd[1U * 6U + 1U] == 256U && even_odd[5U * 6U + 5U] == 256U &&
+                nonzero[0U * 6U + 5U] == 0U,
+            "outside the overlap the rules agree");
+}
+
+void mask_refusals_write_nothing() {
+    const ClipMaskBounds bounds{0, 0, 4U, 4U};
+    std::vector<std::uint16_t> coverage(16U, 7U);
+    const std::vector<Point> box = box_points(0.0, 0.0, 2.0, 2.0);
+    require(rasterize(box, true, static_cast<PolygonFillRule>(9), bounds, coverage) == ClipMaskStatus::invalid_geometry,
+            "an unknown rule is refused");
+    std::vector<std::uint16_t> short_storage(15U, 7U);
+    require(rasterize(box, true, PolygonFillRule::nonzero, bounds, short_storage) == ClipMaskStatus::invalid_geometry,
+            "storage short of the bounds is refused");
+    const std::vector<Point> far = box_points(0.0, 0.0, 5'000'000.0, 2.0);
+    require(rasterize(far, true, PolygonFillRule::nonzero, bounds, coverage) == ClipMaskStatus::out_of_range,
+            "a point beyond the coordinate limit is refused");
+    ClipMaskWorkspace workspace;
+    const std::array<FlattenedContour, 1> past_end{FlattenedContour{box.size() + 1U, true}};
+    require(detail::rasterize_clip_mask(box, past_end, PolygonFillRule::nonzero, bounds, workspace, coverage) ==
+                ClipMaskStatus::invalid_geometry,
+            "a contour past the points is refused");
+    for (const std::uint16_t value : coverage) require(value == 7U, "a refused mask writes nothing");
+}
+
+void masks_intersect() {
+    // Enclosing: four pixels at x 0..3; inner: three at x 2..4.
+    const std::vector<std::uint16_t> enclosing{0U, 0U, 128U, 200U};
+    std::vector<std::uint16_t> inner{256U, 128U, 256U};
+    require(detail::intersect_clip_mask(ClipMaskBounds{0, 0, 4U, 1U}, enclosing, ClipMaskBounds{2, 0, 3U, 1U}, inner),
+            "two masks intersect");
+    require(inner[0] == 128U && inner[1] == 100U && inner[2] == 0U,
+            "the product is rounded once per pixel and empty beyond the enclosing mask");
+}
+
+// The red channel a composite of full text coverage in opaque red over
+// opaque black writes at mask entry m: alpha (65025 m + 32640) / 65280.
+std::uint32_t red_over_black(const std::uint32_t mask_entry) {
+    const std::uint32_t alpha = (65025U * mask_entry + 32640U) / 65280U;
+    return 0xFF000000U | (alpha << 16U);
+}
+
+void masked_text_composite() {
+    constexpr std::uint32_t width = 80U;
+    constexpr std::uint32_t height = 3U;
+    std::vector<std::uint16_t> mask(width * height, 0U);
+    for (std::uint32_t y = 0U; y < height; ++y) {
+        for (std::uint32_t x = 0U; x < width; ++x) {
+            std::uint16_t value = static_cast<std::uint16_t>((x * 37U + y * 11U) % 257U);
+            // A run of whole entries for the interior's block kernels.
+            if (x >= 20U && x < 60U) value = 256U;
+            mask[y * width + x] = value;
+        }
+    }
+    const std::vector<std::uint8_t> text(width * height, 255U);
+    std::vector<std::uint32_t> masked(width * height, 0xFF000000U);
+    std::vector<std::uint32_t> whole(width * height, 0xFF000000U);
+    TextCompositeClip clip{.rect = {0.0, 0.0, static_cast<double>(width), static_cast<double>(height)}};
+    clip.masked = true;
+    clip.mask = detail::TextClipMask{.coverage = mask, .width = width, .height = height, .left = 0, .top = 0};
+    const TextCoverage coverage{.pixels = text, .width = width, .height = height, .left = 0, .top = 0};
+    const Color opaque_red = Color::rgba(255, 0, 0);
+    require(detail::composite_text_coverage(coverage, {.pixels = masked, .width = width, .height = height, .stride = width},
+                                            clip, opaque_red) == TextCompositeStatus::success,
+            "masked composite");
+    for (std::uint32_t y = 0U; y < height; ++y) {
+        for (std::uint32_t x = 0U; x < width; ++x) {
+            const std::uint16_t entry = mask[y * width + x];
+            require(detail::text_clip_coverage(clip, x, y) == entry, "a masked clip's coverage is the mask's entry");
+            require(masked[y * width + x] == red_over_black(entry), "masked text blends at the mask's coverage");
+        }
+    }
+    require(detail::text_clip_coverage(clip, 80, 1) == 0U && detail::text_clip_coverage(clip, 4, -1) == 0U,
+            "beyond the mask the coverage is 0");
+    // A wholly covering mask composites the unmasked bytes.
+    std::vector<std::uint16_t> full(width * height, 256U);
+    clip.mask.coverage = full;
+    require(detail::composite_text_coverage(coverage, {.pixels = whole, .width = width, .height = height, .stride = width},
+                                            clip, opaque_red) == TextCompositeStatus::success,
+            "full-mask composite");
+    std::vector<std::uint32_t> unmasked(width * height, 0xFF000000U);
+    const TextCompositeClip plain{.rect = {0.0, 0.0, static_cast<double>(width), static_cast<double>(height)}};
+    require(detail::composite_text_coverage(coverage, {.pixels = unmasked, .width = width, .height = height, .stride = width},
+                                            plain, opaque_red) == TextCompositeStatus::success,
+            "unmasked composite");
+    require(whole == unmasked, "a whole mask must composite the unmasked bytes");
+    // A mask with fewer entries than its extent is refused before writing.
+    clip.mask.coverage = std::span<const std::uint16_t>(full.data(), full.size() - 1U);
+    std::vector<std::uint32_t> untouched(width * height, 0xFF000000U);
+    require(detail::composite_text_coverage(coverage, {.pixels = untouched, .width = width, .height = height,
+                                                       .stride = width},
+                                            clip, opaque_red) == TextCompositeStatus::invalid_geometry,
+            "a short mask is refused");
+    for (const std::uint32_t pixel : untouched) require(pixel == 0xFF000000U, "a refused composite writes nothing");
+}
+
+// An opaque raster at full opacity under a mask: copied where the mask is
+// whole, blended by the entry elsewhere, untouched where it is 0.
+void masked_part_composite() {
+    constexpr std::uint32_t width = 72U;
+    std::vector<std::uint8_t> source(width * 4U, 0U);
+    for (std::uint32_t x = 0U; x < width; ++x) {
+        source[x * 4U + 2U] = 255U;
+        source[x * 4U + 3U] = 255U;
+    }
+    std::vector<std::uint16_t> mask(width, 256U);
+    mask[0] = 0U;
+    mask[1] = 128U;
+    mask[70] = 64U;
+    std::vector<std::uint32_t> target(width, 0xFF000000U);
+    TextCompositeClip clip{.rect = {0.0, 0.0, static_cast<double>(width), 1.0}};
+    clip.masked = true;
+    clip.mask = detail::TextClipMask{.coverage = mask, .width = width, .height = 1U, .left = 0, .top = 0};
+    const detail::PartRasterSource raster{.pixels = source, .width = width, .height = 1U, .row_bytes = width * 4U,
+                                          .opaque = true};
+    require(detail::composite_part_raster(raster, {.pixels = target, .width = width, .height = 1U, .stride = width},
+                                          clip, 255U) == TextCompositeStatus::success,
+            "masked part composite");
+    for (std::uint32_t x = 0U; x < width; ++x) {
+        require(target[x] == red_over_black(mask[x]), "a masked part raster blends at the mask's coverage");
+    }
+}
+
 int main() {
     quotient_identity_is_exact();
     interior_table_matches_coverage();
@@ -269,5 +466,12 @@ int main() {
     invalid_geometry_writes_nothing();
     clipped_composite_blends_partially();
     source_mode_replaces();
+    mask_of_a_box_is_its_area();
+    mask_of_a_diagonal_is_exact();
+    mask_fill_rules();
+    mask_refusals_write_nothing();
+    masks_intersect();
+    masked_text_composite();
+    masked_part_composite();
     return 0;
 }

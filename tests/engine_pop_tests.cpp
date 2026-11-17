@@ -143,7 +143,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = face;
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         part.granted_overflow = overflow;
         if (hot) part.states.insert(AnatomyState::hot);
         if (selected) part.states.insert(AnatomyState::selected);

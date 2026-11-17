@@ -16,6 +16,7 @@
 #include "../familiar_themes/windows_professional_sheets.hpp"
 #include "../theme/theme_access.hpp"
 #include "built_in_theme.hpp"
+#include "composite_look_compile.hpp"
 #include "control_inline_style.hpp"
 #include "theme_image_lease.hpp"
 #include "theme_source_record.hpp"
@@ -25,6 +26,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <utility>
@@ -96,7 +98,7 @@ ThemeCompileResult refusal(const ThemeDiagnostic& problem) {
 // Whether a rule of `sheet` holds only under `prefers-color-scheme: dark`.
 bool sheet_has_dark_rules(const ThemeRuleSheet& sheet) noexcept {
     for (const ThemeRule& rule : sheet.rules) {
-        if (rule.media.dark_scheme == true) return true;
+        if (rule.media.dark_scheme == stxlib::Optional<bool>::of(true)) return true;
     }
     return false;
 }
@@ -129,6 +131,29 @@ struct ClosureSegment final {
     const VerifiedThemePack* pack{};
     std::size_t start{};
 };
+
+// Whether a rule the closure's root packages wrote themselves holds only
+// under `prefers-color-scheme: dark` (W402): a rule of the combined text
+// (provenance file closure_file, offsets not yet placed) whose sheet, the
+// last segment starting at or before it, is a root's. The base's own rules
+// (its sheet's, and those its definition already holds) and those of the
+// library packs the roots import are not the packages' to answer for: a
+// light-only package over a base or an import with dark rules writes none.
+// `segments` are in increasing order of start.
+bool roots_have_dark_rules(const ThemeRuleSheet& sheet, std::span<const ClosureSegment> segments,
+                           std::span<const VerifiedThemePack* const> roots) noexcept {
+    for (const ThemeRule& rule : sheet.rules) {
+        if (rule.provenance.file != closure_file || rule.media.dark_scheme != stxlib::Optional<bool>::of(true)) continue;
+        std::size_t found = 0U;
+        for (std::size_t index = 0U; index < segments.size(); ++index) {
+            if (segments[index].start <= rule.provenance.offset) found = index;
+        }
+        const VerifiedThemePack* const pack = segments[found].pack;
+        const bool written_by_root = std::find(roots.begin(), roots.end(), pack) != roots.end();
+        if (written_by_root) return true;
+    }
+    return false;
+}
 
 // The closure's sheets in cascade order as one text, each `@import` rule
 // (and a leading byte order mark) replaced by as many spaces, so that every
@@ -249,14 +274,14 @@ std::shared_ptr<detail::ThemeImageLease> lease_image(const std::string& encoded,
         error = image.error;
         return nullptr;
     }
-    const std::optional<ImageResourceView> view = images.find(image.image);
-    if (!view) {
+    const stxlib::Optional<ImageResourceView> view = images.find(image.image);
+    if (view.absent()) {
         // Not reached: a loaded image is found until the next mutation.
         static_cast<void>(images.remove(image.image));
         error = ImageResourceError::invalid_signature;
         return nullptr;
     }
-    const Size pixel_size{static_cast<double>((*view).metadata.width), static_cast<double>((*view).metadata.height)};
+    const Size pixel_size{static_cast<double>(((*view.value())).metadata.width), static_cast<double>(((*view.value())).metadata.height)};
     std::shared_ptr<detail::ThemeImageLease> made =
         std::make_shared<detail::ThemeImageLease>(registry, image.image, pixel_size);
     shares.entries.push_back(ThemeImageShares::Entry{digest, made});
@@ -297,13 +322,13 @@ std::shared_ptr<detail::ThemeImageLease> checked_icon(const UserIcon& icon, Imag
         refused = std::string(image_resource_error_name(error));
         return nullptr;
     }
-    const std::optional<ImageResourceView> view = images.find((*lease).image());
-    if (!view) {
+    const stxlib::Optional<ImageResourceView> view = images.find((*lease).image());
+    if (view.absent()) {
         refused = "not in the registry";
         return nullptr;
     }
-    const std::uint32_t width = (*view).metadata.width;
-    const std::uint32_t height = (*view).metadata.height;
+    const std::uint32_t width = ((*view.value())).metadata.width;
+    const std::uint32_t height = ((*view.value())).metadata.height;
     if (width > maximum_icon_side || height > maximum_icon_side) {
         refused = "larger than 1024 by 1024 pixels";
         return nullptr;
@@ -314,7 +339,7 @@ std::shared_ptr<detail::ThemeImageLease> checked_icon(const UserIcon& icon, Imag
     if (pixels.size() < needed) pixels.resize(needed);
     const std::span<std::byte> target_pixels(pixels.data(), needed);
     const image::PixelTarget target{image::PixelOrder::bgra, image::PixelAlpha::premultiplied};
-    const image::ResourcePixelResult decoded = decoder.decode(*view, target, target_pixels, row_bytes);
+    const image::ResourcePixelResult decoded = decoder.decode((*view.value()), target, target_pixels, row_bytes);
     if (decoded.error != image::ResourcePixelError::none) {
         refused = "does not decode";
         return nullptr;
@@ -533,12 +558,19 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
+    // The dark rules W402 answers for, read before placing moves the
+    // offsets into each sheet: with packages, the roots' own alone (neither
+    // the base's dark rules nor an imported library pack's are the
+    // package's); the base compiled alone is the program's own sheet, and
+    // every rule counts.
+    const bool dark_rules = roots.empty() ? sheet_has_dark_rules((*definition).rules)
+                                          : roots_have_dark_rules((*definition).rules, segments, roots);
     place_rules((*definition).rules, segments, roots, &base_pack, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.
-    const bool dark_declared = (*definition).rules.colour_schemes && (*(*definition).rules.colour_schemes).dark;
-    if (set == ThemeRuleSet::program && !dark_declared && sheet_has_dark_rules((*definition).rules)) {
+    const bool dark_declared = (*definition).rules.colour_schemes.present() && ((*(*definition).rules.colour_schemes.value())).dark;
+    if (set == ThemeRuleSet::program && !dark_declared && dark_rules) {
         found.push_back(public_diagnostic(
             problem_of(DiagnosticCode::scheme_rules_without_variant, sheet_file(root), "color-scheme: light dark")));
     }
@@ -1459,7 +1491,8 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
     const theme_language::ThemeCompileInput input{
         .source = source,
         .registry = registry,
-        .vocabulary = theme_language::SelectorVocabulary{std::span<const ControlAnatomy>(&anatomy, 1U)},
+        .vocabulary = theme_language::SelectorVocabulary{.controls = std::span<const ControlAnatomy>(&anatomy, 1U),
+                                                         .element = &anatomy},
         .published_values = {},
         .resources = {},
         .images = {},
@@ -1499,6 +1532,115 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
     (*style).rules = CompiledThemeRules::compile_inline(sheet, registry, against);
     std::shared_ptr<const ControlInlineStyle> result(std::move(style));
     return result;
+}
+
+namespace {
+
+// Whether `rule` of a look lowered with a theme's text (compile_theme_look)
+// is one of the theme's definitions of a name in `read` (sorted), the
+// names the look's own rules read: the look holds a copy of it, so that
+// its rules find the theme's definition where the look defines none.
+bool theme_look_definition(const ThemeRule& rule, std::size_t from, std::span<const std::string> read) noexcept {
+    if (rule.provenance.offset >= from) return false;
+    for (const ScopedDefinition& definition : rule.scoped_definitions) {
+        if (std::binary_search(read.begin(), read.end(), definition.name)) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+std::shared_ptr<const CompiledThemeRules> detail::compile_theme_look(
+    std::string_view text, std::string_view file, std::span<const ControlAnatomy> controls, const Theme& theme,
+    std::vector<ThemeCompileDiagnostic>& diagnostics) {
+    const detail::ThemeSourceRecord& record = ThemeAccess::source(theme);
+    std::string combined = record.text;
+    combined += "\n";
+    const std::size_t from = combined.size();
+    combined += text;
+    if (combined.size() > theme_language::maximum_sheet_bytes) {
+        diagnostics.push_back(public_diagnostic(problem_of(DiagnosticCode::sheet_too_large, std::string(file),
+                                                           std::to_string(theme_language::maximum_sheet_bytes))));
+        return nullptr;
+    }
+    // The theme's control types, then the look's that the theme lacks.
+    std::vector<ControlAnatomy> vocabulary = record.controls;
+    vocabulary.reserve(vocabulary.size() + controls.size());
+    for (const ControlAnatomy& own : controls) {
+        bool listed = false;
+        for (const ControlAnatomy& control : record.controls) {
+            if (control.control_id == own.control_id) listed = true;
+        }
+        if (!listed) vocabulary.push_back(own);
+    }
+    // Borrows of the record's strings, which outlive the compilation.
+    std::vector<std::string_view> names{};
+    std::vector<theme_language::ThemeImageResource> images{};
+    names.reserve(record.images.size());
+    images.reserve(record.images.size());
+    for (const detail::ThemeSourceImage& image : record.images) {
+        names.push_back(image.resource);
+        theme_language::ThemeImageResource resource{};
+        resource.resource = image.resource;
+        resource.image = image.image;
+        resource.pixel_size = image.pixel_size;
+        images.push_back(resource);
+    }
+    const PrimitiveRegistry& registry = builtin_primitive_registry();
+    const theme_language::ThemeSource source{.file = record.file, .text = combined};
+    const theme_language::ThemeCompileInput input{.source = source,
+                                                  .registry = registry,
+                                                  .vocabulary = theme_language::SelectorVocabulary{vocabulary},
+                                                  .published_values = record.published_values,
+                                                  .resources = names,
+                                                  .images = images,
+                                                  .requires_engine = record.requires_engine,
+                                                  .form = theme_language::ThemeSheetForm::sheet,
+                                                  // The look may name the application's font families;
+                                                  // only the theme's definitions the look reads are kept.
+                                                  .admit_app_fonts = true};
+    ThemeRuleSheet lowered{};
+    theme_language::ThemeCompiler compiler{};
+    theme_language::ThemeDiagnosticList found{};
+    const theme_language::CompileOutcome outcome = compiler.compile(input, lowered, found);
+    // The look's findings, placed in its own text; the theme's errors
+    // as they are (its warnings were reported when it compiled).
+    theme_language::LineStartTable lines{};
+    lines.reset(text);
+    for (const ThemeDiagnostic& diagnostic : found.records()) {
+        const std::size_t offset = diagnostic.position.offset.value;
+        const bool in_look = offset >= from;
+        const bool error = theme_language::diagnostic_severity(diagnostic.code) == theme_language::DiagnosticSeverity::error;
+        if (!in_look && !error) continue;
+        ThemeDiagnostic placed = diagnostic;
+        if (in_look) {
+            const std::size_t within = std::min(offset - from, text.size());
+            placed.file = std::string(file);
+            placed.position = lines.position(text, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
+        }
+        diagnostics.push_back(public_diagnostic(placed));
+    }
+    if (outcome != theme_language::CompileOutcome::compiled) return nullptr;
+    // The names the look's rules read, then the theme's definitions of
+    // them and the look's rules, in that order.
+    std::vector<std::string> read{};
+    for (const ThemeRule& rule : lowered.rules) {
+        if (rule.provenance.offset < from) continue;
+        for (const ScopedCondition& condition : rule.scoped_conditions) read.push_back(condition.name);
+    }
+    std::sort(read.begin(), read.end());
+    ThemeRuleSheet sheet{};
+    sheet.requires_engine = lowered.requires_engine;
+    sheet.published_values = lowered.published_values;
+    for (ThemeRule& rule : lowered.rules) {
+        if (theme_look_definition(rule, from, read)) sheet.rules.push_back(rule);
+    }
+    for (ThemeRule& rule : lowered.rules) {
+        if (rule.provenance.offset >= from) sheet.rules.push_back(std::move(rule));
+    }
+    std::shared_ptr<const CompiledThemeRules> compiled = std::make_shared<const CompiledThemeRules>(
+        CompiledThemeRules::compile_look(sheet, registry, &theme.engine().rules()));
+    return compiled;
 }
 
 detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefinition& floor, std::string_view file,

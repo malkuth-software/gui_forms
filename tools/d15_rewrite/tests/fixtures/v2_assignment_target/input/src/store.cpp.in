@@ -1,0 +1,26 @@
+#include <gui_forms/store.hpp>
+
+#include <optional>
+#include <string>
+#include <string_view>
+#include <variant>
+
+namespace gui_forms {
+
+namespace {
+
+std::variant<std::monostate, bool, std::string> stored;
+std::optional<std::string> kept;
+std::string_view seen;
+
+} // namespace
+
+// The assignment operator's parameter picks the bridge: a variant's and an
+// optional's converting operator= take the std::string, a view's a view.
+void store(const std::string& text) {
+    stored = text;
+    kept = text;
+    seen = text;
+}
+
+} // namespace gui_forms

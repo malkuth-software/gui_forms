@@ -11,7 +11,9 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <variant>
 #include <vector>
@@ -48,8 +50,8 @@ struct Fixture final {
         (*shelf).add_child(arrange);
         (*shelf).add_child(more);
         (*shelf).group_gap = 4.0;
-        (*shelf).group_spec[*selection] = CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
-        (*shelf).group_spec[*arrange] = CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
+        (*shelf).group_spec[*selection] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(2U)});
+        (*shelf).group_spec[*arrange] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{306.0, 306.0, 306.0, stxlib::Optional<std::uint16_t>::of(1U)});
         (*shelf).set_overflow_actuator(*more);
         window.perform_layout();
     }
@@ -97,10 +99,10 @@ void test_focus_protection_and_atomic_metadata() {
                 fixture.window.focused_control() == fixture.arrange_button,
             "focused group must be protected while another authored group can collapse");
 
-    const CommandOverflowGroupSpec before = *(*fixture.shelf).group_spec[*fixture.selection].read();
+    const stxlib::Optional<CommandOverflowGroupSpec> before = (*fixture.shelf).group_spec[*fixture.selection].read();
     bool rejected = false;
     try {
-        (*fixture.shelf).group_spec[*fixture.selection] = CommandOverflowGroupSpec{176.0, 176.0, 176.0, 1U};
+        (*fixture.shelf).group_spec[*fixture.selection] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(1U)});
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
@@ -120,11 +122,12 @@ void test_group_spec_child_property() {
     require(named && std::get<std::string>(*named) == "176 176 176 priority 2",
             "group spec: the text form reads the extents and the priority");
     shelf.set_child_property_value(*fixture.selection, "group-spec", BindingValue{std::string{"150 170.5 0"}});
-    const std::optional<CommandOverflowGroupSpec> written = shelf.group_spec[*fixture.selection].read();
-    require(written && (*written).minimum == 150.0 && (*written).preferred == 170.5 && (*written).maximum == 0.0 &&
-                !(*written).collapse_priority,
+    const stxlib::Optional<CommandOverflowGroupSpec> written = shelf.group_spec[*fixture.selection].read();
+    const CommandOverflowGroupSpec* written_spec = written.value();
+    require(written_spec != nullptr && (*written_spec).minimum == 150.0 && (*written_spec).preferred == 170.5 &&
+                (*written_spec).maximum == 0.0 && (*written_spec).collapse_priority.absent(),
             "group spec: a name-keyed text write without a priority reaches the typed read");
-    require(!shelf.group_spec[*fixture.more].read() &&
+    require(shelf.group_spec[*fixture.more].read().absent() &&
                 !shelf.should_serialize_child_property(*fixture.more, "group_spec"),
             "group spec: a child without one reads none and is not serialized");
 
@@ -136,7 +139,7 @@ void test_group_spec_child_property() {
     }
     bool actuator_refused = false;
     try {
-        shelf.group_spec[*fixture.more] = CommandOverflowGroupSpec{72.0, 72.0, 72.0, 3U};
+        shelf.group_spec[*fixture.more] = stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{72.0, 72.0, 72.0, stxlib::Optional<std::uint16_t>::of(3U)});
     } catch (const std::invalid_argument&) {
         actuator_refused = true;
     }
@@ -144,11 +147,52 @@ void test_group_spec_child_property() {
             "group spec: malformed text and the actuator are refused before mutation");
 
     shelf.reset_child_property(*fixture.selection, "group_spec");
-    require(!shelf.group_spec[*fixture.selection].read(), "group spec: the reset (empty text) clears it");
-    shelf.group_spec[*fixture.arrange] = std::nullopt;
+    require(shelf.group_spec[*fixture.selection].read().absent(), "group spec: the reset (empty text) clears it");
+    shelf.group_spec[*fixture.arrange] = stxlib::Optional<CommandOverflowGroupSpec>::none();
     static_cast<void>(shelf.remove_child((*fixture.selection).runtime_id()));
     shelf.add_child(fixture.selection);
-    require(!shelf.group_spec[*fixture.selection].read(), "group spec: the value is dropped when the child leaves");
+    require(shelf.group_spec[*fixture.selection].read().absent(), "group spec: the value is dropped when the child leaves");
+}
+
+// A-gf-controls-12-F2 and F3: a child wider than the solver's limit is
+// clamped to it, and visible children past the 32 groups the solver resolves
+// go to the overflow, collapsed, instead of making every layout throw.
+void test_oversized_and_excess_children_lay_out() {
+    Fixture fixture;
+    std::shared_ptr<Panel> wide = make_control<Panel>(StableId("overflow.shelf.wide"));
+    (*wide).set_requested_bounds({0.0, 0.0, 2'000'000.0, 40.0});
+    (*fixture.shelf).add_child(wide);
+    bool threw = false;
+    try {
+        fixture.window.perform_layout();
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw, "a child wider than the solver's limit must not make layout throw");
+    const CommandOverflowSnapshot clamped = (*fixture.shelf).layout_snapshot();
+    require(clamped.groups.size() == 3U && clamped.groups[2].measured <= 1'000'000.0,
+            "the oversized child reaches the solver clamped to its limit");
+
+    std::vector<std::shared_ptr<Panel>> extra;
+    for (int index = 0; index < 32; ++index) {
+        std::shared_ptr<Panel> group =
+            make_control<Panel>(StableId("overflow.shelf.extra-" + std::to_string(index)));
+        (*group).set_requested_bounds({0.0, 0.0, 4.0, 40.0});
+        (*fixture.shelf).add_child(group);
+        extra.push_back(group);
+    }
+    threw = false;
+    try {
+        fixture.window.perform_layout();
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw, "more than 32 visible children must not make layout throw");
+    const CommandOverflowSnapshot excess = (*fixture.shelf).layout_snapshot();
+    require(excess.groups.size() == 35U && excess.groups[34].collapsed &&
+                excess.groups[34].stable_id == "overflow.shelf.extra-31" &&
+                (*extra.back()).layout_collapsed() && excess.overflow_actuator_visible,
+            "children past the 32nd group are collapsed into the overflow and show the actuator");
 }
 
 int main() {
@@ -156,6 +200,7 @@ int main() {
         test_full_and_collapsed_projection();
         test_focus_protection_and_atomic_metadata();
         test_group_spec_child_property();
+        test_oversized_and_excess_children_lay_out();
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "command_overflow_panel_tests: " << error.what() << '\n';

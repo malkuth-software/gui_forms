@@ -32,7 +32,9 @@
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "support/binding_test_rows.hpp"
 #include "support/named_callbacks.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -183,6 +185,32 @@ private:
     static void ignore_invalid_property(const BindingValue&) {}
 };
 
+// A-gf-core-03-F4: a property whose getter removes every bindable
+// registration, its own included.
+class SelfRemovingPropertyProbe final : public Control {
+public:
+    explicit SelfRemovingPropertyProbe(StableId stable_id)
+        : Control(std::move(stable_id)) {
+        PropertyDescriptor vanishing;
+        vanishing.name = "Vanishing";
+        vanishing.kind = BindingValueKind::number;
+        vanishing.writable = false;
+        vanishing.bindable = false;
+        PropertyRegistration registration;
+        registration.descriptor = std::move(vanishing);
+        registration.get = detail::BoundMemberFunction<
+            BindingValue (SelfRemovingPropertyProbe::*)()>(
+                *this, &SelfRemovingPropertyProbe::vanish);
+        define_bindable_property(std::move(registration));
+    }
+
+private:
+    [[nodiscard]] BindingValue vanish() {
+        clear_bindable_properties();
+        return BindingValue{1.0};
+    }
+};
+
 PropertyObjectValue make_endpoint_value() {
     return make_property_object("Endpoint", {
         {"Host", "Server host", BindingValue{std::string("127.0.0.1")}},
@@ -296,7 +324,7 @@ public:
     void operator()(BindingCompleteEvent& event) const {
         if (event.context == BindingCompleteContext::control_update &&
             event.state == BindingCompleteState::success) {
-            observed_ = (*combo_).selected_index.read() == 2U;
+            observed_ = (*combo_).selected_index.read() == stxlib::Optional<std::size_t>::of(2U);
         }
     }
 
@@ -316,7 +344,7 @@ public:
         if (event.binding == binding_.get() &&
             event.context == BindingCompleteContext::control_update &&
             event.state == BindingCompleteState::success) {
-            observed_ = (*combo_).selected_index.read() == 2U;
+            observed_ = (*combo_).selected_index.read() == stxlib::Optional<std::size_t>::of(2U);
         }
     }
 
@@ -347,14 +375,14 @@ private:
 
 void test_value_conversion_is_strict_and_invariant() {
     require(binding_value_kind(BindingValue{}) == BindingValueKind::null &&
-                binding_value_to_bool(std::string("TRUE")) == true &&
-                binding_value_to_signed(std::string("-42")) == -42 &&
-                binding_value_to_unsigned(std::string("42")) == 42U &&
-                binding_value_to_number(std::string("12.5")) == 12.5,
+                binding_value_to_bool(std::string("TRUE")) == stxlib::Optional<bool>::of(true) &&
+                binding_value_to_signed(std::string("-42")) == stxlib::Optional<std::int64_t>::of(-42) &&
+                binding_value_to_unsigned(std::string("42")) == stxlib::Optional<std::uint64_t>::of(42U) &&
+                binding_value_to_number(std::string("12.5")) == stxlib::Optional<double>::of(12.5),
             "binding scalar conversion must cover null, Boolean, integer, and invariant number values");
-    require(!binding_value_to_unsigned(std::string("-1")) &&
-                !binding_value_to_number(std::string("12.5ms")) &&
-                !binding_value_to_signed(2.5) &&
+    require(binding_value_to_unsigned(std::string("-1")).absent() &&
+                binding_value_to_number(std::string("12.5ms")).absent() &&
+                binding_value_to_signed(2.5).absent() &&
                 canonical_binding_name("  DataMember  ") == "datamember",
             "binding conversion must reject partial, negative-unsigned, and fractional-integer input");
     require(binding_value_kind(BindingValue{Point{1.0, 2.0}}) ==
@@ -378,6 +406,19 @@ void test_value_conversion_is_strict_and_invariant() {
                         std::numeric_limits<double>::quiet_NaN(), 0.0}},
                     BindingValueKind::point),
             "property values must retain typed geometry, color, font, image, and finite-value validation");
+    // A-gf-core-02-F1: 2^63 and 2^64 are out of range (the maxima are not
+    // doubles); the largest doubles below them and -2^63 convert.
+    require(binding_value_to_signed(BindingValue{9223372036854775808.0}).absent() &&
+                binding_value_to_signed(BindingValue{-9223372036854775808.0}) ==
+                    stxlib::Optional<std::int64_t>::of(std::numeric_limits<std::int64_t>::min()) &&
+                binding_value_to_signed(BindingValue{9223372036854774784.0}) ==
+                    stxlib::Optional<std::int64_t>::of(9223372036854774784LL) &&
+                binding_value_to_unsigned(BindingValue{18446744073709551616.0}).absent() &&
+                binding_value_to_unsigned(BindingValue{18446744073709549568.0}) ==
+                    stxlib::Optional<std::uint64_t>::of(18446744073709549568ULL) &&
+                !convert_binding_value(BindingValue{9223372036854775808.0}, BindingValueKind::signed_integer) &&
+                !convert_binding_value(BindingValue{18446744073709551616.0}, BindingValueKind::unsigned_integer),
+            "a double at 2^63 or 2^64 is refused, not converted out of range");
 }
 
 void test_nested_property_values_are_bounded_immutable_and_structural() {
@@ -519,7 +560,7 @@ void test_property_metadata_defaults_reset_and_serialization() {
                 "name", "text", "tool_tip_text", "visible"},
             "bindable property enumeration must be deterministic and use the registered names");
     const std::vector<PropertyDescriptor> descriptors = (*editor).property_descriptors();
-    require(descriptors.size() == 43U &&
+    require(descriptors.size() == 51U &&
                 descriptors.front().name == "accessible_description" &&
                 descriptors.back().name == "wheel_scrolls",
             "property descriptor snapshots must follow deterministic canonical order");
@@ -620,6 +661,17 @@ void test_property_metadata_defaults_reset_and_serialization() {
     }
     require(invalid_default_rejected,
             "property registration must reject a default incompatible with its declared kind");
+
+    const std::shared_ptr<SelfRemovingPropertyProbe> vanishing =
+        make_control<SelfRemovingPropertyProbe>(StableId("property.vanishing"));
+    bool removed_refused = false;
+    try {
+        static_cast<void>((*vanishing).property_value("Vanishing"));
+    } catch (const std::logic_error&) {
+        removed_refused = true;
+    }
+    require(removed_refused && !(*vanishing).property_value("Vanishing"),
+            "a getter that removes its own registration is refused, not read through a stale entry");
 }
 
 void test_property_enum_schema_bounds_and_unicode() {
@@ -964,10 +1016,10 @@ void test_edit_transactions_list_mutation_and_context() {
                 std::optional<BindingValue>{std::string("committed")},
             "EndEdit must retire rollback state without changing committed fields");
 
-    const std::optional<std::size_t> inserted = (*fixture.source).insert(
+    const stxlib::Optional<std::size_t> inserted = (*fixture.source).insert(
         1U, gui_forms::test_rows::row_of(*fixture.source, {"record.middle", {{"name", std::string("Middle")}}}));
-    require(inserted == std::optional<std::size_t>{1U} && (*fixture.source).count() == 3U &&
-                (*fixture.source).find("name", std::string("Middle")) == 1U,
+    require(inserted == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{1U}) && (*fixture.source).count() == 3U &&
+                (*fixture.source).find("name", std::string("Middle")) == stxlib::Optional<std::size_t>::of(1U),
             "BindingSource must support stable insertion and field search");
     require(manager.remove_at(1U) &&
                 (*fixture.source).count() == 2U,
@@ -1048,7 +1100,7 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
         "SelectedIndex", source, "choice", formatted_immediate);
     const std::shared_ptr<Binding> amount = (*numeric).data_bindings().add(
         "Value", source, "amount", formatted_immediate);
-    require((*combo).selected_index.read() == 1U && (*numeric).value.read() == 42.0,
+    require((*combo).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && (*numeric).value.read() == 42.0,
             "ComboBox.SelectedIndex and NumericUpDown.Value must be stock bindable properties");
 
     bool binding_saw_committed_control = false;
@@ -1121,6 +1173,35 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
 
 } // namespace
 
+// A format handler that disposes its binding, as one that unbinds a field
+// when its record goes away does.
+struct DisposeOnFormat final {
+    Binding* binding{};
+    void operator()(BindingConvertEvent&) const { (*binding).dispose(); }
+};
+
+// A-gf-core-01-F1: a format handler that disposes the binding (clearing its
+// target) ends the control update without writing the control.
+void test_format_handler_disposes_the_binding() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("dispose.root"));
+    std::shared_ptr<gui_forms::TextBox> editor = make_control<TextBox>(StableId("dispose.editor"));
+    (*root).add_child(editor);
+    Window window(root, {320.0, 120.0});
+    std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
+    gui_forms::test_rows::fill_source(*source, {{"dispose.record", {{"amount", 12.5}}}});
+    BindingOptions options;
+    options.formatting_enabled = true;
+    options.format_string = "F2";
+    const std::shared_ptr<Binding> binding = (*editor).data_bindings().add("Text", source, "Amount", options);
+    require((*editor).text.read() == "12.50", "the binding projects the field");
+    (*editor).text = "unchanged";
+    SubscriptionToken formatter = (*binding).format().subscribe(DisposeOnFormat{binding.get()});
+    require(!(*binding).read_value() && !(*binding).active() && (*binding).target() == nullptr &&
+                (*editor).text.read() == "unchanged",
+            "a binding disposed by its format handler does not write the control");
+    static_cast<void>(formatter);
+}
+
 int main() {
     try {
         test_value_conversion_is_strict_and_invariant();
@@ -1137,6 +1218,7 @@ int main() {
         test_edit_transactions_list_mutation_and_context();
         test_collection_uniqueness_base_properties_and_cleanup();
         test_choice_numeric_defaults_manager_transfer_and_completion_order();
+        test_format_handler_disposes_the_binding();
         std::cout << "gui_forms_binding_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

@@ -13,7 +13,7 @@ public static unsafe class Abi
     private static readonly object negotiation_lock = new object();
     // The negotiated tables, published once (N72): a call reads this
     // reference without the lock and borrows the table in place (ref
-    // readonly), so it neither locks nor copies eight tables per call. Null
+    // readonly), so it neither locks nor copies ten tables per call. Null
     // until the first negotiation succeeds.
     private static volatile Tables? negotiated;
 
@@ -26,6 +26,8 @@ public static unsafe class Abi
     public static ref readonly gf_windows_table windows => ref tables().windows;
     public static ref readonly gf_bindings_table bindings => ref tables().bindings;
     public static ref readonly gf_classes_table classes => ref tables().classes;
+    public static ref readonly gf_content_table content => ref tables().content;
+    public static ref readonly gf_controls_table controls => ref tables().controls;
 
     // Immutable once built: the published reference is the only writer's
     // hand-off, so readers need no lock.
@@ -40,10 +42,14 @@ public static unsafe class Abi
         public readonly gf_windows_table windows;
         public readonly gf_bindings_table bindings;
         public readonly gf_classes_table classes;
+        public readonly gf_content_table content;
+        public readonly gf_controls_table controls;
 
         public Tables(gf_runtime_table runtime, gf_objects_table objects, gf_properties_table properties,
                       gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics,
-                      gf_windows_table windows, gf_bindings_table bindings, gf_classes_table classes)
+                      gf_windows_table windows, gf_bindings_table bindings, gf_classes_table classes,
+                      gf_content_table content,
+                      gf_controls_table controls)
         {
             this.runtime = runtime;
             this.objects = objects;
@@ -54,6 +60,8 @@ public static unsafe class Abi
             this.windows = windows;
             this.bindings = bindings;
             this.classes = classes;
+            this.content = content;
+            this.controls = controls;
         }
     }
 
@@ -90,8 +98,10 @@ public static unsafe class Abi
             negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
             negotiate(Exports.get_bindings_table(out gf_bindings_table bindings), "bindings");
             negotiate(Exports.get_classes_table(out gf_classes_table classes), "classes");
+            negotiate(Exports.get_content_table(out gf_content_table content), "content");
+            negotiate(Exports.get_controls_table(out gf_controls_table controls), "controls");
             Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings,
-                                     classes);
+                                     classes, content, controls);
             negotiated = made;
             return made;
         }
@@ -124,6 +134,7 @@ public static unsafe class Abi
             // the thread's failure snapshot becomes the managed exception,
             // thrown through the named frames.
             NativeException native = NativeException.read(status);
+            FailureDetail.attach(native, status);
             CallbackFailure[] carried_under = CallbackFailure.take_pending();
             if (carried_under.Length != 0)
             {
@@ -135,6 +146,7 @@ public static unsafe class Abi
         if (status != Constants.GF_STATUS_OK)
         {
             GuiFormsException refused = new GuiFormsException(status, error_message());
+            FailureDetail.attach(refused, status);
             CallbackFailure[] carried = CallbackFailure.take_pending();
             if (carried.Length != 0)
             {
@@ -153,12 +165,16 @@ public static unsafe class Abi
     {
         if (status == Constants.GF_STATUS_NATIVE_EXCEPTION)
         {
-            NativeFrames.raise(NativeException.read(status));
+            NativeException native = NativeException.read(status);
+            FailureDetail.attach(native, status);
+            NativeFrames.raise(native);
             return;
         }
         if (status != Constants.GF_STATUS_OK)
         {
-            throw new GuiFormsException(status, error_message());
+            GuiFormsException refused = new GuiFormsException(status, error_message());
+            FailureDetail.attach(refused, status);
+            throw refused;
         }
     }
 
@@ -203,6 +219,13 @@ public static unsafe class Abi
 public class GuiFormsException : Exception
 {
     public gf_status status { get; }
+    /// <summary>
+    /// The native detail of the refused call (C ABI 1.5): the C++ exception's
+    /// type and the trace at the throw, from a development build of the
+    /// library; null when the failure was no exception or the library kept
+    /// none.
+    /// </summary>
+    public FailureDetail? native_detail { get; internal set; }
 
     public GuiFormsException(gf_status status, string message)
         : base(message.Length == 0 ? "GUI.Forms status " + status : message)

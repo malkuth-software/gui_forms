@@ -13,8 +13,11 @@ namespace detail {
 namespace {
 
 // The calling thread's revocable invokes, if it has any (a sub-surface's
-// thread). Each thread reads and writes only its own.
-thread_local std::shared_ptr<RevocableInvokes> thread_revocable_invokes{};
+// thread). A plain observer (owner rule 2: every thread_local trivially
+// destructible): the thread's sub-surface channel owns them, and the thread
+// clears this before it lets the channel go. Each thread reads and writes
+// only its own.
+thread_local RevocableInvokes* thread_revocable_invokes = nullptr;
 
 // An operation that is already cancelled and holds no callback: what a
 // refused post returns.
@@ -47,8 +50,8 @@ void revoke_invokes(RevocableInvokes& invokes) noexcept {
     }
 }
 
-void set_thread_revocable_invokes(std::shared_ptr<RevocableInvokes> invokes) noexcept {
-    thread_revocable_invokes = std::move(invokes);
+void set_thread_revocable_invokes(RevocableInvokes* invokes) noexcept {
+    thread_revocable_invokes = invokes;
 }
 
 void wake_host_locked(DispatcherState& state) {
@@ -107,16 +110,17 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
             return PostOutcome::queue_full;
         }
         work = std::make_shared<DispatchWork>();
-        if (synchronous && thread_revocable_invokes) {
+        RevocableInvokes* const revocable = synchronous ? thread_revocable_invokes : nullptr;
+        if (revocable != nullptr) {
             // Under the leaf lock, so a revocation either sees this work as
             // waiting or this post sees the revocation.
-            std::scoped_lock revocable_lock((*thread_revocable_invokes).mutex);
-            if ((*thread_revocable_invokes).revoked) {
+            std::scoped_lock revocable_lock((*revocable).mutex);
+            if ((*revocable).revoked) {
                 ++(*state).cancelled;
                 operation = refused_operation(state);
                 return PostOutcome::refused;
             }
-            (*thread_revocable_invokes).waiting = work;
+            (*revocable).waiting = work;
         }
         (*work).sequence = (*state).next_sequence++;
         if ((*state).next_sequence == 0U) (*state).next_sequence = 1U;

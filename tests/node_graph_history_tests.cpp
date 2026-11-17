@@ -174,6 +174,17 @@ void tolerant_load() {
         crlf.push_back(byte);
     }
     require(graph.load(crlf).error == GraphLoadError::ok && saved(graph) == sample_document, "CRLF loads");
+    // A-gf-controls-07-F3: the words "node" and "link" in a comment count toward the parse's
+    // reserve only up to the statements the document's bytes can hold; the result is the
+    // same as without the comment.
+    const std::string_view header = "gui-forms-graph 1;\n";
+    std::string worded(header);
+    worded += "#";
+    for (std::size_t index = 0U; index < 50000U; ++index) worded += " nodelink";
+    worded += "\n";
+    worded.append(sample_document.substr(header.size()));
+    require(graph.load(worded).error == GraphLoadError::ok && saved(graph) == sample_document,
+            "a comment full of statement words loads as the sample");
 }
 
 void link_ids() {
@@ -287,7 +298,7 @@ void sample_format() {
     const GraphLoadResult result = loaded.load(sample_document);
     require(result.error == GraphLoadError::ok, "the sample loads");
     require(saved(loaded) == sample_document, "load then save reproduces the sample");
-    require(loaded.find_node("mix") == NodeId{1U, 1U} && loaded.node_count() == 2U && loaded.link_count() == 1U,
+    require(loaded.find_node("mix").index == 1U && loaded.node_count() == 2U && loaded.link_count() == 1U,
             "nodes take slots in document order");
     const NodeProperty* const scale = loaded.property(loaded.find_node("noise"), "scale");
     require(scale != nullptr && (*scale).value == "5.0", "properties load as text");
@@ -964,13 +975,47 @@ void identities_across_load() {
     require(graph.node(a) == nullptr && graph.node(b) == nullptr && graph.node(c) == nullptr &&
                 graph.link(ab) == nullptr,
             "no identity from before the load is live after it");
-    require(graph.find_node("noise").index == 0U && graph.find_node("noise").generation == a.generation + 1U,
+    require(graph.find_node("noise").index == 0U && graph.find_node("noise").generation > c.generation,
             "a kept slot's generation advances");
     require(graph.node_slots().size() == 3U && !graph.node_slots()[2].live, "the third slot stays, freed");
     const NodeId d = add(graph, "d", 0.0, 0.0);
-    require(d.index == 2U && d.generation == c.generation + 1U, "it is reused with a newer generation");
+    require(d.index == 2U && d.generation > graph.find_node("noise").generation, "it is reused with a newer generation");
     require(graph.undo().status == GraphStatus::ok && graph.undo().status == GraphStatus::nothing_to_undo,
             "the log starts at the load");
+}
+
+// An undone add frees its identity for good: the next record made in that
+// slot, appended or reused, takes a newer generation, so an identity kept from
+// the undone record stays stale (A-gf-controls-07-F1).
+void identities_after_undo() {
+    NodeGraph graph;
+    const NodeId appended = add(graph, "a", 0.0, 0.0);
+    require(graph.undo().status == GraphStatus::ok, "the appending add is undone");
+    const NodeId next = add(graph, "b", 0.0, 0.0);
+    require(next.index == appended.index && next.generation != appended.generation &&
+                graph.node(appended) == nullptr && graph.node(next) != nullptr,
+            "a node appended after an undone append takes a new identity");
+    const NodeId c = add(graph, "c", 0.0, 0.0);
+    require(graph.remove_node(c).status == GraphStatus::ok, "a slot is freed");
+    const NodeId reused = add(graph, "d", 0.0, 0.0);
+    require(graph.undo().status == GraphStatus::ok, "the reusing add is undone");
+    const NodeId again = add(graph, "e", 0.0, 0.0);
+    require(again.index == reused.index && again.generation != reused.generation &&
+                again.generation != c.generation && graph.node(reused) == nullptr,
+            "a node reusing a slot after an undone reuse takes a new identity");
+    const NodeId f = add(graph, "f", 0.0, 0.0);
+    const LinkId link = join(graph, next, f);
+    require(graph.undo().status == GraphStatus::ok, "the connect is undone");
+    const LinkId relinked = join(graph, next, f);
+    require(relinked.index == link.index && relinked.generation != link.generation && graph.link(link) == nullptr,
+            "a link made after an undone connect takes a new identity");
+    // A load after an undo that popped an appended slot: the slot's newest
+    // generation is kept, so the load's record does not take the undone one's.
+    NodeGraph loaded;
+    const NodeId popped = add(loaded, "p", 0.0, 0.0);
+    require(loaded.undo().status == GraphStatus::ok, "the add is undone and its slot popped");
+    require(loaded.load(sample_document).error == GraphLoadError::ok && loaded.node(popped) == nullptr,
+            "a load does not make the undone identity live");
 }
 
 void add_refusals() {
@@ -1050,6 +1095,7 @@ int main() {
     truncated_documents();
     save_storage();
     identities_across_load();
+    identities_after_undo();
     add_refusals();
     chains_and_cycles();
     std::cout << "node-graph-history-tests: inverses, groups, bounds, seeded edits, documents and errors passed\n";

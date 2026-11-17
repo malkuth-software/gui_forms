@@ -76,7 +76,7 @@ its text in one style.
 
 ## From C
 
-The C ABI (since 1.1, additively) has `gf_text_decoration` and five slots in
+The C ABI (since 1.2, additively) has `gf_text_decoration` and five slots in
 `GF_TABLE_TEXT_EDITING`: `set_decorations`, `replace_decorations`,
 `clear_decorations`, `decoration_count` and `decoration_at`. See the C ABI
 header `gui_forms/c/gf_abi.h`.

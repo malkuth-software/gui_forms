@@ -91,7 +91,7 @@ struct BundledFace final {
     bool fallback;
 };
 
-constexpr std::array<BundledFace, 17> bundled_faces{{
+constexpr std::array<BundledFace, 19> bundled_faces{{
     {"PortsmouthRapids.ttf", FontRole::control, 400, false, false},
     {"PortsmouthRapids-Bold.ttf", FontRole::control, 700, false, false},
     {"Carlito-Regular.ttf", FontRole::content, 400, false, false},
@@ -102,12 +102,14 @@ constexpr std::array<BundledFace, 17> bundled_faces{{
     {"Cousine-Bold.ttf", FontRole::monospace, 700, false, false},
     {"Cousine-Italic.ttf", FontRole::monospace, 400, true, false},
     {"Cousine-BoldItalic.ttf", FontRole::monospace, 700, true, false},
-    {"NotoSansCJKjp-Regular.otf", FontRole::content, 400, false, true},
-    {"NotoSansArabic-Regular.ttf", FontRole::content, 400, false, true},
+    {"NotoSansCJKjp-Subset.otf", FontRole::content, 400, false, true},
+    {"NotoSansCJKkr-Subset.otf", FontRole::content, 400, false, true},
+    {"NotoSansCJKsc-Minimal.otf", FontRole::content, 400, false, true},
+    {"NotoSansArabic-Minimal.ttf", FontRole::content, 400, false, true},
     {"NotoSansHebrew-Regular.ttf", FontRole::content, 400, false, true},
-    {"NotoSansDevanagari-Regular.ttf", FontRole::content, 400, false, true},
-    {"NotoSansBengali-Regular.ttf", FontRole::content, 400, false, true},
-    {"NotoSansGurmukhi-Regular.ttf", FontRole::content, 400, false, true},
+    {"NotoSansDevanagari-Minimal.ttf", FontRole::content, 400, false, true},
+    {"NotoSansBengali-Minimal.ttf", FontRole::content, 400, false, true},
+    {"NotoSansGurmukhi-Minimal.ttf", FontRole::content, 400, false, true},
     {"NotoEmoji-Regular.ttf", FontRole::content, 400, false, true},
 }};
 

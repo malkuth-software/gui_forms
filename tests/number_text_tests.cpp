@@ -3,6 +3,7 @@
 
 #include "../src/controls/basic/number_text.hpp"
 
+#include <charconv>
 #include <clocale>
 #include <cstdint>
 #include <iostream>
@@ -10,6 +11,9 @@
 #include <string>
 
 namespace {
+
+// The exit code ctest reads as a skip (SKIP_RETURN_CODE in CMakeLists.txt).
+constexpr int skipped_exit_code = 77;
 
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -32,6 +36,21 @@ void check_decimal_forms() {
     require(value == 7.0, "a refusal leaves the value");
 }
 
+// The composite expressions' strtod replacement (A-gf-controls-02-F4): a
+// leading number, words after it allowed; under a comma locale "0.5" is still
+// a half, where strtod read it as 0.
+void check_leading_decimal_forms() {
+    require(gui_forms::number_text::leading_decimal("0.5") == 0.5, "a half");
+    require(gui_forms::number_text::leading_decimal(" \n-1.5px") == -1.5, "white space, sign and a unit");
+    require(gui_forms::number_text::leading_decimal("+2e1") == 20.0, "plus and exponent");
+    require(gui_forms::number_text::leading_decimal("word") == 0.0, "no number reads 0");
+    require(gui_forms::number_text::leading_decimal("+-3") == 0.0, "two signs read 0");
+    require(gui_forms::number_text::leading_decimal("") == 0.0, "empty reads 0");
+    std::string written{};
+    gui_forms::number_text::append_number_text(written, 0.5, std::chars_format::general, 17);
+    require(written == "0.5", "\"%.17g\" writes a point");
+}
+
 void check_hexadecimal_forms() {
     std::int64_t value = 0;
     require(gui_forms::number_text::parse_hexadecimal_integer("ff", value) && value == 255, "plain hex");
@@ -49,21 +68,33 @@ void check_hexadecimal_forms() {
 int main() {
     try {
         check_decimal_forms();
+        check_leading_decimal_forms();
         check_hexadecimal_forms();
         // Under a locale whose decimal separator is a comma, the same forms
         // still parse (std::stod would have read "12.5" as 12).
         const char* const candidates[] = {"de_DE.UTF-8", "de_DE", "German_Germany.1252", "de-DE"};
         bool switched = false;
         for (const char* const candidate : candidates) {
+            // std-rules: allow(locale-change) the test sets a comma locale to prove number text ignores it
             if (std::setlocale(LC_NUMERIC, candidate) != nullptr) {
                 switched = true;
                 break;
             }
         }
+        if (!switched) {
+            // Without a comma locale the property this half exists for is
+            // not shown; report a skip (ctest's SKIP_RETURN_CODE) rather
+            // than a pass (B-gf-tests-08-F1).
+            std::cout << "number text tests: the C-locale forms passed; no comma locale is installed, "
+                         "so the comma-locale half was skipped\n";
+            return skipped_exit_code;
+        }
         check_decimal_forms();
+        check_leading_decimal_forms();
         check_hexadecimal_forms();
+        // std-rules: allow(locale-change) the test restores the classic locale it changed above
         static_cast<void>(std::setlocale(LC_NUMERIC, "C"));
-        std::cout << "number text tests passed" << (switched ? " (also under a comma locale)" : "") << '\n';
+        std::cout << "number text tests passed (also under a comma locale)\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "number text tests failed: " << error.what() << '\n';

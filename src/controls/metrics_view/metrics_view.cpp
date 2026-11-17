@@ -92,13 +92,13 @@ SemanticDescriptor MetricsView::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<MetricsView::Parts>, 4> metrics_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &MetricsView::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MetricsView::Parts::face},
-    {.declaration = {.name = "accent_strip", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "accent_strip", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &MetricsView::Parts::accent_strip},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &MetricsView::Parts::focus},
 }};
 
@@ -120,6 +120,7 @@ constexpr ControlAnatomy metrics_view_anatomy{
     .parts = metrics_view_parts,
     .states = metrics_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

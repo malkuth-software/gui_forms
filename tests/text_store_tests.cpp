@@ -1,11 +1,13 @@
 #include "gui_forms/text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -175,6 +177,21 @@ void test_atomic_mutation_and_limits() {
       store.replace({Utf8Offset(0), Utf8Offset(0)}, std::string_view{});
   require(!no_op.changed && no_op.revision == store.revision(),
           "empty insertion must remain an observable no-op");
+
+  // A replacement viewing the store's own text: the edit grows the text past
+  // its capacity, so the bytes move while they are copied in.
+  const std::string doubled_from(200, 'q');
+  TextStore aliased(doubled_from);
+  const std::string_view own = aliased.utf8();
+  const TextEditResult appended =
+      aliased.replace({aliased.utf8_size(), aliased.utf8_size()}, own);
+  require(appended.changed && aliased.utf8() == doubled_from + doubled_from,
+          "a replacement viewing the store's own text is copied before the edit");
+  const std::string_view slice = std::string_view(aliased.utf8()).substr(10U, 5U);
+  const TextEditResult prefixed =
+      aliased.replace({Utf8Offset(0), Utf8Offset(0)}, slice);
+  require(prefixed.changed && aliased.utf8_size().value() == 405U,
+          "a slice of the store's own text is copied before the edit");
 }
 
 void test_unicode_line_index() {
@@ -223,17 +240,17 @@ void test_style_span_normalization_and_edit_transform() {
       store.style_spans().size() == 2 &&
           store.style_spans()[0] ==
               TextStyleSpan{{Utf8Offset(0), Utf8Offset(4)}, strong} &&
-          store.style_at(Utf8Offset(3)) == strong &&
-          store.style_at(Utf8Offset(5)) == accent,
+          store.style_at(Utf8Offset(3)) == stxlib::Optional<gui_forms::TextStyleId>::of(strong) &&
+          store.style_at(Utf8Offset(5)) == stxlib::Optional<gui_forms::TextStyleId>::of(accent),
       "adjacent equal style spans must normalize after deterministic sorting");
 
   static_cast<void>(
-      store.replace({Utf8Offset(2), Utf8Offset(3)}, "XYZ", TextStyleId{11}));
+      store.replace({Utf8Offset(2), Utf8Offset(3)}, "XYZ", stxlib::Optional<gui_forms::TextStyleId>::of(TextStyleId{11})));
   require(store.utf8() == "abXYZdef" && store.style_spans().size() == 4 &&
-              store.style_at(Utf8Offset(1)) == strong &&
-              store.style_at(Utf8Offset(2)) == TextStyleId{11} &&
-              store.style_at(Utf8Offset(5)) == strong &&
-              store.style_at(Utf8Offset(7)) == accent,
+              store.style_at(Utf8Offset(1)) == stxlib::Optional<gui_forms::TextStyleId>::of(strong) &&
+              store.style_at(Utf8Offset(2)) == stxlib::Optional<gui_forms::TextStyleId>::of(TextStyleId{11}) &&
+              store.style_at(Utf8Offset(5)) == stxlib::Optional<gui_forms::TextStyleId>::of(strong) &&
+              store.style_at(Utf8Offset(7)) == stxlib::Optional<gui_forms::TextStyleId>::of(accent),
           "text replacement must preserve surrounding spans and explicitly "
           "style insertion");
 

@@ -1,0 +1,111 @@
+# The high-integrity object surface of a linked GUI.Forms program, as a
+# component file for template_harness's harness/check_object_surface.py
+# (docs/object_surface_check.md there; branch claude/object-surface-check
+# until it reaches harness main and GUI.Forms' harness.lock). Until then the
+# interim proof is cmake/CheckSystemImports.cmake with
+# manifests/high_integrity/absent_symbols.txt (gui_forms_high_integrity_surface),
+# on the same program.
+#
+# The two prove complementary things. absent_symbols.txt refuses named
+# symbols, defined or imported, so it proves that what the configuration
+# compiles out, and what the program does not call, is not in the program.
+# This file states the closed list of leaves the program may import:
+# getenv, the user's locale and process spawning are on no list, so a scan
+# that finds one fails, and so does any leaf nobody has given a reason for.
+#
+# DRAFT, written without a build: a linked program's leaves are its imports
+# from the system (the C library, and the host's platform frameworks or
+# libraries, which the first run adds per family), since GUI.Forms, STXlib,
+# the text stack and the C++ runtime are inside it. The first run on the M4
+# (its `leaves:` line) completes the list. Each entry added must carry its
+# reason; none may admit an environment read, a locale read or a process.
+# Names are compared after the leading underscores are stripped.
+
+[component]
+name = "gui_forms_high_integrity_example"
+
+[objects]
+# The linked example program (examples/high_integrity), as the owner's rule
+# of 2026-11-16 has it: a high-integrity program holds exactly what it
+# reaches, so its leaves are the program's, the text stack's and the C++
+# runtime's together.
+targets = [
+  "gui_forms_high_integrity_example",
+]
+
+[families.posix]
+# Core takes a lock of libc++ on every path that starts a window.
+must_see = "ZNSt3__15mutex4lockEv"
+allowed = [
+  { pattern = "ZNSt3__1*", reason = "libc++, linked statically into the program's one module" },
+  { pattern = "ZNKSt3__1*", reason = "libc++'s const members" },
+  { pattern = "ZTVNSt3__1*", reason = "libc++'s vtables" },
+  { pattern = "ZTINSt3__1*", reason = "libc++'s type information" },
+  { pattern = "ZTSNSt3__1*", reason = "libc++'s type names" },
+  { pattern = "ZN6stxlib*", reason = "STXlib (boundary, state, algorithms), the program's own runtime" },
+  { pattern = "ZNK6stxlib*", reason = "STXlib's const members" },
+  { pattern = "stx_*", reason = "the stx libraries' C entry points (stx_png, stx_zlib, stx_skia's swizzle)" },
+  { pattern = "pthread_*", reason = "threads and locks of the worker pool (src/core/threading)" },
+  { symbol = "abort", reason = "the fail-fast exit (src/core/failure/fail_fast.hpp)" },
+  { symbol = "write", reason = "the failure report to standard error (fail_fast.hpp)" },
+  { symbol = "clock_gettime", reason = "the monotonic clock of timers and frame times" },
+]
+
+[families.windows]
+must_see = "ZNSt3__15mutex4lockEv"
+allowed = [
+  { pattern = "ZNSt3__1*", reason = "libc++, linked statically into the program's one module" },
+  { pattern = "ZNKSt3__1*", reason = "libc++'s const members" },
+  { pattern = "ZTVNSt3__1*", reason = "libc++'s vtables" },
+  { pattern = "ZTINSt3__1*", reason = "libc++'s type information" },
+  { pattern = "ZTSNSt3__1*", reason = "libc++'s type names" },
+  { pattern = "ZN6stxlib*", reason = "STXlib (boundary, state, algorithms), the program's own runtime" },
+  { pattern = "ZNK6stxlib*", reason = "STXlib's const members" },
+  { pattern = "stx_*", reason = "the stx libraries' C entry points" },
+  { pattern = "pthread_*", reason = "winpthreads, the threads and locks of the worker pool" },
+  { symbol = "abort", reason = "the fail-fast exit (src/core/failure/fail_fast.hpp)" },
+  { symbol = "QueryPerformanceCounter", reason = "the monotonic clock of timers and frame times" },
+]
+
+[families.web]
+must_see = "ZNSt3__15mutex4lockEv"
+allowed = [
+  { pattern = "ZNSt3__1*", reason = "libc++" },
+  { pattern = "ZNKSt3__1*", reason = "libc++'s const members" },
+  { pattern = "ZTVNSt3__1*", reason = "libc++'s vtables" },
+  { pattern = "ZTINSt3__1*", reason = "libc++'s type information" },
+  { pattern = "ZN6stxlib*", reason = "STXlib, the program's own runtime" },
+  { pattern = "ZNK6stxlib*", reason = "STXlib's const members" },
+  { pattern = "stx_*", reason = "the stx libraries' C entry points" },
+  { pattern = "pthread_*", reason = "Emscripten's threads" },
+  { symbol = "abort", reason = "the fail-fast exit" },
+  { symbol = "stack_pointer", reason = "wasm ABI global: the shadow stack" },
+  { symbol = "memory_base", reason = "wasm ABI global: the module's data base" },
+  { symbol = "table_base", reason = "wasm ABI global: the module's table base" },
+]
+
+[toolchain]
+allowed = [
+  { pattern = "mem*", reason = "the compiler lowers copies, moves, fills and comparisons to memcpy, memmove, memset and memcmp" },
+  { pattern = "cxa_*", reason = "the C++ ABI's guards, throws and atexit registration" },
+  { pattern = "Znwm*", reason = "operator new, which STXlib's allocator replaces in the program" },
+  { pattern = "Znam*", reason = "operator new[]" },
+  { pattern = "ZdlPv*", reason = "operator delete" },
+  { pattern = "ZdaPv*", reason = "operator delete[]" },
+  { pattern = "stack_chk_*", reason = "the stack protector (GUI_FORMS_HARDENING)" },
+  { pattern = "emutls_*", reason = "emulated thread-local storage (MinGW)" },
+  { pattern = "tlv_*", reason = "Mach-O thread-local variables" },
+  { pattern = "tls_get_addr", reason = "ELF thread-local access" },
+  { pattern = "gxx_personality_*", reason = "the unwinder's personality routine" },
+  { pattern = "Unwind_*", reason = "the unwinder" },
+  { pattern = "dso_handle", reason = "the module handle atexit registrations name" },
+  { pattern = "chkstk*", reason = "the Windows stack probe" },
+]
+
+[sanitized]
+allowed = [
+  { pattern = "asan_*", reason = "AddressSanitizer runtime" },
+  { pattern = "ubsan_*", reason = "UndefinedBehaviorSanitizer runtime" },
+  { pattern = "sanitizer_*", reason = "the sanitizers' common runtime" },
+  { pattern = "lsan_*", reason = "LeakSanitizer runtime" },
+]

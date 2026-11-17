@@ -1,0 +1,20 @@
+#include <gui_forms/bytes.hpp>
+
+#include <cstddef>
+#include <string_view>
+
+namespace gui_forms {
+
+std::size_t count_bytes(const std::string_view bytes) {
+    return bytes.size();
+}
+
+bool is_marker(const std::string_view text) {
+    return text == "\xff";
+}
+
+std::size_t name_length(const std::string_view name) {
+    return name.size();
+}
+
+} // namespace gui_forms

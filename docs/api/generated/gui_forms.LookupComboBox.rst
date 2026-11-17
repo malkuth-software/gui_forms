@@ -45,7 +45,7 @@ gui_forms::LookupComboBox
       **filtered_rows** : ``BorrowedSpan<std::size_t>``, read-only
          The rows the open list shows, as indices into rows(), in order.
 
-      **highlighted** : ``std::optional<std::size_t>``, read-only
+      **highlighted** : ``stxlib::Optional<std::size_t>``, read-only
          The highlighted position in filtered_rows(), if any.
 
       **parts** : ``Parts``, read-only
@@ -121,7 +121,7 @@ gui_forms::LookupComboBox
 
       The rows the open list shows, as indices into rows(), in order.
 
-   .. cpp:function:: std::optional<std::size_t> highlighted() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> highlighted() const noexcept
 
       The highlighted position in filtered_rows(), if any.
 
@@ -137,7 +137,7 @@ gui_forms::LookupComboBox
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> row_of(std::string_view key) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> row_of(std::string_view key) const noexcept
 
       The row with ``key``, if any.
 

@@ -16,6 +16,15 @@ enum class NoticeSeverity : std::uint8_t {
     error,        // something failed
 };
 
+// Whether a severity is one of the four values. A severity read from an
+// integer (a binding, a file) can be any byte, and InfoBanner and Toast use
+// it as a custom state index, so both refuse an unknown one.
+[[nodiscard]] constexpr bool notice_severity_known(NoticeSeverity severity) noexcept {
+    const bool known = severity == NoticeSeverity::information || severity == NoticeSeverity::warning ||
+                       severity == NoticeSeverity::success || severity == NoticeSeverity::error;
+    return known;
+}
+
 // A severity's colour, which InfoBanner's keyline and icon, Toast's icon
 // and InstrumentRack's module keyline draw as an authored foreground over
 // the notice's role, under the severity's custom state (`:state(warning)`).

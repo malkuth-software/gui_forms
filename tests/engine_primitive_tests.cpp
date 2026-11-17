@@ -14,6 +14,7 @@
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "support/rgba_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -356,8 +357,8 @@ void test_preparation_refusals() {
     const PrimitiveDescriptor& descriptor = dithered.descriptor();
     require(descriptor.prepared_values == 3U, "the dither derives its three extremes");
     require(builtin("bulge").descriptor().prepared_values == 0U, "the smooth bulge derives nothing");
-    const std::optional<std::size_t> amplitude = find_parameter(descriptor, "amplitude");
-    require(amplitude && descriptor.parameters[*amplitude].animated, "the amplitude is animated");
+    const stxlib::Optional<std::size_t> amplitude = find_parameter(descriptor, "amplitude");
+    require(amplitude.present() && descriptor.parameters[(*amplitude.value())].animated, "the amplitude is animated");
     const PrimitiveParameterBlock defaults = default_parameters(descriptor);
     const PrimitiveTarget target{large_button, DeviceScale{1.0}, {}};
 

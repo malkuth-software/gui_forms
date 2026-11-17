@@ -1,5 +1,6 @@
 #ifndef GUI_FORMS_C_GF_ABI_H
 #define GUI_FORMS_C_GF_ABI_H
+#include "gui_forms/c/gf_c_shield_begin.h"
 
 /*
  * GUI.Forms C ABI, major 1: the stability target of GUI.Forms 0.5, frozen
@@ -69,9 +70,25 @@ extern "C" {
  * cp24); 1.2 (owner decision D9, cp28) adds the window, focus, decoration,
  * anchored overlay, data grid, docking and fonts surfaces and the slots
  * marked since 1.2, additions only; 1.3 adds the class tables
- * (gf_abi_classes.h, GF_TABLE_CLASSES), additions only. */
+ * (gf_abi_classes.h, GF_TABLE_CLASSES), additions only; 1.4 adds the
+ * content boundary (GF_TABLE_CONTENT, GF_HOST_CAPABILITY_HOSTED_CONTENT),
+ * additions only; 1.5 adds the window outer band and shaping, the
+ * window's pointer location, the list view table (GF_TABLE_LIST_VIEW), the
+ * failure detail (gf_failure_detail, diagnostics.failure_detail), the
+ * gate frame kind, fixed-size array event fields and the composite controls
+ * (gf_composite_spec and the custom controls table's load_composite,
+ * create_composite, perform_composite and composite_child), the business card
+ * and the diagnostic overlay (owner decision 4a, 2026-11-15:
+ * gf_program_identity, application.set_program_identity,
+ * windows.show_business_card, diagnostics.set_diagnostic_overlay and
+ * toggle_diagnostic_overlay), relative pointer mode (the gf_controls_table
+ * slots marked since 1.5 and the host capabilities RELATIVE_POINTER to
+ * POINTER_WARP), application font families (gf_app_font_face and the
+ * fonts table's load_family and unload_family) and the presentation shim's
+ * host capabilities (DIRECT_BUFFERS, HOST_SCROLL and
+ * REFERENCE_PRESENTATION), additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 3u
+#define GF_ABI_MINOR 5u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -127,6 +144,10 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_HELP 23u
 /* Since 1.3: objects made from class tables (gf_abi_classes.h). */
 #define GF_TABLE_CLASSES 24u
+/* Since 1.4: content surfaces, content editing and hosted content. */
+#define GF_TABLE_CONTENT 25u
+/* Since 1.5: a list view's columns, items, groups and selection. */
+#define GF_TABLE_LIST_VIEW 26u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -374,12 +395,18 @@ typedef uint32_t gf_font_role;
  * 1), size in logical pixels (finite, above zero) and the logical pixels
  * added between grapheme clusters (finite, from -size/4 to size).
  *
- * reserved holds, since 1.2, the font's bundled family: an id from
- * fonts.family_id (Selawik, say), whose faces draw before the role's, or
- * zero for the role's faces alone. The role still draws what the family
- * does not cover. An id the library does not have gives
- * GF_STATUS_INVALID_ARGUMENT; a 1.1 library takes only zero. (The word
- * keeps its sealed name: renaming a sealed field is a break.)
+ * reserved's low 16 bits hold, since 1.2, the font's bundled family: an id
+ * from fonts.family_id (Selawik, say), whose face nearest the weight and
+ * slant draws before the role's (never synthesized), or zero for the role's
+ * faces alone. The role still draws what the family does not cover. Its
+ * high 16 bits hold, since 1.3, the font's family stack: the families a
+ * theme's font-family list names after the first, drawn after the family
+ * and before the role. A stack number is the process's: read it from a font
+ * (properties.get) and pass it back within the same process, never store
+ * it. An id or stack number the library does not have gives
+ * GF_STATUS_INVALID_ARGUMENT; a 1.2 library takes only zero in the high
+ * bits, a 1.1 library only zero. (The word keeps its sealed name: renaming
+ * a sealed field is a break.)
  */
 typedef struct gf_font {
     gf_font_role role;
@@ -424,7 +451,9 @@ typedef struct gf_font {
  * IMAGE is the image's id in unsigned_integer (themes.load_image; zero is
  * no image). A COLLECTION the library reports holds its element count in
  * unsigned_integer, and each element is read on its own
- * (properties.element_at, events.field_element); a COLLECTION the caller
+ * (properties.element_at, events.field_element); an event field of a
+ * fixed-size array also lends its elements in place (Event fields below);
+ * a COLLECTION the caller
  * passes lists its elements in elements and element_count, each a gf_value
  * of the collection's item kind (not itself a COLLECTION), read during the
  * call only, stepped by the first element's struct_size (the array rule
@@ -481,6 +510,18 @@ typedef uint32_t gf_event_field_flags;
  *   keeps the object retains it;
  * - a collection is COLLECTION, its element count in unsigned_integer; its
  *   elements are read with events.field_element;
+ * - a fixed-size array (since 1.5; a C++ std::array<T, N>, which the schema
+ *   spells as its element kind and count, "target: number[3]") is
+ *   COLLECTION with N in unsigned_integer and in element_count, and
+ *   elements pointing at N contiguous gf_value records (stride
+ *   sizeof(gf_value); null when N is zero), each of the element kind:
+ *   BOOLEAN, SIGNED, UNSIGNED, NUMBER, ENUMERATION (its choice's name in
+ *   text), POINT, SIZE, RECTANGLE, INSETS or COLOR. The records are lent
+ *   for the invoke like the field's value, and events.field_element reads
+ *   the same ones. A writable one takes a COLLECTION of exactly N elements
+ *   of the element kind, each admitted as a field of that kind would be,
+ *   stepped by the first element's struct_size and read during the call
+ *   only; the array is replaced whole;
  * - a reference to the sender adds no field; a member no field carries yet
  *   is left out (the C ABI track lists them).
  * kind is the field's declared kind; the value's own kind is NULL when an
@@ -634,7 +675,9 @@ typedef struct gf_objects_table {
     gf_status (GF_CALL* dispose)(gf_object object);
     gf_status (GF_CALL* state)(gf_object object, gf_object_state* state);
     /* Copy the schema type id ("check_box"; for an application's own
-     * subclass, its nearest schema type's) or the stable id into buffer
+     * subclass, its nearest schema type's; for a composite control, its
+     * definition's type, the document's name with '-' written '_':
+     * "kit_card" for kit-card) or the stable id into buffer
      * (not terminated); required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL. */
     gf_status (GF_CALL* type_id)(gf_object object, char* buffer, uint64_t capacity,
@@ -793,7 +836,8 @@ typedef uint32_t gf_run_flags;
  * (Event fields above), each as "name: kind" with the schema's kind words,
  * separated by ", " ("value: boolean"; "value_1: unsigned_integer, value_2:
  * enumeration"; "cancel: boolean, row_id: text"), " optional" after an
- * OPTIONAL field's kind; empty for none (a notification, or a reference to
+ * OPTIONAL field's kind, and a fixed-size array's kind as its element kind
+ * and count ("target: number[3]", since 1.5); empty for none (a notification, or a reference to
  * the sender). Since 1.2 it is in this vocabulary; 1.1 spelled the C++
  * argument types. manifests/abi/interaction_fields.json maps the C++
  * spellings to it. mutable_payload is 1 when a handler may change an
@@ -888,6 +932,202 @@ typedef uint32_t gf_window_property_flags;
 #define GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR 1024u
 #define GF_WINDOW_PROPERTY_MINIMUM_SIZE 2048u
 
+/* The window outer band (since 1.5; the owner's approval of 2026-11-13):
+ * a thin strip a window reserves along the edges of its client area,
+ * drawn above everything the window draws and hitting nothing. Declaring
+ * it reserves its widths at once and lays the window out again; nothing
+ * the band shows afterwards (lit, flashing, cycling, a colour, a texture)
+ * lays anything out: only its strips repaint. Undeclaring it, a scale
+ * change and full screen with GF_WINDOW_BAND_FULL_SCREEN_HIDES are the
+ * other changes that lay the window out again. Widths are logical units,
+ * snapped per edge to whole device pixels (at least one), and at most
+ * gf_host_capabilities.window_band_maximum_width. The content rectangle is
+ * the client area less the reserved band (windows.content_rect).
+ *
+ * gf_window_band_full_screen: whether a declared band keeps its
+ * reservation while the window is full screen (where the host reports it,
+ * GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS). */
+typedef uint32_t gf_window_band_full_screen;
+#define GF_WINDOW_BAND_FULL_SCREEN_STAYS 0u
+#define GF_WINDOW_BAND_FULL_SCREEN_HIDES 1u
+
+/* gf_window_band_flags: how gf_window_band_options gives its widths.
+ * PER_EDGE: edges gives each side's width (0 reserves nothing there) and
+ * width is ignored; without it width is every side's (0 takes the theme's
+ * band width, else one logical unit). */
+typedef uint32_t gf_window_band_flags;
+#define GF_WINDOW_BAND_PER_EDGE 1u
+
+/* A band declaration (windows.declare_band). An input record: struct_size
+ * at least its 1.5 size, 56; reserved is zero. */
+typedef struct gf_window_band_options {
+    uint32_t struct_size;
+    gf_window_band_flags flags;
+    gf_window_band_full_screen full_screen;
+    uint32_t reserved;
+    double width;
+    gf_logical_insets edges;
+} gf_window_band_options;
+
+/* gf_window_band_state: what the band shows. REST draws the rest colour
+ * (transparent unless set, so a resting band is reserved space showing the
+ * window's base or the texture); LIT the lit colour; FLASHING alternates
+ * them; CYCLING blends between them along a cosine, starting lit. The
+ * library's limiter holds every flash and cycle to at most 1 cycle a
+ * second, never flashes a saturated red, and rests the band lit under
+ * reduced motion, with ambient motion off and in an occluded window. High
+ * contrast draws the high-contrast focus colour, solid, untextured. */
+typedef uint32_t gf_window_band_state;
+#define GF_WINDOW_BAND_STATE_REST 0u
+#define GF_WINDOW_BAND_STATE_LIT 1u
+#define GF_WINDOW_BAND_STATE_FLASHING 2u
+#define GF_WINDOW_BAND_STATE_CYCLING 3u
+
+/* gf_window_band_role: the theme colour the band lights in when no lit
+ * colour is given. THEME is the theme's band lit colour, else the focus
+ * ring's; the others are the theme's colours of those names. */
+typedef uint32_t gf_window_band_role;
+#define GF_WINDOW_BAND_ROLE_THEME 0u
+#define GF_WINDOW_BAND_ROLE_FOCUS 1u
+#define GF_WINDOW_BAND_ROLE_ACCENT 2u
+#define GF_WINDOW_BAND_ROLE_ACCENT_LIGHT 3u
+#define GF_WINDOW_BAND_ROLE_TEXT 4u
+#define GF_WINDOW_BAND_ROLE_BORDER 5u
+
+/* gf_window_band_appearance_flags: which colours gf_window_band_appearance
+ * gives; a colour not given is the theme's. */
+typedef uint32_t gf_window_band_appearance_flags;
+#define GF_WINDOW_BAND_REST_COLOUR 1u
+#define GF_WINDOW_BAND_LIT_COLOUR 2u
+
+/* gf_window_band_texture: a texture under the band's colour, one surface
+ * per strip. NONE draws none. PROCEDURAL: texture_kind is a
+ * GF_PROCEDURAL_PATTERN_*, texture_seed its seed (for HATCH, which has no
+ * noise, its GF_HATCH_STYLE_* instead), texture_primary and
+ * texture_secondary its ground and figure colours, texture_tile its tile
+ * (2 to 256 logical units; a hatch's tile is one cell of 8 by 8 squares)
+ * and texture_strength its strength (0 to 1).
+ * FINISH: texture_kind is a GF_FINISH_* (not the glint), texture_seed its
+ * seed (as int32), texture_primary its paint and texture_secondary its
+ * second colour (dust or weft), texture_tile its grain (0.5 to 4) and
+ * texture_strength its relief (0 to 4); its light and sheen are the
+ * library's defaults. texture_opacity is 0 to 1. */
+typedef uint32_t gf_window_band_texture;
+#define GF_WINDOW_BAND_TEXTURE_NONE 0u
+#define GF_WINDOW_BAND_TEXTURE_PROCEDURAL 1u
+#define GF_WINDOW_BAND_TEXTURE_FINISH 2u
+#define GF_PROCEDURAL_PATTERN_FELT 0u
+#define GF_PROCEDURAL_PATTERN_WOOD_GRAIN 1u
+#define GF_PROCEDURAL_PATTERN_PAPER_FIBRE 2u
+#define GF_PROCEDURAL_PATTERN_PINSTRIPE 3u
+#define GF_PROCEDURAL_PATTERN_BRUSHED_METAL 4u
+#define GF_PROCEDURAL_PATTERN_FRESCO 5u
+#define GF_PROCEDURAL_PATTERN_CHECKER 6u
+#define GF_PROCEDURAL_PATTERN_HATCH 7u
+#define GF_HATCH_STYLE_HORIZONTAL 0u
+#define GF_HATCH_STYLE_VERTICAL 1u
+#define GF_HATCH_STYLE_FORWARD_DIAGONAL 2u
+#define GF_HATCH_STYLE_BACKWARD_DIAGONAL 3u
+#define GF_HATCH_STYLE_CROSS 4u
+#define GF_HATCH_STYLE_DIAGONAL_CROSS 5u
+#define GF_FINISH_DUSTY_MATTE 0u
+#define GF_FINISH_ORANGE_PEEL 1u
+#define GF_FINISH_HAMMERTONE 2u
+#define GF_FINISH_WRINKLE 3u
+#define GF_FINISH_BEAD_BLAST 4u
+#define GF_FINISH_SAND_CAST 5u
+#define GF_FINISH_FLAT 6u
+#define GF_FINISH_CLOTH_WEAVE 7u
+
+/* The band's appearance (windows.set_band_appearance). An input record:
+ * struct_size at least its 1.5 size, 80; reserved is zero. Colours are
+ * 0xRRGGBBAA. frequency is in cycles a second (finite, not negative; 0
+ * holds the band lit), lowered to the limiter's 1. */
+typedef struct gf_window_band_appearance {
+    uint32_t struct_size;
+    gf_window_band_state state;
+    gf_window_band_appearance_flags flags;
+    gf_window_band_role lit_role;
+    uint32_t rest_colour;
+    uint32_t lit_colour;
+    double frequency;
+    gf_window_band_texture texture;
+    uint32_t texture_kind;
+    uint32_t texture_seed;
+    uint32_t texture_primary;
+    uint32_t texture_secondary;
+    uint32_t reserved;
+    double texture_tile;
+    double texture_strength;
+    double texture_opacity;
+} gf_window_band_appearance;
+
+/* gf_window_band_status: the band as it stands (gf_window_band_report).
+ * DECLARED; RESERVED (declared, not hidden by full screen, some edge
+ * wider than 0); FLASHING and CYCLING (a motion runs now, after the
+ * limiter); TEXTURED (the strips draw a texture now). */
+typedef uint32_t gf_window_band_status;
+#define GF_WINDOW_BAND_DECLARED 1u
+#define GF_WINDOW_BAND_RESERVED 2u
+#define GF_WINDOW_BAND_FLASHING 4u
+#define GF_WINDOW_BAND_CYCLING 8u
+#define GF_WINDOW_BAND_TEXTURED 16u
+
+/* The band's report (windows.band_report). An output record: struct_size
+ * at least its 1.5 size, 72. edges are the reserved widths after snapping;
+ * drawn_colour is the colour the strips draw now; frequency is the running
+ * motion's after the limiter (0 when none runs); flash_changes and
+ * cycle_frames count the strip repaints of each motion since the window was
+ * made. */
+typedef struct gf_window_band_report {
+    uint32_t struct_size;
+    gf_window_band_status status;
+    gf_logical_insets edges;
+    uint32_t drawn_colour;
+    gf_window_band_full_screen full_screen;
+    double frequency;
+    uint64_t flash_changes;
+    uint64_t cycle_frames;
+} gf_window_band_report;
+
+/* gf_window_corner_preference (since 1.5): the corners a window asks its
+ * host for. SYSTEM keeps the platform's; SQUARE and ROUND ask, and the
+ * host reports what it did (gf_window_shaping). */
+typedef uint32_t gf_window_corner_preference;
+#define GF_WINDOW_CORNER_PREFERENCE_SYSTEM 0u
+#define GF_WINDOW_CORNER_PREFERENCE_SQUARE 1u
+#define GF_WINDOW_CORNER_PREFERENCE_ROUND 2u
+
+/* gf_window_shaping_flags (since 1.5): what a window's host lets it rely
+ * on. HOST_ATTACHED: a host shows the window (the other host bits are zero
+ * without it). CORNERS_REPORTED: GF_HOST_CAPABILITY_WINDOW_CORNERS.
+ * STATE_REPORTED: GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS. NATIVE_BORDER:
+ * the host draws the band's colour itself outside the client area (no
+ * host yet). FULL_SCREEN: the host reported the window full screen.
+ * COMPLIED: the corners are as the preference asked. */
+typedef uint32_t gf_window_shaping_flags;
+#define GF_WINDOW_SHAPING_HOST_ATTACHED 1u
+#define GF_WINDOW_SHAPING_CORNERS_REPORTED 2u
+#define GF_WINDOW_SHAPING_STATE_REPORTED 4u
+#define GF_WINDOW_SHAPING_NATIVE_BORDER 8u
+#define GF_WINDOW_SHAPING_FULL_SCREEN 16u
+#define GF_WINDOW_SHAPING_COMPLIED 32u
+
+/* A window's shaping report (windows.shaping). An output record:
+ * struct_size at least its 1.5 size, 32. corner_shapes is the set of
+ * gf_window_corner_shape bits the host may report; corner_shape is the
+ * one bit of the window's corners now, 0 when unknown (the band then draws
+ * square); corner_radius is in logical units, for ROUNDED only. */
+typedef struct gf_window_shaping {
+    uint32_t struct_size;
+    gf_window_shaping_flags flags;
+    gf_window_corner_preference preference;
+    uint32_t corner_shapes;
+    uint32_t corner_shape;
+    uint32_t reserved;
+    double corner_radius;
+} gf_window_shaping;
+
 /*
  * GF_TABLE_WINDOWS: one window at a time, on the platform's host.
  *
@@ -958,7 +1198,10 @@ typedef struct gf_windows_table {
      * GF_STATUS_INVALID_STATE while another run is under way.
      * GF_STATUS_INVALID_ARGUMENT for a window the run refuses, with a
      * message naming the reason (for a client size below the minimum, both
-     * sizes). */
+     * sizes). Once admitted, a run ends a window from create whatever its
+     * result: after a refusal by the run (INVALID_ARGUMENT,
+     * UNSUPPORTED_CAPABILITY) the window is disposed, so a caller makes a
+     * new one to try again. Only the INVALID_STATE refusal leaves it. */
     gf_status (GF_CALL* run)(gf_object window_or_root, const gf_run_options* options);
     /* Asks the running window, given as the object passed to run, to close;
      * closing may cancel it. GF_STATUS_INVALID_STATE when it is not
@@ -1035,15 +1278,83 @@ typedef struct gf_windows_table {
      * GF_STATUS_DISPOSED for a window that has been disposed or whose run
      * has ended. */
     gf_status (GF_CALL* focused_control)(gf_object window_or_root, gf_object* control);
+    /* The window outer band and shaping (since 1.5). Each takes window, a
+     * window from create (before or during its run), or a control in a
+     * window, which names that window. UI thread. GF_STATUS_WRONG_HANDLE_KIND
+     * for another object; GF_STATUS_INVALID_STATE for a control not in a
+     * window; GF_STATUS_DISPOSED once the window is gone. The band's state
+     * is the window's, given only to whoever holds the window or one of its
+     * controls; nothing a control draws can reach it.
+     *
+     * declare_band reserves the band (or re-declares it, laying out again
+     * only when a reserved width changes). GF_STATUS_INVALID_ARGUMENT for a
+     * null or short record, a width that is not finite from 0 to
+     * window_band_maximum_width, an unknown full-screen choice or nonzero
+     * reserved, changing nothing. */
+    gf_status (GF_CALL* declare_band)(gf_object window, const gf_window_band_options* options);
+    /* Removes the band and its reservation (the window is laid out again);
+     * nothing for a window without one. */
+    gf_status (GF_CALL* undeclare_band)(gf_object window);
+    /* What the band shows: its strips repaint, nothing is laid out. Kept
+     * while no band is declared. GF_STATUS_INVALID_ARGUMENT, changing
+     * nothing, for a null or short record, an unknown state, role or
+     * texture, a frequency that is not finite or below 0, a texture out of
+     * range, or nonzero reserved. */
+    gf_status (GF_CALL* set_band_appearance)(gf_object window, const gf_window_band_appearance* appearance);
+    /* The band as it stands. GF_STATUS_INVALID_ARGUMENT for a null or short
+     * record. */
+    gf_status (GF_CALL* band_report)(gf_object window, gf_window_band_report* report);
+    /* The corners the window asks its host for, sent at once while a host
+     * shows it and when one does. GF_STATUS_INVALID_ARGUMENT for a value
+     * outside gf_window_corner_preference, changing nothing. */
+    gf_status (GF_CALL* set_corner_preference)(gf_object window, gf_window_corner_preference preference);
+    /* The content rectangle in client coordinates: the client area less the
+     * reserved band. GF_STATUS_INVALID_ARGUMENT for a null output. */
+    gf_status (GF_CALL* content_rect)(gf_object window, gf_logical_rect* rect);
+    /* What the window's host lets its shaping rely on, and its corners now.
+     * GF_STATUS_INVALID_ARGUMENT for a null or short record. */
+    gf_status (GF_CALL* shaping)(gf_object window, gf_window_shaping* report);
+    /* Where the pointer is, as a window last saw it (since 1.5): the
+     * position of the last pointer event the window dispatched, which
+     * during a callback is the event being dispatched. mouse_enter and
+     * mouse_leave carry no fields (Windows Forms' EventArgs), so their
+     * handlers read the crossing here: during the move that crosses, the
+     * old control's mouse_leave and then the new one's mouse_enter, both
+     * at that move's position, before the move's own route.
+     * window_or_control is a window from create or a control in a window.
+     * location receives the position in the control's coordinates (the
+     * window's for a window), window_position in the window's, and inside
+     * 1 while the pointer is in the window, else 0; all are zero before
+     * the window has seen a pointer event. Any output may be null. UI
+     * thread. GF_STATUS_WRONG_HANDLE_KIND for an object that is neither;
+     * GF_STATUS_INVALID_STATE for a control not in a window;
+     * GF_STATUS_DISPOSED for a window that has been disposed or whose run
+     * has ended. */
+    gf_status (GF_CALL* pointer_location)(gf_object window_or_control, gf_logical_point* location,
+                                          gf_logical_point* window_position, uint32_t* inside);
+    /* Since 1.5. Shows the program's business card in the hand over a
+     * window (show_business_card): window_or_root is a window from create,
+     * or a control in a window, as for focused_control. shown receives 1
+     * when the card came out, 0 when the window already showed it; it may
+     * be null. The card is put away by Escape, its close mark or a press
+     * beside it. UI thread. GF_STATUS_INVALID_STATE for a control not in a
+     * window or in a sub-surface; GF_STATUS_DISPOSED for a window that has
+     * been disposed or whose run has ended. */
+    gf_status (GF_CALL* show_business_card)(gf_object window_or_root, uint32_t* shown);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
  * a tree; a component is owned by a control or a window; a service is
- * reached through another object and lists nothing. */
+ * reached through another object and lists nothing. A defined control
+ * (since 1.5) is a control made only from a definition, never by its id:
+ * objects.create refuses it, and the custom controls table makes one
+ * (load_composite, create_composite). It lists nothing itself, as each
+ * definition declares its own parts, properties and events. */
 typedef uint32_t gf_schema_kind;
 #define GF_SCHEMA_KIND_CONTROL 0u
 #define GF_SCHEMA_KIND_COMPONENT 1u
 #define GF_SCHEMA_KIND_SERVICE 2u
+#define GF_SCHEMA_KIND_DEFINED_CONTROL 3u
 
 /* gf_schema_vocabulary: the schema's lists of names (design language 8.5
  * and 12.7), each in the library's order. MARKS leaves out the absence of a
@@ -1099,9 +1410,10 @@ typedef uint32_t gf_schema_primitive_list;
  * The schema's records are output records: the caller sets struct_size, at
  * least the 1.0 size, and the library writes the 1.0 fields after it. Every
  * gf_utf8_view the schema table writes lends library storage that stays
- * valid and unchanged until the process ends; it is the one exception to
- * the rule that no library storage is lent. An empty composed_from or
- * enumeration means none.
+ * valid and unchanged until the process ends, except the composite_*
+ * slots', valid while the load they describe is held (gf_schema_composite);
+ * these are the one exception to the rule that no library storage is lent.
+ * An empty composed_from or enumeration means none.
  */
 typedef struct gf_schema_type {
     uint32_t struct_size;
@@ -1257,6 +1569,44 @@ typedef struct gf_schema_effect {
 } gf_schema_effect;
 
 /*
+ * Since 1.5, provisional (numbered 1.5 while 1.5 is unreleased, else 1.6).
+ * A composite definition the process has loaded (GF_TABLE_CUSTOM_CONTROLS
+ * load_composite), as the schema table lists it: composite is the identity
+ * of that load, which the composite_* slots take; id is the registered
+ * (snake case) name, which objects.type_id gives for a control made from
+ * it; name is the type's name as the document writes it; version is
+ * "major.minor"; slot is the slot's local ID, empty without one. The counts
+ * are of its anatomy (parts, states, custom states), its declared
+ * properties (the values it registers: neither presentational nor
+ * command properties), its events and its commands.
+ *
+ * Release rules: a load is listed from load_composite until the caller's
+ * hold on the definition ends, by releasing its last reference or by
+ * disposing the object; the controls made from it keep working, but are no
+ * longer listed. Every gf_utf8_view a composite_* slot writes lends the
+ * definition's storage, valid until that hold ends (not until the process
+ * ends, as the rest of the schema's text is). An identity is never reused:
+ * once its load is released, every composite_* slot given it fails with
+ * GF_STATUS_REMOVED and writes nothing, and an identity no load had gives
+ * GF_STATUS_INVALID_ARGUMENT. UI thread only.
+ */
+typedef struct gf_schema_composite {
+    uint32_t struct_size;
+    uint32_t reserved;
+    uint64_t composite;
+    gf_utf8_view id;
+    gf_utf8_view name;
+    gf_utf8_view version;
+    gf_utf8_view slot;
+    uint64_t part_count;
+    uint64_t state_count;
+    uint64_t custom_state_count;
+    uint64_t property_count;
+    uint64_t event_count;
+    uint64_t command_count;
+} gf_schema_composite;
+
+/*
  * GF_TABLE_SCHEMA: the control schema (stage T1) and the engine it themes,
  * as manifests/control-schema.json records them. Types are numbered from
  * zero in the registry's order; every other list from zero in its own. An
@@ -1310,6 +1660,39 @@ typedef struct gf_schema_table {
     gf_status (GF_CALL* child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record);
     gf_status (GF_CALL* child_choice_at)(uint64_t type, uint64_t property, uint64_t choice,
                                          gf_schema_choice* record);
+    /*
+     * The slots below are provisional additions (numbered 1.5 while 1.5 is
+     * unreleased, else 1.6); a table whose struct_size ends before one does
+     * not have it. They list the composite definitions loaded now (see
+     * gf_schema_composite for the release rules), the C counterpart of
+     * manifests/control-schema.json's composites.
+     */
+    /* How many loads are listed now, and one of them (index below the
+     * count), in load order. Indices move as loads are released; the
+     * record's composite does not. */
+    gf_status (GF_CALL* composite_count)(uint64_t* count);
+    gf_status (GF_CALL* composite_at)(uint64_t index, gf_schema_composite* record);
+    /* A part of the composite's anatomy: region, focus, then the declared
+     * parts in document order. */
+    gf_status (GF_CALL* composite_part_at)(uint64_t composite, uint64_t part, gf_schema_part* record);
+    /* A state of the composite, or (part not GF_SCHEMA_NONE) of one of its
+     * parts. */
+    gf_status (GF_CALL* composite_state_at)(uint64_t composite, uint64_t part, uint64_t state,
+                                            gf_utf8_view* name);
+    gf_status (GF_CALL* composite_custom_state_at)(uint64_t composite, uint64_t state, gf_utf8_view* name);
+    /* A declared property, as property_at gives a type's, and one choice
+     * of it. */
+    gf_status (GF_CALL* composite_property_at)(uint64_t composite, uint64_t property,
+                                               gf_schema_property* record);
+    gf_status (GF_CALL* composite_choice_at)(uint64_t composite, uint64_t property, uint64_t choice,
+                                             gf_schema_choice* record);
+    /* A declared event: its name as the document writes it, and its payload
+     * in the interaction vocabulary (gf_schema_interaction), empty for
+     * none; mutable_payload is 0. */
+    gf_status (GF_CALL* composite_event_at)(uint64_t composite, uint64_t event,
+                                            gf_schema_interaction* record);
+    /* A declared command's name, as perform_composite takes it. */
+    gf_status (GF_CALL* composite_command_at)(uint64_t composite, uint64_t command, gf_utf8_view* name);
 } gf_schema_table;
 
 /* Borrowed bytes: size bytes at data. data may be null only when size is
@@ -1555,13 +1938,47 @@ typedef uint64_t gf_host_capability;
  * window outer band follows the report (a rounded band where the host
  * rounds). Which shapes it may give is
  * gf_host_capabilities.window_corner_shapes. Without it a window's corners
- * are square to the band. Windows 11 (DWM) today. */
+ * are square to the band. Windows 11 (DWM) shapes and reports them; macOS
+ * only reports them, square in full screen and for a borderless window and
+ * unknown otherwise (since 1.5; its window_corner_shapes is SQUARE). */
 #define GF_HOST_CAPABILITY_WINDOW_CORNERS 17179869184ull
 /* Since 1.1: the host reports the native window's state: full screen, and
  * the maximize, snap and restore changes that can reshape its corners. A
  * window outer band declared to hide in full screen hides only where the
  * host reports it. Windows, macOS and X11. */
 #define GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS 34359738368ull
+/* Since 1.4: hosted content, a program in a process of its own on a content
+ * surface (GF_TABLE_CONTENT start_hosted). macOS, Linux and Windows. */
+#define GF_HOST_CAPABILITY_HOSTED_CONTENT 68719476736ull
+/* Since 1.5: relative pointer mode (gf_controls_table
+ * request_relative_pointer). RELATIVE_POINTER: the host delivers motion
+ * deltas itself (without it the window derives them from positions).
+ * RAW_POINTER_MOTION: the deltas can be unaccelerated. POINTER_CONFINEMENT:
+ * the host keeps the pointer inside a rectangle and can hold it still
+ * (locked). POINTER_WARP: the host can move the pointer. macOS and X11. */
+#define GF_HOST_CAPABILITY_RELATIVE_POINTER 137438953472ull
+#define GF_HOST_CAPABILITY_RAW_POINTER_MOTION 274877906944ull
+#define GF_HOST_CAPABILITY_POINTER_CONFINEMENT 549755813888ull
+#define GF_HOST_CAPABILITY_POINTER_WARP 1099511627776ull
+/* Since 1.5: the host opens a web or mail address (http, https or mailto)
+ * in the user's own browser or mail program; the business card's website
+ * opens through it. Windows, macOS and X11. */
+#define GF_HOST_CAPABILITY_OPEN_URL 2199023255552ull
+/* Since 1.5: the presentation shim, reserved before the seal.
+ * DIRECT_BUFFERS: frames are written with CPU pixels into buffers the
+ * window system gives (possibly GPU-backed, treated as a blind interface),
+ * falling back to the host's copy on any refusal or loss. HOST_SCROLL: a
+ * scroll moves the pixels already presented and only the exposed band is
+ * copied. REFERENCE_PRESENTATION: the host is GUI.Forms' own window
+ * manager, the reference behaviour for the others. Each is reported only
+ * where the host implements it and its presentation policy selects it. */
+#define GF_HOST_CAPABILITY_DIRECT_BUFFERS 8796093022208ull
+#define GF_HOST_CAPABILITY_HOST_SCROLL 17592186044416ull
+#define GF_HOST_CAPABILITY_REFERENCE_PRESENTATION 35184372088832ull
+/* Bits 46 to 48 (70368744177664, 140737488355328 and 281474976710656)
+ * are reserved: no host reports them and no constant will take them.
+ * GUI.Forms has no GPU surfaces (owner, 2026-11-16), and the GPU-backed
+ * buffer routes that held them before the seal were withdrawn. */
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its
@@ -1615,6 +2032,7 @@ typedef uint32_t gf_pointer_cursor;
 #define GF_POINTER_CURSOR_FORBIDDEN 7u
 #define GF_POINTER_CURSOR_RESIZE_DIAGONAL_DOWN 8u
 #define GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP 9u
+#define GF_POINTER_CURSOR_HELP 10u
 
 /* gf_dialog_kind: which dialog a gf_dialog_request asks for. */
 typedef uint32_t gf_dialog_kind;
@@ -1649,12 +2067,23 @@ typedef uint32_t gf_dialog_choice;
 
 /* gf_dialog_flags: allow_multiple for an open-file dialog,
  * confirm_overwrite for a save-file dialog, allow_alpha for a colour
- * dialog; a flag the kind does not read is refused. */
+ * dialog; a flag the kind does not read is refused. The file checks
+ * (Windows Forms' CheckFileExists, CheckPathExists and CreatePrompt) are
+ * spelled so that no flag keeps each kind's default: an open-file dialog
+ * accepts only an existing file in an existing folder unless
+ * allow_missing_file or allow_missing_folder is given; a save-file dialog
+ * requires an existing folder unless allow_missing_folder is given, and
+ * requires an existing file or asks before a new one only with
+ * require_existing_file or create_prompt. */
 typedef uint32_t gf_dialog_flags;
 #define GF_DIALOG_FLAGS_NONE 0u
 #define GF_DIALOG_FLAGS_ALLOW_MULTIPLE 1u
 #define GF_DIALOG_FLAGS_CONFIRM_OVERWRITE 2u
 #define GF_DIALOG_FLAGS_ALLOW_ALPHA 4u
+#define GF_DIALOG_FLAGS_ALLOW_MISSING_FILE 8u
+#define GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE 16u
+#define GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER 32u
+#define GF_DIALOG_FLAGS_CREATE_PROMPT 64u
 
 typedef uint32_t gf_dialog_outcome;
 #define GF_DIALOG_OUTCOME_ACCEPTED 0u
@@ -1792,6 +2221,11 @@ typedef uint32_t gf_shadow_frame_kind;
 /* A callback posted with dispatch.begin_invoke: subject is the target's
  * stable id when the target is a control (else empty). */
 #define GF_SHADOW_FRAME_KIND_POSTED_CALLBACK 6u
+/* Since 1.5. A boundary gate of the library's runtime that is none of the
+ * above: name is its operation, such as a native callback entry's site
+ * ("windows.window_procedure"). A reader of an older minor shows an unknown
+ * kind by its number. */
+#define GF_SHADOW_FRAME_KIND_GATE 7u
 
 /* gf_shadow_frame_flags: set on a frame whose text was cut to its field, at
  * the last whole UTF-8 sequence that fits. */
@@ -1892,6 +2326,55 @@ typedef struct gf_failure_snapshot {
     uint8_t site[64];
 } gf_failure_snapshot;
 
+/*
+ * Failure detail (since 1.5): what a development build of the library knows
+ * of the failure in the thread's snapshot beyond its frames, for a binding
+ * to attach to its language's exception (GuiFormsException's native detail
+ * in the C# binding). type holds type_size bytes of UTF-8 naming the
+ * exception's C++ type, demangled where the runtime can ("std::runtime_error"),
+ * not terminated, the bytes after it zero; trace holds trace_count return
+ * addresses of the native stack where the exception was thrown, innermost
+ * first, as numbers in this process (a symbolizer reads them against the
+ * process's module map). A release build of the library records neither:
+ * type_size and trace_count are zero. status and sequence are the
+ * snapshot's, so a binding can tell that the detail is its failure's.
+ *
+ * flags (provisional: added to 1.5's record after its first form; it stays
+ * 1.5's if 1.5 is unreleased when it lands, else it becomes 1.6's) says
+ * more of the failure in every build. GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK:
+ * the failure was parked by the library and rethrown later, and the park
+ * could not keep its own copy of the frames (its allocation was refused,
+ * out of memory included); the snapshot's frames are then what the thread
+ * still held of the record, possibly none, not necessarily the whole
+ * record. The library accepts a record of 1.5's first size (536 bytes,
+ * without flags and reserved) and writes only the bytes that fit; a library
+ * from before flags leaves them as the caller set them, so set them to
+ * zero.
+ */
+#define GF_FAILURE_TYPE_CAPACITY 256u
+#define GF_FAILURE_TRACE_CAPACITY 32u
+
+typedef uint32_t gf_failure_detail_flags;
+#define GF_FAILURE_DETAIL_FLAGS_NONE 0u
+#define GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK 1u
+
+/* The calling thread's last failure detail. An output record, as
+ * gf_abi_version_info. */
+typedef struct gf_failure_detail {
+    uint32_t struct_size;
+    gf_status status;
+    uint64_t sequence;
+    uint32_t type_size;
+    uint32_t trace_count;
+    /* GF_FAILURE_TYPE_CAPACITY bytes. */
+    uint8_t type[256];
+    /* GF_FAILURE_TRACE_CAPACITY addresses. */
+    uint64_t trace[32];
+    /* Provisional (see above). */
+    gf_failure_detail_flags flags;
+    uint32_t reserved;
+} gf_failure_detail;
+
 typedef struct gf_diagnostics_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1959,6 +2442,28 @@ typedef struct gf_diagnostics_table {
      * not UTF-8 or too long.
      */
     gf_status (GF_CALL* raise_native_exception)(gf_utf8_view message);
+    /*
+     * Since 1.5. Copies the calling thread's last failure detail (the
+     * snapshot's exception type and native trace) into detail. A thread
+     * with no snapshot reads status GF_STATUS_OK, sequence zero and nothing
+     * else. The detail stays and is forgotten with the snapshot
+     * (clear_failure_snapshot). GF_STATUS_INVALID_ARGUMENT for a null
+     * detail or one smaller than its 1.5 size.
+     */
+    gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
+    /*
+     * Since 1.5. The diagnostic overlay: the invalidation outlines and,
+     * whenever they are on, the counters card at each window's top left
+     * (renderer, controls, layout and paint passes, damage, input and
+     * focus, wakes, presents and the worst present). It is the same
+     * process switch as set_invalidation_overlay (enabled 0 or 1);
+     * toggle_diagnostic_overlay turns it to the other state, the business
+     * card's gesture (D held with a secondary press on the vendor name),
+     * and writes the new state into enabled, which may be null. Any
+     * thread. GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.
+     */
+    gf_status (GF_CALL* set_diagnostic_overlay)(uint32_t enabled);
+    gf_status (GF_CALL* toggle_diagnostic_overlay)(uint32_t* enabled);
 } gf_diagnostics_table;
 
 /*
@@ -2020,6 +2525,163 @@ typedef struct gf_scroll_snapshot {
     double event_new_value;
 } gf_scroll_snapshot;
 
+/* gf_relative_pointer_mode (since 1.5; C++ RelativePointerMode): FREE keeps
+ * the ordinary pointer (shown, moving, clicking) and adds every motion
+ * sample as a delta; CONFINED keeps the pointer inside the control (and the
+ * window's release regions), its buttons and wheel samples with no clicks;
+ * LOCKED hides the pointer and holds it still, only deltas arriving. */
+typedef uint32_t gf_relative_pointer_mode;
+#define GF_RELATIVE_POINTER_MODE_FREE 0u
+#define GF_RELATIVE_POINTER_MODE_CONFINED 1u
+#define GF_RELATIVE_POINTER_MODE_LOCKED 2u
+
+/* gf_relative_pointer_result (since 1.5; C++ RelativePointerResult):
+ * GRANTED as asked; DEGRADED below what was asked (the grant says what);
+ * DETACHED, NOT_ACTIVE (the window inactive, or a dialog or menu open
+ * without the control), NO_PRESS (until_release without a held button) and
+ * INVALID_REQUEST (an unknown mode) refuse, changing nothing. */
+typedef uint32_t gf_relative_pointer_result;
+#define GF_RELATIVE_POINTER_RESULT_GRANTED 0u
+#define GF_RELATIVE_POINTER_RESULT_DEGRADED 1u
+#define GF_RELATIVE_POINTER_RESULT_DETACHED 2u
+#define GF_RELATIVE_POINTER_RESULT_NOT_ACTIVE 3u
+#define GF_RELATIVE_POINTER_RESULT_NO_PRESS 4u
+#define GF_RELATIVE_POINTER_RESULT_INVALID_REQUEST 5u
+
+/* gf_relative_pointer_end (since 1.5; C++ RelativePointerEnd): why a mode
+ * ended (the relative_pointer_ended event's reason, and last_end). */
+typedef uint32_t gf_relative_pointer_end;
+#define GF_RELATIVE_POINTER_END_RELEASED 0u
+#define GF_RELATIVE_POINTER_END_ESCAPE 1u
+#define GF_RELATIVE_POINTER_END_FOCUS_LOST 2u
+#define GF_RELATIVE_POINTER_END_DEACTIVATED 3u
+#define GF_RELATIVE_POINTER_END_MODAL 4u
+#define GF_RELATIVE_POINTER_END_DETACHED 5u
+#define GF_RELATIVE_POINTER_END_PRESS_RELEASED 6u
+#define GF_RELATIVE_POINTER_END_SUPERSEDED 7u
+
+/* A relative pointer request (since 1.5; C++ RelativePointerRequest). An
+ * input record: struct_size is sizeof(gf_relative_pointer_request) (24).
+ * hide_cursor, raw_motion and until_release are 0 or 1. */
+typedef struct gf_relative_pointer_request {
+    uint32_t struct_size;
+    gf_relative_pointer_mode mode;
+    uint32_t hide_cursor;
+    uint32_t raw_motion;
+    uint32_t until_release;
+    uint32_t reserved;
+} gf_relative_pointer_request;
+
+/* What a request got (since 1.5; C++ RelativePointerGrant). An output
+ * record, as gf_abi_version_info. host_relative: the host delivers deltas
+ * (0: the window derives them from positions). */
+typedef struct gf_relative_pointer_grant {
+    uint32_t struct_size;
+    gf_relative_pointer_result result;
+    gf_relative_pointer_mode mode;
+    uint32_t raw;
+    uint32_t cursor_hidden;
+    uint32_t host_relative;
+} gf_relative_pointer_grant;
+
+/* A window's relative pointer state as seen from one of its controls
+ * (since 1.5; C++ RelativePointerSnapshot and RelativePointerSupport). An
+ * output record, as gf_abi_version_info. owned: this control holds the
+ * mode. The support fields say what the window's host can do. */
+typedef struct gf_relative_pointer_state {
+    uint32_t struct_size;
+    uint32_t owned;
+    uint32_t active;
+    uint32_t suspended;
+    gf_relative_pointer_mode mode;
+    uint32_t raw;
+    uint32_t host_relative;
+    gf_relative_pointer_end last_end;
+    uint64_t grants;
+    uint64_t samples;
+    uint64_t suspensions;
+    uint64_t resumptions;
+    uint64_t ends;
+    uint32_t support_relative_motion;
+    uint32_t support_raw_motion;
+    uint32_t support_lock;
+    uint32_t support_confine;
+    uint32_t support_warp;
+    uint32_t reserved;
+} gf_relative_pointer_state;
+
+/*
+ * Content effects (since 1.5): a filter and mask on a control and its
+ * descendants together, as the theme's filter and mask on a control rule
+ * (C++ Control::set_content_effect, PaintGroupEffect). The control's chunk
+ * and its descendants' chunks, a custom control's painted pixels among
+ * them, draw into one group; the group's image passes the colour matrix,
+ * then the colour table, then the blur, then the mask layers, and is
+ * composited where the control's window paints. A damage under an effect
+ * spreads by its reach (ceil(1.5 x blur) + 3 logical units).
+ *
+ * gf_effect_mask_mode: how a mask layer's colour becomes its weight
+ * (CSS mask-mode; the inverse modes are house extensions).
+ * gf_effect_mask_composite: how a layer joins the layers beneath it
+ * (CSS mask-composite).
+ */
+typedef uint32_t gf_effect_mask_mode;
+#define GF_EFFECT_MASK_MODE_ALPHA 0u
+#define GF_EFFECT_MASK_MODE_LUMINANCE 1u
+#define GF_EFFECT_MASK_MODE_INVERSE_ALPHA 2u
+#define GF_EFFECT_MASK_MODE_INVERSE_LUMINANCE 3u
+typedef uint32_t gf_effect_mask_composite;
+#define GF_EFFECT_MASK_COMPOSITE_ADD 0u
+#define GF_EFFECT_MASK_COMPOSITE_SUBTRACT 1u
+#define GF_EFFECT_MASK_COMPOSITE_INTERSECT 2u
+#define GF_EFFECT_MASK_COMPOSITE_EXCLUDE 3u
+
+/* The most mask layers of a content effect, and its largest blur in
+ * logical units (the standard deviation is half of it, as CSS blur()'s
+ * radius is read). */
+#define GF_CONTENT_EFFECT_MAXIMUM_MASKS 4u
+#define GF_CONTENT_EFFECT_MAXIMUM_BLUR 16u
+
+/*
+ * One mask layer: a linear ramp from start_rgba at start to end_rgba at
+ * end, both 0xRRGGBBAA, the points in the group's normalized box (0,0 its
+ * top left, 1,1 its bottom right; any finite value). Equal points give a
+ * solid layer of start_rgba. reserved is 0. struct_size is the caller's
+ * sizeof, the stride of an array of layers.
+ */
+typedef struct gf_effect_mask_layer {
+    uint32_t struct_size;
+    gf_effect_mask_mode mode;
+    gf_effect_mask_composite composite;
+    uint32_t start_rgba;
+    uint32_t end_rgba;
+    uint32_t reserved;
+    gf_logical_point start;
+    gf_logical_point end;
+} gf_effect_mask_layer;
+
+/*
+ * A content effect. has_colour_matrix and has_colour_table are 0 or 1;
+ * colour_matrix is row-major 4 x 5 on straight colour with channels in
+ * [0, 1] (rows red, green, blue, alpha; the fifth column a constant; each
+ * result clamped), the identity when has_colour_matrix is 0 and only the
+ * table is given; colour_table is 256 entries each of red, green, blue and
+ * alpha in that order, applied after the matrix (CSS feComponentTransfer's
+ * table). blur is 0 to GF_CONTENT_EFFECT_MAXIMUM_BLUR. masks is mask_count
+ * (at most GF_CONTENT_EFFECT_MAXIMUM_MASKS) layers, bottom first, null for
+ * none; the library copies everything during the call.
+ */
+typedef struct gf_content_effect {
+    uint32_t struct_size;
+    uint32_t has_colour_matrix;
+    uint32_t has_colour_table;
+    uint32_t mask_count;
+    double colour_matrix[20];
+    uint8_t colour_table[1024];
+    double blur;
+    const gf_effect_mask_layer* masks;
+} gf_content_effect;
+
 /*
  * GF_TABLE_CONTROLS: operations on a control that are not state: layout
  * transactions, window-relative bounds, pointer capture and scrolling. A
@@ -2046,7 +2708,9 @@ typedef struct gf_controls_table {
     gf_status (GF_CALL* set_pointer_capture)(gf_object object, uint32_t captured);
     gf_status (GF_CALL* pointer_capture)(gf_object object, uint32_t* captured);
     gf_status (GF_CALL* scroll_state)(gf_object object, gf_scroll_snapshot* state);
-    /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT. */
+    /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT and changes
+     * nothing. An auto-scrolling control keeps its own range (the axis's
+     * minimum and maximum are ignored), so its value must lie in that range. */
     gf_status (GF_CALL* set_scroll_axis)(gf_object object, gf_scroll_orientation orientation,
                                          const gf_scroll_axis* axis);
     /* Scrolls object, after layout, so that child, its descendant, shows. */
@@ -2077,6 +2741,43 @@ typedef struct gf_controls_table {
      * A control not in a window has neither. Either output may be null. UI
      * thread. */
     gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);
+    /* Relative pointer mode (since 1.5): the control asks its window for
+     * the pointer's motion as deltas, every sample, as the control's
+     * relative_pointer event (the interaction catalog's
+     * RelativePointerEventArgs), until relative_pointer_ended. Escape, focus
+     * leaving the control, the window's deactivation, a dialog or menu,
+     * and the control's disposal always end it; over a release region
+     * (set_pointer_release_regions) a confined or locked mode is suspended
+     * and the ordinary pointer reaches the region. grant receives the
+     * outcome (a refusal is GF_STATUS_OK with a refusing result).
+     * GF_STATUS_INVALID_ARGUMENT for a request flag that is not 0 or 1. UI
+     * thread. */
+    gf_status (GF_CALL* request_relative_pointer)(gf_object object, const gf_relative_pointer_request* request,
+                                                  gf_relative_pointer_grant* grant);
+    /* Ends the control's own mode; released receives 1, or 0 when it had
+     * none (may be null). */
+    gf_status (GF_CALL* release_relative_pointer)(gf_object object, uint32_t* released);
+    gf_status (GF_CALL* relative_pointer_state)(gf_object object, gf_relative_pointer_state* state);
+    /* Moves the pointer to position, in the control's logical units, where
+     * the host can (a locked mode moves its virtual position); warped
+     * receives 1 or 0 (may be null). Only while the control holds the mode.
+     * A position that is not finite gives INVALID_ARGUMENT. */
+    gf_status (GF_CALL* warp_pointer)(gf_object object, gf_logical_point position, uint32_t* warped);
+    /* Sets the release regions of the control's window, in window logical
+     * units: the shell's capsule and its kin (at most 8; count 0 clears).
+     * A region that is not finite or is empty, or more than 8, gives
+     * INVALID_ARGUMENT, changing nothing. */
+    gf_status (GF_CALL* set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions,
+                                                     uint32_t count);
+    /* Sets the control's content effect (since 1.5), or clears it when
+     * effect is null; a cleared control shows its theme's effect, if any.
+     * An effect smaller than its 1.5 size, a flag that is not 0 or 1, a
+     * value that is not finite, a blur out of range, more than 4 layers,
+     * a layer array whose strides differ, or a layer with an unknown mode
+     * or composite or a nonzero reserved gives INVALID_ARGUMENT, changing
+     * nothing. A custom control's painted pixels are inside its group too:
+     * this is the group effect for custom paint. UI thread. */
+    gf_status (GF_CALL* set_content_effect)(gf_object object, const gf_content_effect* effect);
 } gf_controls_table;
 
 /* gf_text_ink_role: a theme ink for decorated text (C++ TextInkRole): the
@@ -2211,7 +2912,7 @@ typedef uint32_t gf_anchored_overlay_flags;
 /* Prefer the space above the anchor (else below). */
 #define GF_ANCHORED_OVERLAY_ABOVE 1u
 /* Align the content's right edge with the anchor's (else the left edges). */
-#define GF_ANCHORED_OVERLAY_ALIGN_FAR 2u
+#define GF_ANCHORED_OVERLAY_ALIGN_END 2u
 /* Never flip to the other side when the preferred one is too small. */
 #define GF_ANCHORED_OVERLAY_NO_FLIP 4u
 /* A click outside the content does not dismiss it. */
@@ -2483,6 +3184,49 @@ typedef struct gf_custom_control_spec {
     const gf_custom_layout_callbacks* layout;
 } gf_custom_control_spec;
 
+/*
+ * Since 1.5. A composite control (a `.control` document): parts, states,
+ * properties, events and commands declared in the document, its children
+ * stock controls, the C form of a C++ CompositeControl. load_composite
+ * reads, checks and compiles the document once into a definition, an
+ * object the caller holds like any other (objects.release frees it; the
+ * controls made from it keep what they need). The children's element
+ * names are resolved among child_types, each a schema type id in any
+ * spelling (GF_TABLE_SCHEMA), at most GF_COMPOSITE_MAXIMUM_CHILD_TYPES;
+ * a type that is not a control made from its stable id alone is refused.
+ * file names the document in the diagnostics. Everything in the record is
+ * read during the call only; struct_size is at least the 1.5 size and
+ * reserved zero. A refused document gives GF_STATUS_INVALID_ARGUMENT with
+ * its diagnostics, one line each, as the failure's message as far as it
+ * holds them (runtime.error_detail), and no definition.
+ *
+ * create_composite makes a control from a definition with stable_id (the
+ * objects table's rule) and gives the caller one reference; its children
+ * have stable_id.<local> for each `@local` of the document. Its type id
+ * (objects.type_id) is the document's name in snake case, which the
+ * schema table lists among its composites (composite_count, since 1.5,
+ * provisional) while the definition is held; its own properties are reached through
+ * GF_TABLE_PROPERTIES under their registered names, and its declared
+ * events through events.subscribe under theirs, with the payload, when it
+ * has one, as the field "value". perform_composite runs one of its
+ * commands by name, as a part's activation does; performed receives 1
+ * when it ran, 0 when it is not enabled (it may be null), and a name the
+ * document does not declare gives GF_STATUS_NOT_FOUND. composite_child
+ * gives a new reference to the child of local ID local_id (`title` for
+ * `@title`), GF_STATUS_NOT_FOUND when there is none. Another control
+ * gives GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ */
+#define GF_COMPOSITE_MAXIMUM_CHILD_TYPES 64u
+
+typedef struct gf_composite_spec {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view file;
+    gf_utf8_view document;
+    const gf_utf8_view* child_types;
+    uint64_t child_type_count;
+} gf_composite_spec;
+
 typedef struct gf_custom_controls_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -2496,6 +3240,12 @@ typedef struct gf_custom_controls_table {
      * declared without GF_CUSTOM_PROPERTY_CHANGE_NOTIFICATIONS gives
      * INVALID_ARGUMENT; another control gives WRONG_HANDLE_KIND. */
     gf_status (GF_CALL* notify_changed)(gf_object object, uint64_t index);
+    /* Since 1.5. Composite controls (load_composite to composite_child),
+     * below. */
+    gf_status (GF_CALL* load_composite)(const gf_composite_spec* spec, gf_object* definition);
+    gf_status (GF_CALL* create_composite)(gf_object definition, gf_utf8_view stable_id, gf_object* object);
+    gf_status (GF_CALL* perform_composite)(gf_object control, gf_utf8_view command, uint32_t* performed);
+    gf_status (GF_CALL* composite_child)(gf_object control, gf_utf8_view local_id, gf_object* child);
 } gf_custom_controls_table;
 
 /*
@@ -2942,6 +3692,24 @@ typedef uint32_t gf_application_state;
 /* The application is current. */
 #define GF_APPLICATION_STATE_CURRENT 1u
 
+/*
+ * Since 1.5. The program's identity, as the business card shows it: the
+ * product, its version, the vendor (display text, printed large), the
+ * website (empty or an https:// address), the copyright and the credits.
+ * An input record: struct_size at least the 1.5 size, reserved zero; the
+ * text is UTF-8, read during the call only.
+ */
+typedef struct gf_program_identity {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view product;
+    gf_utf8_view version;
+    gf_utf8_view vendor;
+    gf_utf8_view website;
+    gf_utf8_view copyright;
+    gf_utf8_view credits;
+} gf_program_identity;
+
 typedef struct gf_application_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -2966,6 +3734,12 @@ typedef struct gf_application_table {
     gf_status (GF_CALL* close)(uint64_t* windows_alive);
     /* Whether an application is current. */
     gf_status (GF_CALL* state)(gf_application_state* state);
+    /* Since 1.5. Sets the program's identity (set_program_identity), read by
+     * every business card; validated whole, so a refusal leaves the
+     * previous identity. UI thread. GF_STATUS_INVALID_ARGUMENT for a null
+     * or short record, a non-zero reserved field, text that is not UTF-8 or
+     * a website that is neither empty nor an https:// address. */
+    gf_status (GF_CALL* set_program_identity)(const gf_program_identity* identity);
 } gf_application_table;
 
 /*
@@ -3386,7 +4160,7 @@ typedef struct gf_data_grid_table {
      * receives 0, changing nothing, when the edit or the row's validation
      * refuses. A cell in a hidden column gives GF_STATUS_INVALID_STATE.
      * The grid's own settings are schema properties (properties.set and
-     * get): read_only, selection_mode (cell_select or full_row_select),
+     * get): read_only, selection_mode (a data_grid_view_selection_mode choice),
      * multi_select and allow_user_to_add_rows. */
     gf_status (GF_CALL* set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved);
     /* The selected rows' positions in order (full-row selections, or in
@@ -3735,19 +4509,78 @@ typedef struct gf_docking_table {
 
 /*
  * GF_TABLE_FONTS (since 1.2): the bundled font families a gf_font names in
- * its reserved word (owner decision D2). A family is a fixed set of faces
- * the library ships; family_id gives the id of one by the name its faces
- * report (ASCII case ignored), family_name the name of an id. A role's own
- * face (Portsmouth Rapids, Carlito, Cousine) has no id: gf_font.role names
- * it, and family_id gives GF_STATUS_NOT_FOUND for it as for an unknown
- * name. Both read only the library's constant list and may be called from
- * any thread.
+ * its reserved word (owner decision D2; the family registry, owner
+ * decisions of 2026-11-13). A family is a fixed set of faces the library
+ * ships, with a number that never changes; an application's own families
+ * are loaded apart from them (load_family, below).
+ * family_id gives the id for a name (ASCII case ignored): a family's own
+ * name, then a name the library's font substitution table maps to a
+ * bundled face (Segoe UI and Tahoma to Selawik). Resolve a name once and
+ * pass the id. A name nothing maps to a bundled family (Arial, whose
+ * substitute is not bundled with every program, or an unknown name) gives
+ * GF_STATUS_NOT_FOUND: it is unmapped, and the role's faces draw. Since
+ * 1.3 a role's own face (Portsmouth Rapids, Carlito, Cousine) has an id as
+ * well; a 1.2 library gives GF_STATUS_NOT_FOUND for it. family_name gives
+ * the name of an id (the name Windows Forms' Font.FontFamily.Name reports).
+ * Both read only the library's constant tables and may be called from any
+ * thread.
+ *
+ * Application font families (since 1.5, provisional: the integrator
+ * renumbers the minor and the slots at fold time; owner decision of
+ * 2026-11-15, "App-loaded fonts: inside composites and subsurfaces"). An
+ * application loads its own font bytes as a family of its own
+ * (load_family), with an id from 256 up that a gf_font's reserved word
+ * carries like a bundled family's. Such a family draws only inside
+ * composite controls (a composite document's look may name it by its name)
+ * and inside sub-surfaces; stock controls, themes and GUI.Forms' own
+ * interface drop it with a warning line and draw their bundled faces.
+ *
+ * load_family validates every face first (the table checks of
+ * gui_forms::validate_app_font: an sfnt with TrueType or CFF outlines, no
+ * collection, a sound table directory, and head, hhea, hmtx, maxp, cmap,
+ * name, post and the outline tables present and consistent) and copies the
+ * bytes, so the caller may free them on return. 1 to
+ * GF_APP_FONT_MAXIMUM_FACES faces, each a gf_app_font_face whose
+ * struct_size is at least the 1.5 size, reserved zero, weight 1 to 1000 and
+ * italic 0 or 1, of at most GF_APP_FONT_MAXIMUM_BYTES bytes. The array is
+ * stepped by the first face's struct_size, a multiple of 8 that every face
+ * repeats, like every array of size-prefixed records. The name is 1
+ * to 64 bytes of UTF-8 without control characters, quotes, commas or
+ * semicolons, and no bundled family, CSS generic or loaded application
+ * family has it. A refusal gives GF_STATUS_INVALID_ARGUMENT (the reason,
+ * the face and the table as the failure's message), or
+ * GF_STATUS_LIMIT_EXCEEDED once 256 families have been loaded in the
+ * process; nothing is registered. A face that later fails to open, shape
+ * or rasterise quarantines its family for the process: its text draws with
+ * the font's bundled faces.
+ *
+ * unload_family unloads a family load_family gave: new text no longer
+ * resolves it at once, and its bytes are freed when the last text engine
+ * that opened them goes (deferred receives 1 then, 0 when they were freed
+ * at once; it may be null). An id that is not loaded (never given, or
+ * already unloaded) gives GF_STATUS_NOT_FOUND. An id is never reused.
+ * Families still loaded when the library unloads are unloaded then. Both
+ * may be called from any thread.
  */
+#define GF_APP_FONT_MAXIMUM_FACES 4u
+#define GF_APP_FONT_MAXIMUM_BYTES 67108864u
+
+typedef struct gf_app_font_face {
+    uint32_t struct_size;
+    uint32_t reserved;
+    uint32_t weight;
+    uint32_t italic;
+    gf_bytes_view bytes;
+} gf_app_font_face;
+
 typedef struct gf_fonts_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     gf_status (GF_CALL* family_id)(gf_utf8_view name, uint32_t* family);
     gf_status (GF_CALL* family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required);
+    gf_status (GF_CALL* load_family)(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count,
+                                     uint32_t* family);
+    gf_status (GF_CALL* unload_family)(uint32_t family, uint32_t* deferred);
 } gf_fonts_table;
 
 /* gf_help_navigator: what help.show_navigator opens (Windows Forms'
@@ -3863,6 +4696,679 @@ typedef struct gf_help_table {
 } gf_help_table;
 
 /*
+ * GF_TABLE_CONTENT (since 1.4): the content boundary (C++
+ * <gui_forms/content.hpp>; docs/user/content-surfaces.md). A content
+ * surface (objects.create "ContentSurface") shows finished frames that a
+ * consumer renders itself, on a thread of its own with its own engine and
+ * fonts, or in a process of its own (hosted content). A content text
+ * editor (objects.create "ContentTextEditor") keeps the text, caret,
+ * selection, editing keys, input methods, undo, clipboard and
+ * accessibility, while the consumer supplies the text layout and the
+ * pixels. It is an integrity boundary, not a security boundary: what the
+ * content hands over is validated before it is used, and content that
+ * stalls, fails or crashes cannot stop or corrupt the interface; content in
+ * the process, and a hosted program, are not confined.
+ *
+ * Threads. The surface, editor and hosted slots are UI-thread slots;
+ * hosted_support may be called from any thread. A gf_content_sink is the
+ * consumer's end of one channel: any thread may call the sink slots, at
+ * any time, until it releases the sink. Once the surface revokes the
+ * channel (close_content, new content, the surface leaving its window or
+ * its destruction, a termination), every publication reports
+ * GF_CONTENT_PUBLISH_REVOKED and reaches nothing the interface reads; the
+ * sink still answers until it is released. The events (a surface's
+ * status_changed; an editor's layout_requested, text_changed and
+ * selection_changed) are subscribed through GF_TABLE_EVENTS. At most
+ * GF_CONTENT_MAXIMUM_SINKS sinks are held at once (GF_STATUS_LIMIT_EXCEEDED
+ * beyond).
+ *
+ * Programs. start_program runs a gf_content_program's run callback on a
+ * thread the library starts for it, once, with sender zero and the name
+ * "run"; inside it, program_sink gives the run's sink, and program_fail
+ * names a failure the surface reports when run returns (as status failed).
+ * run should return
+ * when the sink reports a stop (sink_state, or sink_wait_for_request
+ * returning early). terminate and the surface's close never wait longer
+ * than the termination grace: a program still running then is abandoned
+ * (its channel is revoked and its thread left to finish on its own). The
+ * library releases run once, on the program's thread after run returns;
+ * when start_program fails the caller keeps it.
+ *
+ * Hosted content. start_hosted starts a program by absolute path in a
+ * process of its own (C++ ContentSurface::start_hosted_content), with its
+ * frames through shared memory and its input through a channel; the
+ * surface forwards its pointer, keys, text and focus to the process in the
+ * owner's input order (manifests/abi/interaction_order.json), and only what
+ * no subscriber or rule handled. A crash ends the process only: the
+ * surface's status becomes GF_CONTENT_STATUS_FAILED with the signal or exit
+ * status as its failure. Where hosted content is not available
+ * (hosted_support; GF_HOST_CAPABILITY_HOSTED_CONTENT) start_hosted gives
+ * GF_STATUS_UNSUPPORTED_CAPABILITY.
+ */
+
+/* A sink: nonzero, never reused; zero is none. */
+typedef uint64_t gf_content_sink;
+
+/* gf_content_status: where a surface's content is in its life. */
+typedef uint32_t gf_content_status;
+/* No content: before open_content, after close_content. */
+#define GF_CONTENT_STATUS_DISCONNECTED 0u
+/* Connected, no frame yet. */
+#define GF_CONTENT_STATUS_WAITING 1u
+/* Publishing, or reporting itself alive, within the stale interval. */
+#define GF_CONTENT_STATUS_LIVE 2u
+/* No frame and no heartbeat for longer than the stale interval: the last
+ * good frame stays under a veil until the next frame or heartbeat. */
+#define GF_CONTENT_STATUS_STALE 3u
+/* A termination was asked for and the content has not finished. */
+#define GF_CONTENT_STATUS_TERMINATING 4u
+/* The content finished, or honoured a termination. */
+#define GF_CONTENT_STATUS_ENDED 5u
+/* The content did not finish within the termination grace, or a hosted
+ * program was killed. */
+#define GF_CONTENT_STATUS_ABANDONED 6u
+/* The program failed (program_fail), or a hosted program crashed or broke
+ * the protocol (the failure slot says how). */
+#define GF_CONTENT_STATUS_FAILED 7u
+
+/* gf_content_publish_result: what one frame publication did. Every result
+ * but PUBLISHED leaves the surface showing what it showed before. */
+typedef uint32_t gf_content_publish_result;
+#define GF_CONTENT_PUBLISH_PUBLISHED 0u
+/* Every buffer is held by readers: publish the next frame. */
+#define GF_CONTENT_PUBLISH_DROPPED_BUSY 1u
+/* The channel is revoked: nothing will be shown again. */
+#define GF_CONTENT_PUBLISH_REVOKED 2u
+/* Width or height zero. */
+#define GF_CONTENT_PUBLISH_REFUSED_EMPTY 3u
+/* An axis over GF_CONTENT_MAXIMUM_FRAME_EXTENT, or more pixel bytes than
+ * GF_CONTENT_MAXIMUM_FRAME_BYTES. */
+#define GF_CONTENT_PUBLISH_REFUSED_TOO_LARGE 4u
+/* row_bytes smaller than width * 4. */
+#define GF_CONTENT_PUBLISH_REFUSED_ROW_BYTES 5u
+/* pixels shorter than the frame it describes. */
+#define GF_CONTENT_PUBLISH_REFUSED_EXTENT 6u
+/* A pixel format the surface does not know. */
+#define GF_CONTENT_PUBLISH_REFUSED_FORMAT 7u
+/* A damage rectangle outside the frame. */
+#define GF_CONTENT_PUBLISH_REFUSED_DAMAGE 8u
+/* The surface could not allocate a buffer of the frame's size. */
+#define GF_CONTENT_PUBLISH_FAILED_ALLOCATION 9u
+
+/* gf_content_semantics_result: what one semantic text publication did. */
+typedef uint32_t gf_content_semantics_result;
+#define GF_CONTENT_SEMANTICS_PUBLISHED 0u
+#define GF_CONTENT_SEMANTICS_REVOKED 1u
+#define GF_CONTENT_SEMANTICS_REFUSED_INVALID_UTF8 2u
+/* The three texts hold more than GF_CONTENT_MAXIMUM_SEMANTIC_TEXT_BYTES. */
+#define GF_CONTENT_SEMANTICS_REFUSED_TOO_LONG 3u
+
+/* gf_content_layout_result: what checking an editor's layout found. Every
+ * result but ACCEPTED leaves the previous layout in force. */
+typedef uint32_t gf_content_layout_result;
+#define GF_CONTENT_LAYOUT_ACCEPTED 0u
+/* Made for another revision of the text than the current one. */
+#define GF_CONTENT_LAYOUT_STALE_REVISION 1u
+/* More than GF_CONTENT_MAXIMUM_LAYOUT_ENTRIES lines, clusters or carets. */
+#define GF_CONTENT_LAYOUT_REFUSED_TOO_LARGE 2u
+/* A range past the text, reversed, out of order or overlapping. */
+#define GF_CONTENT_LAYOUT_REFUSED_RANGE 3u
+/* A range or caret offset that is not a grapheme boundary. */
+#define GF_CONTENT_LAYOUT_REFUSED_BOUNDARY 4u
+/* A cluster naming no line, outside its line or empty; or a line its
+ * clusters do not cover contiguously. */
+#define GF_CONTENT_LAYOUT_REFUSED_CLUSTER 5u
+/* A box that is not finite or has a negative size. */
+#define GF_CONTENT_LAYOUT_REFUSED_GEOMETRY 6u
+/* Caret stops not ascending by offset. */
+#define GF_CONTENT_LAYOUT_REFUSED_CARET 7u
+
+/* gf_content_pixel_format: the frame formats a surface accepts. */
+typedef uint32_t gf_content_pixel_format;
+/* Four bytes a pixel, blue, green, red, alpha, premultiplied, sRGB. */
+#define GF_CONTENT_PIXEL_FORMAT_BGRA32_PREMULTIPLIED_SRGB 0u
+
+/* gf_hosted_support: whether hosted content exists on this platform. */
+typedef uint32_t gf_hosted_support;
+#define GF_HOSTED_SUPPORT_AVAILABLE 0u
+/* Not written for this platform yet (Windows). */
+#define GF_HOSTED_SUPPORT_NOT_REPORTED 1u
+
+#define GF_CONTENT_MAXIMUM_FRAME_EXTENT 16384u
+#define GF_CONTENT_MAXIMUM_FRAME_BYTES 268435456u
+#define GF_CONTENT_MAXIMUM_SEMANTIC_TEXT_BYTES 1048576u
+#define GF_CONTENT_MAXIMUM_LAYOUT_ENTRIES 1000000u
+/* The longest termination grace accepted, in milliseconds (longer ones are
+ * lowered). */
+#define GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS 10000u
+/* The longest stale interval, wait and hosted timeout accepted, in
+ * milliseconds (an hour); longer ones give GF_STATUS_INVALID_ARGUMENT. */
+#define GF_CONTENT_MAXIMUM_WAIT_MS 3600000u
+/* The most sinks held at once, and the most arguments of a hosted program. */
+#define GF_CONTENT_MAXIMUM_SINKS 65536u
+#define GF_HOSTED_MAXIMUM_ARGUMENTS 4096u
+
+/* A rectangle of a frame's pixels. */
+typedef struct gf_content_pixel_rect {
+    uint32_t x;
+    uint32_t y;
+    uint32_t width;
+    uint32_t height;
+} gf_content_pixel_rect;
+
+/*
+ * One finished frame, an input record: struct_size at least its 1.4 size,
+ * reserved zero, opaque 0 or 1. width by height pixels in pixel_format,
+ * rows row_bytes apart from pixels.data; pixels must hold the frame's
+ * extent, row_bytes * (height - 1) + width * 4 bytes. opaque promises every
+ * pixel has alpha 255 (not checked per pixel; a broken promise shows what
+ * lies under the surface and corrupts nothing). damage is the part that
+ * differs from the previous frame of the same size; all zero for the whole
+ * frame. The library copies the pixels before the call returns.
+ */
+typedef struct gf_content_frame {
+    uint32_t struct_size;
+    gf_content_pixel_format pixel_format;
+    uint32_t width;
+    uint32_t height;
+    uint64_t row_bytes;
+    uint32_t opaque;
+    uint32_t reserved;
+    gf_content_pixel_rect damage;
+    gf_bytes_view pixels;
+} gf_content_frame;
+
+/* What the surface asks of its content, an output record (the caller sets
+ * struct_size): the device size it shows at, the display scale, and a
+ * generation that grows with every change. Zero size before the surface has
+ * been arranged in a window. */
+typedef struct gf_content_request {
+    uint32_t struct_size;
+    uint32_t width;
+    uint32_t height;
+    uint32_t reserved;
+    double scale;
+    uint64_t generation;
+} gf_content_request;
+
+/* The text assistive technology reads for content whose pixels carry none,
+ * an input record (struct_size, reserved zero): the accessible name, the
+ * text shown (the node's value) and a longer description, UTF-8. */
+typedef struct gf_content_semantics {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view name;
+    gf_utf8_view text;
+    gf_utf8_view description;
+} gf_content_semantics;
+
+/* A channel's counters, an output record (the caller sets struct_size).
+ * last_refusal is GF_CONTENT_PUBLISH_PUBLISHED while there was none. */
+typedef struct gf_content_statistics {
+    uint32_t struct_size;
+    gf_content_publish_result last_refusal;
+    uint64_t frames_published;
+    uint64_t frames_refused;
+    uint64_t frames_dropped;
+    uint64_t heartbeats;
+    uint64_t stale_transitions;
+    uint64_t recoveries;
+    uint64_t semantics_published;
+    uint64_t semantics_refused;
+    uint64_t after_revocation;
+} gf_content_statistics;
+
+/* A content program (start_program), an input record: struct_size at least
+ * its 1.4 size, opaque 0 or 1 (the placeholder's promise until the first
+ * frame), run as the section above describes. */
+typedef struct gf_content_program {
+    uint32_t struct_size;
+    uint32_t opaque;
+    gf_callback run;
+} gf_content_program;
+
+/* A hosted program (start_hosted), an input record: struct_size at least
+ * its 1.4 size, opaque 0 or 1. executable is the program's absolute path
+ * (UTF-8; it is not looked up on PATH), arguments its argument_count
+ * arguments after its name (at most GF_HOSTED_MAXIMUM_ARGUMENTS). slot_bytes
+ * is each frame slot's size (zero: 32 MiB; at most
+ * GF_CONTENT_MAXIMUM_FRAME_BYTES); start_timeout_ms how long the program
+ * may take to connect (zero: 5000); stop_grace_ms how long a stopped
+ * program may take to exit before it is killed (zero: 100; keep it below
+ * the surface's termination grace). Both times at most
+ * GF_CONTENT_MAXIMUM_WAIT_MS. */
+typedef struct gf_hosted_options {
+    uint32_t struct_size;
+    uint32_t opaque;
+    gf_utf8_view executable;
+    const gf_utf8_view* arguments;
+    uint64_t argument_count;
+    uint64_t slot_bytes;
+    uint64_t start_timeout_ms;
+    uint64_t stop_grace_ms;
+} gf_hosted_options;
+
+/* The input channel to a surface's hosted program, an output record (the
+ * caller sets struct_size): connected is 1 while the process runs and is
+ * connected; dropped counts the forwarded events it could not take. */
+typedef struct gf_hosted_input_report {
+    uint32_t struct_size;
+    uint32_t connected;
+    uint64_t dropped;
+} gf_hosted_input_report;
+
+/* One line of an editor's layout: its UTF-8 byte range [start, end) of the
+ * text and its box, in the editor's logical coordinates. */
+typedef struct gf_content_text_line {
+    uint64_t start;
+    uint64_t end;
+    gf_logical_rect bounds;
+} gf_content_text_line;
+
+/* One cluster: a run of whole graphemes on line (an index into the
+ * layout's lines), its byte range, right_to_left 0 or 1, and its box. */
+typedef struct gf_content_text_cluster {
+    uint64_t start;
+    uint64_t end;
+    uint32_t line;
+    uint32_t right_to_left;
+    gf_logical_rect bounds;
+} gf_content_text_cluster;
+
+/* An explicit caret position: a byte offset on a grapheme boundary and the
+ * caret's bar there. */
+typedef struct gf_content_caret_stop {
+    uint64_t offset;
+    gf_logical_rect caret;
+} gf_content_caret_stop;
+
+/* An affine map from a layout's own coordinates to the editor's logical
+ * coordinates (provisional, see gf_content_text_layout's transformed):
+ * x' = xx * x + xy * y + dx and y' = yx * x + yy * y + dy, the shape of a
+ * painter transform (rotation, scale, shear and translation). */
+typedef struct gf_content_layout_transform {
+    double xx;
+    double xy;
+    double yx;
+    double yy;
+    double dx;
+    double dy;
+} gf_content_layout_transform;
+
+/* A layout box mapped to the editor's logical coordinates (provisional): the
+ * images of the unmapped box's corners. */
+typedef struct gf_content_quad {
+    gf_logical_point top_left;
+    gf_logical_point top_right;
+    gf_logical_point bottom_right;
+    gf_logical_point bottom_left;
+} gf_content_quad;
+
+/* An editor's layout (editor_submit_layout), an input record (struct_size,
+ * reserved zero), made for text_revision: lines in text order, clusters
+ * covering each non-empty line, and optional caret stops ascending by
+ * offset. The library copies the arrays.
+ *
+ * transformed and transform are provisional additions to the 1.4 record
+ * (64 bytes before them), numbered 1.5 while 1.5 is unreleased and 1.6
+ * otherwise: transformed 1 says every box is in the layout's own
+ * coordinates and transform maps them to the editor's, so its caret,
+ * selection, hit testing and published boxes follow the turned text
+ * (C++ ContentTextLayout::transform); 0 (and a record of the 1.4 size)
+ * means the boxes are the editor's coordinates. transform_reserved is
+ * zero. A transform that is not finite or flattens the plane is refused as
+ * GF_CONTENT_LAYOUT_REFUSED_GEOMETRY. */
+typedef struct gf_content_text_layout {
+    uint32_t struct_size;
+    uint32_t reserved;
+    uint64_t text_revision;
+    const gf_content_text_line* lines;
+    uint64_t line_count;
+    const gf_content_text_cluster* clusters;
+    uint64_t cluster_count;
+    const gf_content_caret_stop* carets;
+    uint64_t caret_count;
+    /* Provisional (above). */
+    uint32_t transformed;
+    uint32_t transform_reserved;
+    gf_content_layout_transform transform;
+} gf_content_text_layout;
+
+typedef struct gf_content_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Opens a new channel on surface and gives its sink, revoking any
+     * earlier channel (and stopping a running program, bounded). opaque is
+     * 0 or 1. The status becomes waiting. A surface that is not a
+     * content_surface gives GF_STATUS_WRONG_HANDLE_KIND. */
+    gf_status (GF_CALL* open_content)(gf_object surface, uint32_t opaque, gf_content_sink* sink);
+    /* Stops a running program (bounded), revokes the channel and clears
+     * the region; the status becomes disconnected. */
+    gf_status (GF_CALL* close_content)(gf_object surface);
+    /* Opens a new channel and runs program on a thread of its own. The
+     * library takes program->run only when this returns GF_STATUS_OK. */
+    gf_status (GF_CALL* start_program)(gf_object surface, const gf_content_program* program);
+    /* Starts a hosted program and forwards the surface's input to it (the
+     * section above). GF_STATUS_INVALID_ARGUMENT for an executable that is
+     * not an absolute path or a slot size over the limit. */
+    gf_status (GF_CALL* start_hosted)(gf_object surface, const gf_hosted_options* options);
+    /* Asks the content to stop and returns at once. */
+    gf_status (GF_CALL* terminate)(gf_object surface);
+    /* The bounded wait of a termination, close or replacement (default
+     * 250), at most GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS. */
+    gf_status (GF_CALL* set_termination_grace)(gf_object surface, uint64_t milliseconds);
+    /* How long content may publish nothing before it is stale (default
+     * 1000; zero turns the watchdog off; short ones are raised to the
+     * minimum; at most GF_CONTENT_MAXIMUM_WAIT_MS). */
+    gf_status (GF_CALL* set_stale_interval)(gf_object surface, uint64_t milliseconds);
+    gf_status (GF_CALL* status)(gf_object surface, gf_content_status* status);
+    /* Why the content failed, as text; empty unless the status is failed. */
+    gf_status (GF_CALL* failure)(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required);
+    /* The channel's counters; all zero without content. */
+    gf_status (GF_CALL* statistics)(gf_object surface, gf_content_statistics* statistics);
+    /* The newest request sent to the content. */
+    gf_status (GF_CALL* request)(gf_object surface, gf_content_request* request);
+    /* The veil's caption for status (stale, abandoned and failed have
+     * English defaults); empty hides it. */
+    gf_status (GF_CALL* set_status_caption)(gf_object surface, gf_content_status status, gf_utf8_view caption);
+    /* Sets the semantic text from the UI thread; GF_STATUS_INVALID_ARGUMENT
+     * when it is not UTF-8 or too long (nothing changes then). */
+    gf_status (GF_CALL* set_semantics)(gf_object surface, const gf_content_semantics* semantics);
+    /* 1 while a program the surface started has not been reaped. */
+    gf_status (GF_CALL* program_running)(gf_object surface, uint32_t* running);
+    /* The surface's hosted input channel; not connected and zero dropped
+     * without hosted content. */
+    gf_status (GF_CALL* hosted_input)(gf_object surface, gf_hosted_input_report* report);
+    /* Whether hosted content exists here. Any thread. */
+    gf_status (GF_CALL* hosted_support)(gf_hosted_support* support);
+    /* Validates frame, then copies it into the surface (result says what
+     * happened; a refusal is not a failed call). Any thread. */
+    gf_status (GF_CALL* sink_publish)(gf_content_sink sink, const gf_content_frame* frame,
+                                      gf_content_publish_result* result);
+    /* Reports the content alive without a new frame. Any thread. */
+    gf_status (GF_CALL* sink_heartbeat)(gf_content_sink sink);
+    /* Replaces the surface's semantic text; the newest wins. Any thread. */
+    gf_status (GF_CALL* sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics,
+                                                gf_content_semantics_result* result);
+    /* The newest request. Any thread. */
+    gf_status (GF_CALL* sink_request)(gf_content_sink sink, gf_content_request* request);
+    /* Blocks the calling (content) thread until the request's generation
+     * passes seen_generation, the channel is revoked, a stop is asked for,
+     * or timeout_ms passes (at most GF_CONTENT_MAXIMUM_WAIT_MS); gives the
+     * request then. The UI thread must not call it: it would block the
+     * interface. */
+    gf_status (GF_CALL* sink_wait_for_request)(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms,
+                                               gf_content_request* request);
+    /* revoked is 1 once the channel is revoked; stop_requested 1 once the
+     * surface asked the content to stop. Any thread. */
+    gf_status (GF_CALL* sink_state)(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested);
+    /* The channel's counters. Any thread. */
+    gf_status (GF_CALL* sink_statistics)(gf_content_sink sink, gf_content_statistics* statistics);
+    /* Ends the caller's handle; the channel itself lives on while the
+     * surface or another handle holds it. A released or unknown sink gives
+     * GF_STATUS_STALE_HANDLE. Any thread. */
+    gf_status (GF_CALL* sink_release)(gf_content_sink sink);
+    /* Inside a program's run callback: a new handle to its sink, which the
+     * caller releases. Elsewhere GF_STATUS_INVALID_STATE. */
+    gf_status (GF_CALL* program_sink)(gf_content_sink* sink);
+    /* Inside a program's run callback: when run returns, the program ends
+     * as failed with message (UTF-8) as its failure. The last call wins.
+     * Elsewhere GF_STATUS_INVALID_STATE. */
+    gf_status (GF_CALL* program_fail)(gf_utf8_view message);
+    /* The editor's text revision, which grows with every change of the
+     * text. A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND. */
+    gf_status (GF_CALL* editor_text_revision)(gf_object editor, uint64_t* revision);
+    /* The editor's text (UTF-8). */
+    gf_status (GF_CALL* editor_text)(gf_object editor, char* buffer, uint64_t capacity, uint64_t* required);
+    /* Replaces the text without undo history; the caret goes to the end. */
+    gf_status (GF_CALL* editor_set_text)(gf_object editor, gf_utf8_view text);
+    /* Validates and adopts layout for the current revision; result says
+     * why it was refused otherwise (a refusal is not a failed call). */
+    gf_status (GF_CALL* editor_submit_layout)(gf_object editor, const gf_content_text_layout* layout,
+                                              gf_content_layout_result* result);
+    /* 1 when the adopted layout is for the current revision. */
+    gf_status (GF_CALL* editor_layout_current)(gf_object editor, uint32_t* current);
+    /* Opens the channel the editor's frames are published through and gives
+     * its sink, revoking any earlier one. opaque is 0 or 1. */
+    gf_status (GF_CALL* editor_open_frames)(gf_object editor, uint32_t opaque, gf_content_sink* sink);
+    /* The caret's bar from the current layout: present is 0 without one
+     * (rectangle is then left as it was). */
+    gf_status (GF_CALL* editor_caret_rectangle)(gf_object editor, uint32_t* present, gf_logical_rect* rectangle);
+    /* The selection's boxes from the current layout, in order: required
+     * receives their number; a buffer of fewer than that many gives
+     * GF_STATUS_BUFFER_TOO_SMALL and writes nothing. */
+    gf_status (GF_CALL* editor_selection_rectangles)(gf_object editor, gf_logical_rect* buffer, uint64_t capacity,
+                                                     uint64_t* required);
+    /* The text offset nearest point by the current layout (the end of the
+     * text without one). */
+    gf_status (GF_CALL* editor_position_at)(gf_object editor, gf_logical_point point, uint64_t* offset);
+    /* 1 (the default): the editor draws the selection and caret over the
+     * frame; 0 leaves both to the consumer. */
+    gf_status (GF_CALL* editor_set_draws_selection)(gf_object editor, uint32_t draws);
+    /* 1: Enter inserts a line break and Up, Down, Home and End move by the
+     * layout's lines; 0 (the default): Enter passes on. */
+    gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
+    gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
+    /*
+     * The slots below are provisional additions (numbered 1.5 while 1.5 is
+     * unreleased, else 1.6); a table whose struct_size ends before one does
+     * not have it.
+     */
+    /* 1: a multiline editor inserts a tab for Tab (C++ set_accepts_tab);
+     * 0 (the default): Tab goes on to focus navigation. */
+    gf_status (GF_CALL* editor_set_accepts_tab)(gf_object editor, uint32_t accepts);
+    /* Puts replacement (UTF-8) in place of the selection, or inserts it at
+     * the caret, as one undo step through the read-only state and the edit
+     * filter; applied is 1 when the edit was made. GF_STATUS_INVALID_ARGUMENT
+     * for text that is not UTF-8. */
+    gf_status (GF_CALL* editor_replace_selection)(gf_object editor, gf_utf8_view replacement, uint32_t* applied);
+    /* Removes a non-empty selection; applied is 0 when there was nothing to
+     * remove or the edit was refused. */
+    gf_status (GF_CALL* editor_delete_selection)(gf_object editor, uint32_t* applied);
+    /* The input method's unfinished composition as a byte range [start,
+     * end) of the text: present is 0 without one (start and end are then
+     * left as they were). */
+    gf_status (GF_CALL* editor_composition_range)(gf_object editor, uint32_t* present, uint64_t* start,
+                                                  uint64_t* end);
+    /* The caret's bar as a quad mapped by the layout's transform: present is
+     * 0 without a current layout (quad is then left as it was). */
+    gf_status (GF_CALL* editor_caret_quad)(gf_object editor, uint32_t* present, gf_content_quad* quad);
+    /* The selection's, and the composition's, boxes as mapped quads, in
+     * order, as editor_selection_rectangles: required receives their number;
+     * a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing. */
+    gf_status (GF_CALL* editor_selection_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
+                                                uint64_t* required);
+    gf_status (GF_CALL* editor_composition_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
+                                                  uint64_t* required);
+} gf_content_table;
+
+/*
+ * GF_TABLE_LIST_VIEW (since 1.5): a list_view's columns, items, groups,
+ * selection, focus and sort glyph (C++ ListView, Windows Forms' ListView).
+ * Its events (selection_changed, item_activated, column_click,
+ * item_checking, item_checked, column_width_changed, before_label_edit,
+ * after_label_edit and the others the schema lists) are interactions:
+ * events.subscribe takes their names on the view. Its settings (view,
+ * activation, header_style, check_boxes, multi_select, full_row_select,
+ * show_groups, default_group_header, label_edit, tile_size, font) are
+ * properties (GF_TABLE_PROPERTIES). Another control gives
+ * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ *
+ * Columns, items and groups are numbered by their index in the view's
+ * model, which grouping and the shown order do not change. The item
+ * functions read and replace the view's own items; a view in virtual mode
+ * (a C++ item source) counts its source's items, and item_at, item_sub_item,
+ * set_items and set_item_checked give GF_STATUS_INVALID_STATE there.
+ * Replacing the items carries the selection, the focused item and the
+ * anchor over by stable ID.
+ *
+ * Arrays of records the caller passes have the stride of their first
+ * element's struct_size, the caller's sizeof, which every element repeats;
+ * each element is at least its 1.5 size. A record and what it references
+ * are read during the call; texts are copied.
+ */
+
+/* gf_list_view_alignment: how a column's text, or a group's header, sits. */
+typedef uint32_t gf_list_view_alignment;
+#define GF_LIST_VIEW_ALIGNMENT_LEFT 0u
+#define GF_LIST_VIEW_ALIGNMENT_CENTER 1u
+#define GF_LIST_VIEW_ALIGNMENT_RIGHT 2u
+
+/* gf_list_view_sort_order: the order a column header's sort glyph shows. */
+typedef uint32_t gf_list_view_sort_order;
+#define GF_LIST_VIEW_SORT_ORDER_NONE 0u
+#define GF_LIST_VIEW_SORT_ORDER_ASCENDING 1u
+#define GF_LIST_VIEW_SORT_ORDER_DESCENDING 2u
+
+/* The most columns, items and groups a view holds, and the most sub-items
+ * an item given to set_items carries. */
+#define GF_LIST_VIEW_MAXIMUM_COLUMNS 64u
+#define GF_LIST_VIEW_MAXIMUM_ITEMS 10000000u
+#define GF_LIST_VIEW_MAXIMUM_GROUPS 4096u
+#define GF_LIST_VIEW_MAXIMUM_SUB_ITEMS 64u
+
+/*
+ * A details-view column. As input (set_columns): stable_id is its identity
+ * (unique in the view, not empty), text the header's text, width in
+ * logical units at text scale 1 (zero takes the default, 120; otherwise
+ * from 20 to 4096), alignment its cells' text. As output (column_at) the
+ * record is filled and its texts copied into the caller's buffer.
+ */
+typedef struct gf_list_view_column {
+    uint32_t struct_size;
+    gf_list_view_alignment alignment;
+    double width;
+    gf_utf8_view stable_id;
+    gf_utf8_view text;
+} gf_list_view_column;
+
+/*
+ * An item. As input (set_items): stable_id is its identity (unique in the
+ * view, not empty); text is shown in the first column and as the label in
+ * the other views; sub_items (sub_item_count of them, at most
+ * GF_LIST_VIEW_MAXIMUM_SUB_ITEMS; null when none) in the later columns of
+ * the details view; image_key names an image in the view's image lists
+ * (empty for none); group names the group it is shown in (empty or unknown
+ * for the default group); checked 0 or 1. As output (item_at) the record is
+ * filled, its four texts copied into the caller's buffer, sub_items null
+ * and sub_item_count the number of sub-items (item_sub_item reads them).
+ */
+typedef struct gf_list_view_item {
+    uint32_t struct_size;
+    uint32_t checked;
+    gf_utf8_view stable_id;
+    gf_utf8_view text;
+    gf_utf8_view image_key;
+    gf_utf8_view group;
+    const gf_utf8_view* sub_items;
+    uint64_t sub_item_count;
+} gf_list_view_item;
+
+/*
+ * A group: stable_id its identity (unique in the view, not empty), header
+ * its header's text, header_alignment where the header sits. Input to
+ * set_groups and output of group_at, as the column record is.
+ */
+typedef struct gf_list_view_group {
+    uint32_t struct_size;
+    gf_list_view_alignment header_alignment;
+    gf_utf8_view stable_id;
+    gf_utf8_view header;
+} gf_list_view_group;
+
+typedef struct gf_list_view_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* The number of columns. */
+    gf_status (GF_CALL* column_count)(gf_object view, uint64_t* count);
+    /* Column index (below the count) into column, an output record of at
+     * least the 1.5 size; its stable id and text are copied into
+     * text_buffer, one after the other, and the views point there.
+     * text_required receives their total size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.
+     * GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* column_at)(gf_object view, uint64_t index, gf_list_view_column* column, char* text_buffer,
+                                   uint64_t text_capacity, uint64_t* text_required);
+    /* Replaces the columns with count records (columns may be null when
+     * count is zero), all or nothing. Clears the sort glyph when its column
+     * is gone. A malformed record, a repeated or empty stable id or a width
+     * out of range gives GF_STATUS_INVALID_ARGUMENT, more than
+     * GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing
+     * nothing. */
+    gf_status (GF_CALL* set_columns)(gf_object view, const gf_list_view_column* columns, uint64_t count);
+    /* Sets column's width (20 to 4096 logical units), raising
+     * column_width_changed. GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* set_column_width)(gf_object view, uint64_t column, double width);
+    /* The number of items (the source's in virtual mode). */
+    gf_status (GF_CALL* item_count)(gf_object view, uint64_t* count);
+    /* Item index (below the count) into item, an output record of at least
+     * the 1.5 size; its stable id, text, image key and group are copied
+     * into text_buffer one after another, as column_at copies. */
+    gf_status (GF_CALL* item_at)(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer,
+                                 uint64_t text_capacity, uint64_t* text_required);
+    /* Item index's sub-item (below its sub_item_count) as text, into buffer
+     * (required receives its size; a short buffer gives
+     * GF_STATUS_BUFFER_TOO_SMALL). GF_STATUS_NOT_FOUND past the items or
+     * the sub-items. */
+    gf_status (GF_CALL* item_sub_item)(gf_object view, uint64_t index, uint64_t sub_item, char* buffer,
+                                       uint64_t capacity, uint64_t* required);
+    /* Replaces the items with count records (items may be null when count
+     * is zero), all or nothing; the selection, focus and anchor follow
+     * their stable ids. A malformed record or a repeated or empty stable id
+     * gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS
+     * items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items
+     * GF_STATUS_LIMIT_EXCEEDED, changing nothing. */
+    gf_status (GF_CALL* set_items)(gf_object view, const gf_list_view_item* items, uint64_t count);
+    /* The index of the item with stable id item_id; GF_STATUS_NOT_FOUND
+     * when no item has it (and always in virtual mode). */
+    gf_status (GF_CALL* index_of)(gf_object view, gf_utf8_view item_id, uint64_t* index);
+    /* Sets item index's checked state (0 or 1), raising item_checked when
+     * it changes. GF_STATUS_NOT_FOUND past the items. */
+    gf_status (GF_CALL* set_item_checked)(gf_object view, uint64_t index, uint32_t checked);
+    /* The number of groups. */
+    gf_status (GF_CALL* group_count)(gf_object view, uint64_t* count);
+    /* Group index (below the count) into group, an output record of at
+     * least the 1.5 size; its stable id and header are copied into
+     * text_buffer, as column_at copies. */
+    gf_status (GF_CALL* group_at)(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer,
+                                  uint64_t text_capacity, uint64_t* text_required);
+    /* Replaces the groups with count records, all or nothing, as
+     * set_columns replaces the columns (at most
+     * GF_LIST_VIEW_MAXIMUM_GROUPS). */
+    gf_status (GF_CALL* set_groups)(gf_object view, const gf_list_view_group* groups, uint64_t count);
+    /* The selected items' indices in ascending order into indices
+     * (capacity elements; null when the capacity is zero). count receives
+     * the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which
+     * writes no index. */
+    gf_status (GF_CALL* selected_items)(gf_object view, uint64_t* indices, uint64_t capacity, uint64_t* count);
+    /* Selects (1) or deselects (0) item index, keeping the others (without
+     * multi_select, selecting one deselects the rest); raises
+     * selection_changed when the selection changes. GF_STATUS_NOT_FOUND past
+     * the items. */
+    gf_status (GF_CALL* set_selected)(gf_object view, uint64_t index, uint32_t selected);
+    /* Selects every item (with multi_select), raising selection_changed. */
+    gf_status (GF_CALL* select_all)(gf_object view);
+    /* Deselects every item, raising selection_changed when any was. */
+    gf_status (GF_CALL* clear_selection)(gf_object view);
+    /* The item with the focus cue and the keyboard's position, or -1. */
+    gf_status (GF_CALL* focused_item)(gf_object view, int64_t* index);
+    /* Moves the focus cue to item index, or removes it with -1.
+     * GF_STATUS_NOT_FOUND past the items. */
+    gf_status (GF_CALL* set_focused_item)(gf_object view, int64_t index);
+    /* Scrolls so item index is fully visible. GF_STATUS_NOT_FOUND past the
+     * items. */
+    gf_status (GF_CALL* ensure_visible)(gf_object view, uint64_t index);
+    /* Shows the sort glyph order on column, or on no column with -1 (the
+     * order is then ignored). The view does not reorder its items for it.
+     * GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* set_sort_indicator)(gf_object view, int64_t column, gf_list_view_sort_order order);
+    /* Stable-sorts the items by column's text (ASCII case folded, then byte
+     * order) in order and shows the glyph; the selection and focus follow
+     * their items. GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* sort_items)(gf_object view, uint64_t column, gf_list_view_sort_order order);
+} gf_list_view_table;
+
+/*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability
  * GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT): a virtual Windows paint target
  * for code that paints through GDI, as a Windows Forms owner-drawn control
@@ -3951,4 +5457,5 @@ GF_ABI_EXPORT gf_status GF_CALL gf_abi_get_table(gf_table_id table_id,
 }
 #endif
 
+#include "gui_forms/c/gf_c_shield_end.h"
 #endif

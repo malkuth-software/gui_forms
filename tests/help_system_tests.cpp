@@ -17,18 +17,23 @@
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/help_print.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <stxlib/optional.hpp>
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -110,6 +115,17 @@ struct RecordLink final {
     }
 };
 
+// A-gf-abi-02-F7: records whether a bookmarks event's argument is the
+// sender's own list, which a handler that changes the bookmarks would then
+// change under the C ABI's borrowed field.
+struct RecordBookmarkStorage final {
+    const std::vector<std::string>* sender_list{};
+    bool* aliased{};
+    void operator()(const std::vector<std::string>& bookmarks) const {
+        if (&bookmarks == sender_list) *aliased = true;
+    }
+};
+
 struct RecordPrint final {
     std::vector<std::string>* seen{};
     void operator()(HelpPrintRequest& request) const { (*seen).push_back(request.page); }
@@ -127,6 +143,21 @@ void paper_pane() {
     (*program.root).add_child(book);
     require((*book).show_record(*section, "app"), "the book shows a record");
     (*program.window).perform_layout();
+    require((*book).semantic_descriptor().role == SemanticRole::document, "the book is a document");
+    const std::vector<SemanticNode> nodes = (*book).semantic_virtual_children();
+    std::size_t headings = 0U;
+    bool collapsed_heading = false;
+    for (const SemanticNode& node : nodes) {
+        if (node.role != SemanticRole::heading) continue;
+        ++headings;
+        const bool expandable = std::find(node.actions.begin(), node.actions.end(), SemanticAction::expand) !=
+                                node.actions.end();
+        if (expandable && node.level.present() && !has_semantic_state(node.states, SemanticState::expanded)) {
+            collapsed_heading = true;
+        }
+    }
+    require(headings >= 1U && collapsed_heading,
+            "headings are heading nodes with a level; the closed section's heading can expand");
     require((*book).page().title == "Sketch" && (*book).page().sections.size() == 1U,
             "the page has its title and one collapsible section");
     require(!(*book).section_open(0U), "the section starts closed");
@@ -137,11 +168,11 @@ void paper_pane() {
     // The listed controls: tools' page lists the pen's help line.
     require((*book).show_record(*section, "app.tools"), "the tools page shows");
     (*program.window).perform_layout();
-    require((*book).page().find_anchor("app.tools.pen").has_value(), "the pen is a line on the tools page");
+    require((*book).page().find_anchor("app.tools.pen").present(), "the pen is a line on the tools page");
     // Links: Tab moves through the stops; Enter follows.
     std::vector<std::string> followed;
     SubscriptionToken following = (*book).link_activated().subscribe(RecordLink{&followed});
-    require((*book).move_focus(true) && (*book).focused_stop().has_value(), "Tab reaches the first link");
+    require((*book).move_focus(true) && (*book).focused_stop().present(), "Tab reaches the first link");
     require((*book).activate_link(0U) && followed.size() == 1U && followed[0] == "app.tools.pen",
             "activating a link raises it");
 }
@@ -183,9 +214,16 @@ void viewer() {
     viewer.set_titles_only(true);
     require(viewer.search_results().empty(), "titles only: the word is in no title");
     viewer.set_titles_only(false);
-    // Bookmarks.
+    // Bookmarks. Each event carries a copy, not the sender's own list.
+    bool viewer_aliased = false;
+    bool system_aliased = false;
+    SubscriptionToken viewer_bookmarks_token =
+        viewer.bookmarks_changed().subscribe(RecordBookmarkStorage{&viewer.bookmarks(), &viewer_aliased});
+    SubscriptionToken system_bookmarks_token =
+        help.bookmarks_changed().subscribe(RecordBookmarkStorage{&help.bookmarks(), &system_aliased});
     require(viewer.add_bookmark() && viewer.bookmarks().size() == 1U && help.bookmarks().size() == 1U,
             "a bookmark is added and reaches the system");
+    require(!viewer_aliased && !system_aliased, "the bookmarks events carry copies");
     require(!viewer.add_bookmark(), "the same page is not bookmarked twice");
     // Keys: Alt+N selects Index, Alt+Left goes back, F6 moves to the book.
     // The search tab is showing: the contents tree is focusable once its tab is.
@@ -203,6 +241,36 @@ void viewer() {
     SubscriptionToken printing_token = help.print_requested().subscribe(RecordPrint{&printed});
     static_cast<void>((*program.window).dispatch_key({KeyAction::down, PhysicalKey::p, Modifier::control}));
     require(printed.size() == 1U && printed[0] == viewer.current_page(), "Ctrl+P asks to print the page");
+    // GAPS H4: dragging the gap between the pane and the book resizes the
+    // pane (4 is the viewer's margin and gap, 34 its toolbar).
+    (*program.window).perform_layout();
+    const Rect frame = viewer.absolute_bounds();
+    const double shown = std::min(viewer.navigation_width(), frame.width * 0.6);
+    const Point grip{frame.x + 4.0 + shown + 2.0, frame.y + 34.0 + 20.0};
+    const Control::Ptr over_grip = (*program.window).hit_test(grip);
+    require(over_grip != nullptr && (*over_grip).effective_cursor() == CursorKind::resize_horizontal,
+            "the gap after the navigation pane shows the resize cursor");
+    PointerEvent grab{};
+    grab.action = PointerAction::down;
+    grab.button = PointerButton::primary;
+    grab.position = grip;
+    static_cast<void>((*program.window).dispatch_pointer(grab));
+    PointerEvent drag{};
+    drag.action = PointerAction::move;
+    drag.position = Point{grip.x - 30.0, grip.y};
+    static_cast<void>((*program.window).dispatch_pointer(drag));
+    require(viewer.navigation_width() == std::max(120.0, shown - 30.0), "the drag narrows the pane by its distance");
+    drag.position = Point{grip.x - 1000.0, grip.y};
+    static_cast<void>((*program.window).dispatch_pointer(drag));
+    require(viewer.navigation_width() == 120.0, "the pane stops at its minimum width");
+    PointerEvent release{};
+    release.action = PointerAction::up;
+    release.button = PointerButton::primary;
+    release.position = drag.position;
+    static_cast<void>((*program.window).dispatch_pointer(release));
+    drag.position = grip;
+    static_cast<void>((*program.window).dispatch_pointer(drag));
+    require(viewer.navigation_width() == 120.0, "after the release a move resizes nothing");
     // The navigation pane hides and shows.
     viewer.set_navigation_visible(false);
     (*program.window).perform_layout();
@@ -236,17 +304,21 @@ void system_routes() {
     require(card != nullptr && (*card).page().links.size() == 1U && (*card).page().links[0].target == "app.tools" &&
                 (*card).page().links[0].fragment == "app.tools.pen",
             "More goes to the pen's line on the tools page");
-    require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::escape, Modifier::none}) ||
+    // The card takes the focus into its layer, which dismisses on Escape.
+    require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::escape, Modifier::none}) &&
                 !help.popup_open(),
-            "Escape is taken");
+            "Escape is taken and closes the card");
     help.close_popup();
-    require(!help.popup_open(), "the popup closes");
+    require(!help.popup_open(), "closing a closed popup leaves it closed");
     require(help.show_popup("app.tools", program.tools) && help.popup_open(), "a page popup opens");
     help.close_popup();
     // What's This: Shift+F1, then a click on the eraser.
     require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::f1, Modifier::shift}) &&
                 help.help_mode_active(),
             "Shift+F1 enters What's This");
+    const Control::Ptr over = (*program.window).hit_test(Point{30.0, 60.0});
+    require(over != nullptr && (*over).effective_cursor() == CursorKind::help,
+            "the pointer over the window is the help cursor while What's This waits");
     PointerEvent press{};
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
@@ -282,6 +354,42 @@ void system_routes() {
     require(snapshot.attached_windows == 1U && snapshot.popups >= 3U && snapshot.help_mode_entries == 2U &&
                 snapshot.external_links == 1U,
             "the snapshot counts what happened");
+    help.detach(*program.window);
+}
+
+// The ribbon's help button (owner ruling N4): attach_ribbon answers it with the
+// window card, the window's help line and More to the window's page, beside
+// the ribbon; a ribbon in no attached window shows nothing.
+void ribbon_help_card() {
+    Program program = make_program();
+    std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("app.ribbon"));
+    (*ribbon).set_requested_bounds({0.0, 400.0, 300.0, 115.0});
+    (*ribbon).help_button_visible = true;
+    (*program.root).add_child(ribbon);
+    HelpBookSystem help{};
+    static_cast<void>(help.load_built_in(program_locale));
+    help.attach(*program.window);
+    help.attach_ribbon(*ribbon);
+    (*program.window).perform_layout();
+    const std::uint64_t requests = help.snapshot().requests;
+    (*ribbon).request_help();
+    require(help.snapshot().requests == requests + 1U && help.popup_open(), "the help button opens a card");
+    const std::shared_ptr<HelpBook> card = help.popup_book();
+    require(card != nullptr && (*card).page().stable_id == "app" && !(*card).page().runs.empty() &&
+                (*card).page().runs[0].text == "The drawing window.",
+            "the card is the window's help line");
+    require((*card).page().links.size() == 1U && (*card).page().links[0].target == "app",
+            "More goes to the window's page");
+    help.close_popup();
+    const RibbonHelpRequest routed{"app.ribbon", {}};
+    help.on_ribbon_button_help(routed);
+    require(help.popup_open() && (*help.popup_book()).page().stable_id == "app",
+            "the program may route the request itself");
+    help.close_popup();
+    std::shared_ptr<Ribbon> stray = make_control<Ribbon>(StableId("stray.ribbon"));
+    help.attach_ribbon(*stray);
+    (*stray).request_help();
+    require(!help.popup_open(), "a ribbon in no attached window shows nothing");
     help.detach(*program.window);
 }
 
@@ -364,12 +472,12 @@ void language_files() {
     require(static_cast<bool>(user_file) && static_cast<bool>(help.load_user_overrides(user_file.text)),
             "the user's file loads");
     const LocaleResolvedField line = help.resolve_field("app.silent", LocaleField::help_line);
-    require(line.text == "My own note." && line.origin == LocaleLayerKind::user, "the override reads back");
+    require(line.text == "My own note." && line.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::user), "the override reads back");
     const LocaleResolvedField keywords = help.resolve_field("app.silent", LocaleField::keywords);
-    require(keywords.text == "silence; quiet, button" && keywords.origin == LocaleLayerKind::program,
+    require(keywords.text == "silence; quiet, button" && keywords.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program),
             "fields the override leaves out keep the program's value");
     const HelpResolvedRecord shown = help.catalog().resolve("app.silent");
-    require(shown.help_line.text == "My own note." && shown.help_line.origin == HelpLayer::user,
+    require(shown.help_line.text == "My own note." && shown.help_line.origin == stxlib::Optional<gui_forms::HelpLayer>::of(HelpLayer::user),
             "the help view shows the override");
     require(provider.help_string(*program.silent) == "Does nothing, quietly.",
             "getters return the program's value, never the override");
@@ -379,16 +487,16 @@ void language_files() {
 
     // The way back, then removing the file.
     help.use_built_in_language(true);
-    require(help.resolve_field("app.silent", LocaleField::help_line).origin == LocaleLayerKind::program,
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program),
             "the way back sets the override aside");
     help.use_built_in_language(false);
-    require(help.resolve_field("app.silent", LocaleField::help_line).origin == LocaleLayerKind::user,
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::user),
             "leaving the way back restores it");
     help.clear_user_overrides();
     require(help.resolve_field("app.silent", LocaleField::help_line).text == "Does nothing, quietly.",
             "without the file the program's value shows");
     provider.set_help_string(program.silent, "");
-    require(help.resolve_field("app.silent", LocaleField::help_line).origin == std::nullopt,
+    require(help.resolve_field("app.silent", LocaleField::help_line).origin.absent(),
             "a value cleared in code leaves the program layer");
 
     // A translation, and the language rule for user files.
@@ -398,9 +506,9 @@ void language_files() {
         "</control></control></controls></locale>";
     require(static_cast<bool>(help.load_translation(french)), "the translation loads");
     const LocaleResolvedField pen_line = help.resolve_field("app.tools.pen", LocaleField::help_line);
-    require(pen_line.origin == LocaleLayerKind::translation, "the translation's field shows");
+    require(pen_line.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::translation), "the translation's field shows");
     const LocaleResolvedField pen_body = help.resolve_field("app.tools.pen", LocaleField::help);
-    require(pen_body.origin == LocaleLayerKind::program && pen_body.fallback,
+    require(pen_body.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program) && pen_body.fallback,
             "an untranslated field falls back to the program's value, marked");
     const LocaleReadResult english_user = help.load_user_overrides(user_file.text);
     require(english_user.error == LocaleFileError::language_mismatch, "an English user file is refused under French");
@@ -417,6 +525,7 @@ int main() {
     paper_pane();
     viewer();
     system_routes();
+    ribbon_help_card();
     printing();
     language_files();
     std::cout << "help system tests passed\n";

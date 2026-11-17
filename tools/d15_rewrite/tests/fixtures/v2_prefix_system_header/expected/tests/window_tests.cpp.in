@@ -1,0 +1,9 @@
+#include <gui_forms/window.hpp>
+
+int main() {
+    gui_forms::Window window;
+    const bool titled = window.set_title("\xc0\xaf");
+    const std::size_t named = window.set_name("caf\xC3\xA9");
+    const std::size_t decoded = gui_forms::decode_at("\xC0\xAF", 0U);
+    return titled && named == 5U && decoded == 0U ? 0 : 1;
+}

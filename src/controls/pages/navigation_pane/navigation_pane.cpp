@@ -10,6 +10,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string_view>
@@ -230,7 +231,7 @@ private:
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).
     auto_size = true;
@@ -389,7 +390,7 @@ bool NavigationPane::hidden_at(std::size_t position) const {
 
 bool NavigationPane::set_page_hidden(const PageId& page, bool hidden) {
     require_mutable();
-    if (!pages_.find(page) || page_hidden(page) == hidden) return false;
+    if (pages_.find(page).absent() || page_hidden(page) == hidden) return false;
     if (hidden) {
         hidden_.push_back(page);
         advance_layout_revision();
@@ -475,10 +476,10 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
     NavigationPaneRestore restore{};
     std::unordered_set<std::string> unknown{};
     for (const PageId& id : saved.page_order) {
-        if (!pages_.find(id)) unknown.insert(id.value);
+        if (pages_.find(id).absent()) unknown.insert(id.value);
     }
     for (const PageId& id : saved.hidden_pages) {
-        if (!pages_.find(id)) unknown.insert(id.value);
+        if (pages_.find(id).absent()) unknown.insert(id.value);
     }
     restore.unknown_pages = unknown.size();
     applying_state_ = true;
@@ -489,7 +490,7 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
         PageSetBatch batch(pages_);
         std::size_t next = 0U;
         for (const PageId& id : saved.page_order) {
-            if (!pages_.find(id)) continue;
+            if (pages_.find(id).absent()) continue;
             static_cast<void>(pages_.move(id, PagePosition{next}));
             ++next;
         }
@@ -498,7 +499,7 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
     hidden_.clear();
     advance_layout_revision();
     for (const PageId& id : saved.hidden_pages) {
-        if (pages_.find(id)) hidden_.push_back(id);
+        if (pages_.find(id).present()) hidden_.push_back(id);
         advance_layout_revision();
     }
     if (saved.collapsed) {
@@ -537,7 +538,7 @@ void NavigationPane::on_pages_changed(const PageSetChange& change) {
         std::vector<PageId> kept{};
         kept.reserve(hidden_.size());
         for (const PageId& id : hidden_) {
-            if (pages_.find(id)) kept.push_back(id);
+            if (pages_.find(id).present()) kept.push_back(id);
         }
         hidden_ = std::move(kept);
         advance_layout_revision();
@@ -551,13 +552,13 @@ void NavigationPane::on_pages_changed(const PageSetChange& change) {
 // Makes the content panel hold exactly the selected page's control.
 void NavigationPane::refresh_content() {
     if (!host_) return;
-    const std::optional<std::size_t> selected = selected_position();
+    const stxlib::Optional<std::size_t> selected = selected_position();
     Control::Ptr wanted{};
-    if (selected) {
+    if (selected.present()) {
         // The content's derived type is the presenter family's; RTTI is the
         // boundary between the set's erased content and the control it holds.
         const PageControlContent* const content =
-            dynamic_cast<const PageControlContent*>(pages_.content(pages_.record_at(PagePosition{*selected}).id));
+            dynamic_cast<const PageControlContent*>(pages_.content(pages_.record_at(PagePosition{*selected.value()}).id));
         if (content != nullptr) wanted = (*content).control();
     }
     (*host_).set_panel_name(selected_text());
@@ -575,12 +576,13 @@ void NavigationPane::refresh_content() {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> NavigationPane::selected_position() const {
+stxlib::Optional<std::size_t> NavigationPane::selected_position() const {
     const std::optional<PageId>& selected = pages_.selected_page();
-    if (!selected) return std::nullopt;
-    const std::optional<PagePosition> position = pages_.find(*selected);
-    if (!position) return std::nullopt;
-    return (*position).value;
+    if (!selected) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<PagePosition> position = pages_.find(*selected);
+    if (position.absent()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of((*position.value()).value);
+    return result;
 }
 
 std::string NavigationPane::page_text(std::size_t position) const {
@@ -590,9 +592,9 @@ std::string NavigationPane::page_text(std::size_t position) const {
 }
 
 std::string NavigationPane::selected_text() const {
-    const std::optional<std::size_t> selected = selected_position();
-    if (!selected) return {};
-    std::string text = page_text(*selected);
+    const stxlib::Optional<std::size_t> selected = selected_position();
+    if (selected.absent()) return {};
+    std::string text = page_text(*selected.value());
     return text;
 }
 
@@ -716,8 +718,8 @@ void NavigationPane::layout_expanded(Rect surface, std::span<const std::size_t> 
     if (placed.collapse_button.x < 0.0) placed.collapse_button = {};
     placed.collapse_glyph = centred_square(placed.collapse_button, arrow_glyph_side * scale);
     double label_x = header_padding * scale;
-    const std::optional<std::size_t> selected = selected_position();
-    if (selected && page_image(*selected).value != 0U) {
+    const stxlib::Optional<std::size_t> selected = selected_position();
+    if (selected.present() && page_image(*selected.value()).value != 0U) {
         placed.header_icon = {label_x, std::floor((header_extent - side) * 0.5), side, side};
         label_x += side + icon_label_gap * scale * 0.5;
     }
@@ -915,7 +917,7 @@ AnatomyStateSet NavigationPane::tab_states(std::size_t position) const {
     target.kind = TargetKind::tab;
     target.page = pages_.record_at(PagePosition{position}).id;
     AnatomyStateSet states = target_states(target);
-    if (selected_position() == position) states.insert(AnatomyState::selected);
+    if (selected_position() == stxlib::Optional<std::size_t>::of(position)) states.insert(AnatomyState::selected);
     return states;
 }
 
@@ -990,11 +992,11 @@ void NavigationPane::on_paint(Painter& painter, Rect) {
         part.role = PartRole::face;
         part.bounds = placed.header;
         paint_part(painter, *this, part);
-        const std::optional<std::size_t> selected = selected_position();
-        if (!placed.header_icon.empty() && selected) {
+        const stxlib::Optional<std::size_t> selected = selected_position();
+        if (!placed.header_icon.empty() && selected.present()) {
             part.role = PartRole::icon;
             part.bounds = placed.header_icon;
-            part.image = page_image(*selected);
+            part.image = page_image(*selected.value());
             paint_part(painter, *this, part);
             part.image = {};
         }
@@ -1084,7 +1086,7 @@ void NavigationPane::paint_flyout(Painter& painter, const Control& surface) cons
     part.family = ControlVisualRole::panel;
     part.role = PartRole::shadow;
     part.bounds = placed.face;
-    part.corner_radius = 0.0;
+    part.corner_radius.set(0.0);
     paint_part(painter, surface, part);
     part.corner_radius.reset();
     part.role = PartRole::face;
@@ -1191,8 +1193,8 @@ void NavigationPane::release(MouseEventArgs& arguments) {
     const Target released = target_at(layout(), arguments.location);
     if (pressed.kind != TargetKind::none && pressed == released) {
         if (pressed.kind == TargetKind::tab) {
-            const std::optional<PagePosition> position = pages_.find(pressed.page);
-            if (position) select_page((*position).value, PageSelectionCause::pointer);
+            const stxlib::Optional<PagePosition> position = pages_.find(pressed.page);
+            if (position.present()) select_page((*position.value()).value, PageSelectionCause::pointer);
         } else {
             activate(pressed);
         }
@@ -1231,8 +1233,8 @@ void NavigationPane::activate(const Target& target) {
         static_cast<void>(show_configure_menu(MenuOpenMode::keyboard));
         return;
     case TargetKind::tab: {
-        const std::optional<PagePosition> position = pages_.find(target.page);
-        if (position) select_page((*position).value, PageSelectionCause::keyboard);
+        const stxlib::Optional<PagePosition> position = pages_.find(target.page);
+        if (position.present()) select_page((*position.value()).value, PageSelectionCause::keyboard);
         return;
     }
     case TargetKind::none:
@@ -1285,9 +1287,9 @@ std::vector<NavigationPane::Target> NavigationPane::stops(const Layout& placed) 
 // the collapse button.
 NavigationPane::Target NavigationPane::default_stop(const Layout& placed) const {
     Target target{};
-    const std::optional<std::size_t> selected = selected_position();
+    const stxlib::Optional<std::size_t> selected = selected_position();
     for (const TabSlot& slot : placed.tabs) {
-        if (selected && slot.position == *selected) {
+        if (selected == stxlib::Optional<std::size_t>::of(slot.position)) {
             target.kind = TargetKind::tab;
             target.page = pages_.record_at(PagePosition{slot.position}).id;
             return target;
@@ -1528,10 +1530,10 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
                            std::string(hidden_heading_text));
     }
     for (const PageId& page : hidden) {
-        const std::optional<PagePosition> position = pages_.find(page);
-        if (!position) continue;
+        const stxlib::Optional<PagePosition> position = pages_.find(page);
+        if (position.absent()) continue;
         const std::string id = prefix + ".page." + page.value;
-        const std::string text = page_text((*position).value);
+        const std::string text = page_text((*position.value()).value);
         page_commands_.push_back(std::make_shared<Command>(id, text));
         items.emplace_back(id, MenuItemKind::command, page_commands_.back(), text);
     }
@@ -1569,10 +1571,10 @@ void NavigationPane::on_menu_item_invoked(const MenuItemInvocation& invocation) 
     const std::string page_prefix = prefix + ".page.";
     if (item.size() <= page_prefix.size() || item.compare(0U, page_prefix.size(), page_prefix) != 0) return;
     const PageId page{item.substr(page_prefix.size())};
-    const std::optional<PagePosition> position = pages_.find(page);
-    if (!position) return;
+    const stxlib::Optional<PagePosition> position = pages_.find(page);
+    if (position.absent()) return;
     if (page_hidden(page)) static_cast<void>(set_page_hidden(page, false));
-    select_page((*position).value, PageSelectionCause::programmatic);
+    select_page((*position.value()).value, PageSelectionCause::programmatic);
 }
 
 // -- semantics ----------------------------------------------------------------------
@@ -1635,9 +1637,9 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         node.role = SemanticRole::split_pane;
         node.name = "Large buttons";
         node.value = std::to_string(placed.large_count);
-        node.numeric_value = static_cast<double>(placed.large_count);
-        node.minimum_value = 0.0;
-        node.maximum_value = static_cast<double>(std::min(placed.shown_count, placed.button_capacity));
+        node.numeric_value.set(static_cast<double>(placed.large_count));
+        node.minimum_value.set(0.0);
+        node.maximum_value.set(static_cast<double>(std::min(placed.shown_count, placed.button_capacity)));
         node.bounds = window_rect(absolute, placed.grip_bar);
         node.states = base | SemanticState::focusable;
         if (focused_ && stop_ == target) node.states |= SemanticState::focused;
@@ -1651,12 +1653,12 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         list.runtime_id = virtual_semantic_runtime_id(list.stable_id);
         list.role = SemanticRole::tab_group;
         list.name = "Pages";
-        list.orientation = SemanticOrientation::vertical;
+        list.orientation.set(SemanticOrientation::vertical);
         Rect area = placed.tabs.front().bounds;
         for (const TabSlot& slot : placed.tabs) area = Rect::united(area, slot.bounds);
         list.bounds = window_rect(absolute, area);
         list.states = base;
-        const std::optional<std::size_t> selected = selected_position();
+        const stxlib::Optional<std::size_t> selected = selected_position();
         const std::string panel_id = host_ ? std::string((*host_).stable_id().value()) : std::string();
         for (std::size_t index = 0; index < placed.tabs.size(); ++index) {
             const TabSlot& slot = placed.tabs[index];
@@ -1669,10 +1671,10 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
             tab.role = SemanticRole::tab;
             tab.name = page_text(slot.position);
             tab.bounds = window_rect(absolute, slot.bounds);
-            tab.position_in_set = index + 1U;
-            tab.set_size = placed.tabs.size();
+            tab.position_in_set.set(index + 1U);
+            tab.set_size.set(placed.tabs.size());
             tab.states = base | SemanticState::focusable;
-            if (selected == slot.position) {
+            if (selected == stxlib::Optional<std::size_t>::of(slot.position)) {
                 tab.states |= SemanticState::selected;
                 // The selected tab shows the content panel (owner decision
                 // DK-40). Tabs publish select, not press (DK-35).
@@ -1769,9 +1771,9 @@ bool NavigationPane::on_semantic_child_action(std::string_view id, SemanticActio
         target.page = PageId{std::string(id.substr(tab_prefix.size()))};
         if (target_bounds(placed, target).empty()) return false;
         if (action == SemanticAction::select) {
-            const std::optional<PagePosition> position = pages_.find(target.page);
-            if (!position) return false;
-            select_page((*position).value, PageSelectionCause::semantic);
+            const stxlib::Optional<PagePosition> position = pages_.find(target.page);
+            if (position.absent()) return false;
+            select_page((*position.value()).value, PageSelectionCause::semantic);
             return true;
         }
     }
@@ -1799,25 +1801,25 @@ constexpr std::array<AnatomyState, 4> caption_states{{AnatomyState::hot, Anatomy
 using PaneParts = NavigationPane::Parts;
 
 constexpr std::array<PartField<PaneParts>, 21> navigation_pane_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}}, .member = &PaneParts::region},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}}, .member = &PaneParts::header},
-    {.declaration = {.name = "header_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}}, .member = &PaneParts::region},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}}, .member = &PaneParts::header},
+    {.declaration = {.name = "header_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &PaneParts::header_icon},
-    {.declaration = {.name = "header_label", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "header_label", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &PaneParts::header_label},
     {.declaration = {.name = "collapse_button", .role = PartRole::actuator, .composed_from = "button",
                      .states = button_states},
      .member = &PaneParts::collapse_button},
     {.declaration = {.name = "collapse_glyph", .role = PartRole::glyph, .composed_from = {}, .states = button_states},
      .member = &PaneParts::collapse_glyph},
-    {.declaration = {.name = "content", .role = PartRole::well, .composed_from = {}}, .member = &PaneParts::content},
+    {.declaration = {.name = "content", .role = PartRole::well, .composed_from = {}, .states = {}}, .member = &PaneParts::content},
     {.declaration = {.name = "grip_bar", .role = PartRole::face, .composed_from = {}, .states = grip_states},
      .member = &PaneParts::grip_bar},
     {.declaration = {.name = "grip", .role = PartRole::grip, .composed_from = {}, .states = grip_states},
      .member = &PaneParts::grip},
-    {.declaration = {.name = "button_area", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "button_area", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PaneParts::button_area},
-    {.declaration = {.name = "overflow_area", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "overflow_area", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PaneParts::overflow_area},
     {.declaration = {.name = "configure_button", .role = PartRole::actuator, .composed_from = "button",
                      .states = configure_states},
@@ -1825,42 +1827,42 @@ constexpr std::array<PartField<PaneParts>, 21> navigation_pane_part_fields{{
     {.declaration = {.name = "configure_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = configure_states},
      .member = &PaneParts::configure_glyph},
-    {.declaration = {.name = "collapsed_bar", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "collapsed_bar", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PaneParts::collapsed_bar},
     {.declaration = {.name = "collapsed_label", .role = PartRole::label, .composed_from = {},
                      .states = caption_states},
      .member = &PaneParts::collapsed_label},
-    {.declaration = {.name = "overlay_shadow", .role = PartRole::shadow, .composed_from = {}},
+    {.declaration = {.name = "overlay_shadow", .role = PartRole::shadow, .composed_from = {}, .states = {}},
      .member = &PaneParts::overlay_shadow},
-    {.declaration = {.name = "overlay_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "overlay_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PaneParts::overlay_face},
-    {.declaration = {.name = "overlay_header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "overlay_header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PaneParts::overlay_header},
-    {.declaration = {.name = "overlay_label", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "overlay_label", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &PaneParts::overlay_label},
-    {.declaration = {.name = "overlay_content", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "overlay_content", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &PaneParts::overlay_content},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}}, .member = &PaneParts::focus},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}}, .member = &PaneParts::focus},
 }};
 
 using ButtonParts = NavigationPane::PageButtonParts;
 using IconParts = NavigationPane::PageIconParts;
 
 constexpr std::array<PartField<ButtonParts>, 3> nav_page_part_fields{{
-    {.declaration = {.name = "nav_page_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "nav_page_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ButtonParts::nav_page_face},
-    {.declaration = {.name = "nav_page_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "nav_page_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &ButtonParts::nav_page_icon},
-    {.declaration = {.name = "nav_page_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "nav_page_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ButtonParts::nav_page_label},
 }};
 
 constexpr std::array<PartField<IconParts>, 3> nav_overflow_part_fields{{
-    {.declaration = {.name = "nav_overflow_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "nav_overflow_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &IconParts::nav_overflow_face},
-    {.declaration = {.name = "nav_overflow_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "nav_overflow_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &IconParts::nav_overflow_icon},
-    {.declaration = {.name = "nav_overflow_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "nav_overflow_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &IconParts::nav_overflow_label},
 }};
 

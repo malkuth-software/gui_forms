@@ -5,6 +5,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -90,7 +91,7 @@ struct GUI_FORMS_API DockDropHit final {
     bool over_site{false};
     bool edge{false};
     // The pane's index in the panes given, while over a pane.
-    std::optional<std::size_t> pane{};
+    stxlib::Optional<std::size_t> pane{};
     DockDropZone zone{DockDropZone::center};
 };
 
@@ -133,7 +134,7 @@ GUI_FORMS_API void plan_dock_drop_targets(const DockLayout& layout, const DockSu
 
 // The planned target a hit selects, as an index into `targets`, or none (a
 // refused zone, a gap inside the site, or outside it).
-[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets,
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets,
                                                                std::span<const DockDropPane> panes,
                                                                const DockDropHit& hit) noexcept;
 

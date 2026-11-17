@@ -118,8 +118,8 @@ public:
         const PresentationOverrides* const current = window.presentation_overrides();
         if (current != nullptr) overrides_ = *current;
         PresentationOverrides applied = overrides_;
-        if (options.colour_scheme.has_value()) applied.colour_scheme = options.colour_scheme;
-        if (options.high_contrast.has_value()) applied.high_contrast = options.high_contrast;
+        if (options.colour_scheme.present()) applied.colour_scheme = options.colour_scheme;
+        if (options.high_contrast.present()) applied.high_contrast = options.high_contrast;
         changed_overrides_ = !(applied == overrides_);
         if (changed_overrides_) window.set_presentation_overrides(applied);
         changed_scale_ = options.scale != scale_;
@@ -183,6 +183,7 @@ std::optional<WindowCapture> OffscreenAttachment::capture_control(const Control:
     request.scale = options.scale;
     request.margin = options.margin;
     request.include_backplane = options.include_backplane;
+    request.include_overlays = options.include_overlays;
     std::optional<WindowCapture> capture = window_.capture_control(control, request);
     return capture;
 }

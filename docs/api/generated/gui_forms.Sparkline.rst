@@ -30,7 +30,7 @@ gui_forms::Sparkline
       **values** : ``plots::SeriesSpans<double>``, read-only
          The live values, oldest first.
 
-      **latest** : ``std::optional<double>``, read-only
+      **latest** : ``stxlib::Optional<double>``, read-only
          The newest finite value, if any.
 
       **extent** : ``plots::PlotRange``, read-only
@@ -82,7 +82,7 @@ gui_forms::Sparkline
 
       The live values, oldest first.
 
-   .. cpp:function:: std::optional<double> latest() const noexcept
+   .. cpp:function:: stxlib::Optional<double> latest() const noexcept
 
       The newest finite value, if any.
 

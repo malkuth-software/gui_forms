@@ -73,9 +73,13 @@ void fill_nonzero_spans(Painter& painter, std::span<const ScanCrossing> crossing
     }
 }
 
-// Fills `points` by scan rows one unit tall (or taller, see above), each
-// row's spans taken at its centre under `rule`. Inputs validated.
-void scan_fill_polygon(Painter& painter, std::span<const Point> points, Color color, PolygonFillRule rule) {
+// Fills the closed contours of `points` together by scan rows one unit
+// tall (or taller, see above), each row's spans taken at its centre under
+// `rule`. Contour k runs from contour_ends[k - 1] (0 for the first) to
+// contour_ends[k], exclusive, and is closed by its last point's edge back
+// to its first. Inputs validated; every contour has at least one point.
+void scan_fill_contours(Painter& painter, std::span<const Point> points, std::span<const std::size_t> contour_ends,
+                        Color color, PolygonFillRule rule) {
     double top = points[0].y;
     double bottom = points[0].y;
     for (const Point point : points) {
@@ -93,20 +97,44 @@ void scan_fill_polygon(Painter& painter, std::span<const Point> points, Color co
         const double row_top = first_row + row * step;
         const double sample = row_top + step * 0.5;
         std::size_t count = 0U;
-        for (std::size_t index = 0U; index < points.size() && count < crossings.size(); ++index) {
-            const Point from = points[index];
-            const Point to = points[(index + 1U) % points.size()];
-            const bool downward = from.y <= sample && to.y > sample;
-            const bool upward = to.y <= sample && from.y > sample;
-            if (!downward && !upward) continue;
-            const double amount = (sample - from.y) / (to.y - from.y);
-            crossings[count].x = from.x + (to.x - from.x) * amount;
-            crossings[count].winding = downward ? 1 : -1;
-            count = count + 1U;
+        std::size_t contour_start = 0U;
+        for (const std::size_t contour_end : contour_ends) {
+            for (std::size_t index = contour_start; index < contour_end && count < crossings.size(); ++index) {
+                const Point from = points[index];
+                const Point to = index + 1U < contour_end ? points[index + 1U] : points[contour_start];
+                const bool downward = from.y <= sample && to.y > sample;
+                const bool upward = to.y <= sample && from.y > sample;
+                if (!downward && !upward) continue;
+                const double amount = (sample - from.y) / (to.y - from.y);
+                crossings[count].x = from.x + (to.x - from.x) * amount;
+                crossings[count].winding = downward ? 1 : -1;
+                count = count + 1U;
+            }
+            contour_start = contour_end;
         }
         std::sort(crossings.begin(), crossings.begin() + static_cast<std::ptrdiff_t>(count), &crossing_before);
         fill_spans(painter, std::span<const ScanCrossing>(crossings.data(), count), row_top, step, color);
     }
+}
+
+// One closed polygon: scan_fill_contours with a single contour.
+void scan_fill_polygon(Painter& painter, std::span<const Point> points, Color color, PolygonFillRule rule) {
+    const std::array<std::size_t, 1> whole{points.size()};
+    scan_fill_contours(painter, points, whole, color, rule);
+}
+
+// The base path fallbacks' flattened path: fixed storage, filled by
+// flatten_paint_path. About 33 KiB, on the painting thread's stack for one
+// call.
+struct FallbackPath final {
+    std::array<Point, maximum_fallback_path_points> points{};
+    std::array<FlattenedContour, maximum_fallback_path_contours> contours{};
+    FlattenedPath written{};
+};
+
+void flatten_for_fallback(PaintPathView path, FallbackPath& flattened) noexcept {
+    flattened.written = flatten_paint_path(path, paint_path_flattening_tolerance, flattened.points,
+                                           flattened.contours);
 }
 
 // A filled marker's closed outline, drawn as lines (its edge).
@@ -145,6 +173,58 @@ void Painter::fill_polygon(std::span<const Point> points, Color color, PolygonFi
     const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
     if (!known_rule || points.size() < 3U || !all_finite(points)) return;
     scan_fill_polygon(*this, points, color, rule);
+}
+
+void Painter::fill_path(PaintPathView path, Color color, PolygonFillRule rule) {
+    const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
+    if (!known_rule || !valid_paint_path(path)) return;
+    FallbackPath flattened{};
+    flatten_for_fallback(path, flattened);
+    if (flattened.written.contour_count == 0U) return;
+    std::array<std::size_t, maximum_fallback_path_contours> ends{};
+    for (std::size_t index = 0U; index < flattened.written.contour_count; ++index) {
+        ends[index] = flattened.contours[index].end;
+    }
+    const std::span<const Point> points(flattened.points.data(), flattened.written.point_count);
+    const std::span<const std::size_t> contour_ends(ends.data(), flattened.written.contour_count);
+    scan_fill_contours(*this, points, contour_ends, color, rule);
+}
+
+// A minimal painter clips by rectangles only: the path's bounding box,
+// which holds every pixel the exact clip would keep. A refused path or rule
+// clips to the empty rectangle, so nothing draws until the restore.
+void Painter::clip_path(PaintPathView path, PolygonFillRule rule) {
+    const bool known_rule = rule == PolygonFillRule::nonzero || rule == PolygonFillRule::even_odd;
+    if (!known_rule || !valid_paint_path(path)) {
+        clip_rect(Rect{});
+        return;
+    }
+    const Rect bounds = paint_path_bounds(path);
+    clip_rect(bounds);
+}
+
+// A trimmed stroke flattens the sub-path trim_paint_path cuts (the same
+// one every painter strokes), held in a PaintPath of this call's own: the
+// minimal painter keeps no scratch, so a trimmed stroke allocates once per
+// call.
+void Painter::stroke_path(PaintPathView path, const StrokeStyle& style) {
+    if (!valid_stroke_style(style) || !valid_paint_path(path)) return;
+    PaintPath trimmed;
+    PaintPathView drawn = path;
+    if (!stroke_trim_keeps_whole(style.trim)) {
+        const PaintPathTrimResult result = trim_paint_path(path, style.trim, stroke_trim_tolerance, trimmed);
+        if (result != PaintPathTrimResult::trimmed) return;
+        drawn = trimmed.view();
+    }
+    FallbackPath flattened{};
+    flatten_for_fallback(drawn, flattened);
+    std::size_t contour_start = 0U;
+    for (std::size_t index = 0U; index < flattened.written.contour_count; ++index) {
+        const std::size_t contour_end = flattened.contours[index].end;
+        stroke_polyline(std::span<const Point>(flattened.points.data() + contour_start, contour_end - contour_start),
+                        style);
+        contour_start = contour_end;
+    }
 }
 
 void Painter::fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) {
@@ -284,6 +364,47 @@ void Painter::fill_checker(Rect rect, const CheckerPattern& pattern) {
                             pattern.anchor.y + static_cast<double>(row) * pattern.cell, pattern.cell, pattern.cell};
             const Rect shown = Rect::intersection(cell, rect);
             if (!shown.empty()) fill_rect(shown, pattern.second);
+        }
+    }
+}
+
+void Painter::fill_hatch(Rect rect, const HatchPattern& pattern) {
+    if (rect.empty() || !rect.finite() || !valid_hatch_pattern(pattern)) return;
+    std::size_t marked_per_cell = 0U;
+    for (std::uint32_t row = 0U; row < hatch_cell_squares; ++row) {
+        for (std::uint32_t column = 0U; column < hatch_cell_squares; ++column) {
+            if (hatch_square_marked(pattern.style, column, row)) ++marked_per_cell;
+        }
+    }
+    const double first_column = std::floor((rect.x - pattern.anchor.x) / pattern.cell);
+    const double last_column = std::ceil((rect.right() - pattern.anchor.x) / pattern.cell);
+    const double first_row = std::floor((rect.y - pattern.anchor.y) / pattern.cell);
+    const double last_row = std::ceil((rect.bottom() - pattern.anchor.y) / pattern.cell);
+    const double squares = (last_column - first_column) * (last_row - first_row) *
+                           static_cast<double>(marked_per_cell);
+    if (!std::isfinite(squares) || squares > static_cast<double>(maximum_hatch_squares)) {
+        fill_rect(rect, average_colour(pattern.fore, pattern.back));
+        return;
+    }
+    fill_rect(rect, pattern.back);
+    const double square = pattern.cell / static_cast<double>(hatch_cell_squares);
+    const std::int64_t column_begin = static_cast<std::int64_t>(first_column);
+    const std::int64_t column_end = static_cast<std::int64_t>(last_column);
+    const std::int64_t row_begin = static_cast<std::int64_t>(first_row);
+    const std::int64_t row_end = static_cast<std::int64_t>(last_row);
+    for (std::int64_t cell_row = row_begin; cell_row < row_end; ++cell_row) {
+        const double cell_top = pattern.anchor.y + static_cast<double>(cell_row) * pattern.cell;
+        for (std::int64_t cell_column = column_begin; cell_column < column_end; ++cell_column) {
+            const double cell_left = pattern.anchor.x + static_cast<double>(cell_column) * pattern.cell;
+            for (std::uint32_t row = 0U; row < hatch_cell_squares; ++row) {
+                for (std::uint32_t column = 0U; column < hatch_cell_squares; ++column) {
+                    if (!hatch_square_marked(pattern.style, column, row)) continue;
+                    const Rect placed{cell_left + static_cast<double>(column) * square,
+                                      cell_top + static_cast<double>(row) * square, square, square};
+                    const Rect shown = Rect::intersection(placed, rect);
+                    if (!shown.empty()) fill_rect(shown, pattern.fore);
+                }
+            }
         }
     }
 }

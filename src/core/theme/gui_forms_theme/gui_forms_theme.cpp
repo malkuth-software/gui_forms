@@ -3,11 +3,13 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../theme_compiler/built_in_theme.hpp"
+#include "../theme_compiler/content_parts_sheet.hpp"
 
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -446,8 +448,9 @@ FloorEvaluation evaluate_floor() {
 const FloorEvaluation& floor_evaluation() {
     // Evaluated once, on the first call's thread; C++ makes the
     // initialization thread-safe, and it is never changed afterwards.
-    static const FloorEvaluation evaluation = evaluate_floor();
-    return evaluation;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FloorEvaluation* const evaluation = new const FloorEvaluation(evaluate_floor());
+    return *evaluation;
 }
 
 // -- the light sheet ----------------------------------------------------------------
@@ -646,6 +649,32 @@ indicator-lamp::part(lens):state(error) {
   background: radial-gradient(circle at 40% 35%, #ffe4da, #e5432e 45%, #8c1a0f);
   border: 1px solid #6b130a;
   box-shadow: inset 0 0 3px #ffe4dab0;
+}
+
+/* The business card (PlaySuite and Plan Paint parity, 2026-11-15): a bone
+   paper stock with a faint fibre, edged a shade darker, printed in a warm
+   black; the vendor name turns to gold foil under the pointer. The card
+   in the hand paints its two faces through these rules before it turns
+   them, so a theme that restyles the stock restyles the turned card too.
+   The remarks lie around the card, over the dimmed window, in a pale
+   ink. */
+business-card::part(stock) {
+  background: pattern(paper-fibre, #e9e3d2, #d6cdb4, 48px);
+  border: 1px solid #c9bfa3;
+  box-shadow: inset 0 1px 0 #f7f3e8;
+}
+business-card::part(vendor-name), business-card::part(product) {
+  color: #1d1a16;
+}
+business-card::part(vendor-name):hover {
+  color: #a8710f;
+}
+business-card::part(rule) {
+  background: #8c836f;
+  border: none;
+}
+business-card::part(remark) {
+  color: #f3efe4;
 }
 
 /* The danger key (skeudoindustrial surfaces, follow-up 5): a button that
@@ -871,6 +900,17 @@ node-canvas.blue::part(port-label), node-canvas.grey::part(port-label) {
 node-canvas.grey::part(link-preview) {
   stroke-color: #1b2733;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view light_sheet_file = "gui-forms/light.css";
@@ -881,8 +921,11 @@ GuiFormsThemeBuild build_gui_forms_theme() {
     const FloorEvaluation& floor = floor_evaluation();
     result.diagnostics = floor.diagnostics;
     result.floor_compile_operations = floor.operations;
+    // The light sheet, then the content parts' rules (W-7), as one sheet.
+    std::string sheet(light_sheet);
+    sheet.append(detail::content_parts_sheet);
     detail::BuiltInThemeCompilation compiled =
-        detail::compile_built_in_theme(*floor.definition, light_sheet_file, light_sheet, stock_control_anatomies());
+        detail::compile_built_in_theme(*floor.definition, light_sheet_file, sheet, stock_control_anatomies());
     result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
     result.compile_operations = compiled.operations;
     result.theme = compiled.theme != nullptr ? std::move(compiled.theme) : Theme::create(*floor.definition);
@@ -907,8 +950,9 @@ std::string_view gui_forms_light_sheet() noexcept { return light_sheet; }
 const GuiFormsThemeBuild& gui_forms_theme_build() {
     // Built once, on the first call's thread; C++ makes the initialization
     // thread-safe, and the build is never changed afterwards.
-    static const GuiFormsThemeBuild build = build_gui_forms_theme();
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const GuiFormsThemeBuild* const build = new const GuiFormsThemeBuild(build_gui_forms_theme());
+    return *build;
 }
 
 std::shared_ptr<const Theme> gui_forms_theme() {

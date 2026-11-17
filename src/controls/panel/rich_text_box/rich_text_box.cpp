@@ -13,6 +13,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -118,7 +119,7 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     Panel::auto_scroll = true;
     reparse();
@@ -504,7 +505,7 @@ void RichTextBox::handle_pointer(PointerEvent& event) {
         // elsewhere.
         const bool over_link = command && link_at(local_x, local_y).has_value();
         const CursorKind wanted = over_link ? CursorKind::hand : CursorKind::text;
-        if (cursor.read() != wanted) cursor = wanted;
+        if (cursor.read() != stxlib::Optional<CursorKind>::of(wanted)) cursor = stxlib::Optional<CursorKind>::of(wanted);
         return;
     }
     if (event.action == PointerAction::up && event.button == PointerButton::primary && selecting_) {
@@ -683,7 +684,7 @@ SemanticDescriptor RichTextBox::semantic_descriptor() const {
     descriptor.value = std::string((*editing_).text());
     descriptor.description = accessible_description.read();
     if (read_only.read()) descriptor.states |= SemanticState::read_only;
-    descriptor.text_selection = SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret};
+    descriptor.text_selection.set(SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret});
     descriptor.multiline = true;
     descriptor.actions = {SemanticAction::focus};
     if (!read_only.read()) descriptor.actions.push_back(SemanticAction::set_value);
@@ -740,19 +741,19 @@ SemanticTextResult RichTextBox::on_set_semantic_text_selection(SemanticTextSelec
 namespace {
 
 constexpr std::array<PartField<RichTextBox::Parts>, 7> rich_text_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::edge},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::well},
-    {.declaration = {.name = "bar", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "bar", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::bar},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::content},
-    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
+    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::caret},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &RichTextBox::Parts::selection},
 }};
 
@@ -770,11 +771,11 @@ constexpr std::array<StateField<RichTextBox::States>, 10> rich_text_box_state_fi
 }};
 
 constexpr std::array<PartField<RichTextBox::ItemParts>, 3> rich_text_box_item_part_fields{{
-    {.declaration = {.name = "button", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "button", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RichTextBox::ItemParts::button},
-    {.declaration = {.name = "button_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "button_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &RichTextBox::ItemParts::button_label},
-    {.declaration = {.name = "button_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "button_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &RichTextBox::ItemParts::button_glyph},
 }};
 
@@ -868,9 +869,9 @@ void RichTextBox::publish_part_geometry(std::span<PartGeometry> geometry) const 
             Rect united{};
             bool any = false;
             for (const Row& row : rows_) {
-                const std::optional<Rect> band = selection_band(row);
-                if (!band) continue;
-                const Rect placed{origin.x + (*band).x, origin.y + (*band).y, (*band).width, (*band).height};
+                const stxlib::Optional<Rect> band = selection_band(row);
+                if (band.absent()) continue;
+                const Rect placed{origin.x + ((*band.value())).x, origin.y + ((*band.value())).y, ((*band.value())).width, ((*band.value())).height};
                 united = any ? Rect::united(united, placed) : placed;
                 any = true;
             }
@@ -882,6 +883,7 @@ void RichTextBox::publish_part_geometry(std::span<PartGeometry> geometry) const 
 }
 
 void RichTextBox::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
+    require_realized_item(item);
     const ItemParts record = bar_item_parts(item);
     write_item_parts(anatomy().item_systems.front(), rich_text_box_item_part_fields, record, geometry);
 }

@@ -25,17 +25,17 @@ constexpr double caption_gap = 6.0;
 constexpr double caption_font_size = 11.0;
 
 constexpr std::array<PartField<LinearGauge::Parts>, 6> linear_gauge_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::plot},
-    {.declaration = {.name = "alarm_zone", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "alarm_zone", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::alarm_zone},
-    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}},
+    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::trace},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::graticule},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &LinearGauge::Parts::caption},
 }};
 
@@ -51,6 +51,7 @@ constexpr ControlAnatomy linear_gauge_anatomy{
     .parts = linear_gauge_parts,
     .states = linear_gauge_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {
@@ -167,32 +168,32 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint plot{.role = PartRole::plot, .bounds = placed_rect(placed, placed.plot), .states = states,
                    .family = ControlVisualRole::progress};
-    plot.key = PartKey{"plot", {}, {}};
+    plot.key.set(PartKey{"plot", {}, {}});
     paint_part(painter, *this, plot);
 
     // The alarm ranges, over the field and under the reading.
     AnatomyStateSet alarm_states = states;
     alarm_states.insert(AnatomyState::invalid);
     PartPaint alarm{.role = PartRole::track, .states = alarm_states, .family = ControlVisualRole::progress};
-    alarm.key = PartKey{"alarm_zone", {}, {}};
-    const std::optional<double> low = low_alarm.read();
-    const std::optional<double> high = high_alarm.read();
-    if (low && ratio_of(*low) > 0.0) {
+    alarm.key.set(PartKey{"alarm_zone", {}, {}});
+    const double* low = low_alarm.read().value();
+    const double* high = high_alarm.read().value();
+    if (low != nullptr && ratio_of(*low) > 0.0) {
         alarm.bounds = zone_between(placed, 0.0, ratio_of(*low));
         paint_part(painter, *this, alarm);
     }
-    if (high && ratio_of(*high) < 1.0) {
+    if (high != nullptr && ratio_of(*high) < 1.0) {
         alarm.bounds = zone_between(placed, ratio_of(*high), 1.0);
         paint_part(painter, *this, alarm);
     }
 
     PartPaint trace{.role = PartRole::trace, .bounds = placed_rect(placed, placed.trace), .states = reading_states(),
                     .family = ControlVisualRole::progress};
-    trace.key = PartKey{"trace", {}, {}};
+    trace.key.set(PartKey{"trace", {}, {}});
     paint_part(painter, *this, trace);
 
     PartPaint tick{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-    tick.key = PartKey{"graticule", {}, {}};
+    tick.key.set(PartKey{"graticule", {}, {}});
     const std::vector<double> ratios = tick_ratios();
     for (const double ratio : ratios) {
         tick.bounds = mark_at(placed, ratio);
@@ -223,10 +224,10 @@ void LinearGauge::publish_part_geometry(std::span<PartGeometry> geometry) const 
     record.trace = PartGeometry::from_bounds(placed_rect(placed, placed.trace));
     record.graticule = PartGeometry::from_bounds(placed_rect(placed, placed.ticks));
     Rect alarms{};
-    const std::optional<double> low = low_alarm.read();
-    const std::optional<double> high = high_alarm.read();
-    if (low && ratio_of(*low) > 0.0) alarms = joined(alarms, zone_between(placed, 0.0, ratio_of(*low)));
-    if (high && ratio_of(*high) < 1.0) alarms = joined(alarms, zone_between(placed, ratio_of(*high), 1.0));
+    const double* low = low_alarm.read().value();
+    const double* high = high_alarm.read().value();
+    if (low != nullptr && ratio_of(*low) > 0.0) alarms = joined(alarms, zone_between(placed, 0.0, ratio_of(*low)));
+    if (high != nullptr && ratio_of(*high) < 1.0) alarms = joined(alarms, zone_between(placed, ratio_of(*high), 1.0));
     record.alarm_zone = PartGeometry::from_bounds(alarms);
     record.caption = PartGeometry::from_bounds(placed_rect(placed, placed.caption));
     write_parts(anatomy(), linear_gauge_part_fields, record, geometry);

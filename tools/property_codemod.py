@@ -56,14 +56,31 @@ Config keys are the study's (section 15.2) plus these, all optional:
              "written_effects": the dirty mask a generated written touches
              when it differs from the descriptor's (table.effects).
              "traits": "hand" when the value type's PropertyValueTraits are
-             declared elsewhere (an enumeration shared between families).
-             "sample": a C++ expression the generated test writes.
+             written by hand elsewhere.
+Shared enumerations: an enumeration value type that more than one family's
+table names is listed once under "enumerations" in shared.json (beside the
+family configs): {"value": the C++ type, "value_header": the public header
+declaring it, "enumeration": the C++ expression of its choice set,
+"enumeration_header": the source-tree header declaring that expression}.
+Generating shared.json writes their PropertyValueTraits once, declared in
+include/gui_forms/controls/shared_property_enums.hpp and defined in
+src/controls/shared_property_enums/shared_property_enums.cpp; a family
+naming one declares no traits for it and its capabilities header includes the
+shared header. Generating a family refuses an enumeration it would declare
+that another family declares too, until it is listed there.
+             "sample": a C++ expression the generated test writes. It must
+             differ from the cell's value when written, or the read-back
+             cannot fail (B-gf-tests-09-F2).
+             "restore": true when the generated test writes the value it read
+             first back after the block, so a sample that changes the
+             control's mode (multiline) does not refuse later writes.
 Paths in a config are relative to the gui_forms checkout (the current
 directory). Outputs use LF line endings.
 """
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import shlex
@@ -73,30 +90,42 @@ import sys
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
     "on_changed", "localizable", "table", "hooks", "storage", "effects", "thunks", "hand",
-    "comment_generated", "prepare", "written_effects", "traits", "sample", "coerce",
+    "comment_generated", "prepare", "written_effects", "traits", "sample", "coerce", "restore",
 }
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
     "not_properties", "base", "includes", "table_source", "test", "shared_header", "mutation_check",
-    "overrides", "extra_entries",
+    "overrides", "extra_entries", "enumerations",
 }
+ENUMERATION_KEYS = {"value", "value_header", "enumeration", "enumeration_header"}
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
     "enumeration", "reset", "registry", "serialization", "binding_direction", "content_value",
 }
 THUNK_KEYS = {"read", "write", "reset", "should_serialize", "origin"}
 SHARED_HEADER = "include/gui_forms/control/shared_capabilities/shared_capabilities.hpp"
+SHARED_ENUM_HEADER = "include/gui_forms/controls/shared_property_enums.hpp"
+SHARED_ENUM_SOURCE = "src/controls/shared_property_enums/shared_property_enums.cpp"
 BEGIN = "// property_codemod begin "
 END = "// property_codemod end "
 
 
 # Names and configs ------------------------------------------------------
 
+_WORD = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+")
+
+
 def snake(name):
-    """ButtonBase -> button_base."""
-    first = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
-    second = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", first)
-    return second.lower()
+    """ButtonBase -> button_base; Plot3DView -> plot3d_view. The words are
+    control_registry.registered_id's: an all-capitals word right after a
+    digit stays with the word before it."""
+    words = []
+    for word in _WORD.findall(name):
+        if words and words[-1][-1].isdigit() and word.isupper():
+            words[-1] = words[-1] + word
+        else:
+            words.append(word)
+    return "_".join(word.lower() for word in words)
 
 
 def load(path):
@@ -148,6 +177,19 @@ def validate(config):
     for key in required:
         if key not in config:
             errors.append(f"{where}: missing {key!r}")
+    if config.get("enumerations") is not None and config.get("family") != "Shared":
+        errors.append(f"{where}: 'enumerations' belongs in shared.json")
+    shared_values = set()
+    for entry in config.get("enumerations") or []:
+        for key in entry:
+            if key not in ENUMERATION_KEYS:
+                errors.append(f"{where}: enumeration {entry.get('value')!r}: unknown key {key!r}")
+        for key in ENUMERATION_KEYS:
+            if not entry.get(key):
+                errors.append(f"{where}: enumeration {entry.get('value')!r}: missing {key!r}")
+        if entry.get("value") in shared_values:
+            errors.append(f"{where}: enumeration {entry.get('value')!r} listed twice")
+        shared_values.add(entry.get("value"))
     if errors:
         return errors, notes
     config.setdefault("declaring", "Declaring")
@@ -291,8 +333,24 @@ HEADER_COMMENT = """
 """
 
 
-def enum_traits_needed(config):
-    """The enumeration value types whose traits this family declares."""
+def shared_config_path(config):
+    """shared.json beside a family config."""
+    return pathlib.Path(config["_path"]).parent / "shared.json"
+
+
+def shared_enumerations(config):
+    """The value types shared.json lists under "enumerations", for the
+    family config `config` (none when there is no shared.json)."""
+    path = shared_config_path(config)
+    if not path.exists():
+        return []
+    shared = json.loads(path.read_text(encoding="utf-8"))
+    return shared.get("enumerations") or []
+
+
+def own_enum_values(config):
+    """Every enumeration value type the family's table names, with its choice
+    set, before shared enumerations are taken out (hand traits excluded)."""
     seen = []
     for prop in table_properties(config):
         table = prop["table"]
@@ -303,13 +361,58 @@ def enum_traits_needed(config):
     return seen
 
 
+def enum_traits_needed(config):
+    """The enumeration value types whose traits this family declares: its
+    own, less the shared ones."""
+    shared = [entry["value"] for entry in shared_enumerations(config)]
+    needed = [(value, enumeration) for value, enumeration in own_enum_values(config) if value not in shared]
+    return needed
+
+
+def uses_shared_enumeration(config):
+    """Whether the family's table names a shared enumeration."""
+    shared = [entry["value"] for entry in shared_enumerations(config)]
+    for prop in table_properties(config):
+        if prop["table"].get("kind") == "enumeration" and prop["value"] in shared:
+            return True
+    return False
+
+
+def duplicate_enum_traits(config):
+    """Errors for each enumeration this family would declare traits for that
+    another family config beside it declares too."""
+    errors = []
+    needed = [value for value, _ in enum_traits_needed(config)]
+    if not needed:
+        return errors
+    directory = pathlib.Path(config["_path"]).parent
+    for other_path in sorted(directory.glob("*.json")):
+        if other_path.as_posix() == pathlib.Path(config["_path"]).as_posix() or other_path.name == "shared.json":
+            continue
+        other = load(other_path)
+        if "properties" not in other or other.get("family") == "Shared":
+            continue
+        other_values = [value for value, _ in enum_traits_needed(other)]
+        for value in needed:
+            if value in other_values:
+                errors.append(f"{config['_path']}: {value} is an enumeration {other['family']} "
+                              f"({other_path.as_posix()}) also names; list it under \"enumerations\" in "
+                              f"{shared_config_path(config).as_posix()} so its traits are written once")
+    return errors
+
+
 def capabilities_header(config):
     includes = ['"gui_forms/binding/property_cell/property_cell.hpp"']
     if any(prop.get("localizable") for prop in config["properties"]):
         includes.append('"gui_forms/text/localizable/localizable_property.hpp"')
     if config.get("shared"):
         includes.append('"%s"' % SHARED_HEADER[len("include/"):])
+    if uses_shared_enumeration(config):
+        includes.append('"%s"' % SHARED_ENUM_HEADER[len("include/"):])
     system = ["<cstdint>", "<optional>", "<string>", "<utility>"]
+    # STXlib's owned optional (D15) is a property value type of its own.
+    if any("stxlib::Optional<" in prop["value"] for prop in config["properties"]):
+        system.append("<stxlib/optional.hpp>")
     # An include spelled with angle brackets is a standard header.
     for extra in config.get("includes") or []:
         if extra.startswith("<"):
@@ -377,6 +480,47 @@ def shared_header(shared_config):
     for prop in shared_config["properties"]:
         text += capability_text(prop, True)
     text += "\n} // namespace gui_forms\n"
+    return text
+
+
+def shared_enum_header(shared_config):
+    """The PropertyValueTraits declarations of the shared enumerations."""
+    out = ["#pragma once", "", '#include "gui_forms/binding/property_type/property_type.hpp"']
+    headers = sorted({entry["value_header"] for entry in shared_config["enumerations"]})
+    out += ['#include "%s"' % header for header in headers]
+    out += ["", "namespace gui_forms {", ""]
+    out.append("// The enumerations several property families name, each made a property")
+    out.append("// value once here; generated by tools/property_codemod.py from")
+    out.append("// " + shared_config["_path"] + " (\"enumerations\"). Defined in")
+    out.append("// " + SHARED_ENUM_SOURCE + ".")
+    text = "\n".join(out) + "\n"
+    for entry in shared_config["enumerations"]:
+        value = entry["value"]
+        text += f"""
+template <>
+struct PropertyValueTraits<{value}> {{
+    static PropertyType type();
+    static BindingValue to_binding({value} value);
+    static {value} from_binding(const BindingValue& value);
+}};
+"""
+    text += "\n} // namespace gui_forms\n"
+    return text
+
+
+def shared_enum_source(shared_config):
+    """The PropertyValueTraits definitions of the shared enumerations."""
+    source_directory = pathlib.Path(SHARED_ENUM_SOURCE).parent
+    out = ["// Generated by tools/property_codemod.py from " + shared_config["_path"] + "; do not edit.",
+           "", '#include "%s"' % SHARED_ENUM_HEADER[len("include/"):], ""]
+    headers = sorted({entry["enumeration_header"] for entry in shared_config["enumerations"]})
+    out += ['#include "%s"' % os.path.relpath(header, source_directory).replace(os.sep, "/") for header in headers]
+    out += ["", "#include <cstdint>", "#include <optional>", "#include <stdexcept>", "#include <variant>", "",
+            "namespace gui_forms {", ""]
+    text = "\n".join(out) + "\n"
+    for entry in shared_config["enumerations"]:
+        text += enum_traits_text(entry["value"], entry["enumeration"])
+    text = text.rstrip("\n") + "\n\n} // namespace gui_forms\n"
     return text
 
 
@@ -660,7 +804,11 @@ def add_include(text, include):
 
 # The declaring class's header ---------------------------------------------
 
-def header_block(config):
+def header_block(config, final_class=False):
+    """The generated block. In a final class the on_<property>_changed
+    hooks are plain members: nothing can override them in C++ (`virtual`
+    there is -Wunnecessary-virtual-specifier), and the C ABI's class tables
+    reach a final class's raisers without a vtable (tools/abi_class_tables.py)."""
     declaring = config["declaring"]
     family = config["family"]
     base = config.get("base", "Control")
@@ -677,10 +825,18 @@ def header_block(config):
                   "    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;",
                   ""]
     virtuals = []
+    specifier = "" if final_class else "virtual "
     for prop in config["properties"]:
         if prop.get("on_changed"):
-            virtuals.append(f"    virtual void on_{prop['name']}_changed();")
-    if virtuals:
+            virtuals.append(f"    {specifier}void on_{prop['name']}_changed();")
+    if virtuals and final_class:
+        lines += ["protected:",
+                  "    // on_<property>_changed runs after a changed write's store and touch and",
+                  "    // raises the change event (the class is final: nothing overrides it in",
+                  "    // C++). Only the properties with a Windows Forms On<Property>Changed",
+                  "    // have one.",
+                  *virtuals, ""]
+    elif virtuals:
         lines += ["protected:",
                   "    // on_<property>_changed runs after a changed write's store and touch and",
                   "    // raises the change event; an override calls the base. Only the",
@@ -778,7 +934,8 @@ def generate_header(config, report):
         raise ValueError("%s: migrated fields still in class %s: %s"
                          % (config["header"], config["declaring"], ", ".join(left)))
     head, body_open, body_close = class_body(text, config["declaring"])
-    text = replace_block(text, config["family"], header_block(config), line_start(text, body_close))
+    final_class = re.search(r"\bfinal\b", head.group(0)) is not None
+    text = replace_block(text, config["family"], header_block(config, final_class), line_start(text, body_close))
     path.write_bytes(collapse_blank_lines(text).encode("utf-8"))
 
 
@@ -930,7 +1087,13 @@ def virtual_bodies(config, prop):
 def enum_traits_definitions(config):
     out = ""
     for value, enumeration in enum_traits_needed(config):
-        out += f"""PropertyType PropertyValueTraits<{value}>::type() {{
+        out += enum_traits_text(value, enumeration)
+    return out
+
+
+def enum_traits_text(value, enumeration):
+    """One enumeration's PropertyValueTraits definitions."""
+    out = f"""PropertyType PropertyValueTraits<{value}>::type() {{
     return PropertyType{{BindingValueKind::enumeration, false, {enumeration}}};
 }}
 
@@ -1098,7 +1261,19 @@ def command_generate(arguments):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(shared_header(config).encode("utf-8"))
         print(f"wrote {path}")
+        if config.get("enumerations"):
+            for target, text in ((SHARED_ENUM_HEADER, shared_enum_header(config)),
+                                 (SHARED_ENUM_SOURCE, shared_enum_source(config))):
+                target_path = pathlib.Path(target)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_bytes(text.encode("utf-8"))
+                print(f"wrote {target_path}")
         return 0
+    duplicates = duplicate_enum_traits(config)
+    if duplicates:
+        for line in duplicates:
+            print("error: " + line)
+        return 1
     if config["properties"]:
         header_path = pathlib.Path(config["capabilities_header"])
         header_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1357,6 +1532,8 @@ DEFAULT_SAMPLES = {
     "Insets": "Insets{1.0, 2.0, 3.0, 4.0}",
     "std::optional<bool>": "std::optional<bool>{true}",
     "std::optional<Color>": "std::optional<Color>{Color::rgba(10, 20, 30)}",
+    "stxlib::Optional<bool>": "stxlib::Optional<bool>::of(true)",
+    "stxlib::Optional<Color>": "stxlib::Optional<Color>::of(Color::rgba(10, 20, 30))",
 }
 
 TEST_PROLOGUE = """// Generated by tools/property_codemod.py tests from tools/property_families/;
@@ -1419,7 +1596,10 @@ def test_function(config):
             lines.append(f"    // {member}: no sample for {value}; give the property a \"sample\".")
             continue
         label = f"{family}.{member}"
-        lines += ["    {", f"        const {value} sample = {sample};"]
+        lines.append("    {")
+        if prop.get("restore"):
+            lines.append(f"        const {value} before = (*control).{member}.read();")
+        lines.append(f"        const {value} sample = {sample};")
         if prop.get("event"):
             accessor = prop["event"].rstrip("_")
             lines += ["        int raises = 0;",
@@ -1440,6 +1620,8 @@ def test_function(config):
             lines += [f"        const std::optional<BindingValue> by_name = (*control).property_value(\"{member}\");",
                       f"        expect(by_name && *by_name == PropertyValueTraits<{value}>::to_binding(sample),",
                       f"               \"{label}: the table reads the cell\");"]
+        if prop.get("restore"):
+            lines.append(f"        (*control).{member} = before;")
         lines.append("    }")
     # A hand entry (extra_entries) is reached by name: the table describes it.
     for entry in config.get("extra_entries") or []:

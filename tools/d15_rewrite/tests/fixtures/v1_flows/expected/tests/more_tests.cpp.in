@@ -1,0 +1,31 @@
+#include <gui_forms/more.hpp>
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+#define REQUIRE(condition) ((condition) ? 0 : 1)
+
+namespace {
+
+class Table final : public gui_forms::Source {
+public:
+    [[nodiscard]] stxlib::Optional<int> find(const int key) const noexcept override {
+        if (key < 0) return stxlib::Optional<int>::none();
+        return stxlib::Optional<int>::of(key);
+    }
+};
+
+} // namespace
+
+int main() {
+    Table table;
+    const gui_forms::Source& source = table;
+    int failures = REQUIRE(source.find(1).present());
+    failures += REQUIRE(gui_forms::pick(true) == stxlib::Optional<int>::of(1));
+    const gui_forms::Range range{stxlib::Optional<int>::none(), stxlib::Optional<int>::of(4)};
+    failures += REQUIRE(range.high.present());
+    gui_forms::Holder holder(2);
+    holder.set_limit(stxlib::Optional<int>::of(5));
+    holder.set_limit();
+    return failures;
+}

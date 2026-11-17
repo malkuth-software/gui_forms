@@ -10,14 +10,15 @@ open the same controls to other languages.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
-- **Status:** 0.5, the ABI and API seal, is done. Work is now towards
-  1.0 (backend): the library, its C ABI and its C# bindings. See the
+- **Status:** 0.5, the ABI and API seal, is done, and the package version
+  is 0.6 (C ABI 1.3). Work is now towards 1.0 (backend): the library, its
+  C ABI and its C# bindings. See the
   [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
   and the [roadmap](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html).
 - **Rendering:** CPU only, by design, with no GPU backend. One
-  HarfBuzz/FreeType text engine with bundled fonts draws the same string
-  identically on every platform.
-- **Controls:** more than 120 stock controls (the Windows Forms set, a
+  text engine (STXlib's font reader, shaper, hinter and text layout) with
+  bundled fonts draws the same string identically on every platform.
+- **Controls:** more than 140 stock controls (the Windows Forms set, a
   ribbon, docking, data grids, plots and more), themes written in a
   CSS-syntax theme language, form documents that generate typed window
   classes, and native accessibility on every host.
@@ -27,7 +28,7 @@ open the same controls to other languages.
 | Platform | Host | Notes |
 |---|---|---|
 | macOS 14+ | AppKit | Apple silicon (arm64) |
-| Windows 10+ | Win32 | x64; built with LLVM 22 (MSYS2 CLANG64 or clang-cl) |
+| Windows 10+ | Win32 | x64; built with LLVM 22 under MSYS2 CLANG64 |
 | Linux | X11 | x64 and arm64; also runs under XWayland. Enable with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` |
 
 ## Quick start
@@ -102,6 +103,7 @@ goes further: a form document, a model and an event handler.
 | [`CommandBar`](https://gui-forms.readthedocs.io/api/generated/gui_forms.CommandBar.html) |  | Horizontal row of retained item buttons built from a replaceable CommandItem list that raises one group notification per replacement. |
 | [`DropDownButton`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DropDownButton.html) |  | Command button with an explicit disclosure actuator that either routes the whole button to an owned overlay menu or keeps a primary click region beside a trailing split region. |
 | [`LinkLabel`](https://gui-forms.readthedocs.io/api/generated/gui_forms.LinkLabel.html) |  | Command presented as underlined link text with retained visited state and link semantics. |
+| [`WindowCapsule`](https://gui-forms.readthedocs.io/api/generated/gui_forms.WindowCapsule.html) |  | A window's controls as one capsule worked by gestures: double click or drag down the left half to maximise or minimise, the question mark for help, drag the right half to move, three clicks to close; the surface window manager's title bar controls and a program's own corner controls. |
 | [`MaskedTextBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MaskedTextBox.html) | Text editing | Text box that takes input through a mask (digits, letters, literals, case shifts, culture separators); refused input is reported with its position and reason. |
 | [`RichTextBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RichTextBox.html) |  | Rich text field whose document is markdown, shown styled in place with its markup dimmed, edited like a multiline text box, formatted from a control bar, and read and written as RTF. |
 | [`SearchField`](https://gui-forms.readthedocs.io/api/generated/gui_forms.SearchField.html) |  | Query field: a search mark, an inner TextBox, a clear mark and a busy strip; raises search_requested after typing pauses or on Enter; a search box to assistive technology. |
@@ -118,6 +120,7 @@ goes further: a form document, a model and an event handler.
 | [`Label`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Label.html) |  | Noninteractive text primitive with inherited typography roles, alignment, word wrapping, a bounded line count, and mnemonics. |
 | [`LinearGauge`](https://gui-forms.readthedocs.io/api/generated/gui_forms.LinearGauge.html) |  | Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end. |
 | [`PictureBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PictureBox.html) |  | Noninteractive image presenter over Window-owned generational image resources with the five PictureBoxSizeMode policies and bounded opacity. |
+| [`Plot3DView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Plot3DView.html) |  | Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout. |
 | [`PlotAnnotationItem`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PlotAnnotationItem.html) |  | Item child of a PlotView declaring a text label anchored at a data point. |
 | [`PlotAxisItem`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PlotAxisItem.html) |  | Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following. |
 | [`PlotSeriesItem`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PlotSeriesItem.html) |  | Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel). |
@@ -146,6 +149,7 @@ goes further: a form document, a model and an event handler.
 | [`TreeView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TreeView.html) |  | Flat-model retained tree that paints and publishes only visible rows while item identity and expansion state stay stable for unrealized descendants. |
 | [`VirtualRowsView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.VirtualRowsView.html) |  | A very large number of owner-drawn rows of varying height on a height index: estimated heights refined lazily as rows are shown, scroll anchoring, only visible rows measured, painted and described. |
 | [`CheckBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.CheckBox.html) | Value setting | Two- or three-state selection control with optional automatic cycling, three indicator families, and ordered state events. |
+| [`ColorPicker`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ColorPicker.html) |  | Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard. |
 | [`ColorValueEditor`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ColorValueEditor.html) |  | Compound editor that delegates editing to a real TextBox and adds a checker-backed swatch with canonical #RRGGBBAA conversion. |
 | [`Dial`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Dial.html) |  | Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology. |
 | [`DomainUpDown`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DomainUpDown.html) |  | Text field with up and down arrows stepping through an ordered string list; the selection follows the text, with optional wrapping, sorting and a read-only field. |
@@ -162,6 +166,7 @@ goes further: a form document, a model and an event handler.
 | [`DateTimePicker`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DateTimePicker.html) | Date setting | Civil date/time field with validated bounds, four formatting policies, optional check state, and calendar or spin presentation. |
 | [`MonthCalendar`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MonthCalendar.html) |  | One or more month pages for selecting a date or a run of dates, with a date range, today marker, bold dates, week numbers and keyboard navigation. |
 | [`Card`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Card.html) | Grouping | Header/body/footer composition that owns each installed section as an ordinary visual child and returns the detached predecessor on replacement. |
+| [`CompositeControl`](https://gui-forms.readthedocs.io/api/generated/gui_forms.CompositeControl.html) |  | A control described by a .control document, made only from its compiled definition, whose parts, properties, rules, children and events the definition declares. |
 | [`ContainerControl`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ContainerControl.html) |  | ScrollableControl with descendant-scoped active-control authority and inherited validation policy. |
 | [`ExpandableSections`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ExpandableSections.html) |  | Stack of captioned sections whose content controls expand and collapse individually or in single-open mode. |
 | [`GroupBox`](https://gui-forms.readthedocs.io/api/generated/gui_forms.GroupBox.html) |  | Titled Panel with mnemonic focus routing, caption-aware border painting, and group semantics. |
@@ -182,6 +187,7 @@ goes further: a form document, a model and an event handler.
 | [`DockSite`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DockSite.html) |  | The docked part of a DockWorkspace in one window: binary splits with 3-unit seams moved by pointer and keyboard within minimums, captioned tool stacks and the document area built from PageView, root-level pins that auto-hide a stack to side tabs on the window's edges with sliding in-window flyouts, the position menu, F6 regions, the Ctrl+Tab navigator, Escape and Shift+Escape, a maximized document area, tool stacks collapsing by priority behind side tabs when the window is too small, and dragging in one window: caption and tab drags with a postage-stamp miniature, position-sensitive targets with quiet tiles over the hovered pane and global edge targets, Ctrl suppression, snap-back, and the keyboard move mode. |
 | [`FlexPanel`](https://gui-forms.readthedocs.io/api/generated/gui_forms.FlexPanel.html) |  | CSS Flexbox container: rows or columns, wrapping lines, grow and shrink with frozen minimums and maximums, justify and align, auto margins, order and right-to-left mirroring. |
 | [`FlowLayoutPanelCompat`](https://gui-forms.readthedocs.io/api/generated/gui_forms.FlowLayoutPanelCompat.html) |  | For Windows Forms migration, the Windows Forms FlowLayoutPanel: four flow directions, optional wrapping, bounded spacing, per-child margins and stable flow breaks; use FlexPanel for new work. |
+| [`FormLayout`](https://gui-forms.readthedocs.io/api/generated/gui_forms.FormLayout.html) |  | Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls. |
 | [`GridPanel`](https://gui-forms.readthedocs.io/api/generated/gui_forms.GridPanel.html) |  | CSS Grid container: explicit and implicit tracks, line-based and automatic placement with dense packing, named areas, intrinsic, fixed and flexible track sizing, auto-fill and auto-fit repeats, gaps, box alignment with baselines, and right-to-left mirroring. |
 | [`MasterDetailView`](https://gui-forms.readthedocs.io/api/generated/gui_forms.MasterDetailView.html) |  | Content-agnostic master/detail shell with responsive presentation, a draggable and keyboard-operable splitter, and focus transfer on collapse. |
 | [`ResponsiveTrackPanel`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ResponsiveTrackPanel.html) |  | Track-based container that places each child in one authored track and collapses tracks as an effective-layout state without changing author visibility. |
@@ -213,6 +219,7 @@ goes further: a form document, a model and an event handler.
 | [`ToolStripPanel`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ToolStripPanel.html) |  | Band along one edge that stacks joined ToolStrips in rows (top, bottom) or vertical columns (left, right), as thick as its strips. |
 | [`AboutDialog`](https://gui-forms.readthedocs.io/api/generated/gui_forms.AboutDialog.html) | Dialogs and overlays | An application's About box: a TaskDialog preset with the information icon, the product and version, description and copyright, credits behind an expander, and OK. |
 | [`AnchoredOverlayLayer`](https://gui-forms.readthedocs.io/api/generated/gui_forms.AnchoredOverlayLayer.html) |  | Full-client overlay that owns one retained overlay content subtree, re-resolves anchored bounds on resize, and reports click-away and Escape requests. |
+| [`BusinessCard`](https://gui-forms.readthedocs.io/api/generated/gui_forms.BusinessCard.html) |  | The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay. |
 | [`Callout`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Callout.html) |  | Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss. |
 | [`ColorDialog`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ColorDialog.html) |  | The host's dialog for choosing a color, opaque unless alpha is allowed, shown modally through HostServices. |
 | [`FolderBrowserDialog`](https://gui-forms.readthedocs.io/api/generated/gui_forms.FolderBrowserDialog.html) |  | The host's dialog for choosing a folder, with a description and a starting folder, shown modally through HostServices. |
@@ -223,7 +230,9 @@ goes further: a form document, a model and an event handler.
 | [`TaskDialog`](https://gui-forms.readthedocs.io/api/generated/gui_forms.TaskDialog.html) |  | In-window owned message dialog of TaskDialogPage pages: heading, text, icon, standard and custom buttons, radio buttons, a verification check box, an expander, a footnote and a progress bar, with navigation between pages. |
 | [`ThreadExceptionDialog`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ThreadExceptionDialog.html) |  | The dialog for an exception the application did not handle: a TaskDialog preset with the error icon, the message, details behind an expander, and Continue and Quit, returned as cancel and abort. |
 | [`ToolTip`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ToolTip.html) |  | Nonvisual provider that maps Controls to tooltip text and presents a retained, input-transparent overlay owned by each target. |
-| [`DrawingSurface`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DrawingSurface.html) | Drawing | Owner-render surface configured through the renderer-neutral Painter vocabulary without a Control subclass. |
+| [`ContentSurface`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ContentSurface.html) | Drawing | Region whose finished frames a consumer renders and publishes from its own execution context; every frame is validated, a missed-frame watchdog marks it stale while the last good frame stays, and the consumer supplies its semantic text. |
+| [`ContentTextEditor`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ContentTextEditor.html) |  | Editable text a consumer lays out and renders with its own engine and fonts, while GUI.Forms keeps the caret, selection, keys, input methods, undo, clipboard and accessibility; every layout and frame is validated. |
+| [`DrawingSurface`](https://gui-forms.readthedocs.io/api/generated/gui_forms.DrawingSurface.html) |  | Owner-render surface configured through the renderer-neutral Painter vocabulary without a Control subclass. |
 | [`LiveSurface`](https://gui-forms.readthedocs.io/api/generated/gui_forms.LiveSurface.html) |  | Latest-frame surface where a producer publishes complete frame candidates and painters acquire only the newest immutable one. |
 | [`NodeCanvas`](https://gui-forms.readthedocs.io/api/generated/gui_forms.NodeCanvas.html) |  | Pannable, deeply zoomable editor over a node graph: level of detail, the grid, nodes with ports and lamps, magnetic soft or routed links, marquee and keyboard selection, grid-snapped moves as single undo steps, and an application-hosted editor. |
 | [`RasterCanvas`](https://gui-forms.readthedocs.io/api/generated/gui_forms.RasterCanvas.html) |  | Viewport over an owned GUI.Drawing bitmap that handles presentation, coordinate transforms, resource synchronization, and local invalidation. |
@@ -240,6 +249,7 @@ goes further: a form document, a model and an event handler.
 | [`ImageList`](https://gui-forms.readthedocs.io/api/generated/gui_forms.ImageList.html) |  | Ordered, keyed collection of PNG-sourced Window image resources with density and state variants and atomic mutation. |
 | [`NotifyIcon`](https://gui-forms.readthedocs.io/api/generated/gui_forms.NotifyIcon.html) |  | Icon in the desktop's notification area (Windows tray, macOS status item, X11 system tray) with a tooltip, clicks, a native context menu and notification text, each refused explicitly where the host lacks the capability. |
 | [`OpenFileDialog`](https://gui-forms.readthedocs.io/api/generated/gui_forms.OpenFileDialog.html) |  | The host's dialog for choosing existing files, with a Windows Forms filter string, multiple selection and a cancellable file_ok, shown modally through HostServices. |
+| [`PlotLinkGroup`](https://gui-forms.readthedocs.io/api/generated/gui_forms.PlotLinkGroup.html) |  | Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom. |
 | [`SemanticFeedback`](https://gui-forms.readthedocs.io/api/generated/gui_forms.SemanticFeedback.html) |  | Turns one-shot application transitions into bounded, traceable host cues. |
 | [`Timer`](https://gui-forms.readthedocs.io/api/generated/gui_forms.Timer.html) |  | Timer whose callbacks are serialized with input, layout, and paint on the owning Window's UI thread and whose late ticks are coalesced. |
 <!-- controls:end -->
@@ -250,7 +260,7 @@ goes further: a form document, a model and an event handler.
 
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-run `python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard`
+run `python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz`
 before you push. See the
 [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 

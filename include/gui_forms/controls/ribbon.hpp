@@ -9,6 +9,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/ribbon_color_picker.hpp"
 #include "gui_forms/controls/ribbon_font_control.hpp"
@@ -28,6 +29,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -68,10 +71,10 @@ enum class RibbonCommandKind : std::uint8_t {
 };
 
 // A button-family command's image size: large (a 32-unit icon over its
-// label, the group's full height) or small (a 16-unit icon beside its label,
+// label, the group's full height) or compact (a 16-unit icon beside its label,
 // stacked in rows). `RibbonCommandSpec::size` is the size at the group's
-// largest layout; the group's layouts may make it small (phase 2b).
-enum class RibbonCommandSize : std::uint8_t { large, small };
+// largest layout; the group's layouts may make it compact (phase 2b).
+enum class RibbonCommandSize : std::uint8_t { large, compact };
 
 // One command record. `stable_id` is unique within the ribbon (across tabs,
 // groups and commands) and names the command in events, semantics and the
@@ -80,7 +83,7 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // A button, toggle or split takes its text (when `text` is empty), enabled,
 // visible and checked state from its required `command`, and runs it on a
 // click; a drop-down's command is optional. `text` may carry a mnemonic
-// ("&Paste"). Labels are always shown (owner decision 6); a small command
+// ("&Paste"). Labels are always shown (owner decision 6); a compact command
 // with an image may leave its label out (`show_label` false: an authored
 // icon-only command, decision 30). `drop_down` is the menu of a split or
 // drop-down command. A hosted command's `text` is its control's accessible
@@ -96,7 +99,7 @@ enum class RibbonCommandSize : std::uint8_t { large, small };
 // likewise, the application's controls, which the ribbon adds and places on
 // one row.
 //
-// `beside_previous` places a small or hosted command in the previous
+// `beside_previous` places a compact or hosted command in the previous
 // command's row, to its right, instead of in a row of its own (the Windows
 // Ribbon Framework's control groups, which stay together in a row): Save
 // over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of
@@ -125,15 +128,15 @@ struct GUI_FORMS_API RibbonCommandSpec final {
 // Framework's group sizes, largest first. A collapsed group shows one button
 // (its icon, caption and a chevron, owner decision 27) that opens the group
 // at its largest layout in an overlay.
-enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed };
+enum class RibbonGroupSize : std::uint8_t { large, medium, compact, collapsed };
 
 // One layout of a group (the WPF/MFC model, owner decision 5): the image size
-// of each command and how many small commands stack in a column. Labels
+// of each command and how many compact commands stack in a column. Labels
 // never drop (decision 6), so a layout only changes image sizes and rows.
 // `command_sizes` holds one size per command of the group, in command order,
 // or is empty for the commands' own sizes (`RibbonCommandSpec::size`);
 // entries for hosted and gallery commands are ignored. A collapsed layout
-// has no sizes. `rows` (1 to 3) is the number of small and hosted command
+// has no sizes. `rows` (1 to 3) is the number of compact and hosted command
 // rows per column. The rows stand from the top of the plane at the
 // three-row pitch, so a column of one or two rows aligns with the tops of
 // the large commands beside it rather than centring in the plane.
@@ -204,7 +207,7 @@ struct GUI_FORMS_API RibbonTabSpec final {
     std::string tab_set{};
     std::uint32_t modes{ribbon_all_modes};
     std::shared_ptr<Control> panel{};
-    std::optional<double> width{};
+    stxlib::Optional<double> width{};
     bool enabled{true};
 };
 
@@ -294,6 +297,13 @@ struct GUI_FORMS_API RibbonDialogLaunch final {
     std::string group_id{};
 };
 
+// A click on the help button (help_button_visible): the ribbon and the tab
+// selected then (empty when none is).
+struct GUI_FORMS_API RibbonHelpRequest final {
+    std::string ribbon_id{};
+    std::string tab_id{};
+};
+
 // The selected tab after it changed.
 struct GUI_FORMS_API RibbonTabChange final {
     std::string ribbon_id{};
@@ -330,9 +340,13 @@ struct GUI_FORMS_API RibbonTabChange final {
 // control as its command plane; the ribbon and its overlays follow the
 // window's theme and colour scheme as they change.
 //
-// Not yet: hosting the QuickAccessToolbar on the tab row (it is a separate
-// control the application places), the minimized ribbon's temporary overlay,
-// right-to-left mirroring and two-line large labels.
+// The tab row may host the Quick Access Toolbar after the File tab (or on a
+// row of its own below) and a help button at its right end; while minimized,
+// a tab opens in a temporary popup over the document (roadmap 2.11).
+//
+// Not yet: right-to-left mirroring and two-line large labels; in the
+// minimized popup, collapsed groups' overlays, drop-down menus and the
+// keyboard's stops (the popup's hosted controls take focus as usual).
 class GUI_FORMS_API Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
 public:
     // Development bounds, not measured capacity.
@@ -362,7 +376,7 @@ public:
     // for an empty or repeated ID (IDs are one namespace across tabs, groups
     // and commands), invalid UTF-8, a button, toggle or split without a
     // command, a menu on a kind that has none or a split without one, an
-    // icon-only command that is not small (in any layout) or has no image,
+    // icon-only command that is not compact (in any layout) or has no image,
     // choices on a command that is not a combo box, a width outside 0 to
     // 1024, an invalid menu, a gallery command without an in-ribbon gallery
     // (or with one used twice or owned by another parent), two galleries in
@@ -377,7 +391,11 @@ public:
     // order. Throws std::invalid_argument, too, for a tab naming an
     // undeclared set, a set without tabs, tabs out of that order, a set ID
     // that is not unique in the ribbon's ID namespace, or zero modes. Sets
-    // keep their availability across a set_tabs by ID.
+    // keep their availability across a set_tabs by ID. A disposed gallery,
+    // font control, colour picker or tab panel is refused the same way. If
+    // adding a hosted control fails after validation (a call from inside a
+    // lifecycle notification), the exception reaches the caller and the
+    // ribbon is left with no tabs.
     void set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets = {});
     [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept {
         return std::span<const RibbonTabSetSpec>(tab_sets_.data(), tab_sets_.size());
@@ -394,13 +412,13 @@ public:
     // The accent a shown set is tinted with, or none while it is hidden.
     // A newly shown set takes an index no other shown set has, keeping its
     // previous one when it can. Throws std::out_of_range for an unknown set.
-    [[nodiscard]] std::optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
+    [[nodiscard]] stxlib::Optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
     // Whether a tab shows on the tab row now (its modes, and its set's
     // availability). Throws std::out_of_range for a tab past the end.
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
     // A group's layouts, largest first: as authored, or generated when none
     // were (each step makes the rightmost run of up to three large commands
-    // small, then the group collapses unless it holds one command). Throws
+    // compact, then the group collapses unless it holds one command). Throws
     // std::out_of_range for a tab or group past the end.
     [[nodiscard]] std::span<const RibbonGroupLayout> group_layouts(std::size_t tab, std::size_t group) const;
     // A tab's reduction ladder at the current font, text scale and theme,
@@ -408,7 +426,7 @@ public:
     [[nodiscard]] std::vector<RibbonLadderEntry> reduction_ladder(std::size_t tab) const;
     // The ladder entry the command plane shows, or none while it is hidden,
     // minimized or there is no tab.
-    [[nodiscard]] std::optional<std::size_t> ladder_step() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> ladder_step() const;
     // Whether the plane scrolls (owner decision 35): it starts when even the
     // narrowest entry is wider than the plane and ends only once the plane is
     // scroll_hysteresis wider than that entry (decision 45). The first group
@@ -424,6 +442,35 @@ public:
     BorrowedSpan<MenuItemSpec> application_menu() const&& = delete;
     // Throws std::invalid_argument for an invalid menu.
     void set_application_menu(std::vector<MenuItemSpec> items);
+    // The Quick Access Toolbar the ribbon hosts (owner decisions RB-12 and
+    // RB-44, interview D1), a child of the ribbon while set. Its placement
+    // chooses where it shows: above_ribbon on the tab row after the File
+    // tab, the tabs following it, taking at most half the row's free width
+    // (commands that do not fit go to its overflow menu); below_ribbon on a
+    // row of its own under the plane (under the tab row while the plane does
+    // not show). The ribbon follows its placement and customization. Null
+    // removes it (it is detached, not disposed). Throws
+    // std::invalid_argument for a toolbar another parent holds.
+    void set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolbar);
+    // The minimized ribbon's temporary popup (interview G1, D3, T7): the
+    // selected tab's plane in an overlay below the tab row, casting the
+    // overlay shadow, over the document instead of pushing it down. While
+    // minimized, clicking a tab other than the selected one selects it and
+    // opens the popup; clicking the selected tab pins the plane open again
+    // (decision 19). A click outside the popup is consumed and only closes
+    // it (a click on a tab still acts); Escape closes it, and so does a
+    // command or launcher run from it. The selected tab's hosted controls
+    // move into the popup while it is open. False when not minimized,
+    // without a selected tab, a window, or while disabled.
+    bool show_plane_popup();
+    void close_plane_popup() noexcept;
+    [[nodiscard]] bool plane_popup_open() const noexcept { return plane_popup_open_; }
+    // The popup's content control while open (for tests and inspection).
+    [[nodiscard]] Control::Ptr plane_popup() const noexcept;
+    [[nodiscard]] const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept {
+        return quick_access_;
+    }
+    const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const&& = delete;
     // Opens the File tab's file area: Backstage when the ribbon has one;
     // otherwise the application menu below the File tab, in two panes while
     // there are recent items. False without items (or Backstage) or a window.
@@ -480,6 +527,13 @@ public:
         return dialog_launcher_clicked_;
     }
     [[nodiscard]] Event<const RibbonTabChange&>& selected_tab_changed() noexcept { return selected_tab_changed_; }
+    // Raised by a click on the help button and by request_help. Named apart
+    // from Control::help_requested (F1's HelpRequestEvent), which a Ribbon
+    // also raises.
+    [[nodiscard]] Event<const RibbonHelpRequest&>& help_button_clicked() noexcept { return help_button_clicked_; }
+    // Raises help_button_clicked, as a click on the help button does, whether or
+    // not the button shows (an F1 binding may call it).
+    void request_help();
     [[nodiscard]] Event<bool>& minimized_changed() noexcept { return minimized_changed_; }
     [[nodiscard]] Event<const MenuItemInvocation&>& application_menu_item_invoked() noexcept {
         return application_menu_item_invoked_;
@@ -517,8 +571,10 @@ public:
         PartGeometry scroll_left_glyph;
         PartGeometry scroll_right;
         PartGeometry scroll_right_glyph;
-        // Reserved for the help button (owner, N4); never present yet.
+        // The help button at the right end of the tab row and its question
+        // mark (owner ruling N4); present while help_button_visible holds.
         PartGeometry help_button;
+        PartGeometry help_label;
         PartGeometry focus;
     };
     [[nodiscard]] Parts parts() const;
@@ -664,6 +720,7 @@ private:
             group_button,
             scroll_left,
             scroll_right,
+            help,
         } kind{Kind::none};
         std::size_t index{};
         CommandAddress command{};
@@ -677,12 +734,17 @@ private:
         Rect tab_rail{};
         Rect application{};
         std::vector<Rect> tabs;
+        // The help button at the tab row's right end (empty while hidden).
+        Rect help{};
+        // The hosted Quick Access Toolbar: on the tab row after File, or on
+        // its own row under the plane (empty without one).
+        Rect quick_access{};
         Rect plane{};
         // The part of the plane between its scroll buttons, where groups show.
         Rect groups_area{};
         Rect scroll_left{};
         Rect scroll_right{};
-        std::optional<std::size_t> step{};
+        stxlib::Optional<std::size_t> step{};
         bool scrolling{};
         bool overlay{};
         // Per group of the selected tab: bounds (empty when not shown), the
@@ -702,6 +764,13 @@ private:
         // needs layout from one that needs only a repaint.
         std::string text{};
         bool visible{true};
+    };
+    // A named callback: the hosted Quick Access Toolbar's placement or
+    // shown commands changed, so its place and width.
+    struct QuickAccessWatch final {
+        Ribbon* ribbon{};
+        void operator()(const QuickAccessToolbarPlacementChange&) const;
+        void operator()(const QuickAccessToolbarCustomization&) const;
     };
     // A named callback: a Command's state changed. `tab`, `group` and
     // `command` locate the record.
@@ -725,24 +794,26 @@ private:
         FontSpec font{};
         // What the theme's rules are matched against beside the theme: the
         // window's media facts (its colour scheme among them), its user
-        // theme's rules and the ribbon's inline style; the tab row's
+        // theme's rules, the ribbon's look (Control::look_rules) and its
+        // inline style; the tab row's
         // metrics come from them (RowMetrics).
         MediaFacts media{};
         const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* look_rules{};
         const CompiledThemeRules* inline_rules{};
 
         friend bool operator==(const ScalingKey& left, const ScalingKey& right) noexcept {
             return left.content == right.content && left.text_scale == right.text_scale &&
                    left.theme == right.theme && left.provider == right.provider && left.font == right.font &&
                    left.media == right.media && left.user_rules == right.user_rules &&
-                   left.inline_rules == right.inline_rules;
+                   left.look_rules == right.look_rules && left.inline_rules == right.inline_rules;
         }
     };
     // One command's widths at each image size, measured once. A hosted
-    // command's row width is its small width; a gallery's width depends on
+    // command's row width is its compact width; a gallery's width depends on
     // its columns and is read from the gallery.
     // A command's widths: as a large command (or a labelled field with its
-    // label above) and as a small command (or a field with its label at its
+    // label above) and as a compact command (or a field with its label at its
     // left).
     struct CommandMetrics final {
         double large_width{};
@@ -774,7 +845,7 @@ private:
         std::vector<std::vector<CommandMetrics>> commands;
         std::vector<double> captions;
         std::vector<double> collapsed;
-        std::vector<std::optional<std::size_t>> galleries;
+        std::vector<stxlib::Optional<std::size_t>> galleries;
         std::vector<GalleryMetrics> gallery_metrics;
         std::vector<RibbonLadderEntry> ladder;
     };
@@ -811,9 +882,9 @@ private:
     // §5.4), and its tabs' range in tabs_.
     struct TabSetState final {
         RibbonTabSetAvailability availability{RibbonTabSetAvailability::not_available};
-        std::optional<AccentIndex> accent{};
-        std::optional<AccentIndex> last_accent{};
-        std::optional<std::size_t> remembered_tab{};
+        stxlib::Optional<AccentIndex> accent{};
+        stxlib::Optional<AccentIndex> last_accent{};
+        stxlib::Optional<std::size_t> remembered_tab{};
         std::size_t first_tab{};
         std::size_t tab_count{};
     };
@@ -825,9 +896,9 @@ private:
     // Whether a tab may be selected: shown and enabled.
     [[nodiscard]] bool selectable(std::size_t tab) const noexcept;
     [[nodiscard]] bool group_shown(std::size_t tab, std::size_t group) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> find_tab_set(std::string_view set_id) const noexcept;
-    [[nodiscard]] std::optional<AccentIndex> tab_accent(std::size_t tab) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> fallback_tab() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_tab_set(std::string_view set_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<AccentIndex> tab_accent(std::size_t tab) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> fallback_tab() const noexcept;
     // A shown tab's 1-based place among the shown tabs of its kind (the core
     // tabs, or its set's tabs) and how many of them there are.
     struct TabPosition final {
@@ -850,7 +921,7 @@ private:
     // What set_tabs prepares before it changes anything: each tab's set (none
     // for a core tab) and every group's layouts, indexed [tab][group].
     struct PreparedTabs final {
-        std::vector<std::optional<std::size_t>> tab_set_of;
+        std::vector<stxlib::Optional<std::size_t>> tab_set_of;
         std::vector<std::vector<std::vector<RibbonGroupLayout>>> layouts;
     };
     // The hosted controls taken out of the records set_tabs replaces:
@@ -865,9 +936,10 @@ private:
                                             const std::vector<RibbonTabSetSpec>& sets) const;
     [[nodiscard]] HostedCarryOver take_hosted_controls();
     [[nodiscard]] std::vector<TabSetState> carried_set_states(
-        const std::vector<RibbonTabSetSpec>& sets, const std::vector<std::optional<std::size_t>>& tab_set_of) const;
+        const std::vector<RibbonTabSetSpec>& sets, const std::vector<stxlib::Optional<std::size_t>>& tab_set_of) const;
     void rebuild_records(HostedCarryOver& carried);
     void release_carried(const HostedCarryOver& carried);
+    void abandon_definition(HostedCarryOver& carried) noexcept;
 
     // A realized item located: a tab, a group or a command of the selected
     // tab, or nothing past the end.
@@ -895,6 +967,9 @@ private:
                                      std::vector<Rect>& commands) const;
     [[nodiscard]] double tab_row_height() const;
     [[nodiscard]] double plane_height() const;
+    // Whether the hosted Quick Access Toolbar shows at `placement` (one is
+    // set, it is visible and that is its placement).
+    [[nodiscard]] bool quick_access_at(QuickAccessToolbarPlacement placement) const noexcept;
     [[nodiscard]] ControlPartMetrics part_metrics(std::string_view part, ControlVisualRole family,
                                                   AnatomyStateSet states) const;
     [[nodiscard]] FontSpec tab_label_font(AnatomyStateSet states) const;
@@ -912,8 +987,8 @@ private:
     // is measured in the CheckBox's own text font, not the ribbon's.
     [[nodiscard]] CommandMetrics measure_command(const RibbonCommandSpec& command, const CheckBox* box) const;
     [[nodiscard]] bool field_labelled(const RibbonCommandSpec& command) const;
-    // Whether command `command` of `group` in `group_layout` is a small text
-    // label for the field after it: a small button-family command with a
+    // Whether command `command` of `group` in `group_layout` is a compact text
+    // label for the field after it: a compact button-family command with a
     // label and no image (or a label command), followed by a visible hosted
     // command other than a check box (which carries its own label) or a
     // gallery, not beside it.
@@ -926,6 +1001,7 @@ private:
     [[nodiscard]] CommandParts command_parts(const Layout& placed, CommandAddress address) const;
     [[nodiscard]] Parts control_parts(const Layout& placed) const;
     [[nodiscard]] AnatomyStateSet tab_states(std::size_t tab) const;
+    [[nodiscard]] static AnatomyStateSet hover_layer_states(AnatomyStateSet states) noexcept;
     [[nodiscard]] AnatomyStateSet command_states(CommandAddress address) const;
     [[nodiscard]] AnatomyStateSet group_button_states(std::size_t group) const;
     [[nodiscard]] bool group_collapsed(const Layout& placed, std::size_t group) const noexcept;
@@ -945,9 +1021,14 @@ private:
     [[nodiscard]] std::vector<Stop> stops_for(const Layout& placed) const;
     [[nodiscard]] std::vector<Stop> overlay_stops() const;
     [[nodiscard]] Stop resolve_stop(const std::vector<Stop>& all, const Stop& stop) const;
-    [[nodiscard]] std::optional<CommandAddress> find_command(std::string_view command_id) const;
-    [[nodiscard]] std::optional<std::size_t> find_group(std::string_view group_id) const;
-    [[nodiscard]] std::optional<Rect> command_window_bounds(CommandAddress address) const;
+    [[nodiscard]] stxlib::Optional<CommandAddress> find_command(std::string_view command_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_group(std::string_view group_id) const;
+    [[nodiscard]] stxlib::Optional<Rect> command_window_bounds(CommandAddress address) const;
+    // Whether `held` holds `value`: the interaction state's comparisons
+    // with a group, a command or a stop.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t value) noexcept;
+    [[nodiscard]] static bool holds(const stxlib::Optional<CommandAddress>& held, CommandAddress value) noexcept;
+    [[nodiscard]] static bool holds(const stxlib::Optional<Stop>& held, const Stop& value) noexcept;
     [[nodiscard]] Control::Ptr hosted_control(std::string_view command_id, RibbonCommandKind kind) const;
     [[nodiscard]] Control::Ptr make_hosted(const RibbonCommandSpec& command) const;
     void configure_hosted(const RibbonCommandSpec& command, Control& control) const;
@@ -955,6 +1036,8 @@ private:
     void paint_label_command(Painter& painter, PartPaint& part, const RibbonCommandSpec& spec,
                              const CommandParts& command_part, AnatomyStateSet states) const;
     void paint_tab(Painter& painter, PartPaint& part, const Layout& placed, std::size_t tab) const;
+    void paint_plane(Painter& painter, PartPaint& part, const Layout& placed, const Parts& own) const;
+    void paint_scroll_buttons(Painter& painter, PartPaint& part, const Parts& own) const;
     void append_group_node(SemanticNode& parent, const Layout& placed, std::size_t group, Rect absolute) const;
     [[nodiscard]] std::vector<Group> groups_of(const Layout& placed) const;
     [[nodiscard]] std::vector<CommandItem> commands_of(const Layout& placed) const;
@@ -971,8 +1054,8 @@ private:
     // focus and a menu opening or closing change one part, never the whole
     // ribbon (owner, 2026-11-09).
     void repaint_part(Hit::Kind kind, std::size_t index, CommandAddress command);
-    void repaint_stop(const std::optional<Stop>& stop);
-    void set_stop(std::optional<Stop> stop);
+    void repaint_stop(const stxlib::Optional<Stop>& stop);
+    void set_stop(const Stop& stop);
     void activate_stop(const Stop& stop);
     void press(const Hit& hit, PointerEvent& event);
     void release(const Hit& hit, PointerEvent& event);
@@ -992,10 +1075,27 @@ private:
     bool overlay_semantic_action(std::string_view stable_id, SemanticAction action);
     [[nodiscard]] Size overlay_panel_size() const;
     void move_hosted_to_overlay(std::size_t group);
-    void move_hosted_to_ribbon() noexcept;
+    // Returns `source`'s children (an overlay's hosted controls) to the
+    // ribbon, in record order.
+    void move_hosted_to_ribbon(const Control::Ptr& source) noexcept;
     void finish_group_overlay() noexcept;
+    // Ends `scope`, begun for an overlay that a focus handler closed (or
+    // closed and opened again) while the scope began: beginning a scope
+    // moves focus and runs the previous control's handlers before it
+    // returns (A-gf-controls-11-F2). Nothing when the ribbon has no window.
+    void end_abandoned_scope(FocusScopeId scope) noexcept;
     void on_group_layer_dismissed(OverlayDismissReason reason);
     void on_group_overlay_revoked();
+
+    // The minimized ribbon's popup (interview G1, D3, T7), driven by its
+    // content control (a RibbonGroupOverlay of the plane kind). `panel` is
+    // the plane's rectangle in the content control's local coordinates.
+    [[nodiscard]] Layout popup_layout(Rect panel) const;
+    void popup_paint(Painter& painter, Rect panel) const;
+    void popup_pointer(PointerEvent& event, Rect panel);
+    void finish_plane_popup() noexcept;
+    void on_plane_layer_dismissed(OverlayDismissReason reason);
+    void on_plane_popup_revoked();
 
     // The file area (ribbon_file_area.cpp): the two-pane application menu
     // and Backstage.
@@ -1020,30 +1120,36 @@ private:
     std::vector<std::vector<std::vector<CommandRecord>>> records_{};
     // Every group's layouts, authored or generated, indexed [tab][group].
     std::vector<std::vector<std::vector<RibbonGroupLayout>>> layouts_{};
-    std::optional<std::size_t> selected_tab_{};
+    stxlib::Optional<std::size_t> selected_tab_{};
     // Contextual sets and modes: the sets, their states, each tab's set (none
     // for a core tab), the modes shown, and the core tab chosen last.
     std::vector<RibbonTabSetSpec> tab_sets_{};
     std::vector<TabSetState> set_states_{};
-    std::vector<std::optional<std::size_t>> tab_set_of_{};
-    std::optional<std::size_t> last_core_tab_{};
+    std::vector<stxlib::Optional<std::size_t>> tab_set_of_{};
+    stxlib::Optional<std::size_t> last_core_tab_{};
     detail::LendingVector<MenuItemSpec> application_menu_{};
     std::unique_ptr<ContextMenu> overlay_{};
     SubscriptionToken overlay_invoked_{};
     SubscriptionToken overlay_changed_{};
     // Which menu the overlay shows: the application menu, or a command's.
     bool application_open_{};
-    std::optional<CommandAddress> open_command_{};
+    stxlib::Optional<CommandAddress> open_command_{};
     Hit hot_{};
-    std::optional<CommandAddress> pressed_command_{};
+    stxlib::Optional<CommandAddress> pressed_command_{};
     CommandZone pressed_zone_{CommandZone::none};
-    std::optional<std::size_t> pressed_launcher_{};
+    stxlib::Optional<std::size_t> pressed_launcher_{};
     // The tab pressed while tabs_activate_on_release holds, until the release.
-    std::optional<std::size_t> pressed_tab_{};
-    std::optional<std::size_t> pressed_group_{};
+    stxlib::Optional<std::size_t> pressed_tab_{};
+    stxlib::Optional<std::size_t> pressed_group_{};
     Hit::Kind pressed_scroll_{Hit::Kind::none};
     bool application_pressed_{};
-    std::optional<Stop> stop_{};
+    // The help button was pressed and the release has not come yet.
+    bool help_pressed_{};
+    // The hosted Quick Access Toolbar and its watches (set_quick_access_toolbar).
+    std::shared_ptr<QuickAccessToolbar> quick_access_{};
+    SubscriptionToken quick_access_placed_{};
+    SubscriptionToken quick_access_customized_{};
+    stxlib::Optional<Stop> stop_{};
     bool focused_{};
 
     // Scaling. The caches are derived state, emptied when scaling_key_ no
@@ -1071,14 +1177,25 @@ private:
     FocusScopeId group_scope_{};
     SubscriptionToken group_layer_dismissed_{};
     SubscriptionToken group_overlay_revoked_{};
-    std::optional<std::size_t> overlay_group_{};
-    std::optional<Stop> overlay_stop_{};
+    stxlib::Optional<std::size_t> overlay_group_{};
+    stxlib::Optional<Stop> overlay_stop_{};
     bool overlay_focused_{};
+
+    // The minimized ribbon's popup: its content control and layer (made on
+    // first use), the overlay lease and focus scope while open.
+    std::shared_ptr<RibbonGroupOverlay> plane_popup_{};
+    std::shared_ptr<AnchoredOverlayLayer> plane_layer_{};
+    OverlayToken plane_popup_token_{};
+    FocusScopeId plane_scope_{};
+    SubscriptionToken plane_layer_dismissed_{};
+    SubscriptionToken plane_popup_revoked_{};
+    bool plane_popup_open_{};
 
     Event<const RibbonCommandClick&> command_clicked_{};
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
     Event<const RibbonDialogLaunch&> dialog_launcher_clicked_{};
     Event<const RibbonTabChange&> selected_tab_changed_{};
+    Event<const RibbonHelpRequest&> help_button_clicked_{};
     Event<bool> minimized_changed_{};
     Event<const MenuItemInvocation&> application_menu_item_invoked_{};
 
@@ -1134,6 +1251,7 @@ private:
     friend struct FontCapability<Ribbon>;
     friend struct RibbonSelectedTabCapability<Ribbon>;
     friend struct RibbonTabsActivateOnReleaseCapability<Ribbon>;
+    friend struct RibbonHelpButtonVisibleCapability<Ribbon>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
     void written(const decltype(application_modes)& cell);
@@ -1151,10 +1269,12 @@ private:
     void written(const decltype(focus_region)& cell);
     void prepare_write(const decltype(font)& cell, FontSpec& incoming);
     void written(const decltype(font)& cell);
-    void write_view(const decltype(selected_tab)& cell, std::optional<std::size_t> incoming);
-    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
+    void write_view(const decltype(selected_tab)& cell, stxlib::Optional<std::size_t> incoming);
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
     void prepare_write(const decltype(tabs_activate_on_release)& cell, bool& incoming);
     void written(const decltype(tabs_activate_on_release)& cell);
+    void prepare_write(const decltype(help_button_visible)& cell, bool& incoming);
+    void written(const decltype(help_button_visible)& cell);
     // property_codemod end Ribbon
 };
 

@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -110,7 +111,7 @@ RichTextBox::LineBlock RichTextBox::line_block(Utf8Range range, std::size_t& blo
     }
     if (index == blocks.size() || !block_holds(blocks[index], start)) return result;
     const MarkdownBlock& block = blocks[index];
-    result.block = index;
+    result.block.set(index);
     result.alignment = block.alignment;
     switch (block.kind) {
     case MarkdownBlockKind::heading:
@@ -176,7 +177,7 @@ void RichTextBox::line_runs(Utf8Range range, const LineBlock& block, std::size_t
             if (!markup_style) markup_style = add_piece_style(MarkdownSpanStyle{}, true, false, block.font);
             runs_.push_back({.start = cursor, .end = from, .style = *markup_style});
         }
-        const std::size_t style = add_piece_style(span.style, false, span.link.has_value(), block.font);
+        const std::size_t style = add_piece_style(span.style, false, span.link.present(), block.font);
         runs_.push_back({.start = from, .end = to, .style = style});
         cursor = to;
     }
@@ -537,8 +538,8 @@ std::optional<std::string> RichTextBox::link_at(double local_x, double local_y) 
         --index;
         const MarkdownSpan& span = spans[index];
         if (span.source.start == span.source.end) continue;
-        if (span.source.end.value() <= *found || !span.link) return std::nullopt;
-        const std::string target = document_.links[*span.link].target;
+        if (span.source.end.value() <= *found || span.link.absent()) return std::nullopt;
+        const std::string target = document_.links[(*span.link.value())].target;
         return target;
     }
     return std::nullopt;
@@ -568,18 +569,18 @@ void RichTextBox::reveal_caret() {
     set_scroll(offset);
 }
 
-std::optional<Rect> RichTextBox::selection_band(const Row& row) const {
+stxlib::Optional<Rect> RichTextBox::selection_band(const Row& row) const {
     const TextSelection selection = (*editing_).selection();
     const bool selected = !selection.empty() && selection.start().value() <= row.offsets.back() &&
                           selection.end().value() > row.offsets.front();
-    if (!selected) return std::nullopt;
+    if (!selected) return stxlib::Optional<Rect>::none();
     const double left = boundary_x(row, selection.start());
     double right = boundary_x(row, selection.end());
     if (selection.end().value() > row.offsets.back()) {
         right += std::max(3.0, text_font(font.read()).size * 0.35);
     }
     const Rect band{left, row.y, std::max(0.0, right - left), row.height};
-    return band;
+    return stxlib::Optional<Rect>::of(band);
 }
 
 void RichTextBox::paint_piece(Painter& painter, const Row& row, const Piece& piece, const RowInks& inks,
@@ -602,8 +603,8 @@ void RichTextBox::paint_piece(Painter& painter, const Row& row, const Piece& pie
     } else if (set.markup) {
         text.tone = PartTextTone::secondary;
         text.authored_foreground.reset();
-    } else if (set.style.colour) {
-        text.authored_foreground = rgb_color(*set.style.colour);
+    } else if (set.style.colour.present()) {
+        text.authored_foreground.set(rgb_color((*set.style.colour.value())));
     } else if (set.link) {
         text.family = ControlVisualRole::link;
         text.authored_foreground.reset();
@@ -640,8 +641,8 @@ Rect RichTextBox::paint_rows(Painter& painter) {
     states.erase(AnatomyState::hot);
     RowInks inks{.origin = {text_left_ - offset.x, viewport.y - offset.y}, .states = states};
     if (!themed) {
-        inks.authored_text = style().text;
-        inks.authored_selected_text = style().highlight;
+        inks.authored_text.set(style().text);
+        inks.authored_selected_text.set(style().highlight);
     }
     painter.save();
     painter.clip_rect(viewport);
@@ -657,7 +658,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
         shade.family = ControlVisualRole::panel;
         shade.role = PartRole::chip;
         shade.states = states;
-        shade.corner_radius = 0.0;
+        shade.corner_radius.set(0.0);
         if (row.code_block) {
             shade.bounds = {inks.origin.x - 2.0, top, std::max(0.0, code_right + 4.0), row.height};
             paint_part(painter, *this, shade);
@@ -666,33 +667,33 @@ Rect RichTextBox::paint_rows(Painter& painter) {
             const PieceStyle& set = piece_styles_[piece.style];
             const double right = boundary_x(row, Utf8Offset(piece.end));
             const Rect fill{inks.origin.x + piece.x, top, std::max(0.0, right - piece.x), row.height};
-            if (set.style.background) {
+            if (set.style.background.present()) {
                 PartPaint ground;
                 ground.family = ControlVisualRole::editor;
                 ground.role = PartRole::fill;
                 ground.bounds = fill;
                 ground.states = states;
-                ground.corner_radius = 0.0;
-                ground.authored_background = rgb_color(*set.style.background);
+                ground.corner_radius.set(0.0);
+                ground.authored_background.set(rgb_color((*set.style.background.value())));
                 paint_part(painter, *this, ground);
             } else if (set.style.code && !row.code_block) {
                 shade.bounds = fill;
                 paint_part(painter, *this, shade);
             }
         }
-        std::optional<Rect> band{};
+        stxlib::Optional<Rect> band{};
         if (focused_) band = selection_band(row);
-        if (band) {
+        if (band.present()) {
             PartPaint plate;
             plate.family = ControlVisualRole::selection;
             plate.role = PartRole::selection;
-            plate.bounds = {inks.origin.x + (*band).x, inks.origin.y + (*band).y, (*band).width, (*band).height};
+            plate.bounds = {inks.origin.x + ((*band.value())).x, inks.origin.y + ((*band.value())).y, ((*band.value())).width, ((*band.value())).height};
             plate.states = states;
             plate.states.insert(AnatomyState::selected);
-            if (!themed) plate.authored_background = style().accent;
+            if (!themed) plate.authored_background.set(style().accent);
             paint_part(painter, *this, plate);
         }
-        if (!band) {
+        if (band.absent()) {
             for (const Piece& piece : row.pieces) {
                 paint_piece(painter, row, piece, inks, false);
             }
@@ -700,11 +701,11 @@ Rect RichTextBox::paint_rows(Painter& painter) {
         }
         // Each glyph is drawn once: in the selection's ink inside the band,
         // in its own ink to either side.
-        const double band_left = inks.origin.x + (*band).x;
-        const double band_right = band_left + (*band).width;
+        const double band_left = inks.origin.x + ((*band.value())).x;
+        const double band_right = band_left + ((*band.value())).width;
         const std::array<Rect, 3> spans{{
             {viewport.x, top, std::max(0.0, band_left - viewport.x), row.height},
-            {band_left, top, (*band).width, row.height},
+            {band_left, top, ((*band.value())).width, row.height},
             {band_right, top, std::max(0.0, viewport.x + viewport.width - band_right), row.height},
         }};
         for (std::size_t span = 0U; span < spans.size(); ++span) {

@@ -4,8 +4,9 @@
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/event.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
-#include <optional>
 #include <vector>
 
 namespace gui_forms {
@@ -31,9 +32,9 @@ public:
     ~ListControl() override;
 
     // The selected item's index, or none without a selection.
-    [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept { return selected_index_value_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> selected_index() const noexcept { return selected_index_value_; }
     // Raised with the new index after the selected index changes.
-    [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<std::size_t>>& selected_index_changed() noexcept {
         return selected_index_changed_;
     }
 
@@ -47,12 +48,12 @@ protected:
     // Records the leaf's selected index before the leaf raises its own
     // selection events; returns whether it changed. The leaf raises
     // selected_index_changed (publish_change) when it did, after them.
-    bool record_selected_index(std::optional<std::size_t> index) noexcept;
+    bool record_selected_index(stxlib::Optional<std::size_t> index) noexcept;
 
-    Event<std::optional<std::size_t>> selected_index_changed_;
+    Event<stxlib::Optional<std::size_t>> selected_index_changed_;
 
 private:
-    std::optional<std::size_t> selected_index_value_{};
+    stxlib::Optional<std::size_t> selected_index_value_{};
 };
 
 } // namespace gui_forms

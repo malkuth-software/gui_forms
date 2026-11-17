@@ -169,7 +169,7 @@ void ToolTipPresenter::woke(FrameTime now) {
                 state_ = std::move(settled);
                 return;
             }
-            raise(open(ToolTipOrigin::pointer, std::move(subject), std::nullopt));
+            raise(open(ToolTipOrigin::pointer, std::move(subject), stxlib::Optional<std::chrono::milliseconds>::none()));
             return;
         }
         if (!focus_allowed()) {
@@ -181,7 +181,7 @@ void ToolTipPresenter::woke(FrameTime now) {
             state_ = Idle{};
             return;
         }
-        raise(open(ToolTipOrigin::keyboard, std::move(subject), std::nullopt));
+        raise(open(ToolTipOrigin::keyboard, std::move(subject), stxlib::Optional<std::chrono::milliseconds>::none()));
         return;
     }
     if (Showing* showing = std::get_if<Showing>(&state_)) {
@@ -204,7 +204,7 @@ void ToolTipPresenter::woke(FrameTime now) {
 // --- Showing and closing --------------------------------------------------
 
 std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTipSubject subject,
-                                                   std::optional<std::chrono::milliseconds> duration) {
+                                                   stxlib::Optional<std::chrono::milliseconds> duration) {
     const Control::Ptr control = subject.control.lock();
     if (!control || !(*control).is_alive() || (*control).attached_window() != &window_ ||
         !available(window_.tool_tip_settings(), *control) || subject.text.empty()) {
@@ -406,7 +406,7 @@ std::optional<ToolTipEvent> ToolTipPresenter::close(State next) {
 }
 
 void ToolTipPresenter::replace(ToolTipOrigin origin, ToolTipSubject subject,
-                               std::optional<std::chrono::milliseconds> duration) {
+                               stxlib::Optional<std::chrono::milliseconds> duration) {
     raise(close(Idle{}));
     if (std::holds_alternative<Showing>(state_)) return;
     raise(open(origin, std::move(subject), duration));
@@ -669,7 +669,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
     const ToolTipOrigin origin = (*showing).origin;
     ToolTipSubject subject = (*showing).subject;
     subject.text = control.tool_tip_text.read();
-    replace(origin, std::move(subject), std::nullopt);
+    replace(origin, std::move(subject), stxlib::Optional<std::chrono::milliseconds>::none());
 }
 
 void ToolTipPresenter::items_changed(const Control& control) {
@@ -688,7 +688,7 @@ void ToolTipPresenter::items_changed(const Control& control) {
         if ((*item).tool_tip == (*showing).subject.text) return;
         ToolTipSubject subject = (*showing).subject;
         subject.text = (*item).tool_tip;
-        replace(origin, std::move(subject), std::nullopt);
+        replace(origin, std::move(subject), stxlib::Optional<std::chrono::milliseconds>::none());
         return;
     }
     Control::Ptr hovered{};
@@ -720,7 +720,7 @@ void ToolTipPresenter::settings_changed() {
         }
         // Shown again, for a new width.
         ToolTipSubject subject = (*showing).subject;
-        replace(origin, std::move(subject), std::nullopt);
+        replace(origin, std::move(subject), stxlib::Optional<std::chrono::milliseconds>::none());
         return;
     }
     if (const Waiting* waiting = std::get_if<Waiting>(&state_)) {
@@ -748,7 +748,7 @@ void ToolTipPresenter::cover(RuntimeId control, std::string_view item_id, bool c
 }
 
 void ToolTipPresenter::show_program(const Control::Ptr& target,
-                                    std::optional<std::chrono::milliseconds> duration) {
+                                    stxlib::Optional<std::chrono::milliseconds> duration) {
     std::string text = std::move(spare_text_);
     text.assign((*target).tool_tip_text.read());
     ToolTipSubject subject = tool_tip_subject_of(target, {}, std::move(text), (*target).absolute_bounds());
@@ -756,7 +756,7 @@ void ToolTipPresenter::show_program(const Control::Ptr& target,
 }
 
 void ToolTipPresenter::show_program_item(const Control::Ptr& control, std::string item_id, std::string text,
-                                         Rect anchor, std::optional<std::chrono::milliseconds> duration) {
+                                         Rect anchor, stxlib::Optional<std::chrono::milliseconds> duration) {
     ToolTipSubject subject = tool_tip_subject_of(control, std::move(item_id), std::move(text), anchor);
     replace(ToolTipOrigin::program, std::move(subject), duration);
 }

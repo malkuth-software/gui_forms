@@ -1,0 +1,30 @@
+#pragma once
+
+#include <optional>
+
+namespace gui_forms {
+
+class Source {
+public:
+    virtual ~Source() noexcept;
+    [[nodiscard]] virtual std::optional<int> find(int key) const noexcept = 0;
+};
+
+struct Range final {
+    std::optional<int> low;
+    std::optional<int> high;
+};
+
+class Holder final {
+public:
+    Holder() noexcept;
+    explicit Holder(int start) noexcept;
+    void set_limit(std::optional<int> limit = std::nullopt) noexcept;
+
+private:
+    std::optional<int> limit_;
+};
+
+[[nodiscard]] std::optional<int> pick(bool first) noexcept;
+
+} // namespace gui_forms

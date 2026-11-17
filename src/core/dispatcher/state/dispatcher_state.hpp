@@ -81,8 +81,9 @@ struct RevocableInvokes final {
 void revoke_invokes(RevocableInvokes& invokes) noexcept;
 
 // Names the calling thread's revocable invokes (null: none, the default).
-// Set by the thread itself, at its start, and cleared before it ends.
-void set_thread_revocable_invokes(std::shared_ptr<RevocableInvokes> invokes) noexcept;
+// Set by the thread itself, at its start, and cleared before it ends; an
+// observer, so the caller keeps them alive until it clears them.
+void set_thread_revocable_invokes(RevocableInvokes* invokes) noexcept;
 
 // Wakes the host: sets wake_pending, counts the request and calls `wake`.
 // Call with `mutex` held, `wake` set and wake_pending clear. The host's wake

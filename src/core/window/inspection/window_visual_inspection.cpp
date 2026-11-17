@@ -6,6 +6,7 @@
 #include "../overlay/overlay_attachment.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -69,6 +70,14 @@ VisualPaintOperation public_operation(detail::DisplayOperation operation) {
     case Private::fill_grid_pattern: return VisualPaintOperation::fill_grid_pattern;
     case Private::fill_rounded_rect_corners: return VisualPaintOperation::fill_rounded_rect_corners;
     case Private::stroke_rounded_rect_corners: return VisualPaintOperation::stroke_rounded_rect_corners;
+    case Private::fill_path: return VisualPaintOperation::fill_path;
+    case Private::stroke_path: return VisualPaintOperation::stroke_path;
+    case Private::clip_path: return VisualPaintOperation::clip_path;
+    case Private::fill_radial_gradient_spread: return VisualPaintOperation::fill_radial_gradient_spread;
+    case Private::fill_hatch: return VisualPaintOperation::fill_hatch;
+    case Private::fill_focal_radial_gradient: return VisualPaintOperation::fill_focal_radial_gradient;
+    case Private::begin_transform: return VisualPaintOperation::begin_transform;
+    case Private::end_transform: return VisualPaintOperation::end_transform;
     }
     throw std::logic_error("GUI.Forms display operation has no inspection spelling");
 }
@@ -89,12 +98,14 @@ VisualPaintOperationSnapshot inspect_operation(
     result.scalar = command.scalar;
     result.secondary_scalar = command.secondary_scalar;
     result.tertiary_scalar = command.tertiary_scalar;
+    result.group_effect = command.group_effect;
     result.gradient_stops = command.gradient_stops;
     result.gradient_spread = command.gradient_spread;
     result.image_pattern_wrap = command.image_pattern_wrap;
     result.image_sampling = command.image_sampling;
     result.text_byte_count = command.text.size();
     result.text_orientation = command.text_orientation;
+    result.text_degrees = command.text_degrees;
     if (command.marks) {
         const detail::DisplayMarks& marks = *command.marks;
         const std::size_t listed = marks.points.size() + marks.rects.size() + marks.segments.size();
@@ -122,7 +133,7 @@ VisualPaintOperationSnapshot inspect_operation(
 
 struct PendingInspectionNode final {
     Control::Ptr control;
-    std::optional<RuntimeId> parent_runtime_id;
+    stxlib::Optional<RuntimeId> parent_runtime_id;
     std::string parent_stable_id;
     std::size_t depth{};
     bool overlay_tree{};
@@ -174,14 +185,14 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
     const Rect window_clip{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<PendingInspectionNode> pending;
     if (root_) {
-        pending.push_back({root_, std::nullopt, {}, 0U, false, window_clip, 0U});
+        pending.push_back({root_, stxlib::Optional<RuntimeId>::none(), {}, 0U, false, window_clip, 0U});
     }
     for (OverlayList::reverse_iterator iterator = overlays_.rbegin();
          iterator != overlays_.rend(); ++iterator) {
         if (!*iterator || !(*(*iterator)).connected()) continue;
         const Control::Ptr overlay = (*(*iterator)).overlay();
         if (overlay) {
-            pending.push_back({overlay, std::nullopt, {}, 0U, true, window_clip, 0U});
+            pending.push_back({overlay, stxlib::Optional<RuntimeId>::none(), {}, 0U, true, window_clip, 0U});
         }
     }
 
@@ -268,7 +279,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             const std::shared_ptr<const detail::DisplayChunk> chunk =
                 (*control).display_chunk_;
             if (chunk) {
-                inspected.display_chunk = (*chunk).info();
+                inspected.display_chunk.set((*chunk).info());
                 inspected.total_display_operations = (*chunk).commands().size();
                 inspected.display_chunk_current =
                     !has_dirty((*control).dirty_, Dirty::paint) &&
@@ -305,7 +316,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
                 continue;
             }
             pending.push_back({child,
-                               std::optional<RuntimeId>{(*control).runtime_id_},
+                               stxlib::Optional<RuntimeId>::of((*control).runtime_id_),
                                std::string((*control).stable_id_.value()),
                                current.depth + 1U,
                                current.overlay_tree, child_clip,

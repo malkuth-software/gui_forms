@@ -1,7 +1,9 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "built_in_recipe.hpp"
+#include "../../types/painter/text_turn.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
@@ -98,8 +100,8 @@ bool surface_role(PartRole role) noexcept {
 // The corner radius a surface part is drawn with: its own, when set (never
 // negative), else its recipe's material's.
 double part_corner_radius(const PartPaint& part, const ControlVisualRecipe& recipe) noexcept {
-    if (part.corner_radius) {
-        const double result = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius.present()) {
+        const double result = std::max(0.0, *part.corner_radius.value());
         return result;
     }
     return recipe.material.corner_radius;
@@ -124,14 +126,14 @@ bool any_state(AnatomyStateSet states, AnatomyState first, AnatomyState second) 
 // The surface of a part whose role is a plate, well or mark ground.
 void paint_surface(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
     const bool frameless = part.frame == PartFrame::none;
-    if (!part.corner_radius && !frameless) {
+    if (!part.corner_radius.present() && !frameless) {
         paint_surface_material(painter, part.bounds, recipe.material);
         return;
     }
     // A copy for this paint: the part's corner radius, and a frameless
     // part's ground without the material's borders (PartPaint::frame).
     SurfaceMaterial shaped = recipe.material;
-    if (part.corner_radius) shaped.corner_radius = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius.present()) shaped.corner_radius = std::max(0.0, *part.corner_radius.value());
     if (frameless) {
         shaped.border.reset();
         shaped.border_edges = MaterialBorderEdges{};
@@ -141,7 +143,7 @@ void paint_surface(Painter& painter, const PartPaint& part, const ControlVisualR
 
 // A divider or seam: one line across the long axis of `bounds`, centred.
 void paint_rule(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
-    const Color color = recipe.material.border ? (*recipe.material.border).color : recipe.muted_text;
+    const Color color = recipe.material.border.present() ? (*recipe.material.border.value()).color : recipe.muted_text;
     if (bounds.width >= bounds.height) {
         const double y = bounds.y + bounds.height * 0.5;
         painter.draw_line({bounds.x, y}, {bounds.x + bounds.width, y}, color, 1.0);
@@ -174,20 +176,38 @@ void paint_dot_run(Painter& painter, Point start, Point step, std::size_t count,
     }
 }
 
+// The narrowest dotted ring drawn as dots, in units: half a unit is one
+// device pixel at twice the scale. A theme may author a far thinner outline
+// (only an upper bound is checked); its dots would number the ring's side
+// over twice the width, so it is stroked solid instead (A-gf-core-14-F1).
+constexpr double least_dotted_width = 0.5;
+// The most dots one side of a dotted ring holds; a longer side (a very
+// large focused part) is stroked solid instead, so a paint stays bounded.
+constexpr double maximum_dots_per_side = 4096.0;
+
 // A dotted ring whose stroke is centred on `ring`'s edges: square dots one
 // width across, one every two widths, clockwise from the top-left corner,
 // which always holds a dot. Each side holds the dots that start before the
-// next corner, so the corners join without doubling a dot.
-void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) {
+// next corner, so the corners join without doubling a dot. Returns false,
+// drawing nothing, when the width is below least_dotted_width or a side
+// would hold more than maximum_dots_per_side dots (or a count is not a
+// number): the caller then strokes the ring solid.
+bool paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) {
     const double half = width * 0.5;
     // The span the dots' top-left corners run along on each axis: from the
     // stroke's outer corner to its far side less one width.
     const double across = ring.width;
     const double down = ring.height;
-    if (across <= 0.0 || down <= 0.0) return;
+    if (across <= 0.0 || down <= 0.0) return true;
+    if (!(width >= least_dotted_width)) return false;
     const double pitch = width * 2.0;
-    const std::size_t across_count = static_cast<std::size_t>(std::ceil(across / pitch));
-    const std::size_t down_count = static_cast<std::size_t>(std::ceil(down / pitch));
+    // Counted as doubles and compared before the conversion, so a count
+    // past the bound (or not finite) is never converted.
+    const double across_dots = std::ceil(across / pitch);
+    const double down_dots = std::ceil(down / pitch);
+    if (!(across_dots <= maximum_dots_per_side) || !(down_dots <= maximum_dots_per_side)) return false;
+    const std::size_t across_count = static_cast<std::size_t>(across_dots);
+    const std::size_t down_count = static_cast<std::size_t>(down_dots);
     const double left = ring.x - half;
     const double top = ring.y - half;
     const double right = left + across;
@@ -196,6 +216,7 @@ void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) 
     paint_dot_run(painter, Point{right, top}, Point{0.0, 1.0}, down_count, width, colour);
     paint_dot_run(painter, Point{right, bottom}, Point{-1.0, 0.0}, across_count, width, colour);
     paint_dot_run(painter, Point{left, bottom}, Point{0.0, -1.0}, down_count, width, colour);
+    return true;
 }
 
 // The focus ring: the recipe's authored outline outside the bounds, or the
@@ -215,10 +236,7 @@ void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& 
         radius = std::max(0.0, corner_radius - inset);
     }
     if (ring.empty()) return;
-    if (recipe.dotted_focus) {
-        paint_dotted_ring(painter, ring, recipe.focus_width, recipe.focus_ring);
-        return;
-    }
+    if (recipe.dotted_focus && paint_dotted_ring(painter, ring, recipe.focus_width, recipe.focus_ring)) return;
     painter.stroke_rounded_rect(ring, radius, recipe.focus_ring, recipe.focus_width);
 }
 
@@ -637,7 +655,7 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
 // (top_to_bottom), so its line box is centred across the width.
 void paint_text(Painter& painter, const PartPaint& part, Color color) {
     if (part.text.empty()) return;
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
@@ -668,6 +686,45 @@ void paint_text(Painter& painter, const PartPaint& part, Color color) {
     } else {
         painter.draw_text_utf8(origin, part.text, part.font, color);
     }
+    painter.restore();
+}
+
+// A turned text part (PartPaint::text_angle): the line laid out in the
+// bounds as an unturned horizontal line is, then turned about the bounds'
+// centre, clipped to the rectangle bounding the turned bounds.
+void paint_rotated_text(Painter& painter, const PartPaint& part, Color color) {
+    if (part.text.empty() || !std::isfinite(part.text_angle)) return;
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
+                                             : painter.measure_text_utf8(part.text, part.font);
+    const double line_height = std::max(measured.height, part.font.size * 1.2);
+    const double ascent = std::max(part.font.size, line_height * 0.82);
+    double along = 0.0;
+    if (part.alignment == PartTextAlignment::center) {
+        along = (part.bounds.width - measured.width) * 0.5;
+    } else if (part.alignment == PartTextAlignment::end) {
+        along = part.bounds.width - measured.width;
+    }
+    const double line_top = (part.bounds.height - line_height) * 0.5;
+    // The unturned origin, relative to the bounds' centre; the turn moves it
+    // about the centre and draw_rotated_text_utf8 turns the run about it.
+    const Point centre{part.bounds.x + part.bounds.width * 0.5, part.bounds.y + part.bounds.height * 0.5};
+    const double offset_x = part.bounds.x + along - centre.x;
+    const double offset_y = part.bounds.y + line_top + ascent - centre.y;
+    // STXlib's turn, the one draw_rotated_text_utf8 draws through (exact at
+    // quarter turns), so the turned origin and clip agree with the run.
+    const detail::TextTurnEntries turn = detail::text_turn_entries(part.text_angle);
+    const double cosine = turn.cosine;
+    const double sine = turn.sine;
+    const Point origin{centre.x + offset_x * cosine + offset_y * sine, centre.y - offset_x * sine + offset_y * cosine};
+    // The turned bounds' corners, as a box whose baseline is the bounds' top
+    // edge: its advance the width, reaching the height below.
+    const RotatedTextBox box{part.bounds.width, 0.0, part.bounds.height, part.text_angle};
+    const Point corner{centre.x - part.bounds.width * 0.5 * cosine - part.bounds.height * 0.5 * sine,
+                       centre.y + part.bounds.width * 0.5 * sine - part.bounds.height * 0.5 * cosine};
+    const Rect clip = rotated_text_bounds(corner, box);
+    painter.save();
+    painter.clip_rect(clip);
+    painter.draw_rotated_text_utf8(origin, part.text, part.font, color, part.text_angle);
     painter.restore();
 }
 
@@ -720,38 +777,79 @@ Color material_face_colour(const SurfaceMaterial& material, bool top) noexcept {
 // inset by half the stroke so that it lies inside the bounds. An unselected
 // arc (a track, an alarm segment) is stroked in the border's colour, else
 // the glyph's; a selected arc (the value) in the face's colour, the plate a
-// selected progress fill shows. The circle is drawn as straight segments,
-// one per three units of arc length (2 to 128), and a thick stroke's joints
-// are closed with round dots of its width (a translucent colour is
-// therefore slightly deeper at the joints).
-void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
-    if (!part.arc) return;
+// selected progress fill shows.
+//
+// One circular arc of `radius` about `centre`, from `start` through `sweep`
+// (radians clockwise from twelve o'clock; a negative sweep runs
+// anticlockwise, at most a turn either way), stroked `width` wide with butt
+// ends: the closed circle from twelve o'clock, trimmed to the arc
+// (StrokeStyle::trim; claude/geometry-1), so the core cuts the same
+// sub-path for every painter and a whole turn strokes the closed circle
+// with no seam. The circle is a borrowed two-verb path: nothing is
+// allocated here (a painter's trim reuses its own scratch).
+void stroke_circle_arc(Painter& painter, Point centre, double radius, double start, double sweep, Color colour,
+                       double width) {
+    const std::array<PaintPathVerb, 2> verbs{{PaintPathVerb::arc_to, PaintPathVerb::close}};
+    const std::array<Point, 3> points{{centre, Point{radius, radius}, Point{-90.0, 360.0}}};
+    PaintPathView circle{};
+    circle.verbs = verbs;
+    circle.points = points;
+    const double first = sweep < 0.0 ? start + sweep : start;
+    const double share = std::min(std::abs(sweep) / whole_turn, 1.0);
+    StrokeStyle style{};
+    style.color = colour;
+    style.width = width;
+    style.cap = StrokeCap::butt;
+    style.join = StrokeJoin::round;
+    style.trim = StrokeTrim{0.0, share, first / whole_turn};
+    painter.stroke_path(circle, style);
+}
+
+// An arc band: a selected arc (a gauge's reading) in the material's face
+// colour, else in the border's colour (else the glyph's).
+//
+// Forced high contrast (GAPS T1, a design choice): every colour there is
+// white on black, so the reading and the track would share one colour. The
+// track (an arc neither selected nor invalid) is drawn as the band's
+// outline instead, one-unit arcs along both edges joined at the ends, while
+// the reading stays a solid band; the difference is shape, not colour. An
+// alarm range (invalid) keeps its solid band in the invalid edge colour.
+void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe,
+               ControlVisualContext context) {
+    if (!part.arc.present()) return;
     const double width = recipe.stroke_width;
-    const double start = (*part.arc).start;
-    const double sweep = std::clamp((*part.arc).sweep, -whole_turn, whole_turn);
+    const double start = (*part.arc.value()).start;
+    const double sweep = std::clamp((*part.arc.value()).sweep, -whole_turn, whole_turn);
     if (width <= 0.0 || !std::isfinite(start) || !std::isfinite(sweep) || sweep == 0.0) return;
     const InscribedCircle circle = inscribed_circle(part.bounds);
     const double radius = circle.radius - width * 0.5;
     if (radius <= 0.0) return;
+    const bool selected = part.states.contains(AnatomyState::selected);
     Color colour = recipe.glyph;
-    if (part.states.contains(AnatomyState::selected)) {
+    if (selected) {
         colour = material_face_colour(recipe.material, false);
-    } else if (recipe.material.border) {
-        colour = (*recipe.material.border).color;
+    } else if (recipe.material.border.present()) {
+        colour = (*recipe.material.border.value()).color;
     }
-    const double length = std::abs(sweep) * radius;
-    const double wanted = std::ceil(length / 3.0);
-    const std::size_t segments = static_cast<std::size_t>(std::clamp(wanted, 2.0, 128.0));
-    const double step = sweep / static_cast<double>(segments);
-    const bool joined = width > 2.0;
-    Point from = point_at_angle(circle.centre, radius, start);
-    for (std::size_t index = 1U; index <= segments; ++index) {
-        const double angle = start + step * static_cast<double>(index);
-        const Point to = point_at_angle(circle.centre, radius, angle);
-        painter.draw_line(from, to, colour, width);
-        if (joined && index < segments) fill_round_dot(painter, to, width, colour);
-        from = to;
+    const bool invalid = context.surface == ControlSurfaceState::invalid ||
+                         part.states.contains(AnatomyState::invalid);
+    const bool outlined = context.high_contrast && !selected && !invalid && width > 2.0;
+    if (!outlined) {
+        stroke_circle_arc(painter, circle.centre, radius, start, sweep, colour, width);
+        return;
     }
+    constexpr double outline_width = 1.0;
+    const double half = (width - outline_width) * 0.5;
+    const double outer = radius + half;
+    const double inner = radius - half;
+    stroke_circle_arc(painter, circle.centre, outer, start, sweep, colour, outline_width);
+    if (inner > 0.0) stroke_circle_arc(painter, circle.centre, inner, start, sweep, colour, outline_width);
+    const double end = start + sweep;
+    const double inner_reach = std::max(0.0, inner);
+    painter.draw_line(point_at_angle(circle.centre, inner_reach, start), point_at_angle(circle.centre, outer, start),
+                      colour, outline_width);
+    painter.draw_line(point_at_angle(circle.centre, inner_reach, end), point_at_angle(circle.centre, outer, end),
+                      colour, outline_width);
 }
 
 // A needle: from the inscribed circle's centre out to the circle at the
@@ -759,9 +857,9 @@ void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecip
 // blade is drawn as eight sections narrowing from the stroke width towards
 // one unit.
 void paint_needle(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
-    if (!part.arc) return;
+    if (!part.arc.present()) return;
     const double width = recipe.stroke_width;
-    const double angle = (*part.arc).start;
+    const double angle = (*part.arc.value()).start;
     if (width <= 0.0 || !std::isfinite(angle)) return;
     const InscribedCircle circle = inscribed_circle(part.bounds);
     if (circle.radius <= 0.0) return;
@@ -860,9 +958,9 @@ void paint_beak(Painter& painter, const PartPaint& part, const ControlVisualReci
         if (right) band = Rect{box.x + box.width - offset - strip, across_y, strip, half * 2.0};
         painter.fill_rect(band, face);
     }
-    if (!recipe.material.border) return;
-    const Color edge = (*recipe.material.border).color;
-    const double edge_width = std::max(1.0, (*recipe.material.border).width);
+    if (recipe.material.border.absent()) return;
+    const Color edge = (*recipe.material.border.value()).color;
+    const double edge_width = std::max(1.0, (*recipe.material.border.value()).width);
     const BeakCorners corners = beak_corners(box, mark);
     painter.draw_line(corners.first, corners.tip, edge, edge_width);
     painter.draw_line(corners.second, corners.tip, edge, edge_width);
@@ -874,7 +972,7 @@ void paint_beak(Painter& painter, const PartPaint& part, const ControlVisualReci
 // Content colour is drawn exactly as given, disabled or not (T2 GIVEN
 // E2-1): a disabled part shows through what surrounds it.
 void paint_content_color(Painter& painter, const PartPaint& part, Color color) {
-    const double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : 0.0;
+    const double radius = part.corner_radius.present() ? std::max(0.0, *part.corner_radius.value()) : 0.0;
     if (radius > 0.0) {
         painter.fill_rounded_rect(part.bounds, radius, color);
         return;
@@ -902,11 +1000,11 @@ bool ground_role(const PartPaint& part) noexcept {
 // (`important_glyph`, for the marks) keep their places.
 void apply_authored_colours(const PartPaint& part, bool disabled, bool important_text, bool important_glyph,
                             ControlVisualRecipe& recipe) {
-    if (part.authored_background && ground_role(part)) {
-        recipe.material.fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+    if (part.authored_background.present() && ground_role(part)) {
+        recipe.material.fills.assign(1U, MaterialFillLayer::solid(*part.authored_background.value()));
     }
-    if (!part.authored_foreground || disabled) return;
-    const Color ink = *part.authored_foreground;
+    if (!part.authored_foreground.present() || disabled) return;
+    const Color ink = *part.authored_foreground.value();
     switch (part.role) {
     case PartRole::caption:
     case PartRole::label:
@@ -933,8 +1031,8 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::arc:
         // paint_arc strokes an unselected arc in the border's colour, else
         // the glyph's.
-        if (recipe.material.border) {
-            (*recipe.material.border).color = ink;
+        if (recipe.material.border.present()) {
+            (*recipe.material.border.value()).color = ink;
         } else {
             recipe.glyph = ink;
         }
@@ -949,8 +1047,8 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::grid_minor:
     case PartRole::crosshair:
         // paint_rule draws in the border's colour, else the muted text's.
-        if (recipe.material.border) {
-            (*recipe.material.border).color = ink;
+        if (recipe.material.border.present()) {
+            (*recipe.material.border.value()).color = ink;
         } else {
             recipe.muted_text = ink;
         }
@@ -964,7 +1062,7 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
 } // namespace
 
 bool authored_background_applies(const PartPaint& part) noexcept {
-    const bool applies = part.authored_background.has_value() && ground_role(part);
+    const bool applies = part.authored_background.present() && ground_role(part);
     return applies;
 }
 
@@ -1040,8 +1138,8 @@ constexpr std::size_t pointed_face_strips = 9U;
 
 // The nose length of a pointed part, within its bounds (zero when none).
 double pointed_length(const PartPaint& part) noexcept {
-    if (!part.point || !surface_role(part.role)) return 0.0;
-    const double length = std::clamp(*part.point, 0.0, std::max(0.0, part.bounds.width));
+    if (!part.point.present() || !surface_role(part.role)) return 0.0;
+    const double length = std::clamp(*part.point.value(), 0.0, std::max(0.0, part.bounds.width));
     return length;
 }
 
@@ -1075,8 +1173,8 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     paint_part_clipped(painter, control, whole, clips);
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
-    if (part.frame == PartFrame::none || !recipe.material.border) return;
-    const Color edge = (*recipe.material.border).color;
+    if (part.frame == PartFrame::none || recipe.material.border.absent()) return;
+    const Color edge = (*recipe.material.border.value()).color;
     const double tip_x = leading ? bounds.x + 0.5 : bounds.x + bounds.width - 0.5;
     const Point tip{tip_x, bounds.y + bounds.height * 0.5};
     painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
@@ -1090,8 +1188,8 @@ constexpr std::size_t part_profile_strips = 12U;
 
 // Whether `part` carries a profile that draws anything.
 bool profiled(const PartPaint& part) noexcept {
-    if (!part.profile || part.point || !surface_role(part.role)) return false;
-    const PartProfile& profile = *part.profile;
+    if (!part.profile.present() || part.point.present() || !surface_role(part.role)) return false;
+    const PartProfile& profile = *part.profile.value();
     const bool any = profile.taper > 0.0 || profile.flare > 0.0 || profile.edge_shadow > 0.0;
     return any;
 }
@@ -1158,7 +1256,7 @@ std::size_t profile_rows(Rect bounds, double taper, double radius, std::span<Pro
 // the face ends, so the face's edge and the shadow's falloff are one
 // continuous edge, the top corner included.
 void paint_profiled_part(Painter& painter, const Control& control, const PartPaint& part) {
-    const PartProfile& profile = *part.profile;
+    const PartProfile& profile = *part.profile.value();
     PartPaint whole = part;
     whole.profile.reset();
     const Rect bounds = part.bounds;
@@ -1168,12 +1266,12 @@ void paint_profiled_part(Painter& painter, const Control& control, const PartPai
     const double flare = std::clamp(profile.flare, 0.0, std::min(bounds.height, maximum_part_shape));
     const double falloff = std::clamp(profile.edge_shadow, 0.0, maximum_part_shape);
     const ControlVisualContext context = part_visual_context(control, part.states);
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe resolved =
         control.effective_theme().resolve(control, part.family, context, part.states, part_name, part.control_type);
     const SurfaceMaterial& material = resolved.recipe().material;
-    double radius = part.corner_radius ? std::max(0.0, *part.corner_radius) : material.corner_radius;
-    if (!part.corner_radius && material.corner_radii) radius = (*material.corner_radii).top_right;
+    double radius = part.corner_radius.present() ? std::max(0.0, *part.corner_radius.value()) : material.corner_radius;
+    if (!part.corner_radius.present() && material.corner_radii.present()) radius = (*material.corner_radii.value()).top_right;
     radius = std::clamp(radius, 0.0, std::min(maximum_part_shape, bounds.height));
     // Without a taper the outline is the straight right edge; its rounded
     // top corner is the face's own and only the shadow follows it.
@@ -1206,17 +1304,18 @@ void paint_profiled_part(Painter& painter, const Control& control, const PartPai
             paint_part(painter, control, whole);
             painter.restore();
         }
-        if (profile.taper_colour && part.frame != PartFrame::none) {
+        const Color* const taper_line = profile.taper_colour.value();
+        if (taper_line != nullptr && part.frame != PartFrame::none) {
             // The line follows the outline: one segment per corner row,
             // then the straight lean to the foot.
             Point from{profile_outline(bounds, taper, radius, bounds.y) - 0.5, bounds.y + 0.5};
             const double corner_end = bounds.y + std::min(std::ceil(radius), std::floor(bounds.height));
             for (double y = bounds.y + 1.0; y <= corner_end; y += 1.0) {
                 const Point to{profile_outline(bounds, taper, radius, y) - 0.5, y};
-                painter.draw_line(from, to, *profile.taper_colour, 1.0);
+                painter.draw_line(from, to, *taper_line, 1.0);
                 from = to;
             }
-            painter.draw_line(from, {right - 0.5, bottom}, *profile.taper_colour, 1.0);
+            painter.draw_line(from, {right - 0.5, bottom}, *taper_line, 1.0);
         }
     }
     if (flare <= 0.0) return;
@@ -1242,9 +1341,9 @@ namespace {
 // and the material opaque (surface_material_opaque).
 bool opaque_surface_part(const PartPaint& part, const SurfaceMaterial& material) noexcept {
     // A fill with a content colour paints that colour, not the material.
-    const bool content = part.role == PartRole::fill && part.content_color;
-    if (!surface_role(part.role) || content || part.point) return false;
-    if (part.corner_radius && *part.corner_radius != 0.0) return false;
+    const bool content = part.role == PartRole::fill && part.content_color.present();
+    if (!surface_role(part.role) || content || part.point.present()) return false;
+    if (part.corner_radius.present() && *part.corner_radius.value() != 0.0) return false;
     const bool opaque = surface_material_opaque(material);
     return opaque;
 }
@@ -1283,17 +1382,17 @@ struct AccentFill final {
 };
 
 std::optional<AccentFill> primitive_accent_fill(const Control& control, const PartPaint& part) {
-    if (!part.accent || !surface_role(part.role) || !paintable(part.bounds)) return std::nullopt;
+    if (part.accent.absent() || !surface_role(part.role) || !paintable(part.bounds)) return std::nullopt;
     const Theme& theme = control.effective_theme();
     const ThemeEngine::PartPlan decided = theme.engine().plan(control, part);
     if (decided.drawing != ThemeEngine::PartDrawing::primitive) return std::nullopt;
     const ControlVisualContext context = part_visual_context(control, part.states);
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe resolved =
         theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
     AccentFill fill{};
     fill.radius = part_corner_radius(part, resolved.recipe());
-    fill.color = theme.accent(*part.accent);
+    fill.color = theme.accent(*part.accent.value());
     return fill;
 }
 
@@ -1323,14 +1422,30 @@ namespace {
 // shape where it has a corner radius.
 void draw_light_plane_raster(Painter& painter, const PartPaint& part, const std::shared_ptr<const PartRaster>& raster) {
     const Point origin{part.bounds.x, part.bounds.y};
-    if (!part.corner_radius) {
+    if (!part.corner_radius.present()) {
         painter.draw_part_raster(raster, origin, 1.0);
         return;
     }
     painter.save();
-    painter.clip_rounded_rect(part.bounds, std::max(0.0, *part.corner_radius));
+    painter.clip_rounded_rect(part.bounds, std::max(0.0, *part.corner_radius.value()));
     painter.draw_part_raster(raster, origin, 1.0);
     painter.restore();
+}
+
+// A content surface's frame (PartPaint::live_surface): content, composed
+// into the part's bounds as given, once or under each of `clips`.
+void paint_live_surface_part(Painter& painter, const PartPaint& part, const std::span<const Rect> clips) {
+    if (!paintable(part.bounds)) return;
+    if (clips.empty()) {
+        painter.draw_live_surface(part.live_surface, part.bounds, 1.0);
+        return;
+    }
+    for (const Rect clip : clips) {
+        painter.save();
+        painter.clip_rect(clip);
+        painter.draw_live_surface(part.live_surface, part.bounds, 1.0);
+        painter.restore();
+    }
 }
 
 // A part with light planes (PartPaint::light_planes): composited by its
@@ -1341,7 +1456,7 @@ void draw_light_plane_raster(Painter& painter, const PartPaint& part, const std:
 // or no raster of its size made.
 bool paint_light_plane_part(Painter& painter, const Control& control, const PartPaint& part,
                             const std::span<const Rect> clips) {
-    const PartLightPlanes& light = *part.light_planes;
+    const PartLightPlanes& light = (*part.light_planes.value());
     if (!light.planes || light.raster == nullptr || !paintable(part.bounds)) return false;
     if (part_visual_context(control, part.states).high_contrast) return false;
     const SurfaceRoot* const root = control.attached_surface_root();
@@ -1380,12 +1495,18 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
                         const std::span<const Rect> clips) {
     // A bake carries the part's whole look; where it cannot be shown the
     // part goes on to its recipe.
-    if (part.light_planes && paint_light_plane_part(painter, control, part, clips)) return;
+    if (part.light_planes.present() && paint_light_plane_part(painter, control, part, clips)) return;
+    // A content surface's frame is content: no theme, rule or high-contrast
+    // recipe draws it.
+    if (part.live_surface && part.role == PartRole::image) {
+        paint_live_surface_part(painter, part, clips);
+        return;
+    }
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
     // applied, the part's own included.
     const bool suspended = control.application_colours_suspended();
-    if (suspended && (part.authored_background || part.authored_foreground)) {
+    if (suspended && (part.authored_background.present() || part.authored_foreground.present())) {
         PartPaint plain = part;
         plain.authored_background.reset();
         plain.authored_foreground.reset();
@@ -1423,11 +1544,13 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every
     // ground, an inherited one every ground but a well.
-    std::optional<Color> background = part.authored_background;
-    if (!background && !suspended) background = control.back_color.read();
-    if (!background && !suspended && part.role != PartRole::well) background = control.ambient_back_color();
-    std::optional<Color> foreground = part.authored_foreground;
-    if (!foreground && !suspended) foreground = control.ambient_fore_color();
+    stxlib::Optional<Color> background = part.authored_background;
+    if (background.absent() && !suspended) background = control.back_color.read();
+    if (background.absent() && !suspended && part.role != PartRole::well) {
+        background = control.ambient_back_color();
+    }
+    stxlib::Optional<Color> foreground = part.authored_foreground;
+    if (foreground.absent() && !suspended) foreground = control.ambient_fore_color();
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint_clipped(painter, control, part, clips);
@@ -1451,16 +1574,34 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
                         double width) {
     if (part.text.empty()) return;
     // The line box paint_text centres the text in: its height and ascent.
-    const Size measured = part.measured_text ? *part.measured_text
+    const Size measured = part.measured_text.present() ? *part.measured_text.value()
                                              : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
     part.alignment = PartTextAlignment::start;
     part.orientation = TextOrientation::horizontal;
     part.bounds = {origin.x, origin.y - ascent, std::max(width, measured.width), line_height};
-    part.measured_text = measured;
+    part.measured_text.set(measured);
     paint_part(painter, control, part);
 }
+
+namespace {
+
+// A stock icon image or icon part (E10): drawn in the recipe's glyph colour,
+// baked for the control's window, so dark schemes and high contrast follow.
+// An icon part is dimmed while disabled, as an image icon is; an image part
+// is content and drawn as given. False, drawing nothing, for any other part.
+bool paint_stock_icon_part(Painter& painter, const Control& control, const PartPaint& part,
+                           const ControlVisualRecipe& recipe, ControlVisualContext context) {
+    if (part.role != PartRole::icon && part.role != PartRole::image) return false;
+    if (!is_stock_icon_image(part.image)) return false;
+    const bool disabled = context.surface == ControlSurfaceState::disabled;
+    const double opacity = part.role == PartRole::icon && disabled ? 0.45 : 1.0;
+    paint_stock_icon(painter, control, part.image, part.bounds, recipe.glyph, opacity);
+    return true;
+}
+
+} // namespace
 
 void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
                                      const SurfaceMaterial* resolved_material) {
@@ -1470,7 +1611,7 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     // The control's recipe fields (T3 P6f) in the part's states: a label
     // part takes the control's text colour, or its own where a rule names
     // the part.
-    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const std::string_view part_name = part.key.present() ? (*part.key.value()).part : std::string_view{};
     const ResolvedControlRecipe resolved = theme.resolve(control, part.family, context, part.states, part_name,
                                                               part.control_type);
     const ControlVisualRecipe& recipe = resolved.recipe();
@@ -1482,7 +1623,7 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     // made only for a part that carries them, and never in high contrast;
     // so does the engine's resolved material, made only for a part that has
     // one.
-    const bool authored = (part.authored_background || part.authored_foreground) && !context.high_contrast;
+    const bool authored = (part.authored_background.present() || part.authored_foreground.present()) && !context.high_contrast;
     const bool resolved_ground = resolved_material != nullptr;
     bool opaque_face = false;
     if (authored || resolved_ground) {
@@ -1492,21 +1633,25 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
         if (authored) {
             apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
         }
-        paint_part_from_recipe(painter, part, styled, context);
+        if (!paint_stock_icon_part(painter, control, part, styled, context)) {
+            paint_part_from_recipe(painter, part, styled, context);
+        }
         opaque_face = opaque_surface_part(part, styled.material);
     } else {
-        paint_part_from_recipe(painter, part, recipe, context);
+        if (!paint_stock_icon_part(painter, control, part, recipe, context)) {
+            paint_part_from_recipe(painter, part, recipe, context);
+        }
         opaque_face = opaque_surface_part(part, recipe.material);
     }
     // An opaque engine face (owner, 2026-11-05): what lies beneath it, a
     // window's backdrop included, need not be painted. The window keeps the
     // cover only when the face was drawn untranslated and unclipped.
     if (opaque_face) control.report_opaque_cover(painter, part.bounds);
-    if (!part.accent || !surface_role(part.role)) return;
+    if (part.accent.absent() || !surface_role(part.role)) return;
     // Provisional accent (design language §8.5): the ramp colour, which
     // carries its own translucency, laid over the part's material in the
     // part's shape. T4 replaces this with the engine's tint.
-    const Color tint = theme.accent(*part.accent);
+    const Color tint = theme.accent(*part.accent.value());
     const double radius = part_corner_radius(part, recipe);
     painter.fill_rounded_rect(part.bounds, radius, tint);
 }
@@ -1526,8 +1671,8 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         // painted by paint_part_with_built_in_recipe; count is no role).
         return;
     case PartRole::fill:
-        if (part.content_color) {
-            paint_content_color(painter, part, *part.content_color);
+        if (part.content_color.present()) {
+            paint_content_color(painter, part, *part.content_color.value());
             return;
         }
         paint_surface(painter, part, recipe);
@@ -1577,7 +1722,7 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         paint_rule(painter, part.bounds, recipe);
         return;
     case PartRole::arc:
-        paint_arc(painter, part, recipe);
+        paint_arc(painter, part, recipe, context);
         return;
     case PartRole::needle:
         paint_needle(painter, part, recipe);
@@ -1605,6 +1750,11 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         // theme's own disabled text (owner ruling, 2026-11-02).
         // A secondary text is drawn in the muted ink; disabled text of either
         // tone is the disabled recipe's text.
+        if (part.text_angle != 0.0) {
+            paint_rotated_text(painter, part,
+                               part.tone == PartTextTone::secondary && !disabled ? recipe.muted_text : recipe.text);
+            return;
+        }
         paint_text(painter, part,
                    part.tone == PartTextTone::secondary && !disabled ? recipe.muted_text : recipe.text);
         return;
@@ -1612,8 +1762,13 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         if (part.image.value != 0U) painter.draw_image(part.image, part.bounds, disabled ? 0.45 : 1.0);
         return;
     case PartRole::image:
-        // Content, drawn exactly as given, disabled or not (GIVEN H1-1).
-        if (part.image.value != 0U) painter.draw_image(part.image, part.bounds, 1.0);
+        // Content, drawn exactly as given, disabled or not (GIVEN H1-1): a
+        // picture the control rendered at the display scale, else an image.
+        if (part.raster) {
+            painter.draw_part_raster(part.raster, Point{part.bounds.x, part.bounds.y}, 1.0);
+        } else if (part.image.value != 0U) {
+            painter.draw_image(part.image, part.bounds, 1.0);
+        }
         return;
     case PartRole::caret:
         painter.fill_rect({part.bounds.x, part.bounds.y, std::max(1.0, part.bounds.width),

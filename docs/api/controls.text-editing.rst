@@ -160,7 +160,7 @@ Related types
    * - :cpp:class:`TextBoxReadOnlyCapability <gui_forms::TextBoxReadOnlyCapability>`
      - Whether the user may select and copy the text but not change it (ReadOnly); a view onto the editing engine.
    * - :cpp:class:`TextBoxTextAlignmentCapability <gui_forms::TextBoxTextAlignmentCapability>`
-     - Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+     - Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
    * - :cpp:class:`TextBoxTextCapability <gui_forms::TextBoxTextCapability>`
      - The edited text (Text); a view onto the editing engine.
    * - :cpp:class:`TextBoxUseSystemPasswordCharacterCapability <gui_forms::TextBoxUseSystemPasswordCharacterCapability>`
@@ -1263,7 +1263,7 @@ Related types
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+      Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
 .. cpp:namespace:: gui_forms
 
@@ -1367,7 +1367,7 @@ Related types
 
    ``#include <gui_forms/controls/text_box_capabilities.hpp>``
 
-   Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+   Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
 
    .. rubric:: Methods
@@ -1376,7 +1376,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, TextBoxTextAlignmentCapability<Declaring>> text_alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1548,19 +1548,19 @@ Related types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:member:: std::optional<TextInkRole> ink
+   .. cpp:member:: stxlib::Optional<TextInkRole> ink
 
-   .. cpp:member:: std::optional<Color> foreground
+   .. cpp:member:: stxlib::Optional<Color> foreground
 
-   .. cpp:member:: std::optional<std::uint16_t> weight
+   .. cpp:member:: stxlib::Optional<std::uint16_t> weight
 
-   .. cpp:member:: std::optional<bool> italic
+   .. cpp:member:: stxlib::Optional<bool> italic
 
-   .. cpp:member:: std::optional<TextUnderline> underline
+   .. cpp:member:: stxlib::Optional<TextUnderline> underline
 
-   .. cpp:member:: std::optional<Color> underline_color
+   .. cpp:member:: stxlib::Optional<Color> underline_color
 
-   .. cpp:member:: std::optional<Color> background
+   .. cpp:member:: stxlib::Optional<Color> background
 
 .. cpp:namespace:: gui_forms
 
@@ -2021,11 +2021,11 @@ Functions, constants and aliases
 
 ``#include <gui_forms/controls/auto_complete.hpp>``
 
-.. cpp:function:: std::optional<HostAutoCompleteSource> host_auto_complete_source(AutoCompleteSource source) noexcept
+.. cpp:function:: stxlib::Optional<HostAutoCompleteSource> host_auto_complete_source(AutoCompleteSource source) noexcept
 
    The host source an AutoCompleteSource names, or none for a source the control owns (none, custom_source, list_items).
 
-.. cpp:function:: std::optional<std::size_t> find_text_match(std::string_view candidate, std::string_view pattern, TextMatchMode mode, bool case_sensitive) noexcept
+.. cpp:function:: stxlib::Optional<std::size_t> find_text_match(std::string_view candidate, std::string_view pattern, TextMatchMode mode, bool case_sensitive) noexcept
 
    The byte offset in ``candidate`` of the first match of ``pattern``, or none. Bytes compare exactly, except that ASCII letters compare without case unless ``case_sensitive``; other characters (accented and non-Latin letters among them) compare exactly. Valid UTF-8 inputs therefore match at a scalar boundary and the match is pattern.size() bytes long. An empty pattern matches nothing.
 

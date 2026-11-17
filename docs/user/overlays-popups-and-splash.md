@@ -108,8 +108,8 @@ gf::NativePopupToken show_details(gf::Window& window, const gf::Control::Ptr& an
 A Splash forces no decision. It has no surface root, layout pass or theme
 state of its own: the owner measures and paints the content, and the Splash
 window only presents it. Its kinds are the menu, the tooltip and the
-splashscreen; in 0.5, tooltips and the splashscreen are Splash windows, and
-menus use the warm Popup windows above.
+splashscreen; tooltips and the splashscreen are Splash windows, and menus
+use the warm Popup windows above.
 
 ### Tooltips
 

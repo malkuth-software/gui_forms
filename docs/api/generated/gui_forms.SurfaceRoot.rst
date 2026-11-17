@@ -102,7 +102,18 @@ gui_forms::SurfaceRoot
       **overrides** : ``WindowOverrides*``, read-only
          Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
-      **invalidation_overlay_setting** : ``std::optional<bool>``, read-only
+      **invalidation_overlay_setting** : ``stxlib::Optional<bool>``, read-only
+
+      **blend_study_setting** : ``stxlib::Optional<BlendStudyMode>``, read-only
+
+      **blend_study_mode** : ``BlendStudyMode``, read-only
+         The mode in force: the window's setting, else the process switch.
+
+      **blend_study_snapshot** : ``BlendStudySnapshot``, read-only
+         The frames counted since the window was made or the last reset, the last of them and their sum. UI thread.
+
+      **blend_heat_map** : ``BlendHeatMapView``, read-only
+         The planes the last counted frames left, while a heat-map mode is in force, for the host to composite at present time (compose_blend_heat_map); a view whose mode is off otherwise. Borrowed until the window's next paint or setting change. UI thread.
 
       **text_metrics_provider** : ``TextMetricsProvider*``
 
@@ -148,10 +159,15 @@ gui_forms::SurfaceRoot
 
       **backdrop_grant** : ``WindowBackdropGrant``, read-only
 
-      **backdrop_chain** : ``std::optional<BackdropChain>``
+      **backdrop_chain** : ``stxlib::Optional<BackdropChain>``
 
-      **backdrop_chain_resolution** : ``std::optional<BackdropChainResolution>``, read-only
-         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+      **backdrop_chain_resolution** : ``stxlib::Optional<BackdropChainResolution>``, read-only
+         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; none without a chain.
+
+      **backplane_material** : ``SurfaceMaterial``, read-only
+         The window's backplane as the theme shown would draw it now, for the window's activation, colour scheme and contrast (exhibit gap E4): backplane_material() is the material (backplane_base: the window recipe's, the theme's base for a non-opaque grant, or a backdrop chain's tint; no fill when a declared content surface draws everything over a clear grant); backplane_colour() is its one colour (a solid fill's colour, a gradient's first stop, a procedural fill's ground, a finish's paint, else the layer's colour; transparent with no fill), what a consumer compositing a snapshot taken without the backplane lays under it. A copy; UI thread.
+
+      **backplane_colour** : ``Color``, read-only
 
       **host_services** : ``HostServices*``, read-only
          The services of the attached native host, or null when none is attached.
@@ -181,7 +197,7 @@ gui_forms::SurfaceRoot
       **needs_frame** : ``bool``, read-only
          Whether painting is pending.
 
-      **next_wake** : ``std::optional<FrameTime>``, read-only
+      **next_wake** : ``stxlib::Optional<FrameTime>``, read-only
          Returns the earliest eligible frame/timer deadline, respecting occlusion.
 
       **occluded** : ``bool``, default ``false``
@@ -195,11 +211,17 @@ gui_forms::SurfaceRoot
       **image_resource_snapshot** : ``ImageRegistrySnapshot``, read-only
          Returns generational image counts and byte/accounting telemetry.
 
+      **last_press_trace** : ``PressTrace``, read-only
+         The last primary press's trace (PressTrace): the control it landed on and what the route did with it. Written by every primary press, read by tests and diagnostics; GUI_FORMS_TRACE_PRESS also logs each.
+
       **focused_control** : ``Control::Ptr``, read-only
          The control with keyboard focus, or null.
 
       **active_control** : ``Control::Ptr``, read-only
          The focused control as Windows Forms' ActiveControl names it: the outermost composite whose focus target holds focus (a ComboBox while its edit part has it), else focused_control(). Null without focus.
+
+      **pointer_location** : ``PointerLocation``, read-only
+         Where the pointer is, as this window last saw it (PointerLocation): the last pointer event it dispatched, in window coordinates, so location and window_position are equal. A sub-surface's root reports its own coordinates. Readable during on_mouse_enter and on_mouse_leave, which carry no arguments. UI thread.
 
       **focus_cue_visible** : ``bool``, default ``false``, read-only
          Whether focus rectangles are shown. A key press turns them on; a primary
@@ -251,7 +273,16 @@ gui_forms::SurfaceRoot
       **captured_pointer_id** : ``std::uint64_t``, read-only
          Returns the captured pointer identity or zero.
 
-      **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
+      **relative_pointer_owner** : ``Control::Ptr``, read-only
+
+      **relative_pointer_support** : ``RelativePointerSupport``, read-only
+         What this window's host can do; a window with no host derives deltas from positions and can do nothing else.
+
+      **pointer_release_regions** : ``std::span<const Rect>``
+
+      **relative_pointer_snapshot** : ``RelativePointerSnapshot``, read-only
+
+      **tool_tips_shown_setting** : ``stxlib::Optional<bool>``, read-only
          Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
       **tool_tips_shown** : ``bool``, default follows the application's ``tool_tips_shown()``
@@ -437,6 +468,8 @@ gui_forms::SurfaceRoot
         - The window's outlines while the overlay is on, for its host to composite at present time (InvalidationOverlay::compose); null while it is off.
       * - :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`
         - Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off.
+      * - :cpp:func:`reset_blend_study <gui_forms::SurfaceRoot::reset_blend_study>`
+        - Zeroes the frames, the last frame and the sums.
       * - :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`
         - Removes a snapshot's image; false when it is not there.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`
@@ -525,6 +558,8 @@ gui_forms::SurfaceRoot
         - The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it.
       * - :cpp:func:`is_key_down <gui_forms::SurfaceRoot::is_key_down>`
         - Whether physical key ``physical_key`` (a USB HID usage, PhysicalKey) is down now, as the window has seen it: pressed and not yet released, nor released by the window losing activation.
+      * - :cpp:func:`mouse_event_arguments <gui_forms::SurfaceRoot::mouse_event_arguments>`
+        - The MouseEventArgs a routed pointer event carries on ``target``, built as this window builds its mouse raisers' (mouse_event_arguments): location relative to target's absolute bounds, and for a press or release the click count the host reported for the last press.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -547,6 +582,14 @@ gui_forms::SurfaceRoot
         - Routes pointer input to a control until :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, wherever the pointer goes.
       * - :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`
         - Releases pointer capture.
+      * - :cpp:func:`begin_relative_pointer <gui_forms::SurfaceRoot::begin_relative_pointer>`
+        - Relative pointer mode (gui_forms/events/relative_pointer gives the modes, the release regions, the ends and the order).
+      * - :cpp:func:`end_relative_pointer <gui_forms::SurfaceRoot::end_relative_pointer>`
+        - Ends the mode for ``reason`` and raises the owner's relative_pointer_ended once (not for an owner already disposed); false, raising nothing, without a mode.
+      * - :cpp:func:`dispatch_relative_motion <gui_forms::SurfaceRoot::dispatch_relative_motion>`
+        - One host motion sample (HostRelativeMotionEvent, from HostSession or a test): raised on the owner as one relative_pointer, never merged.
+      * - :cpp:func:`warp_pointer <gui_forms::SurfaceRoot::warp_pointer>`
+        - Moves the pointer to ``position`` (window logical units) through the host where it can warp; a locked mode moves its virtual position.
       * - :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`
         - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it.
       * - :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`
@@ -617,8 +660,12 @@ gui_forms::SurfaceRoot
         - Native host borrows its painter until shutdown; clear before destroying it.
       * - :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`
         - The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp).
+      * - :cpp:func:`set_blend_study <gui_forms::SurfaceRoot::set_blend_study>`
+        - The blend and opaque study (2026-11-16; see blend_study.hpp).
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
+      * - :cpp:func:`set_schedule_wake_handler <gui_forms::SurfaceRoot::set_schedule_wake_handler>`
+        - Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake).
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
@@ -743,7 +790,21 @@ gui_forms::SurfaceRoot
 
       Everything the window overrides, or null when it overrides nothing (no record is allocated until the first override).
 
-   .. cpp:function:: std::optional<bool> invalidation_overlay_setting() const noexcept
+   .. cpp:function:: stxlib::Optional<bool> invalidation_overlay_setting() const noexcept
+
+   .. cpp:function:: stxlib::Optional<BlendStudyMode> blend_study_setting() const noexcept
+
+   .. cpp:function:: BlendStudyMode blend_study_mode() const noexcept
+
+      The mode in force: the window's setting, else the process switch.
+
+   .. cpp:function:: BlendStudySnapshot blend_study_snapshot() const noexcept
+
+      The frames counted since the window was made or the last reset, the last of them and their sum. UI thread.
+
+   .. cpp:function:: BlendHeatMapView blend_heat_map() const& noexcept
+
+      The planes the last counted frames left, while a heat-map mode is in force, for the host to composite at present time (compose_blend_heat_map); a view whose mode is off otherwise. Borrowed until the window's next paint or setting change. UI thread.
 
    .. cpp:function:: TextMetricsProvider* text_metrics_provider() const noexcept
 
@@ -813,15 +874,25 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: const WindowBackdropGrant& backdrop_grant() const noexcept
 
-   .. cpp:function:: const std::optional<BackdropChain>& backdrop_chain() const noexcept
+   .. cpp:function:: const stxlib::Optional<BackdropChain>& backdrop_chain() const noexcept
+
+   .. cpp:function:: void set_backdrop_chain(stxlib::Optional<BackdropChain> chain)
+
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; none removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
 
    .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
 
-      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
+      The standard form, kept for one stage (D15 Q3).
 
-   .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
+   .. cpp:function:: stxlib::Optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
 
-      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; none without a chain.
+
+   .. cpp:function:: SurfaceMaterial backplane_material() const
+
+      The window's backplane as the theme shown would draw it now, for the window's activation, colour scheme and contrast (exhibit gap E4): backplane_material() is the material (backplane_base: the window recipe's, the theme's base for a non-opaque grant, or a backdrop chain's tint; no fill when a declared content surface draws everything over a clear grant); backplane_colour() is its one colour (a solid fill's colour, a gradient's first stop, a procedural fill's ground, a finish's paint, else the layer's colour; transparent with no fill), what a consumer compositing a snapshot taken without the backplane lays under it. A copy; UI thread.
+
+   .. cpp:function:: Color backplane_colour() const
 
    .. cpp:function:: HostServices* host_services() const noexcept
 
@@ -862,7 +933,7 @@ gui_forms::SurfaceRoot
 
       Whether painting is pending.
 
-   .. cpp:function:: std::optional<FrameTime> next_wake() const noexcept
+   .. cpp:function:: stxlib::Optional<FrameTime> next_wake() const noexcept
 
    .. cpp:function:: bool occluded() const noexcept
 
@@ -878,6 +949,10 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: ImageRegistrySnapshot image_resource_snapshot() const noexcept
 
+   .. cpp:function:: const PressTrace& last_press_trace() const noexcept
+
+      The last primary press's trace (PressTrace): the control it landed on and what the route did with it. Written by every primary press, read by tests and diagnostics; GUI_FORMS_TRACE_PRESS also logs each.
+
    .. cpp:function:: Control::Ptr focused_control() const noexcept
 
       The control with keyboard focus, or null.
@@ -885,6 +960,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr active_control() const
 
       The focused control as Windows Forms' ActiveControl names it: the outermost composite whose focus target holds focus (a ComboBox while its edit part has it), else focused_control(). Null without focus.
+
+   .. cpp:function:: PointerLocation pointer_location() const noexcept
+
+      Where the pointer is, as this window last saw it (PointerLocation): the last pointer event it dispatched, in window coordinates, so location and window_position are equal. A sub-surface's root reports its own coordinates. Readable during on_mouse_enter and on_mouse_leave, which carry no arguments. UI thread.
 
    .. cpp:function:: bool focus_cue_visible() const noexcept
 
@@ -955,7 +1034,21 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::uint64_t captured_pointer_id() const noexcept
 
-   .. cpp:function:: std::optional<bool> tool_tips_shown_setting() const noexcept
+   .. cpp:function:: Control::Ptr relative_pointer_owner() const noexcept
+
+   .. cpp:function:: RelativePointerSupport relative_pointer_support() const
+
+      What this window's host can do; a window with no host derives deltas from positions and can do nothing else.
+
+   .. cpp:function:: std::span<const Rect> pointer_release_regions() const& noexcept
+
+   .. cpp:function:: bool set_pointer_release_regions(std::span<const Rect> regions)
+
+      The shell's release regions, window logical units (the capsule and its kin; at most maximum_pointer_release_regions, each finite and not empty, else false changing nothing). Over one, a confined or locked mode is suspended and the ordinary pointer reaches the region; see relative_pointer.hpp. The window keeps them across modes.
+
+   .. cpp:function:: RelativePointerSnapshot relative_pointer_snapshot() const noexcept
+
+   .. cpp:function:: stxlib::Optional<bool> tool_tips_shown_setting() const noexcept
 
       Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
@@ -967,6 +1060,10 @@ gui_forms::SurfaceRoot
       joined (``Application::set_tool_tips_shown``), and shows tooltips when it
       joined none. Turning it off closes a tooltip that
       shows. :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>` shows one regardless.
+
+   .. cpp:function:: void set_tool_tips_shown(stxlib::Optional<bool> shown)
+
+      Sets :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`; see the property's description above.
 
    .. cpp:function:: void set_tool_tips_shown(std::optional<bool> shown)
 
@@ -1205,7 +1302,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::unique_ptr<PaintFramebuffer> create_framebuffer(Size logical_size, double scale)
 
-   .. cpp:function:: std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
+   .. cpp:function:: stxlib::Optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale)
 
       A picture of a control and its descendants as last laid out: their
       retained painting is replayed, every paint plane in order, into an
@@ -1221,11 +1318,11 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {})
 
-      The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. While it records and replays, the window is painting, as in paint: an ImageAtlas fill made by a paint callback is deferred and written when the capture ends (so the capture shows the slot's old pixels and the next paint or capture the new ones), and input dispatched meanwhile is deferred. On the UI thread (std::logic_error elsewhere).
+      The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild damage the window for its next paint, and at another scale every control is recorded afresh at it, as snapshot_control says. While it records and replays, the window is painting, as in paint: an ImageAtlas fill made by a paint callback is deferred and written when the capture ends (so the capture shows the slot's old pixels and the next paint or capture the new ones), and input dispatched meanwhile is deferred. On the UI thread (std::logic_error elsewhere).
 
    .. cpp:function:: std::optional<WindowCapture> capture_control(const Control::Ptr& control, const ControlCaptureOptions& options = {})
 
-      One control and its descendants as the window presents them (owner request 2026-11-11, the theme palette): after any pending layout, the backplane (unless ``options`` leaves it out) and every paint plane of the subtree over the control's bounds grown by ``options.margin`` and clipped to the window, replayed into an offscreen framebuffer of the window's CPU raster, as capture_window does; the capture owns its pixels (no image is registered, unlike snapshot_control). Siblings, ancestors' own paint and overlays are not drawn. ``logical_size`` is the area's size. None, changing nothing, while no framebuffer painter is installed (a headless window without an OffscreenAttachment, a host whose fonts are not ready), during a paint, for a control of another window or not shown, for an empty area, for a scale outside (0, 8] or a refused margin, or when the framebuffer refuses. Cost: one replay of the subtree into the area's device pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. The window is painting while it records and replays, as capture_window says. On the UI thread (std::logic_error elsewhere).
+      One control and its descendants as the window presents them (owner request 2026-11-11, the theme palette): after any pending layout, the backplane (unless ``options`` leaves it out) and every paint plane of the subtree over the control's bounds grown by ``options.margin`` and clipped to the window, replayed into an offscreen framebuffer of the window's CPU raster, as capture_window does; the capture owns its pixels (no image is registered, unlike snapshot_control). The in-surface overlays a control of the subtree owns are drawn over it unless ``options`` leaves them out (exhibit gap E3); siblings, ancestors' own paint and other overlays are not drawn. ``logical_size`` is the area's size. None, changing nothing, while no framebuffer painter is installed (a headless window without an OffscreenAttachment, a host whose fonts are not ready), during a paint, for a control of another window or not shown, for an empty area, for a scale outside (0, 8] or a refused margin, or when the framebuffer refuses. Cost: one replay of the subtree into the area's device pixels and one copy of them; rebuilt chunks and other scales as snapshot_control says. The window is painting while it records and replays, as capture_window says. On the UI thread (std::logic_error elsewhere).
 
    .. cpp:function:: bool invalidation_overlay_enabled() noexcept
 
@@ -1238,6 +1335,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void record_presented_area(Rect bounds, InvalidationCause cause, std::string_view source)
 
       Records an area the host presented without a paint of the window's (a live frame, external content), with its cause and source, while the overlay is on; nothing while it is off. UI thread.
+
+   .. cpp:function:: void reset_blend_study() noexcept
+
+      Zeroes the frames, the last frame and the sums. UI thread.
 
    .. cpp:function:: bool release_control_snapshot(ImageId image)
 
@@ -1310,12 +1411,12 @@ gui_forms::SurfaceRoot
 
       The same as :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`.
 
-   .. cpp:function:: std::optional<PaintReceipt> paint(Painter& painter, Rect requested_damage = {})
+   .. cpp:function:: stxlib::Optional<PaintReceipt> paint(Painter& painter, Rect requested_damage = {})
 
       Paints pending damage with a :cpp:class:`Painter <gui_forms::Painter>`. Native hosts call it; tests can
       call it with their own painter.
 
-   .. cpp:function:: std::optional<PaintReceipt> paint(Painter& painter, std::span<const Rect> requested_damage)
+   .. cpp:function:: stxlib::Optional<PaintReceipt> paint(Painter& painter, std::span<const Rect> requested_damage)
 
       Paints pending damage with a :cpp:class:`Painter <gui_forms::Painter>`. Native hosts call it; tests can
       call it with their own painter.
@@ -1420,7 +1521,7 @@ gui_forms::SurfaceRoot
 
       Whether :cpp:func:`control <gui_forms::SurfaceRoot::control>` is focused (Control.Focused): it holds focus, or its focus target does.
 
-   .. cpp:function:: std::optional<Rect> text_input_caret()
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret()
 
       The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
 
@@ -1431,6 +1532,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: bool is_key_down(std::uint32_t physical_key) const noexcept
 
       Whether physical key ``physical_key`` (a USB HID usage, PhysicalKey) is down now, as the window has seen it: pressed and not yet released, nor released by the window losing activation. At most maximum_held_keys keys are tracked at once (InteractionSnapshot counts the presses past that). UI thread.
+
+   .. cpp:function:: MouseEventArgs mouse_event_arguments(const Control& target, const PointerEvent& event) const
+
+      The MouseEventArgs a routed pointer event carries on ``target``, built as this window builds its mouse raisers' (mouse_event_arguments): location relative to target's absolute bounds, and for a press or release the click count the host reported for the last press. UI thread; the target is in this window.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 
@@ -1492,13 +1597,37 @@ gui_forms::SurfaceRoot
 
       Releases pointer capture.
 
+   .. cpp:function:: RelativePointerGrant begin_relative_pointer(const Control::Ptr& owner, RelativePointerRequest request)
+
+      Relative pointer mode (gui_forms/events/relative_pointer gives the modes, the release regions, the ends and the order). One owner at a time: a request from another control ends the current owner's mode (superseded) before it is granted. Refused, changing nothing: detached for an owner not attached here, hidden, disabled or disposed; not_active while the window is inactive or a focus scope that does not hold the owner is open; no_press for until_release without a button held on the owner. A granted confined or locked mode ends the pointer sequences in progress (no click derives across it). Root thread.
+
+   .. cpp:function:: bool end_relative_pointer(RelativePointerEnd reason = RelativePointerEnd::released)
+
+      Ends the mode for ``reason`` and raises the owner's relative_pointer_ended once (not for an owner already disposed); false, raising nothing, without a mode.
+
+   .. cpp:function:: bool dispatch_relative_motion(const HostRelativeMotionEvent& event)
+
+      One host motion sample (HostRelativeMotionEvent, from HostSession or a test): raised on the owner as one relative_pointer, never merged. False when no mode is in force or it is suspended (the sample is not raised: the pointer is ordinary then).
+
+   .. cpp:function:: bool warp_pointer(Point position)
+
+      Moves the pointer to ``position`` (window logical units) through the host where it can warp; a locked mode moves its virtual position. False without a mode, or where the host cannot.
+
    .. cpp:function:: OverlayToken open_overlay(const Control::Ptr& owner, const Control::Ptr& overlay, OverlayOptions options = {})
 
       Shows a detached control as an overlay owned by another control, such as
       a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it. The
       overlay closes on its own when its owner is hidden, disabled or detached.
 
-   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration = std::nullopt)
+   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration = stxlib::Optional<std::chrono::milliseconds>::none())
+
+      ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
+      for the auto-pop delay; ``show_tool_tip(control, duration)`` for
+      ``duration``, where zero means until hidden. It shows even with the
+      switches off. A control without tooltip text throws
+      ``std::invalid_argument``.
+
+   .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration)
 
       ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
       for the auto-pop delay; ``show_tool_tip(control, duration)`` for
@@ -1621,7 +1750,7 @@ gui_forms::SurfaceRoot
       Withdraws a published value; its readers then read it as not published
       and give their expressions' fallbacks.
 
-   .. cpp:function:: std::optional<double> published_value(std::string_view name) const
+   .. cpp:function:: stxlib::Optional<double> published_value(std::string_view name) const
 
       The value published under a name, or none.
 
@@ -1684,13 +1813,29 @@ gui_forms::SurfaceRoot
 
       Native host borrows its painter until shutdown; clear before destroying it. Created framebuffers own their rendering state independently of the host.
 
-   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+   .. cpp:function:: void set_invalidation_overlay(stxlib::Optional<bool> enabled)
 
       The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp). The window's own setting: on, off, or none to follow the process switch (set_invalidation_overlay_default, read from GUI_FORMS_DEBUG_INVALIDATION at first). Turning it off drops the outlines; turning it on records from the next damage. Neither damages the window. UI thread.
+
+   .. cpp:function:: void set_invalidation_overlay(std::optional<bool> enabled)
+
+      The standard form, kept for one stage (D15 Q3).
+
+   .. cpp:function:: void set_blend_study(stxlib::Optional<BlendStudyMode> mode)
+
+      The blend and opaque study (2026-11-16; see blend_study.hpp). The window's own setting: a mode, or none to follow the process switch (set_blend_study_default, read from GUI_FORMS_DEBUG_BLEND at first). While the study is on, each paint counts how its frame's device pixels were written (BlendFrameCounters); turning it off keeps the counts and frees the planes. Neither damages the window. UI thread.
+
+   .. cpp:function:: void set_blend_study(std::optional<BlendStudyMode> mode)
+
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 
       Host adapters also install a paint wake seam. Retained invalidation may originate from another Window's callback, so relying only on the host currently dispatching input can strand valid dirty state indefinitely. Wakes coalesce until the host consumes damage and remain suppressed while the model is explicitly occluded.
+
+   .. cpp:function:: void set_schedule_wake_handler(std::function<void()> wake)
+
+      Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake). Without it a host re-arms only after its own wakes, and a deadline set elsewhere waited for unrelated activity; inside a modal session there may be none. Wakes coalesce until the next poll; a request made during a poll needs none, since the host arms after it.
 
    .. cpp:function:: void set_command_target(CommandRouteStage stage, const std::shared_ptr<CommandTarget>& target)
 

@@ -33,8 +33,9 @@ SrgbTable make_srgb_table() noexcept {
 }
 
 const SrgbTable& srgb_table() noexcept {
-    static const SrgbTable table = make_srgb_table();
-    return table;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const SrgbTable* const table = new const SrgbTable(make_srgb_table());
+    return *table;
 }
 
 Color hex(std::uint32_t rgb) noexcept {
@@ -110,6 +111,16 @@ std::uint8_t mix_channel(std::uint8_t from, std::uint8_t to, double fraction, Co
     return result;
 }
 
+// SplitMix64's finaliser (Steele, Lea and Flood 2014): a bijection of
+// 64-bit values whose output bits each depend on every input bit.
+std::uint64_t mix_key(std::uint64_t key) noexcept {
+    std::uint64_t mixed = key + 0x9E3779B97F4A7C15ULL;
+    mixed = (mixed ^ (mixed >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+    mixed = (mixed ^ (mixed >> 27U)) * 0x94D049BB133111EBULL;
+    mixed = mixed ^ (mixed >> 31U);
+    return mixed;
+}
+
 std::uint8_t mix_alpha(std::uint8_t from, std::uint8_t to, double fraction) noexcept {
     const double mixed = static_cast<double>(from) + (static_cast<double>(to) - static_cast<double>(from)) * fraction;
     const double rounded = std::clamp(std::round(mixed), 0.0, 255.0);
@@ -182,10 +193,40 @@ bool sample_colormap_span(const Colormap& map, const Scale& scale, std::span<con
     return true;
 }
 
+std::uint64_t category_key(std::string_view name) noexcept {
+    std::uint64_t hash = 0xCBF29CE484222325ULL;
+    for (const char byte : name) {
+        hash = hash ^ static_cast<std::uint64_t>(static_cast<unsigned char>(byte));
+        hash = hash * 0x100000001B3ULL;
+    }
+    return hash;
+}
+
+std::size_t category_position(std::uint64_t key, std::size_t count) noexcept {
+    if (count == 0U) return 0U;
+    const std::uint64_t mixed = mix_key(key);
+    const std::size_t result = static_cast<std::size_t>(mixed % static_cast<std::uint64_t>(count));
+    return result;
+}
+
+Color categorical_color(std::uint64_t key, const Colormap& map) noexcept {
+    if (!valid_colormap(map)) return map.gap_color;
+    if (map.kind == ColormapKind::qualitative) {
+        const std::size_t stop = category_position(key, map.stop_count);
+        return map.stops[stop].color;
+    }
+    // The top 53 bits are exact in a double: a position in [0, 1).
+    const std::uint64_t top = mix_key(key) >> 11U;
+    const double position = static_cast<double>(top) / 9007199254740992.0;
+    const Color result = sample_colormap(map, position);
+    return result;
+}
+
 const Colormap& built_in_colormap(BuiltInColormap which) noexcept {
-    static const BuiltInMaps built = make_built_in_maps();
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const BuiltInMaps* const built = new const BuiltInMaps(make_built_in_maps());
     const std::size_t index = static_cast<std::size_t>(which);
-    return built.maps[index < built.maps.size() ? index : built.maps.size() - 1U];
+    return (*built).maps[index < (*built).maps.size() ? index : (*built).maps.size() - 1U];
 }
 
 const Colormap* find_built_in_colormap(std::string_view name) noexcept {

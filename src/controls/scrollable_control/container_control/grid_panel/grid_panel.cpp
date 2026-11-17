@@ -260,8 +260,17 @@ SizeValue used_maximum(const SizeValue& maximum, double control_maximum) noexcep
 
 static_assert(maximum_grid_span_extent == maximum_grid_tracks, "spans end within the grid's track limit");
 
-const GridItemLayout default_item_layout{};
-const GridPlacement automatic_placement{};
+// Never destroyed (rule 1: process termination releases none of our state):
+// both hold a std::string.
+const GridItemLayout& default_item_layout() {
+    static const GridItemLayout* const layout = new const GridItemLayout{};
+    return *layout;
+}
+
+const GridPlacement& automatic_placement() {
+    static const GridPlacement* const placement = new const GridPlacement{};
+    return *placement;
+}
 
 // Whether every placement line of `lines` is automatic: the item layout
 // does not place the child.
@@ -466,6 +475,7 @@ constexpr ControlAnatomy grid_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -685,7 +695,7 @@ GridPlacement GridPanel::placement(const Control& child) const {
 
 const GridPlacement& GridPanel::placement_for(const Control& child) const noexcept {
     const ItemMap::const_iterator found = items_.find(child.runtime_id().value);
-    if (found == items_.end()) return automatic_placement;
+    if (found == items_.end()) return automatic_placement();
     return (*found).second.placement;
 }
 
@@ -738,12 +748,12 @@ bool GridPanel::replace_cell(const Control& child, GridCell cell) {
 bool GridPanel::replace_placement(const Control& child, GridPlacement placement) {
     const std::uint64_t id = child.runtime_id().value;
     const ItemMap::iterator found = items_.find(id);
-    const GridPlacement& current = found == items_.end() ? automatic_placement : (*found).second.placement;
+    const GridPlacement& current = found == items_.end() ? automatic_placement() : (*found).second.placement;
     if (current == placement) return false;
     if (placement.form == GridPlacement::Form::automatic) {
         // Only an area or cell placement changes here, so a record exists.
         (*found).second.placement = std::move(placement);
-        if ((*found).second.layout == default_item_layout) items_.erase(found);
+        if ((*found).second.layout == default_item_layout()) items_.erase(found);
         return true;
     }
     ItemRecord& record = items_[id];
@@ -907,7 +917,7 @@ void GridPanel::set_item_layout(const Control& child, const GridItemLayout& layo
     const std::uint64_t id = child.runtime_id().value;
     const ItemMap::iterator found = items_.find(id);
     if (found != items_.end() && (*found).second.layout == layout) return;
-    if (found == items_.end() && layout == default_item_layout) return;
+    if (found == items_.end() && layout == default_item_layout()) return;
     const bool was_positioned = record_for(child).positioning.position != PositionKind::static_position;
     ItemRecord& record = items_[id];
     record.layout = layout;
@@ -921,14 +931,14 @@ void GridPanel::set_item_layout(const Control& child, const GridItemLayout& layo
 }
 
 GridItemLayout GridPanel::item_layout(const Control& child) const {
-    if (child.parent().get() != this || !child.is_alive()) return default_item_layout;
+    if (child.parent().get() != this || !child.is_alive()) return default_item_layout();
     const GridItemLayout layout = record_for(child);
     return layout;
 }
 
 const GridItemLayout& GridPanel::record_for(const Control& child) const noexcept {
     const ItemMap::const_iterator found = items_.find(child.runtime_id().value);
-    if (found == items_.end()) return default_item_layout;
+    if (found == items_.end()) return default_item_layout();
     return (*found).second.layout;
 }
 
@@ -990,11 +1000,11 @@ void GridPanel::resolve_item_inputs() {
         Control& child = *children_[index];
         const ItemMap::const_iterator found = items_.find(child.runtime_id().value);
         const bool recorded = found != items_.end();
-        const GridItemLayout& layout = recorded ? (*found).second.layout : default_item_layout;
+        const GridItemLayout& layout = recorded ? (*found).second.layout : default_item_layout();
         if (recorded) {
             effective_lines((*found).second, placements_[index]);
         } else {
-            placements_[index] = default_item_layout.placement;
+            placements_[index] = default_item_layout().placement;
         }
         GridItemInput& input = inputs_[index];
         input = GridItemInput{};
@@ -1097,9 +1107,9 @@ void GridPanel::measure_row_contributions(const GridContainerInput& container,
         }
         // Its first baseline at its column size, for baseline alignment in
         // its row.
-        const std::optional<double> baseline = child.first_baseline(width);
+        const stxlib::Optional<double> baseline = child.first_baseline(width);
         if (!is_alive()) return;
-        if (baseline) contribution.baseline = *baseline;
+        if (baseline.present()) contribution.baseline = *baseline.value();
         const double outer = clamp_content(height, bounds) + margins;
         contribution.min_content = outer;
         contribution.max_content = outer;

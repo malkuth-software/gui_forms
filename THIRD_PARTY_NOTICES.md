@@ -14,37 +14,30 @@ fonts' `ATTRIBUTION.md`, the Unicode data provenance and the provenance
 records of the vendored sources. `tools/package_programs.py` checks every
 program package against it (see the end of this file).
 
-## FreeType
-
-FreeType is used under the FreeType License (FTL), which GUI.Forms elects
-from FreeType's dual licence (the FTL or the GNU GPL version 2). No GPL
-licence text is shipped.
-
-Portions of this software are copyright © 2026 The FreeType Project (www.freetype.org). All rights reserved.
-
-(2026 is the release year of the pinned FreeType 2.14.2, 2026-03-01; its
-source files carry "Copyright (C) 1996-2025".)
-
 ## Components
 
 | Component | Version or revision | Licence used | Ships on | Package licence file | SDK licence file |
 |---|---|---|---|---|---|
 | GUI.Forms | this release | MIT | all | `licenses/GUIForms.txt` | `LICENSE` |
-| threadpool_atomic_fast (the owner's thread pool) | falseywinchnet/backend `6eb51f84` | MIT | all (in `libgui_forms_threading`) | `licenses/threadpool_atomic_fast.txt` | `threadpool_atomic_fast-LICENSE.txt` |
-| HarfBuzz | 14.6.0, `c7a7457b` | HarfBuzz licence ("Old MIT") | all (the `--features all` SDK also installs the static library and headers) | `licenses/HarfBuzz.txt` | `HarfBuzz-COPYING.txt` |
-| FreeType | 2.14.2, `f4205da1` | FreeType License (FTL), elected from FTL/GPLv2 | all (the `--features all` SDK also installs the static library and headers) | `licenses/FreeType-FTL.txt` | `FreeType-FTL.txt` |
-| SheenBidi | 2.9.0, `829d9991` | Apache-2.0 | all | `licenses/SheenBidi.txt` | `SheenBidi-LICENSE.txt` |
-| MD4C (the markdown framework's parser) | 0.6.0, `7fc1815a` | MIT | all | `licenses/MD4C.txt` | `MD4C-LICENSE.txt` |
 | stx_zlib (the owned zlib codec) | in this repository | MIT; the zlib License notices of the puff-derived inflate and the zlib-informed deflate are retained | all | `licenses/stx_zlib.txt`, `licenses/stx_zlib-puff.txt` and `licenses/stx_zlib-zlib.txt` | `stx_zlib-LICENSE.txt`, `stx_zlib-LICENSE-puff.txt` and `stx_zlib-LICENSE-zlib.txt` (and `share/licenses/stx_zlib/`) |
 | stx_png (the owned PNG codec) | in this repository | MIT | all | `licenses/stx_png.txt` | `stx_png-LICENSE.txt` (and `share/licenses/stx_png/`) |
 | stx_conv (the owner's CONV resampler) | in this repository | MIT | all | `licenses/stx_conv.txt` | `stx_conv-LICENSE.txt` (and `share/licenses/stx_conv/`) |
+| stx_raster3d (the 3D plot renderer, from conv-teapot) | in this repository | MIT | all | `licenses/stx_raster3d.txt` | `stx_raster3d-LICENSE.txt` (and `share/licenses/stx_raster3d/`) |
 | stx_rtf2md (the owner's RTF and markdown converter) | in this repository | MIT | all | `licenses/stx_rtf2md.txt` | `stx_rtf2md-LICENSE.txt` (and `share/licenses/stx_rtf2md/`) |
-| stx_btree (the row height index's sequence tree, in stx_auxlib) | in the stx_auxlib repository, at `stx_auxlib.lock`'s commit | MIT; a C++ form of bbtree by Xiangpeng Hao (MIT OR Apache-2.0, MIT taken), whose notice is retained | all | `licenses/stx_btree.txt` and `licenses/stx_btree-NOTICE.txt` | `stx_btree-LICENSE.txt` and `stx_btree-NOTICE.txt` |
+| STXlib (the boundary library: the row height index, the SIMD level, the worker threads and the atomic pool; its state is a static archive in each program) | malkuth-software/stxlib, at stx's `stxlib.lock` commit (in the stx package, at `stx.lock`'s commit) | MIT | all | `licenses/STXlib.txt` | `stxlib-LICENSE.txt` (and `share/licenses/stxlib/`) |
+| stx_btree (the row height index's sequence tree, in STXlib) | in STXlib (`src/algorithms/stx_btree/`), at stx's `stxlib.lock` commit | MIT; a C++ form of bbtree by Xiangpeng Hao (MIT OR Apache-2.0, MIT taken), whose notice is retained | all | `licenses/stx_btree.txt` and `licenses/stx_btree-NOTICE.txt` | `stx_btree-LICENSE.txt` and `stx_btree-NOTICE.txt` |
+| stx_minmallocpp (STXlib's allocator, in its state archive) | in STXlib (`src/state/stx_minmallocpp/`), at stx's `stxlib.lock` commit | MIT (STXlib's own code, under STXlib's licence); derived from mimalloc (MIT), whose notice its NOTICE retains | all (compiled into STXlib's static state archive, which each program and the C ABI library link once; sanitizer builds use the host allocator) | `licenses/stx_minmallocpp-NOTICE.txt` | `stx_minmallocpp-NOTICE.txt` |
+| tz database (STXlib's zone data) | in STXlib (`third_party/tzdata/`) | public domain (its LICENSE) | all | `licenses/tzdata.txt` | `tzdata-LICENSE.txt` |
+| Unicode Character Database (STXlib's case-folding and text layout tables) | Unicode 18.0.0 `CaseFolding.txt`, and the bidi, line-break and script data stxlib::textlayout reads, in STXlib (`third_party/unicode-18.0.0/`), generated into stxlib_algorithms | Unicode License v3 | all | `licenses/stxlib-Unicode.txt` | `stxlib-unicode-LICENSE.txt` |
+| stxlib::glyphs (the glyph face the text rasterizers draw with, in STXlib) | in STXlib (`src/algorithms/glyphs/`), at stx's `stxlib.lock` commit | MIT (STXlib's own code); a conversion of the designs of ttf-parser and Skrifa/read-fonts (MIT OR Apache-2.0, MIT taken) and part of the FreeType Project's auto-hinter (FTL), whose notices its NOTICE retains | all | `licenses/stxlib-glyphs-NOTICE.txt` | `stxlib-glyphs-NOTICE.txt` |
+| stxlib::markdown (in STXlib; carries MD4C's licence) | in STXlib (`src/algorithms/markdown/`), at stx's `stxlib.lock` commit | MIT; its NOTICE carries MD4C's licence (MIT) | all | `licenses/stxlib-markdown-NOTICE.txt` | `stxlib-markdown-NOTICE.txt` |
+| HTML Standard named character references (stxlib::markdown's entity table) | WHATWG `entities.json`, in STXlib (`third_party/whatwg-entities/`), generated into stxlib_algorithms | CC-BY-4.0 (the HTML Standard; its LICENSE carries the attribution) | all | `licenses/whatwg-entities.txt` | `whatwg-entities-LICENSE.txt` |
+| Heroicons (the stock icons) | 2.2.0, `ca7b62e`, converted into the library at build time (`assets/icons/heroicons/PROVENANCE.md`) | MIT | all | `licenses/Heroicons.txt` | `Heroicons-LICENSE.txt` and `Heroicons-PROVENANCE.md` |
 | Unicode Character Database (grapheme tables) | Unicode 17.0.0 | Unicode License v3 | all | `licenses/Unicode.txt` | `Unicode-LICENSE.txt` |
 | Skia (in stx_skia) | `chrome/m152`, `2a9b593b`, pruned and converted in stx's `stx_skia/` | BSD-3-Clause | all | `licenses/Skia.txt` | `Skia-LICENSE.txt` |
 | stx_skia (the CPU renderer derived from Skia) | in the stx repository, at `stx.lock`'s commit | MIT; Skia's BSD-3-Clause notices are retained | all | `licenses/stx_skia.txt` | `stx_skia-LICENSE.txt` |
-| LLVM libc++ and libc++abi | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylibs), Windows (statically linked) | Windows `licenses/LLVM/libc++-LICENSE.TXT`; macOS `licenses/LLVM/libcxx-LICENSE.TXT` and `licenses/LLVM/libcxxabi-LICENSE.TXT` | `libc++-LICENSE.txt` (Windows) |
-| LLVM libunwind | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylib), Windows (statically linked) | `licenses/LLVM/libunwind-LICENSE.TXT` | `libunwind-LICENSE.txt` (Windows) |
+| LLVM libc++ and libc++abi | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylibs), Linux and Windows (statically linked) | Windows `licenses/LLVM/libc++-LICENSE.TXT`; macOS and Linux `licenses/LLVM/libcxx-LICENSE.TXT` and `licenses/LLVM/libcxxabi-LICENSE.TXT` | `libc++-LICENSE.txt` (Windows); `libcxx-LICENSE.txt` and `libcxxabi-LICENSE.txt` (Linux) |
+| LLVM libunwind | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylib), Linux and Windows (statically linked) | `licenses/LLVM/libunwind-LICENSE.TXT` | `libunwind-LICENSE.txt` (Windows and Linux) |
 | LLVM compiler-rt builtins | 22.1.8 | Apache-2.0 WITH LLVM-exception | Windows (statically linked) | `licenses/LLVM/compiler-rt-LICENSE.TXT` | `compiler-rt-LICENSE.txt` |
 | MinGW-w64 winpthreads | 14.0.0 (CLANG64 `r426.g4564ee4b5`) | MIT and BSD-3-Clause (its COPYING) | Windows (statically linked) | `licenses/winpthreads-COPYING.txt` | `winpthreads-COPYING.txt` |
 | MinGW-w64 runtime (CRT startup, libmingwex, libuuid GUID data) | 14.0.0 (CLANG64 `r426.g4564ee4b5`) | the MinGW-w64 runtime licence (its COPYING; see the note below) | Windows (statically linked) | `licenses/mingw-w64-runtime-COPYING.txt` | `mingw-w64-runtime-COPYING.txt` |
@@ -57,17 +50,14 @@ source files carry "Copyright (C) 1996-2025".)
 | Arimo font | 1.33, `4a6255f2` | SIL OFL 1.1 | all (the SDK and the GUI.Drawing raster module, not program packages) | `fonts/OFL-Arimo.txt` | font directory |
 | Tinos font | 1.340, `3b4482a9` | SIL OFL 1.1 | all (the SDK and the GUI.Drawing raster module, not program packages) | `fonts/OFL-Tinos.txt` | font directory |
 | Selawik font | 1.01, release archive SHA-256 `3f62c51e` | SIL OFL 1.1 | all (program packages since themes may name it; the windows-professional theme does) | `fonts/OFL-Selawik.txt` | font directory |
-| Noto Sans CJK JP font | `f8d15753` | SIL OFL 1.1 | all | `fonts/OFL-NotoSansCJKjp.txt` | font directory |
+| Noto Sans CJK JP, KR and SC subsets (cut from Noto Sans CJK JP) | `f8d15753`, `assets/fonts/language-font-provenance.json` | SIL OFL 1.1 | all | `fonts/OFL-NotoSansCJKjp.txt` | font directory |
 | Noto Emoji font | 1.05, `9a5261d8` | SIL OFL 1.1 | all | `fonts/OFL-NotoEmoji.txt` | font directory |
-| Noto Sans Arabic, Hebrew, Devanagari, Bengali and Gurmukhi fonts | `assets/fonts/language-font-provenance.json` | SIL OFL 1.1 | all | `fonts/OFL-Noto.txt` | font directory |
+| Noto Sans Hebrew font; Noto Sans Arabic, Devanagari, Bengali and Gurmukhi minimal subsets | `assets/fonts/language-font-provenance.json` | SIL OFL 1.1 | all | `fonts/OFL-Noto.txt` | font directory |
 
 Font provenance (commits and byte hashes) is in `fonts/ATTRIBUTION.md`.
 
 ## Not shipped
 
-- libunibreak 8.0 (`28a2756b`): linked only by the development text-mask
-  profile (`GUI_FORMS_BUILD_TEXT_MASKS`), which is never installed or
-  packaged.
 - System libraries a program loads from the operating system and that
   GUI.Forms does not distribute: on Linux, the C and C++ runtimes, X11 and
   the ATK/AT-SPI bridge (LGPL 2.1 or later, dynamically linked); on macOS,

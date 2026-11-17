@@ -5,10 +5,11 @@
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 
-#include <optional>
 #include <span>
 
 #include <cstdint>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -150,6 +151,15 @@ public:
         // The raster's size for a primitive, in device pixels.
         DeviceExtent extent{};
         DeviceScale scale{};
+        // Under forced high contrast only: the material fields the rules
+        // author for the part without the pass, which a content part (W-7,
+        // ruling 9) shows inside high contrast's frame; the pass itself
+        // admits no rule below an important inline style, so `resolution`
+        // never holds a theme's content fills there. They belong to the
+        // compiled rules; `content_materials_authored` is whether any is
+        // set.
+        std::array<const MaterialDeclaration*, material_field_count> content_materials{};
+        bool content_materials_authored{};
     };
 
     // The cascade's decision for one part of `control`, without painting.
@@ -263,7 +273,7 @@ private:
     // when the effect is refused for its area (`area_ok` false) or ambient
     // motion is stopped. A part without a record is at its pose.
     [[nodiscard]] static double ambient_seconds(SurfaceRoot& window, EnginePartRecord* record,
-                                                const std::optional<PartRecordHandle>& handle,
+                                                const stxlib::Optional<PartRecordHandle>& handle,
                                                 const AmbientEffect& ambient, bool area_ok);
     // Stops the ambient effect of a part whose paint has none.
     static void stop_ambient(SurfaceRoot& window, EnginePartRecord& record, PartRecordHandle handle) noexcept;

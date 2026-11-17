@@ -26,6 +26,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -51,8 +52,8 @@ std::shared_ptr<Panel> band(std::string id, std::string text,
     (*value).dock = DockStyle::fill;
     std::shared_ptr<Label> label = make_control<Label>(
         StableId(label_id), std::move(text));
-    (*label).fore_color = foreground;
-    (*label).font = font;
+    (*label).fore_color = stxlib::Optional<Color>::of(foreground);
+    (*label).font = stxlib::Optional<FontSpec>::of(font);
     (*label).text_wrapping = wrapping;
     (*label).vertical_alignment = VerticalAlignment::center;
     (*label).margin = Insets{};
@@ -298,14 +299,14 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
     (*surface).orientation = ResponsiveTrackOrientation::vertical;
     (*surface).set_track_specs({
         {ResponsiveTrackSizeMode::content, 40.0, 40.0, 100.0, 1.0,
-         false, 50U},
+         false, stxlib::Optional<std::uint16_t>::of(50U)},
         {ResponsiveTrackSizeMode::content, 23.0, 23.0, 90.0, 1.0},
         {ResponsiveTrackSizeMode::content, 45.0, 66.0, 160.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
         {ResponsiveTrackSizeMode::content, 40.0, 40.0, 140.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 24.0, 200.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::content, 24.0, 24.0, 80.0, 1.0,
-         false, 20U},
+         false, stxlib::Optional<std::uint16_t>::of(20U)},
     });
     (*surface).dock = DockStyle::fill;
 
@@ -335,10 +336,10 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
         make_control<ResponsiveTrackPanel>(StableId("responsive.workspace"));
     (*workspace).set_track_specs({
         {ResponsiveTrackSizeMode::fixed, 123.0, 221.0, 320.0, 1.0,
-         false, 20U},
+         false, stxlib::Optional<std::uint16_t>::of(20U)},
         {ResponsiveTrackSizeMode::remaining, 150.0, 300.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::fixed, 163.0, 291.0, 360.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     });
     (*workspace).dock = DockStyle::fill;
     (*workspace).margin = Insets{};
@@ -398,9 +399,9 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
     (*workspace).add_child(tree);
     (*workspace).add_child(content);
     (*workspace).add_child(selection);
-    (*workspace).child_track[*tree] = 0U;
-    (*workspace).child_track[*content] = 1U;
-    (*workspace).child_track[*selection] = 2U;
+    (*workspace).child_track[*tree] = stxlib::Optional<std::uint32_t>::of(0U);
+    (*workspace).child_track[*content] = stxlib::Optional<std::uint32_t>::of(1U);
+    (*workspace).child_track[*selection] = stxlib::Optional<std::uint32_t>::of(2U);
     (*workspace).set_track_focus_fallback(2U, *primary);
     (*workspace).set_track_focus_fallback(0U, *primary);
     (*diagnostics).set_sources(surface, workspace);
@@ -410,7 +411,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
             ? std::static_pointer_cast<Control>(workspace)
             : std::static_pointer_cast<Control>(bands[index]);
         (*surface).add_child(child);
-        (*surface).child_track[*child] = static_cast<std::uint32_t>(index);
+        (*surface).child_track[*child] = stxlib::Optional<std::uint32_t>::of(static_cast<std::uint32_t>(index));
     }
     (*root).add_child(surface);
     (*root).set_surface(surface);

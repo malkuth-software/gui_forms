@@ -40,16 +40,28 @@ FrameTime MotionClock::now() const noexcept {
     return steady;
 }
 
+// A high-integrity build has no motion (cmake/HighIntegrity.cmake): every
+// move is suppressed, so it reaches its target in the call that starts it and
+// the clock is never armed; theme durations are not read, and no ambient
+// motion is enlisted.
 bool MotionClock::suppressed() const noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return true;
+#else
     const bool reduced = (*window_).presentation_settings().reduced_motion;
     const bool hidden = (*window_).occluded();
     return reduced || hidden;
+#endif
 }
 
 bool MotionClock::ambient_suppressed() const noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    return true;
+#else
     const bool switched_off = !(*window_).presentation_settings().ambient_motion;
     const bool stopped = suppressed() || switched_off;
     return stopped;
+#endif
 }
 
 void MotionClock::enlist_ambient(std::uint32_t part_slot, std::uint32_t part_generation, FrameInterval interval) {
@@ -143,8 +155,8 @@ void MotionClock::repaint_parked() {
     }
 }
 
-bool MotionClock::control_ambient_frame(AmbientRecord& effect, FrameTime now) {
-    const std::shared_ptr<Control> control = effect.control.lock();
+bool MotionClock::control_ambient_frame(const std::weak_ptr<Control>& observed, FrameTime now) {
+    const std::shared_ptr<Control> control = observed.lock();
     if (!control || !(*control).is_alive() || (*control).attached_surface_root() != window_) return false;
     const bool shown = (*control).on_ambient_frame(now);
     if (shown) (*window_).metrics().record_effect_ambient_frame();
@@ -180,18 +192,34 @@ void MotionClock::stop_ambient(bool repaint) {
 }
 
 void MotionClock::advance_ambient(FrameTime now) {
-    // By index: a repaint never enlists or withdraws an effect.
+    // By index, and with no reference held across a frame: a control's
+    // on_ambient_frame is a public virtual that may enlist another effect
+    // (growing, perhaps moving, the records) or withdraw its own
+    // (A-gf-core-05-F1). The frame works on copies; afterwards the record
+    // is taken again and acted on only if it is still live and still this
+    // effect. A record a frame withdrew was already counted down there.
     for (std::size_t index = 0; index < ambient_.size(); ++index) {
+        const AmbientRecord& due = ambient_[index];
+        if (!due.live || due.next > now) continue;
+        const Control* const address = due.control_address;
+        const std::uint32_t part_slot = due.part_slot;
+        const std::uint32_t part_generation = due.part_generation;
+        const std::weak_ptr<Control> observed = due.control;
+        std::uint64_t seen = due.seen;
+        const bool shown = address != nullptr
+            ? control_ambient_frame(observed, now)
+            : detail::SurfaceEngineAccess::ambient_frame(*window_, part_slot, part_generation, seen);
+        if (index >= ambient_.size()) continue;
         AmbientRecord& effect = ambient_[index];
-        if (!effect.live || effect.next > now) continue;
-        const bool shown = effect.control_address != nullptr
-            ? control_ambient_frame(effect, now)
-            : detail::SurfaceEngineAccess::ambient_frame(*window_, effect.part_slot, effect.part_generation, effect.seen);
+        const bool same = effect.live && effect.control_address == address && effect.part_slot == part_slot &&
+                          effect.part_generation == part_generation;
+        if (!same) continue;
         if (!shown) {
             effect = AmbientRecord{};
             ambient_live_ = ambient_live_ - 1U;
             continue;
         }
+        effect.seen = seen;
         // At least one interval from this frame: the cap holds however late
         // the frame came.
         effect.next = now + effect.interval;

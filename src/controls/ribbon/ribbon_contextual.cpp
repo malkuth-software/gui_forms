@@ -16,9 +16,9 @@ namespace gui_forms {
 bool Ribbon::shown(std::size_t tab) const noexcept {
     if (tab >= tabs_.size()) return false;
     if ((tabs_[tab].modes & application_modes.read()) == 0U) return false;
-    const std::optional<std::size_t> set = tab_set_of_[tab];
-    if (!set) return true;
-    const bool result = set_states_[*set].availability != RibbonTabSetAvailability::not_available;
+    const stxlib::Optional<std::size_t> set = tab_set_of_[tab];
+    if (set.absent()) return true;
+    const bool result = set_states_[*set.value()].availability != RibbonTabSetAvailability::not_available;
     return result;
 }
 
@@ -37,35 +37,35 @@ bool Ribbon::group_shown(std::size_t tab, std::size_t group) const noexcept {
     return result;
 }
 
-std::optional<std::size_t> Ribbon::find_tab_set(std::string_view set_id) const noexcept {
+stxlib::Optional<std::size_t> Ribbon::find_tab_set(std::string_view set_id) const noexcept {
     for (std::size_t set = 0; set < tab_sets_.size(); ++set) {
-        if (tab_sets_[set].stable_id == set_id) return set;
+        if (tab_sets_[set].stable_id == set_id) return stxlib::Optional<std::size_t>::of(set);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<AccentIndex> Ribbon::tab_accent(std::size_t tab) const noexcept {
-    if (tab >= tab_set_of_.size() || !tab_set_of_[tab]) return std::nullopt;
-    return set_states_[*tab_set_of_[tab]].accent;
+stxlib::Optional<AccentIndex> Ribbon::tab_accent(std::size_t tab) const noexcept {
+    if (tab >= tab_set_of_.size() || tab_set_of_[tab].absent()) return stxlib::Optional<AccentIndex>::none();
+    return set_states_[*tab_set_of_[tab].value()].accent;
 }
 
 // Where the selection goes when its tab stops showing: the core tab chosen
 // last, else the first core tab shown (Home), else the first tab shown.
-std::optional<std::size_t> Ribbon::fallback_tab() const noexcept {
-    if (last_core_tab_ && selectable(*last_core_tab_)) return last_core_tab_;
+stxlib::Optional<std::size_t> Ribbon::fallback_tab() const noexcept {
+    if (last_core_tab_.present() && selectable(*last_core_tab_.value())) return last_core_tab_;
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (!tab_set_of_[tab] && selectable(tab)) return tab;
+        if (tab_set_of_[tab].absent() && selectable(tab)) return stxlib::Optional<std::size_t>::of(tab);
     }
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        if (selectable(tab)) return tab;
+        if (selectable(tab)) return stxlib::Optional<std::size_t>::of(tab);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // A shown tab's 1-based place among the shown tabs of its own kind (the core
 // tabs, or its set's tabs) and how many there are.
 Ribbon::TabPosition Ribbon::position_among_shown(std::size_t tab) const noexcept {
-    const std::optional<std::size_t> set = tab_set_of_[tab];
+    const stxlib::Optional<std::size_t> set = tab_set_of_[tab];
     TabPosition result;
     for (std::size_t other = 0; other < tabs_.size(); ++other) {
         if (tab_set_of_[other] != set || !shown(other)) continue;
@@ -78,15 +78,15 @@ Ribbon::TabPosition Ribbon::position_among_shown(std::size_t tab) const noexcept
 // -- availability and modes ------------------------------------------------------
 
 RibbonTabSetAvailability Ribbon::tab_set_availability(std::string_view set_id) const {
-    const std::optional<std::size_t> set = find_tab_set(set_id);
-    if (!set) throw std::out_of_range("Ribbon has no tab set with this ID");
-    return set_states_[*set].availability;
+    const stxlib::Optional<std::size_t> set = find_tab_set(set_id);
+    if (set.absent()) throw std::out_of_range("Ribbon has no tab set with this ID");
+    return set_states_[*set.value()].availability;
 }
 
-std::optional<AccentIndex> Ribbon::tab_set_accent(std::string_view set_id) const {
-    const std::optional<std::size_t> set = find_tab_set(set_id);
-    if (!set) throw std::out_of_range("Ribbon has no tab set with this ID");
-    return set_states_[*set].accent;
+stxlib::Optional<AccentIndex> Ribbon::tab_set_accent(std::string_view set_id) const {
+    const stxlib::Optional<std::size_t> set = find_tab_set(set_id);
+    if (set.absent()) throw std::out_of_range("Ribbon has no tab set with this ID");
+    return set_states_[*set.value()].accent;
 }
 
 // The selection rules (owner decision 14, F3-1): becoming active selects the
@@ -95,21 +95,21 @@ std::optional<AccentIndex> Ribbon::tab_set_accent(std::string_view set_id) const
 // selection.
 void Ribbon::set_tab_set_availability(std::string_view set_id, RibbonTabSetAvailability availability) {
     require_mutable();
-    const std::optional<std::size_t> found = find_tab_set(set_id);
-    if (!found) throw std::out_of_range("Ribbon has no tab set with this ID");
-    TabSetState& state = set_states_[*found];
+    const stxlib::Optional<std::size_t> found = find_tab_set(set_id);
+    if (found.absent()) throw std::out_of_range("Ribbon has no tab set with this ID");
+    TabSetState& state = set_states_[*found.value()];
     const RibbonTabSetAvailability previous = state.availability;
     if (previous == availability) return;
     state.availability = availability;
     refresh_accents();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     if (availability == RibbonTabSetAvailability::active) {
-        std::optional<std::size_t> target{};
-        if (state.remembered_tab && selectable(*state.remembered_tab)) target = state.remembered_tab;
-        for (std::size_t tab = state.first_tab; !target && tab < state.first_tab + state.tab_count; ++tab) {
-            if (selectable(tab)) target = tab;
+        stxlib::Optional<std::size_t> target{};
+        if (state.remembered_tab.present() && selectable(*state.remembered_tab.value())) target = state.remembered_tab;
+        for (std::size_t tab = state.first_tab; target.absent() && tab < state.first_tab + state.tab_count; ++tab) {
+            if (selectable(tab)) target.set(tab);
         }
-        if (target) select_tab(*target, SelectionCause::rule);
+        if (target.present()) select_tab(*target.value(), SelectionCause::rule);
     }
     tabs_shown_changed();
 }
@@ -123,6 +123,7 @@ void Ribbon::written(const decltype(application_modes)&) {
     // Groups that come and go change the measured ladders.
     ++content_generation_;
     close_group_overlay();
+    close_plane_popup();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     tabs_shown_changed();
 }
@@ -130,21 +131,23 @@ void Ribbon::written(const decltype(application_modes)&) {
 // After tabs came or went: a selection whose tab no longer shows gives way to
 // fallback_tab; a ribbon without a selection takes one once a tab shows.
 void Ribbon::tabs_shown_changed() {
-    if (selected_tab_ && shown(*selected_tab_)) return;
-    const std::optional<std::size_t> fallback = fallback_tab();
-    if (fallback) {
-        select_tab(*fallback, SelectionCause::rule);
+    if (selected_tab_.present() && shown(*selected_tab_.value())) return;
+    const stxlib::Optional<std::size_t> fallback = fallback_tab();
+    if (fallback.present()) {
+        select_tab(*fallback.value(), SelectionCause::rule);
         return;
     }
-    if (!selected_tab_) return;
+    if (selected_tab_.absent()) return;
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     selected_tab_.reset();
     hot_ = Hit{};
     pressed_command_.reset();
     pressed_launcher_.reset();
     pressed_group_.reset();
-    if (stop_ && (*stop_).kind != StopKind::application) stop_ = Stop{StopKind::application, 0U, {}};
+    const Stop* const held_stop = stop_.value();
+    if (held_stop != nullptr && (*held_stop).kind != StopKind::application) stop_.set(Stop{StopKind::application, 0U, {}});
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -158,26 +161,28 @@ void Ribbon::refresh_accents() {
     std::vector<bool> used(ramp, false);
     for (TabSetState& state : set_states_) {
         const bool visible = state.availability != RibbonTabSetAvailability::not_available;
-        if (!visible && state.accent) {
+        if (!visible && state.accent.present()) {
             state.last_accent = state.accent;
             state.accent.reset();
         }
-        if (visible && state.accent) used[(*state.accent).value % ramp] = true;
+        if (visible && state.accent.present()) used[(*state.accent.value()).value % ramp] = true;
     }
     std::size_t shown_sets = 0U;
     for (const TabSetState& state : set_states_) {
-        if (state.accent) ++shown_sets;
+        if (state.accent.present()) ++shown_sets;
     }
     for (TabSetState& state : set_states_) {
         const bool visible = state.availability != RibbonTabSetAvailability::not_available;
-        if (!visible || state.accent) continue;
+        if (!visible || state.accent.present()) continue;
         std::optional<std::size_t> chosen{};
-        if (state.last_accent && !used[(*state.last_accent).value % ramp]) chosen = (*state.last_accent).value % ramp;
+        if (state.last_accent.present() && !used[(*state.last_accent.value()).value % ramp]) {
+            chosen = (*state.last_accent.value()).value % ramp;
+        }
         for (std::size_t index = 0; !chosen && index < ramp; ++index) {
             if (!used[index]) chosen = index;
         }
         if (!chosen) chosen = shown_sets % ramp;
-        state.accent = AccentIndex{static_cast<std::uint8_t>(*chosen)};
+        state.accent.set(AccentIndex{static_cast<std::uint8_t>(*chosen)});
         used[*chosen] = true;
         ++shown_sets;
     }

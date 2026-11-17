@@ -2,7 +2,7 @@
 
 This tutorial builds a small program from nothing: a window where you type a
 note, press **Add** (or Ctrl+Enter), and see it appear in a list. On the way
-it uses every part of the GUI.Forms 0.5 approach:
+it uses every part of the approach sealed in GUI.Forms 0.5:
 
 1. a **CMake project** that consumes the installed SDK;
 2. a **form document** (`.form`) that says which controls exist;
@@ -28,10 +28,10 @@ notes/
 
 You need an installed GUI.Forms SDK and the toolchain it was built with
 (LLVM 22, through the SDK's `cmake/llvm22.cmake`). Build and install it from
-source as the [Install](https://gui-forms.readthedocs.io/user/install.html)
+source as the [Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
 page describes; the result is a prefix such as `/path/to/sdk` holding
 `include/gui_forms/`, the libraries, `lib/cmake/GUIForms/` and
-`share/GUIForms/fonts/`. Keep the path of `cmake/llvm22.cmake`: every
+`share/GUIForms/fonts/` (the font licences). Keep the path of `cmake/llvm22.cmake`: every
 consumer project is configured with the same toolchain file.
 
 ## 2. The CMake project
@@ -57,23 +57,16 @@ gui_forms_add_form(notes forms/notes.form CLASS NotesWindow NAMESPACE notes
 gui_forms_add_theme(notes themes/notes FUNCTION notes_theme NAMESPACE notes
                     FORMS forms/notes.form)
 
-# Windows: the GUI.Forms DLLs beside the executable.
-if(WIN32)
-    add_custom_command(TARGET notes POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:notes> $<TARGET_FILE_DIR:notes>
-        COMMAND_EXPAND_LISTS)
-endif()
-# Windows and Linux: the bundled fonts in fonts/ beside the executable.
-if(NOT APPLE)
-    add_custom_command(TARGET notes POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${GUIForms_FONT_DIR}" "$<TARGET_FILE_DIR:notes>/fonts")
-endif()
+# The bundled fonts' licences, which the program ships (the faces are compiled in).
+add_custom_command(TARGET notes POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${GUIForms_FONT_DIR}" "$<TARGET_FILE_DIR:notes>/fonts")
 ```
 
 - `GUIForms::Application` is the native host for your platform, and it
-  already contains the core, the controls and the drawing library. Link
+  already contains the core, the controls and the drawing library. It is a
+  static archive: the program is one executable, with no GUI.Forms DLL or
+  shared library to copy beside it. Link
   nothing else from GUI.Forms beside it: CMake stops with an error if you
   add `GUIForms::Core` too.
 - `gui_forms_add_form` runs the form compiler at build time and generates
@@ -81,9 +74,9 @@ endif()
 - `gui_forms_add_theme` embeds the theme package and generates
   `notes_theme.hpp`. The build fails when the package's hash does not match
   its sheet, or when a stable-ID selector names nothing in the listed forms.
-- GUI.Forms draws only its bundled fonts, never the system's. On macOS,
-  ship them in the app bundle's `Contents/Resources/fonts`
-  ([Consume the SDK](https://gui-forms.readthedocs.io/user/consume-the-sdk.html#fonts)).
+- GUI.Forms draws only its bundled fonts, never the system's. They are
+  compiled into the library; ship only their licences
+  ([Consume the SDK](https://gui-forms.readthedocs.io/en/latest/user/consume-the-sdk.html#fonts)).
 
 ## 3. The form document
 
@@ -91,30 +84,31 @@ A form says what exists: controls, their stable IDs, their places, their
 property values and their bindings. It holds no colours, no fonts and no
 program code.
 
-```text
-/* forms/notes.form */
-form notes.window {
-  text: "Notes";
-  client-size: 420 320;
-  accept-button: notes.add;
-
-  panel notes.root {
-    label notes.heading { text: "Notes"; bounds: 16 12 388 28; classes: "heading"; }
-    text-box notes.entry { bounds: 16 48 300 28; placeholder-text: "Type a note"; }
-    button notes.add { text: "Add"; bounds: 324 46 80 32; command: bind(add); }
-    list-box notes.list { bounds: 16 88 388 192; }
-    label notes.status { text: "No notes yet."; bounds: 16 288 388 24; classes: "status"; }
-  }
-}
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- forms/notes.form -->
+<form xmlns="urn:gui-forms:form:1" id="notes.window"
+    text="Notes"
+    client-size="420 320"
+    accept-button="notes.add">
+  <panel id="notes.root">
+    <label id="notes.heading" text="Notes" bounds="16 12 388 28" classes="heading"/>
+    <text-box id="notes.entry" bounds="16 48 300 28" placeholder-text="Type a note"/>
+    <button id="notes.add" text="Add" bounds="324 46 80 32" command="bind(add)"/>
+    <list-box id="notes.list" bounds="16 88 388 192"/>
+    <label id="notes.status" text="No notes yet." bounds="16 288 388 24" classes="status"/>
+  </panel>
+</form>
 ```
 
-- **Objects** are a type, a stable ID and a block. The root `form` is the
+- **Objects** are elements named by their type, with the stable ID in `id`;
+  the root declares `xmlns="urn:gui-forms:form:1"`. The root `form` is the
   window, and its single child is the window's root control.
 - **Stable IDs** are required and unique in the window. They name controls in
   logs, automation and themes, and become the generated members' names:
   `notes.entry` becomes `notes_entry`.
 - **`classes`** names a role; the theme gives it a look.
-- **`command: bind(add)`** binds the button to the model's `add` command
+- **`command="bind(add)"`** binds the button to the model's `add` command
   when the button is created: a click runs the command, and the command's
   enabled state enables the button.
 - **`accept-button`** makes Enter press **Add** when the focused control does
@@ -124,7 +118,7 @@ A document that is wrong is refused at build time with a code, the file, the
 line and the column: an unknown type or property, a repeated stable ID, a
 colour or font (E813: those belong in the theme), or an `on-...:` handler
 (E816: behaviour belongs in program code). See
-[Forms](https://gui-forms.readthedocs.io/user/forms.html).
+[Forms](https://gui-forms.readthedocs.io/en/latest/user/forms.html).
 
 ## 4. The model
 
@@ -187,8 +181,8 @@ themes/notes/notes.theme.css` prints it. Change the sheet, change the hash.
 - The package compiles onto a **base**: GUI.Forms' own theme in this
   tutorial. Its dark variant is derived from your light colours.
 
-See [Themes](https://gui-forms.readthedocs.io/user/themes.html) and
-[The theme language](https://gui-forms.readthedocs.io/user/theme-language.html).
+See [Themes](https://gui-forms.readthedocs.io/en/latest/user/themes.html) and
+[The theme language](https://gui-forms.readthedocs.io/en/latest/user/theme-language.html).
 
 ## 6. The program
 
@@ -368,14 +362,14 @@ Keys reach the window's rules through `window.dispatch_key`, and
 
 ## Where to go next
 
-- [The application and its windows](https://gui-forms.readthedocs.io/user/application-and-windows.html):
+- [The application and its windows](https://gui-forms.readthedocs.io/en/latest/user/application-and-windows.html):
   several windows, settings changed during a run, presentation overrides.
-- [Properties](https://gui-forms.readthedocs.io/user/properties.html):
+- [Properties](https://gui-forms.readthedocs.io/en/latest/user/properties.html):
   views, collections, child properties such as a grid's `(*table).area[*c]`,
   and `as_type` conversions.
-- [Rules](https://gui-forms.readthedocs.io/user/rules.html): the whole
+- [Rules](https://gui-forms.readthedocs.io/en/latest/user/rules.html): the whole
   vocabulary, consume and lifetime.
-- [Overlays, Popups and Splash](https://gui-forms.readthedocs.io/user/overlays-popups-and-splash.html):
+- [Overlays, Popups and Splash](https://gui-forms.readthedocs.io/en/latest/user/overlays-popups-and-splash.html):
   menus, dialogs, tooltips and the splashscreen.
 - The repository's `examples/reference/` builds the same shape against the
   installed SDK in CI; `collection_gallery` is the complete reference

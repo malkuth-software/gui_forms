@@ -3,21 +3,44 @@
 # It is the library's only C surface: the experimental 0.x ABI and its
 # facade generator were retired before 1.0 (owner decision D5, 2026-11-10).
 #
-# The library links the Application shared library (owner decision C-2), so
-# a process has one GUI.Forms engine whether it uses C++, the C ABI or both.
-# A build without a native host has no Application library and no C ABI.
+# The library is one module (owner decision, 2026-11-15: every independently
+# delivered program holds exactly one copy of any routine): it links the
+# Application archives whole, with libc++, STXlib's state and the GUI.Drawing
+# C APIs (gui_drawing_c_api_objects and gui_drawing_raster_c_api_objects in
+# CMakeLists.txt), and exports only the gf_ entry points of the allowlist and
+# GUI.Drawing's gd_get_api_v0 (whose table carries raster_initialize).
+# Everything else, libc++
+# included, stays local (the version script on ELF, the exported-symbols list
+# on Mach-O; on Windows the link .def's entry points). On Windows it also
+# holds the Win32 compatibility shim (owner, 2026-11-15, "Fold it in") and
+# exports its user32 and gdi32 names, so C, C# and Win32 consumers load one
+# DLL. A C or C# program loads it alone. This replaces decision C-2's shared engine: a
+# program that used both the C++ library and the C ABI would hold two
+# engines, so a C++ program that wants the C entry points links
+# gui_forms_abi_objects statically beside Application instead, as the trace
+# gates below do. A build without a native host has no Application library
+# and no C ABI.
 #
 # Installed:
 #   include/gui_forms/c/gf_abi.h          the contract (with the other headers)
-#   bin/gui_forms_abi1.dll, lib/libgui_forms_abi1.dll.a and the MSVC-format
+#   bin/gui_forms_abi1.dll (self-contained), lib/libgui_forms_abi1.dll.a and the MSVC-format
 #   lib/gui_forms_abi1.lib (Windows); lib/libgui_forms_abi.so.1 (Linux);
 #   lib/libgui_forms_abi.1.dylib (macOS)
 #   lib/cmake/GUIForms/GUIFormsCAbiTargets.cmake, lib/pkgconfig/gui_forms_abi.pc
 #   share/GUIForms/abi/gf_abi.json         the audited manifest
 #   share/GUIForms/abi/gf_abi_exports.txt  the export allowlist
 
+if(NOT GUI_FORMS_BUILD_C_ABI)
+    message(STATUS "GUI.Forms C ABI: not built (GUI_FORMS_BUILD_C_ABI is OFF)")
+    return()
+endif()
 if(NOT TARGET gui_forms_application)
     message(STATUS "GUI.Forms C ABI: not built (this build has no Application library)")
+    return()
+endif()
+# gf_abi.h is a 64-bit contract; the browser target is wasm32.
+if(EMSCRIPTEN)
+    message(STATUS "GUI.Forms C ABI: not built (the browser target is 32-bit)")
     return()
 endif()
 
@@ -46,6 +69,10 @@ endforeach()
 if(NOT _gf_abi_exports)
     message(FATAL_ERROR "${_gf_abi_allowlist} names no symbol")
 endif()
+# GUI.Drawing's one entry point, folded into the library: gd_get_api_v0,
+# whose table's raster_initialize installs the raster (there is no gdr_
+# export any more).
+list(APPEND _gf_abi_exports gd_get_api_v0)
 
 if(WIN32)
     set(_gf_abi_output_name "gui_forms_abi${GUI_FORMS_ABI_MAJOR}")
@@ -68,6 +95,31 @@ string(APPEND _gf_abi_map_text "    local: *;\n};\n")
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports.map" CONTENT "${_gf_abi_map_text}" @ONLY)
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports_macos.txt" CONTENT "${_gf_abi_macos_text}" @ONLY)
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}.def" CONTENT "${_gf_abi_def_text}" @ONLY)
+# The exact export set, one name per line, for the export check below.
+string(JOIN "\n" _gf_abi_expected_text ${_gf_abi_exports})
+file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports.txt" CONTENT "${_gf_abi_expected_text}\n" @ONLY)
+# Windows: the link .def adds the Win32 compatibility shim's exports, each
+# `Name=gf_compat_Name` line of src/surface/windows/win32_compat_shim.def, to the
+# entry points; GUI_FORMS_ABI_WIN32_SHIM_EXPORTS lists the names for the
+# export check. The .def above, without them, makes both import libraries.
+set(GUI_FORMS_ABI_WIN32_SHIM_EXPORTS "")
+if(WIN32)
+    set(_gf_abi_shim_def "${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_gf_abi_shim_def}")
+    file(STRINGS "${_gf_abi_shim_def}" _gf_abi_shim_lines)
+    set(_gf_abi_link_def_text "${_gf_abi_def_text}")
+    foreach(_gf_abi_shim_line IN LISTS _gf_abi_shim_lines)
+        if(_gf_abi_shim_line MATCHES "^[ \t]+([A-Za-z][A-Za-z0-9]*)=(gf_compat_[A-Za-z0-9]+)[ \t]*$")
+            list(APPEND GUI_FORMS_ABI_WIN32_SHIM_EXPORTS "${CMAKE_MATCH_1}")
+            string(APPEND _gf_abi_link_def_text "    ${CMAKE_MATCH_1}=${CMAKE_MATCH_2}\n")
+        endif()
+    endforeach()
+    if(NOT GUI_FORMS_ABI_WIN32_SHIM_EXPORTS)
+        message(FATAL_ERROR "${_gf_abi_shim_def} names no export")
+    endif()
+    file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}-link.def"
+         CONTENT "${_gf_abi_link_def_text}" @ONLY)
+endif()
 
 # The library's objects, compiled once: the shared library is made from
 # them, and the stage C4 trace gate links them statically beside the C++
@@ -93,14 +145,17 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_application.cpp
     src/abi/stable/tables/abi_rules.cpp
     src/abi/stable/tables/abi_data_grid.cpp
+    src/abi/stable/tables/abi_list_view.cpp
     src/abi/stable/tables/abi_docking.cpp
     src/abi/stable/tables/abi_fonts.cpp
     src/abi/stable/tables/abi_help.cpp
     src/abi/stable/tables/abi_classes.cpp
+    src/abi/stable/tables/abi_content.cpp
     src/abi/stable/classes/abi_class_bridge.cpp
     src/abi/stable/classes/generated/abi_class_registry.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
     src/abi/stable/custom/abi_custom_control.cpp
+    src/abi/stable/custom/abi_composite.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp
     src/abi/stable/tables/abi_dispatch.cpp
     src/abi/stable/tables/abi_events.cpp
@@ -114,7 +169,9 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/windows/abi_window_handle.cpp
     src/abi/stable/windows/abi_window_properties.cpp
 )
-target_link_libraries(gui_forms_abi_objects PRIVATE gui_forms_application)
+# The slot gates (abi_registry.hpp, call_slot) are STXlib's; their state is
+# stxlib_state's, which gui_forms_application brings.
+target_link_libraries(gui_forms_abi_objects PRIVATE gui_forms_application stxlib::boundary)
 target_include_directories(gui_forms_abi_objects PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(gui_forms_abi_objects PRIVATE cxx_std_20)
 # GF_ABI_BUILD is public: a program linking the objects declares the entry
@@ -132,14 +189,44 @@ target_compile_definitions(gui_forms_abi_objects
 if(TARGET gui_forms_host_windows)
     target_compile_definitions(gui_forms_abi_objects PRIVATE GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT=1)
 endif()
+# The Win32 compatibility shim, part of the library on Windows (one module,
+# owner decision 2026-11-15, "Fold it in"): its gf_compat_ functions call the
+# paint endpoint table directly, and the link .def below exports them under
+# user32's and gdi32's names (src/surface/windows/win32_compat_shim.def). The
+# Windows definitions are the shim's alone, so the other objects compile as
+# before.
+if(WIN32)
+    set(_gf_abi_shim_source "${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.cpp")
+    target_sources(gui_forms_abi_objects PRIVATE "${_gf_abi_shim_source}")
+    set_source_files_properties("${_gf_abi_shim_source}" PROPERTIES
+        COMPILE_DEFINITIONS "${GUI_FORMS_WINDOWS_DEFINITIONS}")
+endif()
 set_target_properties(gui_forms_abi_objects PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
     POSITION_INDEPENDENT_CODE ON
 )
 
-add_library(gui_forms_abi SHARED $<TARGET_OBJECTS:gui_forms_abi_objects>)
-target_link_libraries(gui_forms_abi PRIVATE gui_forms_application)
+add_library(gui_forms_abi SHARED
+    $<TARGET_OBJECTS:gui_forms_abi_objects>
+    $<TARGET_OBJECTS:gui_drawing_c_api_objects>)
+# gui_forms_application links the engine's archives whole into the library
+# (gui_forms_application_library); the raster module's objects add the
+# drawing executor, whose archive is linked ordinarily.
+target_link_libraries(gui_forms_abi PRIVATE gui_forms_application stxlib::boundary)
+if(TARGET gui_drawing_raster_c_api_objects)
+    target_sources(gui_forms_abi PRIVATE $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>)
+    target_link_libraries(gui_forms_abi PRIVATE gui_drawing_skia)
+else()
+    # Without the renderer the table's raster_initialize fails
+    # GD_ERROR_NOT_AVAILABLE (src/abi/drawing_raster_service.h).
+    target_sources(gui_forms_abi PRIVATE src/abi/drawing_raster_absent.cpp)
+endif()
+if(WIN32)
+    target_link_libraries(gui_forms_abi PRIVATE advapi32 user32 gdi32)
+    # The exports: the allowlist's entry points and the shim's Win32 names.
+    target_sources(gui_forms_abi PRIVATE "${_gf_abi_generated}/${_gf_abi_output_name}-link.def")
+endif()
 add_library(GUIForms::CAbi ALIAS gui_forms_abi)
 target_include_directories(gui_forms_abi PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -155,9 +242,6 @@ set_target_properties(gui_forms_abi PROPERTIES
     VERSION "${GUI_FORMS_ABI_MAJOR}.${GUI_FORMS_ABI_MINOR}.0"
     SOVERSION "${GUI_FORMS_ABI_MAJOR}"
 )
-# The library links libgui_forms_application privately, so it finds it, and
-# what it needs, beside itself once installed (GUI_FORMS_INSTALLED_LIBRARY_RPATH).
-set_target_properties(gui_forms_abi PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")
 if(APPLE)
     target_link_options(gui_forms_abi PRIVATE
         "LINKER:-exported_symbols_list,${_gf_abi_generated}/gf_abi_exports_macos.txt")
@@ -182,12 +266,35 @@ if(WIN32 AND MINGW)
         set(_gf_abi_machine i386:x86-64)
     endif()
     set(_gf_abi_msvc_import "${CMAKE_CURRENT_BINARY_DIR}/${_gf_abi_output_name}.lib")
+    # Both import libraries come from the entry points' .def, without the
+    # shim's Win32 names: the MinGW one the linker wrote (from the link .def)
+    # is written again, so a program linking the library still binds GetDC
+    # and the rest to user32 and gdi32. A consumer that wants the shim's
+    # names resolves them from the DLL at run time.
     add_custom_command(TARGET gui_forms_abi POST_BUILD
         COMMAND "${GUI_FORMS_LLVM_DLLTOOL}" -m ${_gf_abi_machine}
             -d "${_gf_abi_generated}/${_gf_abi_output_name}.def"
             -D "${_gf_abi_output_name}.dll"
             -l "${_gf_abi_msvc_import}"
+        COMMAND "${GUI_FORMS_LLVM_DLLTOOL}" -m ${_gf_abi_machine}
+            -d "${_gf_abi_generated}/${_gf_abi_output_name}.def"
+            -D "${_gf_abi_output_name}.dll"
+            -l "$<TARGET_LINKER_FILE:gui_forms_abi>"
         BYPRODUCTS "${_gf_abi_msvc_import}"
+        VERBATIM)
+elseif(GUI_FORMS_WINDOWS_MSVC_TARGET)
+    # The MSVC target: lld-link writes the one import library, in the MSVC
+    # format, from the link .def; it is written again from the entry points'
+    # .def by llvm-lib, without the shim's Win32 names, as above.
+    if(NOT GUI_FORMS_LLVM_LIB)
+        get_filename_component(_gf_abi_compiler_dir "${CMAKE_C_COMPILER}" DIRECTORY)
+        find_program(GUI_FORMS_LLVM_LIB NAMES llvm-lib HINTS "${_gf_abi_compiler_dir}" REQUIRED)
+    endif()
+    add_custom_command(TARGET gui_forms_abi POST_BUILD
+        COMMAND "${GUI_FORMS_LLVM_LIB}" /nologo /machine:x64
+            "/def:${_gf_abi_generated}/${_gf_abi_output_name}.def"
+            "/name:${_gf_abi_output_name}.dll"
+            "/out:$<TARGET_LINKER_FILE:gui_forms_abi>"
         VERBATIM)
 endif()
 
@@ -202,6 +309,8 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_bindings.c
     tests/abi/conformance/gf_conformance_callbacks.c
     tests/abi/conformance/gf_conformance_classes.c
+    tests/abi/conformance/gf_conformance_band.c
+    tests/abi/conformance/gf_conformance_content.c
     tests/abi/conformance/gf_conformance_create.c
     tests/abi/conformance/gf_conformance_custom.c
     tests/abi/conformance/gf_conformance_diagnostics.c
@@ -218,6 +327,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_application.c
     tests/abi/conformance/gf_conformance_rules.c
     tests/abi/conformance/gf_conformance_data_grid.c
+    tests/abi/conformance/gf_conformance_list_view.c
     tests/abi/conformance/gf_conformance_docking.c
     tests/abi/conformance/gf_conformance_help.c
     tests/abi/conformance/gf_conformance_splashscreen.c
@@ -258,6 +368,20 @@ install(FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/manifests/abi/gf_abi.json"
         "${_gf_abi_allowlist}"
         DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/abi)
+# The substitution faces' licences and attribution, in the fonts directory
+# beside the library, where raster_initialize looks (CMakeLists.txt,
+# gui_drawing_raster_fonts), and beside it in the build.
+if(TARGET gui_drawing_raster_c_api_objects)
+    add_custom_command(TARGET gui_forms_abi POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:gui_forms_abi>/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${gui_drawing_raster_fonts} "$<TARGET_FILE_DIR:gui_forms_abi>/fonts"
+        VERBATIM)
+    if(WIN32)
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_BINDIR}/fonts)
+    else()
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_LIBDIR}/fonts)
+    endif()
+endif()
 set(GUI_FORMS_ABI_PKGCONFIG_LIBRARY "${_gf_abi_output_name}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/gui_forms_abi.pc.in"
                "${_gf_abi_generated}/gui_forms_abi.pc" @ONLY)
@@ -308,21 +432,64 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py coverage
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/conformance ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/schema
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/host)
+    # The C ABI library exports exactly its allowlisted gf_ entry points and
+    # gd_get_api_v0 (cmake/CheckCAbiExports.cmake against the generated
+    # gf_abi_exports.txt: no gdr_, libc++, STXlib or engine symbol, none
+    # missing; on Windows the Win32 shim's export names are accepted too). (No
+    # foreign text stack is linked since FreeType left on 2026-11-16, so its
+    # symbol check is retired.) It is one module: it imports no library but
+    # the system's (cmake/CheckSystemImports.cmake).
+    set(_gf_abi_extra_exports "")
+    if(WIN32)
+        set(_gf_abi_extra_exports "-DEXTRA_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def")
+    endif()
+    add_test(NAME gui_forms_abi_exports_only_entry_points
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+            "-DLIBRARY=$<TARGET_FILE:gui_forms_abi>"
+            "-DEXPECTED=${_gf_abi_generated}/gf_abi_exports.txt"
+            ${_gf_abi_extra_exports}
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckCAbiExports.cmake")
+    set(_gf_abi_shared_runtime OFF)
+    if(APPLE AND NOT GUI_FORMS_STATIC_CXX_RUNTIME)
+        set(_gf_abi_shared_runtime ON)
+    endif()
+    add_test(NAME gui_forms_abi_system_imports_only
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+            "-DALLOW_SHARED_CXX_RUNTIME=${_gf_abi_shared_runtime}"
+            "-DBINARIES=$<TARGET_FILE:gui_forms_abi>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
+    # Windows: no module frees another's memory across the library's boundary
+    # (cmake/CheckAllocatorBoundary.cmake). The library and its C and C++
+    # consumers export no allocation entry point, take the C heap only from
+    # the system CRT and operator new only from their own static libc++, and
+    # the consumers import nothing from the library but its entry points and
+    # the Win32 shim's names.
+    if(WIN32)
+        add_test(NAME gui_forms_abi_allocator_boundary
+            COMMAND "${CMAKE_COMMAND}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+                "-DBINARIES=$<TARGET_FILE:gui_forms_abi>|$<TARGET_FILE:gui_forms_abi_runtime_c11_tests>|$<TARGET_FILE:gui_forms_abi_conformance>|$<TARGET_FILE:gui_forms_abi_schema_export>|$<TARGET_FILE:gui_forms_abi_cpp_wrappers>"
+                "-DPROVIDER=$<TARGET_FILE_NAME:gui_forms_abi>"
+                "-DPROVIDER_NAMES=${_gf_abi_generated}/gf_abi_exports.txt"
+                "-DPROVIDER_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckAllocatorBoundary.cmake")
+    endif()
 
     # The stage C3 gate: the control schema read through the ABI alone equals
-    # manifests/control-schema.json. The schema as the ABI gave it is left in
-    # the build tree for comparison.
+    # manifests/control-schema.json, its composites loaded from the Gallery's
+    # documents (demo/composites) and listed through the schema table. The
+    # schema as the ABI gave it is left in the build tree for comparison.
     add_executable(gui_forms_abi_schema_export tests/abi/schema/gf_abi_schema_export.cpp)
     target_link_libraries(gui_forms_abi_schema_export PRIVATE gui_forms_abi)
     target_compile_features(gui_forms_abi_schema_export PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_schema_export
         COMMAND gui_forms_abi_schema_export ${CMAKE_CURRENT_SOURCE_DIR}/manifests/control-schema.json
             ${CMAKE_CURRENT_SOURCE_DIR}/manifests/abi/interaction_fields.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/demo/composites
             ${CMAKE_CURRENT_BINARY_DIR}/gf_abi/control-schema.abi.json)
     # The stage C4 gate: a theme loaded through the ABI paints a fixture as
     # the C++ path does.
     add_executable(gui_forms_abi_theme_trace tests/abi/themes/gf_abi_theme_trace.cpp)
-    target_link_libraries(gui_forms_abi_theme_trace PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_link_libraries(gui_forms_abi_theme_trace PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_theme_trace PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_theme_trace COMMAND gui_forms_abi_theme_trace ${CMAKE_CURRENT_BINARY_DIR}/gf_abi)
     # The host's capability report through the ABI, against the per-host
@@ -337,9 +504,19 @@ if(GUI_FORMS_BUILD_TESTS)
     # The stage C5 fields: C++ events raised directly reach an ABI callback
     # as named fields, and what the callback writes reaches the C++ payload.
     add_executable(gui_forms_abi_event_fields tests/abi/events/gf_abi_event_fields.cpp)
-    target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_event_fields PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_event_fields COMMAND gui_forms_abi_event_fields)
+    # The callback gate (A2, S2 = 1): a client callback runs inside one
+    # described frame, and an exception out of it fails fast with the report.
+    add_executable(gui_forms_abi_callback_gate tests/abi/callbacks/gf_abi_callback_gate.cpp)
+    target_link_libraries(gui_forms_abi_callback_gate PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
+    target_compile_features(gui_forms_abi_callback_gate PRIVATE cxx_std_20)
+    add_test(NAME gui_forms_abi_callback_gate COMMAND gui_forms_abi_callback_gate)
+    add_test(NAME gui_forms_abi_callback_gate_throwing_event
+             COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_callback_gate> -DMODE=throwing_event
+                     "-DEXPECTED=GUI.Forms: fatal exception at gui_forms.client_callback: a client callback threw[^#]*#0 kind 3 callback.thrower click"
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     # The checked sanitizer tree poisons an invoke's lent scratch when it
     # returns: a callback's kept text is reported by AddressSanitizer.
     if(GUI_FORMS_CHECKED_BORROWS)
@@ -350,9 +527,22 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     # A custom control's paint callback fills the pixels a window presents.
     add_executable(gui_forms_abi_custom_paint tests/abi/custom/gf_abi_custom_paint.cpp)
-    target_link_libraries(gui_forms_abi_custom_paint PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_link_libraries(gui_forms_abi_custom_paint PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_custom_paint PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_custom_paint COMMAND gui_forms_abi_custom_paint)
+    # A C++ client's class entry that throws is recorded and ends the process
+    # through the fail-fast report of STXlib's callback gate, whose site is
+    # gui_forms.client_callback (src/abi/stable/registry/abi_registry.hpp);
+    # `plain` checks the program itself runs an entry and survives.
+    add_executable(gui_forms_abi_class_entry_fail_fast tests/abi/classes/gf_abi_class_entry_fail_fast.cpp)
+    target_link_libraries(gui_forms_abi_class_entry_fail_fast PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_compile_features(gui_forms_abi_class_entry_fail_fast PRIVATE cxx_std_20)
+    add_test(NAME gui_forms_abi_class_entry_plain COMMAND gui_forms_abi_class_entry_fail_fast plain)
+    set_tests_properties(gui_forms_abi_class_entry_plain PROPERTIES PASS_REGULAR_EXPRESSION "class entry: ok")
+    add_test(NAME gui_forms_abi_class_entry_fail_fast
+             COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_class_entry_fail_fast> -DMODE=throwing_entry
+                     "-DEXPECTED=GUI.Forms: fatal exception at gui_forms.client_callback: injected class entry failure"
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     # A set_property callback's kept value text, likewise poisoned in the
     # checked sanitizer tree when the callback returns.
     if(GUI_FORMS_CHECKED_BORROWS)
@@ -386,15 +576,28 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_abi_audit_fixtures
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/abi_audit_tests.py
             --clang ${CMAKE_C_COMPILER})
-    # The built library exports exactly the allowlist.
-    set(_gf_abi_export_arguments --library $<TARGET_FILE:gui_forms_abi> --allowlist ${_gf_abi_allowlist}
-        --tool-dir ${_gf_abi_tool_dir})
+    # The built library exports exactly the allowlist it was linked with: the
+    # generated list, which adds GUI.Drawing's gd_get_api_v0 to the gf_ entry
+    # points (one module), and on Windows the Win32 shim's names.
+    set(_gf_abi_export_arguments --library $<TARGET_FILE:gui_forms_abi>
+        --allowlist ${_gf_abi_generated}/gf_abi_exports.txt --tool-dir ${_gf_abi_tool_dir})
+    if(WIN32)
+        list(APPEND _gf_abi_export_arguments --extra-def ${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/win32_compat_shim.def)
+    endif()
     if(_gf_abi_msvc_import)
         list(APPEND _gf_abi_export_arguments --import-library ${_gf_abi_msvc_import})
     endif()
     add_test(NAME gui_forms_abi_exports
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py exports
             ${_gf_abi_export_arguments})
+    add_test(NAME gui_forms_abi_audit_exports_tests
+        COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+            -p test_abi_audit_exports.py)
+    # Composite event payloads in the schema speak the C++ events' payload
+    # words, each mapped by interaction_fields.json (cp33).
+    add_test(NAME gui_forms_abi_composite_payloads
+        COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+            -p test_composite_payloads.py)
     set_tests_properties(gui_forms_abi_audit gui_forms_abi_audit_fixtures PROPERTIES TIMEOUT 300)
 
     # A Visual Studio consumer: MSVC compiles the layout probe and the
@@ -464,6 +667,8 @@ endif()
 if(GUI_FORMS_BUILD_TESTS)
     set(_gf_abi_label_candidates
         gui_drawing_c_api_c11_tests gui_drawing_raster_c_api_tests
+        gui_forms_abi_exports_only_entry_points gui_forms_abi_system_imports_only
+        gui_forms_abi_allocator_boundary
         gui_forms_windows_gdi_compat_shim_tests
         gui_forms_binding_tests gui_forms_binding_provider_tests gui_forms_binding_navigator_tests
         gui_forms_shadow_frames_tests
@@ -472,7 +677,7 @@ if(GUI_FORMS_BUILD_TESTS)
         gui_forms_abi_schema_catalog_current gui_forms_abi_event_fields gui_forms_abi_custom_paint
         gui_forms_abi_event_catalog_current gui_forms_abi_layout_probe_c11
         gui_forms_abi_layout_probe_cpp gui_forms_abi_audit gui_forms_abi_layout_probe_current
-        gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_msvc_consumer
+        gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_audit_exports_tests gui_forms_abi_msvc_consumer
         gui_forms_abi_bindings_current gui_forms_abi_csharp
         gui_forms_abi_cpp_wrappers_current gui_forms_abi_cpp_wrappers)
     get_property(_gf_abi_directory_tests DIRECTORY PROPERTY TESTS)

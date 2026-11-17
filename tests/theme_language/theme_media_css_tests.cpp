@@ -95,14 +95,14 @@ bool compiled_clean(const Compilation& compilation) {
 
 MediaCondition dark() {
     MediaCondition condition{};
-    condition.dark_scheme = true;
+    condition.dark_scheme.set(true);
     return condition;
 }
 
 MediaCondition resolutions(std::optional<double> minimum, std::optional<double> maximum) {
     MediaCondition condition{};
-    condition.minimum_resolution = minimum;
-    condition.maximum_resolution = maximum;
+    if (minimum) condition.minimum_resolution.set(*minimum);
+    if (maximum) condition.maximum_resolution.set(*maximum);
     return condition;
 }
 
@@ -119,19 +119,19 @@ void test_query_lowering() {
         MediaCondition media{};
     };
     MediaCondition light{};
-    light.dark_scheme = false;
+    light.dark_scheme.set(false);
     MediaCondition forced{};
-    forced.forced_colours = true;
+    forced.forced_colours.set(true);
     MediaCondition unforced{};
-    unforced.forced_colours = false;
+    unforced.forced_colours.set(false);
     MediaCondition calm{};
-    calm.reduced_motion = true;
+    calm.reduced_motion.set(true);
     MediaCondition lively{};
-    lively.reduced_motion = false;
+    lively.reduced_motion.set(false);
     MediaCondition dark_calm = dark();
-    dark_calm.reduced_motion = true;
+    dark_calm.reduced_motion.set(true);
     MediaCondition dense = resolutions(1.5, 3.0);
-    dense.dark_scheme = true;
+    dense.dark_scheme.set(true);
     const std::array<Case, 17> cases{{
         {"@media (prefers-color-scheme: dark) { #a { opacity: 0.5 } }", dark()},
         {"@media (prefers-color-scheme: light) { #a { opacity: 0.5 } }", light},
@@ -329,7 +329,7 @@ void test_engine_conditions() {
         rule.level = CascadeLevel::stable_id_rule;
         rule.selector.stable_id = "a";
         rule.declarations.push_back(RuleDeclaration::primitive(built_in_primitive_name));
-        rule.media.minimum_resolution = bound;
+        rule.media.minimum_resolution.set(bound);
         sheet.rules.push_back(rule);
         const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, registry);
         require(compiled.empty() && compiled.diagnostics().size() == 1U &&
@@ -350,7 +350,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         return part;
     }
 };

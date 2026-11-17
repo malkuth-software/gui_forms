@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/control/runtime_id/runtime_id.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
@@ -8,9 +9,10 @@
 #include <compare>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -102,18 +104,19 @@ GUI_FORMS_API void validate_presentation_settings(const PresentationSettings& se
 // double-click interval, the pointer settings and the caret settings are
 // the host's alone and have no override.
 struct GUI_FORMS_API PresentationOverrides final {
-    std::optional<double> text_scale{};
-    std::optional<bool> high_contrast{};
-    std::optional<bool> reduced_motion{};
-    std::optional<bool> sound_enabled{};
-    std::optional<bool> ambient_motion{};
-    std::optional<bool> reduced_transparency{};
-    std::optional<ColourScheme> colour_scheme{};
+    stxlib::Optional<double> text_scale{};
+    stxlib::Optional<bool> high_contrast{};
+    stxlib::Optional<bool> reduced_motion{};
+    stxlib::Optional<bool> sound_enabled{};
+    stxlib::Optional<bool> ambient_motion{};
+    stxlib::Optional<bool> reduced_transparency{};
+    stxlib::Optional<ColourScheme> colour_scheme{};
 
     // Whether no field is set.
     [[nodiscard]] bool empty() const noexcept {
-        const bool none = !text_scale && !high_contrast && !reduced_motion && !sound_enabled && !ambient_motion &&
-                          !reduced_transparency && !colour_scheme;
+        const bool none = text_scale.absent() && high_contrast.absent() && reduced_motion.absent() &&
+                          sound_enabled.absent() && ambient_motion.absent() && reduced_transparency.absent() &&
+                          colour_scheme.absent();
         return none;
     }
 

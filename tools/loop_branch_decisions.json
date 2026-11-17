@@ -172,7 +172,7 @@
     {
       "path": "src/controls/label/label.cpp",
       "function": "gui_forms::layout_label_text",
-      "condition": "alignment_ == HorizontalAlignment::far",
+      "condition": "alignment_ == HorizontalAlignment::end",
       "decision": "keep",
       "reason": "aligns a few text lines; one alignment select per line"
     },
@@ -1136,13 +1136,6 @@
       "reason": "three or four channels; the short form doubles each digit"
     },
     {
-      "path": "src/core/threading/atomic_pool/atomic_pool.c",
-      "function": "gui_forms_atomic_pool_worker",
-      "condition": "pool->terminate",
-      "decision": "false_shape",
-      "reason": "another thread sets pool->terminate under sleep_lock; the condition wait reloads it"
-    },
-    {
       "path": "src/core/types/painter/painter.cpp",
       "function": "gui_forms::fill_linear_gradient",
       "condition": "horizontal",
@@ -1220,21 +1213,21 @@
       "reason": "four bytes; the byte order picks each lane"
     },
     {
-      "path": "src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp",
+      "path": "src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp",
       "function": "gui_forms::host::Implementation::allocate_compatibility_handle",
       "condition": "sizeof(std::uintptr_t) >= sizeof(std::uint64_t)",
       "decision": "false_shape",
       "reason": "an if constexpr: the choice is made at compile time"
     },
     {
-      "path": "src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp",
+      "path": "src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp",
       "function": "gui_forms::host::Implementation::publisher_loop",
       "condition": "publisher_stop",
       "decision": "false_shape",
       "reason": "another thread sets publisher_stop under the lock; the condition wait reloads it"
     },
     {
-      "path": "src/host/windows/win32_compat_shim.cpp",
+      "path": "src/surface/windows/win32_compat_shim.cpp",
       "function": "try_dib32_srccopy",
       "condition": "reverse",
       "decision": "keep",

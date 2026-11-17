@@ -28,9 +28,14 @@ lease is held are queued and delivered after the lease releases; see
 Hit testing walks children front to back (index zero is topmost), skipping
 invisible controls, disabled controls and controls marked hit-transparent;
 `get_child_at_point` exposes the same lookup with independent skip options.
-A control can refine its own shape with `hit_test_local`. The hit control
-receives enter/move/leave, down and up through its route hooks; `pressed`
-state is retained between down and up.
+A control can refine its own shape with `hit_test_local`. A pointer event
+travels a route: the preview phase from the root to the hit control
+(`on_pointer_preview`), the target phase on the hit control (the raisers
+`on_mouse_down`, `on_mouse_move`, `on_mouse_wheel` and `on_mouse_up`), then
+the bubble phase back to the root (`on_pointer_bubble`). Setting `handled`
+ends the route. `on_mouse_enter` and `on_mouse_leave` follow the window's
+hover tracking, not the route. `pressed` state is retained between down and
+up.
 
 `Window::capture_pointer(control, pointer_id)` routes every later event for
 that pointer to the control until release, regardless of position. Capture is
@@ -53,8 +58,11 @@ click styles and what each host offers.
 
 ## Keyboard routing
 
-A key event goes first to the focused control's route hook, then up through
-its ancestors, then to the window's command layer: accelerator gestures
+A key event travels the same three phases on the focused control and its
+ancestors: the preview phase from the root (`on_key_preview`), the target
+phase on the focused control (`on_key_down` or `on_key_up`), then the bubble
+phase (`on_key_bubble`). A key nothing handled then reaches the window's
+command layer: accelerator gestures
 bound with `Command::bind_shortcut(window, KeyGesture)`, mnemonics, Tab
 traversal, and the accept and cancel targets. Editors and open menus get
 first refusal, so a text box keeps its arrow keys and a menu keeps Escape.
@@ -101,14 +109,64 @@ A key travels in this order:
 3. `preview_key_down`;
 4. accelerators (ProcessCmdKey);
 5. the window's `key_down`;
-6. the control's `key_down`;
-7. the bubble to its ancestors;
-8. accelerators, dialog keys and Tab traversal (ProcessDialogKey), unless
-   the control claimed the key as an input key.
+6. the controls' preview route, the focused control's `key_down` (or
+   `key_up`), then the bubble to its ancestors;
+7. `key_press` with the committed text, on the window and then the focused
+   control, unless a `key_down` handler set `suppress_key_press`;
+8. for a key nothing handled: accelerators, then dialog keys and Tab
+   traversal (ProcessDialogKey), unless the control claimed the key as an
+   input key.
 
-Every handler runs on the UI thread, and a handler may close the window,
-which ends the key's route. In the C ABI, `windows.key_state` reads a key's
-state, and the key interactions and their payloads are in the schema.
+A handler that sets `handled` ends the key's route at its step. Every
+handler runs on the UI thread, and a handler may close the window, which
+ends the key's route. In the C ABI, `windows.key_state` reads a key's state,
+and the key interactions and their payloads are in the schema.
+
+## Overriding the raisers
+
+A derived control can override the raisers, as a Windows Forms control
+overrides `OnClick`, `OnMouseDown` or `OnKeyDown`. `Control` declares them
+as protected virtual functions:
+
+- **Mouse:** `on_mouse_down`, `on_mouse_up`, `on_mouse_move`,
+  `on_mouse_wheel`, `on_mouse_enter`, `on_mouse_hover`, `on_mouse_leave`,
+  `on_mouse_capture_changed`, `on_click`, `on_double_click`,
+  `on_mouse_click` and `on_mouse_double_click`.
+- **Keys:** `on_preview_key_down`, `on_key_down`, `on_key_press` and
+  `on_key_up`.
+- **Focus:** `on_enter`, `on_got_focus`, `on_lost_focus`, `on_leave`,
+  `on_validating` and `on_validated`.
+- **Others:** `on_drag_enter`, `on_drag_over`, `on_drag_drop`,
+  `on_drag_leave`, `on_layout`, `on_paint_background` and
+  `on_change_ui_cues`. These raise no event yet; they are points to
+  override.
+
+The window calls each raiser on the UI thread at a fixed point of the
+event's dispatch, whether or not anything subscribes. The base raises the
+event to its subscribers. An override places its code before or after the
+base call, and an override that does not call the base keeps the event from
+its subscribers. `on_mouse_hover` is the one raiser not always called: the
+window arms its hover timer only for a control whose `MouseHover` has a
+subscriber or a rule.
+
+Stock controls follow two conventions. A control's own pointer handling
+runs before the base call, so subscribers see the state it left. A
+control's own key handling runs after the base call of `on_key_down`, and
+only while `handled` is still clear, so a subscriber that sets `handled`
+keeps the key from the control too. A derived control that adds handling
+should keep to the same order.
+
+The order of the mouse raisers is the owner's input order (the ADR-003
+amendment of 2026-11-12, recorded in `manifests/abi/interaction_order.json`),
+described in [Mouse events and context requests](mouse-events.md).
+
+From C ABI 1.3, C and C# callers override raisers through class tables
+(`gf_abi_classes.h`, `GF_TABLE_CLASSES`). A class table holds one segment
+of entries per class in the chain. The library calls an entry with the
+caller's instance, the object, the event and a base function. The
+subscribers run only inside `base`, so an entry that never calls `base`
+suppresses them, as in C++. Once the object is disposed no entry is called
+again.
 
 ## Focus
 
@@ -192,6 +250,32 @@ The portable drag protocol supports text, file lists and media-typed byte
 payloads, negotiated per session with a returned effect. Native inbound drag
 destinations are advertised on macOS and X11, but not on Windows.
 Outbound drag initiation is not yet available on any host.
+
+Dragging inside one window (moving a part, a splitter, a slider's value or
+a row among rows) is a separate client, `DragTracker`
+(`<gui_forms/drag/drag_tracker/drag_tracker.hpp>`). A control or an
+application constructs one with its owner control and drives it:
+
+1. hand a press to `press(event, start)` from the owner's pointer handling,
+   or start from the keyboard with `begin_keyboard(start)`. The tracker
+   takes the pointer capture for the subject, so later pointer events go
+   to `pointer(event)`;
+2. once the pointer has moved past `DragStart::threshold`, the tracker
+   calls `callbacks.plan` with a `DragPlan` to fill. A plan names one kind:
+   `placement` (a free position inside bounds, with an axis lock, a grid
+   and drop targets), `value` (one number along an axis) or `reorder`
+   (the subject among slots);
+3. each later move hands the owner a `DragTrackerFrame` through
+   `callbacks.preview`; near a declared viewport's edge the tracker
+   auto-scrolls through `callbacks.scroll`;
+4. the session ends once, through `callbacks.finished`, with its
+   `DragEnd`. The owner commits when `drag_end_commits(end)` is true and
+   restores the model otherwise.
+
+`cancel` ends a session from the model's side, `withdraw_target` removes a
+drop target that went away mid-drag, and `statistics()` counts sessions,
+plans, previews, commits and restores. The callbacks are `Delegate`s: a
+member function and the object it is called on.
 
 ## Counters
 

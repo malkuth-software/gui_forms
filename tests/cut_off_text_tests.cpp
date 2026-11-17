@@ -26,6 +26,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <stxlib/optional.hpp>
 
 namespace {
 
@@ -123,7 +124,7 @@ void test_list_view_details_and_list() {
     (*root).add_child(list);
     Window window(root, {520.0, 260.0});
     // The reveal is not a tooltip: the switches leave it alone.
-    window.set_tool_tips_shown(false);
+    window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
 
     const Rect long_row = item_bounds(window, long_name);
     hover(window, {long_row.x + 30.0, long_row.y + long_row.height * 0.5});
@@ -175,7 +176,7 @@ void test_tree_view() {
                        {.stable_id = "deep", .text = std::string(long_name), .depth = 1U}});
     (*root).add_child(tree);
     Window window(root, {420.0, 240.0});
-    window.set_tool_tips_shown(false);
+    window.set_tool_tips_shown(stxlib::Optional<bool>::of(false));
 
     const Rect deep_row = item_bounds(window, long_name);
     hover(window, {deep_row.x + 60.0, deep_row.y + deep_row.height * 0.5});

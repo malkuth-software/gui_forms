@@ -76,7 +76,7 @@ gui_forms::NodeCanvas
       **flow_effect** : ``EffectInstance``, read-only
          The flow's effect instance: its counters, for diagnostics and tests.
 
-      **link_preview_state** : ``std::optional<CanvasPreviewState>``, read-only
+      **link_preview_state** : ``stxlib::Optional<CanvasPreviewState>``, read-only
          The dragged link's preview state: seeking, accepted by the input that
          captured it, or refused by the port under it; none without a drag.
 
@@ -85,17 +85,17 @@ gui_forms::NodeCanvas
          Ctrl toggles; a drag on empty canvas draws a marquee that selects the
          nodes it contains, or with Alt those it touches.
 
-      **selected_link** : ``std::optional<LinkId>``, read-only
+      **selected_link** : ``stxlib::Optional<LinkId>``, read-only
 
-      **focused_node** : ``std::optional<NodeId>``
+      **focused_node** : ``stxlib::Optional<NodeId>``
          The keyboard's current node.
 
-      **focused_port** : ``std::optional<PortIndex>``, read-only
+      **focused_port** : ``stxlib::Optional<PortIndex>``, read-only
          The current port inside the focused node, or none.
 
       **editing** : ``bool``, read-only
 
-      **edited_node** : ``std::optional<NodeId>``, read-only
+      **edited_node** : ``stxlib::Optional<NodeId>``, read-only
 
       **visible_nodes** : ``std::span<const std::uint32_t>``, read-only
          The node slots the last paint drew, in paint order.
@@ -324,7 +324,7 @@ gui_forms::NodeCanvas
 
       The flow's effect instance: its counters, for diagnostics and tests.
 
-   .. cpp:function:: std::optional<CanvasPreviewState> link_preview_state() const noexcept
+   .. cpp:function:: stxlib::Optional<CanvasPreviewState> link_preview_state() const noexcept
 
       The dragged link's preview state: seeking, accepted by the input that
       captured it, or refused by the port under it; none without a drag.
@@ -335,9 +335,9 @@ gui_forms::NodeCanvas
       Ctrl toggles; a drag on empty canvas draws a marquee that selects the
       nodes it contains, or with Alt those it touches.
 
-   .. cpp:function:: std::optional<LinkId> selected_link() const noexcept
+   .. cpp:function:: stxlib::Optional<LinkId> selected_link() const noexcept
 
-   .. cpp:function:: std::optional<NodeId> focused_node() const noexcept
+   .. cpp:function:: stxlib::Optional<NodeId> focused_node() const noexcept
 
       The keyboard's current node.
 
@@ -345,13 +345,13 @@ gui_forms::NodeCanvas
 
       Sets :cpp:func:`focused_node <gui_forms::NodeCanvas::focused_node>`; see the property's description above.
 
-   .. cpp:function:: std::optional<PortIndex> focused_port() const noexcept
+   .. cpp:function:: stxlib::Optional<PortIndex> focused_port() const noexcept
 
       The current port inside the focused node, or none.
 
    .. cpp:function:: bool editing() const noexcept
 
-   .. cpp:function:: std::optional<NodeId> edited_node() const noexcept
+   .. cpp:function:: stxlib::Optional<NodeId> edited_node() const noexcept
 
    .. cpp:function:: std::span<const std::uint32_t> visible_nodes() const& noexcept
 
@@ -499,7 +499,7 @@ gui_forms::NodeCanvas
 
       Writes into ``out`` the links whose drawn path crosses the local segment from-to and returns how many cross (more than written when ``out`` is short).
 
-   .. cpp:function:: std::optional<Point> port_view_anchor(PortRef port) const
+   .. cpp:function:: stxlib::Optional<Point> port_view_anchor(PortRef port) const
 
       A port's anchor in local units, or none for a stale port.
 

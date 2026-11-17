@@ -10,6 +10,28 @@ All commands run from the repository root.
 First follow [Installation](../user/install.md#configure-build-install) to configure for
 your platform. Linux requires an enabled X11 host; the CPU renderer,
 `stx_skia` from the stx package (below), is linked on every platform.
+Every platform builds against LLVM's libc++ 22: the pinned macOS 14
+runtime, MSYS2 CLANG64's static libc++ on Windows, and on Linux the
+harness's own runtime. `template_harness/harness/build_linux_runtimes.py`
+builds libc++, libc++abi and libunwind from the pinned LLVM 22.1.8 as
+position-independent, hermetic static archives for the host's C library
+(glibc or musl) into `.build/toolchain/llvm-22.1.8-linux-<arch>-<libc>`;
+set `GUI_FORMS_LLVM_RUNTIME` to that prefix, as on macOS. The runtime is
+then the same on every distribution, and `gui_forms_abi` can carry it
+(Alpine's own `libc++abi.a` is not position independent). The
+distribution's clang 22 (apt.llvm.org's `clang-22`; Alpine's `clang`,
+`compiler-rt`) is only the bootstrap compiler. On Linux
+`cmake/llvm22.cmake` refuses to configure without the archives, compiles
+against the runtime's headers, links the archives with `-nostdlib++` (they
+end every C++ link line), and the configure refuses a tree whose C++
+library is not libc++ 22. The Clang plugin
+(`GUI_FORMS_LOCALIZABLE_PLUGIN`) is the exception: it is built with the
+distribution's libstdc++, because the compiler it loads into links that.
+Linux programs, like Windows ones, carry libc++ statically: each
+executable and shared library holds its own copy, and a program package
+depends on no C++ runtime library. `tools/package_programs.py` refuses a
+Linux package in which any binary still needs `libc++`, `libc++abi` or
+`libunwind` as a shared library.
 Then:
 
 ```sh
@@ -29,19 +51,28 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 |---|---|---|
 | `GUI_FORMS_BUILD_GALLERY` | ON when top level | Build the control gallery demonstration |
 | `GUI_FORMS_BUILD_TESTS` | ON when top level | Build the automated tests |
-| `GUI_FORMS_ENABLE_SKIA` | ON | Build the private CPU-only Skia painter (macOS and Linux) |
+| `GUI_FORMS_ENABLE_SKIA` | ON | Link the private CPU-only renderer (`stx_skia`), the renderer on every host |
 | `GUI_FORMS_ENABLE_MACOS_HOST` | ON on macOS | Build the AppKit host and `GUIForms::Application` |
 | `GUI_FORMS_ENABLE_WINDOWS_HOST` | ON on Windows | Build the Win32 DIB host |
 | `GUI_FORMS_ENABLE_LINUX_HOST` | OFF | Build the X11 host; requires Linux and Skia |
-| `GUI_FORMS_ENABLE_HARFBUZZ_TEXT` | ON with Skia or Win32 | Build the pinned HarfBuzz/FreeType text engine |
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
-| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Install the seven Noto fallback faces and their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
+| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the nine Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
+| `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
+| `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
-| `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries to one shared test runtime, so a library change relinks one library instead of every program (CMake 3.27 or later) |
+| `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries through one static test runtime, which links those libraries into each program (CMake 3.27 or later) |
+| `GUI_FORMS_TEST_PRECOMPILED_HEADER` | ON | Share one precompiled header among the test programs; the daily CI build turns it off so that each test includes what it uses |
+| `GUI_FORMS_CHECKED_BORROWS` | OFF | Check borrowed views against their owners; the sanitizer tree (`ci_build.py --sanitize`) turns it on. It changes the borrowed types, so a program and its consumers are built one way |
+| `GUI_FORMS_BUILD_FORM_COMPILER` | ON (OFF when cross-compiling) | Build and install the form compiler that `gui_forms_add_form` runs |
+| `GUI_FORMS_BUILD_GENERATED_FORM_TESTS` | ON | Build the tests whose form header is generated at build time |
+| `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_BUILD_TESTS` | Build the Gallery model (the control specimen catalogue) and the tests that read it |
+| `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | OFF | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components); `tools/build_sdk.py --features all` sets them |
+| `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
+| `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
 `GUI_FORMS_BUILD_TEXT_MASKS` options build development-only text services and
@@ -62,9 +93,15 @@ checkout, whose edits each build brings into the package. The package holds:
 | stx path | Contents |
 |---|---|
 | `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, with its contract tests in stx's own CI |
-| `third_party/harfbuzz/`, `third_party/freetype/` | HarfBuzz (without `test/` and `perf/`) and FreeType |
-| `third_party/libunibreak/` | libunibreak (UAX #14 line breaking) |
-| `third_party/md4c/`, `third_party/sheenbidi/`, `third_party/unicode/` | MD4C, SheenBidi and the Unicode data |
+| `third_party/unicode/` | the Unicode data |
+| `stx_zlib/`, `stx_png/`, `stx_conv/`, `stx_rtf2md/`, `stx_vorbis/` | the first-party compression, PNG, CONV interpolation, rich-text and Ogg Vorbis libraries |
+
+The row height index of the virtual row views adapts `stx_btree`'s
+header-only sequence tree, taken from stx_auxlib at the commit
+`stx_auxlib.lock` names (`cmake/StxAuxlib.cmake`; a local checkout replaces
+it with `FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB`). Nothing else of
+stx_auxlib is built. STXlib, which replaces stx_auxlib, is planned to take
+this over before 1.0.
 
 Audio pulls miniaudio through `FetchContent` with digest checks. No package
 manager is consulted at configure time.
@@ -127,8 +164,9 @@ documented refusal only when it is not on the input desktop
 `python3 -B tools/ci_build.py --sanitize [--tests REGEX]` is the standard
 sanitized tree on every platform: AddressSanitizer and
 UndefinedBehaviorSanitizer everywhere, LeakSanitizer on Linux and macOS,
-every report stopping its test ([Contributing](../dev/contributing.md) has
-the details). On macOS the sanitizer flags reach CMake through `CFLAGS`,
+every report stopping its test, with borrowed views checked
+(`GUI_FORMS_CHECKED_BORROWS`); [Contributing](../dev/contributing.md) has
+the details. On macOS the sanitizer flags reach CMake through `CFLAGS`,
 `CXXFLAGS`, `OBJCXXFLAGS` and `LDFLAGS` rather than `-DCMAKE_<LANG>_FLAGS`.
 `cmake/llvm22.cmake` puts the pinned libc++ headers and runtime link flags
 in `CMAKE_<LANG>_FLAGS_INIT`, which a command-line `-DCMAKE_<LANG>_FLAGS`
@@ -137,7 +175,12 @@ first macOS attempt failed in `dock_site.cpp` with "'from_chars' is
 unavailable: introduced in macOS 26.0") and leaves the Objective-C++ host
 uninstrumented. CMake reads those variables only when it first configures a
 tree, so delete a macOS `gui-forms-sanitize` tree configured before this
-change.
+change. On Linux the sanitizer flags still arrive as `-DCMAKE_<LANG>_FLAGS`,
+which would drop the toolchain's `-stdlib=libc++` the same way; there
+`cmake/llvm22.cmake` appends the libc++ flags to such a value, so the
+sanitized tree builds against libc++ 22 like the plain one (LeakSanitizer
+then sees libc++'s allocations, as on macOS, and AddressSanitizer checks
+libc++'s container annotations).
 
 On macOS LeakSanitizer reports thousands of blocks that Apple's
 frameworks keep for the life of the process: caches, per-thread state,
@@ -263,20 +306,49 @@ retired on 2026-10-21. Windows binaries never use a GCC runtime.
 Every Windows executable and DLL links the LLVM runtimes (libc++, libc++abi,
 libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically
 (`add_link_options(-static)` in `CMakeLists.txt`), so none imports a runtime
-DLL. `llvm-objdump -p <binary>` lists only Windows system DLLs, and
-GUI.Forms' own DLLs where a program uses them (`libgui_forms_threading.dll`).
-`tools/package_programs.py` fails a package whose binaries import a GCC or
-LLVM runtime DLL.
+DLL. Every GUI.Forms library and STXlib's state are static archives linked
+into the program, so it is one module (owner decision, 2026-11-15) and
+`llvm-objdump -p <binary>` lists only Windows system DLLs.
+`tools/package_programs.py` fails a package whose binaries import any other
+DLL: a GUI.Forms, STXlib or bundled library, or a GCC or LLVM runtime.
+
+## One module per program
+
+Each independently delivered program holds exactly one copy of any routine.
+A C++ program links `Threading`, `Application` (the engine, its renderer and
+the host), STXlib's state and the text stack statically, so `otool -L`,
+`ldd` or the PE imports show only system libraries. A C or C# program loads
+one library, the C ABI library (`gui_forms_abi1.dll`,
+`libgui_forms_abi.so.1`, `libgui_forms_abi.1.dylib`), which holds its own
+engine with the drawing ABI and its raster folded in, imports only system
+libraries and exports exactly its allowlisted `gf_*` entry points and
+`gd_get_api_v0` (the raster is installed through the drawing table's
+`raster_initialize`), and on Windows the Win32 compatibility shim's user32
+and gdi32 names (`IsWindow`, `GetDC`, `BitBlt` and the rest of
+`src/surface/windows/win32_compat_shim.def`; the import libraries leave them
+out), as the `gui_forms_abi_exports_only_entry_points` and
+`gui_forms_abi_system_imports_only` tests check. A process uses one or the other,
+never both. The localizable-literal plugin is a Clang plugin loaded by the
+compiler, and the static test runtime (`cmake/TestRuntime.cmake`) is
+test-only; neither ships in a program.
+
+Release links prune what a program does not reach: sources are compiled
+with `-ffunction-sections -fdata-sections` and linked with `--gc-sections`
+(`-dead_strip` on macOS). `GUI_FORMS_LTO` (default on) adds link-time
+optimisation where the toolchain is pinned for it, the MinGW LLVM 22
+toolchain. `tools/package_programs.py` strips the shipped binaries. On macOS
+the C++ runtime is linked statically when the pinned runtime tree carries
+`libc++.a` and `libc++abi.a` (`GUI_FORMS_STATIC_CXX_RUNTIME`); until then a
+macOS package bundles the LLVM runtime dylibs and nothing else.
 
 Windows builds target the Windows 10 API level (`_WIN32_WINNT=0x0A00`). A
-Windows host build produces `GUI.Forms Gallery.exe` (statically linked),
-`libgui_forms_threading.dll`, the automation client
-`gui_forms_windows_probe.exe` and a `fonts/` directory, all in the build
-directory.
+Windows host build produces `GUI.Forms Gallery.exe` (one module), the
+automation client `gui_forms_windows_probe.exe` and a `fonts/` directory, all
+in the build directory.
 
 To run a Windows build under Wine, copy its build directory to the Mac and
-run the program from there: `libgui_forms_threading.dll` sits beside it and
-no runtime DLL is needed. Run `wine "GUI.Forms Gallery.exe"`; add
+run the program from there: it loads no DLL of its own and no runtime
+DLL. Run `wine "GUI.Forms Gallery.exe"`; add
 `--automation` to accept commands from the probe.
 
 `tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with
@@ -308,28 +380,52 @@ font directory under `CMAKE_INSTALL_PREFIX`. The exact contents are listed in
 then builds `examples/reference/` against it, so the installed package is
 tested on every platform, not only the build tree.
 
+### Embedded font pack
+
+The GUI.Forms runtime reads its bundled faces from one font pack compiled into
+Core, never from files beside the program. The build packs every face of
+`assets/fonts/bundled-fonts.sha256` with the `stx_fontpack` tool, in the
+groups of `assets/fonts/font-pack.manifest` (`cmake/FontPack.cmake`), and
+`ctest -R gui_forms_font_pack_round_trip` checks the built pack against the
+files. At run time the interface group (every Portsmouth face and Carlito) is
+decoded on the first request for any face, every other group on the first
+request for one of its faces, on the core worker pool. Each face is checked
+against the CRC-32 the pack stores for it; a refused group is reported once
+on stderr and by `bundled_font_pack_refusal()`, and its faces draw as missing.
+A build configured with `-DGUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON` reads the
+directory `GUI_FORMS_FONT_DIR` names, or else this checkout's `assets/fonts`,
+and falls back to the pack; shipped builds leave it off. GUI.Drawing's raster
+C API reads the same pack, so no face file is installed, copied beside a
+module, put in a program's bundle or folder, or packaged by
+`tools/package_programs.py`: only the licences and the attribution.
+
 ### Fallback fonts
 
-The bundled font set has two install components. `fonts` holds the faces every
-window needs (Portsmouth Rapids, Carlito, Cousine, Selawik) and their licences.
-`fallback_fonts` holds the seven Noto fallback faces (CJK Japanese, Emoji,
-Arabic, Bengali, Devanagari, Gurmukhi, Hebrew) and their OFL texts
-(`OFL-Noto.txt`, `OFL-NotoSansCJKjp.txt`, `OFL-NotoEmoji.txt`), about 18 MB.
+The nine Noto fallback faces (Japanese and Korean CJK subsets, a minimal
+Chinese face, minimal Arabic, Bengali, Devanagari and Gurmukhi faces, Hebrew
+and Emoji) are about 5.7 MB of font bytes. `tools/fallback_font_subsets.py`
+cuts the subsets from the upstream files and documents each character set. The install has two
+licence components: `fonts` holds the other faces' licences and the
+attribution, `fallback_fonts` the Noto OFL texts (`OFL-Noto.txt`,
+`OFL-NotoSansCJKjp.txt`, `OFL-NotoEmoji.txt`).
 
 - **SDK install.** `GUI_FORMS_INSTALL_FALLBACK_FONTS` is ON by default, so
-  `cmake --install build` installs both. Configure with
+  the pack embeds the faces and `cmake --install build` installs their
+  licences. Configure with
   `-DGUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` to leave the fallback faces out, or
   install the components one at a time with
   `cmake --install build --component fonts` and
   `--component fallback_fonts`. The installed package sets
   `GUIForms_FALLBACK_FONTS` to the producer's choice.
 - **App packages.** Each program in `packaging/programs.json` sets
-  `"fallback_fonts": true` or `false`, and `tools/package_programs.py` stages
-  the faces and notices to match. A package without them also drops the copies
-  the build placed in a macOS bundle's `Resources/fonts` or the Windows
-  `fonts/` folder. Every in-tree program currently sets `true`.
-- **Without them.** The runtime does not need the fallback faces. They are
-  optional faces, so the font directory is accepted without them, and text that
+  `"fallback_fonts": true` or `false`, which must match the build's
+  `GUI_FORMS_INSTALL_FALLBACK_FONTS`, and `tools/package_programs.py` stages
+  the Noto licences to match. A package carries no face file. Every in-tree
+  program currently sets `true`.
+- **Without them.** The runtime does not need the fallback faces. With
+  `GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` the pack leaves them out too
+  (`assets/fonts/font-pack-without-fallback.manifest`). They are
+  optional faces, so a pack or directory is accepted without them, and text that
   only they cover falls back as it does for any missing face: it draws as
   missing glyphs. `bundled_font_diagnostics()` reports `fallback_faces_found`
   out of `fallback_faces_expected` for the most recent lookup, and
@@ -352,8 +448,8 @@ The CI tools that do this live in template_harness, pinned by `harness.lock`
 ## Dependency boundaries
 
 The build enforces the project's boundaries as tests rather than as
-conventions: C++20 everywhere, Objective-C++ only in `src/host/macos/`, Win32
-only in `src/host/windows/`, X11 only in `src/host/linux/`, Skia only in
+conventions: C++20 everywhere, AppKit only in `src/surface/macos/`, Win32
+only in `src/surface/windows/`, X11 only in `src/surface/linux/`, Skia only in
 `src/render/skia/`, PNG as the only image decoder, and no GPU API anywhere.
 A change that violates one of these fails `ctest` before it reaches review.
 

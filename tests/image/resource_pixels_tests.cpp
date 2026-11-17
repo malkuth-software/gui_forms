@@ -7,6 +7,7 @@
 #include "gui_forms/resources.hpp"
 #include "stx_png/encoder.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -95,9 +96,9 @@ Bytes decode(image::ResourcePixelDecoder& decoder, const ImageResourceView& view
 
 ImageResourceView found(const ImageRegistry& registry, ImageLoadResult loaded) {
     require(static_cast<bool>(loaded), "image admitted");
-    std::optional<ImageResourceView> view = registry.find(loaded.image);
-    require(view.has_value(), "admitted image found");
-    return *view;
+    stxlib::Optional<ImageResourceView> view = registry.find(loaded.image);
+    require(view.present(), "admitted image found");
+    return (*view.value());
 }
 
 void test_admission(const Bytes& rgba) {
@@ -134,7 +135,7 @@ void test_admission(const Bytes& rgba) {
             "replace_png refuses a non-PNG file");
     require(registry.replace_image(replaced.image, garbage).error == ImageResourceError::invalid_signature,
             "replace_image refuses a file of no admitted format");
-    require(registry.find(replaced.image).has_value(), "refused replacement leaves the image");
+    require(registry.find(replaced.image).present(), "refused replacement leaves the image");
     require(image_resource_error_name(ImageResourceError::allocation_failed) == "allocation_failed", "error names");
 }
 

@@ -44,45 +44,45 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(explore.platforms["macos-arm64"].bundle, "File Manager Demoboard.app")
         self.assertEqual(explore.display_name, "GUI.Forms Explore (preview)")
 
-    def test_font_lists_match_the_asset_directory(self) -> None:
+    def test_font_notices_match_the_asset_directory(self) -> None:
         manifest = pp.load_manifest()
         source = pp.ROOT / manifest.fonts["source"][0]
-        for name in manifest.fonts["files"] + manifest.fonts["notices"] + manifest.fallback_font_names():
+        for name in manifest.fonts["notices"] + manifest.fallback_font_names():
             self.assertTrue((source / name).is_file(), name)
+        # Every licence the build's programs carry (GUI_FORMS_PROGRAM_FONT_NOTICES).
+        for name in ("OFL-Arimo.txt", "OFL-Tinos.txt", "LICENSE-PortsmouthRapids.txt", "ATTRIBUTION.md"):
+            self.assertIn(name, manifest.fonts["notices"])
 
-    def test_fallback_fonts_are_the_seven_noto_faces_and_a_per_program_choice(self) -> None:
+    def test_fallback_notices_are_the_noto_licences_and_a_per_program_choice(self) -> None:
         manifest = pp.load_manifest()
-        self.assertEqual(len(manifest.fonts["fallback_files"]), 7)
-        self.assertTrue(all(name.startswith("Noto") for name in manifest.fonts["fallback_files"]))
         self.assertTrue(all(name.startswith("OFL-Noto") for name in manifest.fonts["fallback_notices"]))
-        self.assertFalse(any("Noto" in name for name in manifest.fonts["files"] + manifest.fonts["notices"]))
+        self.assertFalse(any("Noto" in name for name in manifest.fonts["notices"]))
         gallery = manifest.program("gallery")
         self.assertTrue(gallery.fallback_fonts)
-        self.assertIn("NotoEmoji-Regular.ttf", manifest.font_files(gallery))
         self.assertIn("OFL-NotoEmoji.txt", manifest.font_notices(gallery))
         without = dataclasses.replace(gallery, fallback_fonts=False)
-        self.assertNotIn("NotoEmoji-Regular.ttf", manifest.font_files(without))
         self.assertEqual(manifest.font_notices(without), manifest.fonts["notices"])
 
-    def test_a_package_without_fallback_fonts_drops_the_builds_copies(self) -> None:
+    def test_a_package_carries_font_licences_and_no_face_file(self) -> None:
         manifest = pp.load_manifest()
         without = dataclasses.replace(manifest.program("gallery"), fallback_fonts=False)
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch)
             fonts = root / "fonts"
             fonts.mkdir()
-            # What a build's post-build copy or a macOS bundle already holds.
+            # What a stale build copy or an old macOS bundle may still hold.
             (fonts / "NotoEmoji-Regular.ttf").write_bytes(b"face")
+            (fonts / "Carlito-Regular.ttf").write_bytes(b"face")
             (fonts / "OFL-Noto.txt").write_text("licence", encoding="utf-8")
             packager = pp.Packager(manifest, "windows-x64", root, "0.1.7", root, "abc", False, None, None, True,
                                    log=lambda *_: None)
             packager.copy_fonts(fonts, without)
             names = {path.name for path in fonts.iterdir()}
-            self.assertFalse(names & set(manifest.fallback_font_names()))
-            self.assertTrue(set(manifest.font_files(without)) <= names)
+            self.assertEqual(names, set(manifest.font_notices(without)))
             packager.copy_fonts(fonts, manifest.program("gallery"))
             names = {path.name for path in fonts.iterdir()}
-            self.assertTrue(set(manifest.fallback_font_names()) <= names)
+            self.assertEqual(names, set(manifest.font_notices(manifest.program("gallery"))))
+            self.assertFalse(any(Path(name).suffix in pp.FACE_SUFFIXES for name in names))
 
     def test_notice_list_is_well_formed(self) -> None:
         data = json.loads(pp.LICENSES_PATH.read_text(encoding="utf-8"))
@@ -137,12 +137,99 @@ class ManifestTests(unittest.TestCase):
             notices.mkdir(parents=True)
             self.assertEqual(pp.stx_source_directory(build, None), notices)
 
+    def test_only_system_libraries_are_accepted(self) -> None:
+        # One module: a program names no GUI.Forms, STXlib or bundled library
+        # and no compiler runtime, whatever the platform's spelling.
+        for name in ("libgui_forms_threading.so.0", "libgui_forms_application.dylib", "gui_forms_abi1.dll",
+                     "libgui_drawing_raster.so", "gui_drawing_abi0.dll", "libstxlib_state.so",
+                     "stxlib_state.dll", "@rpath/libstxlib_state.dylib", "libfreetype.so.6",
+                     "libharfbuzz.so.0", "libc++.so.1", "libunwind.so.1", "libstdc++-6.dll",
+                     "libwinpthread-1.dll", "C:\\build\\libgui_forms_threading.dll"):
+            self.assertIsNotNone(pp.refused_dependency(name), name)
+        for name in ("libc.so.6", "libm.so.6", "libX11.so.6", "libatk-1.0.so.0", "kernel32.dll",
+                     "/usr/lib/libSystem.B.dylib", "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+                     "libc++.1.dylib"):
+            self.assertIsNone(pp.refused_dependency(name), name)
+        self.assertTrue(pp.windows_system_import("KERNEL32.dll"))
+        self.assertTrue(pp.windows_system_import("api-ms-win-crt-runtime-l1-1-0.dll"))
+        self.assertFalse(pp.windows_system_import("gui_forms_abi1.dll"))
+        # macOS bundles only the LLVM runtime dylibs, while the runtime tree has no archives.
+        for name in ("libc++.1.dylib", "libc++abi.1.dylib", "libunwind.1.dylib"):
+            self.assertIsNotNone(pp.MACOS_BUNDLED_RUNTIME.fullmatch(name), name)
+        for name in ("libgui_forms_threading.dylib", "libstxlib_state.dylib", "libfoo.dylib"):
+            self.assertIsNone(pp.MACOS_BUNDLED_RUNTIME.fullmatch(name), name)
+
+    def test_linux_needed_libraries_are_read_from_readelf(self) -> None:
+        readelf = (" 0x0000000000000001 (NEEDED)             Shared library: [libX11.so.6]\n"
+                   " 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n"
+                   " 0x0000000000000001 (NEEDED)             Shared library: [libX11.so.6]\n"
+                   " 0x000000000000000e (SONAME)             Library soname: [libother.so.1]\n")
+        self.assertEqual(pp.linux_needed_libraries(readelf), ["libX11.so.6", "libc.so.6"])
+        self.assertEqual(pp.linux_needed_libraries(""), [])
+
+    def test_windows_closure_refuses_a_non_system_import(self) -> None:
+        packager = pp.Packager.__new__(pp.Packager)
+        packager.log = lambda message: None
+        packager.tool = lambda name: "objdump" if name == "objdump" else None
+        with tempfile.TemporaryDirectory() as temporary:
+            bundle = Path(temporary)
+            executable = bundle / "Program.exe"
+            executable.write_bytes(b"MZ")
+            packager.run = lambda command, **options: "\tDLL Name: KERNEL32.dll\n\tDLL Name: USER32.dll\n"
+            packager.windows_closure(bundle, executable)
+            packager.run = lambda command, **options: "\tDLL Name: KERNEL32.dll\n\tDLL Name: gui_forms_abi1.dll\n"
+            with self.assertRaisesRegex(RuntimeError, "one module"):
+                packager.windows_closure(bundle, executable)
+            packager.run = lambda command, **options: "\tDLL Name: somevendor.dll\n"
+            with self.assertRaisesRegex(RuntimeError, "not a system DLL"):
+                packager.windows_closure(bundle, executable)
+            self.assertEqual(sorted(path.name for path in bundle.iterdir()), ["Program.exe"])
+
     def test_windows_runtime_imports_are_recognised(self) -> None:
         for name in ("libgcc_s_seh-1.dll", "libstdc++-6.dll", "LIBSTDC++-6.DLL", "libc++.dll", "libunwind.dll",
                      "libwinpthread-1.dll", "libgomp-1.dll"):
             self.assertIsNotNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
-        for name in ("libgui_forms_threading.dll", "gui_forms_abi1.dll", "kernel32.dll"):
+        for name in ("gui_forms_abi1.dll", "kernel32.dll"):
             self.assertIsNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
+
+    def test_linux_runtime_dependencies_are_read_from_ldd_and_readelf(self) -> None:
+        ldd = ("\tlinux-vdso.so.1 (0x00007ffd1c5f2000)\n"
+               "\tlibgui_forms_threading.so => /build/libgui_forms_threading.so (0x00007f3a1c000000)\n"
+               "\tlibc++.so.1 => /lib/x86_64-linux-gnu/libc++.so.1 (0x00007f3a1bc00000)\n"
+               "\tlibc++abi.so.1 => /lib/x86_64-linux-gnu/libc++abi.so.1 (0x00007f3a1bb00000)\n"
+               "\tlibunwind.so.1 => not found\n"
+               "\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f3a1b900000)\n"
+               "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f3a1ba00000)\n"
+               "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f3a1b800000)\n")
+        self.assertEqual(pp.linux_runtime_dependencies(ldd),
+                         ["libc++.so.1", "libc++abi.so.1", "libunwind.so.1"])
+        readelf = (" 0x0000000000000001 (NEEDED)             Shared library: [libgui_forms_threading.so.0]\n"
+                   " 0x0000000000000001 (NEEDED)             Shared library: [libc++abi.so.1]\n"
+                   " 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n")
+        self.assertEqual(pp.linux_runtime_dependencies(readelf), ["libc++abi.so.1"])
+        # A statically linked program: neither tool names a runtime library.
+        static = ("\tlinux-vdso.so.1 (0x00007ffd1c5f2000)\n"
+                  "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f3a1ba00000)\n"
+                  "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f3a1b800000)\n")
+        self.assertEqual(pp.linux_runtime_dependencies(static), [])
+        self.assertEqual(pp.linux_runtime_dependencies(""), [])
+        for name in ("libc++.so.1", "libc++abi.so.1", "libunwind.so.1"):
+            self.assertIsNotNone(pp.LINUX_LLVM_RUNTIME.fullmatch(name), name)
+        for name in ("libstdc++.so.6", "libc.so.6", "libgui_forms_threading.so", "libc++.so"):
+            self.assertIsNone(pp.LINUX_LLVM_RUNTIME.fullmatch(name), name)
+
+    def test_linux_packages_carry_the_libcxx_notices(self) -> None:
+        data = json.loads(pp.LICENSES_PATH.read_text(encoding="utf-8"))
+        for platform in ("linux-x64", "linux-arm64"):
+            names = [notice["name"] for notice in data["notices"]
+                     if platform in notice.get("platforms", [])
+                     and notice.get("component") in {"LLVM libc++ and libc++abi", "LLVM libunwind"}]
+            self.assertEqual(names, ["LLVM/libcxx-LICENSE.TXT", "LLVM/libcxxabi-LICENSE.TXT",
+                                     "LLVM/libunwind-LICENSE.TXT"], platform)
+        for name in ("libcxx-LICENSE.TXT", "libcxxabi-LICENSE.TXT", "libunwind-LICENSE.TXT"):
+            text = (pp.ROOT / "packaging/licenses/llvm" / name).read_text(encoding="utf-8")
+            self.assertIn("Apache License", text)
+            self.assertIsNone(pp.GPL_TITLE.search(text), name)
 
     def assert_rejected(self, mutate, pattern: str) -> None:
         data = manifest_data()
@@ -163,8 +250,10 @@ class ManifestTests(unittest.TestCase):
         self.assert_rejected(lambda d: d["programs"][0]["smoke"].__setitem__("mode", "pray"), "extra_arguments")
         self.assert_rejected(lambda d: d["programs"][0].__setitem__("enabled", "yes"), "enabled")
         self.assert_rejected(lambda d: d["programs"][0].pop("fallback_fonts"), "fallback_fonts")
-        self.assert_rejected(lambda d: d["fonts"].pop("fallback_files"), "fallback_files")
-        self.assert_rejected(lambda d: d["fonts"]["files"].append("NotoEmoji-Regular.ttf"), "also listed")
+        self.assert_rejected(lambda d: d["fonts"].pop("fallback_notices"), "fallback_notices")
+        self.assert_rejected(lambda d: d["fonts"].__setitem__("files", ["Carlito-Regular.ttf"]), "not packaged")
+        self.assert_rejected(lambda d: d["fonts"]["notices"].append("Carlito-Regular.ttf"), "names a face file")
+        self.assert_rejected(lambda d: d["fonts"]["notices"].append("OFL-Noto.txt"), "also listed")
 
 
 class ArtifactNameTests(unittest.TestCase):
@@ -221,7 +310,7 @@ class NoticeCheckTests(unittest.TestCase):
     def make_package(self, root: Path) -> dict[str, Any]:
         (root / "licenses").mkdir()
         (root / "fonts").mkdir()
-        lines = ["| Example | 1.0 | MIT | all | `licenses/Example.txt` | x |", pp.FREETYPE_CREDIT, "`fonts/OFL-Example.txt`"]
+        lines = ["| Example | 1.0 | MIT | all | `licenses/Example.txt` | x |", "`fonts/OFL-Example.txt`"]
         (root / "licenses" / pp.NOTICES_NAME).write_text("\n".join(lines) + "\n", encoding="utf-8")
         (root / "licenses" / "Example.txt").write_text("MIT License\n", encoding="utf-8")
         (root / "fonts" / "OFL-Example.txt").write_text("SIL Open Font License\n", encoding="utf-8")
@@ -234,9 +323,8 @@ class NoticeCheckTests(unittest.TestCase):
             licenses = self.make_package(root)
             pp.check_package_notices(root, "windows-x64", licenses, ["OFL-Example.txt"])
 
-    def test_the_checked_in_notices_carry_the_freetype_credit(self) -> None:
+    def test_the_checked_in_notices_name_every_component(self) -> None:
         text = (pp.ROOT / pp.NOTICES_NAME).read_text(encoding="utf-8")
-        self.assertIn(pp.FREETYPE_CREDIT, text)
         self.assertIsNone(pp.GPL_TITLE.search(text))
         data = json.loads(pp.LICENSES_PATH.read_text(encoding="utf-8"))
         for notice in data["notices"]:
@@ -245,7 +333,6 @@ class NoticeCheckTests(unittest.TestCase):
 
     def test_each_defect_is_refused(self) -> None:
         cases = (
-            ("credit", "lacks the FreeType credit"),
             ("unnamed licence", "not named"),
             ("missing row", "has no row"),
             ("gpl text", "General Public License text"),
@@ -257,9 +344,7 @@ class NoticeCheckTests(unittest.TestCase):
                 licenses = self.make_package(root)
                 notices = root / "licenses" / pp.NOTICES_NAME
                 text = notices.read_text(encoding="utf-8")
-                if case == "credit":
-                    notices.write_text(text.replace(pp.FREETYPE_CREDIT, ""), encoding="utf-8")
-                elif case == "unnamed licence":
+                if case == "unnamed licence":
                     (root / "licenses" / "Other.txt").write_text("BSD\n", encoding="utf-8")
                 elif case == "missing row":
                     licenses["notices"].append({"name": "Absent.txt", "source": "y", "component": "Absent"})
@@ -297,7 +382,7 @@ class StagingTests(unittest.TestCase):
             bundle = root / "GUI.Forms Gallery"
             (bundle / "fonts").mkdir(parents=True)
             (bundle / "GUI.Forms Gallery.exe").write_bytes(b"MZ")
-            (bundle / "fonts/Carlito-Regular.ttf").write_bytes(b"font")
+            (bundle / "fonts/OFL-Carlito.txt").write_bytes(b"licence")
             packager = pp.Packager(manifest, "windows-x64", root, "0.1.7", root, "abc", False, None, None, True, log=lambda *_: None)
             script = root / "installer.nsi"
             packager.write_nsis_script(bundle, gallery, gallery.platforms["windows-x64"], root / "setup.exe", script)
@@ -305,7 +390,7 @@ class StagingTests(unittest.TestCase):
             self.assertNotRegex(text.split("\n", 1)[1], r"@[A-Z0-9_]+@")
             self.assertIn('InstallDir "$LOCALAPPDATA\\Rainstar\\GUI.Forms\\gallery"', text)
             self.assertIn('WriteRegStr HKCU "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\RainstarGUIForms-gallery" "DisplayName" "GUI.Forms Gallery"', text)
-            self.assertIn('Delete "$INSTDIR\\fonts\\Carlito-Regular.ttf"', text)
+            self.assertIn('Delete "$INSTDIR\\fonts\\OFL-Carlito.txt"', text)
             self.assertIn('RMDir "$INSTDIR\\fonts"', text)
             self.assertIn('VIProductVersion "0.1.7.0"', text)
             self.assertIn('RequestExecutionLevel user', text)

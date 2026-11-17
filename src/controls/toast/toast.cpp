@@ -40,15 +40,15 @@ PartMark severity_mark(NoticeSeverity severity) noexcept {
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<Toast::Parts>, 6> toast_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Toast::Parts::label},
-    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &Toast::Parts::actuator},
     {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = close_part_states},
      .member = &Toast::Parts::close},
@@ -74,6 +74,7 @@ constexpr ControlAnatomy toast_anatomy{
     .parts = toast_parts,
     .states = toast_states,
     .custom_states = toast_custom_states,
+    .item_systems = {},
 };
 
 // The event Toast adds to those of Control.
@@ -85,6 +86,11 @@ ToastContent checked_content(ToastContent content) {
     if (content.message.empty() || !validate_utf8(content.message).valid() ||
         !validate_utf8(content.action_text).valid()) {
         throw std::invalid_argument("Toast message must be non-empty and its texts valid UTF-8");
+    }
+    // The severity is the custom state index painting reads
+    // (A-gf-controls-14-F6).
+    if (!notice_severity_known(content.severity)) {
+        throw std::invalid_argument("Toast severity is outside NoticeSeverity");
     }
     return content;
 }
@@ -213,7 +219,7 @@ void Toast::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     PartPaint icon{.role = PartRole::glyph, .bounds = placed.icon, .states = states, .family = ControlVisualRole::notice};
     icon.mark = severity_mark(content_.severity);
-    icon.authored_foreground = notice_severity_colour(content_.severity);
+    icon.authored_foreground.set(notice_severity_colour(content_.severity));
     paint_part(painter, *this, icon);
     PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                     .family = ControlVisualRole::notice};
@@ -256,6 +262,15 @@ void Toast::on_mouse_down(MouseEventArgs& arguments) {
         arguments.handled = true;
     }
     Control::on_mouse_down(arguments);
+}
+
+// The window ends a primary press's capture after its release, when the
+// press has already ended; any other loss forgets it (A-gf-controls-14-F4).
+void Toast::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!pressed_close_) return;
+    pressed_close_ = false;
+    invalidate(Dirty::paint);
 }
 
 void Toast::on_mouse_up(MouseEventArgs& arguments) {

@@ -445,6 +445,8 @@ gui_forms::ToolStrip
 
       *Protected.*
 
+      The model position of a realized item. Throws std::out_of_range for an item past realized_item_count().
+
    .. cpp:function:: Parts strip_parts() const
 
       *Protected.*
@@ -453,7 +455,7 @@ gui_forms::ToolStrip
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 15 supported, 0 deferred, 2 excluded, 76 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 16 supported, 0 deferred, 2 excluded, 75 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -823,7 +825,7 @@ Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 15 sup
    * - method
      - GUI.Forms-only
      - ``show_drop_down``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``show_overflow``

@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -31,16 +32,16 @@ namespace gui_forms {
 // The selected item (SelectedIndex), or none; a view onto the selection. A write shows the item in the editor, moves the open list's row and raises selected_index_changed, then (drop_down_list) text_changed. An index past the end throws std::out_of_range.
 template <typename Declaring>
 struct ComboBoxSelectedIndexCapability {
-    PropertyView<std::optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index;
+    PropertyView<stxlib::Optional<std::size_t>, ComboBoxSelectedIndexCapability<Declaring>> selected_index;
 
-    static void assign(ComboBoxSelectedIndexCapability& capability, std::optional<std::size_t> incoming) {
+    static void assign(ComboBoxSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.selected_index), std::move(incoming));
     }
 
-    static std::optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability) {
+    static stxlib::Optional<std::size_t> read(const ComboBoxSelectedIndexCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<std::size_t> current = control.read_view(capability.selected_index);
+        stxlib::Optional<std::size_t> current = control.read_view(capability.selected_index);
         return current;
     }
 };

@@ -2,8 +2,11 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host.hpp"
+#include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -25,6 +28,9 @@ struct GUI_FORMS_API MacHostOptions {
     // The smallest client size; a side of 0 (the default) sets no minimum
     // there beyond the host's own (ApplicationWindowOptions::minimum_size).
     Size minimum_size{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
     // Portable frame capture (identical on every host). When capture_path is
     // non-empty, after the first presented frame that covers the whole window
     // the host encodes the presented framebuffer as PNG to that path, prints
@@ -33,9 +39,10 @@ struct GUI_FORMS_API MacHostOptions {
     // was saved and non-zero otherwise. Only how the adapter obtains its
     // framebuffer differs between hosts.
     std::string capture_path{};
+#endif
     // When set, the window is created at this logical size instead of
     // initial_size.
-    std::optional<Size> capture_size{};
+    stxlib::Optional<Size> capture_size{};
     // Full-size content retains the native titled window, traffic-light
     // controls, resize behavior, system title, and accessibility identity. It
     // only makes the title material transparent and lets retained content
@@ -56,6 +63,10 @@ struct GUI_FORMS_API MacHostOptions {
     // them. hide_on_close keeps a reusable owned surface alive instead of
     // turning its native close button into a one-shot lifetime boundary.
     bool initially_visible{true};
+    // How long a newly shown window stays off screen waiting for its first
+    // presented frame (ApplicationWindowOptions::first_frame_show_ceiling;
+    // FirstFrameShowGate). Zero shows at once. A popup is never gated.
+    std::chrono::milliseconds first_frame_show_ceiling{gui_forms::first_frame_show_ceiling};
     bool hide_on_close{};
     bool minimizable{true};
     std::function<void(std::function<void()> show,
@@ -110,7 +121,7 @@ struct GUI_FORMS_API MacApplicationWindow final {
     HostWindowFloating floating{HostWindowFloating::none};
     // A native popup window (ApplicationWindow::popup); none for every
     // other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 [[nodiscard]] GUI_FORMS_API HostCapabilities macos_capabilities();

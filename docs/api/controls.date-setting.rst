@@ -54,7 +54,7 @@ Related types
    * - :cpp:class:`DateTimePickerFormatPropertyCapability <gui_forms::DateTimePickerFormatPropertyCapability>`
      - Which of the format provider's patterns shows the value, or custom_format (Format).
    * - :cpp:class:`DateTimePickerFormatProviderCapability <gui_forms::DateTimePickerFormatProviderCapability>`
-     - The month and day names and the patterns the value is shown with.
+     - The month and day names and the patterns the value is shown with, once written; until then the host locale's (effective_format_provider).
    * - :cpp:class:`DateTimePickerMaximumCapability <gui_forms::DateTimePickerMaximumCapability>`
      - The latest value (MaxDate).
    * - :cpp:class:`DateTimePickerMinimumCapability <gui_forms::DateTimePickerMinimumCapability>`
@@ -70,7 +70,7 @@ Related types
    * - :cpp:class:`DateTimeValue <gui_forms::DateTimeValue>`
      - DateTimeValue is DateTimePicker's timezone-free civil date/time value.
    * - :cpp:class:`FirstDayOfWeekCapability <gui_forms::FirstDayOfWeekCapability>`
-     - The weekday each week row starts on.
+     - The weekday each week row starts on, once written; until then the host locale's first day (effective_first_day_of_week).
    * - :cpp:class:`MaxSelectionCountCapability <gui_forms::MaxSelectionCountCapability>`
      - The most days a selection may hold; zero throws std::out_of_range.
    * - :cpp:class:`MonthCalendar::Day <gui_forms::MonthCalendar::Day>`
@@ -90,7 +90,7 @@ Related types
    * - :cpp:class:`MonthCalendarCapabilities <gui_forms::MonthCalendarCapabilities>`
      - Every MonthCalendar capability, in the order the declaring class takes them.
    * - :cpp:class:`MonthCalendarFormatProviderCapability <gui_forms::MonthCalendarFormatProviderCapability>`
-     - Month and day names and the "Today:" date pattern.
+     - Month and day names and the "Today:" date pattern, once written; until then the host locale's (effective_format_provider).
    * - :cpp:class:`ScrollChangeCapability <gui_forms::ScrollChangeCapability>`
      - Months an arrow scrolls; zero (the default) scrolls by the number of months shown.
    * - :cpp:class:`ShowTodayCapability <gui_forms::ShowTodayCapability>`
@@ -157,6 +157,10 @@ Related types
    .. cpp:function:: static DateTimeFormatProvider english_united_states()
 
       Returns the library's canonical English month/day names and short, long, time, and month-year patterns.
+
+   .. cpp:function:: static DateTimeFormatProvider from_locale(const HostLocale& locale)
+
+      The names, patterns and designators of ``locale``.
 
    .. cpp:member:: std::array<std::string, 12> month_names
 
@@ -278,7 +282,7 @@ Related types
 
    .. cpp:member:: DateTimeFormatProvider format_provider
 
-      The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.
+      The month and day names and the patterns the value is shown with, once written; until then the host locale's (effective_format_provider). An invalid provider throws std::invalid_argument; a change closes an open calendar.
 
    .. cpp:member:: bool show_check_box
 
@@ -357,7 +361,7 @@ Related types
 
    .. cpp:member:: PropertyCell<DateTimeDropDownAlignment, DateTimePickerDropDownAlignmentCapability<Declaring>> drop_down_alignment
 
-      Default: ``{DateTimeDropDownAlignment::left}``.
+      Default: ``{DateTimeDropDownAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -399,7 +403,7 @@ Related types
 
    ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
-   The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.
+   The month and day names and the patterns the value is shown with, once written; until then the host locale's (effective_format_provider). An invalid provider throws std::invalid_argument; a change closes an open calendar.
 
 
    .. rubric:: Methods
@@ -542,7 +546,7 @@ Related types
 
    ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
-   The weekday each week row starts on.
+   The weekday each week row starts on, once written; until then the host locale's first day (effective_first_day_of_week).
 
 
    .. rubric:: Methods
@@ -700,7 +704,7 @@ Related types
 
    .. cpp:member:: CalendarWeekday first_day_of_week
 
-      The weekday each week row starts on.
+      The weekday each week row starts on, once written; until then the host locale's first day (effective_first_day_of_week).
 
    .. cpp:member:: CalendarDimensions calendar_dimensions
 
@@ -716,7 +720,7 @@ Related types
 
    .. cpp:member:: DateTimeFormatProvider format_provider
 
-      Month and day names and the "Today:" date pattern.
+      Month and day names and the "Today:" date pattern, once written; until then the host locale's (effective_format_provider).
 
    .. cpp:member:: FontSpec font
 
@@ -728,7 +732,7 @@ Related types
 
    ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
-   Month and day names and the "Today:" date pattern.
+   Month and day names and the "Today:" date pattern, once written; until then the host locale's (effective_format_provider).
 
 
    .. rubric:: Methods
@@ -832,9 +836,9 @@ Enumerations
 
    ``#include <gui_forms/controls/date_time_picker_values.hpp>``
 
-   .. cpp:enumerator:: left
+   .. cpp:enumerator:: start
 
-   .. cpp:enumerator:: right
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_forms
 

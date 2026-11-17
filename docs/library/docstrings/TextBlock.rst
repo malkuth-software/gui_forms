@@ -99,7 +99,7 @@ A heading and a wrapped paragraph in a column:
    (*column).flex_direction = gf::FlexDirection::column;
    std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
        gf::StableId("article.heading"), "Export settings");
-   (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
+   (*heading).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
    std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
        gf::StableId("article.body"),
        "Exported files keep their names; existing files are never overwritten.");
@@ -121,7 +121,7 @@ Align a caption with a larger value by their baselines:
        gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
    std::shared_ptr<gf::TextBlock> value =
        gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-   (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
+   (*value).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
    (*row).add_child(caption);
    (*row).add_child(value);
 

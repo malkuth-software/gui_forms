@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/typography.hpp"
 #include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
@@ -14,6 +15,8 @@
 #include <string_view>
 
 namespace gui_forms {
+
+struct PaintGroupEffect;
 
 class LiveSurface;
 class PaintFramebuffer;
@@ -55,7 +58,34 @@ struct GUI_FORMS_API RetainedDrawCache final {
 //   beneath. A window granted a non-opaque backdrop paints its backplane in
 //   a copy group, so that its frame starts clear. Theme data never selects
 //   it.
-enum class PaintGroupComposite : std::uint8_t { source_over, plus, multiply, screen, copy };
+// - overlay, darken, lighten, color_dodge, color_burn, hard_light,
+//   soft_light, difference and exclusion (capability review, owner
+//   2026-11-16; CSS `mix-blend-mode`): the rest of CSS's separable blend
+//   modes, composited as multiply is: each colour channel
+//   s × (1 − αd) + d × (1 − αs) + αs × αd × B(d / αd, s / αs), with B the
+//   mode's function of the straight colours as Compositing and Blending
+//   Level 1 defines it, and alpha αs + αd − αs × αd. They are appended
+//   after copy so that recorded enumerators keep their values.
+enum class PaintGroupComposite : std::uint8_t {
+    source_over,
+    plus,
+    multiply,
+    screen,
+    copy,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
+};
+
+// The last enumerator of PaintGroupComposite, for range checks of recorded
+// values.
+inline constexpr PaintGroupComposite paint_group_composite_last = PaintGroupComposite::exclusion;
 
 // A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that
 // group layer may be needed for"): commands drawn as one image, then
@@ -75,11 +105,21 @@ enum class PaintGroupComposite : std::uint8_t { source_over, plus, multiply, scr
 //   is isolated at any opacity: a group holding a plus group must be, so
 //   that the sum is formed before it meets what lies beneath. A painter
 //   that cannot isolate (no storage) draws the group directly.
+// - `effect` (capability review decision 1, owner 2026-11-16), when set,
+//   filters and masks the group's image before it is composited
+//   (PaintGroupEffect, declared in surface_material/paint_group_effect,
+//   which this header does not include). A group with an effect is
+//   isolated at any opacity, and its image reaches past `bounds` by the
+//   effect's reach (paint_group_effect_reach): its commands are still
+//   limited to `bounds`, and the blur spreads into the margin. An invalid
+//   effect (valid_paint_group_effect) is ignored and counted as a group
+//   refusal. Shared read-only: a recording keeps it alive.
 struct GUI_FORMS_API PaintGroup final {
     Rect bounds{};
     double opacity{1.0};
     PaintGroupComposite composite{PaintGroupComposite::source_over};
     bool isolated{false};
+    std::shared_ptr<const PaintGroupEffect> effect{};
 };
 
 // The deepest groups nest (T2, coordinator decision Q2/Q3). A group begun
@@ -87,8 +127,109 @@ struct GUI_FORMS_API PaintGroup final {
 // under a save), and the refusal is counted.
 inline constexpr std::size_t maximum_paint_group_depth = 4;
 
+// A two-dimensional affine map (Painter::begin_transform): the point
+// (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy). The default
+// is the identity.
+struct GUI_FORMS_API PaintTransform final {
+    double xx{1.0};
+    double yx{0.0};
+    double xy{0.0};
+    double yy{1.0};
+    double dx{0.0};
+    double dy{0.0};
+
+    [[nodiscard]] bool operator==(const PaintTransform& other) const noexcept {
+        return xx == other.xx && yx == other.yx && xy == other.xy && yy == other.yy && dx == other.dx &&
+               dy == other.dy;
+    }
+};
+
+// The smallest |xx * yy - xy * yx| a transform group accepts: a map that
+// flattens the plane, or nearly, has no usable inverse to clip by.
+inline constexpr double minimum_paint_transform_determinant = 1.0e-6;
+// The deepest transform groups nest. One begun deeper draws nothing, as
+// does every group begun inside a group that draws nothing.
+inline constexpr std::size_t maximum_paint_transform_depth = 8U;
+
+// Whether `transform` is finite and its determinant at least
+// minimum_paint_transform_determinant in size.
+[[nodiscard]] GUI_FORMS_API bool valid_paint_transform(const PaintTransform& transform) noexcept;
+// Whether `transform` only moves the plane (xx = yy = 1, xy = yx = 0).
+[[nodiscard]] GUI_FORMS_API bool paint_transform_is_translation(const PaintTransform& transform) noexcept;
+// Where `transform` takes `point`.
+[[nodiscard]] GUI_FORMS_API Point transform_paint_point(const PaintTransform& transform, Point point) noexcept;
+// The rectangle bounding `rect` mapped by `transform` (its four corners):
+// the area a control damages for a transform group of bounds `rect`. An
+// empty or non-finite rectangle, or a transform that is not valid, gives
+// an empty rectangle.
+[[nodiscard]] GUI_FORMS_API Rect transformed_paint_bounds(const PaintTransform& transform, Rect rect) noexcept;
+// The turn of `degrees` about `centre`, positive anticlockwise as seen on
+// the surface, as Painter::draw_rotated_text_utf8 turns: (1, 0) about the
+// origin goes to (cos, -sin). A non-finite input gives the identity.
+[[nodiscard]] GUI_FORMS_API PaintTransform paint_rotation_about(Point centre, double degrees) noexcept;
+
+// A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped
+// transform, never a free concatenation): `bounds`, in the group's content
+// coordinates, limits what it draws; `transform` maps content coordinates
+// into those in force where the group begins.
+struct GUI_FORMS_API PaintTransformGroup final {
+    Rect bounds{};
+    PaintTransform transform{};
+};
+
 // The most cells Painter::fill_checker draws one by one.
 inline constexpr std::size_t maximum_checker_cells = 65536U;
+// The most marked squares the base Painter::fill_hatch fills one by one.
+inline constexpr std::size_t maximum_hatch_squares = 65536U;
+
+// Whether `focus` lies strictly inside the ellipse of `radii` (both
+// positive) about `center`, as Painter::fill_focal_radial_gradient
+// requires; false for radii that are not positive or a non-finite result.
+[[nodiscard]] GUI_FORMS_API bool focus_inside_ellipse(Point center, Size radii, Point focus) noexcept;
+
+// How draw_text_utf8_fitted shortens text that does not fit: cut it at
+// the last code point that fits, or cut it so U+2026 fits after it.
+enum class TextTrim : std::uint8_t { cut, ellipsis };
+
+// One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text
+// (lent for the call) and its colour.
+struct GUI_FORMS_API TextRun final {
+    Point origin{};
+    std::string_view text{};
+    Color color{};
+};
+// Where a line of text turned about its baseline start lies
+// (Painter::draw_rotated_text_utf8). The run's box is its advance `width`
+// along the baseline and its line box `ascent` above and `descent` below
+// it; turned `degrees` anticlockwise as seen about `anchor`, the box's
+// corners are anchor + s * (cos, -sin) + t * (sin, cos) for s in
+// [0, width] and t in [-ascent, descent].
+struct GUI_FORMS_API RotatedTextBox final {
+    double width{};
+    double ascent{};
+    double descent{};
+    double degrees{};
+};
+// The rectangle bounding the turned box placed at `anchor`: the area a
+// control keeps inside its bounds (or its visual outsets) for the run, so
+// its damage covers every pixel the run inks. Negative or non-finite
+// extents, or a non-finite angle or anchor, give an empty rectangle at the
+// anchor.
+[[nodiscard]] GUI_FORMS_API Rect rotated_text_bounds(Point anchor, const RotatedTextBox& box) noexcept;
+// The anchor that centres the turned box on `centre` (a label placed by
+// its middle, such as an axis title along its edge). Non-finite input
+// gives `centre`.
+[[nodiscard]] GUI_FORMS_API Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept;
+
+// What a painter knows of an image's alpha (Painter::image_draw_opacity, for
+// the blend study, blend_study.hpp): whether every decoded pixel is opaque,
+// and whether it draws the image as an opaque source (a copy, nothing beneath
+// showing through) rather than blending it. A painter that does not know
+// says neither.
+struct GUI_FORMS_API ImageDrawOpacity final {
+    bool pixels_opaque{};
+    bool drawn_as_copy{};
+};
 
 class GUI_FORMS_API Painter : public TextMetricsProvider {
 public:
@@ -105,6 +246,33 @@ public:
     // save() and clip_rect(bounds), then restore().
     virtual void begin_group(const PaintGroup& group);
     virtual void end_group();
+    // Transform groups (see PaintTransformGroup). Between begin_transform
+    // and its end_transform, coordinates are the group's content
+    // coordinates: a point p drawn there lands at transform(p) in the
+    // coordinates in force at begin_transform. `bounds` limits the content
+    // as clip_rect(bounds) under the map would, so everything the group
+    // draws lies inside transformed_paint_bounds(transform, bounds) in the
+    // enclosing coordinates: the rectangle a control damages for it. The
+    // pair nests like save and restore, and inside and around paint groups
+    // (each ends in the scope it began in), up to
+    // maximum_paint_transform_depth; the saves inside must balance. A
+    // transform that is not valid (valid_paint_transform), or a group begun
+    // too deep, draws nothing until its end_transform.
+    // Inside a group that does more than translate, text is shaped as
+    // outside and its glyph outlines are rasterized under the map (no
+    // picture of the upright run is turned); that rasterization is the seam
+    // where glyphs from the STXlib face seat enter
+    // (GlyphRunRasterizer::rasterize_transformed in the Skia painter). The
+    // raster's own direct composites, which address device pixels (text
+    // coverage, part rasters, isolated paint groups), give way to drawing
+    // through the map; nothing new is blended.
+    // The base implementation, a minimal painter's fallback, draws a
+    // translation as save, translate and clip_rect(bounds), and any other
+    // map as nothing (save and clip_rect of an empty rectangle);
+    // end_transform restores. The recording and Skia painters draw every
+    // valid map.
+    virtual void begin_transform(const PaintTransformGroup& group);
+    virtual void end_transform();
     // Native renderers preserve their fonts and drawing semantics offscreen.
     // Recording/headless painters explicitly report this facility unavailable.
     [[nodiscard]] virtual std::unique_ptr<PaintFramebuffer> create_framebuffer(
@@ -127,6 +295,17 @@ public:
     // every corner by the largest of the four, so it never shows more
     // than the exact clip at a corner.
     virtual void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii);
+    // Narrows the clip to `path`'s interior under `rule`: every contour,
+    // open ones closed by a straight segment, as fill_path fills them. Any
+    // fill drawn under it (a gradient, a pattern, an image, text) then shows
+    // in an arbitrary shape: a radial gradient in a star is clip_path, then
+    // fill_radial_gradient over the path's bounds. The clip lasts until the
+    // matching restore, as clip_rect's does. An invalid path
+    // (valid_paint_path) or a rule outside the enumeration clips everything
+    // away until that restore, so a refused clip never shows what it was to
+    // hide. The base implementation clips to paint_path_bounds(path): a
+    // minimal painter shows the path's bounding box, never more.
+    virtual void clip_path(PaintPathView path, PolygonFillRule rule);
     virtual void fill_rect(Rect rect, Color color) = 0;
     virtual void fill_rounded_rect(Rect rect, double radius, Color color);
     virtual void stroke_rect(Rect rect, Color color, double width) = 0;
@@ -141,6 +320,29 @@ public:
     virtual void fill_radial_gradient(
         Rect rect, Point center, Size radii,
         std::span<const GradientStop> stops);
+    // fill_radial_gradient with `spread` outside the ellipse: `pad` keeps
+    // the last stop's colour, `repeat` starts the stops again at each
+    // further radius (concentric rings, CSS repeating-radial-gradient), and
+    // `reflect` runs them back and forth so the rings join without a seam.
+    // A spread outside the enumeration draws nothing. The base
+    // implementation draws as fill_radial_gradient (padded), as
+    // fill_linear_gradient_spread's does.
+    virtual void fill_radial_gradient_spread(
+        Rect rect, Point center, Size radii,
+        std::span<const GradientStop> stops, GradientSpreadMode spread);
+    // A radial gradient whose stops start at `focus` instead of the centre
+    // (SVG's fx, fy; a highlight off the middle of a sphere): offset t lies
+    // on the ellipse of radii t * `radii` centred at
+    // focus + t * (center - focus), so 0 is the focus itself and 1 the
+    // ellipse of `radii` about `center` (the HTML two-circle gradient from
+    // a point to the ellipse), with `spread` beyond. `focus` must lie strictly inside
+    // the ellipse; a focus on or outside it, an empty rectangle, radii that
+    // are not positive, invalid stops or an unknown spread draw nothing.
+    // The base implementation draws rings, each centred on its point along
+    // the focus-to-centre line, padded as fill_radial_gradient's are.
+    virtual void fill_focal_radial_gradient(
+        Rect rect, Point center, Size radii, Point focus,
+        std::span<const GradientStop> stops, GradientSpreadMode spread);
     // Drawn before the owning surface fill.  The shape body may therefore be
     // included by a fallback without changing the final composited result.
     virtual void draw_box_shadow(Rect rect, double corner_radius, Point offset,
@@ -176,6 +378,23 @@ public:
     // A closed polygon through `points` (at least 3, all finite), filled by
     // `rule`.
     virtual void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule);
+    // A curved path (paint_path.hpp, exhibit gap E7) filled by `rule`: every
+    // contour, open ones closed by a straight segment. An invalid path
+    // (valid_paint_path) draws nothing. The base implementation flattens
+    // the path at paint_path_flattening_tolerance into fixed storage
+    // (maximum_fallback_path_points points, maximum_fallback_path_contours
+    // contours; a longer path is drawn from its start) and fills the
+    // contours together by scan rows, as fill_polygon's fallback does.
+    virtual void fill_path(PaintPathView path, Color color, PolygonFillRule rule);
+    // A curved path stroked with `style`'s width, joins, caps and dashes;
+    // closed contours join at their start instead of capping. A trim
+    // (StrokeStyle::trim) strokes only the sub-path trim_paint_path keeps at
+    // stroke_trim_tolerance; every implementation cuts it with that core
+    // function, so all painters stroke the same sub-path (a recording keeps
+    // the whole path and the trim). An invalid path or style draws nothing. The base implementation flattens as
+    // fill_path's does and strokes each contour as stroke_polyline's
+    // fallback does (solid, no joins of its own).
+    virtual void stroke_path(PaintPathView path, const StrokeStyle& style);
     // The area between two polylines sampled at the same positions (a
     // plot's shaded band, area or stacked area): `upper` and `lower` hold
     // the same count, at least 2, all finite; the band's outline runs along
@@ -210,6 +429,13 @@ public:
     // The grid lines of `pattern` that cross `rect`, clipped to it (piece
     // C17). Refused patterns (valid_grid_pattern) draw nothing.
     virtual void fill_grid_pattern(Rect rect, const GridPattern& pattern);
+    // `rect` filled with a hatch (paint_marks.hpp HatchPattern): `back`,
+    // then the marked squares in `fore`. Refused patterns
+    // (valid_hatch_pattern) draw nothing. The base implementation fills
+    // the squares as rectangles (every edge snapped as fill_rect's are);
+    // past maximum_hatch_squares marked squares it fills the rectangle
+    // with the average of the two colours, as fill_checker does.
+    virtual void fill_hatch(Rect rect, const HatchPattern& pattern);
     // A rounded rectangle with each corner rounded by its own radius
     // (piece C1; joined segments round only a row's outer ends). The base
     // implementation fills under clip_rounded_rect_corners; the stroke's
@@ -246,6 +472,50 @@ public:
     // recording painter keeps (a recorded line is shaped again on replay);
     // the Skia painter draws the runs.
     virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color);
+    // Many runs in one font (the flame graph demonstrator's F3), each at its
+    // origin in its colour, in order. The base implementation draws each
+    // with draw_text_utf8; a renderer may share the font's setup across
+    // them. Each run is as draw_text_utf8 would draw it.
+    virtual void draw_text_runs(FontSpec font, std::span<const TextRun> runs);
+    // The longest prefix of `text`, in whole code points, whose
+    // measure_text_utf8 width is at most `max_width` (the flame graph
+    // demonstrator's F2): its byte count. A binary search over byte lengths,
+    // so about log2(bytes) measures; 0 when nothing fits or `max_width` is
+    // not a finite non-negative number.
+    [[nodiscard]] std::size_t fit_text_utf8(std::string_view text, FontSpec font, double max_width);
+    // `text` at `origin`, shortened to `max_width` when it does not fit:
+    // `trim` cut draws the fitted prefix, ellipsis the prefix that leaves
+    // room for U+2026 and then U+2026. Returns the width drawn (0 when
+    // nothing was). Trailing spaces before the ellipsis are dropped. Two
+    // draw_text_utf8 calls at most, no allocation.
+    double draw_text_utf8_fitted(Point origin, std::string_view text, FontSpec font, Color color, double max_width,
+                                 TextTrim trim);
+    // One line of text turned `degrees` about `anchor` (D5 ruling of
+    // 2026-11-13: text at any angle). `anchor` is the start of the
+    // baseline, as for draw_text_utf8, and stays where it is; the run turns
+    // about it, positive degrees anticlockwise as seen on the surface (90
+    // reads up it as TextOrientation::bottom_to_top does, -90 down it). The
+    // run is shaped as draw_text_utf8 shapes it, in the same face, and its
+    // glyph runs are rasterized under the turn (no picture of the
+    // horizontal run is turned): the Skia painter draws them as STXlib's
+    // turned text, whose turn (exact at quarter turns) rotated_text_bounds
+    // and rotated_text_anchor also use. Its ink lies inside rotated_text_bounds of
+    // its measured extent, which is what a control keeps inside the area it
+    // damages. 0 draws as draw_text_utf8, the same pixels; a non-finite
+    // angle draws nothing. The base implementation, a minimal painter's
+    // fallback, draws the run horizontally from `anchor`, unturned; the
+    // recording and Skia painters turn it.
+    virtual void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font, Color color,
+                                        double degrees);
+    // draw_glyph_runs turned as draw_rotated_text_utf8 turns text: runs this
+    // painter's engine shaped in its current face table (view.source) are
+    // rasterized under the turn without shaping again, the pixels
+    // draw_rotated_text_utf8 draws for view.text; any other runs are drawn
+    // as view.text with draw_rotated_text_utf8. That fallback is the base
+    // implementation and the recording painter's (a recorded line is
+    // shaped again on replay); the Skia painter draws the runs.
+    virtual void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font, Color color,
+                                         double degrees);
     // Text controls need the same metrics used by the painter for caret hit
     // testing, selection geometry, and horizontal viewport maintenance.  The
     // renderer owns those metrics; controls must not guess a fixed glyph width.
@@ -288,6 +558,9 @@ public:
     // scale and translation, or a clip has soft edges. Reads only.
     [[nodiscard]] virtual Rect opaque_live_surface_cover(const std::shared_ptr<LiveSurface>& surface,
                                                          Rect destination, double opacity);
+    // What this painter knows of `image`'s alpha as it would draw it now
+    // (ImageDrawOpacity); the default knows nothing. Reads only.
+    [[nodiscard]] virtual ImageDrawOpacity image_draw_opacity(ImageId image) const noexcept;
     // Composites one of the theme engine's part rasters (T2 plan, E2;
     // GIVEN A2-2 and C1-1). `origin` is the raster's top-left corner in
     // logical units; the painter places the raster's first pixel on the
@@ -344,7 +617,12 @@ public:
         double opacity = 1.0);
     // One retained command regardless of repetition count. Production
     // painters realize the pattern exactly; the base implementation is a
-    // bounded compatibility fallback for deliberately minimal hosts.
+    // bounded compatibility fallback for deliberately minimal hosts. The
+    // first tile's top-left corner lies at `destination`'s; `wrap` says
+    // what lies beyond it (ImagePatternWrap). The base implementation
+    // draws `tile` (one image when the tiles exceed its bound), `clamp`
+    // as the tile and its stretched edges, and `mirror` as `tile` (it
+    // cannot flip an image: every tile shows unflipped).
     virtual void fill_image_pattern(ImageId image, Size source_pixel_size,
                                     Rect destination, Size logical_tile_size,
                                     ImagePatternWrap wrap = ImagePatternWrap::tile,

@@ -24,9 +24,17 @@
 //     `callbacks.preview` (after each change of hit, and on every move while
 //     a point or a value is shown). Near a declared viewport's edges the
 //     tracker auto-scrolls through `callbacks.scroll` and plans again.
+//     A plan declares how the owner's model follows (DragPlan::updates):
+//     on_release, the default, shows previews and changes the model once,
+//     at the end; live applies the frame to the model as the drag goes,
+//     through `callbacks.update`, on every pointer move of the dragging
+//     session (a target hit that did not change included), every keyboard
+//     step and every auto-scroll replan, after that move's preview.
 //  4. The session ends once: `callbacks.finished` receives the last frame
 //     with its DragEnd. The owner commits for dropped and free
-//     (drag_end_commits) and restores for every other end.
+//     (drag_end_commits) and restores for every other end; a live session
+//     restores the model to what it was before the drag (its frames carry
+//     `live`), having changed it all along.
 //
 // The session's states (DragPhase):
 //
@@ -60,8 +68,9 @@
 //
 // Memory: the first press reserves the tracker's target storage at
 // maximum_drag_targets and the engine's at its caps; neither grows. Entering
-// an auto-scroll band starts one AnimationTimer the tracker owns (its frame
-// request is an allocation in the window's scheduler); a pointer move or
+// an auto-scroll band starts one UI timer the tracker owns (its frame
+// request is an allocation in the window's scheduler; it is input, not
+// motion, so a high-integrity build keeps it); a pointer move or
 // frame inside a dragging session allocates nothing else.
 //
 // Threads: every member runs on the owner's window's thread (a call from
@@ -80,6 +89,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -137,6 +147,20 @@ enum class DragKind : std::uint8_t {
     value,
     // The subject moved to one of several slots along an axis (a list).
     reorder,
+};
+
+// How the owner's model follows a session (DragPlan::updates). A composite
+// declares which it wants: a splitter or a slider that moves what it
+// controls as it is dragged is live; a list reorder or a drop that only
+// moves the model when released is on_release.
+enum class DragUpdates : std::uint8_t {
+    // Previews only; the model changes once, in finished, for a committing
+    // end.
+    on_release,
+    // `callbacks.update` applies every frame to the model as the drag goes;
+    // finished commits (dropped, free: the last update already applied it)
+    // or restores the model as it was before the drag.
+    live,
 };
 
 // What a frame shows.
@@ -241,6 +265,8 @@ struct GUI_FORMS_API DragAutoScroll final {
 //   auto_scroll: read for pointer sessions; replanned each step.
 //   container: borrowed for the call; the rules' drop_candidate condition
 //     names it while a session runs (null: none).
+//   updates: on_release or live (DragUpdates); read at every plan, so a
+//     replan keeps it only if the owner sets it again.
 //   settles: asks for a settling phase after the end (the owner animates
 //     and calls finish_settling).
 //   refused: the owner has nothing to drag now; the session ends rejected.
@@ -258,6 +284,7 @@ struct GUI_FORMS_API DragPlan final {
     DragReorder reorder{};
     DragAutoScroll auto_scroll{};
     Control* container{};
+    DragUpdates updates{DragUpdates::on_release};
     bool settles{};
     bool refused{};
 };
@@ -270,6 +297,8 @@ struct GUI_FORMS_API DragPlan final {
 //     landing rectangle. point: the placement's top-left. value: the value.
 //   end: none while running; how it ended in finished.
 //   animate: finished only; the session settles until finish_settling.
+//   live: the session's plan is live (DragUpdates::live): update applies
+//     this frame, and finished's restores what the updates changed.
 struct GUI_FORMS_API DragTrackerFrame final {
     DragPhase phase{DragPhase::idle};
     DragInputMode mode{DragInputMode::pointer};
@@ -284,6 +313,7 @@ struct GUI_FORMS_API DragTrackerFrame final {
     double value{};
     DragEnd end{DragEnd::none};
     bool animate{};
+    bool live{};
 };
 
 // Why the tracker asks for an announcement.
@@ -320,11 +350,14 @@ struct GUI_FORMS_API DragAutoScrollStep final {
 };
 
 // The named callbacks. plan and finished are required; the rest are
-// optional (auto-scroll is off without scroll). Each is read when it is
-// called, so a change takes effect at the next call.
+// optional (auto-scroll is off without scroll; a live plan without update
+// changes nothing live). Each is read when it is called, so a change takes
+// effect at the next call. update follows the move's preview, under the
+// same reentrancy rules (it may cancel or withdraw a target).
 struct GUI_FORMS_API DragTrackerCallbacks final {
     Delegate<DragPlan&> plan;
     Delegate<const DragTrackerFrame&> preview;
+    Delegate<const DragTrackerFrame&> update;
     Delegate<const DragTrackerFrame&> finished;
     Delegate<DragAnnouncementRequest&> announce;
     Delegate<DragAutoScrollStep&> scroll;
@@ -339,7 +372,7 @@ struct GUI_FORMS_API DragTrackerCallbacks final {
 struct GUI_FORMS_API DragStart final {
     Control* subject{};
     std::uint64_t key{};
-    std::optional<Rect> source{};
+    stxlib::Optional<Rect> source{};
     double threshold{default_drag_threshold};
 };
 
@@ -377,6 +410,7 @@ enum class DragPlanFault : std::uint8_t {
 //     whose replan waited for the next event (withdrawn inside a callback).
 //   scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled;
 //   scroll_stops: frames that applied nothing (the content's end).
+//   live_updates: update calls (live sessions only).
 struct GUI_FORMS_API DragTrackerStatistics final {
     std::uint64_t sessions{};
     std::uint64_t refused_starts{};
@@ -391,6 +425,7 @@ struct GUI_FORMS_API DragTrackerStatistics final {
     std::uint64_t scroll_ticks{};
     std::uint64_t scroll_steps{};
     std::uint64_t scroll_stops{};
+    std::uint64_t live_updates{};
 };
 
 // -- the tracker ------------------------------------------------------------------

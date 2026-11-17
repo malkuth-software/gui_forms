@@ -26,7 +26,12 @@
 #include <variant>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
+
+// The drag layer's drop-pulse instance (effect_registry.hpp).
+class EffectInstance;
 
 // The rows of a panel's position menu (owner decision DK-30; docking study
 // 5.7). Float floats the panel into a new floating window (phase D4; enabled
@@ -382,7 +387,9 @@ public:
     // site.
     DockSite(StableId stable_id, DockWorkspace& workspace);
     // Realizes the floating site `floating_site` (phase D4). A second site
-    // made for the same floating site replaces the first in the workspace.
+    // made for the same floating site replaces the first in the workspace,
+    // which unbinds the first (it then shows nothing); a second main site
+    // replaces the first main site the same way.
     DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floating_site);
     ~DockSite() override;
     // Realizes the workspace's layout. make_control calls it; do not call it
@@ -420,7 +427,7 @@ public:
     // such seam or the site cannot take focus.
     bool focus_seam(std::size_t seam);
     // The seam the keyboard is on while the site has focus, or none.
-    [[nodiscard]] std::optional<std::size_t> focused_seam() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> focused_seam() const noexcept;
     // Moves a seam by `delta` logical units along its split's axis, within
     // both sides' minimums, as a user edit. False when it cannot move.
     bool move_seam(std::size_t seam, double delta);
@@ -467,6 +474,15 @@ public:
     [[nodiscard]] std::span<const DockDropTarget> drag_targets() const noexcept;
     [[nodiscard]] std::span<const DockDropPane> drag_panes() const noexcept;
     [[nodiscard]] std::optional<DockDropTarget> drag_target() const;
+    // The drop-cue pulse over the selected target's drop part (the effect
+    // program drop_pulse, dock_site_effects.hpp), hosted by the drag
+    // layer: its instance, null before the site has a drag layer (attached
+    // only once the pulse is first painted), and whether it is enlisted on
+    // the motion clock. It is enlisted while a shown target may pulse
+    // (ambient motion on, motion not reduced) and leaves the clock at the
+    // first frame after the target goes; a still frame draws a steady edge.
+    [[nodiscard]] const EffectInstance* drop_pulse_effect() const noexcept;
+    [[nodiscard]] bool drop_pulse_running() const noexcept;
     // Whether this site shows a drag that runs in another site (phase D4).
     [[nodiscard]] bool showing_remote_drag() const noexcept { return drag_.guest; }
     // While a floating window is moved by its caption (phase D4).
@@ -782,7 +798,7 @@ private:
     void realize();
     void remove_slot(StackSlot& slot) noexcept;
     void sync_pages(StackSlot& slot, const DockNode& node);
-    void supply_content(StackSlot& slot);
+    void supply_content(DockNodeId stack);
     void update_focus_regions();
     void on_layout_changed(const DockLayoutChange& change);
     // The views' events, bound to the stack's node identity.
@@ -966,8 +982,8 @@ private:
         std::uint64_t generation{};
         std::vector<DockDropPane> panes{};
         std::vector<DockDropTarget> targets{};
-        std::optional<std::size_t> target{};
-        std::optional<std::size_t> hovered_pane{};
+        stxlib::Optional<std::size_t> target{};
+        stxlib::Optional<std::size_t> hovered_pane{};
         // A panel_only drag's page has left its view (done at the first
         // layout pass, never inside the strip's own drag event).
         bool page_held_out{};
@@ -983,7 +999,7 @@ private:
         // none where the window cannot snapshot), and released when the
         // session ends (reset_drag) by the site that took it. Images are
         // application-scope, so a guest shows the same image.
-        std::optional<ControlSnapshot> picture{};
+        stxlib::Optional<ControlSnapshot> picture{};
         // Phase D4. `guest`: this site shows another site's drag (no capture,
         // no picture of its own, never ends it). `stamp_hidden`: no stamp (a
         // window moved by its caption is its own picture). `may_float`: a
@@ -998,9 +1014,13 @@ private:
     // Ends the session: its picture's image is released (unless a guest's),
     // then the session is cleared.
     void reset_drag() noexcept;
+    // Ends this site's drag without an edit when the site leaves its
+    // window or workspace: the guest showing it stops, the capture goes
+    // when `release_capture`, the drag layer hides, then reset_drag.
+    void abandon_drag(bool release_capture) noexcept;
     // -- across windows (phase D4) --
     // The desktop point of a point in this site, or none without frames.
-    [[nodiscard]] std::optional<Point> to_desktop(Point local) const;
+    [[nodiscard]] stxlib::Optional<Point> to_desktop(Point local) const;
     // The site under the desktop pointer for a drag of this site (`excluded`
     // skipped), or null; this site itself when the pointer is over it.
     [[nodiscard]] DockSite* remote_site(Point desktop, const DockSite* excluded) const;
@@ -1016,7 +1036,7 @@ private:
     void route_drag(Point desktop, Modifier modifiers, const DockSite* excluded);
     // The floating frame for a subject released at `local`: the source's
     // size, held where the pointer grabbed it.
-    [[nodiscard]] std::optional<Rect> float_frame_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<Rect> float_frame_at(Point local) const;
     // A floating site's caption drag that moves its window (WindowFrameDrag).
     struct WindowMove final {
         bool active{};
@@ -1054,7 +1074,7 @@ private:
     [[nodiscard]] Rect drag_paint_extent() const;
     void plan_drag_targets();
     void update_drag_pointer(Point local, Modifier modifiers);
-    void select_drag_target(std::optional<std::size_t> target, std::optional<std::size_t> hovered_pane);
+    void select_drag_target(stxlib::Optional<std::size_t> target, stxlib::Optional<std::size_t> hovered_pane);
     void end_drag(DockDragEnd end);
     void finish_settling() noexcept;
     // The stamp's and the tiles' steps on the window's motion clock.

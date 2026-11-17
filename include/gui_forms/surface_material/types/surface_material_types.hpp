@@ -9,6 +9,8 @@
 #include <optional>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // A border's line (E9.6): CSS `solid`, `dashed` or `dotted`. A dash is
@@ -181,15 +183,15 @@ struct GUI_FORMS_API MaterialReflection final {
 // the corners, as CSS splits a rounded box's edge colours), and the
 // material's keylines draw as rings the same way.
 struct GUI_FORMS_API MaterialBorderEdges final {
-    std::optional<MaterialBorder> top;
-    std::optional<MaterialBorder> right;
-    std::optional<MaterialBorder> bottom;
-    std::optional<MaterialBorder> left;
+    stxlib::Optional<MaterialBorder> top;
+    stxlib::Optional<MaterialBorder> right;
+    stxlib::Optional<MaterialBorder> bottom;
+    stxlib::Optional<MaterialBorder> left;
     [[nodiscard]] static MaterialBorderEdges from_parts(
         const MaterialBorder* top, const MaterialBorder* right,
         const MaterialBorder* bottom, const MaterialBorder* left);
     [[nodiscard]] bool empty() const noexcept {
-        return !top && !right && !bottom && !left;
+        return top.absent() && right.absent() && bottom.absent() && left.absent();
     }
     friend bool operator==(const MaterialBorderEdges& left_value,
                            const MaterialBorderEdges& right_value) noexcept {
@@ -217,6 +219,108 @@ enum class MaterialDither : std::uint8_t {
     ordered,
     blue_noise,
 };
+// A material's own linear transform (theme `transform: rotate() |
+// scale()`, owner 2026-11-16) about its box's centre: a point p of the
+// face is drawn at c + L (p - c), where c is the centre and L maps (x, y)
+// to (xx x + xy y, yx x + yy y). The identity by default. Both paths
+// draw it as a transform group (Painter::begin_transform) cut to the box
+// grown by its visual outsets, so the turned or scaled face never paints
+// outside what the part already damages. Valid when every entry is finite
+// and at most maximum_entry in size, and the determinant is at least
+// minimum_paint_transform_determinant in size.
+struct GUI_FORMS_API MaterialTransform final {
+    static constexpr double maximum_entry = 64.0;
+    double xx{1.0};
+    double yx{0.0};
+    double xy{0.0};
+    double yy{1.0};
+    [[nodiscard]] bool identity() const noexcept {
+        return xx == 1.0 && yx == 0.0 && xy == 0.0 && yy == 1.0;
+    }
+    friend constexpr bool operator==(const MaterialTransform& left, const MaterialTransform& right) noexcept {
+        return left.xx == right.xx && left.yx == right.yx && left.xy == right.xy && left.yy == right.yy;
+    }
+};
+// One verb of a material clip path, with the points it takes from
+// MaterialClipPath::points: move and line one, quadratic two (control,
+// end), cubic three (two controls, end), close none.
+enum class MaterialClipVerb : std::uint8_t {
+    move,
+    line,
+    quadratic,
+    cubic,
+    close,
+};
+// A clip path point in the box: x = box.x + x_units + x_fraction *
+// box.width, and y likewise (a CSS length or percentage of the box).
+struct GUI_FORMS_API MaterialClipPoint final {
+    double x_units{};
+    double x_fraction{};
+    double y_units{};
+    double y_fraction{};
+    friend constexpr bool operator==(const MaterialClipPoint& left, const MaterialClipPoint& right) noexcept {
+        return left.x_units == right.x_units && left.x_fraction == right.x_fraction &&
+               left.y_units == right.y_units && left.y_fraction == right.y_fraction;
+    }
+};
+enum class MaterialClipRule : std::uint8_t {
+    nonzero,
+    even_odd,
+};
+// A material's clip path (theme `clip-path: polygon() | path()`, owner
+// 2026-11-16): only the inside of this outline, filled by `rule`, is
+// drawn: the face, its shadows, glows, filters and reflection alike. It
+// lies in the box's coordinates and turns with the material's transform.
+// Both paths draw it through Painter::clip_path, so a raster composite
+// under it takes its coverage mask. Valid when the first verb is a move,
+// the verbs take exactly `points`, there are at most maximum_points points,
+// and every coordinate is finite with units at most maximum_units and
+// fractions at most maximum_fraction in size.
+struct GUI_FORMS_API MaterialClipPath final {
+    static constexpr std::size_t maximum_points = 256U;
+    static constexpr double maximum_units = 100000.0;
+    static constexpr double maximum_fraction = 100.0;
+    std::vector<MaterialClipVerb> verbs;
+    std::vector<MaterialClipPoint> points;
+    MaterialClipRule rule{MaterialClipRule::nonzero};
+    friend bool operator==(const MaterialClipPath& left, const MaterialClipPath& right) noexcept {
+        return left.verbs == right.verbs && left.points == right.points && left.rule == right.rule;
+    }
+};
+// How a mask layer's sample becomes its weight (CSS `mask-mode`, and the
+// theme language's inverse forms, owner 2026-11-16): the sample's alpha;
+// its luminance, 0.2126 R + 0.7152 G + 0.0722 B of the premultiplied
+// sample (so its luminance times its alpha, on the sRGB-encoded values, as
+// CSS's luminance masks compute it); or one minus either.
+enum class MaterialMaskMode : std::uint8_t {
+    alpha,
+    luminance,
+    inverse_alpha,
+    inverse_luminance,
+};
+// How a mask layer joins the layers beneath it (CSS `mask-composite`), on
+// weights w (this layer) and c (the layers beneath, combined) in [0, 1]:
+// add c' = w + c (1 - w); subtract c' = w (1 - c); intersect c' = w c;
+// exclude c' = w (1 - c) + c (1 - w). The bottom layer's is not read.
+enum class MaterialMaskComposite : std::uint8_t {
+    add,
+    subtract,
+    intersect,
+    exclude,
+};
+// One layer of a material's mask (E9.6, CSS `mask-image` with its
+// longhands): a solid, gradient or image fill, read by `mode` and joined
+// to the layers beneath by `composite`. An image layer's size, position
+// and repetition are its fill's image_scale, image_anchor, image_offset
+// and image_mode, as a background image's are.
+struct GUI_FORMS_API MaterialMaskLayer final {
+    MaterialFillLayer source{};
+    MaterialMaskMode mode{MaterialMaskMode::alpha};
+    MaterialMaskComposite composite{MaterialMaskComposite::add};
+    friend bool operator==(const MaterialMaskLayer& left, const MaterialMaskLayer& right) noexcept {
+        return left.source == right.source && left.mode == right.mode && left.composite == right.composite;
+    }
+};
 struct GUI_FORMS_API SurfaceMaterial final {
     static constexpr std::size_t maximum_fill_layers = 8U;
     static constexpr std::size_t maximum_shadows = 4U;
@@ -232,11 +336,15 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // The farthest a reflection reaches outside the box, gap and reach
     // together, in logical units (T5-Q15: the blur and glow cap).
     static constexpr double maximum_reflection_reach = 8.0;
+    // The most mask layers, and the most of them that are images: an image
+    // mask's resampled variant has one slot (image_mask_variant_layer).
+    static constexpr std::size_t maximum_mask_layers = 4U;
+    static constexpr std::size_t maximum_image_mask_layers = 1U;
     std::vector<MaterialFillLayer> fills{
         MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
     std::vector<MaterialShadow> shadows;
     std::vector<MaterialGlow> glows;
-    std::optional<MaterialBorder> border;
+    stxlib::Optional<MaterialBorder> border;
     MaterialBorderEdges border_edges;
     std::vector<MaterialKeyline> keylines;
     double corner_radius{};
@@ -244,7 +352,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // in the engine's material primitive. The built-in path,
     // paint_surface_material, rounds every corner by corner_radius, so a
     // theme sets that to the radius the fallback should draw.
-    std::optional<MaterialCornerRadii> corner_radii;
+    stxlib::Optional<MaterialCornerRadii> corner_radii;
     // The part filters (E9.6, CSS `filter`), applied to the baked raster in
     // this order: the colour filter to each pixel, then the drop shadow
     // beneath, then the blur over the whole. A theme's filter list lowers
@@ -252,7 +360,7 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // built-in path, paint_surface_material, draws none of them, and the
     // window's backplane image draws only the colour filter.
     MaterialColourFilter colour_filter;
-    std::optional<MaterialDropShadow> drop_shadow;
+    stxlib::Optional<MaterialDropShadow> drop_shadow;
     // CSS `filter: blur(σ)` as filter_blur = 2σ logical units, the blur
     // radius convention of shadows; 0 for none.
     double filter_blur{};
@@ -261,18 +369,28 @@ struct GUI_FORMS_API SurfaceMaterial final {
     // (finished_surface_material, which both paths draw). A finish above 0
     // needs a solid or linear first fill and room for one more keyline.
     double finish{};
-    // An alpha mask (E9.6, CSS `mask-image`): a solid, gradient or image
-    // fill whose alpha, times its opacity for an image, multiplies the
-    // whole finished part, its shadows and glows included; outside the box
-    // it extends at its edge value, so that a shadow fades with the face
-    // beside it. The engine's material primitive draws it; the built-in
-    // path, paint_surface_material, draws the material unmasked.
-    std::optional<MaterialFillLayer> mask;
+    // The mask (E9.6, CSS `mask-image`, `mask-mode`, `mask-composite`):
+    // up to maximum_mask_layers layers, bottom first (CSS lists the top
+    // layer first), at most maximum_image_mask_layers of them images. Each
+    // layer's weight at a pixel is its fill's sample there read by its mode
+    // (an image's times its opacity); the weights combine from the bottom
+    // up by each upper layer's composite, and the result multiplies the
+    // whole finished part, its shadows and glows included. Outside the box
+    // each layer extends at its edge value, so that a shadow fades with the
+    // face beside it. Empty for none. The engine's material primitive draws
+    // it; the built-in path, paint_surface_material, draws the material
+    // unmasked.
+    std::vector<MaterialMaskLayer> masks;
     // A reflection of the finished face (MaterialReflection), drawn after
     // the mask; none by default.
-    std::optional<MaterialReflection> reflection;
+    stxlib::Optional<MaterialReflection> reflection;
     // The final quantization (MaterialDither); none by default.
     MaterialDither dither{MaterialDither::none};
+    // The material's own transform (MaterialTransform); the identity by
+    // default.
+    MaterialTransform transform;
+    // The material's clip path (MaterialClipPath); none by default.
+    std::optional<MaterialClipPath> clip_path;
     [[nodiscard]] static SurfaceMaterial from_parts(
         const MaterialFillLayer* fills, std::size_t fill_count,
         const MaterialShadow* shadows, std::size_t shadow_count,
@@ -299,8 +417,9 @@ struct GUI_FORMS_API SurfaceMaterial final {
         left.colour_filter == right.colour_filter &&
         left.drop_shadow == right.drop_shadow &&
         left.filter_blur == right.filter_blur && left.finish == right.finish &&
-        left.mask == right.mask && left.reflection == right.reflection &&
-        left.dither == right.dither)) {
+        left.masks == right.masks && left.reflection == right.reflection &&
+        left.dither == right.dither && left.transform == right.transform &&
+        left.clip_path == right.clip_path)) {
         return left.fills == right.fills && left.shadows == right.shadows &&
                left.glows == right.glows &&
                left.border == right.border &&
@@ -311,9 +430,10 @@ struct GUI_FORMS_API SurfaceMaterial final {
                left.colour_filter == right.colour_filter &&
                left.drop_shadow == right.drop_shadow &&
                left.filter_blur == right.filter_blur &&
-               left.finish == right.finish && left.mask == right.mask &&
+               left.finish == right.finish && left.masks == right.masks &&
                left.reflection == right.reflection &&
-               left.dither == right.dither;
+               left.dither == right.dither && left.transform == right.transform &&
+               left.clip_path == right.clip_path;
     }
 };
 

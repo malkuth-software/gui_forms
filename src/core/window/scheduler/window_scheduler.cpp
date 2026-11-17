@@ -23,16 +23,16 @@ bool SurfaceRoot::needs_frame() const noexcept {
     return paint_pending();
 }
 
-std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
-    std::optional<FrameTime> result;
+stxlib::Optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
+    stxlib::Optional<FrameTime> result;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
         if (!(*request).connected()) {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {
             const bool resting = occluded_ && (*request).rests_while_occluded;
-            if (!resting && (!result || (*request).deadline < *result)) {
-                result = (*request).deadline;
+            if (!resting && (result.absent() || (*request).deadline < *result.value())) {
+                result.set((*request).deadline);
             }
             continue;
         }
@@ -41,8 +41,8 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
         }
         if ((*request).kind == detail::FrameRequestKind::motion_clock ||
             (*request).kind == detail::FrameRequestKind::engine_idle) {
-            if (!result || (*request).deadline < *result) {
-                result = (*request).deadline;
+            if (result.absent() || (*request).deadline < *result.value()) {
+                result.set((*request).deadline);
             }
             continue;
         }
@@ -51,8 +51,8 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
             !(*target).effectively_visible()) {
             continue;
         }
-        if (!result || (*request).deadline < *result) {
-            result = (*request).deadline;
+        if (result.absent() || (*request).deadline < *result.value()) {
+            result.set((*request).deadline);
         }
     }
     return result;
@@ -73,6 +73,7 @@ FrameRequestToken SurfaceRoot::schedule_paint(const Control::Ptr& control,
     frame_requests_.push_back(request);
     (*control).own_revocable(request);
     metrics_.record_frame_request();
+    request_schedule_wake();
     return FrameRequestToken(request);
 }
 
@@ -86,6 +87,7 @@ FrameRequestToken SurfaceRoot::request_motion_frames(FrameTime first_deadline) {
         detail::FrameRequestKind::motion_clock, Control::WeakPtr{}, first_deadline, motion_frame_interval);
     frame_requests_.push_back(request);
     metrics_.record_frame_request();
+    request_schedule_wake();
     return FrameRequestToken(request);
 }
 
@@ -95,6 +97,7 @@ void SurfaceRoot::set_motion_frame_deadline(FrameTime deadline) noexcept {
             (*request).deadline = deadline;
         }
     }
+    request_schedule_wake();
 }
 
 FrameRequestToken SurfaceRoot::schedule_ui_timer(
@@ -119,6 +122,9 @@ FrameRequestToken SurfaceRoot::schedule_ui_timer(
     frame_requests_.push_back(request);
     owner.own_revocable(request);
     metrics_.record_frame_request();
+    // A Timer started or restarted outside a tick (posted work, another
+    // window's callback): the host re-arms for it.
+    request_schedule_wake();
     return FrameRequestToken(request);
 }
 
@@ -144,6 +150,9 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         return deferred;
     }
     in_frame_poll_ = true;
+    // The host is polling, so it arms its wake after this: an owed schedule
+    // wake is answered.
+    schedule_wake_pending_ = false;
     // Ends the poll on every path: the scratch is emptied (keeping its
     // capacity) and the copied requests are released.
     struct Reset final {

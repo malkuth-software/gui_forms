@@ -57,13 +57,13 @@ void test_checked_collections(gui_forms::Window& window) {
         std::dynamic_pointer_cast<ListView>(window.find("gallery.checked.list-view.list"));
     std::shared_ptr<gui_forms::Button> mark =
         std::dynamic_pointer_cast<Button>(window.find("gallery.checked.list-view.mark"));
-    require(list_view && mark && !(*list_view).insertion_mark().has_value(),
+    require(list_view && mark && (*list_view).insertion_mark().absent(),
             "the gallery ListView starts without an insertion mark");
     (*mark).perform_click();
-    require((*list_view).insertion_mark() == std::optional<ListViewInsertionMark>(ListViewInsertionMark{2U, false}),
+    require((*list_view).insertion_mark() == stxlib::Optional<ListViewInsertionMark>::of(ListViewInsertionMark{2U, false}),
             "the gallery toggle shows the insertion mark before the third row");
     (*mark).perform_click();
-    require(!(*list_view).insertion_mark().has_value(), "the gallery toggle clears the insertion mark");
+    require((*list_view).insertion_mark().absent(), "the gallery toggle clears the insertion mark");
 
     // F2's label edit, opened through its public entry point for the same
     // reason. The edits leave the task's text as it was.

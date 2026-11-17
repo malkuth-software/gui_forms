@@ -283,6 +283,11 @@ struct GUI_FORMS_API BinTally final {
 // cleared first, so blocks accumulate).
 template <SeriesElement Element>
 BinTally bin_values(SeriesSpans<Element> values, const BinSpec& spec, std::span<std::uint64_t> counts) noexcept;
+// Counts `values` into `counts` afresh: its first spec.count entries are
+// zeroed, then filled as bin_values fills them (the plot demonstrator's gap
+// P10). A refused spec leaves `counts` untouched.
+template <SeriesElement Element>
+BinTally bin_values_into(SeriesSpans<Element> values, const BinSpec& spec, std::span<std::uint64_t> counts) noexcept;
 
 // Two-dimensional bins (histogram 2D, heatmap resample): `counts` is
 // x_spec.count × y_spec.count, row-major by y.

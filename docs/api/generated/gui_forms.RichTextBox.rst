@@ -489,21 +489,21 @@ gui_forms::RichTextBox
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_text_changed()
+   .. cpp:function:: void on_text_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
-   .. cpp:function:: virtual void on_read_only_changed()
-
-      *Protected.*
-
-   .. cpp:function:: virtual void on_accepts_tab_changed()
+   .. cpp:function:: void on_read_only_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_accepts_tab_changed()
+
+      *Protected.*
+
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 

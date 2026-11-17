@@ -1,0 +1,19 @@
+#include <gui_forms/binding.hpp>
+
+#include <string_view>
+
+namespace gui_forms {
+
+void bind_value(int& target, const std::string_view property, Value<bool>& source) {
+    target = static_cast<int>(property.size()) + (source.value ? 1 : 0);
+}
+
+void bind_value(int& target, const std::string_view property, Value<int>& source) {
+    target = static_cast<int>(property.size()) + source.value;
+}
+
+void name_value(const std::string_view property) {
+    static_cast<void>(property);
+}
+
+} // namespace gui_forms

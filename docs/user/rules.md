@@ -104,7 +104,8 @@ The firing also carries `control` (the control the trigger names), `state`
 | `value_changed(value)` | a `Value<T>`'s change |
 
 Keys are physical keys (`PhysicalKey`, USB HID usages). The mouse events
-follow WinForms' order and use the host's click count (see
+follow the owner's input order, which raises `MouseUp` before `Click`, and
+use the host's click count (see
 {doc}`input-and-focus`).
 
 ### Conditions (levels)
@@ -182,12 +183,12 @@ model's own event, use `gf::on(event, owner, &Owner::member)`
 - **Tokens.** A `RuleToken` observes its rule and does not own it. Dropping
   the token leaves the rule armed. `revoke()` ends the rule early.
 
-Rules are not written in form documents in 0.5: a form never names program
-code. A document that still writes a handler reference (`on-clicked: …;`)
+Rules are not written in form documents: a form never names program
+code. A document that still writes a handler reference (`on-clicked="…"`)
 is refused with E816 `form_handler_removed`; the program arms a
 rule on the generated member instead, as the Gallery's `GalleryContext::attach`
 and `examples/reference/window_rules.cpp` do. Rules that use only built-in
-actions may come to documents after the 0.5 seal.
+actions may come to documents later.
 
 ## The C ABI
 

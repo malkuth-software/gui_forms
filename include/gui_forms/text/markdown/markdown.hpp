@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -56,8 +57,8 @@ struct GUI_FORMS_API MarkdownSpanStyle final {
     bool strikethrough{};
     bool code{};
     MarkdownBaseline baseline{MarkdownBaseline::normal};
-    std::optional<MarkdownRgb> colour{};
-    std::optional<MarkdownRgb> background{};
+    stxlib::Optional<MarkdownRgb> colour{};
+    stxlib::Optional<MarkdownRgb> background{};
     std::int8_t size_step{};
 };
 
@@ -85,10 +86,10 @@ struct GUI_FORMS_API MarkdownSpan final {
     MarkdownSpanStyle style{};
     // The link the span is the text of: an index into
     // MarkdownDocument::links.
-    std::optional<std::size_t> link{};
+    stxlib::Optional<std::size_t> link{};
     // The image the span is the alternative text of: an index into
     // MarkdownDocument::images.
-    std::optional<std::size_t> image{};
+    stxlib::Optional<std::size_t> image{};
 };
 
 // A link's destination, decoded. Every link of the source has its own
@@ -179,7 +180,7 @@ public:
 
     [[nodiscard]] bool succeeded() const noexcept;
     // The error of a parse that failed; none when it succeeded.
-    [[nodiscard]] std::optional<MarkdownParseError> error() const noexcept;
+    [[nodiscard]] stxlib::Optional<MarkdownParseError> error() const noexcept;
     // Where a failed parse stopped; 0 when it succeeded.
     [[nodiscard]] Utf8Offset offset() const noexcept;
 
@@ -196,8 +197,8 @@ private:
 
 // Parses source into document, which is replaced; on failure document is
 // empty. source is only read and must not change during the call; document
-// keeps no borrow of it. Cancellation is observed between the parser's
-// callbacks.
+// keeps no borrow of it. Cancellation is observed once per block, while
+// the source is read and while its blocks are built.
 [[nodiscard]] GUI_FORMS_API MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document,
                                                  const MarkdownLimits& limits = MarkdownLimits{},
                                                  std::stop_token cancellation = std::stop_token{});

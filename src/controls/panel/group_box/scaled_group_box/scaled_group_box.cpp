@@ -39,11 +39,12 @@ void ScaledGroupBox::set_design_bounds(const Control& child, Rect design_bounds)
     invalidate(Dirty::layout);
 }
 
-std::optional<Rect> ScaledGroupBox::design_bounds(const Control& child) const {
+stxlib::Optional<Rect> ScaledGroupBox::design_bounds(const Control& child) const {
     const SlotMap::const_iterator found =
         slots_.find(child.runtime_id().value);
-    return found == slots_.end() ? std::nullopt
-                                : std::optional<Rect>((*found).second);
+    if (found == slots_.end()) return stxlib::Optional<Rect>::none();
+    const stxlib::Optional<Rect> result = stxlib::Optional<Rect>::of((*found).second);
+    return result;
 }
 
 void ScaledGroupBox::reconcile_slots() {
@@ -71,6 +72,7 @@ constexpr ControlAnatomy scaled_group_box_anatomy{
     .parts = group_box_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

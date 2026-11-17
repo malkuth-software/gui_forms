@@ -9,14 +9,14 @@
 
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/window.hpp"
 
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -45,10 +45,14 @@ struct OpenOverlay final {
 };
 
 // The open overlays, by the overlay's identity. Owned here and used on the UI
-// thread only; the rest close when the process ends.
+// thread only; those still open when the process ends are left as they are.
 std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& open_overlays() {
-    static std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>> overlays;
-    return overlays;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>* const overlays =
+        new std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>();
+    return *overlays;
 }
 
 // The token's closed event: the window closed the overlay. Drops the entry
@@ -88,133 +92,128 @@ gf_status enter_tool_tip(gf_object object, SlotIdentity slot, std::shared_ptr<To
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL overlays_open_overlay(gf_object owner, gf_object overlay) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(open_overlay_slot.table_id, open_overlay_slot.slot_index);
-        Control::Ptr owner_control;
-        const gf_status entered = enter_live_control(owner, open_overlay_slot, owner_control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        Control::Ptr overlay_control;
-        const gf_status found = registry().find_object(overlay, open_overlay_slot, overlay_control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
-        const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator existing = overlays.find(overlay);
-        if (existing != overlays.end() && (*(*existing).second).token.connected()) {
-            return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the overlay is already open");
-        }
-        Window* const window = (*owner_control).attached_window();
-        if (window == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the owner is not in a window");
-        }
-        // Window::open_overlay refuses an overlay with a parent and an owner that
-        // cannot own one (std::logic_error: GF_STATUS_INVALID_STATE).
-        const std::shared_ptr<OpenOverlay> entry = std::make_shared<OpenOverlay>();
-        (*entry).token = (*window).open_overlay(owner_control, overlay_control);
-        if (Event<>* closed = (*entry).token.closed_event()) {
-            (*entry).closed = (*closed).subscribe(OverlayClosedByWindow{overlay, entry});
-        }
-        overlays.insert_or_assign(overlay, entry);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(open_overlay_slot);
+gf_status overlays_open_overlay_body(gf_object owner, gf_object overlay) {
+    Control::Ptr owner_control;
+    const gf_status entered = enter_live_control(owner, open_overlay_slot, owner_control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Control::Ptr overlay_control;
+    const gf_status found = registry().find_object(overlay, open_overlay_slot, overlay_control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
+    const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator existing = overlays.find(overlay);
+    if (existing != overlays.end() && (*(*existing).second).token.connected()) {
+        return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the overlay is already open");
+    }
+    Window* const window = (*owner_control).attached_window();
+    if (window == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the owner is not in a window");
+    }
+    // Window::open_overlay refuses an overlay with a parent and an owner that
+    // cannot own one (std::logic_error: GF_STATUS_INVALID_STATE).
+    const std::shared_ptr<OpenOverlay> entry = std::make_shared<OpenOverlay>();
+    (*entry).token = (*window).open_overlay(owner_control, overlay_control);
+    if (Event<>* closed = (*entry).token.closed_event()) {
+        (*entry).closed = (*closed).subscribe(OverlayClosedByWindow{overlay, entry});
+    }
+    overlays.insert_or_assign(overlay, entry);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL overlays_open_overlay(gf_object owner, gf_object overlay) noexcept {
+    return call_slot(open_overlay_slot, overlays_open_overlay_body, owner, overlay);
+}
+
+gf_status overlays_close_overlay_body(gf_object overlay) {
+    const gf_status entered = registry().enter_ui(close_overlay_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
+    const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator existing = overlays.find(overlay);
+    if (existing == overlays.end()) {
+        return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay is not open");
+    }
+    std::shared_ptr<OpenOverlay> held = std::move((*existing).second);
+    overlays.erase(existing);
+    const bool was_open = (*held).token.connected();
+    // Not told of its own close; then dropping the token disconnects it,
+    // closing the overlay.
+    (*held).closed.disconnect();
+    held.reset();
+    if (!was_open) {
+        return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay was already closed by its window");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL overlays_close_overlay(gf_object overlay) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(close_overlay_slot.table_id, close_overlay_slot.slot_index);
-        const gf_status entered = registry().enter_ui(close_overlay_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& overlays = open_overlays();
-        const std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>::iterator existing = overlays.find(overlay);
-        if (existing == overlays.end()) {
-            return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay is not open");
-        }
-        std::shared_ptr<OpenOverlay> held = std::move((*existing).second);
-        overlays.erase(existing);
-        const bool was_open = (*held).token.connected();
-        // Not told of its own close; then dropping the token disconnects it,
-        // closing the overlay.
-        (*held).closed.disconnect();
-        held.reset();
-        if (!was_open) {
-            return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay was already closed by its window");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(close_overlay_slot);
+    return call_slot(close_overlay_slot, overlays_close_overlay_body, overlay);
+}
+
+gf_status overlays_set_tool_tip_body(gf_object tool_tip, gf_object target, gf_utf8_view text) {
+    std::shared_ptr<ToolTip> provider;
+    const gf_status entered = enter_tool_tip(tool_tip, set_tool_tip_slot, provider);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Control::Ptr target_control;
+    const gf_status found = registry().find_object(target, set_tool_tip_slot, target_control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    std::string_view read;
+    const gf_status checked = read_text(text, set_tool_tip_slot, read);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    (*provider).set_tool_tip(target_control, std::string(read));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL overlays_set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_tool_tip_slot.table_id, set_tool_tip_slot.slot_index);
-        std::shared_ptr<ToolTip> provider;
-        const gf_status entered = enter_tool_tip(tool_tip, set_tool_tip_slot, provider);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        Control::Ptr target_control;
-        const gf_status found = registry().find_object(target, set_tool_tip_slot, target_control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        std::string_view read;
-        const gf_status checked = read_text(text, set_tool_tip_slot, read);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        (*provider).set_tool_tip(target_control, std::string(read));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_tool_tip_slot);
+    return call_slot(set_tool_tip_slot, overlays_set_tool_tip_body, tool_tip, target, text);
+}
+
+gf_status overlays_show_tool_tip_body(gf_object tool_tip, gf_object target, std::uint64_t duration_ms) {
+    std::shared_ptr<ToolTip> provider;
+    const gf_status entered = enter_tool_tip(tool_tip, show_tool_tip_slot, provider);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Control::Ptr target_control;
+    const gf_status found = registry().find_object(target, show_tool_tip_slot, target_control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (duration_ms == 0U) {
+        (*provider).show(target_control);
+        return GF_STATUS_OK;
+    }
+    const std::chrono::milliseconds duration{static_cast<std::chrono::milliseconds::rep>(duration_ms)};
+    (*provider).show(target_control, duration);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL overlays_show_tool_tip(gf_object tool_tip, gf_object target, std::uint64_t duration_ms) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_tool_tip_slot.table_id, show_tool_tip_slot.slot_index);
-        std::shared_ptr<ToolTip> provider;
-        const gf_status entered = enter_tool_tip(tool_tip, show_tool_tip_slot, provider);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        Control::Ptr target_control;
-        const gf_status found = registry().find_object(target, show_tool_tip_slot, target_control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        if (duration_ms == 0U) {
-            (*provider).show(target_control);
-            return GF_STATUS_OK;
-        }
-        const std::chrono::milliseconds duration{static_cast<std::chrono::milliseconds::rep>(duration_ms)};
-        (*provider).show(target_control, duration);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(show_tool_tip_slot);
+    return call_slot(show_tool_tip_slot, overlays_show_tool_tip_body, tool_tip, target, duration_ms);
+}
+
+gf_status overlays_hide_tool_tip_body(gf_object tool_tip) {
+    std::shared_ptr<ToolTip> provider;
+    const gf_status entered = enter_tool_tip(tool_tip, hide_tool_tip_slot, provider);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    (*provider).hide();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL overlays_hide_tool_tip(gf_object tool_tip) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(hide_tool_tip_slot.table_id, hide_tool_tip_slot.slot_index);
-        std::shared_ptr<ToolTip> provider;
-        const gf_status entered = enter_tool_tip(tool_tip, hide_tool_tip_slot, provider);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        (*provider).hide();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(hide_tool_tip_slot);
-    }
+    return call_slot(hide_tool_tip_slot, overlays_hide_tool_tip_body, tool_tip);
 }
 
 // ---------------------------------------------------------------------------
@@ -225,7 +224,7 @@ constexpr std::uint32_t anchored_options_size_1_1 = 40U;
 static_assert(sizeof(gf_anchored_overlay_options) == anchored_options_size_1_1);
 
 constexpr gf_anchored_overlay_flags known_anchored_flags =
-    GF_ANCHORED_OVERLAY_ABOVE | GF_ANCHORED_OVERLAY_ALIGN_FAR | GF_ANCHORED_OVERLAY_NO_FLIP |
+    GF_ANCHORED_OVERLAY_ABOVE | GF_ANCHORED_OVERLAY_ALIGN_END | GF_ANCHORED_OVERLAY_NO_FLIP |
     GF_ANCHORED_OVERLAY_KEEP_ON_CLICK_AWAY | GF_ANCHORED_OVERLAY_KEEP_ON_ESCAPE |
     GF_ANCHORED_OVERLAY_TAKE_FOCUS;
 
@@ -255,8 +254,12 @@ struct AnchoredSession final {
 
 // The open anchored overlays, by their content's identity.
 std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& anchored_overlays() {
-    static std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>> sessions;
-    return sessions;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>* const sessions =
+        new std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>();
+    return *sessions;
 }
 
 // Sends one event to the session's callback with the content as sender.
@@ -401,8 +404,8 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
     Size preferred = requested;
     AnchoredOverlayPlacement placement;
     placement.preferred_size = preferred;
-    placement.horizontal_alignment = (flags & GF_ANCHORED_OVERLAY_ALIGN_FAR) != 0U
-        ? OverlayHorizontalAlignment::far : OverlayHorizontalAlignment::near;
+    placement.horizontal_alignment = (flags & GF_ANCHORED_OVERLAY_ALIGN_END) != 0U
+        ? OverlayHorizontalAlignment::end : OverlayHorizontalAlignment::start;
     placement.vertical_preference = (flags & GF_ANCHORED_OVERLAY_ABOVE) != 0U
         ? OverlayVerticalPreference::above : OverlayVerticalPreference::below;
     placement.gap = (*options).gap;
@@ -422,8 +425,16 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         (*held.layer).set_content(content_control);
         // Window::open_overlay refuses a disabled or hidden anchor
         // (std::logic_error: GF_STATUS_INVALID_STATE).
-        held.token = (*window).open_overlay(anchor_control, held.layer);
+        // Opening the overlay and its focus scope run application handlers
+        // (attachment, focus), which may close or dispose the window: it is
+        // read through held.window after each (index-before-handler
+        // pattern, A-gf-abi-03-F3).
         held.window = (*window).window_ref();
+        held.token = (*window).open_overlay(anchor_control, held.layer);
+        Window* const opened_in = held.window.get();
+        if (opened_in == nullptr) {
+            throw std::logic_error("the anchor's window closed while the overlay opened");
+        }
         if (measures) {
             const Size measured = (*content_control).measure(client);
             AnchoredOverlayPlacement attached = placement;
@@ -432,7 +443,7 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
             (*held.layer).placement = attached;
         }
         if ((flags & GF_ANCHORED_OVERLAY_TAKE_FOCUS) != 0U) {
-            held.scope = (*window).begin_focus_scope(held.layer, content_control);
+            held.scope = (*opened_in).begin_focus_scope(held.layer, content_control);
         }
         held.dismiss = (*held.layer).dismiss_requested().subscribe(AnchoredDismissRequested{session});
         if (Event<>* closed = held.token.closed_event()) {
@@ -444,8 +455,9 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         if (held.events) (*held.events).disarm();
         held.events.reset();
         held.closed = true;
-        if (held.scope && held.token.connected()) {
-            static_cast<void>((*window).end_focus_scope(held.scope));
+        Window* const still_open = held.window.get();
+        if (held.scope && held.token.connected() && still_open != nullptr) {
+            static_cast<void>((*still_open).end_focus_scope(held.scope));
         }
         held.dismiss.disconnect();
         held.revoked.disconnect();
@@ -457,36 +469,35 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
     return GF_STATUS_OK;
 }
 
+gf_status overlays_open_anchored_body(gf_object anchor, gf_object content,
+                                      const gf_anchored_overlay_options* options) {
+    const gf_status opened = open_anchored_overlay(anchor, content, options);
+    return opened;
+}
+
 gf_status GF_CALL overlays_open_anchored(gf_object anchor, gf_object content,
                                          const gf_anchored_overlay_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(open_anchored_slot.table_id, open_anchored_slot.slot_index);
-        const gf_status opened = open_anchored_overlay(anchor, content, options);
-        return opened;
-    } catch (...) {
-        return fail_with_current_exception(open_anchored_slot);
+    return call_slot(open_anchored_slot, overlays_open_anchored_body, anchor, content, options);
+}
+
+gf_status overlays_close_anchored_body(gf_object content) {
+    const gf_status entered = registry().enter_ui(close_anchored_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& sessions = anchored_overlays();
+    const std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>::iterator entry =
+        sessions.find(content);
+    if (entry == sessions.end()) {
+        return fail(GF_STATUS_NOT_FOUND, close_anchored_slot, "the content is not open");
+    }
+    const std::shared_ptr<AnchoredSession> session = (*entry).second;
+    close_anchored_session(session);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL overlays_close_anchored(gf_object content) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(close_anchored_slot.table_id, close_anchored_slot.slot_index);
-        const gf_status entered = registry().enter_ui(close_anchored_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& sessions = anchored_overlays();
-        const std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>::iterator entry =
-            sessions.find(content);
-        if (entry == sessions.end()) {
-            return fail(GF_STATUS_NOT_FOUND, close_anchored_slot, "the content is not open");
-        }
-        const std::shared_ptr<AnchoredSession> session = (*entry).second;
-        close_anchored_session(session);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(close_anchored_slot);
-    }
+    return call_slot(close_anchored_slot, overlays_close_anchored_body, content);
 }
 
 // ---------------------------------------------------------------------------
@@ -512,73 +523,72 @@ gf_status find_tool_tips_window(gf_object object, SlotIdentity slot, Window*& wi
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL overlays_set_tool_tips_shown(gf_object window, gf_tool_tips_setting setting) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_tool_tips_shown_slot.table_id, set_tool_tips_shown_slot.slot_index);
-        const gf_status entered = registry().enter_ui(set_tool_tips_shown_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (setting != GF_TOOL_TIPS_FOLLOW && setting != GF_TOOL_TIPS_SHOWN && setting != GF_TOOL_TIPS_HIDDEN) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_tool_tips_shown_slot, "unknown tooltip setting");
-        }
-        if (window == 0U) {
-            if (setting == GF_TOOL_TIPS_FOLLOW) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, set_tool_tips_shown_slot,
-                            "the program's switch is shown or hidden");
-            }
-            Application* const application = Application::current();
-            if (application == nullptr) {
-                return fail(GF_STATUS_INVALID_STATE, set_tool_tips_shown_slot, "no application is current");
-            }
-            (*application).set_tool_tips_shown(setting == GF_TOOL_TIPS_SHOWN);
-            return GF_STATUS_OK;
-        }
-        Window* target = nullptr;
-        const gf_status found = find_tool_tips_window(window, set_tool_tips_shown_slot, target);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        std::optional<bool> shown{};
-        if (setting != GF_TOOL_TIPS_FOLLOW) shown = setting == GF_TOOL_TIPS_SHOWN;
-        (*target).set_tool_tips_shown(shown);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_tool_tips_shown_slot);
+gf_status overlays_set_tool_tips_shown_body(gf_object window, gf_tool_tips_setting setting) {
+    const gf_status entered = registry().enter_ui(set_tool_tips_shown_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    if (setting != GF_TOOL_TIPS_FOLLOW && setting != GF_TOOL_TIPS_SHOWN && setting != GF_TOOL_TIPS_HIDDEN) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_tool_tips_shown_slot, "unknown tooltip setting");
+    }
+    if (window == 0U) {
+        if (setting == GF_TOOL_TIPS_FOLLOW) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_tool_tips_shown_slot,
+                        "the program's switch is shown or hidden");
+        }
+        Application* const application = Application::current();
+        if (application == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, set_tool_tips_shown_slot, "no application is current");
+        }
+        (*application).set_tool_tips_shown(setting == GF_TOOL_TIPS_SHOWN);
+        return GF_STATUS_OK;
+    }
+    Window* target = nullptr;
+    const gf_status found = find_tool_tips_window(window, set_tool_tips_shown_slot, target);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    stxlib::Optional<bool> shown{};
+    if (setting != GF_TOOL_TIPS_FOLLOW) shown.set(setting == GF_TOOL_TIPS_SHOWN);
+    (*target).set_tool_tips_shown(shown);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL overlays_set_tool_tips_shown(gf_object window, gf_tool_tips_setting setting) noexcept {
+    return call_slot(set_tool_tips_shown_slot, overlays_set_tool_tips_shown_body, window, setting);
+}
+
+gf_status overlays_tool_tips_shown_body(gf_object window, std::uint32_t* shown,
+                                        gf_tool_tips_setting* setting) {
+    if (shown == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, tool_tips_shown_slot, "tool_tips_shown needs an output");
+    }
+    const gf_status entered = registry().enter_ui(tool_tips_shown_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (window == 0U) {
+        const Application* const application = Application::current();
+        *shown = application == nullptr || (*application).tool_tips_shown() ? 1U : 0U;
+        if (setting != nullptr) *setting = GF_TOOL_TIPS_FOLLOW;
+        return GF_STATUS_OK;
+    }
+    Window* target = nullptr;
+    const gf_status found = find_tool_tips_window(window, tool_tips_shown_slot, target);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    *shown = (*target).tool_tips_shown() ? 1U : 0U;
+    if (setting != nullptr) {
+        const stxlib::Optional<bool> own = (*target).tool_tips_shown_setting();
+        *setting = own.absent() ? GF_TOOL_TIPS_FOLLOW : (*own.value() ? GF_TOOL_TIPS_SHOWN : GF_TOOL_TIPS_HIDDEN);
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL overlays_tool_tips_shown(gf_object window, std::uint32_t* shown,
                                            gf_tool_tips_setting* setting) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(tool_tips_shown_slot.table_id, tool_tips_shown_slot.slot_index);
-        if (shown == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, tool_tips_shown_slot, "tool_tips_shown needs an output");
-        }
-        const gf_status entered = registry().enter_ui(tool_tips_shown_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (window == 0U) {
-            const Application* const application = Application::current();
-            *shown = application == nullptr || (*application).tool_tips_shown() ? 1U : 0U;
-            if (setting != nullptr) *setting = GF_TOOL_TIPS_FOLLOW;
-            return GF_STATUS_OK;
-        }
-        Window* target = nullptr;
-        const gf_status found = find_tool_tips_window(window, tool_tips_shown_slot, target);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        *shown = (*target).tool_tips_shown() ? 1U : 0U;
-        if (setting != nullptr) {
-            const std::optional<bool> own = (*target).tool_tips_shown_setting();
-            *setting = !own.has_value() ? GF_TOOL_TIPS_FOLLOW : (*own ? GF_TOOL_TIPS_SHOWN : GF_TOOL_TIPS_HIDDEN);
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(tool_tips_shown_slot);
-    }
+    return call_slot(tool_tips_shown_slot, overlays_tool_tips_shown_body, window, shown, setting);
 }
 
 constexpr gf_overlays_table table{

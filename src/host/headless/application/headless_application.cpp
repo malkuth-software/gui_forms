@@ -1,6 +1,7 @@
 #include "headless_application.hpp"
 #include "../../../core/application/application_state.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -209,9 +210,9 @@ HostServiceStatus HeadlessWindowing::run_modal_impl(HostWindowId window) {
                 owned_by_modal = true;
                 break;
             }
-            const std::optional<HostWindowId> next = owner(current);
-            if (!next.has_value()) break;
-            current = *next;
+            const stxlib::Optional<HostWindowId> next = owner(current);
+            if (next.absent()) break;
+            current = *next.value();
         }
         if (!owned_by_modal) blocked_.push_back(candidate);
     }
@@ -286,10 +287,10 @@ void HeadlessWindowing::move_native(HostWindowId window, Rect content) {
         carried.reserve(maximum_windows);
         for (std::size_t index = 0U; index < natives_.size(); ++index) {
             const HostWindowId candidate = natives_[index].id;
-            const std::optional<HostWindowKind> candidate_kind = kind(candidate);
-            const std::optional<HostWindowId> candidate_owner = owner(candidate);
-            if (!candidate_kind.has_value() || !candidate_owner.has_value()) continue;
-            if (*candidate_owner != window || !host_window_kind_traits(*candidate_kind).floating) continue;
+            const stxlib::Optional<HostWindowKind> candidate_kind = kind(candidate);
+            const stxlib::Optional<HostWindowId> candidate_owner = owner(candidate);
+            if (candidate_kind.absent() || candidate_owner.absent()) continue;
+            if (*candidate_owner.value() != window || !host_window_kind_traits(*candidate_kind.value()).floating) continue;
             carried.push_back(candidate);
         }
         // The primary window's native rectangle moves with them, as the
@@ -415,8 +416,8 @@ HostServiceStatus HeadlessWindowing::bring_to_front_impl(HostWindowId window) {
         raise_native(pending[next]);
         for (std::size_t index = order_.size(); index > 0U; --index) {
             const HostWindowId candidate = order_[index - 1U];
-            const std::optional<HostWindowId> candidate_owner = owner(candidate);
-            if (candidate_owner.has_value() && *candidate_owner == pending[next]) {
+            const stxlib::Optional<HostWindowId> candidate_owner = owner(candidate);
+            if (candidate_owner.present() && *candidate_owner.value() == pending[next]) {
                 pending.push_back(candidate);
             }
         }
@@ -465,29 +466,41 @@ HeadlessApplication::HeadlessApplication(std::vector<ApplicationWindow> windows,
         throw std::invalid_argument("HeadlessApplication: Application::validate refused the windows");
     }
     detail::attach_run_windowing(run_, windowing_, HeadlessOpen{this});
-    entries_.reserve(HostWindowing::maximum_windows);
-    // Open owners before the windows they own; validation has excluded
-    // cycles and unknown owners, so each pass opens at least one window.
-    std::vector<bool> opened(windows.size(), false);
-    std::size_t remaining = windows.size();
-    while (remaining > 0U) {
-        for (std::size_t index = 0U; index < windows.size(); ++index) {
-            if (opened[index]) continue;
-            const bool owner_open = windows[index].owner_id.empty() ||
-                windowing_.find(windows[index].owner_id).has_value();
-            if (!owner_open) continue;
-            const ApplicationWindowOpenResult result = open(std::move(windows[index]), false);
-            if (!result.status.accepted()) {
-                throw std::invalid_argument("HeadlessApplication: a window was refused");
+    // From here a throw leaves no destructor to run: end_run closes what
+    // opened and detaches the run, so a handle an earlier window's ready
+    // callback kept no longer reaches this object (A-gf-host-01-F13).
+    try {
+        entries_.reserve(HostWindowing::maximum_windows);
+        // Open owners before the windows they own; validation has excluded
+        // cycles and unknown owners, so each pass opens at least one window.
+        std::vector<bool> opened(windows.size(), false);
+        std::size_t remaining = windows.size();
+        while (remaining > 0U) {
+            for (std::size_t index = 0U; index < windows.size(); ++index) {
+                if (opened[index]) continue;
+                const bool owner_open = windows[index].owner_id.empty() ||
+                    windowing_.find(windows[index].owner_id).present();
+                if (!owner_open) continue;
+                const ApplicationWindowOpenResult result = open(std::move(windows[index]), false);
+                if (!result.status.accepted()) {
+                    throw std::invalid_argument("HeadlessApplication: a window was refused");
+                }
+                opened[index] = true;
+                --remaining;
             }
-            opened[index] = true;
-            --remaining;
         }
+    } catch (...) {
+        end_run();
+        throw;
     }
     windowing_.mark_started();
 }
 
 HeadlessApplication::~HeadlessApplication() {
+    end_run();
+}
+
+void HeadlessApplication::end_run() noexcept {
     for (std::size_t index = entries_.size(); index > 0U; --index) {
         WindowEntry& entry = *entries_[index - 1U];
         if (!entry.closed) close(entry, HostCloseReason::application);
@@ -519,8 +532,9 @@ ApplicationWindowHandle HeadlessApplication::handle(std::string_view stable_id) 
 }
 
 HostWindowId HeadlessApplication::id(std::string_view stable_id) const {
-    const std::optional<HostWindowId> result = windowing_.find(stable_id);
-    if (!result.has_value()) return {};
+    const stxlib::Optional<HostWindowId> found = windowing_.find(stable_id);
+    const HostWindowId* const result = found.value();
+    if (result == nullptr) return {};
     return *result;
 }
 
@@ -574,16 +588,17 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     HostWindowId owner{};
     if (!source.owner_id.empty()) {
-        const std::optional<HostWindowId> found = windowing_.find(source.owner_id);
-        if (!found.has_value()) {
+        const stxlib::Optional<HostWindowId> found = windowing_.find(source.owner_id);
+        const HostWindowId* const found_owner = found.value();
+        if (found_owner == nullptr) {
             result.status.error = HostServiceError::invalid_argument;
             return result;
         }
-        owner = *found;
+        owner = *found_owner;
     }
-    const std::optional<HostPopupPlacement> popup = source.popup;
+    const stxlib::Optional<HostPopupPlacement> popup = source.popup;
     const HostWindowKind kind =
-        host_window_kind(owner.valid(), source.tool_window, source.floating, popup.has_value());
+        host_window_kind(owner.valid(), source.tool_window, source.floating, popup.present());
     const bool floating = host_window_kind_traits(kind).floating;
     if (kind == HostWindowKind::primary &&
         (runtime || !source.options.initially_visible || source.options.hide_on_close)) {
@@ -594,7 +609,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     description.stable_id = source.stable_id;
     description.owner = owner;
     description.kind = kind;
-    if (popup.has_value()) description.transient = (*popup).kind;
+    if (popup.present()) description.transient = ((*popup.value())).kind;
     const HostWindowAdmission admission = windowing_.admit(description);
     if (!admission.status.accepted()) {
         result.status = admission.status;
@@ -620,7 +635,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     // Before the session is bound (stage T5).
     if (window.options.non_opaque) static_cast<void>((*window.model).declare_non_opaque());
     window.host = std::make_unique<HeadlessHost>(*window.model);
-    if (refuse_popup_alpha_ && popup.has_value()) (*window.host).headless_services().refuse_backdrops();
+    if (refuse_popup_alpha_ && popup.present()) (*window.host).headless_services().refuse_backdrops();
     const HostDispatchResult attached = (*window.host).dispatch(
         HostAttachEvent{window.options.initial_size, 1.0}, next_timestamp());
     if (!attached.accepted()) {
@@ -637,21 +652,21 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     static_cast<void>((*window.host).dispatch(input, next_timestamp()));
     Rect content = default_placement(kind, owner, window.options.initial_size);
     // A popup is where the program put it.
-    if (popup.has_value()) {
-        content = Rect{(*popup).origin.x, (*popup).origin.y, window.options.initial_size.width,
+    if (popup.present()) {
+        content = Rect{((*popup.value())).origin.x, ((*popup.value())).origin.y, window.options.initial_size.width,
                        window.options.initial_size.height};
     }
     if (!owner.valid() && kind != HostWindowKind::primary) ++placements_;
     windowing_.create_native(window.id, window.stable_id, content, window.options.minimum_size,
-                             !popup.has_value());
+                             popup.absent());
     {
         std::ostringstream line;
         line << "open id=" << window.id.value << " kind=" << host_window_kind_name(kind)
              << " owner=" << owner.value << " visible=" << (window.options.initially_visible ? 1 : 0)
              << " runtime=" << (runtime ? 1 : 0);
-        if (popup.has_value()) {
-            line << " focus=" << host_popup_focus_name((*popup).focus)
-                 << " transient=" << host_transient_kind_name((*popup).kind);
+        if (popup.present()) {
+            line << " focus=" << host_popup_focus_name(((*popup.value())).focus)
+                 << " transient=" << host_transient_kind_name(((*popup.value())).kind);
         }
         windowing_.note(line.str());
     }

@@ -37,9 +37,18 @@
 // its element and observes the change, and checks that an element held past
 // its control's removal refuses actions, and that items whose stable ids two
 // trees repeat each reach their own tree, and reads and sets a text box's
-// text attributes (A-T1). It runs in process, so it needs no
+// text attributes (A-T1), and that keyboard focus, selection and value
+// changes reach VoiceOver as notifications on stable elements (cp32). It
+// runs in process, so it needs no
 // Accessibility permission (CI); the out-of-process AXUIElement client is
 // macos_accessibility_client_tests.
+
+// The view's private notification probe (macos_view.hpp) and its damage
+// collection, declared here as the display link test declares its probe.
+@interface NSView (VoiceOverFocusProbe)
+- (void)recordAccessibilityNotificationsInto:(NSMutableArray<NSArray*>*)log;
+- (void)collectDamage;
+@end
 
 namespace {
 
@@ -654,6 +663,177 @@ void check_text_ranges(StockControlFixture& fixture, gui_forms::Window& window, 
 }
 
 // ---------------------------------------------------------------------------
+// VoiceOver focus (cp32): Tab moves keyboard focus, and each move posts
+// FocusedUIElementChanged on the newly focused element, which the view then
+// answers as its accessibilityFocusedUIElement; elements keep their
+// identity, so moving back reaches the same object. Selecting a list row
+// posts SelectedRowsChanged on its list, and pressing a check box posts
+// ValueChanged on the check box.
+
+void expect_focus(Report& report, bool condition, const std::string& what) {
+    if (!condition) report.failures.push_back("voiceover focus: " + what);
+}
+
+// Sends Tab (Shift-Tab when `backwards`), down then up, to the view as
+// AppKit delivers a typed key to the first responder.
+void send_tab(NSView* view, bool backwards) {
+    const NSEventModifierFlags flags = backwards ? NSEventModifierFlagShift : static_cast<NSEventModifierFlags>(0U);
+    // kVK_Tab: the Tab key's virtual key code.
+    const unsigned short tab_key_code = 48U;
+    const NSTimeInterval now = [[NSProcessInfo processInfo] systemUptime];
+    NSEvent* down = [NSEvent keyEventWithType:NSEventTypeKeyDown location:NSZeroPoint modifierFlags:flags
+                                    timestamp:now windowNumber:view.window.windowNumber context:nil
+                                   characters:@"\t" charactersIgnoringModifiers:@"\t" isARepeat:NO
+                                      keyCode:tab_key_code];
+    NSEvent* up = [NSEvent keyEventWithType:NSEventTypeKeyUp location:NSZeroPoint modifierFlags:flags
+                                  timestamp:now windowNumber:view.window.windowNumber context:nil
+                                 characters:@"\t" charactersIgnoringModifiers:@"\t" isARepeat:NO
+                                    keyCode:tab_key_code];
+    [view keyDown:down];
+    [view keyUp:up];
+}
+
+// The element the last entry named `name` in `log` was posted for, or nil.
+id last_posted(NSArray<NSArray*>* log, NSAccessibilityNotificationName name) {
+    id found = nil;
+    for (NSArray* entry in log) {
+        if ([entry[1] isEqualToString:name]) found = entry[0];
+    }
+    return found;
+}
+
+// Whether `log` holds `name` posted for exactly `element`.
+bool posted_for(NSArray<NSArray*>* log, NSAccessibilityNotificationName name, id element) {
+    for (NSArray* entry in log) {
+        if (entry[0] == element && [entry[1] isEqualToString:name]) return true;
+    }
+    return false;
+}
+
+// Whether the element's identifier names `control` or a control above it
+// (a composite publishes the node its hidden inner control's focus marks).
+bool names_control_or_ancestor(id element, const gui_forms::Control::Ptr& control) {
+    const std::string identifier = utf8([element accessibilityIdentifier]);
+    for (gui_forms::Control::Ptr current = control; current; current = (*current).parent()) {
+        if (std::string((*current).stable_id().value()) == identifier) return true;
+    }
+    return false;
+}
+
+// The first element, depth first, with role `role` that has a child with
+// role `child_role` whose selected state can be set and is not set; nil
+// when none. `child` receives that child.
+id find_selectable_container(NSArray* elements, NSString* role, NSString* child_role, __strong id& child) {
+    for (id element in elements) {
+        if ([[element accessibilityRole] isEqualToString:role]) {
+            for (id candidate in [element accessibilityChildren]) {
+                if ([[candidate accessibilityRole] isEqualToString:child_role] &&
+                    selector_allowed(candidate, @selector(setAccessibilitySelected:)) &&
+                    ![candidate isAccessibilitySelected]) {
+                    child = candidate;
+                    return element;
+                }
+            }
+        }
+        id found = find_selectable_container([element accessibilityChildren], role, child_role, child);
+        if (found != nil) return found;
+    }
+    return nil;
+}
+
+// The first element, depth first, with role `role` whose press is allowed.
+id find_pressable(NSArray* elements, NSString* role) {
+    for (id element in elements) {
+        if ([[element accessibilityRole] isEqualToString:role] &&
+            selector_allowed(element, @selector(accessibilityPerformPress)) && [element isAccessibilityEnabled]) {
+            return element;
+        }
+        id found = find_pressable([element accessibilityChildren], role);
+        if (found != nil) return found;
+    }
+    return nil;
+}
+
+void check_voiceover_focus(gui_forms::Window& window, NSView* view, Report& report) {
+    [view.window makeFirstResponder:view];
+    // A client reads the tree first, as VoiceOver does on reaching the
+    // window; from then on semantic changes republish it at once.
+    static_cast<void>([view accessibilityChildren]);
+    NSMutableArray<NSArray*>* log = [[NSMutableArray alloc] init];
+    [view recordAccessibilityNotificationsInto:log];
+    constexpr std::size_t steps = 6U;
+    std::vector<id> focused_elements{};
+    focused_elements.reserve(steps);
+    std::size_t distinct{};
+    for (std::size_t step = 0U; step < steps; ++step) {
+        [log removeAllObjects];
+        send_tab(view, false);
+        [view collectDamage];
+        const gui_forms::Control::Ptr control = window.focused_control();
+        const std::string at = "tab " + std::to_string(step + 1U) + ": ";
+        expect_focus(report, control != nullptr, at + "Tab focuses a control");
+        id element = [view accessibilityFocusedUIElement];
+        expect_focus(report, element != nil && element != view, at + "the view answers a focused element");
+        if (element == nil || element == view || control == nullptr) {
+            focused_elements.push_back(nil);
+            continue;
+        }
+        expect_focus(report, [element isAccessibilityFocused], at + "the focused element reads as focused");
+        expect_focus(report, names_control_or_ancestor(element, control),
+                     at + "the focused element names the focused control (" +
+                         utf8([element accessibilityIdentifier]) + ")");
+        const bool moved = focused_elements.empty() || focused_elements.back() != element;
+        if (moved) {
+            ++distinct;
+            expect_focus(report,
+                         last_posted(log, NSAccessibilityFocusedUIElementChangedNotification) == element,
+                         at + "FocusedUIElementChanged is posted on the newly focused element");
+        }
+        focused_elements.push_back(element);
+    }
+    expect_focus(report, distinct >= 3U, "Tab reaches at least three elements");
+    // Elements keep their identity across rebuilds: Shift-Tab returns focus
+    // to the previous control, whose element is the same object.
+    [log removeAllObjects];
+    send_tab(view, true);
+    [view collectDamage];
+    id back = [view accessibilityFocusedUIElement];
+    const id expected_back = focused_elements.size() >= 2U ? focused_elements[focused_elements.size() - 2U] : nil;
+    expect_focus(report, back != nil && back == expected_back,
+                 "Shift-Tab returns to the same element object as before");
+    expect_focus(report, back != nil && posted_for(log, NSAccessibilityFocusedUIElementChangedNotification, back),
+                 "Shift-Tab posts FocusedUIElementChanged on that element");
+    std::cout << "voiceover focus: " << distinct << " elements reached by Tab\n";
+
+    // Selection: a list row selected through its element.
+    id row = nil;
+    id list = find_selectable_container([view accessibilityChildren], NSAccessibilityListRole,
+                                        NSAccessibilityRowRole, row);
+    if (list == nil || row == nil) {
+        report.failures.push_back("voiceover focus: the fixture publishes no list with a selectable row");
+    } else {
+        [log removeAllObjects];
+        [row setAccessibilitySelected:YES];
+        [view collectDamage];
+        expect_focus(report, posted_for(log, NSAccessibilitySelectedRowsChangedNotification, list),
+                     "selecting a list row posts SelectedRowsChanged on the list");
+    }
+
+    // Value: a check box pressed through its element.
+    id check_box = find_pressable([view accessibilityChildren], NSAccessibilityCheckBoxRole);
+    if (check_box == nil) {
+        report.failures.push_back("voiceover focus: the fixture publishes no enabled check box");
+    } else {
+        [log removeAllObjects];
+        static_cast<void>([check_box accessibilityPerformPress]);
+        [view collectDamage];
+        expect_focus(report, posted_for(log, NSAccessibilityValueChangedNotification, check_box),
+                     "pressing a check box posts ValueChanged on the check box");
+    }
+    [view recordAccessibilityNotificationsInto:nil];
+}
+
+// ---------------------------------------------------------------------------
 
 void print_report(const StockControlFixture& fixture, const Report& report) {
     for (const StockControlEntry& entry : fixture.controls) {
@@ -732,6 +912,7 @@ void walk_and_close(void* context) {
         check_stale_element(*state.fixture, view, state.report);
         check_repeated_item_identities(*state.fixture, window, view, state.report);
         check_text_ranges(*state.fixture, window, view, state.report);
+        check_voiceover_focus(window, view, state.report);
     }
     state.ran = true;
     state.request_close();

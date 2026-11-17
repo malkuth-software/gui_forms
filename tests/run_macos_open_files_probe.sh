@@ -8,20 +8,44 @@
 # open_files_requested event, in order, then quit.txt.
 #
 # Usage: run_macos_open_files_probe.sh BUNDLE OUTPUT_DIRECTORY
+# The log is kept at handoff_open_files/log.txt beside the bundle.
 set -eu
 bundle=$1
+# OUTPUT_DIRECTORY is no longer written: everything goes through the
+# temporary directory.
 output=$2
-inputs="$output/handoff_open_files_inputs"
-rm -rf "$inputs"
+# The inputs and the application's log live in the temporary directory, and
+# the log is copied beside the build at the end: macOS refuses a launched
+# application's reads and writes on a removable volume (a build tree on an
+# external disk) without a per-app privacy approval. The application takes
+# its log path from GUI_FORMS_OPEN_FILES_LOG (open --env, at launch).
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/gui_forms_open_files.XXXXXX")
+# Real paths, as AppKit reports the opened files (/private/var, not /var).
+scratch=$(cd "$scratch" && pwd -P)
+inputs="$scratch/inputs"
 mkdir -p "$inputs"
-inputs=$(cd "$inputs" && pwd -P)
 for name in a.txt b.txt c.txt quit.txt; do printf 'probe\n' > "$inputs/$name"; done
-log="$(dirname "$bundle")/handoff_open_files/log.txt"
-rm -f "$log"
+log="$scratch/log.txt"
+kept="$(dirname "$bundle")/handoff_open_files/log.txt"
+mkdir -p "$(dirname "$kept")"
+rm -f "$kept"
+keep_log() {
+    if [ -f "$log" ]; then cp "$log" "$kept" || true; fi
+    rm -rf "$scratch"
+}
+trap keep_log EXIT
 executable="$bundle/Contents/MacOS/"
 pkill -f "$executable" 2>/dev/null || true
+# A bundle rebuilt in place is registered with LaunchServices again on its
+# first launch; register it first, so the launch's open-documents event is
+# not spent on that (cp32 gate: a.txt reached neither the queue nor an
+# event, while the later requests did).
+lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+if [ -x "$lsregister" ]; then "$lsregister" -f "$bundle" || true; fi
 
-open -a "$bundle" "$inputs/a.txt"
+if ! open --env "GUI_FORMS_OPEN_FILES_LOG=$log" -a "$bundle" "$inputs/a.txt"; then
+    echo "FAIL open -a refused the launch request"
+fi
 sleep 4
 open -a "$bundle" "$inputs/b.txt" "$inputs/c.txt"
 sleep 2

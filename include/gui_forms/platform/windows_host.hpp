@@ -4,6 +4,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp"
 #include "gui_forms/window.hpp"
+#include <stxlib/optional.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -23,6 +24,9 @@ struct GUI_FORMS_API WindowsHostOptions final {
     // The smallest client size; a side of 0 (the default) sets no minimum
     // there beyond the host's own (ApplicationWindowOptions::minimum_size).
     Size minimum_size{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+
     // Portable frame capture (identical on every host). When capture_path is
     // non-empty, after the first presented frame that covers the whole window
     // the host encodes the presented framebuffer as PNG to that path, prints
@@ -31,6 +35,7 @@ struct GUI_FORMS_API WindowsHostOptions final {
     // was saved and non-zero otherwise. Only how the adapter obtains its
     // framebuffer differs between hosts.
     std::string capture_path{};
+#endif
     // When set, the window is created at this logical size instead of
     // initial_size.
     std::optional<Size> capture_size{};
@@ -88,7 +93,7 @@ struct GUI_FORMS_API WindowsApplicationWindow final {
     HostWindowFloating floating{HostWindowFloating::none};
     // A native popup window (ApplicationWindow::popup); none for every
     // other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs: the same entry, ownership
@@ -107,6 +112,17 @@ struct GUI_FORMS_API WindowsApplicationOptions final {
     // down and released.
     std::function<void()> windowing_ended;
 };
+
+// Development opt-in, Windows only: after this call, a later
+// run_windows_application (and so Application::run) honours
+// GUI_FORMS_WINDOWS_AUTOMATION=1 in the process environment by turning on
+// the automation channel (automation_enabled) in every window. Without the
+// call the variable is ignored, and a build configured without
+// GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT ignores it even after the call.
+// It is for test probes that run through the portable Application API,
+// whose options cannot ask for automation; a shipped program does not call
+// it. Process-wide, callable from any thread, and never withdrawn.
+GUI_FORMS_API void accept_automation_environment() noexcept;
 
 [[nodiscard]] GUI_FORMS_API HostCapabilities windows_capabilities();
 GUI_FORMS_API int run_windows(std::unique_ptr<Window> window, WindowsHostOptions options = {});

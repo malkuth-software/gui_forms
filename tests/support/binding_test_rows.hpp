@@ -8,6 +8,7 @@
 
 #include "gui_forms/binding.hpp"
 
+#include <stxlib/optional.hpp>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -46,8 +47,8 @@ inline BindingRow row_of(BindingSource& source, const NamedRow& named) {
     row.editable = named.editable;
     row.values.resize(table.table_schema().size());
     for (const std::pair<std::string, BindingValue>& field : named.fields) {
-        const std::optional<std::size_t> column = table.table_schema().find(field.first);
-        row.values[*column] = field.second;
+        const stxlib::Optional<std::size_t> column = table.table_schema().find(field.first);
+        row.values[(*column.value())] = field.second;
     }
     return row;
 }

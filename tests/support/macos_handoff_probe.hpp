@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <thread>
 #include <unistd.h>
@@ -183,8 +184,18 @@ inline bool write_view_png(NSView* const view, const std::string& path) {
 }
 
 // The directory beside the running bundle, for files a probe leaves behind.
+// Under cmake/run_macos_activated_test.cmake it is made in the directory
+// GUI_FORMS_PROBE_FILES names, under the temporary directory, and the runner
+// copies it beside the bundle when the program ends: a launched application
+// may not write to a build tree on a removable volume.
 inline std::string beside_bundle(const char* const name) {
-    NSString* const parent = [[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent];
+    const char* const staged = std::getenv("GUI_FORMS_PROBE_FILES");
+    NSString* parent = nil;
+    if (staged != nullptr && staged[0] != '\0') {
+        parent = [NSString stringWithUTF8String:staged];
+    }
+    // Unset, or not UTF-8 (nil): beside the bundle itself.
+    if (parent == nil) parent = [[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent];
     NSString* const directory = [parent stringByAppendingPathComponent:[NSString stringWithUTF8String:name]];
     [[NSFileManager defaultManager] createDirectoryAtPath:directory
                               withIntermediateDirectories:YES

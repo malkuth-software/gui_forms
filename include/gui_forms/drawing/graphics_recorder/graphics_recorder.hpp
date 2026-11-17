@@ -10,6 +10,7 @@
 #include "gui_forms/drawing/pen/pen.hpp"
 #include "gui_forms/drawing/string_format/string_format.hpp"
 
+#include <stxlib/optional.hpp>
 #include <optional>
 #include <span>
 #include <string>
@@ -20,7 +21,7 @@ namespace gui_drawing {
 
 struct GUI_FORMS_API GraphicsState final {
     Matrix transform;
-    std::optional<RectF> clip;
+    stxlib::Optional<RectF> clip;
     SmoothingMode smoothing{SmoothingMode::default_mode};
     InterpolationMode interpolation{InterpolationMode::default_mode};
     PixelOffsetMode pixel_offset{PixelOffsetMode::default_mode};
@@ -62,6 +63,27 @@ enum class CommandKind : std::uint8_t {
     draw_markers,
     fill_grid_pattern,
     fill_proportion,
+    // Shaded triangles (appended; checkpoint 33): `points` and `colors`.
+    fill_triangles,
+};
+
+// What GraphicsRecorder::fill_triangles did. Every value but `recorded`
+// records nothing and leaves the recorder as it was.
+enum class TriangleFillStatus : std::uint8_t {
+    // One fill_triangles command was recorded.
+    recorded = 0,
+    // `points` and `colors` hold different counts.
+    count_mismatch = 1,
+    // The count is zero or not a multiple of three.
+    not_whole_triangles = 2,
+    // More than GraphicsRecorder::maximum_batch_elements points.
+    too_many_points = 3,
+    // A point with a coordinate that is not finite.
+    non_finite_point = 4,
+    // The recorder is closed (GraphicsRecorder::close).
+    closed = 5,
+    // The recording already holds GraphicsRecorder::maximum_commands.
+    command_limit = 6,
 };
 
 struct GUI_FORMS_API DrawingCommand final {
@@ -92,6 +114,12 @@ struct GUI_FORMS_API DrawingCommand final {
     CornerRadii radii;
     double scalar{};
     FillDirection direction{FillDirection::left_to_right};
+    // fill_triangles: one colour per point in `points`, three points (and
+    // three colours) per triangle.
+    std::vector<Color> colors;
+    // draw_string: true when the text is laid out in `rect`
+    // (draw_string_in_rect) rather than placed at `first`.
+    bool laid_out{};
 };
 
 class GUI_FORMS_API TextMetricsProvider {
@@ -114,6 +142,15 @@ public:
     void restore(GraphicsStateToken token);
     void translate(double x, double y);
     void set_transform(Matrix transform);
+    // The clip rules (the flame graph demonstrator's D5). set_clip replaces
+    // the clip in force; it does not intersect with it. The clip is the
+    // axis-aligned bounds of `clip` under the transform in force when it is
+    // set, in target coordinates, so a later transform does not move it.
+    // reset_clip removes it. save records it with the rest of the state and
+    // restore brings back the one in force at that save. Every recorded
+    // command carries the clip in force (DrawingCommand::state), and an
+    // executor draws it within that rectangle only. A program that wants an
+    // intersection computes it.
     void set_clip(RectF clip);
     void reset_clip();
     void set_quality(SmoothingMode smoothing,
@@ -135,6 +172,43 @@ public:
     void draw_string(std::string_view utf8, const Font& font,
                      const SolidBrush& brush, PointF origin,
                      const StringFormat& format);
+    // The string laid out in `layout` (gd_* ABI 0.5, the flame graph
+    // demonstrator's D2). Lines break at newlines only. Each line is placed
+    // across the box by the format's alignment (start, center, end) and the
+    // block of lines down it by its line alignment, with the same side
+    // bearing an origin-placed string has. A line wider than the box is
+    // trimmed by the format's trimming: character and word cut it at the
+    // last code point or word that fits, the ellipsis forms add U+2026 after
+    // the cut, and ellipsis_path is taken as ellipsis_character; with none
+    // it runs on. The text is clipped to the box (within the clip in force)
+    // unless the format has the no-clip flag (0x4000). `layout` is finite
+    // with a non-negative width and height. Records one draw_string.
+    void draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush, RectF layout,
+                             const StringFormat& format);
+    // One string of draw_strings: its text (lent for the call), its origin,
+    // and its colour.
+    struct GUI_FORMS_API TextItem final {
+        std::string_view text;
+        PointF origin{};
+        Color color;
+    };
+    static constexpr std::size_t maximum_text_items = 65536;
+    // Strings in one font and format, each in its own colour at its own
+    // origin (gd_* ABI 0.5, the flame graph demonstrator's D3): one
+    // draw_string per item, in order. 1 through maximum_text_items items,
+    // each bounded valid UTF-8 at a finite origin; the whole list is
+    // validated, and that its commands fit maximum_commands, before
+    // anything is recorded.
+    void draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items);
+    // The string as draw_string draws it at `origin`, turned about `origin`
+    // by `degrees` (finite; positive turns anticlockwise as seen). One
+    // draw_string command whose recorded transform is the turn followed by
+    // the transform in force, which stays in force; 0 degrees records what
+    // draw_string records. Throws, recording nothing, as draw_string does or
+    // for a non-finite angle.
+    void draw_string_rotated(std::string_view utf8, const Font& font,
+                             const SolidBrush& brush, PointF origin, double degrees,
+                             const StringFormat& format);
     void draw_ellipse(const Pen& pen, RectF bounds);
     void fill_ellipse(const Brush& brush, RectF bounds);
     void fill_polygon(const Brush& brush, std::span<const PointF> points,
@@ -182,9 +256,104 @@ public:
                                const SolidBrush& on_fill_brush, PointF origin, const StringFormat& format,
                                RectF fill);
 
+    // Gapped and per-element marks (gd_* ABI 0.4, the plot demonstrator's
+    // gaps G2 to G4). Each records commands of the kinds above, so replay
+    // and the trace need no new command kind. Each validates its whole
+    // input, and that the commands it records fit maximum_commands, before
+    // it records anything; a refusal records nothing.
+    //
+    // A break is a point with a NaN coordinate. An infinite coordinate is
+    // refused, as for the batched commands.
+    //
+    // The most samples fill_band takes: its polygon holds two points per
+    // sample, within GraphicsPath::maximum_elements.
+    static constexpr std::size_t maximum_band_samples = maximum_batch_elements / 2U;
+    // The area between two polylines sampled at the same positions (the
+    // Painter's fill_band): `upper` and `lower` hold the same count, 2
+    // through maximum_band_samples. A break at index i in either span
+    // breaks the band there. Each run of 2 or more unbroken indices records
+    // one fill_polygon (winding, along `upper` and back along `lower`); a
+    // run of one index records nothing.
+    void fill_band(const Brush& brush, std::span<const PointF> upper, std::span<const PointF> lower);
+    // An open polyline through `points` (2 or more) that breaks at each
+    // break point (the Painter's stroke_polyline): each run of 2 or more
+    // unbroken points records one draw_lines, and a run of one records
+    // nothing.
+    void draw_polyline_runs(const Pen& pen, std::span<const PointF> points);
+    // Each of 1 or more finite rectangles filled in its own colour (the
+    // Painter's fill_rects_each): `colors` holds one per rectangle. Each
+    // run of consecutive equal colours records one fill_rectangles with a
+    // solid brush of that colour.
+    void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors);
+
+    // Shaded triangles (Gouraud shading; owner, 2026-11-17, for facets
+    // shaded per corner). `points` holds three corners per triangle and
+    // `colors` one colour per corner, in the same order: the same count, a
+    // multiple of three, 3 through maximum_batch_elements (333,333
+    // triangles), every point finite. The whole input is checked first; a
+    // refusal is reported by its status and records nothing. A disposed
+    // recorder throws std::logic_error, as every recording call does.
+    // Records one fill_triangles command with the state in force.
+    //
+    // The raster's rules (execute_recorder, recorder_execute):
+    // - Colour: inside a triangle the colour is its corners' colours
+    //   weighted by the point's barycentric coordinates, interpolated
+    //   premultiplied in linear light as every GUI.Drawing gradient is
+    //   (gui_forms/types/linear_light/linear_light.hpp), alpha as it is. A
+    //   point on an edge is the two corners' linear-light blend, and a
+    //   corner is its own colour exactly. An empty colour is transparent.
+    // - Coverage and seams: the corners are taken to device pixels through
+    //   the command's transform and rounded to 1/16 pixel. A sample belongs
+    //   to a triangle when it lies inside it, or on an edge that is a top
+    //   edge (horizontal, the interior below) or a left edge; so triangles
+    //   sharing an edge (the same two corners) cover each sample along it
+    //   exactly once, with no gap. Where triangles of one command overlap,
+    //   a sample takes the later triangle. Each pixel is then drawn once
+    //   per command: its colour the linear-light mean of its samples', its
+    //   coverage the share of its samples covered. With the smoothing mode
+    //   none or high_speed a pixel has one sample, at its centre (hard
+    //   edges); otherwise 16, on a 4 by 4 grid. So a quad of two triangles
+    //   in one colour fills uniformly, the diagonal included, translucent
+    //   or not.
+    // - Compositing: the pixel's colour, at its coverage, over the target
+    //   (source_over), or replacing the target in proportion to its
+    //   coverage (source_copy), in sRGB-encoded premultiplied bytes as the
+    //   other commands composite.
+    // - Clip: the clip in force cuts whole pixels, those whose centres lie
+    //   inside it, as the other commands' clip does.
+    // - Limits: a corner farther than 8,388,608 device pixels from the
+    //   origin after the transform refuses the command (limit exceeded); a
+    //   triangle whose corners lie on one line draws nothing.
+    [[nodiscard]] TriangleFillStatus fill_triangles(std::span<const PointF> points, std::span<const Color> colors);
+
+    // Ends recording: every recording call afterwards throws
+    // std::logic_error (the C ABI returns an error and records nothing),
+    // until reset.
     void close();
     [[nodiscard]] bool closed() const;
+    // Empties the recording for reuse (gd_* ABI 0.5, the flame graph
+    // demonstrator's D4): the commands, the saved states (their tokens are
+    // no longer valid) and the state in force (no transform, no clip,
+    // default quality) are cleared and the recorder reopens. The command
+    // storage is kept for the next frame. Throws on a disposed recorder.
+    void reset();
     [[nodiscard]] std::span<const DrawingCommand> commands() const;
+
+    // Fills `target` with this recording as drawn on a surface of `scale`
+    // device pixels per unit, inside `device_clip` (device pixels): each
+    // command's transform is followed by the scale, and its clip (device
+    // pixels already) is scaled and intersected with device_clip, or is
+    // device_clip where it had none. target's commands are replaced, their
+    // storage reused, and target is left open with no saved states and the
+    // default state in force; this recording is unchanged. For drawing a
+    // recording in logical units into a scaled, damage-limited target (the
+    // gd_* bridge, recorder_paint_target). Throws std::invalid_argument for
+    // target being this recording, a scale that is not finite and positive,
+    // or a clip that is not finite with a non-negative size, leaving target
+    // unchanged. A throw while copying (out of memory, or a scaled clip that
+    // is no longer finite) leaves target's commands unspecified but its
+    // state reset only on success.
+    void frame_into(GraphicsRecorder& target, double scale, RectF device_clip) const;
     [[nodiscard]] std::string deterministic_trace() const;
 
 protected:

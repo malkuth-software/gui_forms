@@ -40,6 +40,8 @@ const char* expected_ax_role(SemanticRole role) {
     case SemanticRole::meter: return "AXLevelIndicator";
     case SemanticRole::image: return "AXImage";
     case SemanticRole::figure: return "AXImage";
+    case SemanticRole::document: return "AXGroup";
+    case SemanticRole::heading: return "AXStaticText";
     case SemanticRole::tab_group: return "AXTabGroup";
     case SemanticRole::tab: return "AXRadioButton";
     case SemanticRole::split_pane: return "AXSplitGroup";
@@ -101,13 +103,14 @@ std::string expected_ax_value(const SemanticNode& node) {
     if (node.role == SemanticRole::tab) {
         return has_semantic_state(node.states, SemanticState::selected) ? "1" : "0";
     }
-    if (node.numeric_value) return semantic_number_text(*node.numeric_value);
+    if (node.numeric_value.present()) return semantic_number_text(*node.numeric_value.value());
     return node.value;
 }
 
-std::string expected_ax_range(const std::optional<std::size_t>& index) {
-    if (!index || *index == 0U) return {};
-    const std::string range = std::to_string(*index - 1U) + "+1";
+std::string expected_ax_range(const stxlib::Optional<std::size_t>& index) {
+    const std::size_t* const position = index.value();
+    if (position == nullptr || *position == 0U) return {};
+    const std::string range = std::to_string(*position - 1U) + "+1";
     return range;
 }
 
@@ -140,17 +143,18 @@ AccessibilityProjection expected_ax_projection(const SemanticNode& node) {
     expected.value_settable = has_semantic_action(node, SemanticAction::set_value);
     expected.selected_settable = has_semantic_action(node, SemanticAction::select);
     expected.close_action = has_semantic_action(node, SemanticAction::close);
-    expected.disclosure_level = node.level && *node.level != 0U ? static_cast<long long>(*node.level - 1U) : 0;
+    const std::size_t* const level = node.level.value();
+    expected.disclosure_level = level != nullptr && *level != 0U ? static_cast<long long>(*level - 1U) : 0;
     expected.row_range = expected_ax_range(node.row_index);
     expected.column_range = expected_ax_range(node.column_index);
-    expected.row_count = node.row_count ? static_cast<long long>(*node.row_count) : 0;
-    expected.column_count = node.column_count ? static_cast<long long>(*node.column_count) : 0;
+    expected.row_count = node.row_count.present() ? static_cast<long long>(*node.row_count.value()) : 0;
+    expected.column_count = node.column_count.present() ? static_cast<long long>(*node.column_count.value()) : 0;
     expected.modal = node.modal;
     const bool text_ranges = semantic_role_fallback(node.role) == SemanticRole::text_box &&
-                             node.text_selection.has_value() &&
+                             node.text_selection.present() &&
                              !has_semantic_state(node.states, SemanticState::protected_content);
     if (text_ranges) {
-        const SemanticTextSelection selection = *node.text_selection;
+        const SemanticTextSelection selection = *node.text_selection.value();
         const std::size_t low = std::min(selection.anchor.value(), selection.caret.value());
         const std::size_t high = std::max(selection.anchor.value(), selection.caret.value());
         const std::size_t start = expected_utf16_units(node.value, low);

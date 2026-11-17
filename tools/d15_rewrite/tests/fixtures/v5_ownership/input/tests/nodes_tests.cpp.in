@@ -1,0 +1,14 @@
+#include <gui_forms/nodes.hpp>
+
+#include <memory>
+
+int main() {
+    gui_forms::Tree tree;
+    tree.root = std::make_shared<gui_forms::Leaf>();
+    tree.parent = tree.root;
+    const std::shared_ptr<gui_forms::Leaf> leaf = std::static_pointer_cast<gui_forms::Leaf>(tree.root);
+    const int weight = tree.root->weight;
+    const bool empty = tree.root == nullptr;
+    tree.root = nullptr;
+    return weight + leaf->colour + (empty ? 1 : 0);
+}

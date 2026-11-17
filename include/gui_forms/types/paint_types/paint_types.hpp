@@ -89,6 +89,9 @@ enum class CursorKind : std::uint8_t {
     forbidden,
     resize_diagonal_down,
     resize_diagonal_up,
+    // An arrow with a question mark: the pointer while What's This (Shift+F1)
+    // waits for a click. A host without one shows the arrow.
+    help,
 };
 
 namespace types {
@@ -97,18 +100,59 @@ inline constexpr TypeTag<CursorKind> cursor_kind{};
 
 } // namespace types
 
-// A bundled font family a theme names in place of a role's faces
-// (theme-language `font-family: Selawik`). Zero is none: the role's own faces.
-// Only families bundled with the library have numbers (the table in
-// src/core/resources/fonts/bundled_font_families.hpp); a host font never has
-// one, so a family can never reach a font the application did not ship.
-struct GUI_FORMS_API BundledFontFamily {
-    std::uint8_t value{};
-    friend constexpr bool operator==(const BundledFontFamily& left,
-                                     const BundledFontFamily& right) noexcept {
+// A font family in the family registry
+// (gui_forms/typography/font_families/font_families.hpp; owner decisions of
+// 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the
+// families bundled with the library, fixed for every release; values from
+// 256 are application families, loaded by the program from its own bytes
+// (gui_forms/typography/app_fonts/app_fonts.hpp) and drawn only inside
+// composites and sub-surfaces. A host font never has a number, so a family
+// can never reach a font the application did not ship.
+struct GUI_FORMS_API FontFamilyId {
+    std::uint16_t value{};
+    friend constexpr bool operator==(const FontFamilyId& left,
+                                     const FontFamilyId& right) noexcept {
         return left.value == right.value;
     }
 };
+
+// A registered family stack: an ordered list of families drawn after a
+// font's own family and before its role's faces (a theme's
+// `font-family: A, B`). Zero is none. The process's stack registry numbers
+// stacks in registration order, so a number names the same list for the
+// life of the process and is not stable across processes.
+struct GUI_FORMS_API FontFamilyStackId {
+    std::uint16_t value{};
+    friend constexpr bool operator==(const FontFamilyStackId& left,
+                                     const FontFamilyStackId& right) noexcept {
+        return left.value == right.value;
+    }
+};
+
+// The language text is written in, as an OpenType language system tag:
+// four letters as one number, the first highest ('K','O','R',' ' for
+// Korean; text_language makes one). Zero is none. Shaping applies the
+// tag's language system where a face has one (Korean forms, Turkish
+// dotted i), and fallback prefers the faces registered for the language
+// (the Korean CJK face over the Japanese one for Han characters in Korean
+// text); none keeps each script's default forms and the registered order.
+struct GUI_FORMS_API TextLanguage {
+    std::uint32_t tag{};
+    friend constexpr bool operator==(const TextLanguage& left,
+                                     const TextLanguage& right) noexcept {
+        return left.tag == right.tag;
+    }
+};
+
+[[nodiscard]] constexpr TextLanguage text_language(const char first, const char second, const char third,
+                                                   const char fourth) noexcept {
+    const std::uint32_t tag = (static_cast<std::uint32_t>(static_cast<unsigned char>(first)) << 24U) |
+                              (static_cast<std::uint32_t>(static_cast<unsigned char>(second)) << 16U) |
+                              (static_cast<std::uint32_t>(static_cast<unsigned char>(third)) << 8U) |
+                              static_cast<std::uint32_t>(static_cast<unsigned char>(fourth));
+    const TextLanguage language{tag};
+    return language;
+}
 
 struct GUI_FORMS_API FontSpec {
     FontRole role{FontRole::control};
@@ -119,17 +163,22 @@ struct GUI_FORMS_API FontSpec {
     // This is a layout input: painters and measurement must apply the same
     // value. Zero preserves the typeface's native spacing.
     double letter_spacing{};
-    // A named bundled family whose faces draw before the role's. The role
-    // still chooses the faces for characters the family does not cover, and
-    // a family whose faces could not be loaded leaves the role's faces in
-    // charge.
-    BundledFontFamily family{};
+    // The family whose faces draw first, the face nearest the weight and
+    // slant (no synthesis), then the stack's families in order, then the
+    // role's faces, which still draw what no family covers. A family whose
+    // faces could not be loaded is passed over.
+    FontFamilyId family{};
+    FontFamilyStackId stack{};
+    // The paragraph's language (TextLanguage): it reaches every run shaped
+    // in this font. A layout input, as letter_spacing is.
+    TextLanguage language{};
     friend constexpr bool operator==(const FontSpec& left,
                                      const FontSpec& right) noexcept {
         return left.role == right.role && left.size == right.size &&
                left.weight == right.weight && left.italic == right.italic &&
                left.letter_spacing == right.letter_spacing &&
-               left.family == right.family;
+               left.family == right.family && left.stack == right.stack &&
+               left.language == right.language;
     }
 };
 
@@ -152,8 +201,21 @@ struct GUI_FORMS_API ImageId {
     }
 };
 
+// What an image pattern shows beyond its first tile
+// (Painter::fill_image_pattern), along both axes. With a tile of n source
+// pixels, source column i of the pattern (counted from the first tile's
+// left edge, negative to its left) shows:
+// - `tile`: the image repeated, column i mod n (in [0, n));
+// - `mirror`: the image and its reflection in turn, so neighbouring tiles
+//   join without a seam: with m = i mod 2n, column m when m < n, else
+//   column 2n - 1 - m;
+// - `clamp`: the image once, its edge columns and rows extended beyond it:
+//   column 0 left of the tile, n - 1 right of it, i itself within it.
+// Rows map in the same way.
 enum class ImagePatternWrap : std::uint8_t {
     tile,
+    mirror,
+    clamp,
 };
 
 enum class ImageSampling : std::uint8_t {

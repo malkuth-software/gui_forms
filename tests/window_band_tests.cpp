@@ -7,7 +7,9 @@
 // `window` rule styles it, high contrast and reduced motion still it,
 // full screen hides it on request, and its corners follow the host's
 // report, including after the host reports a change of window state
-// (HostWindowStateEvent: full screen, maximize, snap, restore).
+// (HostWindowStateEvent: full screen, maximize, snap, restore). Phase 3
+// (cp33): per-edge reservations, cycling and the limiter, colour roles,
+// textures, and the host's shaping report (docs/user/window-band.md).
 
 #include "../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "support/theme_definition_heap.hpp"
@@ -38,6 +40,7 @@
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -190,8 +193,8 @@ bool damage_only_in_band(const DamageRegion& damage, Size client, double width) 
 void paint_all(Window& window) {
     ShapePainter painter{};
     const Size client = window.client_size();
-    const std::optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, client.width, client.height});
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, client.width, client.height});
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     static_cast<void>(window.take_damage());
 }
 
@@ -325,14 +328,15 @@ void test_appearance_touches_paint_only() {
     const std::uint64_t arranges = window.metrics_snapshot().arrange_passes;
     const std::uint64_t measures = window.metrics_snapshot().measure_passes;
 
-    const Color red = Color::rgba(200, 0, 0);
+    // Blue: a saturated red never flashes (test_limiter).
+    const Color blue = Color::rgba(0, 90, 200);
     const Color grey = Color::rgba(90, 90, 90);
     WindowBandAppearance lit{};
     lit.state = WindowBandState::lit;
-    lit.lit_colour = red;
-    lit.rest_colour = grey;
+    lit.lit_colour.set(blue);
+    lit.rest_colour.set(grey);
     window.set_band_appearance(lit);
-    require(window.band_snapshot().drawn == red, "lit, the band draws the lit colour");
+    require(window.band_snapshot().drawn == blue, "lit, the band draws the lit colour");
     const DamageRegion lit_damage = window.take_damage();
     require(damage_only_in_band(lit_damage, Size{200.0, 100.0}, 2.0), "lighting damages the band strips only");
     window.perform_layout();
@@ -356,7 +360,7 @@ void test_appearance_touches_paint_only() {
     require(damage_only_in_band(window.take_damage(), Size{200.0, 100.0}, 2.0), "a flash damages the strips only");
     time.time += std::chrono::milliseconds(500);
     static_cast<void>(window.poll_frame_schedule(time.time));
-    require(window.band_snapshot().flash_changes == 2U && window.band_snapshot().drawn == red,
+    require(window.band_snapshot().flash_changes == 2U && window.band_snapshot().drawn == blue,
             "a second half second on, lit again");
     window.perform_layout();
     require(window.metrics_snapshot().arrange_passes == arranges, "flashing lays nothing out");
@@ -365,7 +369,7 @@ void test_appearance_touches_paint_only() {
     PresentationSettings settings = window.presentation_settings();
     settings.reduced_motion = true;
     window.set_presentation_settings(settings);
-    require(!window.band_snapshot().flashing && window.band_snapshot().drawn == red,
+    require(!window.band_snapshot().flashing && window.band_snapshot().drawn == blue,
             "reduced motion stills the flash, lit");
     time.time += std::chrono::milliseconds(2000);
     static_cast<void>(window.poll_frame_schedule(time.time));
@@ -383,7 +387,7 @@ void test_appearance_touches_paint_only() {
     window.undeclare_band();
     window.set_band_appearance(lit);
     window.declare_band(WindowBandOptions{2.0, WindowBandFullScreen::stays});
-    require(window.band_snapshot().drawn == red, "the appearance set while undeclared shows");
+    require(window.band_snapshot().drawn == blue, "the appearance set while undeclared shows");
     window.motion_clock().set_time_source(nullptr);
 }
 
@@ -420,12 +424,12 @@ void test_drawn_above_every_plane() {
     window.declare_band(WindowBandOptions{3.0, WindowBandFullScreen::stays});
     WindowBandAppearance lit{};
     lit.state = WindowBandState::lit;
-    lit.lit_colour = band_colour;
+    lit.lit_colour.set(band_colour);
     window.set_band_appearance(lit);
     ShapePainter painter{};
-    const std::optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, 120.0, 80.0});
-    require(receipt.has_value(), "the window paints");
-    static_cast<void>(window.notify_presented(*receipt));
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, Rect{0.0, 0.0, 120.0, 80.0});
+    require(receipt.present(), "the window paints");
+    static_cast<void>(window.notify_presented(*receipt.value()));
     std::size_t first_band = painter.shapes.size();
     std::size_t last_other = 0U;
     std::size_t band_fills = 0U;
@@ -540,7 +544,7 @@ void test_host_corners() {
     window.declare_band(WindowBandOptions{2.0, WindowBandFullScreen::stays});
     WindowBandAppearance lit{};
     lit.state = WindowBandState::lit;
-    lit.lit_colour = band_colour;
+    lit.lit_colour.set(band_colour);
     window.set_band_appearance(lit);
     ShapePainter painter{};
     static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 120.0, 90.0}));
@@ -612,12 +616,285 @@ void test_window_state_reports() {
             "the content rectangle, which accessibility roots cover, leaves the band out");
 }
 
+// Per-edge reservations: each edge keeps its own snapped width, the
+// content and the root follow it, an edge of 0 reserves nothing, and only
+// declaring or undeclaring lays out; appearance changes never do.
+void test_per_edge_reservation() {
+    std::shared_ptr<SlotProbe> root = make_control<SlotProbe>(StableId("edge.root"));
+    std::shared_ptr<Button> child = make_control<Button>(StableId("edge.child"));
+    (*child).set_requested_bounds({0.0, 0.0, 20.0, 20.0});
+    (*root).add_child(child);
+    Window window(root, Size{200.0, 100.0});
+    WindowBandOptions options{};
+    options.edges.set(WindowBandEdges{0.0, 6.0, 3.0, 2.0});
+    window.declare_band(options);
+    window.perform_layout();
+    const WindowBandSnapshot declared = window.band_snapshot();
+    require(declared.reserved && declared.edges == Insets{0.0, 6.0, 3.0, 2.0}, "each edge reserves its own width");
+    require(near(declared.width, 6.0), "the snapshot's width is the widest edge");
+    require(window.content_rect() == Rect{0.0, 6.0, 197.0, 92.0}, "the content leaves each edge's width out");
+    require((*root).committed_arranged_bounds() == Rect{0.0, 6.0, 197.0, 92.0}, "the root is arranged inside");
+    require((*root).handed == Size{197.0, 92.0}, "the root is measured against the client less the edges");
+    paint_all(window);
+
+    // Toggling the appearance, through every state and a texture, keeps
+    // the reservation: no measure, no arrange, no move.
+    const std::uint64_t arranges = window.metrics_snapshot().arrange_passes;
+    const std::uint64_t measures = window.metrics_snapshot().measure_passes;
+    WindowBandAppearance appearance{};
+    appearance.lit_colour.set(Color::rgba(0, 120, 60));
+    const WindowBandState states[] = {WindowBandState::lit, WindowBandState::flashing, WindowBandState::cycling,
+                                      WindowBandState::rest, WindowBandState::lit};
+    for (const WindowBandState state : states) {
+        appearance.state = state;
+        window.set_band_appearance(appearance);
+        window.perform_layout();
+    }
+    WindowBandTexture texture{};
+    texture.procedural.pattern = ProceduralPattern::pinstripe;
+    appearance.texture.set(texture);
+    window.set_band_appearance(appearance);
+    window.perform_layout();
+    appearance.texture.reset();
+    window.set_band_appearance(appearance);
+    window.perform_layout();
+    require(window.metrics_snapshot().arrange_passes == arranges && window.metrics_snapshot().measure_passes == measures,
+            "appearance toggles lay nothing out");
+    require(window.band_snapshot().edges == Insets{0.0, 6.0, 3.0, 2.0}, "the reservation is fixed across toggles");
+    require((*root).committed_arranged_bounds() == Rect{0.0, 6.0, 197.0, 92.0}, "no content moves");
+
+    // Re-declaring the same options changes nothing; undeclaring lays out.
+    window.declare_band(options);
+    window.perform_layout();
+    require(window.metrics_snapshot().arrange_passes == arranges, "the same declaration lays nothing out");
+    window.undeclare_band();
+    window.perform_layout();
+    require(window.metrics_snapshot().arrange_passes > arranges, "undeclaring lays the window out");
+    require((*root).committed_arranged_bounds() == Rect{0.0, 0.0, 200.0, 100.0}, "and the root fills the client");
+
+    // A per-edge band hits nothing on its reserved edges only.
+    window.declare_band(options);
+    window.perform_layout();
+    require(window.hit_test(Point{100.0, 3.0}) == nullptr, "the top edge hits nothing");
+    require(window.hit_test(Point{198.5, 50.0}) == nullptr, "the right edge hits nothing");
+    require(window.hit_test(Point{100.0, 99.0}) == nullptr, "the bottom edge hits nothing");
+    require(window.hit_test(Point{0.5, 10.0}) == child, "the left edge, of width 0, is content");
+
+    // Refusals leave the declaration as it was.
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    WindowBandOptions bad = options;
+    bad.edges.set(WindowBandEdges{0.0, -1.0, 0.0, 0.0});
+    require(refused(window, bad), "a negative edge is refused");
+    bad.edges.set(WindowBandEdges{nan, 1.0, 0.0, 0.0});
+    require(refused(window, bad), "a NaN edge is refused");
+    bad.edges.set(WindowBandEdges{0.0, 0.0, 33.0, 0.0});
+    require(refused(window, bad), "an edge past 32 is refused");
+
+    // Full screen: hides gives up every edge, stays keeps them.
+    WindowBandOptions hiding = options;
+    hiding.full_screen = WindowBandFullScreen::hides;
+    window.declare_band(hiding);
+    window.report_full_screen(true);
+    window.perform_layout();
+    require(!window.band_snapshot().reserved && window.content_rect() == Rect{0.0, 0.0, 200.0, 100.0},
+            "hides: no edge is reserved in full screen");
+    window.declare_band(options);
+    window.perform_layout();
+    require(window.band_snapshot().edges == Insets{0.0, 6.0, 3.0, 2.0}, "stays: every edge is kept in full screen");
+    require(window.shaping_report().full_screen, "the shaping report says full screen");
+}
+
+// Each edge snaps to whole device pixels on its own.
+void test_per_edge_snapping() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("edge.dpi.root"));
+    Window window(root, Size{200.0, 100.0});
+    WindowBandOptions options{};
+    options.edges.set(WindowBandEdges{1.0, 0.0, 2.0, 0.3});
+    window.declare_band(options);
+    window.set_scale(1.25);
+    window.perform_layout();
+    // At 1.25: 1 is one device pixel (0.8), 2 is 2.5 pixels, rounded to
+    // three (2.4), and 0.3 is at least one pixel (0.8).
+    const Insets at_125 = window.band_snapshot().edges;
+    require(near(at_125.left, 0.8) && at_125.top == 0.0 && near(at_125.right, 2.4) && near(at_125.bottom, 0.8),
+            "each edge snaps at 1.25");
+    window.set_scale(1.5);
+    window.perform_layout();
+    // At 1.5: 1.5 pixels rounds to two (4/3), 3 pixels (2), 0.45 to one.
+    const Insets at_15 = window.band_snapshot().edges;
+    require(near(at_15.left, 2.0 / 1.5) && at_15.top == 0.0 && near(at_15.right, 2.0) && near(at_15.bottom, 1.0 / 1.5),
+            "each edge snaps at 1.5");
+    const Rect arranged = (*root).committed_arranged_bounds();
+    require(near(arranged, Rect{2.0 / 1.5, 0.0, 200.0 - 2.0 / 1.5 - 2.0, 100.0 - 1.0 / 1.5}),
+            "the root lands on the device grid inside the snapped edges");
+}
+
+// The engine limiter: a saturated red never flashes, a cycle blends at
+// most once a second, and reduced motion stills a cycle lit.
+void test_limiter_and_cycling() {
+    ManualTime time{};
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("cycle.root"));
+    Window window(root, Size{200.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.declare_band(WindowBandOptions{2.0, WindowBandFullScreen::stays});
+    window.perform_layout();
+    paint_all(window);
+
+    WindowBandAppearance red{};
+    red.state = WindowBandState::flashing;
+    red.lit_colour.set(Color::rgba(220, 10, 10));
+    red.rest_colour.set(Color::rgba(90, 90, 90));
+    window.set_band_appearance(red);
+    require(!window.band_snapshot().flashing && window.band_snapshot().drawn == Color::rgba(220, 10, 10),
+            "a saturated red never flashes: it holds lit");
+
+    const Color lit = Color::rgba(0, 90, 200);
+    const Color rest = Color::rgba(200, 200, 200);
+    WindowBandAppearance cycling{};
+    cycling.state = WindowBandState::cycling;
+    cycling.lit_colour.set(lit);
+    cycling.rest_colour.set(rest);
+    cycling.frequency = 4.0;
+    window.set_band_appearance(cycling);
+    const WindowBandSnapshot started = window.band_snapshot();
+    require(started.cycling && !started.flashing, "a cycle runs");
+    require(near(started.frequency, maximum_band_frequency), "the limiter lowers the frequency to one a second");
+    require(started.drawn == lit, "a cycle starts lit");
+    static_cast<void>(window.take_damage());
+    for (int frame = 0; frame < 15; ++frame) {
+        time.time += std::chrono::milliseconds(34);
+        static_cast<void>(window.poll_frame_schedule(time.time));
+    }
+    const WindowBandSnapshot halfway = window.band_snapshot();
+    require(halfway.cycle_frames > 0U, "cycle frames are drawn");
+    require(!(halfway.drawn == lit), "half a second on, the cycle has moved off its lit colour");
+    require(damage_only_in_band(window.take_damage(), Size{200.0, 100.0}, 2.0), "a cycle damages the strips only");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    require(!window.band_snapshot().cycling && window.band_snapshot().drawn == lit, "reduced motion stills it, lit");
+    const std::uint64_t frames = window.band_snapshot().cycle_frames;
+    time.time += std::chrono::milliseconds(1000);
+    static_cast<void>(window.poll_frame_schedule(time.time));
+    require(window.band_snapshot().cycle_frames == frames, "a stilled cycle draws no frames");
+    settings.reduced_motion = false;
+    window.set_presentation_settings(settings);
+    require(window.band_snapshot().cycling, "the cycle runs again after");
+
+    // A frequency of 0 holds the band lit.
+    cycling.frequency = 0.0;
+    window.set_band_appearance(cycling);
+    require(!window.band_snapshot().cycling && window.band_snapshot().drawn == lit, "frequency 0 holds lit");
+
+    WindowBandAppearance bad = cycling;
+    bad.frequency = -1.0;
+    bool thrown = false;
+    try {
+        window.set_band_appearance(bad);
+    } catch (const std::invalid_argument&) {
+        thrown = true;
+    }
+    require(thrown && window.band_snapshot().appearance == cycling, "a negative frequency is refused, nothing changed");
+    window.motion_clock().set_time_source(nullptr);
+}
+
+// Colour roles and textures: a role lights the band in a theme colour
+// when no lit colour is given; a texture draws beneath the colour, one
+// surface per strip; the glint and a bad tile are refused.
+void test_roles_and_texture() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("role.root"));
+    Window window(root, Size{120.0, 80.0});
+    window.declare_band(WindowBandOptions{3.0, WindowBandFullScreen::stays});
+    const BasicControlStyle& style = window.theme().basic_style();
+    WindowBandAppearance role{};
+    role.state = WindowBandState::lit;
+    role.lit_role = WindowBandColourRole::accent;
+    window.set_band_appearance(role);
+    require(window.band_snapshot().drawn == style.accent, "the accent role lights in the theme's accent");
+    role.lit_role = WindowBandColourRole::text;
+    window.set_band_appearance(role);
+    require(window.band_snapshot().drawn == style.text, "the text role lights in the theme's text colour");
+    role.lit_colour.set(Color::rgba(7, 8, 9));
+    window.set_band_appearance(role);
+    require(window.band_snapshot().drawn == Color::rgba(7, 8, 9), "a lit colour wins over the role");
+
+    WindowBandTexture texture{};
+    texture.source = WindowBandTextureSource::finish;
+    texture.finish.kind = FinishKind::orange_peel;
+    role.texture.set(texture);
+    window.set_band_appearance(role);
+    require(window.band_snapshot().textured, "the band reports its texture");
+    ShapePainter painter{};
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 120.0, 80.0}));
+    std::size_t colour_fills = 0U;
+    for (const PaintedShape& shape : painter.shapes) {
+        if (shape.colour == Color::rgba(7, 8, 9)) ++colour_fills;
+    }
+    require(colour_fills == 4U, "the colour is drawn over each textured strip");
+
+    WindowBandAppearance glint = role;
+    WindowBandTexture glinting = texture;
+    glinting.finish.kind = FinishKind::glint;
+    glint.texture.set(glinting);
+    require(!window_band_appearance_valid(glint), "the glint is refused over the band");
+    WindowBandTexture tiled{};
+    tiled.procedural.tile = 0.0;
+    require(!window_band_texture_valid(tiled), "a texture with no tile is refused");
+    WindowBandTexture faint{};
+    faint.opacity = 1.5;
+    require(!window_band_texture_valid(faint), "an opacity past 1 is refused");
+    bool thrown = false;
+    try {
+        window.set_band_appearance(glint);
+    } catch (const std::invalid_argument&) {
+        thrown = true;
+    }
+    require(thrown && window.band_snapshot().appearance == role, "a refused texture changes nothing");
+
+    // High contrast draws solid and untextured.
+    PresentationSettings settings = window.presentation_settings();
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    require(!window.band_snapshot().textured, "high contrast draws no texture");
+}
+
+// What the attached host lets the band rely on.
+void test_shaping_report() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("shape.root"));
+    Window window(root, Size{120.0, 90.0});
+    window.set_corner_preference(WindowCornerPreference::square);
+    const WindowShapingReport alone = window.shaping_report();
+    require(!alone.host_attached && !alone.corners_reported && !alone.state_reported && !alone.native_border,
+            "with no host, nothing is reported");
+    require(alone.preference == WindowCornerPreference::square, "the preference is in the report");
+
+    host::HeadlessHost host(window);
+    require(host.dispatch(HostAttachEvent{{120.0, 90.0}, 1.0}, 1).accepted(), "attach refused");
+    WindowCornerReport square{};
+    square.shape = WindowCornerShape::square;
+    square.complied = true;
+    host.headless_services().set_corner_report(WindowCornerPreference::square, square);
+    window.set_corner_preference(WindowCornerPreference::system);
+    window.set_corner_preference(WindowCornerPreference::square);
+    const WindowShapingReport attached = window.shaping_report();
+    require(attached.host_attached && attached.corners_reported && attached.state_reported,
+            "the reference host reports corners and window state");
+    require(attached.square_corners && attached.rounded_corners, "the reference host may report either shape");
+    require(!attached.native_border, "no host draws the band natively yet");
+    require(attached.corners == square && !attached.full_screen, "the corners now, and not full screen");
+    require(host::headless_capabilities().window_corner_shapes == WindowCornerShapes{true, true},
+            "the capabilities carry the shapes");
+}
+
 void test_capability_names() {
     const std::string json = host::headless_capabilities().to_json();
     require(json.find("\"window_corners\"") != std::string::npos &&
                 json.find("\"window_state_reports\"") != std::string::npos &&
                 json.find("\"transient_surfaces\"") != std::string::npos,
             "the capability report names bits 32 to 35");
+    require(json.find("\"window_corner_shapes\":{\"square\":true,\"rounded\":true}") != std::string::npos,
+            "the capability report names the corner shapes");
 }
 
 } // namespace
@@ -633,6 +910,11 @@ int main() {
         test_full_screen();
         test_host_corners();
         test_window_state_reports();
+        test_per_edge_reservation();
+        test_per_edge_snapping();
+        test_limiter_and_cycling();
+        test_roles_and_texture();
+        test_shaping_report();
         test_capability_names();
         std::cout << "gui_forms_window_band_tests: all tests passed\n";
         return EXIT_SUCCESS;

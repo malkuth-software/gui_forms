@@ -2,7 +2,7 @@
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <string.h>
 
 
@@ -42,6 +42,16 @@ static void lookups(gf_kit* kit) {
                           gf_kit_view_equals(record.type_name, "CheckBox") && record.property_count > 0u &&
                           record.interaction_count > 0u,
                  "a check box is a control with properties and interactions");
+    /* A composite control is listed, but made only from its definition
+     * (ABI 1.5): it declares nothing of its own, and create refuses it. */
+    uint64_t composite = 0u;
+    gf_kit_status(kit, (*kit).schema.find_type(gf_kit_text("composite_control"), &composite), GF_STATUS_OK,
+                  "find the composite control");
+    gf_schema_type defined = type_record();
+    gf_kit_status(kit, (*kit).schema.type_at(composite, &defined), GF_STATUS_OK, "type_at the composite control");
+    gf_kit_check(kit, defined.kind == GF_SCHEMA_KIND_DEFINED_CONTROL && defined.property_count == 0u &&
+                          defined.interaction_count == 0u,
+                 "a composite control is a defined control with nothing of its own");
     gf_schema_type again = type_record();
     gf_kit_status(kit, (*kit).schema.type_at(by_id, &again), GF_STATUS_OK, "type_at again");
     gf_kit_check(kit, again.id.data == record.id.data, "the schema lends the same storage at every call");

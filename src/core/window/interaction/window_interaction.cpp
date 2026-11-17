@@ -10,7 +10,6 @@
 
 #include <chrono>
 #include <memory>
-#include <stdexcept>
 
 namespace gui_forms {
 
@@ -24,7 +23,13 @@ struct SurfaceRoot::InteractionHoverWake final {
 FrameRequestToken SurfaceRoot::request_one_shot_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
     compact_frame_requests();
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
-        throw std::length_error("GUI.Forms scheduled frame request limit reached");
+        // Every caller is the window's own housekeeping, reached from input
+        // and frame-poll dispatch, so a full schedule fails soft, as
+        // arm_engine_idle does (A-gf-core-17-F3): an empty token, counted;
+        // the requester finds it unconnected and asks again at its next
+        // event. An application's own frame requests keep their throw.
+        metrics_.record_internal_wake_refused();
+        return FrameRequestToken{};
     }
     // A one-shot: the requester disconnects the request when it wakes, so
     // the interval is never reached.

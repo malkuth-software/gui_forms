@@ -14,8 +14,8 @@
 #include "gui_forms/binding/binding_table/binding_table.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -171,23 +171,23 @@ gf_status check_batch(const BindingSource& source, const std::vector<AbiRecord>&
         }
         bool present = false;
         if (table) {
-            present = (*table).find(record.stable_id).has_value();
+            present = (*table).find(record.stable_id).present();
         } else {
-            present = source.find_stable_id(record.stable_id).has_value();
+            present = source.find_stable_id(record.stable_id).present();
         }
         if (present) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's stable id is repeated or already present");
         }
         for (const std::pair<std::string, BindingValue>& field : record.fields) {
-            const std::optional<std::size_t> column = source.column_of(field.first);
-            if (!column) {
+            const stxlib::Optional<std::size_t> column = source.column_of(field.first);
+            if (column.absent()) {
                 if (!table) {
                     return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                                 "a record names a field the source has no column for");
                 }
                 continue;
             }
-            if (!source.schema().admits(*column, field.second)) {
+            if (!source.schema().admits((*column.value()), field.second)) {
                 return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a record's value is not of its column's kind");
             }
         }
@@ -215,8 +215,8 @@ std::vector<BindingRow> place_records(BindingSource& source, std::vector<AbiReco
         row.editable = record.editable;
         row.values.resize(source.schema().size());
         for (std::pair<std::string, BindingValue>& field : record.fields) {
-            const std::optional<std::size_t> column = source.column_of(field.first);
-            row.values[*column] = std::move(field.second);
+            const stxlib::Optional<std::size_t> column = source.column_of(field.first);
+            row.values[(*column.value())] = std::move(field.second);
         }
         rows.push_back(std::move(row));
     }
@@ -225,11 +225,11 @@ std::vector<BindingRow> place_records(BindingSource& source, std::vector<AbiReco
 
 // A record's view position, or GF_BINDING_HIDDEN_POSITION when the
 // source's filter hides it.
-std::uint64_t position_or_hidden(const std::optional<std::size_t>& position) noexcept {
-    if (!position) {
+std::uint64_t position_or_hidden(const stxlib::Optional<std::size_t>& position) noexcept {
+    if (position.absent()) {
         return GF_BINDING_HIDDEN_POSITION;
     }
-    return static_cast<std::uint64_t>(*position);
+    return static_cast<std::uint64_t>((*position.value()));
 }
 
 gf_status read_options(const gf_binding_arguments& arguments, BindingOptions& options) {
@@ -255,549 +255,543 @@ gf_status read_options(const gf_binding_arguments& arguments, BindingOptions& op
     return read_optional_value(arguments.source_null_value, bind_slot, options.data_source_null_value);
 }
 
-gf_status GF_CALL bindings_bind(const gf_binding_arguments* arguments, gf_object* binding) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(bind_slot.table_id, bind_slot.slot_index);
-        if (arguments == nullptr || binding == nullptr || (*arguments).struct_size < arguments_size_1_0) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, bind_slot,
-                        "bind needs gf_binding_arguments of at least the 1.0 size and a binding output");
-        }
-        BindingOptions options;
-        const gf_status optioned = read_options(*arguments, options);
-        if (optioned != GF_STATUS_OK) {
-            return optioned;
-        }
-        std::string_view property;
-        std::string_view member;
-        const gf_status named = read_text((*arguments).property, bind_slot, property);
-        if (named != GF_STATUS_OK) {
-            return named;
-        }
-        const gf_status membered = read_text((*arguments).data_member, bind_slot, member);
-        if (membered != GF_STATUS_OK) {
-            return membered;
-        }
-        if (property.empty()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, bind_slot, "a binding names its property");
-        }
-        std::shared_ptr<BindingSource> source;
-        const gf_status sourced = enter_typed_component((*arguments).source, bind_slot, not_source, source);
-        if (sourced != GF_STATUS_OK) {
-            return sourced;
-        }
-        Control::Ptr target;
-        const gf_status found = registry().find_object((*arguments).target, bind_slot, target);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        if (!(*target).is_alive()) {
-            return fail(GF_STATUS_DISPOSED, bind_slot, "the target has been disposed");
-        }
-        const std::shared_ptr<Binding> made =
-            (*target).data_bindings().add(std::string(property), source, std::string(member), std::move(options));
-        *binding = registry().add_reference(made);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(bind_slot);
+gf_status bindings_bind_body(const gf_binding_arguments* arguments, gf_object* binding) {
+    if (arguments == nullptr || binding == nullptr || (*arguments).struct_size < arguments_size_1_0) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, bind_slot,
+                    "bind needs gf_binding_arguments of at least the 1.0 size and a binding output");
     }
+    BindingOptions options;
+    const gf_status optioned = read_options(*arguments, options);
+    if (optioned != GF_STATUS_OK) {
+        return optioned;
+    }
+    std::string_view property;
+    std::string_view member;
+    const gf_status named = read_text((*arguments).property, bind_slot, property);
+    if (named != GF_STATUS_OK) {
+        return named;
+    }
+    const gf_status membered = read_text((*arguments).data_member, bind_slot, member);
+    if (membered != GF_STATUS_OK) {
+        return membered;
+    }
+    if (property.empty()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, bind_slot, "a binding names its property");
+    }
+    std::shared_ptr<BindingSource> source;
+    const gf_status sourced = enter_typed_component((*arguments).source, bind_slot, not_source, source);
+    if (sourced != GF_STATUS_OK) {
+        return sourced;
+    }
+    Control::Ptr target;
+    const gf_status found = registry().find_object((*arguments).target, bind_slot, target);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (!(*target).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, bind_slot, "the target has been disposed");
+    }
+    const std::shared_ptr<Binding> made =
+        (*target).data_bindings().add(std::string(property), source, std::string(member), std::move(options));
+    *binding = registry().add_reference(made);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL bindings_bind(const gf_binding_arguments* arguments, gf_object* binding) noexcept {
+    return call_slot(bind_slot, bindings_bind_body, arguments, binding);
+}
+
+gf_status bindings_unbind_body(gf_object binding) {
+    std::shared_ptr<Binding> typed;
+    const gf_status entered = enter_typed_component(binding, unbind_slot, not_binding, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Control* target = (*typed).target();
+    if (target == nullptr || !(*target).data_bindings().remove(*typed)) {
+        return fail(GF_STATUS_INVALID_STATE, unbind_slot, "the binding is no longer bound");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_unbind(gf_object binding) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(unbind_slot.table_id, unbind_slot.slot_index);
-        std::shared_ptr<Binding> typed;
-        const gf_status entered = enter_typed_component(binding, unbind_slot, not_binding, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        Control* target = (*typed).target();
-        if (target == nullptr || !(*target).data_bindings().remove(*typed)) {
-            return fail(GF_STATUS_INVALID_STATE, unbind_slot, "the binding is no longer bound");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(unbind_slot);
+    return call_slot(unbind_slot, bindings_unbind_body, binding);
+}
+
+gf_status bindings_read_value_body(gf_object binding, std::uint32_t* updated) {
+    if (updated == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, read_value_slot, "read_value needs an output");
     }
+    std::shared_ptr<Binding> typed;
+    const gf_status entered = enter_typed_component(binding, read_value_slot, not_binding, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *updated = (*typed).read_value() ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_read_value(gf_object binding, std::uint32_t* updated) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(read_value_slot.table_id, read_value_slot.slot_index);
-        if (updated == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, read_value_slot, "read_value needs an output");
-        }
-        std::shared_ptr<Binding> typed;
-        const gf_status entered = enter_typed_component(binding, read_value_slot, not_binding, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *updated = (*typed).read_value() ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(read_value_slot);
+    return call_slot(read_value_slot, bindings_read_value_body, binding, updated);
+}
+
+gf_status bindings_write_value_body(gf_object binding, std::uint32_t* updated) {
+    if (updated == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, write_value_slot, "write_value needs an output");
     }
+    std::shared_ptr<Binding> typed;
+    const gf_status entered = enter_typed_component(binding, write_value_slot, not_binding, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *updated = (*typed).write_value() ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_write_value(gf_object binding, std::uint32_t* updated) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(write_value_slot.table_id, write_value_slot.slot_index);
-        if (updated == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, write_value_slot, "write_value needs an output");
-        }
-        std::shared_ptr<Binding> typed;
-        const gf_status entered = enter_typed_component(binding, write_value_slot, not_binding, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *updated = (*typed).write_value() ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(write_value_slot);
+    return call_slot(write_value_slot, bindings_write_value_body, binding, updated);
+}
+
+gf_status bindings_add_record_body(gf_object source, const gf_binding_record* record,
+                                   std::uint64_t* index) {
+    if (index == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, add_record_slot, "add_record needs an index output");
     }
+    std::vector<AbiRecord> converted(1U);
+    const gf_status read = read_record(record, add_record_slot, converted.front());
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, add_record_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status checked = check_batch(*typed, converted, add_record_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    std::vector<BindingRow> rows = place_records(*typed, converted);
+    *index = position_or_hidden((*typed).add(std::move(rows.front())));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_add_record(gf_object source, const gf_binding_record* record,
                                       std::uint64_t* index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(add_record_slot.table_id, add_record_slot.slot_index);
-        if (index == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, add_record_slot, "add_record needs an index output");
+    return call_slot(add_record_slot, bindings_add_record_body, source, record, index);
+}
+
+gf_status bindings_add_records_body(gf_object source, const gf_binding_record* records, std::uint64_t count,
+                                    std::uint64_t* first) {
+    if (first == nullptr || (records == nullptr && count != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot, "add_records needs records and a first output");
+    }
+    if (count > GF_BINDING_MAXIMUM_RECORDS_PER_CALL) {
+        return fail(GF_STATUS_LIMIT_EXCEEDED, add_records_slot,
+                    "add_records takes at most GF_BINDING_MAXIMUM_RECORDS_PER_CALL records");
+    }
+    // The array rule: the caller's sizeof is the stride, at least the
+    // 1.0 size and a multiple of 8, so a later minor's larger record
+    // still steps right.
+    std::size_t stride = 0U;
+    if (count != 0U) {
+        stride = static_cast<std::size_t>((*records).struct_size);
+        if (stride < record_size_1_0 || stride % 8U != 0U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
+                        "a record's struct_size is at least 40 and a multiple of 8");
         }
-        std::vector<AbiRecord> converted(1U);
-        const gf_status read = read_record(record, add_record_slot, converted.front());
+    }
+    // Every record is read and validated before the source changes.
+    std::vector<AbiRecord> converted;
+    converted.reserve(static_cast<std::size_t>(count));
+    const unsigned char* cursor = reinterpret_cast<const unsigned char*>(records);
+    for (std::uint64_t index = 0U; index < count; ++index) {
+        const gf_binding_record* record = reinterpret_cast<const gf_binding_record*>(cursor);
+        if ((*record).struct_size != (*records).struct_size) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
+                        "every record repeats the first one's struct_size");
+        }
+        AbiRecord one;
+        const gf_status read = read_record(record, add_records_slot, one);
         if (read != GF_STATUS_OK) {
             return read;
         }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, add_record_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status checked = check_batch(*typed, converted, add_record_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        std::vector<BindingRow> rows = place_records(*typed, converted);
-        *index = position_or_hidden((*typed).add(std::move(rows.front())));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(add_record_slot);
+        converted.push_back(std::move(one));
+        cursor += stride;
     }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, add_records_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status checked = check_batch(*typed, converted, add_records_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    std::vector<BindingRow> rows = place_records(*typed, converted);
+    const std::uint64_t start = static_cast<std::uint64_t>((*typed).count());
+    // One reset for the call: the per-record list changes are held
+    // while the records go in, then the source resets its bindings
+    // once, as Windows Forms' RaiseListChangedEvents = false then
+    // ResetBindings does.
+    // All or none (add_rows): a record the provider refuses removes the
+    // ones before it and the call fails with INVALID_ARGUMENT; a
+    // provider that then refuses the removal leaves its rows, the
+    // source resets to them, and the call fails with INVALID_STATE.
+    const bool raising = (*typed).raise_list_changed_events();
+    (*typed).set_raise_list_changed_events(false);
+    try {
+        (*typed).add_rows(std::move(rows));
+    } catch (const std::runtime_error& kept) {
+        (*typed).set_raise_list_changed_events(raising);
+        if (raising) {
+            (*typed).reset_bindings();
+        }
+        return fail(GF_STATUS_INVALID_STATE, add_records_slot, kept.what());
+    } catch (...) {
+        (*typed).set_raise_list_changed_events(raising);
+        throw;
+    }
+    (*typed).set_raise_list_changed_events(raising);
+    if (raising && count != 0U) {
+        (*typed).reset_bindings();
+    }
+    *first = start;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_add_records(gf_object source, const gf_binding_record* records, std::uint64_t count,
                                        std::uint64_t* first) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(add_records_slot.table_id, add_records_slot.slot_index);
-        if (first == nullptr || (records == nullptr && count != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot, "add_records needs records and a first output");
-        }
-        if (count > GF_BINDING_MAXIMUM_RECORDS_PER_CALL) {
-            return fail(GF_STATUS_LIMIT_EXCEEDED, add_records_slot,
-                        "add_records takes at most GF_BINDING_MAXIMUM_RECORDS_PER_CALL records");
-        }
-        // The array rule: the caller's sizeof is the stride, at least the
-        // 1.0 size and a multiple of 8, so a later minor's larger record
-        // still steps right.
-        std::size_t stride = 0U;
-        if (count != 0U) {
-            stride = static_cast<std::size_t>((*records).struct_size);
-            if (stride < record_size_1_0 || stride % 8U != 0U) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
-                            "a record's struct_size is at least 40 and a multiple of 8");
-            }
-        }
-        // Every record is read and validated before the source changes.
-        std::vector<AbiRecord> converted;
-        converted.reserve(static_cast<std::size_t>(count));
-        const unsigned char* cursor = reinterpret_cast<const unsigned char*>(records);
-        for (std::uint64_t index = 0U; index < count; ++index) {
-            const gf_binding_record* record = reinterpret_cast<const gf_binding_record*>(cursor);
-            if ((*record).struct_size != (*records).struct_size) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot,
-                            "every record repeats the first one's struct_size");
-            }
-            AbiRecord one;
-            const gf_status read = read_record(record, add_records_slot, one);
-            if (read != GF_STATUS_OK) {
-                return read;
-            }
-            converted.push_back(std::move(one));
-            cursor += stride;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, add_records_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status checked = check_batch(*typed, converted, add_records_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        std::vector<BindingRow> rows = place_records(*typed, converted);
-        const std::uint64_t start = static_cast<std::uint64_t>((*typed).count());
-        // One reset for the call: the per-record list changes are held
-        // while the records go in, then the source resets its bindings
-        // once, as Windows Forms' RaiseListChangedEvents = false then
-        // ResetBindings does.
-        // All or none (add_rows): a record the provider refuses removes the
-        // ones before it and the call fails with INVALID_ARGUMENT; a
-        // provider that then refuses the removal leaves its rows, the
-        // source resets to them, and the call fails with INVALID_STATE.
-        const bool raising = (*typed).raise_list_changed_events();
-        (*typed).set_raise_list_changed_events(false);
-        try {
-            (*typed).add_rows(std::move(rows));
-        } catch (const std::runtime_error& kept) {
-            (*typed).set_raise_list_changed_events(raising);
-            if (raising) {
-                (*typed).reset_bindings();
-            }
-            return fail(GF_STATUS_INVALID_STATE, add_records_slot, kept.what());
-        } catch (...) {
-            (*typed).set_raise_list_changed_events(raising);
-            throw;
-        }
-        (*typed).set_raise_list_changed_events(raising);
-        if (raising && count != 0U) {
-            (*typed).reset_bindings();
-        }
-        *first = start;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(add_records_slot);
+    return call_slot(add_records_slot, bindings_add_records_body, source, records, count, first);
+}
+
+gf_status bindings_insert_record_body(gf_object source, std::uint64_t index,
+                                      const gf_binding_record* record) {
+    std::vector<AbiRecord> converted(1U);
+    const gf_status read = read_record(record, insert_record_slot, converted.front());
+    if (read != GF_STATUS_OK) {
+        return read;
     }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, insert_record_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (index > (*typed).count()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, insert_record_slot, "the index is past the records");
+    }
+    const gf_status checked = check_batch(*typed, converted, insert_record_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    std::vector<BindingRow> rows = place_records(*typed, converted);
+    static_cast<void>((*typed).insert(static_cast<std::size_t>(index), std::move(rows.front())));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_insert_record(gf_object source, std::uint64_t index,
                                          const gf_binding_record* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(insert_record_slot.table_id, insert_record_slot.slot_index);
-        std::vector<AbiRecord> converted(1U);
-        const gf_status read = read_record(record, insert_record_slot, converted.front());
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, insert_record_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (index > (*typed).count()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, insert_record_slot, "the index is past the records");
-        }
-        const gf_status checked = check_batch(*typed, converted, insert_record_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        std::vector<BindingRow> rows = place_records(*typed, converted);
-        static_cast<void>((*typed).insert(static_cast<std::size_t>(index), std::move(rows.front())));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(insert_record_slot);
+    return call_slot(insert_record_slot, bindings_insert_record_body, source, index, record);
+}
+
+gf_status bindings_remove_record_body(gf_object source, std::uint64_t index, std::uint32_t* removed) {
+    if (removed == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, remove_record_slot, "remove_record needs an output");
     }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, remove_record_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (index >= (*typed).count()) {
+        *removed = 0U;
+        return GF_STATUS_OK;
+    }
+    *removed = (*typed).remove_at(static_cast<std::size_t>(index)) ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_remove_record(gf_object source, std::uint64_t index, std::uint32_t* removed) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(remove_record_slot.table_id, remove_record_slot.slot_index);
-        if (removed == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, remove_record_slot, "remove_record needs an output");
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, remove_record_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (index >= (*typed).count()) {
-            *removed = 0U;
-            return GF_STATUS_OK;
-        }
-        *removed = (*typed).remove_at(static_cast<std::size_t>(index)) ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(remove_record_slot);
+    return call_slot(remove_record_slot, bindings_remove_record_body, source, index, removed);
+}
+
+gf_status bindings_clear_records_body(gf_object source) {
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, clear_records_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    (*typed).clear();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_clear_records(gf_object source) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(clear_records_slot.table_id, clear_records_slot.slot_index);
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, clear_records_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        (*typed).clear();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(clear_records_slot);
+    return call_slot(clear_records_slot, bindings_clear_records_body, source);
+}
+
+gf_status bindings_set_position_body(gf_object source, std::int64_t position, std::uint32_t* moved) {
+    if (moved == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_position_slot, "set_position needs an output");
     }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, set_position_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (position < -1 || (position >= 0 && static_cast<std::uint64_t>(position) >= (*typed).count())) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_position_slot, "the position is -1 or a record's");
+    }
+    *moved = (*typed).set_position(static_cast<std::ptrdiff_t>(position)) ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_set_position(gf_object source, std::int64_t position, std::uint32_t* moved) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_position_slot.table_id, set_position_slot.slot_index);
-        if (moved == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_position_slot, "set_position needs an output");
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, set_position_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (position < -1 || (position >= 0 && static_cast<std::uint64_t>(position) >= (*typed).count())) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_position_slot, "the position is -1 or a record's");
-        }
-        *moved = (*typed).set_position(static_cast<std::ptrdiff_t>(position)) ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_position_slot);
+    return call_slot(set_position_slot, bindings_set_position_body, source, position, moved);
+}
+
+gf_status bindings_position_body(gf_object source, std::int64_t* position, std::uint64_t* count) {
+    if (position == nullptr || count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, position_slot, "position needs both outputs");
     }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, position_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *position = static_cast<std::int64_t>((*typed).position());
+    *count = static_cast<std::uint64_t>((*typed).count());
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_position(gf_object source, std::int64_t* position, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(position_slot.table_id, position_slot.slot_index);
-        if (position == nullptr || count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, position_slot, "position needs both outputs");
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, position_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *position = static_cast<std::int64_t>((*typed).position());
-        *count = static_cast<std::uint64_t>((*typed).count());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(position_slot);
+    return call_slot(position_slot, bindings_position_body, source, position, count);
+}
+
+gf_status bindings_current_field_body(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer,
+                                      std::uint64_t text_capacity, std::uint64_t* text_required) {
+    const gf_status checked =
+        check_value_output(value, text_buffer, text_capacity, text_required, current_field_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
     }
+    std::string_view name;
+    const gf_status named = read_text(field, current_field_slot, name);
+    if (named != GF_STATUS_OK) {
+        return named;
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, current_field_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::optional<BindingValue> current = (*typed).current_field(name);
+    if (!current) {
+        return fail(GF_STATUS_NOT_FOUND, current_field_slot, "there is no current record or no such field");
+    }
+    return write_value_output(*current, value, text_buffer, text_capacity, text_required, current_field_slot);
 }
 
 gf_status GF_CALL bindings_current_field(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer,
                                          std::uint64_t text_capacity, std::uint64_t* text_required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(current_field_slot.table_id, current_field_slot.slot_index);
-        const gf_status checked =
-            check_value_output(value, text_buffer, text_capacity, text_required, current_field_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        std::string_view name;
-        const gf_status named = read_text(field, current_field_slot, name);
-        if (named != GF_STATUS_OK) {
-            return named;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, current_field_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::optional<BindingValue> current = (*typed).current_field(name);
-        if (!current) {
-            return fail(GF_STATUS_NOT_FOUND, current_field_slot, "there is no current record or no such field");
-        }
-        return write_value_output(*current, value, text_buffer, text_capacity, text_required, current_field_slot);
-    } catch (...) {
-        return fail_with_current_exception(current_field_slot);
+    return call_slot(current_field_slot, bindings_current_field_body,
+                     source, field, value, text_buffer, text_capacity, text_required);
+}
+
+gf_status bindings_set_current_field_body(gf_object source, gf_utf8_view field, const gf_value* value,
+                                          std::uint32_t* accepted) {
+    if (accepted == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_current_field_slot, "set_current_field needs an output");
     }
+    std::string_view name;
+    const gf_status named = read_text(field, set_current_field_slot, name);
+    if (named != GF_STATUS_OK) {
+        return named;
+    }
+    BindingValue converted;
+    const gf_status valued = read_value(value, set_current_field_slot, converted);
+    if (valued != GF_STATUS_OK) {
+        return valued;
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, set_current_field_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *accepted = (*typed).set_current_field(name, std::move(converted)) ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_set_current_field(gf_object source, gf_utf8_view field, const gf_value* value,
                                              std::uint32_t* accepted) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_current_field_slot.table_id, set_current_field_slot.slot_index);
-        if (accepted == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_current_field_slot, "set_current_field needs an output");
-        }
-        std::string_view name;
-        const gf_status named = read_text(field, set_current_field_slot, name);
-        if (named != GF_STATUS_OK) {
-            return named;
-        }
-        BindingValue converted;
-        const gf_status valued = read_value(value, set_current_field_slot, converted);
-        if (valued != GF_STATUS_OK) {
-            return valued;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, set_current_field_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *accepted = (*typed).set_current_field(name, std::move(converted)) ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_current_field_slot);
+    return call_slot(set_current_field_slot, bindings_set_current_field_body, source, field, value, accepted);
+}
+
+gf_status bindings_set_provider_body(gf_object source, const gf_binding_column* columns,
+                                     std::uint64_t column_count, const gf_binding_provider_callbacks* callbacks,
+                                     std::uint64_t* provider) {
+    if (provider == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "set_provider needs a provider output");
     }
+    // Everything the caller lends is read and checked before the
+    // source changes.
+    BindingSchema schema;
+    gf_binding_provider_callbacks copied{};
+    if (callbacks != nullptr) {
+        const gf_status checked = check_binding_provider_callbacks(*callbacks, set_provider_slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        copied = *callbacks;
+        copied.struct_size = static_cast<std::uint32_t>(sizeof(gf_binding_provider_callbacks));
+        const gf_status read = read_binding_columns(columns, column_count, set_provider_slot, schema);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+    } else if (column_count != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "an empty table takes no columns");
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, set_provider_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (callbacks == nullptr) {
+        (*typed).set_provider(nullptr);
+        *provider = 0U;
+        return GF_STATUS_OK;
+    }
+    const std::uint64_t id = next_binding_provider_id();
+    std::shared_ptr<AbiBindingProvider> made = std::make_shared<AbiBindingProvider>(std::move(schema), copied, id);
+    (*typed).set_provider(std::move(made));
+    *provider = id;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL bindings_set_provider(gf_object source, const gf_binding_column* columns,
                                         std::uint64_t column_count, const gf_binding_provider_callbacks* callbacks,
                                         std::uint64_t* provider) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_provider_slot.table_id, set_provider_slot.slot_index);
-        if (provider == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "set_provider needs a provider output");
-        }
-        // Everything the caller lends is read and checked before the
-        // source changes.
-        BindingSchema schema;
-        gf_binding_provider_callbacks copied{};
-        if (callbacks != nullptr) {
-            const gf_status checked = check_binding_provider_callbacks(*callbacks, set_provider_slot);
-            if (checked != GF_STATUS_OK) {
-                return checked;
-            }
-            copied = *callbacks;
-            copied.struct_size = static_cast<std::uint32_t>(sizeof(gf_binding_provider_callbacks));
-            const gf_status read = read_binding_columns(columns, column_count, set_provider_slot, schema);
-            if (read != GF_STATUS_OK) {
-                return read;
-            }
-        } else if (column_count != 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "an empty table takes no columns");
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, set_provider_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (callbacks == nullptr) {
-            (*typed).set_provider(nullptr);
-            *provider = 0U;
-            return GF_STATUS_OK;
-        }
-        const std::uint64_t id = next_binding_provider_id();
-        std::shared_ptr<AbiBindingProvider> made = std::make_shared<AbiBindingProvider>(std::move(schema), copied, id);
-        (*typed).set_provider(std::move(made));
-        *provider = id;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_provider_slot);
-    }
+    return call_slot(set_provider_slot, bindings_set_provider_body, source, columns, column_count, callbacks, provider);
 }
+gf_status bindings_notify_body(std::uint64_t provider, gf_binding_notification_kind kind, std::uint64_t row,
+                               std::uint64_t count, std::uint64_t target) {
+    // Any thread: no registry entry, only the provider's own link.
+    if (kind > GF_BINDING_NOTIFY_CHANGED) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, notify_slot, "kind is a gf_binding_notification_kind");
+    }
+    if (row > binding_maximum_rows || count > binding_maximum_rows ||
+        (target > binding_maximum_rows && target != GF_BINDING_WHOLE_ROW)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, notify_slot, "the rows are past the bounds");
+    }
+    BindingNotification notification{};
+    notification.kind = static_cast<BindingNotificationKind>(kind);
+    notification.row = static_cast<std::size_t>(row);
+    notification.count = static_cast<std::size_t>(count);
+    notification.target = static_cast<std::size_t>(target);
+    return notify_binding_provider(provider, notification, notify_slot);
+}
+
 gf_status GF_CALL bindings_notify(std::uint64_t provider, gf_binding_notification_kind kind, std::uint64_t row,
                                   std::uint64_t count, std::uint64_t target) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(notify_slot.table_id, notify_slot.slot_index);
-        // Any thread: no registry entry, only the provider's own link.
-        if (kind > GF_BINDING_NOTIFY_CHANGED) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, notify_slot, "kind is a gf_binding_notification_kind");
-        }
-        if (row > binding_maximum_rows || count > binding_maximum_rows ||
-            (target > binding_maximum_rows && target != GF_BINDING_WHOLE_ROW)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, notify_slot, "the rows are past the bounds");
-        }
-        BindingNotification notification{};
-        notification.kind = static_cast<BindingNotificationKind>(kind);
-        notification.row = static_cast<std::size_t>(row);
-        notification.count = static_cast<std::size_t>(count);
-        notification.target = static_cast<std::size_t>(target);
-        return notify_binding_provider(provider, notification, notify_slot);
-    } catch (...) {
-        return fail_with_current_exception(notify_slot);
-    }
+    return call_slot(notify_slot, bindings_notify_body, provider, kind, row, count, target);
 }
+gf_status bindings_set_sort_body(gf_object source, const gf_binding_sort_key* keys, std::uint64_t count) {
+    std::vector<BindingSortKey> converted;
+    const gf_status read = read_binding_sort_keys(keys, count, set_sort_slot, converted);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, set_sort_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    for (const BindingSortKey& key : converted) {
+        if ((*typed).column_of(key.column).absent()) {
+            return fail(GF_STATUS_NOT_FOUND, set_sort_slot, "a sort key names a column the source has not got");
+        }
+    }
+    (*typed).set_sort(std::move(converted));
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL bindings_set_sort(gf_object source, const gf_binding_sort_key* keys, std::uint64_t count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_sort_slot.table_id, set_sort_slot.slot_index);
-        std::vector<BindingSortKey> converted;
-        const gf_status read = read_binding_sort_keys(keys, count, set_sort_slot, converted);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, set_sort_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        for (const BindingSortKey& key : converted) {
-            if (!(*typed).column_of(key.column)) {
-                return fail(GF_STATUS_NOT_FOUND, set_sort_slot, "a sort key names a column the source has not got");
-            }
-        }
-        (*typed).set_sort(std::move(converted));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_sort_slot);
-    }
+    return call_slot(set_sort_slot, bindings_set_sort_body, source, keys, count);
 }
+gf_status bindings_set_filter_body(gf_object source, const gf_binding_predicate* predicates,
+                                   std::uint64_t count) {
+    BindingFilter converted;
+    const gf_status read = read_binding_predicates(predicates, count, set_filter_slot, converted);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, set_filter_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    for (const BindingPredicate& predicate : converted.all_of) {
+        if ((*typed).column_of(predicate.column).absent()) {
+            return fail(GF_STATUS_NOT_FOUND, set_filter_slot, "a predicate names a column the source has not got");
+        }
+    }
+    (*typed).set_filter(std::move(converted));
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL bindings_set_filter(gf_object source, const gf_binding_predicate* predicates,
                                       std::uint64_t count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_filter_slot.table_id, set_filter_slot.slot_index);
-        BindingFilter converted;
-        const gf_status read = read_binding_predicates(predicates, count, set_filter_slot, converted);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, set_filter_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        for (const BindingPredicate& predicate : converted.all_of) {
-            if (!(*typed).column_of(predicate.column)) {
-                return fail(GF_STATUS_NOT_FOUND, set_filter_slot, "a predicate names a column the source has not got");
-            }
-        }
-        (*typed).set_filter(std::move(converted));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_filter_slot);
-    }
+    return call_slot(set_filter_slot, bindings_set_filter_body, source, predicates, count);
 }
+gf_status bindings_generation_body(gf_object source, std::uint64_t* generation, std::uint64_t* count) {
+    if (generation == nullptr || count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, generation_slot, "generation needs its two outputs");
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, generation_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *generation = (*typed).generation();
+    *count = static_cast<std::uint64_t>((*typed).count());
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL bindings_generation(gf_object source, std::uint64_t* generation, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(generation_slot.table_id, generation_slot.slot_index);
-        if (generation == nullptr || count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, generation_slot, "generation needs its two outputs");
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, generation_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *generation = (*typed).generation();
-        *count = static_cast<std::uint64_t>((*typed).count());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(generation_slot);
-    }
+    return call_slot(generation_slot, bindings_generation_body, source, generation, count);
 }
+gf_status bindings_read_cell_body(gf_object source, std::uint64_t generation, std::uint64_t row,
+                                  std::uint64_t column, gf_value* value, char* text_buffer,
+                                  std::uint64_t text_capacity, std::uint64_t* text_required) {
+    const gf_status output = check_value_output(value, text_buffer, text_capacity, text_required, read_cell_slot);
+    if (output != GF_STATUS_OK) {
+        return output;
+    }
+    std::shared_ptr<BindingSource> typed;
+    const gf_status entered = enter_typed_component(source, read_cell_slot, not_source, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (generation != (*typed).generation()) {
+        return fail(GF_STATUS_STALE_HANDLE, read_cell_slot, "the source has changed since that generation");
+    }
+    if (row >= (*typed).count() || column >= (*typed).schema().size()) {
+        return fail(GF_STATUS_NOT_FOUND, read_cell_slot, "the row or column is past the source's");
+    }
+    const std::size_t shown_row = static_cast<std::size_t>(row);
+    const std::size_t shown_column = static_cast<std::size_t>(column);
+    const std::optional<BindingValue> cell = (*typed).value_at(generation, shown_row, shown_column);
+    if (!cell) {
+        const std::string error = (*typed).error(shown_row, shown_column);
+        return fail(GF_STATUS_INVALID_STATE, read_cell_slot, error);
+    }
+    return write_value_output(*cell, value, text_buffer, text_capacity, text_required, read_cell_slot);
+}
+
 gf_status GF_CALL bindings_read_cell(gf_object source, std::uint64_t generation, std::uint64_t row,
                                      std::uint64_t column, gf_value* value, char* text_buffer,
                                      std::uint64_t text_capacity, std::uint64_t* text_required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(read_cell_slot.table_id, read_cell_slot.slot_index);
-        const gf_status output = check_value_output(value, text_buffer, text_capacity, text_required, read_cell_slot);
-        if (output != GF_STATUS_OK) {
-            return output;
-        }
-        std::shared_ptr<BindingSource> typed;
-        const gf_status entered = enter_typed_component(source, read_cell_slot, not_source, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (generation != (*typed).generation()) {
-            return fail(GF_STATUS_STALE_HANDLE, read_cell_slot, "the source has changed since that generation");
-        }
-        if (row >= (*typed).count() || column >= (*typed).schema().size()) {
-            return fail(GF_STATUS_NOT_FOUND, read_cell_slot, "the row or column is past the source's");
-        }
-        const std::size_t shown_row = static_cast<std::size_t>(row);
-        const std::size_t shown_column = static_cast<std::size_t>(column);
-        const std::optional<BindingValue> cell = (*typed).value_at(generation, shown_row, shown_column);
-        if (!cell) {
-            const std::string error = (*typed).error(shown_row, shown_column);
-            return fail(GF_STATUS_INVALID_STATE, read_cell_slot, error);
-        }
-        return write_value_output(*cell, value, text_buffer, text_capacity, text_required, read_cell_slot);
-    } catch (...) {
-        return fail_with_current_exception(read_cell_slot);
-    }
+    return call_slot(read_cell_slot, bindings_read_cell_body,
+                     source, generation, row, column, value, text_buffer, text_capacity, text_required);
 }
 constexpr gf_bindings_table table{
     .struct_size = sizeof(gf_bindings_table),

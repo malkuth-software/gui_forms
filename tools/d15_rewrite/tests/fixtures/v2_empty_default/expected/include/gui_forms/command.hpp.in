@@ -1,0 +1,13 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <string_view>
+
+namespace gui_forms {
+
+// `= {}` keeps its spelling; a default spelled with its type becomes the
+// empty TextView.
+bool execute(stxlib::TextView source_id = {});
+bool execute_titled(stxlib::TextView title = stxlib::TextView());
+
+} // namespace gui_forms

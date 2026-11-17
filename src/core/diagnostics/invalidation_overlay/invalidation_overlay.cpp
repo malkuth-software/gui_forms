@@ -175,6 +175,19 @@ DevicePixelRect legend_box(std::uint32_t width, std::uint32_t height, std::int32
     return box;
 }
 
+// The counters card: one line a counter, at the client's top left.
+DevicePixelRect counters_box(std::span<const std::string> lines, std::int32_t unit) noexcept {
+    std::size_t widest = 0U;
+    for (const std::string& line : lines) widest = std::max(widest, line.size());
+    const std::int32_t rows = static_cast<std::int32_t>(lines.size());
+    DevicePixelRect box{};
+    box.left = 4 * unit;
+    box.top = 4 * unit;
+    box.right = box.left + (static_cast<std::int32_t>(widest) * cell_width + 8) * unit;
+    box.bottom = box.top + (rows * (cell_height + 3) + 4) * unit;
+    return box;
+}
+
 // -- compositing ------------------------------------------------------------------
 
 // Draws `colour` at `opacity` over one premultiplied BGRA pixel.
@@ -307,6 +320,19 @@ void draw_legend(const Canvas& canvas, std::uint32_t width, std::uint32_t height
     }
 }
 
+constexpr Color counters_text = Color::rgba(255, 236, 160);
+
+void draw_counters(const Canvas& canvas, std::span<const std::string> lines, double scale) noexcept {
+    const std::int32_t unit = device_unit(scale);
+    const DevicePixelRect box = counters_box(lines, unit);
+    fill(canvas, box, label_backing, 1.0);
+    std::int32_t y = box.top + 2 * unit;
+    for (const std::string& line : lines) {
+        draw_text(canvas, box.left + 4 * unit, y, line, unit, counters_text, 1.0);
+        y += (cell_height + 3) * unit;
+    }
+}
+
 } // namespace
 
 InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept {
@@ -350,11 +376,16 @@ std::string_view invalidation_cause_name(InvalidationCause cause) noexcept {
 }
 
 bool invalidation_overlay_requested_by_environment() noexcept {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build reads no environment variable (cmake/HighIntegrity.cmake).
+    return false;
+#else
     const char* const value = std::getenv("GUI_FORMS_DEBUG_INVALIDATION");
     if (value == nullptr) return false;
     const std::string_view text(value);
     const bool requested = !text.empty() && text != "0";
     return requested;
+#endif
 }
 
 void set_invalidation_overlay_default(bool enabled) noexcept {
@@ -406,13 +437,22 @@ void InvalidationOverlay::clear() noexcept {
     outlines_.clear();
 }
 
+void InvalidationOverlay::set_counters(std::span<const std::string_view> lines) {
+    const std::size_t count = std::min(lines.size(), maximum_overlay_counter_lines);
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::string_view line = lines[index];
+        counters_[index].assign(line.substr(0U, std::min(line.size(), maximum_overlay_counter_characters)));
+    }
+    counter_count_ = count;
+}
+
 void InvalidationOverlay::fill_regions(double scale, std::uint32_t width, std::uint32_t height,
                                        std::vector<DevicePixelRect>& regions) const {
     regions.clear();
-    if (outlines_.empty() || width == 0U || height == 0U) return;
+    if ((outlines_.empty() && counter_count_ == 0U) || width == 0U || height == 0U) return;
     const DevicePixelRect client{0, 0, static_cast<std::int32_t>(width), static_cast<std::int32_t>(height)};
     const std::int32_t unit = device_unit(scale);
-    regions.reserve(outlines_.size() * 5U + 1U);
+    regions.reserve(outlines_.size() * 5U + 2U);
     for (const InvalidationOutline& outline : outlines_) {
         const DevicePixelRect device = device_bounds(outline.bounds, scale);
         const std::int32_t thickness = stroke_thickness(invalidation_outline_style(outline.cause), scale);
@@ -428,13 +468,19 @@ void InvalidationOverlay::fill_regions(double scale, std::uint32_t width, std::u
             if (!empty_rect(clipped)) regions.push_back(clipped);
         }
     }
-    const DevicePixelRect legend = intersect(legend_box(width, height, unit), client);
-    if (!empty_rect(legend)) regions.push_back(legend);
+    if (!outlines_.empty()) {
+        const DevicePixelRect legend = intersect(legend_box(width, height, unit), client);
+        if (!empty_rect(legend)) regions.push_back(legend);
+    }
+    if (counter_count_ != 0U) {
+        const DevicePixelRect card = intersect(counters_box(counters(), unit), client);
+        if (!empty_rect(card)) regions.push_back(card);
+    }
 }
 
 void InvalidationOverlay::compose(const InvalidationOverlayTarget& target, double scale,
                                   InvalidationClock::time_point now, DevicePixelRect clip) const {
-    if (outlines_.empty() || target.width == 0U || target.height == 0U) return;
+    if ((outlines_.empty() && counter_count_ == 0U) || target.width == 0U || target.height == 0U) return;
     const std::uint64_t needed = static_cast<std::uint64_t>(target.row_bytes) * (target.height - 1U) +
                                  static_cast<std::uint64_t>(target.width) * 4U;
     if (target.row_bytes < static_cast<std::size_t>(target.width) * 4U || target.pixels.size() < needed) return;
@@ -460,7 +506,8 @@ void InvalidationOverlay::compose(const InvalidationOverlayTarget& target, doubl
         fill(canvas, box, label_backing, opacity);
         draw_text(canvas, box.left + unit, box.top + unit, label, unit, style.colour, opacity);
     }
-    draw_legend(canvas, target.width, target.height, scale);
+    if (!outlines_.empty()) draw_legend(canvas, target.width, target.height, scale);
+    if (counter_count_ != 0U) draw_counters(canvas, counters(), scale);
 }
 
 } // namespace gui_forms

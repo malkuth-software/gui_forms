@@ -54,22 +54,22 @@ PartMark severity_mark(NoticeSeverity severity) noexcept {
 constexpr std::array<AnatomyState, 2> actuator_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<InfoBanner::Parts>, 8> info_banner_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::face},
-    {.declaration = {.name = "keyline", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "keyline", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::keyline},
-    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::icon},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::caption},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::label},
     {.declaration = {.name = "actuator", .role = PartRole::glyph, .composed_from = {},
                      .states = actuator_part_states},
      .member = &InfoBanner::Parts::actuator},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &InfoBanner::Parts::content},
 }};
 
@@ -99,6 +99,7 @@ constexpr ControlAnatomy info_banner_anatomy{
     .parts = info_banner_parts,
     .states = info_banner_states,
     .custom_states = info_banner_custom_states,
+    .item_systems = {},
 };
 
 } // namespace
@@ -246,11 +247,11 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     PartPaint keyline{.role = PartRole::keyline, .bounds = placed.keyline, .states = states,
                       .family = ControlVisualRole::notice};
-    keyline.authored_foreground = tone;
+    keyline.authored_foreground.set(tone);
     paint_part(painter, *this, keyline);
     PartPaint icon{.role = PartRole::glyph, .bounds = placed.icon, .states = states, .family = ControlVisualRole::notice};
     icon.mark = severity_mark(level);
-    icon.authored_foreground = tone;
+    icon.authored_foreground.set(tone);
     paint_part(painter, *this, icon);
     const std::string& heading = title.read();
     if (!heading.empty()) {
@@ -544,8 +545,11 @@ std::span<const PropertyEntry> InfoBanner::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void InfoBanner::prepare_write(const decltype(severity)&, NoticeSeverity&) {
+void InfoBanner::prepare_write(const decltype(severity)&, NoticeSeverity& incoming) {
     require_mutable();
+    // The severity is the custom state index painting reads
+    // (A-gf-controls-05-F3).
+    if (!notice_severity_known(incoming)) throw std::invalid_argument("InfoBanner severity is outside NoticeSeverity");
 }
 
 void InfoBanner::written(const decltype(severity)&) {

@@ -28,6 +28,7 @@
 
 #include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "../src/core/engine/primitives/finish/finish_kernel.hpp"
+#include "support/unique_temporary_directory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -248,6 +249,21 @@ void composites_as_panel_lamps() {
     const LightPlanes spill = uniform_planes(4U, 3U, 1U, 0.3F, 2.0F, 0.0F);
     require(composite(spill, spill, lit, LightComposite{}, native, *raster) == 12U, "a spilling bake is written");
     require(pixel_of(*raster, 2U, 2U) == clear, "a lamp's spill past the key's coverage never shows");
+
+    // A-gf-core-05-F4: a caller's view whose extent claims more rows than
+    // its buffer holds is refused before any write, as is a rectangle whose
+    // far edge overflows.
+    std::vector<std::uint8_t> short_buffer(4U * 4U * 2U, std::uint8_t{0xAB});
+    PartRasterView short_view{};
+    short_view.pixels = std::span<std::uint8_t>(short_buffer);
+    short_view.extent = DeviceExtent{4U, 3U};
+    short_view.row_bytes = 16U;
+    require(engine_light::composite_light_planes(planes, planes, lit, LightComposite{}, native, short_view) == 0U &&
+                short_buffer[0] == std::uint8_t{0xAB},
+            "a view whose buffer is short of its extent is refused, untouched");
+    const LightPlaneRect overflowing{std::numeric_limits<std::int64_t>::max() - 1, 0, 4, 3};
+    require(composite(planes, planes, lit, LightComposite{}, overflowing, *raster) == 0U,
+            "a rectangle whose far edge overflows is refused");
 }
 
 void press_mixes_the_bakes() {
@@ -373,10 +389,7 @@ void write_file(const std::filesystem::path& path, const std::vector<std::byte>&
 
 void cache_reads_on_first_use() {
     const std::filesystem::path directory =
-        std::filesystem::temp_directory_path() / "gui_forms_engine_light_planes_tests";
-    std::error_code ignored{};
-    std::filesystem::remove_all(directory, ignored);
-    std::filesystem::create_directories(directory);
+        test_support::make_unique_temporary_directory("gui_forms_engine_light_planes_tests");
     write_file(directory / "dialog_ok_up.f32", bake_bytes(varied_planes()));
     std::vector<std::byte> broken = bake_bytes(varied_planes());
     broken.pop_back();
@@ -396,7 +409,7 @@ void cache_reads_on_first_use() {
             "a missing bake is refused");
     require(cache.lend("../dialog_ok_up") == nullptr && cache.lend("Dialog") == nullptr && cache.reads() == 3U,
             "a name that is not a bake's reads nothing");
-    std::filesystem::remove_all(directory, ignored);
+    test_support::remove_temporary_directory(directory);
 }
 
 // -- previewing ---------------------------------------------------------------------

@@ -48,7 +48,7 @@
       "event": null,
       "name": "value",
       "capability": "RibbonColorPickerValue",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "storage": "view",
       "field": null,
       "hooks": "hand",

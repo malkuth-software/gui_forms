@@ -3,6 +3,8 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
+#include <stxlib/error.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -12,10 +14,11 @@
 // Failure snapshots (C ABI 1.2, gf_failure_snapshot). Where an exception
 // reaches a boundary, the boundary copies, on its own thread, what failed:
 // its site, its text and the shadow frames it was thrown under (the frames
-// it unwound included: copy_failure_shadow_frames). Two boundaries take one:
-// a C ABI function refusing its call (abi1::fail_with_current_exception) and
-// the fail-fast boundary (call_failing_fast, through fail_fast), whose report
-// prints it before the process ends.
+// it unwound included), read from STXlib's shadow record of the exception.
+// Two boundaries take one: a C ABI function refusing its call (the slot gate,
+// abi1::call_slot, and the few handlers that keep the exception) and the
+// fail-fast boundary (call_failing_fast), whose report prints it before the
+// process ends.
 //
 // Each thread owns its snapshot (thread_local, about 8 KiB, made with the
 // thread), so taking one never allocates and cannot fail; a thread's next
@@ -33,6 +36,10 @@ namespace gui_forms::detail {
 // are cut at the last whole UTF-8 sequence that fits.
 inline constexpr std::size_t failure_site_capacity = 64U;
 inline constexpr std::size_t failure_snapshot_message_capacity = 512U;
+// The bytes a snapshot keeps of the exception's type and the return
+// addresses of the trace at the throw (C ABI 1.4, gf_failure_detail).
+inline constexpr std::size_t failure_type_capacity = 256U;
+inline constexpr std::size_t failure_trace_capacity = 32U;
 
 // The status a snapshot of the fail-fast boundary records: the C ABI's
 // GF_STATUS_NATIVE_EXCEPTION (the ABI checks the two agree).
@@ -47,7 +54,10 @@ inline constexpr std::string_view c_abi_failure_site = "c_abi";
 // depth counts the frames open where the exception was thrown; frame_count
 // (at most shadow_stack_capacity) the recorded ones, the leading elements of
 // frames. The text arrays hold site_size and message_size bytes; the bytes
-// past them are zero.
+// past them are zero. In a development build of STXlib, type holds the
+// exception's demangled type (type_size bytes) and trace the trace_count
+// return addresses at the throw, innermost first (survey S4 = 1); both are
+// empty in a release build and for a failure without an exception.
 struct GUI_FORMS_API FailureSnapshot final {
     std::int32_t status = 0;
     std::uint32_t interface_id = 0U;
@@ -60,6 +70,16 @@ struct GUI_FORMS_API FailureSnapshot final {
     std::array<char, failure_site_capacity> site{};
     std::array<char, failure_snapshot_message_capacity> message{};
     std::array<ShadowFrame, shadow_stack_capacity> frames{};
+    std::uint32_t type_size = 0U;
+    std::uint32_t trace_count = 0U;
+    std::array<char, failure_type_capacity> type{};
+    std::array<std::uint64_t, failure_trace_capacity> trace{};
+    // A parked failure's rethrow whose park could not keep its own copy of
+    // the frames (the copy's allocation was refused, or STXlib could not park
+    // into it): the frames above are what the thread still held of the
+    // record, possibly none, not necessarily the whole record. False for
+    // every other failure.
+    bool frames_lost_at_park = false;
 };
 
 // Where a snapshot is taken: the boundary's site and status, and the C ABI
@@ -71,10 +91,31 @@ struct GUI_FORMS_API FailureBoundary final {
     std::uint32_t function_index = 0U;
 };
 
+// Replaces the calling thread's snapshot with message at boundary and what
+// record, a gate's ErrorRecord, carries: the frames, the trace and the
+// exception's type of its shadow record (no frames when it has none). Any
+// time after the gate returned, on the gate's thread, while the record's
+// shadow record is among the thread's last records (4 in a development
+// build, 1 in a release build). A parked failure's rethrow files its own
+// copy of the frames as a new record (stxlib::restore_shadow_from), so the
+// outer gate's record qualifies whatever was captured since the park.
+// status must not be zero.
+GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message,
+                                           const stxlib::ErrorRecord& record) noexcept;
+
 // Replaces the calling thread's snapshot with message at boundary and the
-// failure's shadow frames. To be called inside the catch block that caught
-// the exception, before anything opens a frame. status must not be zero.
+// failure's shadow frames, for a handler that is not a gate: to be called
+// inside the catch block that caught the exception (it takes the thread's
+// pending capture, copy_failure_shadow_frames). status must not be zero.
 GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message) noexcept;
+
+// As the handler overload above, with the failure's shadow record already
+// parked (stxlib::park_shadow) by a handler that keeps the reference, the
+// class bridge's ParkedFailure: the snapshot takes parked's frames and trace,
+// or the frames open now when parked is not present. Takes no capture of its
+// own, so parked can be restored for a rethrow (stxlib::restore_shadow).
+GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message,
+                                           stxlib::ShadowReference parked) noexcept;
 
 // As record_failure_snapshot, with failure's text as the message (what() for
 // a std::exception, else a fixed text).
@@ -87,6 +128,28 @@ GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std:
 // Forgets the calling thread's snapshot (status zero, no frames, no text);
 // sequence keeps counting.
 GUI_FORMS_API void clear_failure_snapshot() noexcept;
+
+// Process-wide failure counters, read with failure_statistics() from any
+// thread (relaxed: each counter is exact, but two are not read together).
+// parked_frames_dropped counts parked failures that kept no copy of their
+// frames (abi1::ParkedFailure::park: allocation refused on the failure
+// path, out of memory included, or STXlib unable to park into the copy).
+struct GUI_FORMS_API FailureStatistics final {
+    std::uint64_t parked_frames_dropped = 0U;
+};
+
+[[nodiscard]] GUI_FORMS_API FailureStatistics failure_statistics() noexcept;
+
+// Called by a park that kept no copy of its frames: counts it in
+// parked_frames_dropped. Never allocates; any thread.
+GUI_FORMS_API void count_parked_frames_dropped() noexcept;
+
+// Called by that failure's rethrow, just before restoring parked as the
+// pending capture: the next gate record filed on this thread whose shadow
+// reference has parked's sequence (record_failure_snapshot with an
+// ErrorRecord) is marked frames_lost_at_park; the mark is then spent. A
+// later call replaces an unspent mark. Never allocates.
+GUI_FORMS_API void mark_parked_frames_lost(stxlib::ShadowReference parked) noexcept;
 
 // Exception reflection's process switch. Any thread.
 GUI_FORMS_API void set_exception_reflection(bool enabled) noexcept;

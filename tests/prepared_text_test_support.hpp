@@ -2,6 +2,7 @@
 
 #include "gui_forms/prepared_text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -39,7 +40,7 @@ inline std::vector<std::byte> read_font(const std::filesystem::path& directory) 
 }
 
 inline EncodedFontLease make_bank(PreparedTextService& service, const std::span<const std::byte> bytes) {
-    const std::array<PreparedFontSource, 1> sources{{{.encoded = bytes, .role = FontRole::content}}};
+    const std::array<PreparedFontSource, 1> sources{{{.encoded = bytes, .role = stxlib::Optional<gui_forms::FontRole>::of(FontRole::content)}}};
     EncodedFontLease bank{};
     const PreparedTextStatus status = service.create_font_bank(sources, bank);
     require(status == PreparedTextStatus::success, "font bank admission");

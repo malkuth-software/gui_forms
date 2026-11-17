@@ -4,6 +4,7 @@
 #include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
 #include "sub_surface_tool_tips.hpp"
+#include "../../thread_records/thread_records_end.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -288,28 +289,31 @@ private:
     // The next publication copies the whole framebuffer (first frame of a
     // LiveSurface epoch).
     bool publish_whole_{};
-    std::optional<FrameTime> retry_at_{};
+    stxlib::Optional<FrameTime> retry_at_{};
     // Publishes at most one frame per display frame: the next paint waits
     // until the window showed the last one, or one and a half refreshes.
     LiveSurfacePacer pacer_;
-    std::optional<FrameTime> pacing_wake_{};
+    stxlib::Optional<FrameTime> pacing_wake_{};
     // The display time the frame schedule was last polled at.
     FrameTime motion_time_{};
     // The input wait() took from the channel; empty between turns.
     std::vector<detail::SubSurfaceInputRecord> inputs_{};
     std::vector<SurfaceRequestOutcome> outcomes_{};
-    std::optional<Rect> published_caret_{};
+    stxlib::Optional<Rect> published_caret_{};
     // The tree's semantic generation at the last published snapshot; zero
     // before the first (generations start at one).
     std::uint64_t published_semantic_generation_{};
 };
 
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     SubSurfaceState end = SubSurfaceState::stopped;
     std::string failure;
     // This thread's synchronous invokes can be revoked by the parent's stop
     // (SubSurfaceThread::stop), so they never hold its join.
-    detail::set_thread_revocable_invokes((*(*loop).channel_).revocable_invokes);
+    // The channel owns them; `channel` below keeps it past the clear.
+    detail::set_thread_revocable_invokes((*(*loop).channel_).revocable_invokes.get());
     try {
         (*loop).run_tree();
     } catch (const std::exception& error) {
@@ -412,18 +416,18 @@ void SubSurfaceLoop::run_tree() {
 }
 
 bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfiguration>& configuration) {
-    std::optional<FrameTime> deadline = root.next_wake();
-    if (retry_at_ && (!deadline || *retry_at_ < *deadline)) deadline = retry_at_;
-    if (pacing_wake_ && (!deadline || *pacing_wake_ < *deadline)) deadline = pacing_wake_;
+    stxlib::Optional<FrameTime> deadline = root.next_wake();
+    if (retry_at_.present() && (deadline.absent() || *retry_at_.value() < *deadline.value())) deadline = retry_at_;
+    if (pacing_wake_.present() && (deadline.absent() || *pacing_wake_.value() < *deadline.value())) deadline = pacing_wake_;
     std::unique_lock<std::mutex> lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
     while (!channel.stop_requested && !channel.pending && !channel.signalled && channel.inputs.empty() &&
            channel.outcomes.empty()) {
-        if (!deadline) {
+        if (deadline.absent()) {
             channel.wake.wait(lock);
             continue;
         }
-        if (channel.wake.wait_until(lock, *deadline) == std::cv_status::timeout) break;
+        if (channel.wake.wait_until(lock, *deadline.value()) == std::cv_status::timeout) break;
     }
     if (channel.stop_requested) return false;
     ++channel.statistics.loop_turns;
@@ -591,7 +595,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
         if (pace.outcome == LivePacingOutcome::pending && !epoch_due_) {
             // The dirt stays; a presentation report or the deadline wakes
             // the loop for it.
-            pacing_wake_ = pace.wake_at;
+            pacing_wake_.set(pace.wake_at);
             // Only pixels already painted may go out meanwhile (a lease
             // that failed earlier). A frame of a new LiveSurface epoch waits
             // for its paint: published now it would carry the new content
@@ -609,14 +613,14 @@ void SubSurfaceLoop::produce(SubSurface& root) {
         }
         const DamageRegion taken = root.take_damage();
         if (!taken.empty() && (*framebuffer_).begin(root.image_resources(), taken.bounds())) {
-            const std::optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());
+            const stxlib::Optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());
             (*framebuffer_).end();
             const PixelRectangle painted =
                 device_pixels_of(taken.bounds(), scale_, (*framebuffer_).width(), (*framebuffer_).height());
             unpublished_ = unite_pixels(unpublished_, painted);
             // The framebuffer is this root's screen: the paint is presented
             // once it is there, whether or not a LiveSurface buffer is free.
-            if (receipt) static_cast<void>(root.notify_presented(*receipt));
+            if (receipt.present()) static_cast<void>(root.notify_presented(*receipt.value()));
         }
     }
     if (unpublished_.empty() && !publish_whole_) return;
@@ -624,7 +628,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
 }
 
 void SubSurfaceLoop::publish_caret(SubSurface& root) {
-    const std::optional<Rect> caret = root.text_input_caret();
+    const stxlib::Optional<Rect> caret = root.text_input_caret();
     if (caret == published_caret_) return;
     published_caret_ = caret;
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
@@ -678,7 +682,7 @@ void SubSurfaceLoop::publish_semantics(SubSurface& root) {
 void SubSurfaceLoop::publish() {
     LiveSurfaceWriteLease lease = (*surface_).try_acquire_write(true);
     if (!lease) {
-        retry_at_ = FrameClock::now() + publish_retry_interval;
+        retry_at_.set(FrameClock::now() + publish_retry_interval);
         const std::lock_guard<std::mutex> lock((*channel_).mutex);
         ++(*channel_).statistics.publish_retries;
         return;
@@ -938,7 +942,7 @@ SubSurfaceStatistics SubSurfaceThread::statistics() const {
     return (*channel_).statistics;
 }
 
-std::optional<Rect> SubSurfaceThread::text_input_caret() const {
+stxlib::Optional<Rect> SubSurfaceThread::text_input_caret() const {
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     return (*channel_).text_input_caret;
 }

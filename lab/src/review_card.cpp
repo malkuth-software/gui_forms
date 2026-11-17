@@ -50,7 +50,7 @@ ReviewCard::ReviewCard(StableId stable_id)
     (*summary_label_).text_style_role = TextStyleRole::body;
     (*summary_label_).text_wrapping = TextWrapping::word;
     (*summary_label_).line_spacing = 1.25;
-    (*summary_label_).vertical_alignment = VerticalAlignment::near;
+    (*summary_label_).vertical_alignment = VerticalAlignment::start;
     (*verdict_label_).text_style_role = TextStyleRole::caption;
     (*verdict_label_).vertical_alignment = VerticalAlignment::center;
 }
@@ -122,6 +122,7 @@ constexpr ControlAnatomy review_card_anatomy{
     .parts = panel_detail::parts,
     .states = card_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

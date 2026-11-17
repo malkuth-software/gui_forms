@@ -94,7 +94,7 @@ RadialPick pick_radial_item(const RadialLayout& layout, Point pointer, double de
     if (!valid_radial_layout(layout) || !finite_point(pointer) || !std::isfinite(dead_zone)) return pick;
     const double dx = pointer.x - layout.center.x;
     const double dy = pointer.y - layout.center.y;
-    const double distance = std::hypot(dx, dy);
+    const double distance = engine_hypotenuse(dx, dy);
     if (!(distance > 0.0) || distance <= dead_zone) return pick;
     const double direction = normalised_degrees(engine_arctangent2(dy, dx) * radians_to_degrees);
     const double sweep = 360.0 / static_cast<double>(layout.count);

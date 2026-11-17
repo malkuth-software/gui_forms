@@ -36,14 +36,13 @@ constexpr SlotIdentity lend_slot{GF_TABLE_EVENTS, 0U};
 
 constexpr std::string_view single_name = "value";
 
-// The frames whose callback is running on this thread, innermost last. One
-// stack per thread (N9): since 1.1 a sub-surface's thread raises its own
-// controls' events and calls the events slots for them, beside the UI
-// thread.
-std::vector<EventFields*>& active_frames() {
-    thread_local std::vector<EventFields*> frames;
-    return frames;
-}
+// The innermost frame whose callback is running on this thread; each frame
+// links the one before it (EventFields::previous_frame_). One stack per
+// thread (N9): since 1.1 a sub-surface's thread raises its own controls'
+// events and calls the events slots for them, beside the UI thread. A
+// plain pointer (owner rule 2: every thread_local trivially destructible),
+// and the frames are their callers' objects, so pushing never allocates.
+thread_local EventFields* top_frame = nullptr;
 
 std::string_view view_of(gf_utf8_view text) noexcept {
     const std::string_view view(text.data, static_cast<std::size_t>(text.size));
@@ -129,6 +128,7 @@ void EventFields::release() noexcept {
     fields_.clear();
     records_.clear();
     texts_used_ = 0U;
+    element_runs_used_ = 0U;
     prefix_.clear();
     writable_ = false;
     claimed_ = false;
@@ -184,10 +184,14 @@ bool EventFields::name_matches(const std::string& stored, std::string_view name)
 gf_value& EventFields::append(std::string_view name, gf_value_kind kind, gf_event_field_flags flags,
                               EventFieldAccepts accepts) {
     // The pool's entry for the next field, grown only past the largest
-    // event this EventFields has built.
+    // event this EventFields has built. Each pool grows on its own test
+    // (A-gf-abi-02-F4): a refused allocation in the second leaves the first
+    // one longer, and the next append grows only the one that is short.
     const std::size_t index = fields_.size();
     if (index == names_.size()) {
         names_.emplace_back();
+    }
+    if (index == values_.size()) {
         values_.emplace_back();
     }
     compose_name(name, names_[index]);
@@ -228,6 +232,32 @@ void EventFields::set_collection(const void* items, std::size_t count, EventElem
     field.reader = reader;
 }
 
+gf_value* EventFields::lend_elements(std::size_t count, gf_value_kind kind, EventFieldAccepts accepts) {
+    // The run is reserved and filled before the field changes: a refused
+    // allocation leaves the field a plain collection of no elements.
+    if (element_runs_used_ == element_runs_.size()) {
+        element_runs_.emplace_back();
+    }
+    std::vector<gf_value>& run = element_runs_[element_runs_used_];
+    gf_value blank{};
+    blank.struct_size = value_size_1_0;
+    blank.kind = kind;
+    run.assign(count, blank);
+    Field& field = fields_.back();
+    field.count = count;
+    field.fixed_count = true;
+    field.run = element_runs_used_;
+    field.element_kind = kind;
+    field.element_accepts = accepts;
+    element_runs_used_ = element_runs_used_ + 1U;
+    gf_value* first = run.empty() ? nullptr : run.data();
+    gf_value& value = values_[fields_.size() - 1U];
+    value.unsigned_integer = static_cast<std::uint64_t>(count);
+    value.elements = first;
+    value.element_count = static_cast<std::uint64_t>(count);
+    return first;
+}
+
 gf_object EventFields::lend(const Component* object) {
     if (object == nullptr) {
         return 0U;
@@ -249,6 +279,15 @@ gf_object EventFields::lend(const Component* object) {
     return lent;
 }
 
+void EventFields::take_lent(EventFields& from) {
+    if (from.lent_.empty()) {
+        return;
+    }
+    detail::reserve_at_least(lent_, lent_.size() + from.lent_.size());
+    lent_.insert(lent_.end(), from.lent_.begin(), from.lent_.end());
+    from.lent_.clear();
+}
+
 std::size_t EventFields::count() const noexcept {
     return fields_.size();
 }
@@ -267,6 +306,7 @@ void EventFields::mark_optional(std::size_t mark, std::string_view name, bool ab
         field.items = nullptr;
         field.count = 0U;
         field.reader = nullptr;
+        field.fixed_count = false;
         gf_value blank{};
         blank.struct_size = value_size_1_0;
         blank.kind = GF_VALUE_KIND_NULL;
@@ -290,13 +330,16 @@ void EventFields::publish(gf_event& event, bool single_argument) {
     // (names and texts are blocks that keep their own poisoned state, so
     // texts kept after publish need no room here). Reserved before any
     // field is lent; a failure leaves nothing lent.
-    retired_.reserve(retired_.size() + fields_.size());
+    std::size_t lent_elements = 0U;
+    std::size_t run_index = 0U;
+    for (run_index = 0U; run_index < element_runs_used_; ++run_index) {
+        lent_elements = lent_elements + element_runs_[run_index].size();
+    }
+    retired_.reserve(retired_.size() + fields_.size() + lent_elements);
     while (name_blocks_.size() < fields_.size()) {
         name_blocks_.emplace_back();
     }
 #endif
-    std::vector<EventFields*>& frames = active_frames();
-    detail::reserve_one_more(frames);
     std::size_t index = 0U;
     for (index = 0U; index < fields_.size(); ++index) {
         gf_event_field record{};
@@ -317,23 +360,26 @@ void EventFields::publish(gf_event& event, bool single_argument) {
     event.fields = records_.empty() ? nullptr : records_.data();
     const bool one_value = single_argument && fields_.size() == 1U && names_[0] == single_name;
     event.payload = one_value ? &values_[0] : nullptr;
+    // Published again (a class hook's base): leaves its old place first,
+    // so the stack holds each frame once.
+    end_publication();
     event_ = &event;
-    frames.push_back(this);
+    previous_frame_ = top_frame;
+    top_frame = this;
 }
 
 void EventFields::end_publication() noexcept {
     if (event_ == nullptr) {
         return;
     }
-    std::vector<EventFields*>& frames = active_frames();
-    std::size_t index = frames.size();
-    while (index > 0U) {
-        --index;
-        if (frames[index] == this) {
-            frames.erase(frames.begin() + static_cast<std::ptrdiff_t>(index));
-            break;
-        }
+    // Unlinked wherever it sits; frames end innermost first, so this is
+    // the top in practice.
+    EventFields** link = &top_frame;
+    while (*link != nullptr && *link != this) {
+        link = &(**link).previous_frame_;
     }
+    if (*link == this) *link = previous_frame_;
+    previous_frame_ = nullptr;
     event_ = nullptr;
 }
 
@@ -381,6 +427,13 @@ void EventFields::retire_lent_scratch() noexcept {
     for (index = 0U; index < texts_used_; ++index) {
         texts_[index].retire();
     }
+    // A fixed-size array's element records: whole gf_values, contiguous.
+    for (index = 0U; index < element_runs_used_ && index < element_runs_.size(); ++index) {
+        std::vector<gf_value>& run = element_runs_[index];
+        if (!run.empty()) {
+            retire_region(run.data(), run.size() * sizeof(gf_value));
+        }
+    }
     // The records are scribbled only: release() clears records_ next, and
     // the library's own vector annotation then poisons them where it is on.
     if (!records_.empty()) {
@@ -410,6 +463,20 @@ bool EventFields::written(std::string_view name, gf_value& value) const {
     return false;
 }
 
+bool EventFields::written_binding(std::string_view name, BindingValue& value) const {
+    std::size_t index = 0U;
+    for (index = 0U; index < fields_.size(); ++index) {
+        if (fields_[index].written && name_matches(names_[index], name)) {
+            if (!fields_[index].converted.has_value()) {
+                return false;
+            }
+            value = *fields_[index].converted;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool EventFields::single(gf_value& value, std::string_view& text) const {
     if (fields_.size() != 1U || names_[0] != single_name) {
         return false;
@@ -423,13 +490,12 @@ EventFields* EventFields::frame_of(const gf_event* event) noexcept {
     if (event == nullptr) {
         return nullptr;
     }
-    std::vector<EventFields*>& frames = active_frames();
-    std::size_t index = frames.size();
-    while (index > 0U) {
-        --index;
-        if ((*frames[index]).event_ == event) {
-            return frames[index];
+    EventFields* frame = top_frame;
+    while (frame != nullptr) {
+        if ((*frame).event_ == event) {
+            return frame;
         }
+        frame = (*frame).previous_frame_;
     }
     return nullptr;
 }
@@ -450,12 +516,17 @@ gf_status EventFields::write(std::uint64_t field, const gf_value* value, SlotIde
     copy.struct_size = value_size_1_0;
     const bool any_kind = (target.flags & GF_EVENT_FIELD_ANY_KIND) != 0U;
     const bool absent = copy.kind == GF_VALUE_KIND_NULL && (target.flags & GF_EVENT_FIELD_OPTIONAL) != 0U;
+    // An any-kind write converted here, while the caller's record (and a
+    // collection's elements and their texts) is valid; kept as the field's
+    // value, since the caller's storage may end with the callback.
+    std::optional<BindingValue> converted;
     if (any_kind) {
-        BindingValue converted;
-        const gf_status read = read_value(&copy, slot, converted);
+        BindingValue read_back;
+        const gf_status read = read_value(&copy, slot, read_back);
         if (read != GF_STATUS_OK) {
             return read;
         }
+        converted = std::move(read_back);
     } else if (!absent) {
         if (copy.kind != target.kind) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the value's kind is not the field's");
@@ -466,6 +537,12 @@ gf_status EventFields::write(std::uint64_t field, const gf_value* value, SlotIde
         }
         if (target.accepts != nullptr && !target.accepts(copy)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the value is out of the field's range or choices");
+        }
+        if (target.fixed_count) {
+            const gf_status elements_checked = check_written_elements(target, copy, slot);
+            if (elements_checked != GF_STATUS_OK) {
+                return elements_checked;
+            }
         }
     }
     // The library keeps its own copy of written text.
@@ -478,9 +555,75 @@ gf_status EventFields::write(std::uint64_t field, const gf_value* value, SlotIde
         copy.text.data = nullptr;
         copy.text.size = 0U;
     }
+    if (target.fixed_count) {
+        if (copy.kind == GF_VALUE_KIND_COLLECTION) {
+            take_written_elements(target, copy);
+        } else {
+            // Absent: the caller's elements are not kept.
+            copy.elements = nullptr;
+            copy.element_count = 0U;
+        }
+    } else {
+        // Only a fixed-size array keeps written elements (in its own
+        // records); any other field never keeps the caller's pointer, which
+        // is not valid once the callback returns (A-gf-abi-02-F1).
+        copy.elements = nullptr;
+        copy.element_count = 0U;
+    }
     values_[static_cast<std::size_t>(field)] = copy;
+    target.converted = std::move(converted);
     target.written = true;
     return GF_STATUS_OK;
+}
+
+gf_status EventFields::check_written_elements(const Field& target, const gf_value& value, SlotIdentity slot) const {
+    if (value.element_count != static_cast<std::uint64_t>(target.count)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a fixed-size array is written with exactly its element count");
+    }
+    // Stepped by the first element's struct_size (gf_abi.h, the array rule),
+    // the whole array validated before any element is kept.
+    std::uint32_t stride = 0U;
+    const gf_status array_checked = check_array(value.elements, value.element_count, value_size_1_0, slot, stride);
+    if (array_checked != GF_STATUS_OK) {
+        return array_checked;
+    }
+    std::uint64_t index = 0U;
+    for (index = 0U; index < value.element_count; ++index) {
+        gf_value element{};
+        std::memcpy(&element, &element_at(value.elements, stride, index), value_size_1_0);
+        if (element.kind != target.element_kind) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a fixed-size array's element is not of its element kind");
+        }
+        const gf_status element_checked = check_written(element, slot);
+        if (element_checked != GF_STATUS_OK) {
+            return element_checked;
+        }
+        if (target.element_accepts != nullptr && !target.element_accepts(element)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "an element is out of the array's range or choices");
+        }
+    }
+    return GF_STATUS_OK;
+}
+
+void EventFields::take_written_elements(const Field& target, gf_value& value) noexcept {
+    std::vector<gf_value>& run = element_runs_[target.run];
+    const std::uint32_t stride = run.empty() ? value_size_1_0 : (*value.elements).struct_size;
+    std::size_t index = 0U;
+    for (index = 0U; index < run.size(); ++index) {
+        // Through a local copy: the caller may pass back the records this
+        // field lent, so source and destination can be the same record.
+        gf_value element{};
+        std::memcpy(&element, &element_at(value.elements, stride, index), value_size_1_0);
+        element.struct_size = value_size_1_0;
+        element.text.data = nullptr;
+        element.text.size = 0U;
+        element.elements = nullptr;
+        element.element_count = 0U;
+        run[index] = element;
+    }
+    value.unsigned_integer = static_cast<std::uint64_t>(run.size());
+    value.elements = run.empty() ? nullptr : run.data();
+    value.element_count = static_cast<std::uint64_t>(run.size());
 }
 
 gf_status EventFields::element(std::uint64_t field, std::uint64_t index, gf_value* out, SlotIdentity slot) {
@@ -488,6 +631,18 @@ gf_status EventFields::element(std::uint64_t field, std::uint64_t index, gf_valu
         return fail(GF_STATUS_NOT_FOUND, slot, "the event has no field of that index");
     }
     const Field& source = fields_[static_cast<std::size_t>(field)];
+    if (source.fixed_count) {
+        // A fixed-size array: its lent records, as written when written.
+        if (index >= source.count) {
+            return fail(GF_STATUS_NOT_FOUND, slot, "the collection has no element of that index");
+        }
+        const gf_status record_checked = check_record(out, slot);
+        if (record_checked != GF_STATUS_OK) {
+            return record_checked;
+        }
+        write_record(element_runs_[source.run][static_cast<std::size_t>(index)], out);
+        return GF_STATUS_OK;
+    }
     if (source.reader == nullptr) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the field is not a collection");
     }
@@ -558,6 +713,26 @@ std::string argument_name(std::size_t index, std::size_t count) {
 // ---------------------------------------------------------------------------
 // Writers.
 
+void fill_value(gf_value& record, Point value) noexcept {
+    record.point = gf_logical_point{value.x, value.y};
+}
+
+void fill_value(gf_value& record, Size value) noexcept {
+    record.size = gf_logical_size{value.width, value.height};
+}
+
+void fill_value(gf_value& record, const Rect& value) noexcept {
+    record.rectangle = gf_logical_rect{value.x, value.y, value.width, value.height};
+}
+
+void fill_value(gf_value& record, const Insets& value) noexcept {
+    record.insets = gf_logical_insets{value.left, value.top, value.right, value.bottom};
+}
+
+void fill_value(gf_value& record, Color value) noexcept {
+    record.color = packed_color(value);
+}
+
 void append_field(EventFields& fields, std::string_view name, bool value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_BOOLEAN, GF_EVENT_FIELD_WRITABLE, &accepts_any);
     record.boolean = value ? 1U : 0U;
@@ -581,27 +756,27 @@ void append_field(EventFields& fields, std::string_view name, std::string_view v
 
 void append_field(EventFields& fields, std::string_view name, Point value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_POINT, GF_EVENT_FIELD_WRITABLE, &accepts_any);
-    record.point = gf_logical_point{value.x, value.y};
+    fill_value(record, value);
 }
 
 void append_field(EventFields& fields, std::string_view name, Size value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_SIZE, GF_EVENT_FIELD_WRITABLE, &accepts_any);
-    record.size = gf_logical_size{value.width, value.height};
+    fill_value(record, value);
 }
 
 void append_field(EventFields& fields, std::string_view name, const Rect& value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_RECTANGLE, GF_EVENT_FIELD_WRITABLE, &accepts_any);
-    record.rectangle = gf_logical_rect{value.x, value.y, value.width, value.height};
+    fill_value(record, value);
 }
 
 void append_field(EventFields& fields, std::string_view name, const Insets& value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_INSETS, GF_EVENT_FIELD_WRITABLE, &accepts_any);
-    record.insets = gf_logical_insets{value.left, value.top, value.right, value.bottom};
+    fill_value(record, value);
 }
 
 void append_field(EventFields& fields, std::string_view name, Color value) {
     gf_value& record = fields.append(name, GF_VALUE_KIND_COLOR, GF_EVENT_FIELD_WRITABLE, &accepts_any);
-    record.color = packed_color(value);
+    fill_value(record, value);
 }
 
 void append_field(EventFields& fields, std::string_view name, const BindingValue& value) {
@@ -634,6 +809,12 @@ void append_field(EventFields& fields, std::string_view name, const Theme& value
     static_cast<void>(value);
 }
 
+void append_field(EventFields& fields, std::string_view name, const ThemeCompileResult& value) {
+    static_cast<void>(fields);
+    static_cast<void>(name);
+    static_cast<void>(value);
+}
+
 // ---------------------------------------------------------------------------
 // Readers.
 
@@ -657,50 +838,67 @@ void read_field(EventFields& fields, std::string_view name, std::string_view& va
     static_cast<void>(value);
 }
 
+void take_value(const gf_value& record, Point& value) noexcept {
+    value = Point{record.point.x, record.point.y};
+}
+
 void read_field(EventFields& fields, std::string_view name, Point& value) {
     gf_value written{};
     if (fields.written(name, written)) {
-        value = Point{written.point.x, written.point.y};
+        take_value(written, value);
     }
+}
+
+void take_value(const gf_value& record, Size& value) noexcept {
+    value = Size{record.size.width, record.size.height};
 }
 
 void read_field(EventFields& fields, std::string_view name, Size& value) {
     gf_value written{};
     if (fields.written(name, written)) {
-        value = Size{written.size.width, written.size.height};
+        take_value(written, value);
     }
+}
+
+void take_value(const gf_value& record, Rect& value) noexcept {
+    value = Rect{record.rectangle.x, record.rectangle.y, record.rectangle.width, record.rectangle.height};
 }
 
 void read_field(EventFields& fields, std::string_view name, Rect& value) {
     gf_value written{};
     if (fields.written(name, written)) {
-        value = Rect{written.rectangle.x, written.rectangle.y, written.rectangle.width, written.rectangle.height};
+        take_value(written, value);
     }
+}
+
+void take_value(const gf_value& record, Insets& value) noexcept {
+    value = Insets{record.insets.left, record.insets.top, record.insets.right, record.insets.bottom};
 }
 
 void read_field(EventFields& fields, std::string_view name, Insets& value) {
     gf_value written{};
     if (fields.written(name, written)) {
-        value = Insets{written.insets.left, written.insets.top, written.insets.right, written.insets.bottom};
+        take_value(written, value);
     }
+}
+
+void take_value(const gf_value& record, Color& value) noexcept {
+    value = unpacked_color(record.color);
 }
 
 void read_field(EventFields& fields, std::string_view name, Color& value) {
     gf_value written{};
     if (fields.written(name, written)) {
-        value = unpacked_color(written.color);
+        take_value(written, value);
     }
 }
 
 void read_field(EventFields& fields, std::string_view name, BindingValue& value) {
-    gf_value written{};
-    if (!fields.written(name, written)) {
-        return;
-    }
-    // Validated when it was written.
+    // Converted and owned when it was written: the caller's record (a
+    // collection's elements, their texts) is not read again here, after the
+    // callback that lent it has returned (A-gf-abi-02-F1).
     BindingValue converted;
-    const gf_status read = read_value(&written, lend_slot, converted);
-    if (read == GF_STATUS_OK) {
+    if (fields.written_binding(name, converted)) {
         value = std::move(converted);
     }
 }

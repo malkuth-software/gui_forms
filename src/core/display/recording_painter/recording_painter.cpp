@@ -25,6 +25,7 @@ bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& r
     if (recorded.operation == DisplayOperation::draw_text_utf8) {
         const bool same = previous.text_orientation == TextOrientation::horizontal &&
                           recorded.text_orientation == TextOrientation::horizontal &&
+                          previous.text_degrees == 0.0 && recorded.text_degrees == 0.0 &&
                           previous.font == recorded.font && previous.text == recorded.text;
         return same;
     }
@@ -54,7 +55,7 @@ void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previo
     for (std::size_t index = 0; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         if (command.operation == DisplayOperation::draw_text_utf8 &&
-            command.text_orientation == TextOrientation::horizontal) {
+            command.text_orientation == TextOrientation::horizontal && command.text_degrees == 0.0) {
             previous_text_.push_back(index);
         } else if (command.operation == DisplayOperation::draw_box_shadow) {
             previous_shadows_.push_back(index);
@@ -244,6 +245,46 @@ void RecordingPainter::fill_radial_gradient(
     commands_.push_back(std::move(command));
 }
 
+void RecordingPainter::fill_radial_gradient_spread(
+    Rect rect, Point center, Size radii,
+    std::span<const GradientStop> stops, GradientSpreadMode spread) {
+    if (!valid_gradient_stops(stops) ||
+        (spread != GradientSpreadMode::pad &&
+         spread != GradientSpreadMode::repeat &&
+         spread != GradientSpreadMode::reflect)) {
+        throw std::invalid_argument("display gradient spread is invalid");
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::fill_radial_gradient_spread;
+    command.rect = rect;
+    command.first = center;
+    command.second = {radii.width, radii.height};
+    command.gradient_stops.assign(stops.begin(), stops.end());
+    command.gradient_spread = spread;
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::fill_focal_radial_gradient(Rect rect, Point center, Size radii, Point focus,
+                                                  std::span<const GradientStop> stops,
+                                                  GradientSpreadMode spread) {
+    if (!valid_gradient_stops(stops) ||
+        (spread != GradientSpreadMode::pad &&
+         spread != GradientSpreadMode::repeat &&
+         spread != GradientSpreadMode::reflect)) {
+        throw std::invalid_argument("display gradient spread is invalid");
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::fill_focal_radial_gradient;
+    command.rect = rect;
+    command.first = center;
+    command.second = {radii.width, radii.height};
+    command.scalar = focus.x;
+    command.secondary_scalar = focus.y;
+    command.gradient_stops.assign(stops.begin(), stops.end());
+    command.gradient_spread = spread;
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::draw_box_shadow(Rect rect, double corner_radius,
                                        Point offset, double blur_radius,
                                        double spread, Color color) {
@@ -337,6 +378,43 @@ void RecordingPainter::fill_polygon(std::span<const Point> points, Color color, 
     commands_.push_back(std::move(command));
 }
 
+// The path is recorded as given; validation happens where it is drawn, so a
+// replay refuses exactly what a direct call refuses.
+void RecordingPainter::fill_path(PaintPathView path, Color color, PolygonFillRule rule) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_path, marks);
+    (*marks).path_verbs.assign(path.verbs.begin(), path.verbs.end());
+    (*marks).points.assign(path.points.begin(), path.points.end());
+    (*marks).fill_rule = rule;
+    command.color = color;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::clip_path(PaintPathView path, PolygonFillRule rule) {
+    if (save_depth_ == 0U) clipped_ = true;
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::clip_path, marks);
+    (*marks).path_verbs.assign(path.verbs.begin(), path.verbs.end());
+    (*marks).points.assign(path.points.begin(), path.points.end());
+    (*marks).fill_rule = rule;
+    // The clip's extent for the readers that follow clips as rectangles
+    // (the backplane, inspection): the path's bounds, empty when invalid.
+    command.rect = paint_path_bounds(path);
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::stroke_path(PaintPathView path, const StrokeStyle& style) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::stroke_path, marks);
+    (*marks).path_verbs.assign(path.verbs.begin(), path.verbs.end());
+    (*marks).points.assign(path.points.begin(), path.points.end());
+    (*marks).stroke = style;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) {
     std::shared_ptr<DisplayMarks> marks;
     DisplayCommand command = marks_command(DisplayOperation::fill_band, marks);
@@ -415,6 +493,15 @@ void RecordingPainter::fill_grid_pattern(Rect rect, const GridPattern& pattern) 
     commands_.push_back(std::move(command));
 }
 
+void RecordingPainter::fill_hatch(Rect rect, const HatchPattern& pattern) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_hatch, marks);
+    command.rect = rect;
+    (*marks).hatch = pattern;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::fill_rounded_rect_corners(Rect rect, PaintCornerRadii radii, Color color) {
     DisplayCommand command;
     command.operation = DisplayOperation::fill_rounded_rect_corners;
@@ -487,6 +574,23 @@ void RecordingPainter::draw_turned_text_utf8(const Point origin, const std::stri
     commands_.push_back(std::move(command));
 }
 
+void RecordingPainter::draw_rotated_text_utf8(const Point anchor, const std::string_view text, const FontSpec font,
+                                              const Color color, const double degrees) {
+    if (!std::isfinite(degrees)) return;
+    if (degrees == 0.0) {
+        draw_text_utf8(anchor, text, font, color);
+        return;
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::draw_text_utf8;
+    command.first = anchor;
+    command.color = color;
+    command.font = font;
+    command.text.assign(text);
+    command.text_degrees = degrees;
+    commands_.push_back(std::move(command));
+}
+
 Size RecordingPainter::measure_text_utf8(std::string_view text,
                                          FontSpec font) {
     return resolve_text_layout_utf8(text, font).logical_size;
@@ -523,7 +627,7 @@ TextResolutionStatus RecordingPainter::fill_cluster_advances_utf8(
 
 bool RecordingPainter::refuses_image(ImageId image) noexcept {
     if (images_ == nullptr || image.value == 0U) return false;
-    if ((*images_).find(image).has_value()) return false;
+    if ((*images_).find(image).present()) return false;
     if (stale_image_draws_ == 0U) first_stale_image_ = image;
     stale_image_draws_ = stale_image_draws_ + 1U;
     return true;
@@ -692,8 +796,9 @@ void RecordingPainter::fill_image_pattern(
 }
 
 void RecordingPainter::begin_group(const PaintGroup& group) {
-    // A copy group replaces what lies beneath it, transparent included.
-    if (group.composite == PaintGroupComposite::copy) opaque_cover_.reset();
+    // A copy group replaces what lies beneath it, transparent included; an
+    // effect may make what it covers translucent.
+    if (group.composite == PaintGroupComposite::copy || group.effect) opaque_cover_.reset();
     OpenGroup opened{};
     opened.save_depth = save_depth_;
     if (group_depth_ >= maximum_paint_group_depth) {
@@ -701,7 +806,7 @@ void RecordingPainter::begin_group(const PaintGroup& group) {
         open_groups_.reserve(open_groups_.size() + 1U);
         save();
         clip_rect(group.bounds);
-        opened.refused = true;
+        opened.kind = OpenScope::refused_group;
         opened.save_depth = save_depth_;
         open_groups_.push_back(opened);
         group_refusals_ = group_refusals_ + 1U;
@@ -713,6 +818,7 @@ void RecordingPainter::begin_group(const PaintGroup& group) {
     command.scalar = group.opacity;
     command.secondary_scalar = static_cast<double>(group.composite);
     command.tertiary_scalar = group.isolated ? 1.0 : 0.0;
+    command.group_effect = group.effect;
     open_groups_.reserve(open_groups_.size() + 1U);
     commands_.push_back(std::move(command));
     open_groups_.push_back(opened);
@@ -724,11 +830,14 @@ void RecordingPainter::end_group() {
         throw std::logic_error("GUI.Forms paint group ended without one begun");
     }
     const OpenGroup closing = open_groups_.back();
+    if (closing.kind != OpenScope::group && closing.kind != OpenScope::refused_group) {
+        throw std::logic_error("GUI.Forms paint group ended with a transform group open inside it");
+    }
     if (closing.save_depth != save_depth_) {
         throw std::logic_error("GUI.Forms paint group has unbalanced saves inside it");
     }
     open_groups_.pop_back();
-    if (closing.refused) {
+    if (closing.kind == OpenScope::refused_group) {
         restore();
         return;
     }
@@ -736,6 +845,63 @@ void RecordingPainter::end_group() {
     command.operation = DisplayOperation::end_group;
     commands_.push_back(std::move(command));
     group_depth_ = group_depth_ - 1U;
+}
+
+void RecordingPainter::begin_transform(const PaintTransformGroup& group) {
+    OpenGroup opened{};
+    opened.origin = origin_;
+    const bool refused = refused_transforms_open_ > 0U || transform_depth_ >= maximum_paint_transform_depth ||
+                         !valid_paint_transform(group.transform);
+    if (refused) {
+        // Refused by name: nothing inside draws.
+        open_groups_.reserve(open_groups_.size() + 1U);
+        save();
+        clip_rect(Rect{});
+        opened.kind = OpenScope::refused_transform;
+        opened.save_depth = save_depth_;
+        open_groups_.push_back(opened);
+        refused_transforms_open_ = refused_transforms_open_ + 1U;
+        transform_refusals_ = transform_refusals_ + 1U;
+        return;
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::begin_transform;
+    command.rect = group.bounds;
+    command.first = Point{group.transform.xx, group.transform.yx};
+    command.second = Point{group.transform.xy, group.transform.yy};
+    command.scalar = group.transform.dx;
+    command.secondary_scalar = group.transform.dy;
+    opened.kind = OpenScope::transform;
+    opened.save_depth = save_depth_;
+    open_groups_.reserve(open_groups_.size() + 1U);
+    commands_.push_back(std::move(command));
+    open_groups_.push_back(opened);
+    transform_depth_ = transform_depth_ + 1U;
+    origin_ = Point{origin_.x + group.transform.dx, origin_.y + group.transform.dy};
+}
+
+void RecordingPainter::end_transform() {
+    if (open_groups_.empty()) {
+        throw std::logic_error("GUI.Forms transform group ended without one begun");
+    }
+    const OpenGroup closing = open_groups_.back();
+    if (closing.kind != OpenScope::transform && closing.kind != OpenScope::refused_transform) {
+        throw std::logic_error("GUI.Forms transform group ended with a paint group open inside it");
+    }
+    if (closing.save_depth != save_depth_) {
+        throw std::logic_error("GUI.Forms transform group has unbalanced saves inside it");
+    }
+    open_groups_.pop_back();
+    if (closing.kind == OpenScope::refused_transform) {
+        refused_transforms_open_ = refused_transforms_open_ - 1U;
+        restore();
+        return;
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::end_transform;
+    commands_.push_back(std::move(command));
+    transform_depth_ = transform_depth_ - 1U;
+    origin_ = closing.origin;
 }
 
 std::shared_ptr<const DisplayChunk> RecordingPainter::finish(

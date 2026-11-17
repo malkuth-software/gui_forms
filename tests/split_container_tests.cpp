@@ -37,6 +37,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <thread>
 #include <vector>
 
@@ -235,6 +236,28 @@ void test_live_pointer_and_keyboard_resize() {
             "fixed splitters must reject keyboard mutation");
 }
 
+// A-gf-controls-12-F1: Shift+Left with the seam nearer the edge than the
+// step asks for a negative distance; the seam stops at its minimum instead
+// of the request throwing out of key handling.
+void test_keyboard_step_below_zero() {
+    std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.edge"));
+    (*split).splitter_distance = 30.0;
+    (*split).keyboard_increment = 4.0;
+    Window window(split, {400.0, 180.0});
+    window.perform_layout();
+    require(window.request_focus((*split).splitter_control()), "the seam takes focus");
+    KeyEvent left;
+    left.action = KeyAction::down;
+    left.physical_key = PhysicalKey::left;
+    left.modifiers = Modifier::shift;
+    require(window.dispatch_key(left), "Shift+Left near the edge is handled");
+    require(near((*split).splitter_distance.read(), (*split).first_minimum.read()),
+            "the seam stops at the first panel's minimum");
+    left.modifiers = Modifier::none;
+    require(window.dispatch_key(left) && near((*split).splitter_distance.read(), (*split).first_minimum.read()),
+            "another step at the minimum stays there");
+}
+
 void test_pane_surface_background() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.surface"));
     const Color first = Color::rgba(225, 235, 243);
@@ -245,6 +268,19 @@ void test_pane_surface_background() {
                 (*(*split).second_panel()).background.read() == second,
             "splitter panels must own their allocation-filling surface color");
 }
+
+// A validating handler, in the panel being collapsed, that collapses the
+// other panel.
+class CollapseSecond final {
+public:
+    explicit CollapseSecond(SplitContainer& split) noexcept : split_(&split) {}
+    void operator()(ControlValidationEvent&) const {
+        if (!(*split_).second_collapsed()) (*split_).set_second_collapsed(true);
+    }
+
+private:
+    SplitContainer* split_;
+};
 
 void test_collapse_focus_restore_and_fixed_panel_resize() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.collapse"));
@@ -282,6 +318,14 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
     window.perform_layout();
     require(near((*(*split).second_panel()).arranged_bounds().width, second_extent),
             "a fixed second panel must retain its extent when the container grows");
+
+    // A handler run by the focus transfer collapses the other panel: the
+    // first panel's collapse is then refused, never both (A-gf-controls-12-F8).
+    require(window.request_focus(field), "the field takes the focus again");
+    SubscriptionToken collapsing = (*field).validating().subscribe(CollapseSecond(*split));
+    (*split).set_first_collapsed(true);
+    require(!((*split).first_collapsed() && (*split).second_collapsed()),
+            "a collapse raced by a focus handler never leaves both panels collapsed");
 }
 
 void test_horizontal_orientation_and_thread_guard() {
@@ -479,7 +523,7 @@ void test_automatic_accommodation_and_user_override() {
 
 void test_content_aware_maximum_extents() {
     std::shared_ptr<gui_forms::SplitContainer> right_bounded = make_control<SplitContainer>(StableId("split.max.right"));
-    (*right_bounded).second_maximum = 180.0;
+    (*right_bounded).second_maximum = stxlib::Optional<double>::of(180.0);
     (*right_bounded).splitter_distance = 100.0;
     Window right_window(right_bounded, {600.0, 160.0});
     right_window.perform_layout();
@@ -491,7 +535,7 @@ void test_content_aware_maximum_extents() {
             "programmatic and pointer distances must share maximum constraints");
 
     std::shared_ptr<gui_forms::SplitContainer> left_bounded = make_control<SplitContainer>(StableId("split.max.left"));
-    (*left_bounded).first_maximum = 200.0;
+    (*left_bounded).first_maximum = stxlib::Optional<double>::of(200.0);
     (*left_bounded).splitter_distance = 500.0;
     Window left_window(left_bounded, {600.0, 160.0});
     left_window.perform_layout();
@@ -500,7 +544,7 @@ void test_content_aware_maximum_extents() {
 
     bool invalid_rejected{};
     try {
-        (*left_bounded).first_maximum = 10.0;
+        (*left_bounded).first_maximum = stxlib::Optional<double>::of(10.0);
     } catch (const std::invalid_argument&) {
         invalid_rejected = true;
     }
@@ -609,9 +653,9 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     near_event.position = {hit.x + 0.25, hit.y + 10.0};
     near_event.pointer_id = 7U;
     static_cast<void>(window.dispatch_pointer(near_event));
-    require((*split).splitter_seam_snapshot().state == SplitSeamState::near &&
+    require((*split).splitter_seam_snapshot().state == SplitSeamState::nearby &&
                 (*split).splitter_seam_snapshot().transition_active &&
-                window.focused_control() == field && window.next_wake(),
+                window.focused_control() == field && window.next_wake().present(),
             "quiet proximity must reveal near state without stealing focus and schedule only its bounded transition");
 
     PointerEvent hot_event = near_event;
@@ -664,9 +708,9 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
 
     const double before_semantic = (*split).splitter_distance.read();
     const SemanticDescriptor semantics = (*split).semantic_descriptor();
-    require(semantics.numeric_value == before_semantic &&
-                semantics.minimum_value.has_value() &&
-                semantics.maximum_value.has_value() &&
+    require(semantics.numeric_value == stxlib::Optional<double>::of(before_semantic) &&
+                semantics.minimum_value.present() &&
+                semantics.maximum_value.present() &&
                 window.perform_semantic_action(
                     "split.proximity", SemanticAction::increment) &&
                 (*split).splitter_distance.read() > before_semantic &&
@@ -710,19 +754,27 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
     hover.position = {hit.x + hit.width * 0.5,
                       hit.y + hit.height * 0.5};
     hover.pointer_id = 41U;
+    // The grip starts its 90 ms transition at FrameClock::now() inside the
+    // dispatch. The clock is read on both sides, and the half-duration poll
+    // below is taken from their midpoint, so it lands inside the transition
+    // while the dispatch takes under 90 ms (a single read after the hover
+    // allowed under 45 ms; B-gf-tests-10-F3).
+    const FrameTime before_hover = FrameClock::now();
     static_cast<void>(window.dispatch_pointer(hover));
+    const FrameTime after_hover = FrameClock::now();
+    const FrameTime hover_started = before_hover + (after_hover - before_hover) / 2;
 
     const SplitSeamSnapshot started = (*split).splitter_seam_snapshot();
     require(started.state == SplitSeamState::hot &&
                 started.transition_active &&
                 near(started.transition_progress, 0.0) &&
                 near(started.actuator_bounds.width, 7.0) &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "hot proximity must start from the committed rest geometry and own one bounded frame lease");
 
     // The grip's paint-gated transition timer advances it: one tick, then a
     // paint before the next.
-    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + 45ms));
+    static_cast<void>(window.poll_frame_schedule(hover_started + 45ms));
     const SplitSeamSnapshot middle = (*split).splitter_seam_snapshot();
     require(middle.transition_active &&
                 middle.transition_progress > 0.0 &&
@@ -744,7 +796,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
                 near(finished.transition_progress, 1.0) &&
                 near(finished.actuator_bounds.width, 12.0) &&
                 near(finished.actuator_bounds.height, 42.0) &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "the 90-millisecond transition must commit exact engaged geometry and revoke its final frame lease");
 
     PresentationSettings calm = window.presentation_settings();
@@ -757,7 +809,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
     require(!reduced.transition_active &&
                 near(reduced.actuator_bounds.width, 7.0) &&
                 near(reduced.actuator_bounds.height, 28.0) &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "reduced motion must replace interpolation with an immediate exact state change");
 
     (*split).splitter_transition_duration = 0ms;
@@ -875,12 +927,14 @@ void test_seam_drag_engine_parity() {
     const SemanticDescriptor range = (*split).semantic_descriptor();
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::down, 191.0)));
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, 1000.0)));
-    require(near((*split).splitter_distance.read(), *range.maximum_value), "a drag past the end stops at the maximum");
+    require(near((*split).splitter_distance.read(), *range.maximum_value.value()),
+            "a drag past the end stops at the maximum");
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::move, -50.0)));
-    require(near((*split).splitter_distance.read(), *range.minimum_value),
+    require(near((*split).splitter_distance.read(), *range.minimum_value.value()),
             "a drag past the start stops at the minimum, with no refusal");
     static_cast<void>(window.dispatch_pointer(seam_pointer(PointerAction::up, -50.0)));
-    require(near((*split).splitter_distance.read(), *range.minimum_value), "the release keeps the clamped distance");
+    require(near((*split).splitter_distance.read(), *range.minimum_value.value()),
+            "the release keeps the clamped distance");
 }
 
 // Every end but a release puts the distance back with the cancel reason:
@@ -972,6 +1026,7 @@ int main() {
     try {
         test_stable_tree_and_constrained_geometry();
         test_live_pointer_and_keyboard_resize();
+    test_keyboard_step_below_zero();
         test_pane_surface_background();
         test_collapse_focus_restore_and_fixed_panel_resize();
         test_horizontal_orientation_and_thread_guard();

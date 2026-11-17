@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <vector>
@@ -69,7 +70,7 @@ public:
     [[nodiscard]] Control::Ptr palette_overlay() const noexcept;
 
     // Raised after the value shown changes, by the user or the program.
-    [[nodiscard]] Event<const std::optional<Color>&>& value_changed() noexcept { return value_changed_; }
+    [[nodiscard]] Event<const stxlib::Optional<Color>&>& value_changed() noexcept { return value_changed_; }
     [[nodiscard]] Event<bool>& palette_open_changed() noexcept { return palette_open_changed_; }
 
     [[nodiscard]] Size measure(Size available) override;
@@ -111,7 +112,7 @@ public:
         std::size_t index{};
         std::string stable_id;
         RibbonPaletteEntryKind kind{RibbonPaletteEntryKind::palette};
-        std::optional<Color> color{};
+        stxlib::Optional<Color> color{};
         PaletteEntryParts parts;
         PaletteEntryStates states;
     };
@@ -146,12 +147,12 @@ private:
     // coordinates.
     struct Cell final {
         RibbonPaletteEntryKind kind{RibbonPaletteEntryKind::palette};
-        std::optional<Color> color{};
+        stxlib::Optional<Color> color{};
         Rect bounds{};
     };
     struct CommandValueChanged final {
         RibbonColorPicker* picker{};
-        void operator()(const std::optional<Color>& value) const;
+        void operator()(const stxlib::Optional<Color>& value) const;
     };
     struct CommandStateChanged final {
         RibbonColorPicker* picker{};
@@ -165,10 +166,10 @@ private:
     // The palette's cells, from its top-left corner.
     [[nodiscard]] std::vector<Cell> cells() const;
     [[nodiscard]] Size palette_size() const;
-    [[nodiscard]] std::optional<std::size_t> current_entry(const std::vector<Cell>& all) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> current_entry(const std::vector<Cell>& all) const;
     [[nodiscard]] PaletteEntryParts entry_parts(const std::vector<Cell>& all, std::size_t entry) const;
     [[nodiscard]] AnatomyStateSet entry_states(const std::vector<Cell>& all, std::size_t entry) const;
-    void commit(std::optional<Color> color);
+    void commit(stxlib::Optional<Color> color);
     void palette_pointer(PointerEvent& event);
     void palette_key(KeyEvent& event);
     void palette_paint(Painter& painter) const;
@@ -181,7 +182,7 @@ private:
 
     SubscriptionToken command_value_{};
     SubscriptionToken command_state_{};
-    std::optional<Color> own_value_{};
+    stxlib::Optional<Color> own_value_{};
     std::vector<Color> palette_{};
     Zone hot_{Zone::none};
     Zone pressed_{Zone::none};
@@ -203,10 +204,10 @@ private:
     SubscriptionToken lift_closed_{};
     bool palette_open_{};
     bool palette_focused_{};
-    std::optional<std::size_t> hot_entry_{};
-    std::optional<std::size_t> focus_entry_{};
+    stxlib::Optional<std::size_t> hot_entry_{};
+    stxlib::Optional<std::size_t> focus_entry_{};
 
-    Event<const std::optional<Color>&> value_changed_{};
+    Event<const stxlib::Optional<Color>&> value_changed_{};
     Event<bool> palette_open_changed_{};
     // property_codemod begin RibbonColorPicker (tools/property_families/ribbon_color_picker.json; generated, do not edit)
 private:
@@ -218,8 +219,8 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(command)& cell, std::shared_ptr<ColorCommand>& incoming);
     void written(const decltype(command)& cell);
-    void write_view(const decltype(value)& cell, std::optional<Color> incoming);
-    [[nodiscard]] std::optional<Color> read_view(const decltype(value)& cell) const;
+    void write_view(const decltype(value)& cell, stxlib::Optional<Color> incoming);
+    [[nodiscard]] stxlib::Optional<Color> read_view(const decltype(value)& cell) const;
     void prepare_write(const decltype(image)& cell, ImageId& incoming);
     void written(const decltype(image)& cell);
     void prepare_write(const decltype(text)& cell, std::string& incoming);

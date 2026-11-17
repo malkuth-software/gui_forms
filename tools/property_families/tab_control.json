@@ -152,7 +152,7 @@
     {
       "name": "selected_index",
       "capability": "TabControlSelectedIndex",
-      "value": "std::optional<std::size_t>",
+      "value": "stxlib::Optional<std::size_t>",
       "initial": null,
       "comment": "The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.",
       "getter": "selected_index",

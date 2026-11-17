@@ -1,9 +1,10 @@
-/* One button; owned_events.cpp attaches and revokes its handler. */
-form example.window {
-  text: "Owned events";
-  client-size: 200 60;
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- One button; owned_events.cpp attaches and revokes its handler. -->
+<form xmlns="urn:gui-forms:form:1" id="example.window"
+    text="Owned events"
+    client-size="200 60">
 
-  panel example.root {
-    button example.run { text: "Run"; bounds: 12 12 120 32; }
-  }
-}
+  <panel id="example.root">
+    <button id="example.run" text="Run" bounds="12 12 120 32"/>
+  </panel>
+</form>

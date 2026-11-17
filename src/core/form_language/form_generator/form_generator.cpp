@@ -26,10 +26,8 @@ namespace gui_forms::form_language {
 
 namespace {
 
-using theme_language::ByteOffset;
 using theme_language::DiagnosticCode;
-using theme_language::NodeIndex;
-using theme_language::SourcePositionCursor;
+using theme_language::SourcePosition;
 using theme_language::ThemeDiagnostic;
 
 // C++20's keywords and alternative tokens, sorted for binary search; a
@@ -200,9 +198,7 @@ std::optional<std::string> value_literal(const BindingValue& value) {
 
 class FormGenerator final {
 public:
-    FormGenerator(const theme_language::ThemeSource& source, const theme_language::ThemeTokenBuffer& tokens,
-                  const theme_language::LineStartTable& lines, const theme_language::ThemeSyntaxTree& tree,
-                  const FormSchema& schema, const FormModel& model, const FormGeneratorOptions& options,
+    FormGenerator(const theme_language::ThemeSource& source, const FormSchema& schema, const FormModel& model, const FormGeneratorOptions& options,
                   theme_language::ThemeDiagnosticList& diagnostics) noexcept;
 
     // Checks the model, then writes the header into `scratch`; returns
@@ -254,16 +250,13 @@ private:
     [[nodiscard]] const FormSchemaType& type_of(std::size_t index) const {
         return schema_.types[model_.objects[index].schema_type];
     }
-    void report(NodeIndex node, const std::string& rule, const std::string& property, std::string detail);
+    void report(SourcePosition position, const std::string& rule, const std::string& property, std::string detail);
 
     const theme_language::ThemeSource& source_;
-    const theme_language::ThemeTokenBuffer& tokens_;
-    const theme_language::ThemeSyntaxTree& tree_;
     const FormSchema& schema_;
     const FormModel& model_;
     const FormGeneratorOptions& options_;
     theme_language::ThemeDiagnosticList& diagnostics_;
-    SourcePositionCursor cursor_;
     // Whether the root is the reserved form type.
     bool form_root_{};
     // Whether a derived class composes its control root, whose type is
@@ -279,12 +272,10 @@ private:
     bool refused_{};
 };
 
-FormGenerator::FormGenerator(const theme_language::ThemeSource& source, const theme_language::ThemeTokenBuffer& tokens,
-                             const theme_language::LineStartTable& lines, const theme_language::ThemeSyntaxTree& tree,
-                             const FormSchema& schema, const FormModel& model, const FormGeneratorOptions& options,
+FormGenerator::FormGenerator(const theme_language::ThemeSource& source, const FormSchema& schema,
+                             const FormModel& model, const FormGeneratorOptions& options,
                              theme_language::ThemeDiagnosticList& diagnostics) noexcept
-    : source_(source), tokens_(tokens), tree_(tree), schema_(schema), model_(model), options_(options),
-      diagnostics_(diagnostics), cursor_(lines, source.text) {}
+    : source_(source), schema_(schema), model_(model), options_(options), diagnostics_(diagnostics) {}
 
 bool FormGenerator::run(std::string& scratch) {
     form_root_ = type_of(0U).name == form_root_type_name;
@@ -292,7 +283,7 @@ bool FormGenerator::run(std::string& scratch) {
     check_objects();
     check_values();
     if (options_.derived && options_.model_type.empty() && binds()) {
-        report(model_.objects[0].node, model_.objects[0].stable_id, {},
+        report(model_.objects[0].position, model_.objects[0].stable_id, {},
                "the form binds: a derived class needs its model type (gui_forms_add_form MODEL)");
     }
     if (refused_) return false;
@@ -311,11 +302,11 @@ void FormGenerator::check_objects() {
         if (index == 0U && form_root_) continue;
         const FormSchemaType& type = type_of(index);
         if (!form_qualified_name(type.cpp_type) || type.header.empty()) {
-            report(object.node, object.stable_id, {}, type.name + " has no C++ spelling for the generator");
+            report(object.position, object.stable_id, {}, type.name + " has no C++ spelling for the generator");
         }
         std::string name = form_member_name(object.stable_id);
         if (name.empty()) {
-            report(object.node, object.stable_id, {},
+            report(object.position, object.stable_id, {},
                    "the stable ID does not spell a C++ member (it starts with a digit, holds a reserved double underscore "
                    "or is a keyword)");
             continue;
@@ -324,7 +315,7 @@ void FormGenerator::check_objects() {
             taken.emplace(name, index);
         if (!inserted.second) {
             const std::string& other = model_.objects[(*inserted.first).second].stable_id;
-            report(object.node, object.stable_id, {}, "the member " + name + " is also " + other + "'s");
+            report(object.position, object.stable_id, {}, "the member " + name + " is also " + other + "'s");
             continue;
         }
         members_[index] = std::move(name);
@@ -337,7 +328,7 @@ void FormGenerator::check_objects() {
     } else {
         root_object_ = 0U;
         if (!type_of(0U).holds_children) {
-            report(model_.objects[0].node, model_.objects[0].stable_id, {}, "the root is not a control");
+            report(model_.objects[0].position, model_.objects[0].stable_id, {}, "the root is not a control");
         }
     }
 }
@@ -353,14 +344,14 @@ void FormGenerator::check_values() {
         if (property.binding) {
             const std::string& bound_source = (*property.binding).source;
             if (!form_identifier(bound_source)) {
-                report(property.node, object.stable_id, descriptor.name,
+                report(property.position, object.stable_id, descriptor.name,
                        "the binding's source " + bound_source + " is a reserved spelling");
             }
             continue;
         }
         std::optional<std::string> literal = value_literal(property.value);
         if (!literal) {
-            report(property.node, object.stable_id, descriptor.name, "the value's kind has no C++ spelling");
+            report(property.position, object.stable_id, descriptor.name, "the value's kind has no C++ spelling");
             continue;
         }
         values_[index] = std::move(*literal);
@@ -547,6 +538,11 @@ void FormGenerator::write_objects(std::string& out, ObjectAccess access) const {
         // A component is the form's, not its parent's; a form root's
         // control is the window's.
         if (!type.holds_children || (parent == 0U && form_root_)) continue;
+        // A composite parent takes its document children into its slot.
+        if (type_of(parent).child_placement == FormChildPlacement::slot) {
+            out += "        (*" + object_reference(parent, access) + ".slot()).add_child(" + pointer + ");\n";
+            continue;
+        }
         out += "        " + object_reference(parent, access) + ".add_child(" + pointer + ");\n";
     }
     // Spans before any placement (study 10.9).
@@ -808,14 +804,12 @@ void FormGenerator::write_composed_control(std::string& out) const {
     out += "};\n";
 }
 
-void FormGenerator::report(NodeIndex node, const std::string& rule, const std::string& property,
+void FormGenerator::report(SourcePosition position, const std::string& rule, const std::string& property,
                            std::string detail) {
-    const std::uint32_t token = tree_.nodes[node.value].tokens.first.value;
-    const std::uint32_t offset = tokens_.tokens[token].offset.value;
     ThemeDiagnostic diagnostic{};
     diagnostic.code = DiagnosticCode::form_generation_refused;
     diagnostic.file = std::string(source_.file);
-    diagnostic.position = cursor_.locate(ByteOffset{offset});
+    diagnostic.position = position;
     diagnostic.rule = rule;
     diagnostic.property = property;
     diagnostic.detail = std::move(detail);
@@ -856,10 +850,7 @@ std::string form_member_name(std::string_view stable_id) {
     return name;
 }
 
-FormGenerateOutcome generate_form_cpp(const theme_language::ThemeSource& source,
-                                      const theme_language::ThemeTokenBuffer& tokens,
-                                      const theme_language::LineStartTable& lines,
-                                      const theme_language::ThemeSyntaxTree& tree, const FormSchema& schema,
+FormGenerateOutcome generate_form_cpp(const theme_language::ThemeSource& source, const FormSchema& schema,
                                       const FormModel& model, const FormGeneratorOptions& options,
                                       std::string& generated, theme_language::ThemeDiagnosticList& diagnostics) {
     if (!form_identifier(options.class_name)) {
@@ -880,8 +871,17 @@ FormGenerateOutcome generate_form_cpp(const theme_language::ThemeSource& source,
     if (options.model_header.find_first_of("\"\n") != std::string::npos) {
         throw std::invalid_argument("generate_form_cpp: the model header cannot be spelled in an #include");
     }
+    // The source name is written into // comments as it is (A-gf-core-07-F2):
+    // a line break, or any other control byte, would end the comment and
+    // let the rest of a file's name compile as code of the header.
+    for (const char character : options.source_name) {
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (byte < 0x20U || byte == 0x7FU) {
+            throw std::invalid_argument("generate_form_cpp: the source name holds a control byte");
+        }
+    }
     std::string scratch{};
-    FormGenerator generator(source, tokens, lines, tree, schema, model, options, diagnostics);
+    FormGenerator generator(source, schema, model, options, diagnostics);
     if (!generator.run(scratch)) return FormGenerateOutcome::refused;
     generated = std::move(scratch);
     return FormGenerateOutcome::generated;

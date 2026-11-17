@@ -6,6 +6,7 @@
 #include "gui_forms/xml/xml_reader/xml_reader.hpp"
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
@@ -175,10 +176,10 @@ void note_ignored(LocaleWalk& walk, std::string_view name) {
 
 // Checks one field's value and stores it in `record`, or rejects it.
 void accept_field(LocaleWalk& walk, LocaleRecord& record, LocaleField field, std::string value) {
-    const std::optional<LocaleRefusal> refusal = check_locale_value(field, value, *walk.limits);
-    if (refusal.has_value()) {
-        const bool show_value = *refusal == LocaleRefusal::invalid_keywords;
-        reject(walk, field, *refusal, show_value ? std::string_view(value) : std::string_view{});
+    const stxlib::Optional<LocaleRefusal> refusal = check_locale_value(field, value, *walk.limits);
+    if (refusal.present()) {
+        const bool show_value = (*refusal.value()) == LocaleRefusal::invalid_keywords;
+        reject(walk, field, (*refusal.value()), show_value ? std::string_view(value) : std::string_view{});
         return;
     }
     locale_record_field(record, field) = std::move(value);
@@ -225,12 +226,12 @@ void read_control(LocaleWalk& walk, const XmlElement& element, std::uint32_t dep
     record.stable_id = walk.joined;
     for (const XmlAttribute& attribute : element.attributes) {
         if (control_metadata(attribute.name)) continue;
-        const std::optional<LocaleField> field = find_locale_field(attribute.name);
-        if (!field.has_value() || *field == LocaleField::help || *field == LocaleField::keywords) {
+        const stxlib::Optional<LocaleField> field = find_locale_field(attribute.name);
+        if (field.absent() || (*field.value()) == LocaleField::help || (*field.value()) == LocaleField::keywords) {
             note_ignored(walk, attribute.name);
             continue;
         }
-        accept_field(walk, record, *field, attribute.value);
+        accept_field(walk, record, (*field.value()), attribute.value);
     }
     bool help_seen = false;
     for (const XmlElement& child : element.children) {
@@ -371,12 +372,12 @@ std::string_view locale_field_name(LocaleField field) noexcept {
     return {};
 }
 
-std::optional<LocaleField> find_locale_field(std::string_view name) noexcept {
+stxlib::Optional<LocaleField> find_locale_field(std::string_view name) noexcept {
     for (std::size_t index = 0U; index < locale_field_count; ++index) {
         const LocaleField field = static_cast<LocaleField>(index);
-        if (locale_field_name(field) == name) return field;
+        if (locale_field_name(field) == name) return stxlib::Optional<LocaleField>::of(field);
     }
-    return std::nullopt;
+    return stxlib::Optional<LocaleField>::none();
 }
 
 XmlLimits locale_xml_limits() noexcept {
@@ -427,19 +428,19 @@ std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept {
     return {};
 }
 
-std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value,
+stxlib::Optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value,
                                                 const LocaleLimits& limits) {
-    if (value.find('\0') != std::string_view::npos) return LocaleRefusal::invalid_text;
+    if (value.find('\0') != std::string_view::npos) return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::invalid_text);
     const Utf8ValidationResult validation = validate_utf8(value);
-    if (!validation.valid()) return LocaleRefusal::invalid_text;
+    if (!validation.valid()) return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::invalid_text);
     if (value.size() > limits.maximum_field_bytes[field_index(field) % locale_field_count]) {
-        return LocaleRefusal::too_long;
+        return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::too_long);
     }
-    if (holds_control_character(value)) return LocaleRefusal::control_character;
-    if (!bidi_balanced(value)) return LocaleRefusal::unbalanced_bidi;
-    if (field == LocaleField::keywords && !keyword_list_valid(value)) return LocaleRefusal::invalid_keywords;
-    if (field == LocaleField::access_key && !access_key_valid(value)) return LocaleRefusal::invalid_access_key;
-    return std::nullopt;
+    if (holds_control_character(value)) return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::control_character);
+    if (!bidi_balanced(value)) return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::unbalanced_bidi);
+    if (field == LocaleField::keywords && !keyword_list_valid(value)) return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::invalid_keywords);
+    if (field == LocaleField::access_key && !access_key_valid(value)) return stxlib::Optional<LocaleRefusal>::of(LocaleRefusal::invalid_access_key);
+    return stxlib::Optional<LocaleRefusal>::none();
 }
 
 // --- LocaleLayer ----------------------------------------------------------------
@@ -466,10 +467,10 @@ const LocaleRecord* LocaleLayer::find(std::string_view stable_id) const& noexcep
 
 void LocaleLayer::set(std::string_view stable_id, LocaleField field, std::string value) {
     if (!valid_stable_id(stable_id)) throw std::invalid_argument("GUI.Forms text record ID must be a stable ID");
-    const std::optional<LocaleRefusal> refusal = check_locale_value(field, value);
-    if (refusal.has_value()) {
+    const stxlib::Optional<LocaleRefusal> refusal = check_locale_value(field, value);
+    if (refusal.present()) {
         throw std::invalid_argument("GUI.Forms text record value refused: " +
-                                    std::string(locale_refusal_name(*refusal)));
+                                    std::string(locale_refusal_name((*refusal.value()))));
     }
     const std::size_t position = lower_bound(stable_id);
     if (position < records_.size() && records_[position].stable_id == stable_id) {
@@ -862,7 +863,7 @@ LocaleResolvedField LocaleCatalog::resolve(std::string_view stable_id, LocaleFie
             const std::optional<std::string>& value = locale_record_field(*record, field);
             if (value.has_value()) {
                 resolved.text = *value;
-                resolved.origin = LocaleLayerKind::user;
+                resolved.origin.set(LocaleLayerKind::user);
                 return resolved;
             }
         }
@@ -870,7 +871,7 @@ LocaleResolvedField LocaleCatalog::resolve(std::string_view stable_id, LocaleFie
             const std::optional<std::string>& value = locale_record_field(*record, field);
             if (value.has_value()) {
                 resolved.text = *value;
-                resolved.origin = LocaleLayerKind::translation;
+                resolved.origin.set(LocaleLayerKind::translation);
                 return resolved;
             }
         }
@@ -880,7 +881,7 @@ LocaleResolvedField LocaleCatalog::resolve(std::string_view stable_id, LocaleFie
         const std::optional<std::string>& value = locale_record_field(*record, field);
         if (value.has_value()) {
             resolved.text = *value;
-            resolved.origin = LocaleLayerKind::program;
+            resolved.origin.set(LocaleLayerKind::program);
             resolved.fallback = translated;
             return resolved;
         }
@@ -889,7 +890,7 @@ LocaleResolvedField LocaleCatalog::resolve(std::string_view stable_id, LocaleFie
         const std::optional<std::string>& value = locale_record_field(*record, field);
         if (value.has_value()) {
             resolved.text = *value;
-            resolved.origin = LocaleLayerKind::built_in;
+            resolved.origin.set(LocaleLayerKind::built_in);
             resolved.fallback = translated;
         }
     }

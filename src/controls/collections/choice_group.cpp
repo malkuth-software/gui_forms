@@ -174,6 +174,14 @@ void ChoiceGroup::validate_local_selection(const int index) const {
     validate_selection(index);
     if (binding_) (*binding_).validate_update(index);
 }
+bool ChoiceGroup::local_selection_accepted(const int index) const {
+    try {
+        validate_local_selection(index);
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
 void ChoiceGroup::bind(Value<int>& selection) {
     require_mutable();
     const Control::Ptr retained = shared_from_this();
@@ -300,6 +308,10 @@ void ChoiceGroup::activate_item(const int id) {
     for (std::size_t index = 0U; index < (*revision).items.size(); ++index) {
         if ((*revision).items[index].id != id) continue;
         const int selected = static_cast<int>(index);
+        // Activation comes from a click or an arrow key: a bound Value's
+        // refusal means "no change" here rather than an exception out of
+        // input handling (A-gf-controls-11-F8). The write validates again.
+        if (selected != selected_index.read() && !local_selection_accepted(selected)) return;
         selected_index = selected;
         if (is_alive() && revision_ == revision) activated_.emit(selected);
         return;
@@ -368,7 +380,7 @@ void ChoiceGroup::on_paint(Painter& painter, Rect local_damage) {
     selection.states.insert(AnatomyState::selected);
     // A keyed part, so that the engine may move the indicator between
     // segments (and does not when motion is reduced).
-    selection.key = PartKey{"selection", {}, {}};
+    selection.key.set(PartKey{"selection", {}, {}});
     paint_part(painter, *this, selection);
 }
 void ChoiceGroup::on_key_bubble(KeyEvent& event) { handle_key(event); }
@@ -419,9 +431,9 @@ namespace {
 // The segmented presentation's parts after Panel's. The items are child
 // controls, which publish their own anatomies.
 constexpr std::array<PartField<ChoiceGroup::Parts>, 2> segmented_fields{{
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ChoiceGroup::Parts::track},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &ChoiceGroup::Parts::selection},
 }};
 
@@ -440,6 +452,7 @@ constexpr ControlAnatomy choice_group_anatomy{
     .parts = choice_group_parts,
     .states = scrollable_detail::states,
     .custom_states = choice_group_custom_states,
+    .item_systems = {},
 };
 
 } // namespace

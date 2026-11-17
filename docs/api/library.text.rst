@@ -29,6 +29,18 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AppFontFace <gui_forms::AppFontFace>`
+     - One face of a family to load: its bytes, which the registry shares (the application may drop its reference after the load), its weight (1 to 1000) and slant.
+   * - :cpp:class:`AppFontFaceSource <gui_forms::AppFontFaceSource>`
+     - One face of a live family as a text engine registers it: the bytes and the owner that keeps them (the engine holds the owner for as long as its face lives, which is what defers an unload).
+   * - :cpp:class:`AppFontFamily <gui_forms::AppFontFamily>`
+     - The application's ownership of one loaded family.
+   * - :cpp:class:`AppFontLoad <gui_forms::AppFontLoad>`
+     - A load's answer: the validation (the first face refused, with face_index, or ``loaded``) and, when loaded, the handle.
+   * - :cpp:class:`AppFontStatistics <gui_forms::AppFontStatistics>`
+     - Counters (AGENTS.md: structured instrumentation), for the process.
+   * - :cpp:class:`AppFontValidation <gui_forms::AppFontValidation>`
+     - The checks' answer for one face: the status, and for table_missing or table_invalid the table's tag (big-endian, 'cmap' is 0x636D6170).
    * - :cpp:class:`DisplayByteOffset <gui_forms::DisplayByteOffset>`
      -  
    * - :cpp:class:`DisplayMappingResult <gui_forms::DisplayMappingResult>`
@@ -59,8 +71,18 @@ Related types
      - FontFallbackRequest supplies the primary and attempted faces, missing scalar cluster, language, and script without ownership transfer.
    * - :cpp:class:`FontFallbackResolver <gui_forms::FontFallbackResolver>`
      - FontFallbackResolver is the policy boundary that selects bounded coverage for a missing scalar cluster without consulting the host implicitly.
+   * - :cpp:class:`FontFamilyFace <gui_forms::FontFamilyFace>`
+     - One face of a family: its file in the bundled font directory, its weight (1 to 1000) and slant.
+   * - :cpp:class:`FontFamilyOrder <gui_forms::FontFamilyOrder>`
+     - The families a font draws before its role, in order: its family, then its stack's families not already listed.
+   * - :cpp:class:`FontFamilyRecord <gui_forms::FontFamilyRecord>`
+     -  
+   * - :cpp:class:`FontFamilyStack <gui_forms::FontFamilyStack>`
+     - A stack's families in order; ``count`` of ``families`` are live, the rest zero.
    * - :cpp:class:`FontVerticalMetrics <gui_forms::FontVerticalMetrics>`
      - A face's vertical design metrics at a size, in logical pixels: its ascender, descender (positive below the baseline) and line gap from the face's tables, scaled by size over units per em and not rounded.
+   * - :cpp:class:`GenericFontFamily <gui_forms::GenericFontFamily>`
+     - A CSS generic family name and the bundled family it draws.
    * - :cpp:class:`GlyphId <gui_forms::GlyphId>`
      - GlyphId is the ordered font-local glyph identity.
    * - :cpp:class:`GlyphPlacement <gui_forms::GlyphPlacement>`
@@ -138,7 +160,7 @@ Related types
    * - :cpp:class:`PositionedGlyph <gui_forms::PositionedGlyph>`
      - One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included.
    * - :cpp:class:`PreparedFontSource <gui_forms::PreparedFontSource>`
-     -  
+     - One face of a font bank: a role's face (``role``), a face of a registered family (``family``, a FontFamilyId the family registry has; text whose family order lists the family draws it first, its face nearest the weight and slant), or a fallback face (neither).
    * - :cpp:class:`PreparedParagraphProof <gui_forms::PreparedParagraphProof>`
      - Producer certifies real paragraph boundaries under the complete D1 token.
    * - :cpp:class:`PreparedSourceEndpoint <gui_forms::PreparedSourceEndpoint>`
@@ -239,6 +261,117 @@ Related types
      - One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF).
    * - :cpp:class:`Utf8ValidationResult <gui_forms::Utf8ValidationResult>`
      - Utf8ValidationResult preserves the first closed validation failure and exact byte/scalar/UTF-16 counts.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontFace final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   One face of a family to load: its bytes, which the registry shares (the application may drop its reference after the load), its weight (1 to 1000) and slant.
+
+   .. cpp:member:: std::shared_ptr<const std::vector<std::byte>> bytes
+
+   .. cpp:member:: std::uint16_t weight
+
+      Default: ``{400}``.
+
+   .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontFaceSource final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   One face of a live family as a text engine registers it: the bytes and the owner that keeps them (the engine holds the owner for as long as its face lives, which is what defers an unload).
+
+   .. cpp:member:: std::span<const std::byte> bytes
+
+   .. cpp:member:: std::shared_ptr<const void> owner
+
+   .. cpp:member:: std::uint16_t weight
+
+      Default: ``{400}``.
+
+   .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: AppFontFamily final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   The application's ownership of one loaded family. Move-only; destroying a handle that still holds a family unloads it. Only load_app_font_family makes a handle that holds one.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: AppFontFamily() noexcept = default
+
+   .. cpp:function:: AppFontFamily(AppFontFamily&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: FontFamilyId id() const noexcept
+
+      The family's number, zero for an empty handle. FontSpec::family takes it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: AppFontUnload unload() noexcept
+
+      Unloads the family now and empties the handle.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontLoad final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   A load's answer: the validation (the first face refused, with face_index, or ``loaded``) and, when loaded, the handle.
+
+   .. cpp:member:: AppFontValidation validation
+
+   .. cpp:member:: std::size_t face_index
+
+   .. cpp:member:: AppFontFamily family
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontStatistics final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   Counters (AGENTS.md: structured instrumentation), for the process. loads / refused_loads: load_app_font_family's answers; refused_uses: fonts admit_font changed; quarantines: families quarantined; unloads_released / unloads_deferred: unloads by outcome.
+
+   .. cpp:member:: std::uint64_t loads
+
+   .. cpp:member:: std::uint64_t refused_loads
+
+   .. cpp:member:: std::uint64_t refused_uses
+
+   .. cpp:member:: std::uint64_t quarantines
+
+   .. cpp:member:: std::uint64_t unloads_released
+
+   .. cpp:member:: std::uint64_t unloads_deferred
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontValidation final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   The checks' answer for one face: the status, and for table_missing or table_invalid the table's tag (big-endian, 'cmap' is 0x636D6170).
+
+   .. cpp:member:: AppFontStatus status
+
+      Default: ``{AppFontStatus::loaded}``.
+
+   .. cpp:member:: std::uint32_t table
 
 .. cpp:namespace:: gui_forms
 
@@ -530,9 +663,73 @@ Related types
 
    .. rubric:: Extension points
 
-   .. cpp:function:: virtual std::optional<FontFallbackMatch> resolve(const FontFallbackRequest& request) = 0
+   .. cpp:function:: virtual stxlib::Optional<FontFallbackMatch> resolve(const FontFallbackRequest& request) = 0
 
       Returns an admitted face and coverage count, or no fallback.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyFace final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   One face of a family: its file in the bundled font directory, its weight (1 to 1000) and slant.
+
+   .. cpp:member:: std::string_view file_name
+
+   .. cpp:member:: std::uint16_t weight
+
+      Default: ``{400}``.
+
+   .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyOrder final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   The families a font draws before its role, in order: its family, then its stack's families not already listed. Families that cannot draw now (unknown, or an application family quarantined or unloaded: font_family_drawable) are left out.
+
+   .. cpp:member:: std::array<FontFamilyId, 1U + maximum_font_stack_families> families
+
+   .. cpp:member:: std::size_t count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyRecord final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   .. cpp:member:: FontFamilyId id
+
+   .. cpp:member:: std::string_view name
+
+      The family's name as its faces report it; matched without regard to ASCII case.
+
+   .. cpp:member:: FontFamilyKind kind
+
+      Default: ``{FontFamilyKind::bundled}``.
+
+   .. cpp:member:: stxlib::Optional<FontRole> role
+
+      The role whose faces are this family's, or none for a family whose faces are registered as its own.
+
+   .. cpp:member:: std::span<const FontFamilyFace> faces
+
+      The faces, at least one.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyStack final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   A stack's families in order; ``count`` of ``families`` are live, the rest zero.
+
+   .. cpp:member:: std::array<FontFamilyId, maximum_font_stack_families> families
+
+   .. cpp:member:: std::size_t count
 
 .. cpp:namespace:: gui_forms
 
@@ -551,6 +748,18 @@ Related types
    .. cpp:member:: double x_height
 
       The height of a lowercase x (OS/2 sxHeight), or zero when the face does not record one.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GenericFontFamily final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   A CSS generic family name and the bundled family it draws. The mapping is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS closely), not a CSS rule: CSS leaves a generic's face to the user agent. The serif generics draw Tinos; until a cursive or fantasy face is bundled, those generics draw the content family. ``emoji`` names no family (zero): the bundled emoji fallback face already draws emoji for every font. A generic is matched only unquoted, as CSS does (a quoted "serif" is a family name).
+
+   .. cpp:member:: std::string_view name
+
+   .. cpp:member:: FontFamilyId family
 
 .. cpp:namespace:: gui_forms
 
@@ -868,7 +1077,7 @@ Related types
 
    .. cpp:member:: std::array<std::size_t, locale_field_count> maximum_field_bytes
 
-      Indexed by LocaleField, in its order.
+      Indexed by LocaleField, in its order. Default: ``{4096U, 4096U, 32U, 1024U, 4096U, 4096U, 1024U, 4096U, 2048U, 64U * 1024U, 4096U}``.
 
    .. cpp:member:: std::size_t maximum_records
 
@@ -948,7 +1157,7 @@ Related types
 
    .. cpp:member:: std::string text
 
-   .. cpp:member:: std::optional<LocaleLayerKind> origin
+   .. cpp:member:: stxlib::Optional<LocaleLayerKind> origin
 
    .. cpp:member:: bool fallback
 
@@ -1111,7 +1320,7 @@ Related types
 
    .. cpp:function:: bool succeeded() const noexcept
 
-   .. cpp:function:: std::optional<MarkdownParseError> error() const noexcept
+   .. cpp:function:: stxlib::Optional<MarkdownParseError> error() const noexcept
 
       The error of a parse that failed; none when it succeeded.
 
@@ -1158,11 +1367,11 @@ Related types
 
    .. cpp:member:: MarkdownSpanStyle style
 
-   .. cpp:member:: std::optional<std::size_t> link
+   .. cpp:member:: stxlib::Optional<std::size_t> link
 
       The link the span is the text of: an index into MarkdownDocument::links.
 
-   .. cpp:member:: std::optional<std::size_t> image
+   .. cpp:member:: stxlib::Optional<std::size_t> image
 
       The image the span is the alternative text of: an index into MarkdownDocument::images.
 
@@ -1188,9 +1397,9 @@ Related types
 
       Default: ``{MarkdownBaseline::normal}``.
 
-   .. cpp:member:: std::optional<MarkdownRgb> colour
+   .. cpp:member:: stxlib::Optional<MarkdownRgb> colour
 
-   .. cpp:member:: std::optional<MarkdownRgb> background
+   .. cpp:member:: stxlib::Optional<MarkdownRgb> background
 
    .. cpp:member:: std::int8_t size_step
 
@@ -1294,7 +1503,7 @@ Related types
 
       What a call whose storage was too small needs; null otherwise.
 
-   .. cpp:function:: std::optional<ParagraphRequestError> error() const noexcept
+   .. cpp:function:: stxlib::Optional<ParagraphRequestError> error() const noexcept
 
       The error of a refused request; none otherwise.
 
@@ -1501,9 +1710,11 @@ Related types
 
    ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
 
+   One face of a font bank: a role's face (``role``), a face of a registered family (``family``, a FontFamilyId the family registry has; text whose family order lists the family draws it first, its face nearest the weight and slant), or a fallback face (neither). A face is never both a role's and a family's.
+
    .. cpp:member:: std::span<const std::byte> encoded
 
-   .. cpp:member:: std::optional<FontRole> role
+   .. cpp:member:: stxlib::Optional<FontRole> role
 
    .. cpp:member:: std::uint16_t weight
 
@@ -1512,6 +1723,8 @@ Related types
    .. cpp:member:: bool italic
 
    .. cpp:member:: std::uint32_t face_index
+
+   .. cpp:member:: FontFamilyId family
 
 .. cpp:namespace:: gui_forms
 
@@ -1556,6 +1769,12 @@ Related types
    .. cpp:member:: std::size_t mask_owners
 
    .. cpp:member:: std::size_t mask_bytes
+
+   .. cpp:member:: std::size_t glyph_face_bytes
+
+      The font banks' glyph faces: their typefaces' bytes as STXlib holds them after the latest rasterization (bytes_held), and the most one rasterization has held, typefaces and faces together (bytes_peak), since the service began.
+
+   .. cpp:member:: std::size_t glyph_face_peak_bytes
 
 .. cpp:namespace:: gui_forms
 
@@ -1692,6 +1911,14 @@ Related types
    .. cpp:member:: constexpr std::size_t mask_owners
 
       Default: ``2``.
+
+   .. cpp:member:: constexpr std::size_t glyph_store_bytes
+
+      Glyph faces, in bytes (owner, 2026-11-16): each face's glyph store (its glyphs in font units, read once for every size) and each rasterization's fitted outlines per face. STXlib takes storage as it is needed and never more than these. Default: ``1U * 1024U * 1024U``.
+
+   .. cpp:member:: constexpr std::size_t fitted_glyph_bytes
+
+      Default: ``1U * 1024U * 1024U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1892,7 +2119,7 @@ Related types
 
       The preferred primary face's line gap at this size: what its line height, rounded to whole pixels, adds to its rounded ascent and descent, never negative. A line box is the larger of the logical height and ascent + descent + line_gap, for TextBox and prepared text alike.
 
-   .. cpp:member:: std::optional<FontVerticalMetrics> design_metrics
+   .. cpp:member:: stxlib::Optional<FontVerticalMetrics> design_metrics
 
       The preferred primary face's design metrics at this size, when the terminal engine reads them; an estimate has none.
 
@@ -2480,7 +2707,27 @@ Related types
    Portable non-owning service seam. Implementations may use a private text engine, but this contract contains no HarfBuzz, FreeType, Skia, AppKit, or Win32 type. A Window invalidates measurement when the installed provider changes.
 
 
+   .. rubric:: Construction
+
+   .. cpp:function:: TextMetricsProvider() noexcept
+
+   .. cpp:function:: TextMetricsProvider(const TextMetricsProvider& other) noexcept
+
+      A copy, or a provider assigned from another, is a new provider for metrics_identity(): it takes a fresh number.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint64_t metrics_identity() const noexcept
+
+      A number naming this provider object, unique in the process and never reused (an address is: a later provider can be made where an earlier one was). Never 0.
+
+
    .. rubric:: Extension points
+
+   .. cpp:function:: virtual std::uint64_t measurement_identity() const noexcept
+
+      The identity of what this provider's measurements come from: by default itself; a provider that measures only through another one (the recording painter) names that one's. Two calls that answer the same identity measure the same text and font alike, so a control may keep measurements across paints keyed on it.
 
    .. cpp:function:: virtual ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective_font) = 0
 
@@ -2603,11 +2850,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: TextEditResult replace(Utf8Range range, std::string_view replacement, std::optional<TextStyleId> inserted_style = std::nullopt)
+   .. cpp:function:: TextEditResult replace(Utf8Range range, std::string_view replacement, stxlib::Optional<TextStyleId> inserted_style = stxlib::Optional<TextStyleId>::none())
 
       Validates typed range and replacement UTF-8, constructs candidate text and metadata, transforms styles, then commits all state and counters atomically.
 
-   .. cpp:function:: std::optional<TextStyleId> style_at(Utf8Offset position) const
+   .. cpp:function:: stxlib::Optional<TextStyleId> style_at(Utf8Offset position) const
 
       Validates the byte position and returns the containing style identity when present.
 
@@ -2815,6 +3062,80 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: AppFontQuarantine
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: open_failed
+
+   .. cpp:enumerator:: shaping_failed
+
+   .. cpp:enumerator:: rasterising_failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AppFontState
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: absent
+
+   .. cpp:enumerator:: live
+
+   .. cpp:enumerator:: quarantined
+
+   .. cpp:enumerator:: unloading
+
+   .. cpp:enumerator:: released
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AppFontStatus
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: loaded
+
+   .. cpp:enumerator:: no_faces
+
+   .. cpp:enumerator:: too_many_faces
+
+   .. cpp:enumerator:: weight_invalid
+
+   .. cpp:enumerator:: name_invalid
+
+   .. cpp:enumerator:: name_taken
+
+   .. cpp:enumerator:: capacity_exhausted
+
+   .. cpp:enumerator:: empty
+
+   .. cpp:enumerator:: too_large
+
+   .. cpp:enumerator:: not_sfnt
+
+   .. cpp:enumerator:: collection_refused
+
+   .. cpp:enumerator:: table_directory_invalid
+
+   .. cpp:enumerator:: table_missing
+
+   .. cpp:enumerator:: table_invalid
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AppFontUnload
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: released
+
+   .. cpp:enumerator:: deferred
+
+   .. cpp:enumerator:: not_loaded
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DocumentMapKind
 
    ``#include <gui_forms/document_view/types/document_view_types.hpp>``
@@ -2852,6 +3173,26 @@ Enumerations
    .. cpp:enumerator:: serial_exhausted
 
    .. cpp:enumerator:: invalid_boundary
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FontContext
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: factory_bundle
+
+   .. cpp:enumerator:: composite
+
+   .. cpp:enumerator:: content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FontFamilyKind
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   .. cpp:enumerator:: bundled
 
 .. cpp:namespace:: gui_forms
 
@@ -3494,7 +3835,7 @@ Functions, constants and aliases
 
    The field's name in the locale XML: "text", "tool-tip", "access-key", "title", "placeholder", "header", "accessible-name", "accessible-description", "help-line", "help" or "keywords". Static storage.
 
-.. cpp:function:: std::optional<LocaleField> find_locale_field(std::string_view name) noexcept
+.. cpp:function:: stxlib::Optional<LocaleField> find_locale_field(std::string_view name) noexcept
 
    The field a locale XML name names, or nothing.
 
@@ -3514,7 +3855,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept
 
-.. cpp:function:: std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value, const LocaleLimits& limits = {})
+.. cpp:function:: stxlib::Optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value, const LocaleLimits& limits = {})
 
    Checks one value against its field's rules and bound: the refusal, or nothing when the value is acceptable. Display text only: no C0 controls but tab and line feed, balanced bidirectional controls, a well-formed keyword list for ``keywords`` and one grapheme for ``access-key``.
 
@@ -3574,7 +3915,7 @@ Functions, constants and aliases
 
 .. cpp:function:: MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document, const MarkdownLimits& limits = MarkdownLimits{}, std::stop_token cancellation = std::stop_token{})
 
-   Parses source into document, which is replaced; on failure document is empty. source is only read and must not change during the call; document keeps no borrow of it. Cancellation is observed between the parser's callbacks.
+   Parses source into document, which is replaced; on failure document is empty. source is only read and must not change during the call; document keeps no borrow of it. Cancellation is observed once per block, while the source is read and while its blocks are built.
 
 .. cpp:function:: void markdown_plain_text(const MarkdownDocument& document, std::string& text)
 
@@ -3616,9 +3957,13 @@ Functions, constants and aliases
 
 ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
 
-.. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, std::optional<double> line_height)
+.. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, stxlib::Optional<double> line_height)
 
    The line box every line of a paragraph in ``font`` shares, as TextBlock's: the provider's resolution of a space in the effective font, then line_box_metrics with ``line_height`` (a used line height in logical pixels, already scaled; none for ``line-height: normal``). A null provider uses estimate_text_layout_utf8. Resolving may allocate in the provider; call it once per font and keep the answer in ParagraphStyle.
+
+.. cpp:function:: inline LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, const std::optional<double> line_height)
+
+   Deprecated for one stage (D15 V1, Q3): the std::optional form, for GUI.Forms' own tests, examples and tools while they move; V2 removes it.
 
 .. cpp:function:: ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space, ParagraphGlyphOutput glyph_output = ParagraphGlyphOutput::none) noexcept
 
@@ -3686,6 +4031,180 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+.. cpp:function:: AppFontValidation validate_app_font(std::span<const std::byte> bytes) noexcept
+
+   Checks ``bytes`` as one font face, reading only the bytes (no engine). The stated set of checks: 1. size: 1 to maximum_app_font_bytes; 2. the sfnt version: 0x00010000 or 'true' (TrueType outlines) or 'OTTO' (CFF outlines); 'ttcf' collections are refused; 3. the table directory: numTables 1 to 64, the directory inside the bytes, each table's offset and length inside the bytes, no tag twice; 4. required tables: head, hhea, hmtx, maxp, cmap, name and post; glyf and loca for TrueType outlines, CFF or CFF2 for 'OTTO'; 5. head: at least 54 bytes, magic number 0x5F0F3CF5, unitsPerEm 16 to 16384, indexToLocFormat 0 or 1; 6. maxp: at least 6 bytes, numGlyphs 1 to 65535; 7. hhea: at least 36 bytes, numberOfHMetrics 1 to numGlyphs; 8. hmtx: at least 4 * numberOfHMetrics + 2 * (numGlyphs - numberOfHMetrics) bytes; 9. loca (TrueType): exactly (numGlyphs + 1) offsets of the head's format; offsets ascending and the last no larger than glyf's length; 10. cmap: version 0, at least one encoding record inside the table, and a Unicode subtable (platform 0, or platform 3 with encoding 1 or 10) whose offset lies inside the table. Passing them does not prove a face draws: what fails later is quarantined.
+
+.. cpp:function:: AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontFace> faces)
+
+   Loads ``faces`` as one family called ``name``. Validates the name and every face first and registers nothing on a refusal. Thread-safe.
+
+.. cpp:function:: constexpr bool app_font_family_number(FontFamilyId family) noexcept
+
+   Whether ``family`` is in the application families' number range.
+
+.. cpp:function:: AppFontState app_font_family_state(FontFamilyId family) noexcept
+
+.. cpp:function:: bool font_family_drawable(FontFamilyId family) noexcept
+
+   Whether text may resolve ``family`` now: a bundled family, or a live application family. Lock-free.
+
+.. cpp:function:: bool known_font_family(FontFamilyId family) noexcept
+
+   Whether ``family`` is zero, a bundled family or a number a load gave (in any state): the check a stored font's family passes (a C ABI gf_font, a theme declaration).
+
+.. cpp:function:: FontFamilyId app_font_family_named(std::string_view name)
+
+   The live application family called ``name`` (ASCII case ignored), or zero.
+
+.. cpp:function:: void quarantine_app_font_family(FontFamilyId family, AppFontQuarantine reason) noexcept
+
+   Quarantines a live application family: logs one line, counts it, and from then on font_family_drawable is false for it. Anything else is ignored. Thread-safe, never throws.
+
+.. cpp:function:: std::size_t app_font_family_faces(FontFamilyId family, std::span<AppFontFaceSource> output)
+
+   Writes the faces of ``family`` into ``output`` while the family is live and returns their count (zero otherwise, or when ``output`` is shorter than the family's faces). Thread-safe.
+
+.. cpp:function:: FontSpec admit_font(FontSpec font, FontContext context) noexcept
+
+   ``font`` as ``context`` may draw it: unchanged in a composite or content context, and in the interface context with an application family dropped (FontSpec::family set to zero; a stack that lists one is dropped as a whole, so the role draws). Each refused family is counted, and logged once per family per process. Lock-free on the path that changes nothing.
+
+.. cpp:function:: AppFontStatistics app_font_statistics() noexcept
+
+.. cpp:var:: constexpr std::uint16_t minimum_app_font_family
+
+   The numbers application families take: from minimum_app_font_family, one per load, never reused; at most maximum_app_font_families loads per process. Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_families
+
+   Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_faces
+
+   The most faces one family holds, and the largest face accepted. Value: ``4U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_bytes
+
+   Value: ``64U * 1024U * 1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_name_bytes
+
+   The longest family name, in bytes of UTF-8. Value: ``64U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+.. cpp:function:: constexpr bool same_font_family_name(std::string_view left, std::string_view right) noexcept
+
+   Whether ``left`` and ``right`` are the same ASCII text, ignoring the case of Latin letters.
+
+.. cpp:function:: constexpr const FontFamilyRecord* font_family_record(FontFamilyId family) noexcept
+
+   The family numbered ``family``, or null for zero or a number no family has.
+
+.. cpp:function:: constexpr const GenericFontFamily* generic_font_family(std::string_view name) noexcept
+
+   The generic family called ``name`` (ASCII case ignored), or null.
+
+.. cpp:function:: constexpr bool valid_font_family(FontFamilyId family) noexcept
+
+   Whether ``family`` is zero or a family the registry has.
+
+.. cpp:function:: constexpr const FontFamilyRecord* font_family_named(std::string_view name) noexcept
+
+   The family called ``name`` by its own name, or null. Other names (Segoe UI, Arial) are the substitution table's (gui_drawing::resolve_font_family); the C ABI resolves them through it (fonts.family_id).
+
+.. cpp:function:: constexpr const FontFamilyRecord* font_family_with_face(std::string_view file_name) noexcept
+
+   The family one of whose faces is the bundled file ``file_name``, or null: how a substitution's answer (a face file) finds its registered family. A face two families share (Selawik's semibold and bold faces, which Selawik Semibold lists too) finds the lower-numbered family; a caller that knows the substitution's family name finds it by name first.
+
+.. cpp:function:: constexpr FontFamilyId role_font_family(FontRole role) noexcept
+
+   The family whose faces are ``role``'s.
+
+.. cpp:function:: constexpr bool font_face_nearer(std::uint16_t left_weight, bool left_italic, std::uint16_t right_weight, bool right_italic, std::uint16_t weight, bool italic) noexcept
+
+   Whether a face of ``left_weight`` and ``left_italic`` is nearer a request for ``weight`` and ``italic`` than one of ``right_weight`` and ``right_italic`` (stage F decision 7: nearest, never synthesized). The slant decides first; then the smaller weight distance; at an equal distance, the lighter face for a request of 500 or less and the heavier above (CSS Fonts' order). Equal faces are not nearer.
+
+.. cpp:function:: constexpr std::size_t nearest_font_family_face(const FontFamilyRecord& record, std::uint16_t weight, bool italic) noexcept
+
+   The index in ``record.faces`` of the face nearest ``weight`` and ``italic``.
+
+.. cpp:function:: FontFamilyStackId register_font_family_stack(std::span<const FontFamilyId> families)
+
+   Registers the stack ``families`` and returns its number; the same list registered again returns the same number. A family may be bundled or a live application family (font_family_drawable). A list that is empty, longer than maximum_font_stack_families, names zero, an unknown family or one family twice, or that arrives once maximum_font_family_stacks are held, is refused with zero: the font then draws its own family and its role. Thread-safe: registrations are serialized, and a stack once numbered never changes or goes away (the registry lives for the process).
+
+.. cpp:function:: FontFamilyStack font_family_stack(FontFamilyStackId stack) noexcept
+
+   The families of ``stack``; empty for zero or a number not given. Lock-free and thread-safe.
+
+.. cpp:function:: bool valid_font_family_stack(FontFamilyStackId stack) noexcept
+
+   Whether ``stack`` is zero or a number register_font_family_stack gave.
+
+.. cpp:function:: FontFamilyOrder font_family_order(const FontSpec& font) noexcept
+
+.. cpp:function:: constexpr stxlib::Optional<std::size_t> font_family_position(const FontFamilyOrder& order, FontFamilyId family) noexcept
+
+   The position of ``family`` in ``order``, or none.
+
+.. cpp:var:: constexpr FontFamilyId selawik_font_family
+
+   The fixed numbers. They never change and are never reused: a number crosses the C ABI (gf_font.reserved) and is stored by consumers. Value: ``{1U}``.
+
+.. cpp:var:: constexpr FontFamilyId portsmouth_rapids_font_family
+
+   Value: ``{2U}``.
+
+.. cpp:var:: constexpr FontFamilyId carlito_font_family
+
+   Value: ``{3U}``.
+
+.. cpp:var:: constexpr FontFamilyId cousine_font_family
+
+   Value: ``{4U}``.
+
+.. cpp:var:: constexpr FontFamilyId arimo_font_family
+
+   Value: ``{5U}``.
+
+.. cpp:var:: constexpr FontFamilyId tinos_font_family
+
+   Value: ``{6U}``.
+
+.. cpp:var:: constexpr FontFamilyId portsmouth_mono_font_family
+
+   Value: ``{7U}``.
+
+.. cpp:var:: constexpr FontFamilyId selawik_semibold_font_family
+
+   Value: ``{8U}``.
+
+.. cpp:var:: constexpr std::uint16_t maximum_bundled_font_family
+
+   The largest number a bundled family may have; numbers above it are application families (app_fonts.hpp). Value: ``255U``.
+
+.. cpp:var:: constexpr std::array<FontFamilyRecord, 8> bundled_font_families
+
+   The bundled families, in the order of their numbers. Value: ``{{{selawik_font_family, "Selawik", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::selawik_faces}, {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::control), detail::portsmouth_rapids_faces}, {carlito_font_family, "Carlito", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::content), detail::carlito_faces}, {cousine_font_family, "Cousine", FontFamilyKind::bundled, stxlib::Optional<FontRole>::of(FontRole::monospace), detail::cousine_faces}, {arimo_font_family, "Arimo", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::arimo_faces}, {tinos_font_family, "Tinos", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::tinos_faces}, {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::portsmouth_mono_faces}, {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, stxlib::Optional<FontRole>::none(), detail::selawik_semibold_faces}}}``.
+
+.. cpp:var:: constexpr std::array<GenericFontFamily, 13> generic_font_families
+
+   Value: ``{{{"sans-serif", carlito_font_family}, {"serif", tinos_font_family}, {"monospace", cousine_font_family}, {"cursive", carlito_font_family}, {"fantasy", carlito_font_family}, {"system-ui", carlito_font_family}, {"ui-sans-serif", carlito_font_family}, {"ui-serif", tinos_font_family}, {"ui-monospace", cousine_font_family}, {"ui-rounded", carlito_font_family}, {"math", carlito_font_family}, {"fangsong", carlito_font_family}, {"emoji", FontFamilyId{}}}}``.
+
+.. cpp:var:: constexpr std::size_t maximum_font_stack_families
+
+   The most families one stack lists, and the most stacks a process holds. Value: ``4U``.
+
+.. cpp:var:: constexpr std::size_t maximum_font_family_stacks
+
+   Value: ``1024U``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/typography/types/typography_types.hpp>``
 
 .. cpp:function:: const char* text_resolution_status_name(TextResolutionStatus status) noexcept
@@ -3704,7 +4223,7 @@ Functions, constants and aliases
 
    Deterministic renderer-free fallback. It is explicitly labelled estimated; callers must not report it as a resolved bundled face or a raster metric.
 
-.. cpp:function:: LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary, std::optional<double> used_line_height) noexcept
+.. cpp:function:: LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary, stxlib::Optional<double> used_line_height) noexcept
 
    The line box of ``primary`` (a resolution of any text in the used font). The face's ascent, descent and line gap are each rounded to a whole logical pixel; ``normal`` (no used_line_height) is their sum. The leading (the gap, or a used line height's excess over the rounded ascent and descent, negative when it is less) goes half above the text, rounded down, and the rest below: Chromium's rounding, measured against Chrome 155 from 12 to 21 px (notes:planning/stages/L-layout/PLAN.md section 12.5). Without design metrics (an estimate) it uses the resolution's ascent, descent and line gap.
 

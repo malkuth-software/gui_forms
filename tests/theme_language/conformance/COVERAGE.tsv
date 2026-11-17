@@ -1,6 +1,7 @@
 # The theme language's forms (PLAN.md sections 1.1 to 1.10) and diagnostic codes (section 2),
 # each with the conformance fixture covering it (theme_conformance_tests). A form with no fixture
 # fails. `code-elsewhere <code>` rows name the test reporting a code no sheet alone can.
+atrule.filter	theme-filter
 atrule.import	import
 atrule.keyframes	motion-keyframes
 atrule.media	media
@@ -73,6 +74,7 @@ diagnostic.W107	diagnostic-W107
 diagnostic.W110	diagnostic-W110
 diagnostic.W111	diagnostic-W111
 diagnostic.W112	diagnostic-W112
+diagnostic.W113	diagnostic-W113
 diagnostic.W201	diagnostic-W201
 diagnostic.W301	newer-engine
 diagnostic.W302	newer-engine
@@ -131,7 +133,10 @@ property.backdrop	backdrop
 property.backdrop-count	backdrop-count
 property.backdrop-range	backdrop-range
 property.backdrop-second-blur	backdrop-second-blur
+property.backdrop-filter	backdrop-filter
+property.backdrop-filter-css-only	backdrop-filter-css-only
 property.background-blend-mode	fills
+property.background-blend-mode-separable	blend-modes
 property.background-color	fills
 property.background-image-url	finish-light-images-masks
 property.background-position	finish-light-images-masks
@@ -148,8 +153,10 @@ property.border-style-keyline	borders
 property.border-width	borders
 property.box-shadow	shadows-opacity-filters
 property.box-shadow-inset	shadows-opacity-filters
-property.clip-path	not-admitted
+property.clip-path	material-shape
 property.color	transforms-text
+property.content-effect	content-effect
+property.content-effect-image-mask	content-effect-image-mask
 property.conic-gradient	fills
 property.default-outline	recipe-colours
 property.effect	effects
@@ -175,8 +182,14 @@ property.keylines	recipe-colours
 property.layout	not-admitted
 property.letter-spacing	fonts
 property.linear-gradient	fills
+property.mask-composite	material-masks
 property.mask-image	finish-light-images-masks
+property.mask-mode	material-masks
+property.mask-position	material-masks
+property.mask-repeat	material-masks
+property.mask-size	material-masks
 property.mix-blend-mode	shadows-opacity-filters
+property.mix-blend-mode-separable	blend-modes
 property.muted-color	recipe-colours
 property.opacity	shadows-opacity-filters
 property.outline	borders
@@ -195,7 +208,7 @@ property.sheen	sheen-pointer
 property.surface-finish	finish-light-images-masks
 property.text-decoration	not-admitted
 property.text-shadow	shadows-opacity-filters
-property.transform	not-admitted
+property.transform	material-shape
 property.translate	transforms-text
 selector.any	selectors-basic
 selector.any-implied	selectors-basic
@@ -237,6 +250,8 @@ token.comment	source-and-tokens
 token.number-exponent	source-and-tokens
 token.string	source-and-tokens
 value.image-url	values-keywords-images
+value.url-fragment	theme-filter
+value.url-fragment-unknown	theme-filter-unknown
 value.inherit-color	values-keywords-images
 value.inherit-font	values-keywords-images
 value.initial	values-keywords-images
@@ -304,3 +319,31 @@ code-elsewhere E817	form_model_tests (form documents only)
 code-elsewhere E818	form_model_tests (form documents only)
 code-elsewhere E819	form_loader_tests (form documents only)
 code-elsewhere E820	form_model_tests (form documents only)
+code-elsewhere E821	form_model_tests (form documents only)
+code-elsewhere E900	control_model_tests (composite-control documents only)
+code-elsewhere E901	control_model_tests (composite-control documents only)
+code-elsewhere E902	control_model_tests (composite-control documents only)
+code-elsewhere E903	control_model_tests (composite-control documents only)
+code-elsewhere E904	control_model_tests (composite-control documents only)
+code-elsewhere E905	control_model_tests (composite-control documents only)
+code-elsewhere E906	control_model_tests (composite-control documents only)
+code-elsewhere E907	control_model_tests (composite-control documents only)
+code-elsewhere E908	control_model_tests (composite-control documents only)
+code-elsewhere E909	control_model_tests (composite-control documents only)
+code-elsewhere E910	control_model_tests (composite-control documents only)
+code-elsewhere E911	control_model_tests (composite-control documents only)
+code-elsewhere E912	control_model_tests (composite-control documents only)
+code-elsewhere E913	control_model_tests (composite-control documents only)
+code-elsewhere E914	control_model_tests (composite-control documents only)
+code-elsewhere E915	control_model_tests (composite-control documents only)
+code-elsewhere E916	control_model_tests (composite-control documents only)
+code-elsewhere E917	control_model_tests (composite-control documents only)
+code-elsewhere E918	control_model_tests (composite-control documents only)
+code-elsewhere E919	control_model_tests (composite-control documents only)
+code-elsewhere E920	control_model_tests (composite-control documents only)
+code-elsewhere E921	control_model_tests (composite-control documents only)
+code-elsewhere E922	control_model_tests (composite-control documents only)
+code-elsewhere E923	control_lock_tests (composite-control lock files only)
+code-elsewhere E924	control_model_tests (composite-control documents only)
+code-elsewhere E925	control_model_tests (composite-control documents only)
+code-elsewhere W950	control_model_tests (composite-control documents only)

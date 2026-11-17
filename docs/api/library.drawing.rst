@@ -36,12 +36,52 @@ Types
      - ColorBlend owns equal-length color and monotonic position vectors validated by consuming brushes.
    * - :cpp:class:`ConicGradientBrush <gui_drawing::ConicGradientBrush>`
      - A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1.
+   * - :cpp:class:`ContentCaretStop <gui_forms::ContentCaretStop>`
+     - An explicit caret position, for a consumer whose carets do not stand at cluster edges (split carets, vertical text): the caret at ``offset`` is the rectangle ``caret`` (a bar, usually one unit wide), in local coordinates.
+   * - :cpp:class:`ContentContext <gui_forms::ContentContext>`
+     - What a content program sees on its own thread: the sink it publishes through and the stop it should honour.
+   * - :cpp:class:`ContentFrame <gui_forms::ContentFrame>`
+     - One finished frame, described by the consumer for one publish call (ContentFrameSink::publish).
+   * - :cpp:class:`ContentFrameSink <gui_forms::ContentFrameSink>`
+     - The consumer's end of a content channel (ContentSurface::open_content): a handle any thread may hold, copy and call, for as long as it likes.
+   * - :cpp:class:`ContentLayoutTransform <gui_forms::ContentLayoutTransform>`
+     - An affine map from a layout's own coordinates to the editor's local coordinates, for text the consumer draws turned, scaled or sheared (a rotated card's text, say): local.x = xx * x + xy * y + dx and local.y = yx * x + yy * y + dy.
+   * - :cpp:class:`ContentPixelRect <gui_forms::ContentPixelRect>`
+     - A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent.
+   * - :cpp:class:`ContentPixelSize <gui_forms::ContentPixelSize>`
+     - A device size in whole pixels.
+   * - :cpp:class:`ContentProgram <gui_forms::ContentProgram>`
+     - A consumer's content operation, run on a thread GUI.Forms starts for it (ContentWorker).
+   * - :cpp:class:`ContentQuad <gui_forms::ContentQuad>`
+     - A box of a layout mapped to local coordinates: its corners in the order top-left, top-right, bottom-right, bottom-left of the unmapped box (a parallelogram under a ContentLayoutTransform).
+   * - :cpp:class:`ContentRequest <gui_forms::ContentRequest>`
+     - What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
+   * - :cpp:class:`ContentSemantics <gui_forms::ContentSemantics>`
+     - The text a consumer supplies for its surface, so that what it draws is not invisible to assistive technology (its pixels carry no text).
+   * - :cpp:class:`ContentSurfaceStatistics <gui_forms::ContentSurfaceStatistics>`
+     - Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
+   * - :cpp:class:`ContentTextCluster <gui_forms::ContentTextCluster>`
+     - One shaped cluster (one or more graphemes drawn as a unit, such as a ligature): its UTF-8 range, the index of its line in ContentTextLayout::lines, its box and its direction.
+   * - :cpp:class:`ContentTextLayout <gui_forms::ContentTextLayout>`
+     - A whole layout for one revision of the editor's text (ContentTextEditor::text_revision).
+   * - :cpp:class:`ContentTextLine <gui_forms::ContentTextLine>`
+     - One visual line: the UTF-8 range of the text it shows (without the line break that ends it) and its box, in the editor's local coordinates.
+   * - :cpp:class:`ContentWatchdog <gui_forms::ContentWatchdog>`
+     - The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1).
+   * - :cpp:class:`ContentWorker <gui_forms::ContentWorker>`
+     - Owns one thread running one ContentProgram with one sink.
    * - :cpp:class:`CornerRadii <gui_drawing::CornerRadii>`
      - A rounded rectangle's corner radii: top-left, top-right, bottom-right, bottom-left.
    * - :cpp:class:`DrawingCommand <gui_drawing::DrawingCommand>`
      - DrawingCommand owns one complete command kind, sampled GraphicsState, geometry, resource snapshots, points, and text.
    * - :cpp:class:`DrawingObject <gui_drawing::DrawingObject>`
      - DrawingObject is the thread-affine disposable base for mutable drawing resources, with explicit alive/disposing/disposed transitions and controlled serialized handoff.
+   * - :cpp:class:`DrawingReplayOptions <gui_forms::DrawingReplayOptions>`
+     - How replay_drawing_commands draws what needs the painter's device grid.
+   * - :cpp:class:`DrawingReplayReport <gui_forms::DrawingReplayReport>`
+     - What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6).
+   * - :cpp:class:`FlattenedFigure <gui_drawing::FlattenedFigure>`
+     - One figure of a flattened path (GraphicsPath::flatten): its points are those of the flattened point array from the previous figure's ``end`` (0 for the first) to its own ``end``, exclusive.
    * - :cpp:class:`Font <gui_drawing::Font>`
      - Font retains validated UTF-8 family, bounded size, style bits, unit, and charset without exposing a platform font object.
    * - :cpp:class:`FontFamilyResolution <gui_drawing::FontFamilyResolution>`
@@ -56,6 +96,8 @@ Types
      - GraphicsPath is a bounded retained vector-geometry state machine with explicit figure boundaries, line/quadratic/cubic/polygon/rectangle/ellipse/arc/pie vocabulary, affine transformation, hit testing, cloning, bounds, and immutable snapshots.
    * - :cpp:class:`GraphicsRecorder <gui_drawing::GraphicsRecorder>`
      - GraphicsRecorder is a bounded thread-affine command transaction with explicit save-token stack discipline, retained transform/clip/quality state, validated resource snapshots, deterministic trace output, and a terminal close phase.
+   * - :cpp:class:`GraphicsRecorder::TextItem <gui_drawing::GraphicsRecorder::TextItem>`
+     - One string of draw_strings: its text (lent for the call), its origin, and its colour.
    * - :cpp:class:`GraphicsState <gui_drawing::GraphicsState>`
      - GraphicsState is the complete transform, optional clip, smoothing, interpolation, pixel-offset, compositing, and compositing-quality state.
    * - :cpp:class:`GraphicsStateToken <gui_drawing::GraphicsStateToken>`
@@ -64,6 +106,30 @@ Types
      - A world-aligned grid for GraphicsRecorder::fill_grid_pattern: lines ``spacing`` apart through ``origin`` (the recorder's coordinates), every ``major_every``-th line from the origin in ``major``, the rest in ``minor``, each ``line_width`` wide.
    * - :cpp:class:`HatchBrush <gui_drawing::HatchBrush>`
      - HatchBrush retains one validated hatch vocabulary value plus foreground/background colors.
+   * - :cpp:class:`HostedClient <gui_forms::HostedClient>`
+     -  
+   * - :cpp:class:`HostedClientInput <gui_forms::HostedClientInput>`
+     - One input event the parent forwarded.
+   * - :cpp:class:`HostedConfigureRecord <gui_forms::HostedConfigureRecord>`
+     - The parent's request, as the child receives it.
+   * - :cpp:class:`HostedContent <gui_forms::HostedContent>`
+     - What make_hosted_content makes: the program to start on a ContentSurface, and the input channel to its process.
+   * - :cpp:class:`HostedContentOptions <gui_forms::HostedContentOptions>`
+     -  
+   * - :cpp:class:`HostedFrameRecord <gui_forms::HostedFrameRecord>`
+     - A frame in a slot: its shape (as ContentFrame) and damage, in the slot's pixels from the slot's first byte.
+   * - :cpp:class:`HostedFrameView <gui_forms::HostedFrameView>`
+     - The frame a record describes, over ``region`` (the whole mapped region of slot_count slots of slot_bytes each), validated before any pixel is read: the slot index, then validate_content_frame over exactly the slot's bytes.
+   * - :cpp:class:`HostedInput <gui_forms::HostedInput>`
+     - The application's end of the input channel: forwards input to the program, from the UI thread or any other.
+   * - :cpp:class:`HostedKeyRecord <gui_forms::HostedKeyRecord>`
+     - A key, as KeyEvent's numeric fields: action (u32), physical key (u32), modifiers (u32), repeat (u32, 0 or 1).
+   * - :cpp:class:`HostedMessage <gui_forms::HostedMessage>`
+     - One message read from the channel.
+   * - :cpp:class:`HostedMessageReader <gui_forms::HostedMessageReader>`
+     - Splits a byte stream into messages, checking each header before its payload is buffered.
+   * - :cpp:class:`HostedPointerRecord <gui_forms::HostedPointerRecord>`
+     - A pointer event in the region's device pixels from its top left: action, button, modifiers, click count (u32 each), then x, y, wheel x, wheel y (f64 bits, u64 each).
    * - :cpp:class:`ImageAttributes <gui_drawing::ImageAttributes>`
      - ImageAttributes retains an optional finite 5x5 color matrix and bounded unique remap table under DrawingObject lifetime rules.
    * - :cpp:class:`ImageAttributesSnapshot <gui_drawing::ImageAttributesSnapshot>`
@@ -110,6 +176,8 @@ Types
      - Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer).
    * - :cpp:class:`PathElement <gui_drawing::PathElement>`
      - PathElement is the closed storage record for one retained figure/path verb and its relevant points, bounds, and angles.
+   * - :cpp:class:`PathFlattening <gui_drawing::PathFlattening>`
+     - What a flattening needs or wrote: the points and figures, and the status.
    * - :cpp:class:`PathGradientBrush <gui_drawing::PathGradientBrush>`
      - PathGradientBrush retains a bounded point boundary, center, center/surround colors, wrap policy, and optional interpolation stops.
    * - :cpp:class:`PathSnapshot <gui_drawing::PathSnapshot>`
@@ -122,6 +190,10 @@ Types
      - PointF is a finite logical-coordinate pair.
    * - :cpp:class:`PointI <gui_drawing::PointI>`
      - PointI is a signed integer pixel-coordinate pair.
+   * - :cpp:class:`RadialGradientBrush <gui_drawing::RadialGradientBrush>`
+     - A radial gradient (owner, 2026-11-16: added to the drawing table before the seal).
+   * - :cpp:class:`RecorderRasterResult <gui_drawing::RecorderRasterResult>`
+     -  
    * - :cpp:class:`RectF <gui_drawing::RectF>`
      - RectF provides validated finite logical containment, intersection, union, translation, and inflation.
    * - :cpp:class:`RectI <gui_drawing::RectI>`
@@ -194,6 +266,10 @@ Types
    .. cpp:function:: bool locked() const
 
       Reports whether any lock or edit lease is active.
+
+   .. cpp:function:: bool editing() const
+
+      True between begin_edit and its commit or cancel.
 
    .. cpp:function:: ImageSnapshot snapshot() const
 
@@ -413,6 +489,16 @@ Types
 
       A checker brush's cell width; 0 for every other kind.
 
+   .. cpp:member:: double radius
+
+      A radial gradient brush's radius about ``center`` and its focus (where position 0 lies); 0 and the origin for every other kind.
+
+   .. cpp:member:: PointF focus
+
+   .. cpp:member:: double radius_y
+
+      A radial gradient brush's radius down (equal to ``radius``, the radius across, for a circle); 0 for every other kind.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: BundledFontFace final
@@ -563,6 +649,452 @@ Types
 
    .. cpp:function:: BrushSnapshot snapshot() const override
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentCaretStop final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   An explicit caret position, for a consumer whose carets do not stand at cluster edges (split carets, vertical text): the caret at ``offset`` is the rectangle ``caret`` (a bar, usually one unit wide), in local coordinates.
+
+   .. cpp:member:: Utf8Offset offset
+
+   .. cpp:member:: Rect caret
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentContext final
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   What a content program sees on its own thread: the sink it publishes through and the stop it should honour. Valid for the duration of ContentProgram::run, on that thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ContentContext(ContentFrameSink sink) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const ContentFrameSink& sink() const noexcept
+
+   .. cpp:function:: std::stop_token stop_token() const noexcept
+
+      Fires when the surface asks the program to stop (terminate, close, leaving the window, the surface's destruction).
+
+   .. cpp:function:: bool stop_requested() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: ContentFrameSink& sink() noexcept
+
+      The program publishes through the non-const sink; readers that only inspect it take the const one.
+
+   .. cpp:function:: ContentRequest wait_for_request(std::uint64_t seen_generation, std::chrono::milliseconds timeout) const
+
+      ContentFrameSink::wait_for_request: also returns at once when a stop is requested.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentFrame final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   One finished frame, described by the consumer for one publish call (ContentFrameSink::publish). ``pixels`` is borrowed for the call only: the sink copies what it accepts into its own buffer before it returns, and reads nothing else. Rows run top to bottom, ``row_bytes`` apart; a row holds width pixels of ``pixel_format`` and may be followed by padding the sink never reads. The last row need not carry padding: ``pixels`` must hold at least row_bytes * (height - 1) + width * 4 bytes.
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: std::uint64_t row_bytes
+
+   .. cpp:member:: LiveSurfacePixelFormat pixel_format
+
+      Default: ``{LiveSurfacePixelFormat::bgra32_premultiplied_srgb}``.
+
+   .. cpp:member:: bool opaque
+
+      The consumer promises every pixel has alpha 255. The promise is not checked per pixel (it costs a pass over the frame); a broken promise shows whatever lies under the surface, and corrupts nothing.
+
+   .. cpp:member:: ContentPixelRect damage
+
+      The pixels that differ from the previous frame of the same size, in this frame's pixels; empty for the whole frame. A damage that does not lie inside the frame is refused.
+
+   .. cpp:member:: std::span<const std::byte> pixels
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentFrameSink final
+
+   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>``
+
+   The consumer's end of a content channel (ContentSurface::open_content): a handle any thread may hold, copy and call, for as long as it likes. It shares the channel's state, never the surface or its window: once the surface revokes the channel every call reports :cpp:func:`revoked <gui_forms::ContentFrameSink::revoked>` and touches nothing the interface reads. Execution: every member is callable from any thread. publish copies the accepted frame into a surface buffer on the calling thread; two threads publishing at once are serialized against each other, never against the interface thread, which only reads the newest finished frame and never waits for a publication (LiveSurface). Nothing here calls back into the consumer.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentFrameSink() = default
+
+      An empty sink: every publication reports :cpp:func:`revoked <gui_forms::ContentFrameSink::revoked>`.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: ContentRequest request() const noexcept
+
+      The newest request (device size, scale and generation); a zero size before the surface has been arranged in a window.
+
+   .. cpp:function:: bool revoked() const noexcept
+
+   .. cpp:function:: std::stop_token stop_token() const noexcept
+
+      The cooperative stop of the content's operation: fires when the surface asks the content to stop (ContentSurface::terminate, its destruction, a ContentWorker's stop). Content polls it or waits on it; GUI.Forms never stops a thread any other way. An empty sink's token never fires.
+
+   .. cpp:function:: bool stop_requested() const noexcept
+
+   .. cpp:function:: ContentSurfaceStatistics statistics() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: ContentPublishResult publish(const ContentFrame& frame)
+
+      Validates ``frame`` (validate_content_frame), then copies it into a free buffer and makes it the surface's newest frame. A frame of another size than the last replaces the surface's buffers first (failed_allocation when that fails; the previous frame stays). The first frame, and any frame after a stale period, also counts as activity for the watchdog.
+
+   .. cpp:function:: void heartbeat() noexcept
+
+      Reports the content alive without a new frame, for content that publishes only when something changes: the watchdog counts it as activity. Does nothing once revoked.
+
+   .. cpp:function:: ContentSemanticsResult publish_semantics(ContentSemantics semantics)
+
+      Replaces the surface's semantic text (ContentSemantics) after validate_content_semantics. The interface thread picks it up through its window's dispatcher; the newest publication wins.
+
+   .. cpp:function:: ContentRequest wait_for_request(std::uint64_t seen_generation, std::chrono::milliseconds timeout) const
+
+      Blocks the calling (content) thread until the request's generation passes ``seen_generation``, the channel is revoked, a stop is requested (stop_requested), or ``timeout`` passes. Returns the request then. The interface thread never calls it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentLayoutTransform final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   An affine map from a layout's own coordinates to the editor's local coordinates, for text the consumer draws turned, scaled or sheared (a rotated card's text, say): local.x = xx * x + xy * y + dx and local.y = yx * x + yy * y + dy. The shape is that of a painter transform (rotation, scale, shear and translation), so a consumer that draws through one passes the same numbers here. Perspective and warps are not affine; for them the consumer submits boxes already mapped, as bounding boxes. The default is the identity.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: double determinant() const noexcept
+
+      xx * yy - xy * yx: zero for a map that flattens the plane, which a layout refuses.
+
+   .. cpp:function:: bool axis_aligned() const noexcept
+
+      Whether the map keeps boxes axis-aligned (no rotation or shear: xy and yx are zero), so a box maps to a box.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: Point map(Point point) const noexcept
+
+      ``point`` (layout coordinates) in local coordinates.
+
+   .. cpp:member:: double xx
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double xy
+
+   .. cpp:member:: double yx
+
+   .. cpp:member:: double yy
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double dx
+
+   .. cpp:member:: double dy
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentPixelRect final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent. An empty rectangle names the whole frame where a damage is expected.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::uint32_t x
+
+   .. cpp:member:: std::uint32_t y
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentPixelSize final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   A device size in whole pixels.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentProgram
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   A consumer's content operation, run on a thread GUI.Forms starts for it (ContentWorker). run returns when the content is done or a stop was requested; an exception it throws ends the operation as failed, with the exception's text. The object is destroyed on the worker's thread after run returns, so its destructor may release what run made there.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void run(ContentContext& context) = 0
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentQuad final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   A box of a layout mapped to local coordinates: its corners in the order top-left, top-right, bottom-right, bottom-left of the unmapped box (a parallelogram under a ContentLayoutTransform).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Rect bounds() const noexcept
+
+      The smallest axis-aligned box holding the corners.
+
+   .. cpp:member:: std::array<Point, 4> corners
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentRequest final
+
+   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>``
+
+   What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
+
+   .. cpp:member:: ContentPixelSize size
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::uint64_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSemantics final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   The text a consumer supplies for its surface, so that what it draws is not invisible to assistive technology (its pixels carry no text). ``name`` is the surface's accessible name, ``text`` the text it shows (published as the node's value), ``description`` a longer description. All three are UTF-8.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::string description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSurfaceStatistics final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
+
+   .. cpp:member:: std::uint64_t frames_published
+
+   .. cpp:member:: std::uint64_t frames_refused
+
+   .. cpp:member:: std::uint64_t frames_dropped
+
+   .. cpp:member:: std::uint64_t heartbeats
+
+   .. cpp:member:: std::uint64_t stale_transitions
+
+      The watchdog's transitions to stale and back to live.
+
+   .. cpp:member:: std::uint64_t recoveries
+
+   .. cpp:member:: std::uint64_t semantics_published
+
+   .. cpp:member:: std::uint64_t semantics_refused
+
+   .. cpp:member:: std::uint64_t after_revocation
+
+      Publications after the channel was revoked.
+
+   .. cpp:member:: ContentPublishResult last_refusal
+
+      The newest refusal, ``published`` while there was none. Default: ``{ContentPublishResult::published}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextCluster final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   One shaped cluster (one or more graphemes drawn as a unit, such as a ligature): its UTF-8 range, the index of its line in ContentTextLayout::lines, its box and its direction. The caret stands at its leading edge before it and at its trailing edge after it: left and right for left-to-right clusters, right and left for right-to-left ones.
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: std::uint32_t line
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: bool right_to_left
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextLayout final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   A whole layout for one revision of the editor's text (ContentTextEditor::text_revision). Lines and clusters are in text order; caret stops, when given, ascend by offset and override the edge-derived caret at their offsets.
+
+   .. cpp:member:: std::uint64_t text_revision
+
+   .. cpp:member:: std::vector<ContentTextLine> lines
+
+   .. cpp:member:: std::vector<ContentTextCluster> clusters
+
+   .. cpp:member:: std::vector<ContentCaretStop> carets
+
+   .. cpp:member:: stxlib::Optional<ContentLayoutTransform> transform
+
+      When set, every box above (lines, clusters, caret stops) is in the layout's own coordinates and this maps them to local coordinates: the editor's caret, selection, hit testing, input-method caret and published text layout follow the mapped text. Unset, the boxes are local coordinates, as before.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextLine final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   One visual line: the UTF-8 range of the text it shows (without the line break that ends it) and its box, in the editor's local coordinates.
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: Rect bounds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentWatchdog final
+
+   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+
+   The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1). Pure and deterministic: it never reads a clock or a thread; its owner hands it the time and the channel's activity count (frames published plus heartbeats, which only grows) at each check. Content is stale when the count has not moved for longer than the interval; it recovers on the first observation that sees the count move. An interval of zero disables it (content that publishes only when asked, and says nothing in between, is never stale). Owned and called by one thread (the interface thread for a surface).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentWatchdog() = default
+
+   .. cpp:function:: explicit ContentWatchdog(FrameInterval interval) noexcept
+
+      Intervals below minimum_content_stale_interval, except zero, are raised to it; negative intervals are zero.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: FrameInterval interval() const noexcept
+
+   .. cpp:function:: bool enabled() const noexcept
+
+   .. cpp:function:: bool watching() const noexcept
+
+   .. cpp:function:: bool stale() const noexcept
+
+   .. cpp:function:: FrameTime deadline() const noexcept
+
+      When the content would turn stale if nothing moves: the last movement plus the interval. Meaningful only while watching an enabled watchdog.
+
+   .. cpp:function:: FrameInterval check_period() const noexcept
+
+      How often its owner should observe: a quarter of the interval, at least minimum_content_stale_interval / 2. Zero when disabled.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void start(FrameTime now, std::uint64_t activity) noexcept
+
+      Starts watching at ``now`` with the activity count seen then: the content has a whole interval before it can be stale. Clears stale.
+
+   .. cpp:function:: void stop() noexcept
+
+      Stops watching: observations change nothing until the next start.
+
+   .. cpp:function:: ContentWatchdogVerdict observe(FrameTime now, std::uint64_t activity) noexcept
+
+      One check. Activity that moved since the last observation restarts the interval (and recovers stale content); otherwise content is stale once ``now`` is more than the interval past the last movement. A time earlier than the last observation is treated as equal to it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentWorker final
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   Owns one thread running one ContentProgram with one sink. Made, used and destroyed by one thread (the interface thread for a surface); the program runs on the worker's thread and shares nothing with its owner but the channel and the worker's completion state, both synchronized.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentWorker(std::unique_ptr<ContentProgram> program, ContentFrameSink sink)
+
+      Starts the thread. Null program or an empty sink is std::invalid_argument; a thread the system refuses is std::system_error, and the program is released then.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool done() const noexcept
+
+      Whether the program's thread has ended (finished or failed). Never blocks.
+
+   .. cpp:function:: ContentWorkerState state() const noexcept
+
+   .. cpp:function:: std::string failure() const
+
+      What run threw, for state failed; empty otherwise.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void request_stop() noexcept
+
+      Asks the program to stop (its context's stop token fires) and returns at once. Idempotent.
+
+   .. cpp:function:: bool join_if_done() noexcept
+
+      Joins a thread that is done, without waiting for one that is not. Returns whether it joined (or had already).
+
+   .. cpp:function:: void abandon() noexcept
+
+      Abandons at once, without waiting: revokes the channel and detaches the thread. Nothing for a thread already done (it is joined instead).
+
+   .. cpp:function:: ContentWorkerState stop(std::chrono::milliseconds grace) noexcept
+
+      request_stop, then waits at most ``grace`` (capped at maximum_content_termination_grace) for the thread to end: joins it and reports finished or failed, or abandons it and reports abandoned. The only blocking member, and its wait is bounded. Idempotent: a later call reports the same state.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: CornerRadii final
@@ -641,6 +1173,14 @@ Types
 
       Default: ``{FillDirection::left_to_right}``.
 
+   .. cpp:member:: std::vector<Color> colors
+
+      fill_triangles: one colour per point in ``points``, three points (and three colours) per triangle.
+
+   .. cpp:member:: bool laid_out
+
+      draw_string: true when the text is laid out in ``rect`` (draw_string_in_rect) rather than placed at ``first``.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:class:: DrawingObject
@@ -667,7 +1207,7 @@ Types
 
       Verifies access and reports terminal disposal.
 
-   .. cpp:function:: std::thread::id owner_thread() const noexcept
+   .. cpp:function:: gui_forms::ThreadId owner_thread() const noexcept
 
       Returns the current exclusive owner thread identity.
 
@@ -700,6 +1240,54 @@ Types
       *Protected.*
 
       Provides the no-throw subtype cleanup hook.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DrawingReplayOptions final
+
+   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+
+   How replay_drawing_commands draws what needs the painter's device grid.
+
+   .. cpp:member:: double display_scale
+
+      The painter's display scale, device pixels per unit, for texture brushes (minimum_device_scale to maximum_device_scale); any other value, such as the default 0, leaves texture brushes out.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DrawingReplayReport final
+
+   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+
+   What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6). Every command is counted once.
+
+   .. cpp:member:: std::size_t drawn
+
+      Commands drawn through the painter.
+
+   .. cpp:member:: std::size_t state
+
+      State commands (save, restore, translate, set_transform, set_clip, reset_clip, set_quality): they draw nothing, and every drawing command carries the state they made.
+
+   .. cpp:member:: std::size_t transformed
+
+      Commands left out because their transform is not a translation: the Painter vocabulary has no scale, rotation or shear.
+
+   .. cpp:member:: std::size_t unsupported
+
+      Commands left out because the Painter has no equivalent for their kind, brush or pen (see replay_drawing_commands).
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: FlattenedFigure final
+
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+
+   One figure of a flattened path (GraphicsPath::flatten): its points are those of the flattened point array from the previous figure's ``end`` (0 for the first) to its own ``end``, exclusive. A closed figure repeats its first point last, so every figure is a polyline as it stands.
+
+   .. cpp:member:: std::size_t end
+
+   .. cpp:member:: bool closed
 
 .. cpp:namespace:: gui_drawing
 
@@ -950,9 +1538,19 @@ Types
 
       Projects a snapshot through deterministic fill-rule hit testing.
 
+   .. cpp:function:: PathFlattening flattened_size(double tolerance) const
+
+      Flattening: the path as polylines, every curve within ``tolerance`` of the polyline that replaces it. Provisional, numbered 0.8 of the drawing seam as a placeholder (the integrator assigns the real number in fold order); the C ABI's graphics_path_flatten and C#'s GraphicsPath.Flatten are the same operation. ``tolerance`` is a distance in the path's own coordinate units (the units its points are stored in, after any transform()): no point of a curve, arc or ellipse lies farther than ``tolerance`` from its chords (up to rounding). A caller drawing the path at scale s passes the device tolerance divided by s. It must be positive and finite, else std::invalid_argument is thrown. Figures follow the raster's reading of the elements: a line, curve or arc that does not start where the figure stands starts a new figure (an arc joins it with a straight edge instead, as Windows Forms' AddArc does); start_figure ends the figure open, close_figure ends it closed; a rectangle (clockwise from its top-left corner) and an ellipse (clockwise from its right-middle point) are closed figures of their own. Arc angles are the ellipse's parameter angles in degrees, as the raster draws them, with the sweep held to one turn either way. Lines keep their end points; a curve's last point is its end point exactly. A figure of fewer than two points is left out. flattened_size returns the counts flatten would write (status complete or limit_exceeded). flatten fills ``points`` and ``figures``, which the caller owns and sizes, and returns what it wrote. When either array is smaller than needed it writes nothing and returns the counts needed with status storage_too_small. The chord counts are a function of the tolerance and each element's geometry alone, so the two calls agree.
+
+   .. cpp:function:: PathFlattening flatten(double tolerance, std::span<PointF> points, std::span<FlattenedFigure> figures) const
+
    .. cpp:member:: constexpr std::size_t maximum_elements
 
       Default: ``1'000'000``.
+
+   .. cpp:member:: constexpr std::size_t maximum_flattened_points
+
+      The most points one flattening writes (2^24, 128 MiB of PointF): a tolerance tiny against the path's size is refused, not truncated. Default: ``16'777'216``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -1035,6 +1633,18 @@ Types
 
       Validates bounded UTF-8 and origin, then owns text plus font/brush/format snapshots.
 
+   .. cpp:function:: void draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush, RectF layout, const StringFormat& format)
+
+      The string laid out in ``layout`` (gd_* ABI 0.5, the flame graph demonstrator's D2). Lines break at newlines only. Each line is placed across the box by the format's alignment (start, center, end) and the block of lines down it by its line alignment, with the same side bearing an origin-placed string has. A line wider than the box is trimmed by the format's trimming: character and word cut it at the last code point or word that fits, the ellipsis forms add U+2026 after the cut, and ellipsis_path is taken as ellipsis_character; with none it runs on. The text is clipped to the box (within the clip in force) unless the format has the no-clip flag (0x4000). ``layout`` is finite with a non-negative width and height. Records one draw_string.
+
+   .. cpp:function:: void draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items)
+
+      Strings in one font and format, each in its own colour at its own origin (gd_* ABI 0.5, the flame graph demonstrator's D3): one draw_string per item, in order. 1 through maximum_text_items items, each bounded valid UTF-8 at a finite origin; the whole list is validated, and that its commands fit maximum_commands, before anything is recorded.
+
+   .. cpp:function:: void draw_string_rotated(std::string_view utf8, const Font& font, const SolidBrush& brush, PointF origin, double degrees, const StringFormat& format)
+
+      The string as draw_string draws it at ``origin``, turned about ``origin`` by ``degrees`` (finite; positive turns anticlockwise as seen). One draw_string command whose recorded transform is the turn followed by the transform in force, which stays in force; 0 degrees records what draw_string records. Throws, recording nothing, as draw_string does or for a non-finite angle.
+
    .. cpp:function:: void draw_ellipse(const Pen& pen, RectF bounds)
 
       Validates bounds and records a pen snapshot.
@@ -1091,9 +1701,33 @@ Types
 
       Piece C4: the string drawn twice under complementary clips, with ``on_fill_brush`` where it lies over ``fill`` and ``brush`` elsewhere. It records up to five draw_string commands, each with its own clip within the current one: the fill's part, and the bands above, below, left and right of it, which share its edges exactly. The transform must be a scale and translation (the clips are rectangles).
 
+   .. cpp:function:: void fill_band(const Brush& brush, std::span<const PointF> upper, std::span<const PointF> lower)
+
+      The area between two polylines sampled at the same positions (the Painter's fill_band): ``upper`` and ``lower`` hold the same count, 2 through maximum_band_samples. A break at index i in either span breaks the band there. Each run of 2 or more unbroken indices records one fill_polygon (winding, along ``upper`` and back along ``lower``); a run of one index records nothing.
+
+   .. cpp:function:: void draw_polyline_runs(const Pen& pen, std::span<const PointF> points)
+
+      An open polyline through ``points`` (2 or more) that breaks at each break point (the Painter's stroke_polyline): each run of 2 or more unbroken points records one draw_lines, and a run of one records nothing.
+
+   .. cpp:function:: void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors)
+
+      Each of 1 or more finite rectangles filled in its own colour (the Painter's fill_rects_each): ``colors`` holds one per rectangle. Each run of consecutive equal colours records one fill_rectangles with a solid brush of that colour.
+
+   .. cpp:function:: TriangleFillStatus fill_triangles(std::span<const PointF> points, std::span<const Color> colors)
+
+      Shaded triangles (Gouraud shading; owner, 2026-11-17, for facets shaded per corner). ``points`` holds three corners per triangle and ``colors`` one colour per corner, in the same order: the same count, a multiple of three, 3 through maximum_batch_elements (333,333 triangles), every point finite. The whole input is checked first; a refusal is reported by its status and records nothing. A disposed recorder throws std::logic_error, as every recording call does. Records one fill_triangles command with the state in force. The raster's rules (execute_recorder, recorder_execute): - Colour: inside a triangle the colour is its corners' colours weighted by the point's barycentric coordinates, interpolated premultiplied in linear light as every GUI.Drawing gradient is (gui_forms/types/linear_light/linear_light.hpp), alpha as it is. A point on an edge is the two corners' linear-light blend, and a corner is its own colour exactly. An empty colour is transparent. - Coverage and seams: the corners are taken to device pixels through the command's transform and rounded to 1/16 pixel. A sample belongs to a triangle when it lies inside it, or on an edge that is a top edge (horizontal, the interior below) or a left edge; so triangles sharing an edge (the same two corners) cover each sample along it exactly once, with no gap. Where triangles of one command overlap, a sample takes the later triangle. Each pixel is then drawn once per command: its colour the linear-light mean of its samples', its coverage the share of its samples covered. With the smoothing mode none or high_speed a pixel has one sample, at its centre (hard edges); otherwise 16, on a 4 by 4 grid. So a quad of two triangles in one colour fills uniformly, the diagonal included, translucent or not. - Compositing: the pixel's colour, at its coverage, over the target (source_over), or replacing the target in proportion to its coverage (source_copy), in sRGB-encoded premultiplied bytes as the other commands composite. - Clip: the clip in force cuts whole pixels, those whose centres lie inside it, as the other commands' clip does. - Limits: a corner farther than 8,388,608 device pixels from the origin after the transform refuses the command (limit exceeded); a triangle whose corners lie on one line draws nothing.
+
    .. cpp:function:: void close()
 
       Requires balanced saved state and enters terminal closed state.
+
+   .. cpp:function:: void reset()
+
+      Empties the recording for reuse (gd_* ABI 0.5, the flame graph demonstrator's D4): the commands, the saved states (their tokens are no longer valid) and the state in force (no transform, no clip, default quality) are cleared and the recorder reopens. The command storage is kept for the next frame. Throws on a disposed recorder.
+
+   .. cpp:function:: void frame_into(GraphicsRecorder& target, double scale, RectF device_clip) const
+
+      Fills ``target`` with this recording as drawn on a surface of ``scale`` device pixels per unit, inside ``device_clip`` (device pixels): each command's transform is followed by the scale, and its clip (device pixels already) is scaled and intersected with device_clip, or is device_clip where it had none. target's commands are replaced, their storage reused, and target is left open with no saved states and the default state in force; this recording is unchanged. For drawing a recording in logical units into a scaled, damage-limited target (the gd_* bridge, recorder_paint_target). Throws std::invalid_argument for target being this recording, a scale that is not finite and positive, or a clip that is not finite with a non-negative size, leaving target unchanged. A throw while copying (out of memory, or a scaled clip that is no longer finite) leaves target's commands unspecified but its state reset only on success.
 
    .. cpp:function:: void set_transform(Matrix transform)
 
@@ -1128,9 +1762,31 @@ Types
 
       Default: ``1U << 20U``.
 
+   .. cpp:member:: constexpr std::size_t maximum_text_items
+
+      Default: ``65536``.
+
    .. cpp:member:: constexpr std::size_t maximum_batch_elements
 
       Batched commands (the GUI.Forms Painter's batch calls; one command per call, the span copied once). Every point and rectangle must be finite, and each span holds at most maximum_batch_elements. Default: ``1'000'000``.
+
+   .. cpp:member:: constexpr std::size_t maximum_band_samples
+
+      Gapped and per-element marks (gd_* ABI 0.4, the plot demonstrator's gaps G2 to G4). Each records commands of the kinds above, so replay and the trace need no new command kind. Each validates its whole input, and that the commands it records fit maximum_commands, before it records anything; a refusal records nothing. A break is a point with a NaN coordinate. An infinite coordinate is refused, as for the batched commands. The most samples fill_band takes: its polygon holds two points per sample, within GraphicsPath::maximum_elements. Default: ``maximum_batch_elements / 2U``.
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: GraphicsRecorder::TextItem final
+
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+
+   One string of draw_strings: its text (lent for the call), its origin, and its colour.
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: PointF origin
+
+   .. cpp:member:: Color color
 
 .. cpp:namespace:: gui_drawing
 
@@ -1142,7 +1798,7 @@ Types
 
    .. cpp:member:: Matrix transform
 
-   .. cpp:member:: std::optional<RectF> clip
+   .. cpp:member:: stxlib::Optional<RectF> clip
 
    .. cpp:member:: SmoothingMode smoothing
 
@@ -1222,6 +1878,318 @@ Types
 
       Requires liveness and projects a hatch BrushSnapshot.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HostedClient final
+
+   ``#include <gui_forms/content/hosted/hosted_client.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint32_t slot_count() const noexcept
+
+   .. cpp:function:: std::uint64_t slot_bytes() const noexcept
+
+   .. cpp:function:: HostedConfigureRecord request() const noexcept
+
+      The region's device size and scale as last configured (zero before the first configure).
+
+   .. cpp:function:: bool stop_requested() const noexcept
+
+   .. cpp:function:: bool connected() const noexcept
+
+   .. cpp:function:: int channel_descriptor() const noexcept
+
+      The channel's descriptor, for a program that waits on it with its own loop (and for tests that write malformed bytes); -1 once closed, and always on Windows, which has channel_handle() instead.
+
+   .. cpp:function:: std::uintptr_t channel_handle() const noexcept
+
+      Windows: the channel's HANDLE value, for the same uses; 0 once closed, and always elsewhere. It is the child end of a named pipe opened with FILE_FLAG_OVERLAPPED, so every ReadFile and WriteFile on it passes an OVERLAPPED; the client may have a read of its own pending on it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static std::unique_ptr<HostedClient> connect()
+
+      Connects to the parent the environment names, maps the frame region and sends hello. None when the process was not started as hosted content (the variables are missing or name no usable descriptors).
+
+   .. cpp:function:: bool pump(std::chrono::milliseconds timeout)
+
+      Waits up to ``timeout`` for parent messages and handles every one that arrived: configure updates request(), release frees a slot, input (key, text, pointer, focus) is queued for take_input, stop sets stop_requested(). Returns false once a stop was asked for or the channel closed or broke.
+
+   .. cpp:function:: stxlib::Optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout)
+
+      A slot the parent has released, pumping up to ``timeout`` for one; none on timeout, stop or a closed channel.
+
+   .. cpp:function:: std::span<std::byte> slot_pixels(std::uint32_t slot) noexcept
+
+      The slot's writable bytes, slot_bytes() long, valid while the client lives. An empty span for a slot that does not exist.
+
+   .. cpp:function:: bool publish(const HostedFrameRecord& record)
+
+      Sends the frame in ``record.slot``; the slot is in use until the parent releases it. False when the slot is not one acquire_slot gave, or the channel is closed.
+
+   .. cpp:function:: bool heartbeat()
+
+   .. cpp:function:: bool publish_semantics(const ContentSemantics& semantics)
+
+   .. cpp:function:: bool goodbye()
+
+      Says the program is about to exit on its own.
+
+   .. cpp:function:: void take_input(std::vector<HostedClientInput>& out)
+
+      Moves the input received so far to the end of ``out``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedClientInput final
+
+   ``#include <gui_forms/content/hosted/hosted_client.hpp>``
+
+   One input event the parent forwarded. ``kind`` is key, text, pointer or focus and says which fields are set. They arrive in the order the surface received them (ContentSurface::start_hosted_content).
+
+   .. cpp:member:: HostedMessageKind kind
+
+      Default: ``{HostedMessageKind::key}``.
+
+   .. cpp:member:: HostedKeyRecord key
+
+   .. cpp:member:: HostedPointerRecord pointer
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: bool composing
+
+   .. cpp:member:: bool focused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedConfigureRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   The parent's request, as the child receives it.
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::uint64_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedContent final
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   What make_hosted_content makes: the program to start on a ContentSurface, and the input channel to its process.
+
+   .. cpp:member:: std::unique_ptr<ContentProgram> program
+
+   .. cpp:member:: HostedInput input
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedContentOptions final
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   .. cpp:member:: FilePath executable
+
+      The program to run, by absolute path; it is not looked up on PATH.
+
+   .. cpp:member:: std::vector<std::string> arguments
+
+      Its arguments after the program name.
+
+   .. cpp:member:: std::uint64_t slot_bytes
+
+      Each frame slot's size in bytes (hosted_protocol.hpp); frames larger than a slot are refused. At most maximum_hosted_slot_bytes. Default: ``{default_hosted_slot_bytes}``.
+
+   .. cpp:member:: std::chrono::milliseconds start_timeout
+
+      How long the program may take to send hello; it is ended as failed after that. Default: ``{default_hosted_start_timeout}``.
+
+   .. cpp:member:: std::chrono::milliseconds stop_grace
+
+      How long a stopped program may take to exit before it is killed. Keep it below the surface's termination grace, so the process is ended before the surface stops waiting. Default: ``{default_hosted_stop_grace}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedFrameRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   A frame in a slot: its shape (as ContentFrame) and damage, in the slot's pixels from the slot's first byte. 40 bytes on the wire: slot, width, height, opaque (u32 each), row_bytes (u64), damage x, y, width, height (u32 each).
+
+   .. cpp:member:: std::uint32_t slot
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: bool opaque
+
+   .. cpp:member:: std::uint64_t row_bytes
+
+   .. cpp:member:: ContentPixelRect damage
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedFrameView final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   The frame a record describes, over ``region`` (the whole mapped region of slot_count slots of slot_bytes each), validated before any pixel is read: the slot index, then validate_content_frame over exactly the slot's bytes. The view borrows ``region``, which must outlive it. On ``accepted``, ``frame`` views the frame's bytes in the slot; on ``refused_frame``, the whole slot (publishing it refuses it again, counted).
+
+   .. cpp:member:: HostedFrameCheck check
+
+      Default: ``{HostedFrameCheck::refused_slot}``.
+
+   .. cpp:member:: ContentPublishResult frame_result
+
+      Default: ``{ContentPublishResult::refused_empty}``.
+
+   .. cpp:member:: ContentFrame frame
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HostedInput final
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   The application's end of the input channel: forwards input to the program, from the UI thread or any other. A send never waits: when the channel is full or the program is not running, the event is dropped and counted. Copies share one channel.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: HostedInput() noexcept = default
+
+   .. cpp:function:: explicit HostedInput(std::shared_ptr<detail::HostedInputState> state) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint64_t dropped() const noexcept
+
+      Events dropped because the channel was full or closed.
+
+   .. cpp:function:: bool connected() const noexcept
+
+      Whether the program's process is running and connected.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool send_key(const KeyEvent& event)
+
+      A key, as the window delivered it.
+
+   .. cpp:function:: bool send_text(std::string_view text, bool composing)
+
+      Text input, an input method's composition included.
+
+   .. cpp:function:: bool send_pointer(const PointerEvent& event, Point device_position)
+
+      A pointer event; ``device_position`` is in the region's device pixels from its top left (the local position times the window's scale).
+
+   .. cpp:function:: bool send_focus(bool focused)
+
+      The surface gained (true) or lost the keyboard focus.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedKeyRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   A key, as KeyEvent's numeric fields: action (u32), physical key (u32), modifiers (u32), repeat (u32, 0 or 1). 16 bytes.
+
+   .. cpp:member:: std::uint32_t action
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: std::uint32_t modifiers
+
+   .. cpp:member:: bool repeat
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedMessage final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   One message read from the channel. ``payload`` is owned.
+
+   .. cpp:member:: HostedMessageKind kind
+
+      Default: ``{HostedMessageKind::heartbeat}``.
+
+   .. cpp:member:: std::vector<std::byte> payload
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HostedMessageReader final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   Splits a byte stream into messages, checking each header before its payload is buffered. One reader per direction and thread. Its buffer grows to at most one header and one largest payload beyond what was fed and not yet read.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit HostedMessageReader(bool from_child) noexcept
+
+      ``from_child``: the reader accepts the kinds a child sends (the parent's reader) or the kinds a parent sends (the child's).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t pending_bytes() const noexcept
+
+      Bytes fed and not yet taken.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void feed(std::span<const std::byte> bytes)
+
+      Appends received bytes.
+
+   .. cpp:function:: HostedReadResult next(HostedMessage& out)
+
+      Takes the next whole message into ``out``. After a refusal every later call repeats it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedPointerRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   A pointer event in the region's device pixels from its top left: action, button, modifiers, click count (u32 each), then x, y, wheel x, wheel y (f64 bits, u64 each). 48 bytes.
+
+   .. cpp:member:: std::uint32_t action
+
+   .. cpp:member:: std::uint32_t button
+
+   .. cpp:member:: std::uint32_t modifiers
+
+   .. cpp:member:: std::uint32_t click_count
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: double wheel_x
+
+   .. cpp:member:: double wheel_y
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:class:: ImageAttributes final : public DrawingObject
@@ -1268,7 +2236,7 @@ Types
 
    ImageAttributesSnapshot owns optional 5x5 color-matrix state and a bounded remap table.
 
-   .. cpp:member:: std::optional<std::array<double, 25>> color_matrix
+   .. cpp:member:: stxlib::Optional<std::array<double, 25>> color_matrix
 
       The colour matrix as set_color_matrix took it; absent when none is set.
 
@@ -1473,6 +2441,8 @@ Types
    .. cpp:member:: std::uint32_t height
 
    .. cpp:member:: LiveSurfacePixelFormat pixel_format
+
+      Default: ``{LiveSurfacePixelFormat::bgra32_premultiplied_srgb}``.
 
    .. cpp:member:: std::size_t buffer_count
 
@@ -1905,6 +2875,22 @@ Types
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:struct:: PathFlattening final
+
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+
+   What a flattening needs or wrote: the points and figures, and the status.
+
+   .. cpp:member:: std::size_t point_count
+
+   .. cpp:member:: std::size_t figure_count
+
+   .. cpp:member:: PathFlatteningStatus status
+
+      Default: ``{PathFlatteningStatus::complete}``.
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:class:: PathGradientBrush final : public Brush
 
    ``#include <gui_forms/drawing/brush/path_gradient_brush.hpp>``
@@ -2005,6 +2991,10 @@ Types
 
    .. cpp:function:: void set_line_cap(LineCap cap)
 
+   .. cpp:function:: void set_trim(double start, double end, double offset)
+
+      Keeps only part of each path and ellipse the pen draws (draw_path, draw_ellipse; owner, 2026-11-16): ``start`` and ``end`` fractions of the figure's whole length, each in [0, 1] and in either order, and ``offset`` (finite) moving the kept part along it, wrapping across its start. The cut is the core's (gui_forms::trim_paint_path at gui_forms::stroke_trim_tolerance), so the raster executor and a Painter replay keep the same sub-path. Start 0 and end 1 keep the whole figure, as before. Rectangles, lines and polylines draw whole. Throws std::invalid_argument, changing nothing, for a value out of range or not finite.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:struct:: PenSnapshot final
@@ -2036,6 +3026,18 @@ Types
    .. cpp:member:: LineCap cap
 
       Default: ``{LineCap::flat}``.
+
+   .. cpp:member:: double trim_start
+
+      The part of a drawn path or ellipse the pen keeps (set_trim): the defaults keep it whole. Default: ``{0.0}``.
+
+   .. cpp:member:: double trim_end
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double trim_offset
+
+      Default: ``{0.0}``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -2074,6 +3076,55 @@ Types
    .. cpp:member:: std::int32_t x
 
    .. cpp:member:: std::int32_t y
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:class:: RadialGradientBrush final : public Brush
+
+   ``#include <gui_forms/drawing/brush/radial_gradient_brush.hpp>``
+
+   A radial gradient (owner, 2026-11-16: added to the drawing table before the seal). The colour at a point is the blend's colour at the offset t whose circle passes through it: the circle of radius t * radius centred at focus + t * (center - focus). Position 0 is the focus, position 1 the circle of ``radius`` about ``center``; with the focus at the centre (the default) t is the distance from the centre over the radius. The circle may be an ellipse (set_radii, owner 2026-11-16): ``radius`` across and ``radius_y`` down, every circle above then the ellipse of those radii scaled by t. Past position 1 the wrap mode repeats the blend (tile), reflects it (the three flips) or holds its last colour (clamp, the default). The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``center_color`` to ``edge_color``. Colours interpolate premultiplied, in sRGB-encoded values, as every gradient does (the blending rule).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RadialGradientBrush(PointF center, double radius, Color center_color, Color edge_color, WrapMode wrap_mode = WrapMode::clamp)
+
+      Throws std::invalid_argument for a centre that is not finite, a radius that is not positive and at most 1,000,000, or a wrap mode outside the enumeration.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_interpolation_colors(const ColorBlend& blend)
+
+   .. cpp:function:: void set_focus(PointF focus)
+
+      Moves position 0 to ``focus``, which must lie strictly inside the circle or ellipse (std::invalid_argument otherwise; the brush is unchanged).
+
+   .. cpp:function:: void set_radii(double radius_x, double radius_y)
+
+      Makes the edge an ellipse of ``radius_x`` across and ``radius_y`` down about the centre (each positive, at most 1,000,000). Throws std::invalid_argument, the brush unchanged, for a radius out of range or when the focus would not lie strictly inside the new ellipse.
+
+   .. cpp:function:: void set_wrap_mode(WrapMode mode)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: BrushSnapshot snapshot() const override
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: RecorderRasterResult final
+
+   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+
+   .. cpp:member:: RecorderRasterStatus status
+
+      Default: ``{RecorderRasterStatus::executed}``.
+
+   .. cpp:member:: std::uint64_t commands_executed
+
+      The commands drawn from ``first_command`` on.
 
 .. cpp:namespace:: gui_drawing
 
@@ -2418,11 +3469,11 @@ Types
 
    .. cpp:member:: StringAlignment alignment
 
-      Default: ``{StringAlignment::near}``.
+      Default: ``{StringAlignment::start}``.
 
    .. cpp:member:: StringAlignment line_alignment
 
-      Default: ``{StringAlignment::near}``.
+      Default: ``{StringAlignment::start}``.
 
    .. cpp:member:: StringTrimming trimming
 
@@ -2578,6 +3629,8 @@ Enumerations
 
    .. cpp:enumerator:: checker
 
+   .. cpp:enumerator:: radial_gradient
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: CommandKind
@@ -2632,6 +3685,8 @@ Enumerations
 
    .. cpp:enumerator:: fill_proportion
 
+   .. cpp:enumerator:: fill_triangles
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: CompositingMode
@@ -2657,6 +3712,116 @@ Enumerations
    .. cpp:enumerator:: gamma_corrected
 
    .. cpp:enumerator:: assume_linear
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentLayoutResult
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: stale_revision
+
+   .. cpp:enumerator:: refused_too_large
+
+   .. cpp:enumerator:: refused_range
+
+   .. cpp:enumerator:: refused_boundary
+
+   .. cpp:enumerator:: refused_cluster
+
+   .. cpp:enumerator:: refused_geometry
+
+   .. cpp:enumerator:: refused_caret
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentPublishResult
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   .. cpp:enumerator:: published
+
+   .. cpp:enumerator:: dropped_busy
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: refused_empty
+
+   .. cpp:enumerator:: refused_too_large
+
+   .. cpp:enumerator:: refused_row_bytes
+
+   .. cpp:enumerator:: refused_extent
+
+   .. cpp:enumerator:: refused_format
+
+   .. cpp:enumerator:: refused_damage
+
+   .. cpp:enumerator:: failed_allocation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentSemanticsResult
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   .. cpp:enumerator:: published
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: refused_invalid_utf8
+
+   .. cpp:enumerator:: refused_too_long
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentSurfaceStatus
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   .. cpp:enumerator:: disconnected
+
+   .. cpp:enumerator:: waiting
+
+   .. cpp:enumerator:: live
+
+   .. cpp:enumerator:: stale
+
+   .. cpp:enumerator:: terminating
+
+   .. cpp:enumerator:: ended
+
+   .. cpp:enumerator:: abandoned
+
+   .. cpp:enumerator:: failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentWatchdogVerdict
+
+   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+
+   .. cpp:enumerator:: unchanged
+
+   .. cpp:enumerator:: became_stale
+
+   .. cpp:enumerator:: recovered
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentWorkerState
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   .. cpp:enumerator:: running
+
+   .. cpp:enumerator:: finished
+
+   .. cpp:enumerator:: failed
+
+   .. cpp:enumerator:: abandoned
 
 .. cpp:namespace:: gui_drawing
 
@@ -2814,6 +3979,74 @@ Enumerations
 
    .. cpp:enumerator:: diagonal_cross
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedContentSupport
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   .. cpp:enumerator:: available
+
+   .. cpp:enumerator:: not_reported
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedFrameCheck
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: refused_slot
+
+   .. cpp:enumerator:: refused_frame
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedMessageKind
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   .. cpp:enumerator:: hello
+
+   .. cpp:enumerator:: frame
+
+   .. cpp:enumerator:: heartbeat
+
+   .. cpp:enumerator:: semantics
+
+   .. cpp:enumerator:: goodbye
+
+   .. cpp:enumerator:: configure
+
+   .. cpp:enumerator:: release
+
+   .. cpp:enumerator:: key
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: stop
+
+   .. cpp:enumerator:: focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedReadResult
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   .. cpp:enumerator:: message
+
+   .. cpp:enumerator:: need_more
+
+   .. cpp:enumerator:: refused_magic
+
+   .. cpp:enumerator:: refused_kind
+
+   .. cpp:enumerator:: refused_size
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: InterpolationMode
@@ -2946,6 +4179,18 @@ Enumerations
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:enum-class:: PathFlatteningStatus
+
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+
+   .. cpp:enumerator:: complete
+
+   .. cpp:enumerator:: storage_too_small
+
+   .. cpp:enumerator:: limit_exceeded
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:enum-class:: PathVerb
 
    ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
@@ -2992,6 +4237,26 @@ Enumerations
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:enum-class:: RecorderRasterStatus
+
+   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+
+   .. cpp:enumerator:: executed
+
+   .. cpp:enumerator:: wrong_thread
+
+   .. cpp:enumerator:: invalid_argument
+
+   .. cpp:enumerator:: limit_exceeded
+
+   .. cpp:enumerator:: out_of_memory
+
+   .. cpp:enumerator:: not_available
+
+   .. cpp:enumerator:: internal_error
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:enum-class:: SmoothingMode
 
    ``#include <gui_forms/drawing/types/drawing_types.hpp>``
@@ -3012,11 +4277,11 @@ Enumerations
 
    ``#include <gui_forms/drawing/types/drawing_types.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_drawing
 
@@ -3038,6 +4303,26 @@ Enumerations
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:enum-class:: TriangleFillStatus
+
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+
+   .. cpp:enumerator:: recorded
+
+   .. cpp:enumerator:: count_mismatch
+
+   .. cpp:enumerator:: not_whole_triangles
+
+   .. cpp:enumerator:: too_many_points
+
+   .. cpp:enumerator:: non_finite_point
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: command_limit
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:enum-class:: WrapMode
 
    ``#include <gui_forms/drawing/types/drawing_types.hpp>``
@@ -3054,6 +4339,238 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+.. cpp:function:: ContentQuad map_content_box(const ContentLayoutTransform& transform, Rect box) noexcept
+
+   ``box`` (layout coordinates) mapped by ``transform``.
+
+.. cpp:function:: std::string_view content_layout_result_name(ContentLayoutResult result) noexcept
+
+.. cpp:function:: ContentLayoutResult validate_content_text_layout(const ContentTextLayout& layout, const TextStore& text, std::uint64_t revision)
+
+   Checks ``layout`` against ``text`` (the editor's text store) without keeping either: counts first, then every range against the text's size and grapheme boundaries, the order of lines and clusters, the coverage of each line by its clusters, every box and the transform. ``revision`` is the text's revision the layout must name.
+
+.. cpp:var:: constexpr std::size_t maximum_content_layout_entries
+
+   The most lines, clusters or caret stops one layout may hold: one million each. A layout holding more is refused before it is read further. Value: ``1000000U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+.. cpp:function:: HostedContentSupport hosted_content_support() noexcept
+
+.. cpp:function:: HostedContent make_hosted_content(HostedContentOptions options)
+
+   Checks ``options`` and makes the program; nothing starts until the surface runs it. Throws std::invalid_argument for an executable that is not an absolute path, a slot size of zero or over the limit, or a negative timeout; on Windows also for an argument that is not UTF-8 or holds a NUL, and for a command line over 32,767 characters. Throws std::runtime_error where hosted content is not supported.
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_hosted_start_timeout
+
+   Value: ``{5000}``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_hosted_stop_grace
+
+   Value: ``{100}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+.. cpp:function:: std::string_view hosted_message_kind_name(HostedMessageKind kind) noexcept
+
+.. cpp:function:: bool hosted_message_kind_valid(std::uint32_t value, bool from_child) noexcept
+
+   Whether ``value`` names a message kind the child may send (``from_child``) or the parent may send.
+
+.. cpp:function:: void append_hosted_message(std::vector<std::byte>& out, HostedMessageKind kind, std::span<const std::byte> payload)
+
+   Appends one whole message (header and payload) to ``out``. Throws std::length_error for a payload over hosted_maximum_payload_bytes.
+
+.. cpp:function:: void encode_hosted_hello(std::vector<std::byte>& payload)
+
+   Payload encoders: each fills ``payload``, replacing its contents.
+
+.. cpp:function:: void encode_hosted_frame(std::vector<std::byte>& payload, const HostedFrameRecord& record)
+
+.. cpp:function:: void encode_hosted_slot(std::vector<std::byte>& payload, std::uint32_t slot)
+
+.. cpp:function:: void encode_hosted_key(std::vector<std::byte>& payload, const HostedKeyRecord& record)
+
+.. cpp:function:: void encode_hosted_text(std::vector<std::byte>& payload, std::string_view text, bool composing)
+
+.. cpp:function:: void encode_hosted_pointer(std::vector<std::byte>& payload, const HostedPointerRecord& record)
+
+.. cpp:function:: void encode_hosted_configure(std::vector<std::byte>& payload, const HostedConfigureRecord& record)
+
+.. cpp:function:: void encode_hosted_focus(std::vector<std::byte>& payload, bool focused)
+
+.. cpp:function:: void encode_hosted_semantics(std::vector<std::byte>& payload, const ContentSemantics& semantics)
+
+   Throws std::length_error when the three strings exceed the payload limit.
+
+.. cpp:function:: bool decode_hosted_hello(std::span<const std::byte> payload, std::uint32_t& version)
+
+   Payload decoders: each returns false, leaving ``out`` unspecified, for a payload of the wrong size or contents (an unknown version, a slot index or flag out of range, a string running past the payload, text that is not UTF-8).
+
+.. cpp:function:: bool decode_hosted_frame(std::span<const std::byte> payload, HostedFrameRecord& out)
+
+.. cpp:function:: bool decode_hosted_slot(std::span<const std::byte> payload, std::uint32_t& slot)
+
+.. cpp:function:: bool decode_hosted_key(std::span<const std::byte> payload, HostedKeyRecord& out)
+
+.. cpp:function:: bool decode_hosted_text(std::span<const std::byte> payload, std::string& text, bool& composing)
+
+.. cpp:function:: bool decode_hosted_pointer(std::span<const std::byte> payload, HostedPointerRecord& out)
+
+.. cpp:function:: bool decode_hosted_configure(std::span<const std::byte> payload, HostedConfigureRecord& out)
+
+.. cpp:function:: bool decode_hosted_semantics(std::span<const std::byte> payload, ContentSemantics& out)
+
+.. cpp:function:: bool decode_hosted_focus(std::span<const std::byte> payload, bool& focused)
+
+.. cpp:function:: HostedFrameView view_hosted_frame(const HostedFrameRecord& record, std::span<const std::byte> region, std::uint32_t slot_count, std::uint64_t slot_bytes) noexcept
+
+.. cpp:function:: std::string_view hosted_read_result_name(HostedReadResult result) noexcept
+
+.. cpp:var:: constexpr std::uint32_t hosted_protocol_magic
+
+   "GFHC" read as a little-endian u32. Value: ``0x43484647U``.
+
+.. cpp:var:: constexpr std::uint32_t hosted_protocol_version
+
+   Value: ``1U``.
+
+.. cpp:var:: constexpr std::size_t hosted_message_header_bytes
+
+   Value: ``16U``.
+
+.. cpp:var:: constexpr std::size_t hosted_maximum_payload_bytes
+
+   The largest payload either end accepts: semantic text up to its limit, three strings' length fields and slack. Value: ``maximum_content_semantic_text_bytes + 64U``.
+
+.. cpp:var:: constexpr std::uint32_t hosted_slot_count
+
+   The frame slots: two, so the child draws one while the parent copies the other. Value: ``2U``.
+
+.. cpp:var:: constexpr std::uint64_t default_hosted_slot_bytes
+
+   The default and largest slot: a frame of up to 32 MiB (a 4096 by 2048 frame) by default; at most the content frame limit. Value: ``32ULL * 1024ULL * 1024ULL``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_hosted_slot_bytes
+
+   Value: ``maximum_content_frame_bytes``.
+
+.. cpp:var:: constexpr int hosted_channel_descriptor
+
+   The descriptors and environment the parent gives the child. The channel and the frame region are inherited at these descriptor numbers on POSIX; the environment names them as well, with the slot shape. On Windows the two are inherited handles, and the channel and frames variables hold their values in decimal. Value: ``3``.
+
+.. cpp:var:: constexpr int hosted_frames_descriptor
+
+   Value: ``4``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_channel
+
+   Value: ``"GUI_FORMS_HOSTED_CHANNEL"``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_frames
+
+   Value: ``"GUI_FORMS_HOSTED_FRAMES"``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_slot_bytes
+
+   Value: ``"GUI_FORMS_HOSTED_SLOT_BYTES"``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_slot_count
+
+   Value: ``"GUI_FORMS_HOSTED_SLOT_COUNT"``.
+
+.. cpp:var:: constexpr std::size_t hosted_frame_record_bytes
+
+   Value: ``40U``.
+
+.. cpp:var:: constexpr std::size_t hosted_key_record_bytes
+
+   Value: ``16U``.
+
+.. cpp:var:: constexpr std::size_t hosted_pointer_record_bytes
+
+   Value: ``48U``.
+
+.. cpp:var:: constexpr std::size_t hosted_configure_record_bytes
+
+   Value: ``24U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/operation/content_operation.hpp>``
+
+.. cpp:function:: std::string_view content_worker_state_name(ContentWorkerState state) noexcept
+
+.. cpp:function:: std::uint64_t abandoned_content_workers() noexcept
+
+   The threads abandoned in this process that have not yet finished: a diagnostic for shutdown reports. Any thread may read it.
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_content_termination_grace
+
+   The default bounded wait of a termination: 250 milliseconds. Value: ``{250}``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds maximum_content_termination_grace
+
+   The longest bounded wait accepted: 10 seconds (longer ones are lowered). Value: ``{10000}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/types/content_types.hpp>``
+
+.. cpp:function:: std::string_view content_publish_result_name(ContentPublishResult result) noexcept
+
+   The result's name, for logs and tests ("published", "refused_extent").
+
+.. cpp:function:: ContentPublishResult validate_content_frame(const ContentFrame& frame) noexcept
+
+   Checks a frame against the limits without reading its pixels: shape, format, row stride, the extent ``pixels`` must cover (all products checked for overflow first) and the damage. ``published`` when the frame may be copied. The sink, the hosted-mode reader and the editing mode all call it before they touch a byte.
+
+.. cpp:function:: std::uint64_t content_frame_extent_bytes(std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes) noexcept
+
+   The pixel bytes a frame of ``width`` by ``height`` with ``row_bytes`` occupies: row_bytes * (height - 1) + width * 4. Zero when the product does not fit in 64 bits or either axis is zero (callers check validate_content_frame first).
+
+.. cpp:function:: std::string_view content_surface_status_name(ContentSurfaceStatus status) noexcept
+
+.. cpp:function:: ContentSemanticsResult validate_content_semantics(const ContentSemantics& semantics) noexcept
+
+   Checks semantic text without keeping it.
+
+.. cpp:var:: constexpr std::uint32_t maximum_content_frame_extent
+
+   The largest frame a consumer may publish: 16384 pixels on either axis and 256 MiB of pixels in all. Larger frames are refused before anything is allocated or copied. Value: ``16384U``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_content_frame_bytes
+
+   Value: ``256ULL * 1024ULL * 1024ULL``.
+
+.. cpp:var:: constexpr std::size_t maximum_content_semantic_text_bytes
+
+   The most UTF-8 bytes of semantic text one publication may carry (1 MiB). Value: ``1024U * 1024U``.
+
+.. cpp:var:: constexpr std::uint64_t content_frame_pixel_bytes
+
+   Bytes per pixel of the one pixel format (LiveSurfacePixelFormat). Value: ``4U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+
+.. cpp:var:: constexpr FrameInterval default_content_stale_interval
+
+   The default interval after which content that published no frame and reported no heartbeat is stale: one second. Value: ``std::chrono::milliseconds(1000)``.
+
+.. cpp:var:: constexpr FrameInterval minimum_content_stale_interval
+
+   The shortest interval a watchdog accepts (shorter ones are raised to it). Value: ``std::chrono::milliseconds(50)``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -3095,6 +4612,18 @@ Functions, constants and aliases
 
 .. cpp:function:: const SystemPalette& default_system_palette() noexcept
 
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+
+.. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter)
+
+   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - fill_ellipse, fill_path: fill_path (a path's figures as the raster executor builds them: a line or curve not starting at the current point starts a figure, rectangles and ellipses are closed figures, an arc extends its figure); - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_ellipse, draw_path: stroke_path; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A fill whose brush is not solid draws its shape as a clip (clip_rect for rectangles, clip_path for polygons, ellipses and paths) and the brush's paint over the shape's bounds: a linear gradient brush as fill_linear_gradient_spread on the executor's line, a path gradient as fill_radial_gradient_spread on the executor's circle, a radial gradient brush as fill_radial_gradient_spread (or fill_focal_radial_gradient when its focus is not its centre), a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as fill_hatch, each anchored at the recording's origin; the wrap mode is the spread (tile repeats, the flips reflect, clamp pads). A texture brush, when the options name the painter's display scale, is baked into one PartRaster over the device pixels its area touches and drawn with draw_part_raster under clip_rect(area): each pixel samples the image at its centre through the inverse of the brush's transform, wrapped per axis as the raster executor wraps it (tile repeats, a flip mirrors that axis, clamp holds the edge texel), nearest for the nearest interpolation mode and bilinear otherwise, in premultiplied BGRA8 with integer weights. The bake assumes the recording's origin lies on a device pixel; when the painter's translation puts it between pixels, the texture is placed up to half a device pixel from where the executor draws it. A texture with no pixels or a singular transform draws nothing; a fill of more than 2^24 device pixels is left out (counted unsupported). A gradient whose colours and positions are not valid gradient stops fills with its primary colour, as the executor does. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), images (their pixels have no image identity in a painter), shaded triangles (fill_triangles: the Painter has no per-corner shading), texture brushes without a display scale, a path with an element outside the enumeration, and any command whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
+
+.. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter, DrawingReplayOptions options)
+
+   As above, with ``options``; texture brushes allocate one raster per fill.
+
 .. cpp:namespace:: gui_drawing
 
 ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
@@ -3124,6 +4653,14 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const FontGateException> font_gate_exceptions() noexcept
 
 .. cpp:function:: const char* font_gate_criterion_name(FontGateCriterion criterion) noexcept
+
+.. cpp:namespace:: gui_drawing
+
+``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+
+.. cpp:function:: RecorderRasterResult execute_recorder(const GraphicsRecorder& recorder, Bitmap& target, std::uint64_t first_command) noexcept
+
+   Draws ``recorder``'s commands from ``first_command`` on into ``target``, in place, on the calling thread, which must own both objects. The caller keeps both alive for the call; nothing is retained after it. ``target`` may borrow the caller's pixels (Bitmap::borrow), which are then written directly, with no copy. What a failure leaves: for a bitmap owning its pixels the commands are checked first and a refusal leaves it untouched; a borrowed bitmap, or a failure during drawing, keeps the commands before the failing one drawn (commands_executed counts them). Fonts the commands name are resolved and registered on this thread first, as recorder_execute does; no gdr_initialize call is needed. Never throws.
 
 .. cpp:namespace:: gui_forms
 

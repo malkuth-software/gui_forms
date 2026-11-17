@@ -1,0 +1,454 @@
+#pragma once
+
+// Composite controls (cp34, phase 2; design note
+// COMPOSITE_CONTROL_LANGUAGE.md, section 4.1): a control type defined by a
+// `.control` document instead of a C++ class, and the one control class
+// that runs any such definition.
+//
+// A definition is made once per type, from the document, by
+// load_composite_definition (at run time) or by the header
+// gui_forms_add_control generates (at build time, which checks the
+// document when the target builds and loads it on first use). It is
+// immutable and shared: every instance holds it until it is destroyed.
+//
+// An instance is a real control: its anatomy (region, focus and the
+// declared parts), its part geometry (the parts' boxes, evaluated on
+// layout and on property and state changes, never per frame), its hit
+// regions, its properties (registered on the control, so bindings, forms
+// and the property grid reach them by name), its states, its commands, its
+// key and pointer rules, its drags (one DragTracker, made only when the
+// definition declares a drag), its children (made from the document with
+// stable IDs under the instance's own), its semantics and its look.
+//
+// The look (cp34, phase 3): the document's <look> is compiled against the
+// stock anatomies and the composite's own, so its rules name the
+// composite's type, parts and states and its children's stock types
+// (CompiledThemeRules::compile_look). A look reading only the engine
+// inputs and the built-in colour roles compiles once, with the definition;
+// one reading a theme's application roles or custom properties compiles
+// with the text of each theme, once per definition per theme, at fixed
+// points before resolution: when the instance is attached and when a
+// theme is applied (never inside the style pass). An error that no theme could resolve refuses
+// the definition; a look refused under one theme logs one line and draws
+// nothing there. Every instance shares the definition's look and sets it
+// on itself and on the controls its definition made
+// (Control::set_composite_look) when its tree is made. The look layers over the theme in effect: the
+// cascade consults it beside the theme's rules, after them at each sheet
+// level, so the look stands over the theme only where it says something.
+// The window's theme, a theme switch, a theme override, a user theme and
+// forced high contrast reach the composite's parts and children as they
+// reach any control. Slot content, added later, takes no look; a nested
+// composite keeps its own.
+//
+// Semantics: `<semantics role=...>` gives the composite its own node.
+// `<semantics from="child(@id)"/>` (with `<focus target="child(@id)">`, the
+// same child) hands the node to that child instead: the composite
+// publishes no node of its own, so the focus target's node, with its text,
+// selection, text layout and actions, is the composite's one node, and the
+// focused node is that node. The composite's other children publish their
+// own nodes beside it, as children of an unexposed control do.
+//
+// Painting: the theme draws each declared part, in document order, from
+// the definition. A part declared `paint="hook"` is drawn instead by the
+// typed class (paint_hook), in its place in that order and inside the
+// geometry, states and hit region the definition gives it, so a definition
+// is still the only way to make the composite: a class deriving from
+// CompositeControl (or from the class gui_forms_add_control generates)
+// passes its definition to the constructor and overrides paint_hook. With
+// no override (a definition loaded at run time) a hook part draws nothing.
+// Children draw over the composite; an edit part that draws nothing (a
+// ContentTextEditor without frames) leaves the hook's drawing in view.
+//
+// Event order:
+// - A property write (set_property_value, a binding, a rule, a drag)
+//   validates first and changes nothing when refused; then stores, marks
+//   the declared effects dirty, raises the property's change notification,
+//   raises the declared change event through raised(), runs the `changed`
+//   rules, and writes the children bound to it.
+// - Rules of one trigger run in document order, a rule's actions in
+//   order. Nested firings (a write inside a rule firing further rules) are
+//   limited to maximum_composite_rule_depth; the excess is refused and
+//   counted (statistics().refused_firings). Disposing the composite inside a
+//   firing drops the remaining actions.
+// - A press on a part that activates a command runs it in the click (on
+//   release over the same part), on the press (`press="down"`), or on the
+//   press and then repeatedly while held (`press="repeat"`, the scroll
+//   bar's timing). A part that drags hands the press to the tracker; a
+//   release under the threshold is the click.
+// - A commit-mode drag writes only presentational properties while it
+//   runs, and its property once at an end that commits; a live drag writes
+//   its property on every frame and writes the pressed value back at an end
+//   that does not commit.
+//
+// Threads: UI thread of the instance's window, as every control. A
+// definition may be shared by instances on several UI threads (it does not
+// change after it is made).
+
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
+#include "gui_forms/event.hpp"
+#include "gui_forms/export/application_export.hpp"
+#include "gui_forms/scheduler.hpp"
+
+#include <stxlib/optional.hpp>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace gui_forms {
+
+// The compiled, immutable definition of one composite type (internal).
+class CompositeDefinition;
+
+// One control type a composite's children may name, besides the base
+// (user_control): its registered name and how to make one. A definition
+// loaded at run time names the types its document uses; the generated
+// header names them for the build.
+// A type whose objects take a Command (a button's bind(Command&)) also
+// names how to bind one, for a child bound to a command property.
+using CompositeChildCreator = Component::Ptr (*)(StableId stable_id);
+using CompositeChildCommandBinder = void (*)(Component& owner, Command& command);
+struct GUI_FORMS_API CompositeChildType final {
+    std::string_view name{};
+    CompositeChildCreator create{};
+    CompositeChildCommandBinder bind_command{};
+};
+
+// The creator of a control type, for CompositeChildType::create.
+template <typename ControlType>
+[[nodiscard]] Component::Ptr create_composite_child(StableId stable_id) {
+    std::shared_ptr<ControlType> made = make_control<ControlType>(std::move(stable_id));
+    Component::Ptr component = std::move(made);
+    return component;
+}
+
+// The Command binder of a control type with bind(Command&).
+template <typename ControlType>
+void bind_composite_child_command(Component& owner, Command& command) {
+    ControlType& control = static_cast<ControlType&>(owner);
+    control.bind(command);
+}
+
+// The entry of a control type: its creator, and its binder when it takes a
+// Command.
+template <typename ControlType>
+[[nodiscard]] constexpr CompositeChildType composite_child_type(std::string_view name) noexcept {
+    CompositeChildType type{};
+    type.name = name;
+    type.create = &create_composite_child<ControlType>;
+    if constexpr (requires(ControlType& control, Command& command) { control.bind(command); }) {
+        type.bind_command = &bind_composite_child_command<ControlType>;
+    }
+    return type;
+}
+
+// What load_composite_definition made: the definition, or null with every
+// refusal in `diagnostics`, one line each in the compilers' form
+// (`file:line:column: error: E918 control_reference_unknown: rule property:
+// detail`). Warnings (W950) are listed with a definition too.
+struct GUI_FORMS_API CompositeLoadResult final {
+    std::shared_ptr<const CompositeDefinition> definition{};
+    std::vector<std::string> diagnostics{};
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        const bool loaded = definition != nullptr;
+        return loaded;
+    }
+};
+
+// Reads, checks and compiles `document` (named `file` in the diagnostics)
+// against the base types and `child_types`. Everything is borrowed for the
+// call. UI thread: each child type is described from a prototype it makes
+// and releases.
+[[nodiscard]] GUI_FORMS_API CompositeLoadResult load_composite_definition(
+    std::string_view file, std::string_view document, std::span<const CompositeChildType> child_types);
+
+// The type's registered (snake case) name.
+[[nodiscard]] GUI_FORMS_API std::string_view composite_type_name(const CompositeDefinition& definition) noexcept;
+
+// An event a composite raised (a declared <event>): its name as written,
+// borrowed from the definition, and its payload (null for none).
+struct GUI_FORMS_API CompositeEvent final {
+    std::string_view name{};
+    BindingValue payload{};
+};
+
+// The deepest nesting of rule firings (Q12), counting a command a rule or
+// another command runs (A-gf-controls-02-F2).
+inline constexpr std::size_t maximum_composite_rule_depth = 8U;
+// The deepest nesting of custom-state and command-enabled conditions
+// (A-gf-controls-02-F1): a custom state's `when` or a command's `enabled`
+// that reads another custom state or command. A definition with a cycle
+// between them reads the condition past this depth as false.
+inline constexpr std::size_t maximum_composite_condition_depth = 16U;
+
+// Counters (AGENTS.md: structured instrumentation).
+//   rule_firings: rules whose condition held and whose actions ran;
+//   refused_firings: firings past maximum_composite_rule_depth;
+//   commands_run / commands_refused: perform and activations, refused when
+//     the command is not enabled;
+//   refused_writes: property writes refused before any change;
+//   geometry_passes: part geometry evaluations;
+//   drags_committed / drags_restored: drag ends;
+//   look_compiles: compilations of the definition's <look> alone, with
+//     the definition: 1 with a look, 0 without, the same in every instance
+//     however many there are and whatever themes they see; a look reading
+//     only the engine inputs and built-in roles compiles nothing more;
+//   look_theme_compiles / look_theme_refusals: compilations of a look
+//     that reads a theme's roles or custom properties with the text of a
+//     theme (once per definition per theme serial, at the first fixed
+//     point under it: attachment or a theme applied, never the style
+//     pass), and those refused; the definition's counts, read when asked,
+//     so the same in every instance;
+//   look_theme_reuses: preparations that reused a kept compilation after
+//     another theme's. A theme some instance shows (its window's, or an
+//     override) holds its compilation, never evicted; one no instance
+//     shows any more stays kept, evictable, among the last
+//     maximum_composite_look_entries such themes, so switching back to it
+//     reuses its compilation;
+//   look_missing: resolutions that found no prepared compilation, a defect
+//     (the look draws nothing there; nothing compiles).
+struct GUI_FORMS_API CompositeStatistics final {
+    std::uint64_t rule_firings{};
+    std::uint64_t refused_firings{};
+    std::uint64_t commands_run{};
+    std::uint64_t commands_refused{};
+    std::uint64_t refused_writes{};
+    std::uint64_t geometry_passes{};
+    std::uint64_t drags_committed{};
+    std::uint64_t drags_restored{};
+    std::uint64_t look_compiles{};
+    std::uint64_t look_theme_compiles{};
+    std::uint64_t look_theme_refusals{};
+    std::uint64_t look_theme_reuses{};
+    std::uint64_t look_missing{};
+};
+
+// A part the typed class draws (`paint="hook"`), as paint_hook receives
+// it: the part's name as written (`query-text`), its published bounds in
+// local coordinates, its states (the control's, with its own hot and
+// pressed for a part that lists them, disabled when disabled-when holds)
+// and the text it shows (the value of the property its box measures with
+// text-extent, empty for none). The names and the text are borrowed for
+// the call.
+struct GUI_FORMS_API CompositePaintHook final {
+    std::string_view part{};
+    Rect bounds{};
+    AnatomyStateSet states{};
+    std::string_view text{};
+};
+
+class CompositeEvaluator;
+class CompositeInstanceAccess;
+
+// The control that runs a definition. Not final: the header
+// gui_forms_add_control generates derives a typed class from it.
+class GUI_FORMS_API CompositeControl : public UserControl {
+public:
+    static constexpr bool initialize_tree_after_construction = true;
+
+    // Throws std::invalid_argument for a null definition.
+    CompositeControl(StableId stable_id, std::shared_ptr<const CompositeDefinition> definition);
+    ~CompositeControl() override;
+    // Makes the children and their bindings (make_control calls it once,
+    // after construction). Throws std::invalid_argument when a child is
+    // refused; the composite then has no children.
+    void initialize_control_tree();
+
+    [[nodiscard]] const CompositeDefinition& definition() const noexcept { return *definition_; }
+    [[nodiscard]] std::string_view type_name() const noexcept;
+
+    // The declared events, as they are raised.
+    [[nodiscard]] Event<const CompositeEvent&>& raised() noexcept { return raised_; }
+
+    // Runs the command `name` (the path a part, a key, a semantic action
+    // and generated code share). False, changing nothing, for an unknown
+    // command or one that is not enabled.
+    bool perform(std::string_view name);
+    [[nodiscard]] bool command_enabled(std::string_view name) const;
+
+    // Binds `command` to the command-kind property `name`: the children
+    // that bind that property take it, and <invoke> runs it. Borrowed: the
+    // command must outlive the composite or be unbound (a null command)
+    // first. Throws std::invalid_argument for an unknown property or one of
+    // another kind.
+    void bind_command(std::string_view name, Command* command);
+
+    // A child by its local ID (`title` for `@title`); null when none.
+    [[nodiscard]] Control::Ptr child(std::string_view local_id) const;
+    // The slot a form's content goes into; null without one.
+    [[nodiscard]] Control::Ptr slot() const;
+    // A part's published bounds in local coordinates; empty when absent
+    // or not declared.
+    [[nodiscard]] Rect part_bounds(std::string_view part) const;
+    // A presentational property's value (null when unset).
+    [[nodiscard]] BindingValue presentational_value(std::string_view name) const;
+
+    [[nodiscard]] const CompositeStatistics& statistics() const noexcept;
+
+    [[nodiscard]] Size measure(Size available) override;
+    void arrange(Rect final_bounds) override;
+    void on_paint(Painter& painter, Rect local_damage) override;
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
+    [[nodiscard]] AnatomyStateSet anatomy_states() const override;
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
+    bool on_semantic_action(SemanticAction action, std::string_view value) override;
+    [[nodiscard]] Ptr focus_target() const override;
+    bool begin_keyboard_drag() override;
+
+protected:
+    // Draws a part the definition declares `paint="hook"`, called from
+    // on_paint in the part's place among the parts (the painter is the
+    // paint pass's, valid for the call). The default draws nothing. The
+    // composite repaints the hook as it repaints itself; a class drawing
+    // state of its own invalidates paint when that state changes. UI
+    // thread, inside the paint pass: it may not change properties, the
+    // tree or the layout.
+    virtual void paint_hook(Painter& painter, const CompositePaintHook& hook);
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
+    void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_mouse_click(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_preview_key_down(PreviewKeyDownEventArgs& arguments) override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+    void on_got_focus() override;
+    void on_lost_focus() override;
+    void on_detaching_from_window(SurfaceRoot& former_root) noexcept override;
+
+private:
+    friend class CompositeEvaluator;
+    friend class CompositeInstanceAccess;
+
+    // The part geometry, cached between changes: `logical` before the
+    // right-to-left mirror (what expressions read), `published` after.
+    struct Geometry final {
+        std::array<Rect, maximum_control_parts> logical{};
+        std::array<Rect, maximum_control_parts> published{};
+        std::array<bool, maximum_control_parts> present{};
+        std::array<bool, maximum_control_parts> disabled{};
+        std::size_t count{};
+        bool valid{};
+    };
+    // One made child, by its local ID.
+    struct MadeChild final {
+        std::string local_id{};
+        Control::Ptr control{};
+        // Its type's index in the definition's schema.
+        std::size_t schema_type{};
+    };
+    // The drag in progress, if any.
+    struct DragState final {
+        stxlib::Optional<std::size_t> part{};
+        // The maps-to value at the press (live mode's restore).
+        BindingValue pressed_value{};
+        // The range's logical ends, fixed when the drag plans.
+        double range_start{};
+        double range_end{};
+        double frame_value{};
+        bool planned{};
+    };
+
+    void ensure_geometry() const;
+    void invalidate_geometry() noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> part_at(Point local_point) const;
+    [[nodiscard]] AnatomyStateSet part_states(std::size_t part) const;
+
+    // What a property write did.
+    enum class WriteOutcome : std::uint8_t {
+        written,
+        unchanged,
+        // The value does not convert to the property's kind (or it is a
+        // command): nothing changed.
+        refused,
+    };
+
+    // Properties (composite_control.cpp).
+    void register_properties();
+    [[nodiscard]] BindingValue read_property(std::size_t index) const;
+    // Validates, clamps to the range, stores and notifies.
+    WriteOutcome write_property(std::size_t index, const BindingValue& value);
+    void property_changed(std::size_t index);
+    void raise(std::size_t event, BindingValue payload);
+
+    // Rules, commands and actions (composite_control.cpp; the internal
+    // CompositeInstanceAccess runs what takes the definition's types).
+    void fire(std::size_t rule, double wheel_notches);
+    bool run_command(std::size_t command);
+    [[nodiscard]] bool command_enabled_at(std::size_t command) const;
+    void activate_part(std::size_t part);
+    bool handle_key(const KeyEventArgs& arguments, bool key_up);
+    [[nodiscard]] bool claims_key(std::uint32_t physical_key, Modifier modifiers) const noexcept;
+
+    // Children (composite_children.cpp).
+    void make_children();
+    void write_bound_children(stxlib::Optional<std::size_t> changed);
+    void child_changed(std::size_t binding);
+    void child_activated(std::size_t child);
+    void child_property_fired(std::size_t rule);
+
+    // The look (composite_control.cpp).
+    void apply_look();
+
+    // Drags and press repetition.
+    void plan_drag(DragPlan& plan);
+    void preview_drag(const DragTrackerFrame& frame);
+    void finish_drag(const DragTrackerFrame& frame);
+    [[nodiscard]] double drag_fraction(double value) const noexcept;
+    void begin_repeat(std::size_t part);
+    void repeat_step();
+
+    std::shared_ptr<const CompositeDefinition> definition_;
+    // One value per declared property, by index (aliases and commands
+    // keep theirs elsewhere), and one change notification each.
+    std::vector<BindingValue> values_{};
+    std::vector<std::unique_ptr<Event<>>> changed_events_{};
+    std::vector<Command*> commands_{};
+    std::vector<MadeChild> children_{};
+    std::vector<SubscriptionToken> child_subscriptions_{};
+    Event<const CompositeEvent&> raised_{};
+    mutable Geometry geometry_{};
+    mutable CompositeStatistics statistics_{};
+    stxlib::Optional<std::size_t> hot_part_{};
+    stxlib::Optional<std::size_t> pressed_part_{};
+    // The part a primary release ended on, when it is the pressed one: the
+    // click that follows activates it.
+    stxlib::Optional<std::size_t> released_part_{};
+    bool pressed_inside_{};
+    std::unique_ptr<DragTracker> drag_{};
+    DragState drag_state_{};
+    FrameRequestToken repeat_frames_{};
+    std::size_t firing_depth_{};
+    // While anatomy_states evaluates the declared states: the set decided so
+    // far, from which a nested read of the composite's own states answers,
+    // so a `when` that reads the composite's states (state(hot), pressed(),
+    // hovering()) sees the states before it instead of recursing
+    // (A-gf-controls-02-F1). Null otherwise; points at a local of the
+    // evaluating call.
+    mutable AnatomyStateSet* deciding_states_{};
+    // The nesting of custom-state and command-enabled conditions under
+    // evaluation; past maximum_composite_condition_depth a further one reads
+    // as false, so a cycle between custom states and commands ends.
+    mutable std::size_t condition_depth_{};
+    // Set while the children's bound properties are written from the
+    // composite, so their change notifications do not flow back.
+    bool writing_children_{};
+    // The two-way binding whose child is being read back into the
+    // composite: write_bound_children skips only that binding, so the other
+    // children still follow the change (A-gf-controls-02-F3).
+    stxlib::Optional<std::size_t> reading_binding_{};
+};
+
+} // namespace gui_forms

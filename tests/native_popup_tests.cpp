@@ -6,6 +6,7 @@
 // cannot open one falls back to an overlay, or refuses when asked to.
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/host.hpp"
@@ -21,6 +22,8 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace {
 using namespace gui_forms;
@@ -84,8 +87,8 @@ void opens_a_native_window() {
     require(token.refusal() == NativePopupRefusal::none, "nothing refused it");
     require(token.id().valid() && token.window() != nullptr, "the token names the popup window");
     require(desk.windowing().window_count() == 2U, "the popup is a window of the run");
-    require(desk.windowing().kind(token.id()) == HostWindowKind::popup, "its kind is popup");
-    require(desk.windowing().owner(token.id()) == desk.main.id(), "the window that opened it owns it");
+    require(desk.windowing().kind(token.id()) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::popup), "its kind is popup");
+    require(desk.windowing().owner(token.id()) == stxlib::Optional<HostWindowId>::of(desk.main.id()), "the window that opened it owns it");
     const std::string& trace = desk.windowing().trace();
     require(contains(trace, "kind=popup") && contains(trace, "focus=passive"), "the host traces the popup");
     const std::optional<Rect> content = desk.windowing().native_content(token.id());
@@ -186,7 +189,7 @@ void entries_are_validated() {
     orphan.model = std::make_unique<Window>(make_content("orphan.root"), Size{100.0, 50.0});
     orphan.options.initial_size = {100.0, 50.0};
     orphan.options.minimum_size = {1.0, 1.0};
-    orphan.popup = HostPopupPlacement{};
+    orphan.popup.set(HostPopupPlacement{});
     std::vector<ApplicationWindow> windows;
     windows.push_back(std::move(orphan));
     require(!Application::validate(windows).accepted(), "a popup needs an owner");
@@ -241,7 +244,7 @@ void task_dialog_opens_natively() {
     const std::vector<HostWindowId> ids = desk.windowing().z_order();
     HostWindowId popup{};
     for (std::size_t index = 0U; index < ids.size(); ++index) {
-        if (desk.windowing().kind(ids[index]) == HostWindowKind::popup) popup = ids[index];
+        if (desk.windowing().kind(ids[index]) == stxlib::Optional<HostWindowKind>::of(HostWindowKind::popup)) popup = ids[index];
     }
     require(desk.windowing().destroy_window(popup).accepted(), "the host destroys the popup window");
     require(!(*dialog).shown() && !button.empty(), "the dialog closes as cancelled");
@@ -289,6 +292,124 @@ void font_dialog_opens_natively() {
 
 } // namespace
 
+// Plan Paint's Settings dialog, reported 2026-11-13 to 2026-11-17: open
+// Settings, choose another Canvas surround, press OK or Cancel; the dialog
+// does not close. The dialog is an owned window run by show_modal, its
+// surround a ComboBox; OK, Cancel and Escape all end in destroy_window on
+// the dialog's window (Plan Paint's DestroyDialogWindow, posted to the
+// editor). The drop-down lifted its list into the dialog window's warm
+// picker Popup, which stays open, hidden, for the window's life, and
+// HostWindowing::destroy_window refused a window that owned any live
+// window: the destroy was refused and the nested loop never ended.
+struct SettingsTurn final {
+    host::HeadlessApplication* application{};
+    ApplicationWindowHandle* dialog{};
+    Window** model{};
+    std::shared_ptr<ComboBox>* surround{};
+    // Observations, owned by the test.
+    int* turns{};
+    std::size_t* windows_while_dropped{};
+    HostServiceStatus* destroyed{};
+    bool operator()(HostWindowId) const {
+        *turns = *turns + 1;
+        if (*turns == 1) {
+            // The user drops the surround list and picks another felt.
+            (*(*model)).perform_layout();
+            (*(*surround)).dropped_down = true;
+            *windows_while_dropped = (*application).windowing().window_count();
+            (*(*surround)).selected_index = stxlib::Optional<std::size_t>::of(2U);
+            (*(*surround)).dropped_down = false;
+            return true;
+        }
+        if (*turns == 2) {
+            // OK or Cancel: the dialog's window is destroyed.
+            *destroyed = (*dialog).windows().destroy_window(*dialog);
+            return true;
+        }
+        // The loop should have ended at turn 2; stop it instead of running
+        // its whole bound.
+        return false;
+    }
+};
+
+ApplicationWindow settings_entry(std::shared_ptr<ComboBox>& surround, ApplicationWindowHandle& dialog,
+                                 Window*& model) {
+    std::shared_ptr<Control> root = make_control<Control>(StableId("editor-dialog"));
+    surround = make_control<ComboBox>(StableId("settings-background"));
+    const char* const surrounds[] = {"Pale felt", "Brown felt", "Tan felt", "Grey felt", "Plain"};
+    for (const char* surround_name : surrounds) (*surround).items.append(surround_name);
+    (*surround).selected_index = stxlib::Optional<std::size_t>::of(0U);
+    (*surround).set_requested_bounds(Rect{230.0, 60.0, 230.0, 30.0});
+    (*root).add_child(surround);
+    ApplicationWindow entry{};
+    entry.stable_id = "editor-dialog-1";
+    entry.owner_id = "main";
+    entry.model = std::make_unique<Window>(root, Size{770.0, 474.0});
+    entry.options.title = "Settings";
+    entry.options.initial_size = {770.0, 474.0};
+    entry.options.minimum_size = {770.0, 474.0};
+    entry.options.ready = KeepReady{&dialog, &model};
+    return entry;
+}
+
+void a_window_whose_drop_down_was_used_closes() {
+    // Modal, as Plan Paint runs its dialogs.
+    {
+        Desk desk;
+        std::shared_ptr<ComboBox> surround;
+        ApplicationWindowHandle dialog{};
+        Window* model = nullptr;
+        int turns = 0;
+        std::size_t windows_while_dropped = 0U;
+        HostServiceStatus destroyed{HostServiceError::unsupported};
+        desk.windowing().set_modal_turn(SettingsTurn{desk.application.get(), &dialog, &model, &surround, &turns,
+                                                     &windows_while_dropped, &destroyed});
+        const ApplicationModalResult shown = desk.main.windows().show_modal(settings_entry(surround, dialog, model));
+        require(shown.status.accepted(), "the Settings dialog runs modally");
+        require(windows_while_dropped == 3U, "the surround list shows in a Popup window the dialog owns");
+        require(destroyed.accepted(), "OK or Cancel destroys the dialog's window after a surround was chosen");
+        require(turns == 2, "the modal loop ends with the dialog's window");
+        require(desk.windowing().window_count() == 1U, "the dialog's window and its Popup are gone");
+        (*desk.application).reclaim();
+    }
+    // Modeless, the same destroy.
+    {
+        Desk desk;
+        std::shared_ptr<ComboBox> surround;
+        ApplicationWindowHandle dialog{};
+        Window* model = nullptr;
+        const ApplicationWindowOpenResult opened = desk.main.windows().open_window(settings_entry(surround, dialog, model));
+        require(opened.status.accepted() && model != nullptr, "the Settings dialog opens as an owned window");
+        (*model).perform_layout();
+        (*surround).dropped_down = true;
+        require(desk.windowing().window_count() == 3U, "the modeless list shows in a Popup window");
+        (*surround).dropped_down = false;
+        require(desk.main.windows().destroy_window(opened.window).accepted(),
+                "a window whose drop-down was used is destroyable");
+        require(desk.windowing().window_count() == 1U, "its warm Popup went with it");
+        // A window the program opened over another still refuses its
+        // owner's destroy.
+        ApplicationWindow owner_entry{};
+        owner_entry.stable_id = "owner";
+        owner_entry.owner_id = "main";
+        owner_entry.model = std::make_unique<Window>(make_content("owner.root"), Size{200.0, 100.0});
+        owner_entry.options.initial_size = {200.0, 100.0};
+        const ApplicationWindowOpenResult owner = desk.main.windows().open_window(std::move(owner_entry));
+        ApplicationWindow child_entry{};
+        child_entry.stable_id = "child";
+        child_entry.owner_id = "owner";
+        child_entry.model = std::make_unique<Window>(make_content("child.root"), Size{100.0, 80.0});
+        child_entry.options.initial_size = {100.0, 80.0};
+        const ApplicationWindowOpenResult child = desk.main.windows().open_window(std::move(child_entry));
+        require(owner.status.accepted() && child.status.accepted(), "the owner and its child open");
+        require(desk.main.windows().destroy_window(owner.window).error == HostServiceError::invalid_argument,
+                "a window that owns a program window still refuses the destroy");
+        require(desk.main.windows().destroy_window(child.window).accepted() &&
+                    desk.main.windows().destroy_window(owner.window).accepted(),
+                "child first, then its owner");
+    }
+}
+
 int main() {
     try {
         opens_a_native_window();
@@ -300,6 +421,7 @@ int main() {
         task_dialog_opens_natively();
         task_dialog_falls_back_to_an_overlay();
         font_dialog_opens_natively();
+        a_window_whose_drop_down_was_used_closes();
     } catch (const std::exception& error) {
         std::cerr << "gui_forms_native_popup_tests: " << error.what() << '\n';
         return EXIT_FAILURE;

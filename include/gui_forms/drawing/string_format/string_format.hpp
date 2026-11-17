@@ -7,8 +7,8 @@
 namespace gui_drawing {
 
 struct GUI_FORMS_API StringFormatSnapshot final {
-    StringAlignment alignment{StringAlignment::near};
-    StringAlignment line_alignment{StringAlignment::near};
+    StringAlignment alignment{StringAlignment::start};
+    StringAlignment line_alignment{StringAlignment::start};
     StringTrimming trimming{StringTrimming::none};
     std::uint32_t flags{};
 };

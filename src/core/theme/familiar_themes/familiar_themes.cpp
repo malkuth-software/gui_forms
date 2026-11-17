@@ -2,9 +2,11 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../theme_compiler/built_in_theme.hpp"
+#include "../theme_compiler/content_parts_sheet.hpp"
 #include "windows_professional_floor.hpp"
 #include "windows_professional_sheets.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -289,6 +291,17 @@ indicator-lamp::part(lens):state(error) {
   background: radial-gradient(circle at 40% 35%, #ffc0c0, #e00000 55%, #800000);
   border: 1px solid #400000;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view modern_flat_sheet = R"css(/* modern-flat: a flat modern look (stage T4, phase 7; M076: boundaries,
@@ -502,6 +515,17 @@ indicator-lamp::part(lens):state(error) {
   background: #c42b1c;
   border: 1px solid #921f14;
   box-shadow: inset 0 0 2px #ffd7d2;
+}
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
 }
 )css";
 
@@ -826,6 +850,17 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #6a140a;
   box-shadow: inset 0 0 2px #ffe0d6b0;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Aero-like look (stage T4, phase 7), following 7.css
@@ -1137,6 +1172,17 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #70140b;
   box-shadow: inset 0 0 3px #fff0eac0;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view macos_style_parts_sheet = R"css(/* macos-style: parts (AppKit). The system face
@@ -1252,6 +1298,17 @@ indicator-lamp::part(lens):state(on) {
 indicator-lamp::part(lens):state(error) {
   background: radial-gradient(circle at 40% 35%, #ffd4d1, #ff5f57 55%, #c9302a);
   border: 1px solid #b72a24;
+}
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
 }
 )css";
 
@@ -1964,14 +2021,15 @@ FamiliarThemeBuild build_from_floor(const FamiliarDescription& description, cons
     result.compile_operations = floor.operations;
     const ThemeDefinition* const definition = floor.definition.get();
     result.theme = Theme::create(*definition);
-    if (!description.parts_sheet.empty()) {
-        // A refused parts sheet leaves the theme its floor alone.
-        detail::BuiltInThemeCompilation compiled = detail::compile_built_in_theme(
-            *definition, description.parts_file, description.parts_sheet, stock_control_anatomies());
-        result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
-        result.compile_operations += compiled.operations;
-        if (compiled.theme != nullptr) result.theme = std::move(compiled.theme);
-    }
+    // The parts sheet (empty for none), then the content parts' rules
+    // (W-7), as one sheet. A refused sheet leaves the theme its floor alone.
+    std::string sheet(description.parts_sheet);
+    sheet.append(detail::content_parts_sheet);
+    detail::BuiltInThemeCompilation compiled =
+        detail::compile_built_in_theme(*definition, description.parts_file, sheet, stock_control_anatomies());
+    result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
+    result.compile_operations += compiled.operations;
+    if (compiled.theme != nullptr) result.theme = std::move(compiled.theme);
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return result;
@@ -2002,36 +2060,44 @@ ProfessionalFloor evaluate_professional_floor() {
 }
 
 const ProfessionalFloor& professional_floor() {
-    static const ProfessionalFloor evaluated = evaluate_professional_floor();
-    return evaluated;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const ProfessionalFloor* const evaluated = new const ProfessionalFloor(evaluate_professional_floor());
+    return *evaluated;
 }
 
 // Each theme's build, made on its first use. Function-local statics make
 // each initialization thread-safe; a build is never changed afterwards.
 const FamiliarThemeBuild& classic_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[0]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[0]));
+    return *build;
 }
 const FamiliarThemeBuild& modern_flat_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[1]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[1]));
+    return *build;
 }
 const FamiliarThemeBuild& xp_style_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[2]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[2]));
+    return *build;
 }
 const FamiliarThemeBuild& windows7_style_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[3]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[3]));
+    return *build;
 }
 const FamiliarThemeBuild& macos_style_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[4]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[4]));
+    return *build;
 }
 const FamiliarThemeBuild& windows_professional_build() {
     const ProfessionalFloor& evaluated = professional_floor();
-    static const FamiliarThemeBuild build = build_from_floor(descriptions[5], evaluated.floor, evaluated.start);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build =
+        new const FamiliarThemeBuild(build_from_floor(descriptions[5], evaluated.floor, evaluated.start));
+    return *build;
 }
 
 } // namespace
@@ -2042,11 +2108,11 @@ std::string_view familiar_theme_id(FamiliarTheme theme) noexcept {
     return descriptions[index].id;
 }
 
-std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept {
+stxlib::Optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept {
     for (std::size_t index = 0U; index < familiar_theme_count; ++index) {
-        if (descriptions[index].id == id) return static_cast<FamiliarTheme>(index);
+        if (descriptions[index].id == id) return stxlib::Optional<FamiliarTheme>::of(static_cast<FamiliarTheme>(index));
     }
-    return std::nullopt;
+    return stxlib::Optional<FamiliarTheme>::none();
 }
 
 std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept {

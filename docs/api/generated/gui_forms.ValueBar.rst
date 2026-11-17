@@ -21,13 +21,13 @@ gui_forms::ValueBar
 
    :Properties:
 
-      **soft_minimum** : ``std::optional<double>``
+      **soft_minimum** : ``stxlib::Optional<double>``
          The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-      **soft_maximum** : ``std::optional<double>``
+      **soft_maximum** : ``stxlib::Optional<double>``
          The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-      **snap_step** : ``std::optional<double>``
+      **snap_step** : ``stxlib::Optional<double>``
          Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
 
       **precision** : ``std::int32_t``
@@ -45,7 +45,7 @@ gui_forms::ValueBar
       **label** : ``std::string``
          The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
 
-      **scrub_rate** : ``std::optional<double>``
+      **scrub_rate** : ``stxlib::Optional<double>``
          Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
 
       **formatted_value** : ``std::string``, read-only
@@ -142,15 +142,15 @@ gui_forms::ValueBar
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<double> soft_minimum
+   .. cpp:member:: stxlib::Optional<double> soft_minimum
 
       The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> soft_maximum
+   .. cpp:member:: stxlib::Optional<double> soft_maximum
 
       The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> snap_step
+   .. cpp:member:: stxlib::Optional<double> snap_step
 
       Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
 
@@ -174,7 +174,7 @@ gui_forms::ValueBar
 
       The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
 
-   .. cpp:member:: std::optional<double> scrub_rate
+   .. cpp:member:: stxlib::Optional<double> scrub_rate
 
       Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
 

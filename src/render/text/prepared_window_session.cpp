@@ -1,4 +1,5 @@
 #include "prepared_window_session.hpp"
+#include "../../core/thread_records/thread_records_end.hpp"
 
 #include <new>
 #include <system_error>
@@ -300,6 +301,8 @@ void PreparedWindowSession::work() {
 }
 
 void PreparedWindowSession::run() noexcept {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     try { work(); }
     catch (...) {
         const std::exception_ptr error = std::current_exception();

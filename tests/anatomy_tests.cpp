@@ -92,16 +92,16 @@ void test_names_are_registered_and_round_trip() {
         const PartRole role = static_cast<PartRole>(index);
         const std::string_view name = part_role_name(role);
         require(is_registered_name(name), "part role names must be snake_case");
-        const std::optional<PartRole> parsed = part_role_from_name(name);
-        require(parsed.has_value() && *parsed == role,
+        const stxlib::Optional<PartRole> parsed = part_role_from_name(name);
+        require(parsed.present() && *parsed.value() == role,
                 "part role names must round-trip");
     }
     for (std::size_t index = 0; index < anatomy_state_count; ++index) {
         const AnatomyState state = static_cast<AnatomyState>(index);
         const std::string_view name = anatomy_state_name(state);
         require(is_registered_name(name), "state names must be snake_case");
-        const std::optional<AnatomyState> parsed = anatomy_state_from_name(name);
-        require(parsed.has_value() && *parsed == state,
+        const stxlib::Optional<AnatomyState> parsed = anatomy_state_from_name(name);
+        require(parsed.present() && *parsed.value() == state,
                 "state names must round-trip");
     }
     require(part_role_name(PartRole::count).empty() &&
@@ -111,8 +111,8 @@ void test_names_are_registered_and_round_trip() {
                 part_role_name(PartRole::preselect) == "preselect" &&
                 anatomy_state_name(AnatomyState::preselect) == "preselect",
             "snake_case enumerators must map to the same registered names");
-    require(!part_role_from_name("Thumb").has_value() &&
-                !anatomy_state_from_name("drop-accepted").has_value(),
+    require(part_role_from_name("Thumb").absent() &&
+                anatomy_state_from_name("drop-accepted").absent(),
             "lookup by stored name must be exact");
 
     require(is_registered_name("scroll_thumb") && is_registered_name("a1_b2"),
@@ -138,11 +138,11 @@ void test_names_are_registered_and_round_trip() {
 }
 
 constexpr std::array<PartDeclaration, 2> duplicate_parts{{
-    {.name = "thumb", .role = PartRole::thumb, .composed_from = {}},
-    {.name = "thumb", .role = PartRole::face, .composed_from = {}},
+    {.name = "thumb", .role = PartRole::thumb, .composed_from = {}, .states = {}},
+    {.name = "thumb", .role = PartRole::face, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<PartDeclaration, 1> single_region{{
-    {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<AnatomyState, 2> duplicate_states{
     AnatomyState::hot, AnatomyState::hot,
@@ -165,19 +165,19 @@ void test_validation_rejects_malformed_anatomy() {
             "the base anatomy must validate");
 
     const ControlAnatomy no_parts{
-        .control_id = "empty", .parts = {}, .states = {}, .custom_states = {}};
+        .control_id = "empty", .parts = {}, .states = {}, .custom_states = {}, .item_systems = {}};
     require(defect_of(no_parts) == AnatomyDefect::no_parts,
             "an anatomy without parts must be rejected");
 
     const ControlAnatomy bad_id{
         .control_id = "TrackBar", .parts = single_region, .states = {},
-        .custom_states = {}};
+        .custom_states = {}, .item_systems = {}};
     require(defect_of(bad_id) == AnatomyDefect::control_id_not_snake_case,
             "a control id must be snake_case");
 
     const ControlAnatomy duplicated{
         .control_id = "dial", .parts = duplicate_parts, .states = {},
-        .custom_states = {}};
+        .custom_states = {}, .item_systems = {}};
     const AnatomyValidation duplicate_result = validate_control_anatomy(duplicated);
     require(duplicate_result.defect == AnatomyDefect::duplicate_part_name &&
                 duplicate_result.index == 1U,
@@ -185,29 +185,29 @@ void test_validation_rejects_malformed_anatomy() {
 
     const ControlAnatomy repeated_state{
         .control_id = "dial", .parts = single_region, .states = duplicate_states,
-        .custom_states = {}};
+        .custom_states = {}, .item_systems = {}};
     require(defect_of(repeated_state) == AnatomyDefect::duplicate_state,
             "a repeated state must be rejected");
 
     const ControlAnatomy shadowing{
         .control_id = "dial", .parts = single_region, .states = {},
-        .custom_states = shadowing_custom_state};
+        .custom_states = shadowing_custom_state, .item_systems = {}};
     require(defect_of(shadowing) == AnatomyDefect::custom_state_shadows_standard_state,
             "a custom state may not reuse a standard state's name");
 
     const ControlAnatomy with_custom{
         .control_id = "dial", .parts = single_region, .states = {},
-        .custom_states = custom_states};
+        .custom_states = custom_states, .item_systems = {}};
     require(defect_of(with_custom) == AnatomyDefect::none,
             "declared custom states must validate");
-    const std::optional<CustomStateIndex> recording =
+    const stxlib::Optional<CustomStateIndex> recording =
         find_custom_state(with_custom, "recording");
-    require(recording.has_value() && (*recording).value == 1U &&
-                !find_custom_state(with_custom, "idle").has_value(),
+    require(recording.present() && (*recording.value()).value == 1U &&
+                find_custom_state(with_custom, "idle").absent(),
             "custom states must be found by declared name");
     AnatomyStateSet states;
-    states.insert(*recording);
-    require(states.contains(*recording) && !states.contains(CustomStateIndex{0U}) &&
+    states.insert(*recording.value());
+    require(states.contains(*recording.value()) && !states.contains(CustomStateIndex{0U}) &&
                 states.standard_bits() == 0U,
             "custom state bits must be independent of standard states");
 }
@@ -223,7 +223,7 @@ void test_range_control_anatomies_validate() {
         require(validation.defect == AnatomyDefect::none,
                 std::string(anatomy.control_id) + " anatomy is malformed: " +
                     std::string(anatomy_defect_name(validation.defect)));
-        require(find_part(anatomy, "region").has_value(),
+        require(find_part(anatomy, "region").present(),
                 std::string(anatomy.control_id) + " must declare its region");
     }
     require((*track).anatomy().control_id == "track_bar" &&
@@ -334,10 +334,10 @@ void test_scroll_bar_geometry_and_states() {
         require_declared_states(bar);
     }
     const ControlAnatomy& anatomy = (*horizontal).anatomy();
-    const std::optional<PartIndex> arrow = find_part(anatomy, "decrement_arrow");
-    require(arrow.has_value() &&
-                anatomy.parts[(*arrow).value].role == PartRole::actuator &&
-                anatomy.parts[(*arrow).value].composed_from == "button",
+    const stxlib::Optional<PartIndex> arrow = find_part(anatomy, "decrement_arrow");
+    require(arrow.present() &&
+                anatomy.parts[(*arrow.value()).value].role == PartRole::actuator &&
+                anatomy.parts[(*arrow.value()).value].composed_from == "button",
             "scroll arrows must be actuators composed from the button system");
 
     const Rect absolute = (*horizontal).absolute_bounds();
@@ -424,7 +424,7 @@ void test_base_anatomy_for_undeclared_controls() {
     const PartGeometry region = (*plain).parts().region;
     require(region.present && region.bounds == (*plain).client_rectangle(),
             "the base region is the client rectangle");
-    require(!find_part((*plain).anatomy(), "thumb").has_value(),
+    require(find_part((*plain).anatomy(), "thumb").absent(),
             "an undeclared part name must not resolve");
     require_declared_states(*plain);
 }
@@ -602,11 +602,11 @@ void test_link_label_custom_visited_state() {
     const ControlAnatomy& anatomy = (*link).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none,
             "LinkLabel must publish a valid anatomy");
-    const std::optional<CustomStateIndex> visited = find_custom_state(anatomy, "visited");
-    require(visited.has_value(), "LinkLabel declares a visited state");
+    const stxlib::Optional<CustomStateIndex> visited = find_custom_state(anatomy, "visited");
+    require(visited.present(), "LinkLabel declares a visited state");
     require(!(*link).states().visited, "a new link is not visited");
     (*link).visited = true;
-    require((*link).states().visited && (*link).anatomy_states().contains(*visited),
+    require((*link).states().visited && (*link).anatomy_states().contains(*visited.value()),
             "a visited link publishes its visited state");
     const PartGeometry label = (*link).parts().label;
     const PartGeometry underline = (*link).parts().underline;
@@ -677,9 +677,9 @@ void test_panel_and_scrollable_parts() {
     require(viewport.present && viewport.bounds.right() <= track.bounds.x,
             "the viewport ends where the vertical scroll axis begins");
     const ControlAnatomy& anatomy = (*panel).anatomy();
-    const std::optional<PartIndex> thumb_index = find_part(anatomy, "vertical_thumb");
-    require(thumb_index.has_value() &&
-                anatomy.parts[(*thumb_index).value].role == PartRole::thumb,
+    const stxlib::Optional<PartIndex> thumb_index = find_part(anatomy, "vertical_thumb");
+    require(thumb_index.present() &&
+                anatomy.parts[(*thumb_index.value()).value].role == PartRole::thumb,
             "a container's scroll thumb shares the thumb role with ScrollBar");
     require_declared_states(*panel);
     require_parts_within_region(*panel);
@@ -814,9 +814,9 @@ void test_spin_combo_and_picker_parts() {
                      spin_parts.decrement_arrow.bounds.y),
             "a spin box publishes its field and the two halves of its actuator");
     const ControlAnatomy& spin_anatomy = (*spin).anatomy();
-    const std::optional<PartIndex> field = find_part(spin_anatomy, "field");
-    require(field.has_value() &&
-                spin_anatomy.parts[(*field).value].composed_from == "text_box",
+    const stxlib::Optional<PartIndex> field = find_part(spin_anatomy, "field");
+    require(field.present() &&
+                spin_anatomy.parts[(*field.value()).value].composed_from == "text_box",
             "the spin box field is composed from the text box system");
 
     const ComboBox::Parts closed = (*combo).parts();
@@ -935,17 +935,17 @@ void test_list_rows_are_item_records() {
 }
 
 constexpr std::array<PartDeclaration, 1> clashing_item_parts{{
-    {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<ItemSystemDeclaration, 1> clashing_item_systems{{
     {.name = "item", .parts = clashing_item_parts, .states = {}, .custom_states = {}},
 }};
 
 constexpr std::array<PartDeclaration, 1> row_item_parts{{
-    {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<PartDeclaration, 1> column_item_parts{{
-    {.name = "column_header", .role = PartRole::region, .composed_from = {}},
+    {.name = "column_header", .role = PartRole::region, .composed_from = {}, .states = {}},
 }};
 constexpr std::array<ItemSystemDeclaration, 2> row_and_column_systems{{
     {.name = "item", .parts = row_item_parts, .states = {}, .custom_states = {}},
@@ -1045,10 +1045,10 @@ void test_item_systems_are_distinct() {
         .custom_states = {}, .item_systems = row_and_column_systems};
     require(validate_control_anatomy(two).defect == AnatomyDefect::none,
             "a control may declare a second item system");
-    const std::optional<ItemSystemIndex> column = find_item_system(two, "column");
-    require(column.has_value() && (*column).value == 1U &&
-                find_item_part(two.item_systems[1], "column_header").has_value() &&
-                !find_item_part(two.item_systems[1], "row").has_value(),
+    const stxlib::Optional<ItemSystemIndex> column = find_item_system(two, "column");
+    require(column.present() && (*column.value()).value == 1U &&
+                find_item_part(two.item_systems[1], "column_header").present() &&
+                find_item_part(two.item_systems[1], "row").absent(),
             "item parts are found within their own system");
     const ControlAnatomy repeated_part{
         .control_id = "grid", .parts = single_region, .states = {},
@@ -1157,6 +1157,13 @@ void test_tabs_menus_and_breadcrumbs_are_items() {
                 tab_items[0].parts.tab.bounds.contains(tab_items[0].parts.tab_label.bounds),
             "only the selected tab publishes its seam with the display");
     require((*tabs).parts().display.present, "the tab control publishes its display");
+    bool tab_states_refused = false;
+    try {
+        static_cast<void>((*tabs).realized_item_anatomy_states((*tabs).realized_item_count()));
+    } catch (const std::out_of_range&) {
+        tab_states_refused = true;
+    }
+    require(tab_states_refused, "the tab control refuses the states of a tab past its realized tabs");
 
     const std::vector<MenuStrip::Item> menu_items = (*menu).realized_items();
     require(menu_items.size() == 2U && menu_items[0].index == 0U && menu_items[1].index == 2U &&
@@ -1229,8 +1236,8 @@ void test_tree_and_correspondence_items() {
 
     const ControlAnatomy& anatomy = (*view).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none &&
-                find_item_custom_state(anatomy.item_systems.front(), "pinned").has_value() &&
-                find_item_custom_state(anatomy.item_systems.front(), "stale").has_value(),
+                find_item_custom_state(anatomy.item_systems.front(), "pinned").present() &&
+                find_item_custom_state(anatomy.item_systems.front(), "stale").present(),
             "correspondence rows declare their own pinned and stale states");
     const std::vector<CorrespondenceView::Item> cards = (*view).realized_items();
     require(cards.size() == 2U && cards[0].states.stale && !cards[1].states.stale &&
@@ -1274,7 +1281,7 @@ void test_object_view_columns_are_items() {
     const ControlAnatomy& anatomy = (*view).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none &&
                 anatomy.item_systems.size() == 2U &&
-                find_item_system(anatomy, "column").has_value(),
+                find_item_system(anatomy, "column").present(),
             "the object view declares rows and columns as item systems");
     const std::vector<ObjectView::Column> realized = (*view).realized_columns();
     require(realized.size() == 3U && realized[0].stable_id == "anatomy.objects.column.name" &&

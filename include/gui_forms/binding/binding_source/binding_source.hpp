@@ -7,6 +7,7 @@
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -78,7 +79,7 @@ public:
     [[nodiscard]] std::shared_ptr<BindingTable> table() const noexcept;
     // The provider's columns, as last read (on binding and on every reset).
     [[nodiscard]] const BindingSchema& schema() const noexcept { return schema_; }
-    [[nodiscard]] std::optional<std::size_t> column_of(std::string_view name) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> column_of(std::string_view name) const;
     [[nodiscard]] std::uint64_t generation() const noexcept { return generation_; }
 
     [[nodiscard]] std::size_t count() const noexcept;
@@ -118,8 +119,8 @@ public:
     // Returns the row's view position, or empty when the filter hides it.
     // Throws when additions are off or the provider cannot insert; a row
     // the provider refuses throws std::invalid_argument.
-    std::optional<std::size_t> add(BindingRow row);
-    std::optional<std::size_t> insert(std::size_t index, BindingRow row);
+    stxlib::Optional<std::size_t> add(BindingRow row);
+    stxlib::Optional<std::size_t> insert(std::size_t index, BindingRow row);
     // Adds rows at the end of the provider's rows, all or none. A row the
     // provider refuses removes the rows added before it again and throws
     // std::invalid_argument with the refusal, leaving the rows as they
@@ -134,9 +135,9 @@ public:
     void clear();
     // The first view row whose field holds value (operator==, so 2 and 2.0
     // differ), by a linear search.
-    [[nodiscard]] std::optional<std::size_t> find(
+    [[nodiscard]] stxlib::Optional<std::size_t> find(
         std::string_view field, const BindingValue& value) const;
-    [[nodiscard]] std::optional<std::size_t> find_stable_id(std::string_view stable_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_stable_id(std::string_view stable_id) const;
 
     // Sort and filter (BindingSource.Sort, .Filter). A provider that sorts
     // or filters is asked first; otherwise the source builds its own index.
@@ -258,7 +259,9 @@ private:
     void rebuild_view();
     void reset_view_state(bool metadata_changed);
     void receive_notification(const BindingNotification& notification);
-    void apply_posted(const std::vector<BindingNotification>& notifications);
+    // Applies a batch posted through state's link; stops once a handler has
+    // replaced or revoked that link.
+    void apply_posted(const detail::BindingLinkState& state, const std::vector<BindingNotification>& notifications);
     void apply_notification(const BindingNotification& notification);
     // Moves the position to the anchor provider row's view position, or,
     // when it is gone, to old_position clamped; raises the position events
@@ -298,12 +301,19 @@ private:
     mutable std::uint64_t provider_reads_{};
     // Raw column spellings already looked up, found without allocating.
     mutable std::map<std::string, std::size_t, std::less<>> column_lookup_;
+    // Made with the source and kept until it is destroyed, disposal included,
+    // since currency_manager() hands out references to it.
     std::unique_ptr<CurrencyManager> currency_manager_;
     std::vector<BindingValue> edit_values_;
     bool editing_{};
     std::string edit_stable_id_;
     std::string data_member_;
     std::ptrdiff_t position_{-1};
+    // The current row's stable ID as last placed and announced: what a
+    // notification or reset compares with, because by then the provider
+    // has changed and reading the ID at the old position finds another row
+    // (A-gf-core-01-F2). Empty while there is no current row.
+    std::string current_identity_;
     std::uint64_t revision_{1U};
     std::uint64_t resets_{};
     std::uint64_t field_changes_{};

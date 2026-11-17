@@ -138,8 +138,8 @@ void distant_rectangles_paint_their_sum_and_nothing_between() {
 
     const MetricsSnapshot before = window.metrics_snapshot();
     ClipTrackingPainter painter(Rect{0.0, 0.0, 400.0, 300.0});
-    const std::optional<PaintReceipt> receipt = window.paint(painter, rectangles);
-    expect(receipt.has_value(), "one lease produces one receipt");
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, rectangles);
+    expect(receipt.present(), "one lease produces one receipt");
     const MetricsSnapshot after = window.metrics_snapshot();
 
     expect(after.paint_passes == before.paint_passes + 1U, "the set paints in one pass");
@@ -238,18 +238,18 @@ void presentation_counters_record_copied_area() {
     Window window(scene.root, Size{400.0, 300.0});
     window.perform_layout();
     ClipTrackingPainter painter(Rect{0.0, 0.0, 400.0, 300.0});
-    const std::optional<PaintReceipt> receipt = window.paint(painter);
-    expect(receipt.has_value(), "the first frame paints");
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter);
+    expect(receipt.present(), "the first frame paints");
     PresentedArea retained;
     retained.device_pixels = 2400U;
     retained.rectangles = 2U;
     retained.copy_nanoseconds = 300U;
-    expect(window.notify_presented(*receipt, 1000U, retained), "the receipt is accepted");
+    expect(window.notify_presented(*receipt.value(), 1000U, retained), "the receipt is accepted");
     // A repeated receipt (a tick that only presented live frames) is refused,
     // but its copy still happened and still counts.
     PresentedArea repeated;
     repeated.copy_nanoseconds = 100U;
-    expect(!window.notify_presented(*receipt, 1000U, repeated), "a repeated receipt is refused");
+    expect(!window.notify_presented(*receipt.value(), 1000U, repeated), "a repeated receipt is refused");
     PresentedArea live;
     live.device_pixels = 10000U;
     live.rectangles = 1U;
@@ -370,9 +370,9 @@ void an_unreachable_dirty_control_owes_no_frame() {
     Window window(scene.root, Size{400.0, 300.0});
     window.perform_layout();
     ClipTrackingPainter first(Rect{0.0, 0.0, 400.0, 300.0});
-    const std::optional<PaintReceipt> initial = window.paint(first);
-    expect(initial.has_value(), "the first paint produces a receipt");
-    expect(window.notify_presented(*initial, 1000U), "the first receipt is presented");
+    const stxlib::Optional<PaintReceipt> initial = window.paint(first);
+    expect(initial.present(), "the first paint produces a receipt");
+    expect(window.notify_presented(*initial.value(), 1000U), "the first receipt is presented");
     expect(!window.needs_frame(), "a presented window starts idle");
 
     (*scene.top_left).set_background(Color::rgba(200, 40, 40));
@@ -381,9 +381,9 @@ void an_unreachable_dirty_control_owes_no_frame() {
     expect(window.needs_frame(), "the visible change asks for a frame");
     const DamageRegion damage = window.take_damage();
     ClipTrackingPainter painter(Rect{0.0, 0.0, 400.0, 300.0});
-    const std::optional<PaintReceipt> receipt = window.paint(painter, damage.rectangles());
-    expect(receipt.has_value(), "the visible change paints");
-    expect(window.notify_presented(*receipt, 1000U), "the receipt is presented");
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, damage.rectangles());
+    expect(receipt.present(), "the visible change paints");
+    expect(window.notify_presented(*receipt.value(), 1000U), "the receipt is presented");
 
     const PaintLeaseSnapshot lease = window.paint_lease_snapshot();
     expect(lease.content_revision == lease.rendered_revision &&

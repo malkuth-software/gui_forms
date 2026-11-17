@@ -1,6 +1,7 @@
 #include "pages.hpp"
 
 #include "states-and-diagnostics_form.hpp"
+#include "../../../core/thread_records/thread_records_end.hpp"
 
 #include <array>
 #include <vector>
@@ -211,6 +212,8 @@ void StatesPage::on_invoke_from_worker() {
 }
 
 void StatesPage::worker_main() {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     try {
         (*status_).invoke(PostedStep(self_, DispatcherStep::worker_released));
     } catch (const DispatchCancelledError&) {

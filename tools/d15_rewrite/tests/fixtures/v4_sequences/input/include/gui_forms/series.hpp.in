@@ -1,0 +1,14 @@
+#pragma once
+
+#include <span>
+#include <vector>
+
+namespace gui_forms {
+
+struct Series final {
+    std::vector<double> samples;
+};
+
+[[nodiscard]] double total(std::span<const double> values) noexcept;
+
+} // namespace gui_forms

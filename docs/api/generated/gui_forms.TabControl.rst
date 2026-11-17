@@ -67,7 +67,7 @@ gui_forms::TabControl
          content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
          :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
 
-      **selected_index** : ``std::optional<std::size_t>``
+      **selected_index** : ``stxlib::Optional<std::size_t>``
          The index of the selected page, or empty when there are no pages.
          Assigning an index hides the old page, shows the new one and raises
          :cpp:func:`selected_index_changed <gui_forms::TabControl::selected_index_changed>`; an index outside the pages throws
@@ -274,8 +274,8 @@ gui_forms::TabControl
               gf::on((*tabs).selected_index_changed(), *this, &Settings::on_page);
           }
           void on_page(const gf::TabSelectionChange& change) {
-              if (change.new_index) {
-                  shown = *change.new_index;
+              if (change.new_index.present()) {
+                  shown = *change.new_index.value();
               }
           }
       };
@@ -343,7 +343,7 @@ gui_forms::TabControl
       content (Windows Forms' ``DrawMode.OwnerDrawFixed``): see
       :cpp:func:`draw_item_content <gui_forms::TabControl::draw_item_content>`. Throws ``std::invalid_argument`` for an unknown mode.
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The index of the selected page, or empty when there are no pages.
       Assigning an index hides the old page, shows the new one and raises

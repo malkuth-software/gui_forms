@@ -32,6 +32,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -66,8 +67,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, FontSpec font,
                              const Color color) {
     std::shared_ptr<Label> result = make_control<Label>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = font;
-    (*result).fore_color = color;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
+    (*result).fore_color = stxlib::Optional<Color>::of(color);
     return result;
 }
 
@@ -150,7 +151,7 @@ ControlVisualRecipe pearl_recipe(const ControlSurfaceState state,
         {{0.0, 2.0}, 3.0, 0.0, Color::rgba(52, 77, 99, 48), false},
         {{0.0, 1.0}, 1.0, 0.0, Color::rgba(255, 255, 255, 210), true},
     };
-    result.material.border = MaterialBorder{border, 1.0};
+    result.material.border.set(MaterialBorder{border, 1.0});
     result.material.keylines = {
         {MaterialEdge::top, Color::rgba(255, 255, 255, 224), 1.0, 1.0},
         {MaterialEdge::bottom, Color::rgba(102, 127, 150, 110), 1.0, 1.0},
@@ -185,13 +186,31 @@ std::shared_ptr<const Theme> pearl_theme() {
     return theme;
 }
 
+// The lab's segment face. A button's font cell holds a FontSpec, a check
+// box's (the label capability) an stxlib::Optional<FontSpec>: one overload
+// per cell value type.
+FontSpec segment_font() {
+    const FontSpec font{FontRole::control, 10.0, 600, false, 0.08};
+    return font;
+}
+
+template <typename Capability>
+void set_segment_font(PropertyCell<FontSpec, Capability>& cell) {
+    cell = segment_font();
+}
+
+template <typename Capability>
+void set_segment_font(PropertyCell<stxlib::Optional<FontSpec>, Capability>& cell) {
+    cell = stxlib::Optional<FontSpec>::of(segment_font());
+}
+
 template <typename ButtonType>
 std::shared_ptr<ButtonType> segment(std::string id, std::string text,
                                     const Rect bounds,
                                     const std::shared_ptr<LabRoot>& root) {
     std::shared_ptr<ButtonType> result = make_control<ButtonType>(
         StableId(std::move(id)), std::move(text));
-    (*result).font = {FontRole::control, 10.0, 600, false, 0.08};
+    set_segment_font((*result).font);
     (*result).margin = Insets{};
     add_at(root, result, bounds);
     return result;
@@ -223,11 +242,11 @@ struct ToggleDropDown final {
 
 bool demonstrate_atomic_rejection(
     const std::array<std::shared_ptr<Button>, 2U>& controls) {
-    (*controls[0]).set_connection_topology(
-        ConnectedControlTopology{ConnectedControlAxis::vertical, 0U, 2U});
-    const std::optional<ConnectedControlTopology> first_before =
+    (*controls[0]).set_connection_topology(stxlib::Optional<ConnectedControlTopology>::of(
+        ConnectedControlTopology{ConnectedControlAxis::vertical, 0U, 2U}));
+    const stxlib::Optional<ConnectedControlTopology> first_before =
         (*controls[0]).connection_topology();
-    const std::optional<ConnectedControlTopology> second_before =
+    const stxlib::Optional<ConnectedControlTopology> second_before =
         (*controls[1]).connection_topology();
     try {
         const std::array<std::shared_ptr<ButtonBase>, 2U> group{
@@ -236,7 +255,7 @@ bool demonstrate_atomic_rejection(
     } catch (const std::invalid_argument&) {
         const bool unchanged = (*controls[0]).connection_topology() == first_before &&
                                (*controls[1]).connection_topology() == second_before;
-        (*controls[0]).set_connection_topology(std::nullopt);
+        (*controls[0]).set_connection_topology(stxlib::Optional<ConnectedControlTopology>::none());
         return unchanged;
     }
     return false;

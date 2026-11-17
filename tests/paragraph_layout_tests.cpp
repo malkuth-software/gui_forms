@@ -29,6 +29,7 @@
 #include <memory>
 #include <new>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -150,7 +151,7 @@ public:
         design.ascent = 1950.0 / 2048.0 * font.size;
         design.descent = 550.0 / 2048.0 * font.size;
         design.x_height = 0.5 * font.size;
-        layout.design_metrics = design;
+        layout.design_metrics.set(design);
         layout.ascent = std::ceil(design.ascent);
         layout.descent = std::ceil(design.descent);
         layout.status = TextResolutionStatus::exact;
@@ -448,7 +449,7 @@ FontSpec carlito() {
 ParagraphStyle style_at(TextMetricsProvider& metrics, double width) {
     ParagraphStyle style{};
     style.font = carlito();
-    style.line_box = paragraph_line_box(&metrics, style.font, std::nullopt);
+    style.line_box = paragraph_line_box(&metrics, style.font, stxlib::Optional<double>::none());
     style.width = width;
     return style;
 }
@@ -640,7 +641,7 @@ void test_matches_text_block() {
                     const std::string what = std::string(text) + " at " + std::to_string(width);
                     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("paragraph.block"),
                                                                                std::string(text));
-                    (*block).font = carlito();
+                    (*block).font = stxlib::Optional<FontSpec>::of(carlito());
                     (*block).margin = {0.0, 0.0, 0.0, 0.0};
                     (*block).padding = {0.0, 0.0, 0.0, 0.0};
                     (*block).text_align = alignment;
@@ -654,7 +655,7 @@ void test_matches_text_block() {
 
                     ParagraphStyle style = style_at(metrics, width);
                     style.font = (*block).text_font((*block).resolved_font());
-                    style.line_box = paragraph_line_box(&metrics, style.font, std::nullopt);
+                    style.line_box = paragraph_line_box(&metrics, style.font, stxlib::Optional<double>::none());
                     style.white_space = ParagraphWhiteSpace::collapse;
                     style.alignment = alignment;
                     style.direction = direction == LayoutDirection::right_to_left ? TextDirection::right_to_left
@@ -754,21 +755,26 @@ void test_storage_results() {
     // Refusals write nothing.
     lines.fill(sentinel);
     const ParagraphLayoutResult invalid = lay_out_paragraph(&metrics, "\xc3\x28", style, storage);
-    require(invalid.error() == ParagraphRequestError::invalid_utf8, "invalid UTF-8 is refused");
+    require(invalid.error() == stxlib::Optional<ParagraphRequestError>::of(ParagraphRequestError::invalid_utf8),
+            "invalid UTF-8 is refused");
     ParagraphStyle bad = style;
     bad.width = -1.0;
-    require(lay_out_paragraph(&metrics, text, bad, storage).error() == ParagraphRequestError::invalid_width,
+    require(lay_out_paragraph(&metrics, text, bad, storage).error() ==
+                stxlib::Optional<ParagraphRequestError>::of(ParagraphRequestError::invalid_width),
             "a negative width is refused");
     bad.width = std::nan("");
-    require(lay_out_paragraph(&metrics, text, bad, storage).error() == ParagraphRequestError::invalid_width,
+    require(lay_out_paragraph(&metrics, text, bad, storage).error() ==
+                stxlib::Optional<ParagraphRequestError>::of(ParagraphRequestError::invalid_width),
             "a NaN width is refused");
     bad = style;
     bad.line_box = LineBoxMetrics{};
-    require(lay_out_paragraph(&metrics, text, bad, storage).error() == ParagraphRequestError::invalid_line_box,
+    require(lay_out_paragraph(&metrics, text, bad, storage).error() ==
+                stxlib::Optional<ParagraphRequestError>::of(ParagraphRequestError::invalid_line_box),
             "an unprepared line box is refused");
     bad = style;
     bad.font.size = 0.0;
-    require(lay_out_paragraph(&metrics, text, bad, storage).error() == ParagraphRequestError::invalid_font,
+    require(lay_out_paragraph(&metrics, text, bad, storage).error() ==
+                stxlib::Optional<ParagraphRequestError>::of(ParagraphRequestError::invalid_font),
             "an invalid font is refused");
     require(lines[0] == sentinel, "and nothing was written");
 
@@ -885,8 +891,8 @@ void test_paint_visible_lines() {
 // layout's own code and these test classes. The fixed provider allocates
 // nothing, so the bundled engine's shaping is not exercised here; with it,
 // HarfBuzzFontEngine::shape and the SkiaRaster kept-layout cache allocate
-// per call (and SheenBidi and HarfBuzz call malloc directly, which this
-// counter does not see). Zero allocation through the engine is a follow-up.
+// per call (and the shaper and the bidi analysis call STXlib's
+// allocator directly, which this counter does not see). Zero allocation through the engine is a follow-up.
 void test_no_allocations() {
     FixedMetrics metrics(true);
     const std::array<std::string_view, 4> rows{
@@ -1116,6 +1122,22 @@ void test_glyph_output_allocates_nothing() {
             "sized glyph output and its paint allocate nothing; counted " + std::to_string(counted_allocations));
 }
 
+// D15 V1 (Q3): the deprecated std::optional form of paragraph_line_box
+// answers exactly as the stxlib::Optional form, present and absent.
+void test_deprecated_line_box_form() {
+    FixedMetrics metrics(false);
+    const FontSpec font = carlito();
+    const LineBoxMetrics normal = paragraph_line_box(&metrics, font, stxlib::Optional<double>::none());
+    const LineBoxMetrics tall = paragraph_line_box(&metrics, font, stxlib::Optional<double>::of(24.0));
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    const LineBoxMetrics standard_normal = paragraph_line_box(&metrics, font, std::optional<double>{});
+    const LineBoxMetrics standard_tall = paragraph_line_box(&metrics, font, std::optional<double>{24.0});
+#pragma clang diagnostic pop
+    require(standard_normal == normal && standard_tall == tall,
+            "the deprecated std::optional form matches the owned form");
+}
+
 } // namespace
 
 int main() {
@@ -1132,6 +1154,7 @@ int main() {
         test_glyph_output();
         test_glyph_storage_and_foreign_workspace();
         test_glyph_output_allocates_nothing();
+        test_deprecated_line_box_form();
         std::cout << "paragraph-layout-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

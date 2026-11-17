@@ -6,6 +6,7 @@
 #include "support/macos_handoff_probe.hpp"
 
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,8 +21,10 @@
 // was queued before that ("queued: ..."), so the launch request must have
 // been kept for it. Later requests arrive through open_files_requested
 // ("event: ..."). A request naming quit.txt closes the window. Every line
-// goes to handoff_open_files/log.txt beside the bundle, which the script
-// reads.
+// goes to the file GUI_FORMS_OPEN_FILES_LOG names (the script's, in the
+// temporary directory, since a launched application may not write to a
+// build tree on a removable volume), or else to handoff_open_files/log.txt
+// beside the bundle.
 
 namespace {
 using namespace gui_forms;
@@ -92,8 +95,14 @@ int main() {
     handoff_probe::Watchdog watchdog(40);
     OpenFilesProbe probe{};
     probe.watchdog = &watchdog;
-    const std::string directory = handoff_probe::beside_bundle("handoff_open_files");
-    const std::string log_path = directory + "/log.txt";
+    const char* const named_log = std::getenv("GUI_FORMS_OPEN_FILES_LOG");
+    std::string log_path;
+    if (named_log != nullptr && named_log[0] != '\0') {
+        log_path = named_log;
+    } else {
+        const std::string directory = handoff_probe::beside_bundle("handoff_open_files");
+        log_path = directory + "/log.txt";
+    }
     probe.log = std::fopen(log_path.c_str(), "w");
     ApplicationCreateResult created = Application::create(ApplicationConfig{});
     if (!created) {

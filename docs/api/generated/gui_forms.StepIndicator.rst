@@ -82,7 +82,7 @@ gui_forms::StepIndicator
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> step_at(Point local_point) const
+   .. cpp:function:: stxlib::Optional<std::size_t> step_at(Point local_point) const
 
       The step whose chip or name contains a local point, if any.
 

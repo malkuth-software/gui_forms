@@ -308,6 +308,64 @@ void test_key_codes() {
             "single_key_char reads one scalar value and refuses the rest");
 }
 
+// A root panel that keeps the KeyEventArgs of each key bubbling past it,
+// read with key_event_arguments.
+class BubbleWatcher final : public Panel {
+public:
+    explicit BubbleWatcher(StableId stable_id) : Panel(std::move(stable_id)) {}
+    void on_key_bubble(KeyEvent& event) override {
+        seen.push_back(key_event_arguments(event));
+        Panel::on_key_bubble(event);
+    }
+    std::vector<KeyEventArgs> seen{};
+};
+
+struct KeepKey final {
+    std::vector<KeyEventArgs>* kept{};
+    void operator()(KeyEventArgs& args) const { (*kept).push_back(args); }
+};
+
+// key_event_arguments gives a bubbled key the record the raisers got (the
+// one mapping the window builds them with), and inverts key_event_of.
+void test_key_event_arguments() {
+    Log log;
+    const std::shared_ptr<BubbleWatcher> root = make_control<BubbleWatcher>(StableId("keys.bubble.root"));
+    const std::shared_ptr<Probe> field = make_control<Probe>(StableId("keys.bubble.field"), log);
+    (*field).set_requested_bounds({0.0, 0.0, 50.0, 20.0});
+    (*root).add_child(field);
+    Window window(root, Size{200.0, 100.0});
+    window.perform_layout();
+    window.set_active(true);
+    require(window.request_focus(field), "the field takes focus");
+    std::vector<KeyEventArgs> raised;
+    std::vector<SubscriptionToken> tokens;
+    tokens.push_back((*field).key_down().subscribe(KeepKey{&raised}));
+    KeyEvent event = key(KeyAction::down, PhysicalKey::a, Modifier::shift, true);
+    event.scan_code = 0x1EU;
+    static_cast<void>(window.dispatch_key(event));
+    require(raised.size() == 1U && (*root).seen.size() == 1U, "the key reaches the raiser and bubbles to the root");
+    const KeyEventArgs& at_raiser = raised.front();
+    const KeyEventArgs& bubbled = (*root).seen.front();
+    require(bubbled.key_code == 0x41U && bubbled.key_code == at_raiser.key_code &&
+                bubbled.physical_key == at_raiser.physical_key && bubbled.scan_code == 0x1EU &&
+                bubbled.scan_code == at_raiser.scan_code && bubbled.modifiers == at_raiser.modifiers &&
+                bubbled.repeat && at_raiser.repeat && !bubbled.handled && !bubbled.suppress_key_press &&
+                !bubbled.released_by_deactivation,
+            "a bubbled key reads the raisers' fields");
+
+    KeyEventArgs arguments{};
+    arguments.key_code = key_code_from_physical_key(PhysicalKey::up);
+    arguments.physical_key = PhysicalKey::up;
+    arguments.scan_code = 0xE048U;
+    arguments.modifiers = Modifier::control;
+    arguments.handled = true;
+    const KeyEventArgs round_trip = key_event_arguments(key_event_of(arguments, KeyAction::up));
+    require(round_trip.key_code == arguments.key_code && round_trip.physical_key == arguments.physical_key &&
+                round_trip.scan_code == arguments.scan_code && round_trip.modifiers == arguments.modifiers &&
+                round_trip.handled && !round_trip.repeat,
+            "key_event_arguments inverts key_event_of");
+}
+
 } // namespace
 
 int main() {
@@ -319,6 +377,7 @@ int main() {
         test_input_key_and_dialog_keys();
         test_repeat_simultaneous_and_state();
         test_key_codes();
+        test_key_event_arguments();
         std::cout << "gui_forms_key_events_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

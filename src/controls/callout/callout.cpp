@@ -14,6 +14,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -39,15 +40,15 @@ constexpr double title_size_increase = 1.0;
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<Callout::Parts>, 5> callout_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Callout::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Callout::Parts::face},
-    {.declaration = {.name = "beak", .role = PartRole::beak, .composed_from = {}},
+    {.declaration = {.name = "beak", .role = PartRole::beak, .composed_from = {}, .states = {}},
      .member = &Callout::Parts::beak},
     {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = close_part_states},
      .member = &Callout::Parts::close},
-    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &Callout::Parts::actuator},
 }};
 
@@ -62,6 +63,7 @@ constexpr ControlAnatomy callout_anatomy{
     .parts = callout_parts,
     .states = callout_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -95,7 +97,7 @@ public:
             const Size wanted = (*child).measure(client);
             AnchoredOverlayPlacement placement{};
             placement.preferred_size = wanted;
-            placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+            placement.horizontal_alignment = OverlayHorizontalAlignment::start;
             placement.vertical_preference =
                 callout_.prefers_above.read() ? OverlayVerticalPreference::above : OverlayVerticalPreference::below;
             placement.gap = target_gap;
@@ -137,14 +139,14 @@ private:
 Callout::Callout(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     const std::string prefix((*this).stable_id().value());
     title_label_ = make_control<Label>(StableId(prefix + ".title"));
     (*title_label_).text_wrapping = TextWrapping::word;
-    (*title_label_).vertical_alignment = VerticalAlignment::near;
+    (*title_label_).vertical_alignment = VerticalAlignment::start;
     text_label_ = make_control<Label>(StableId(prefix + ".text"));
     (*text_label_).text_wrapping = TextWrapping::word;
-    (*text_label_).vertical_alignment = VerticalAlignment::near;
+    (*text_label_).vertical_alignment = VerticalAlignment::start;
 }
 
 // add_child needs the shared owner, which make_control has made by now.
@@ -171,7 +173,7 @@ void Callout::sync_children() {
     FontSpec title_font = text_font(effective_theme().structure().typography.control);
     title_font.weight = 600;
     title_font.size += title_size_increase;
-    (*title_label_).font = title_font;
+    (*title_label_).font = stxlib::Optional<FontSpec>::of(title_font);
     (*title_label_).text = title.read();
     set_child_layout_collapsed(title_label_, title.read().empty());
     (*text_label_).text = text.read();
@@ -268,7 +270,7 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint beak{.role = PartRole::beak, .bounds = placed.beak, .states = states,
                    .family = ControlVisualRole::tool_tip};
     beak.mark = beak_down_ ? PartMark::arrow_down : PartMark::arrow_up;
-    beak.key = PartKey{"beak", {}, {}};
+    beak.key.set(PartKey{"beak", {}, {}});
     paint_part(painter, *this, beak);
     AnatomyStateSet close_states = states;
     if (hot_close_) close_states.insert(AnatomyState::hot);
@@ -276,7 +278,7 @@ void Callout::on_paint(Painter& painter, Rect) {
     PartPaint close_mark{.role = PartRole::glyph, .bounds = placed.close, .states = close_states,
                          .family = ControlVisualRole::tool_tip};
     close_mark.mark = PartMark::close;
-    close_mark.key = PartKey{"close", {}, {}};
+    close_mark.key.set(PartKey{"close", {}, {}});
     paint_part(painter, *this, close_mark);
 }
 
@@ -465,6 +467,8 @@ void Callout::on_press_outside() {
 
 void Callout::on_action(ButtonBase&) {
     if (!shown_) return;
+    // Held across the handler and finish: see finish.
+    const Control::Ptr retained = weak_from_this().lock();
     action_clicked_.emit();
     // The handler may have closed the callout already.
     if (shown_) finish(CalloutCloseReason::action);
@@ -472,6 +476,12 @@ void Callout::on_action(ButtonBase&) {
 
 void Callout::finish(CalloutCloseReason reason) {
     if (!shown_) return;
+    // While shown, the layer may hold the only reference to the callout (a
+    // one-shot tip whose program let it go): removing it from the layer
+    // would then destroy it mid-function. Held to the end, so the members
+    // after the removal and closed's handlers see a live callout
+    // (A-gf-controls-01-F7).
+    const Control::Ptr retained = weak_from_this().lock();
     shown_ = false;
     hot_close_ = false;
     pressed_close_ = false;

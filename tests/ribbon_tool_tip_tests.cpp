@@ -50,9 +50,9 @@ const SemanticNode* find_role(const std::vector<SemanticNode>& nodes, SemanticRo
 const SemanticNode* find_role(std::vector<SemanticNode>&& nodes, SemanticRole role) = delete;
 
 void fire_next(Window& window) {
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "a UI deadline is scheduled");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "a UI deadline is scheduled");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
 }
 
 void hover(Window& window, Point point) {
@@ -67,6 +67,14 @@ Point centre(Rect bounds) {
 struct RecordVisibility final {
     std::vector<RibbonToolTipEvent>* seen{};
     void operator()(const RibbonToolTipEvent& event) const { (*seen).push_back(event); }
+};
+
+// Clears every mapping when a tooltip hides.
+struct ClearOnHide final {
+    RibbonToolTip* tips{};
+    void operator()(const RibbonToolTipEvent& event) const {
+        if (!event.shown) (*tips).clear();
+    }
 };
 
 struct RecordHelp final {
@@ -124,7 +132,7 @@ void content_from_commands_and_hover() {
             "item mappings are per item");
 
     hover(fixture.window, item_point(*fixture.strip, "bold"));
-    require(!tips.visible() && fixture.window.next_wake().has_value(), "hover arms the initial delay");
+    require(!tips.visible() && fixture.window.next_wake().present(), "hover arms the initial delay");
     fire_next(fixture.window);
     fixture.window.perform_layout();
     const RibbonToolTipContent& bold = tips.shown_content();
@@ -153,7 +161,7 @@ void content_from_commands_and_hover() {
 
     // An item without a mapping shows nothing; leaving hides.
     hover(fixture.window, item_point(*fixture.strip, "plain"));
-    require(!tips.visible() && !fixture.window.next_wake().has_value(), "an unmapped item shows nothing");
+    require(!tips.visible() && fixture.window.next_wake().absent(), "an unmapped item shows nothing");
     static_cast<void>(fixture.window.dispatch_pointer({PointerAction::leave, PointerButton::none, {470.0, 250.0}}));
     require(!tips.visible(), "leaving hides");
 }
@@ -183,7 +191,7 @@ void keyboard_and_help() {
     require(!tips.visible(), "moving focus hides the previous item's tooltip");
     // Paste is disabled, so Right goes past it to Plain, which has no
     // mapping; the tooltip stays hidden.
-    require(!tips.visible() && !fixture.window.next_wake().has_value(), "an unmapped item shows nothing");
+    require(!tips.visible() && fixture.window.next_wake().absent(), "an unmapped item shows nothing");
 
     // F1 while a tooltip with a help topic shows reports the topic.
     tips.show(fixture.strip, "bold");
@@ -243,6 +251,15 @@ void validation_and_removal() {
     tips.set_item_tool_tip(fixture.strip, "bold", {});
     tips.clear();
     require(!tips.has_tool_tip(*fixture.strip, "bold"), "clear removes every mapping");
+
+    // A visibility_changed handler that clears the mappings while the shown
+    // one is removed (A-gf-controls-12-F5; meaningful under the sanitizer
+    // tree).
+    tips.set_tool_tip(fixture.button, {.title = "Format Painter"});
+    tips.show(fixture.button);
+    SubscriptionToken clearing = tips.visibility_changed().subscribe(ClearOnHide{&tips});
+    require(tips.remove_tool_tip(*fixture.button) && !tips.visible() && !tips.has_tool_tip(*fixture.button),
+            "a removal whose hide handler clears the mappings completes");
 }
 
 // A mapping without a title takes the thing's plain tooltip as its title,
@@ -263,7 +280,7 @@ void plain_text_and_covering() {
 
     const Point over_button = centre((*fixture.button).absolute_bounds());
     hover(fixture.window, over_button);
-    while (!tips.visible() && fixture.window.next_wake().has_value()) fire_next(fixture.window);
+    while (!tips.visible() && fixture.window.next_wake().present()) fire_next(fixture.window);
     require(tips.visible() && tips.shown_content().title == "Copy formatting to other text.",
             "the enhanced tooltip's title is the plain text");
     require(!fixture.window.tool_tip_visible(), "the plain presenter shows nothing for a covered control");

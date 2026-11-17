@@ -27,7 +27,7 @@ gui_forms::HelpBook
 
       **labels** : ``HelpBookLabels``
 
-      **focused_stop** : ``std::optional<std::size_t>``, read-only
+      **focused_stop** : ``stxlib::Optional<std::size_t>``, read-only
          The link or topic bar keyboard focus is on, as an index into the book's focus stops (links in reading order, bars among them), or none.
 
       **content_height** : ``double``, read-only
@@ -112,7 +112,7 @@ gui_forms::HelpBook
 
    .. cpp:function:: void set_labels(HelpBookLabels labels)
 
-   .. cpp:function:: std::optional<std::size_t> focused_stop() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> focused_stop() const noexcept
 
       The link or topic bar keyboard focus is on, as an index into the book's focus stops (links in reading order, bars among them), or none.
 
@@ -160,15 +160,15 @@ gui_forms::HelpBook
 
       Follows link ``link`` (an index into page().links) as a click would.
 
-   .. cpp:function:: std::optional<double> block_top(std::size_t block) const noexcept
+   .. cpp:function:: stxlib::Optional<double> block_top(std::size_t block) const noexcept
 
       The block's top in content coordinates, or none when it is hidden.
 
-   .. cpp:function:: std::optional<Rect> link_bounds(std::size_t link) const noexcept
+   .. cpp:function:: stxlib::Optional<Rect> link_bounds(std::size_t link) const noexcept
 
       The link's box in local coordinates (scroll applied), or none when it is not laid out.
 
-   .. cpp:function:: std::optional<Rect> topic_bar_bounds(std::size_t section) const noexcept
+   .. cpp:function:: stxlib::Optional<Rect> topic_bar_bounds(std::size_t section) const noexcept
 
       The topic bar of section ``section`` in local coordinates, or none.
 

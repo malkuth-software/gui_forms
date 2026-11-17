@@ -141,6 +141,26 @@ std::shared_ptr<RibbonGallery> in_ribbon_gallery(const char* id, std::size_t cou
     return gallery;
 }
 
+// A selection handler that drops the gallery's last other reference.
+class DropGallery final {
+public:
+    explicit DropGallery(std::shared_ptr<RibbonGallery>& held) noexcept : held_(&held) {}
+    void operator()(const std::optional<std::string>&) const { (*held_).reset(); }
+
+private:
+    std::shared_ptr<RibbonGallery>* held_;
+};
+
+// RibbonGallery::commit holds itself across the selection event
+// (A-gf-controls-12-F6; meaningful under the sanitizer tree).
+void commit_survives_a_handler_dropping_the_gallery() {
+    std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("drop.gallery", 3U);
+    RibbonGallery& borrowed = *gallery;
+    SubscriptionToken token = borrowed.selection_changed().subscribe(DropGallery(gallery));
+    const bool pressed = borrowed.on_semantic_child_action("item.1", SemanticAction::press, {});
+    require(pressed && gallery == nullptr, "the handler dropped the gallery and the press completed");
+}
+
 void value_command() {
     Fixture fixture;
     GalleryCommand& command = *fixture.gallery_command;
@@ -442,8 +462,10 @@ void semantics() {
     const SemanticDescriptor descriptor = (*gallery).semantic_descriptor();
     require(descriptor.role == SemanticRole::list && descriptor.name == "Styles", "a gallery is a named list");
     const std::vector<SemanticNode> nodes = (*gallery).semantic_virtual_children();
-    require(nodes.size() == 12U && nodes[0].role == SemanticRole::list_item && nodes[0].position_in_set == 1U &&
-                nodes[0].set_size == 9U && nodes[8].position_in_set == 9U,
+    require(nodes.size() == 12U && nodes[0].role == SemanticRole::list_item &&
+                nodes[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                nodes[0].set_size == stxlib::Optional<std::size_t>::of(9U) &&
+                nodes[8].position_in_set == stxlib::Optional<std::size_t>::of(9U),
             "every item is a list item with its position in the set");
     const SemanticNode& more = nodes.back();
     require(more.role == SemanticRole::menu_button && more.has_popup, "the more button is a menu button with an overlay");
@@ -458,8 +480,9 @@ void semantics() {
     (*full).set_items({{"warm", "Warm"}, {"cool", "Cool"}}, std::move(items));
     const std::vector<SemanticNode> grouped = (*full).semantic_virtual_children();
     require(grouped.size() >= 2U && grouped[0].role == SemanticRole::group && grouped[0].name == "Warm" &&
-                grouped[0].children.size() == 3U && grouped[0].children[2].position_in_set == 3U &&
-                grouped[0].children[2].set_size == 3U,
+                grouped[0].children.size() == 3U &&
+                grouped[0].children[2].position_in_set == stxlib::Optional<std::size_t>::of(3U) &&
+                grouped[0].children[2].set_size == stxlib::Optional<std::size_t>::of(3U),
             "the drop-down form groups items by category, positioned within it");
 }
 
@@ -467,6 +490,7 @@ void semantics() {
 
 int main() {
     value_command();
+    commit_survives_a_handler_dropping_the_gallery();
     layout_and_columns();
     virtualization();
     hover_preview_order();

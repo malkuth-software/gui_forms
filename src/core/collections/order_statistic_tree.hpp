@@ -15,7 +15,7 @@ namespace gui_forms::detail {
 // shape and one set of node operations serve every sequence that needs a
 // position in O(log n): the binding view's slot sequences (BindingOrderTree,
 // used by BindingView and DataGridViewBoundIndex). The row extents of long
-// lists (RowHeightIndex) are kept by stx_auxlib's stx_btree sequence tree
+// lists (RowHeightIndex) are kept by STXlib's stx_btree sequence tree
 // instead. Each holder is a thin facade
 // that keeps its own API and edits leaves; this tree keeps the counts, the
 // summaries, the splits, the removals and the depth.

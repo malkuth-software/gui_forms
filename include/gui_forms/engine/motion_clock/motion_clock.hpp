@@ -194,8 +194,10 @@ private:
     // A free ambient record's index (one is made, reserved first, when none
     // is free); the frame request is armed. Changes nothing on failure.
     std::size_t ambient_place();
-    // One control's frame: whether it is still shown.
-    [[nodiscard]] bool control_ambient_frame(AmbientRecord& effect, FrameTime now);
+    // One control's frame: whether it is still shown. `observed` is the
+    // caller's copy, not a record's: the frame may enlist or withdraw
+    // effects, which moves or resets the records.
+    [[nodiscard]] bool control_ambient_frame(const std::weak_ptr<Control>& observed, FrameTime now);
     // While only ambient effects run, moves the request's next frame to the
     // earliest effect's.
     void align_to_ambient() noexcept;

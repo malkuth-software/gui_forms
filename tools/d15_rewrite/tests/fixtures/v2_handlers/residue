@@ -1,0 +1,3 @@
+parameter gui_forms::SearchBox::editor_committed not converted: V2: the function's address is taken
+parameter gui_forms::SearchBox::editor_cancelled not converted: V2: the function's address is taken
+parameter gui_forms::SearchBox::ChangeCallback::operator() not converted: V2: a call operator's parameter

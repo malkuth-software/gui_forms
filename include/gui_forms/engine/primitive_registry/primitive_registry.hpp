@@ -8,6 +8,8 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -146,7 +148,7 @@ struct GUI_FORMS_API ParameterValidation final {
 [[nodiscard]] GUI_FORMS_API ParameterValidation validate_parameters(const PrimitiveDescriptor& descriptor,
                                                       const PrimitiveParameterBlock& block) noexcept;
 
-[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor,
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor,
                                                         std::string_view name) noexcept;
 
 enum class ParameterAssignment : std::uint8_t {
@@ -170,7 +172,7 @@ enum class ParameterAssignment : std::uint8_t {
                                                        const PrimitiveDescriptor& descriptor,
                                                        std::string_view name, std::string_view choice) noexcept;
 // The position of `choice` among a choice parameter's choices, or none.
-[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration,
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration,
                                                      std::string_view choice) noexcept;
 
 // The part a primitive draws: its size in logical units (the box the
@@ -227,7 +229,7 @@ struct GUI_FORMS_API ImageVariantRequest final {
     Insets source_slice{};
     std::array<std::uint32_t, 4> fixed{};
     DeviceScale scale{};
-    std::optional<ProceduralFill> procedural{};
+    stxlib::Optional<ProceduralFill> procedural{};
 };
 
 // The variants lent for one bake, by fill layer; null where none is lent.
@@ -257,7 +259,7 @@ struct GUI_FORMS_API PrimitiveTarget final {
     AnatomyStateSet states{};
     std::array<double, engine_input_count> inputs{};
     const SurfaceMaterial* material{};
-    std::optional<double> corner_radius{};
+    stxlib::Optional<double> corner_radius{};
     const ImageRegistry* images{};
     // Borrowed, as `material` is.
     const LentImageVariants* variants{};
@@ -432,7 +434,7 @@ public:
     // state and lends its material in the target, with the material fields
     // the theme's rules set in place of the recipe's (EC1). None unless the
     // primitive says otherwise. `parameters` match the declarations.
-    [[nodiscard]] virtual std::optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] virtual stxlib::Optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
                                                                           ControlVisualRole family) const noexcept;
 
     // Whether the primitive draws the theme's overlay shadow (E9, GIVEN
@@ -446,14 +448,14 @@ public:
     // stands behind the overlay seam (PointerOverlay); none for a primitive
     // drawn over the part's own box, unless the primitive says otherwise.
     // `parameters` match the declarations.
-    [[nodiscard]] virtual std::optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] virtual stxlib::Optional<PointerOverlay> pointer_overlay(const PrimitiveParameterBlock& parameters,
                                                                         Size part) const noexcept;
 
     // How many device pixels past the destination, on every side, the
     // primitive reads the backplane at display `scale` (PrimitiveTarget::
     // backplane); none for a primitive that does not sample it, unless the
     // primitive says otherwise. `parameters` match the declarations.
-    [[nodiscard]] virtual std::optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] virtual stxlib::Optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters,
                                                                         DeviceScale scale) const noexcept;
 
     // Fills the front of `requests` with the image variants a bake of this

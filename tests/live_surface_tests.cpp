@@ -259,4 +259,24 @@ int main() {
     require(paired.size() == 1U && paired.front().paired, "paired.size() == 1U && paired.front().paired");
     const MetricsSnapshot pairing = window.metrics_snapshot();
     require(pairing.live_pairing_waits == 1U && pairing.live_unpaired_presentations == 1U, "pairing.live_pairing_waits == 1U && pairing.live_unpaired_presentations == 1U");
+
+    // A-gf-abi-02-F3: a registration is withdrawn while its control stays in
+    // the window, only for the surface it holds, and the withdrawn surface
+    // is no longer placed.
+    std::shared_ptr<LiveSurface> other_surface = LiveSurface::create({4U, 3U});
+    require(static_cast<bool>(other_surface), "other_surface");
+    require(!window.withdraw_live_surface_presentation(live_control, other_surface),
+            "a surface the control is not registered with is not withdrawn");
+    require(!window.withdraw_live_surface_presentation(overlay, composited_surface),
+            "a control with no registration withdraws nothing");
+    require(window.withdraw_live_surface_presentation(live_control, composited_surface),
+            "the control's registration is withdrawn");
+    require(!window.require_live_surface_content(live_control, 10U),
+            "a withdrawn control has no registration");
+    LiveSurfaceWriteLease after_withdraw = (*composited_surface).try_acquire_write();
+    require(static_cast<bool>(after_withdraw), "after_withdraw");
+    fill(after_withdraw, std::byte{0x37});
+    require(after_withdraw.publish({}, 10U) != 0U, "after_withdraw.publish({}, 10U) != 0U");
+    require(window.take_live_surface_presentations(true).empty(),
+            "a withdrawn surface is not placed over its control");
 }

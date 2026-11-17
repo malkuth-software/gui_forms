@@ -191,6 +191,12 @@ void describe_type<Toast>(SchemaSample& sample) {
     record_control(*toast, sample);
 }
 
+// Made only from a definition (abi_schema_recipes.hpp): nothing to record.
+template <>
+void describe_type<CompositeControl>(SchemaSample& sample) {
+    static_cast<void>(sample);
+}
+
 template <>
 void describe_type<BackgroundWorker>(SchemaSample& sample) {
     describe_window_component<BackgroundWorker>(sample);
@@ -319,6 +325,13 @@ Component::Ptr create_type<ThreadExceptionDialog>(StableId stable_id) {
     const std::shared_ptr<ThreadExceptionDialog> dialog =
         std::make_shared<ThreadExceptionDialog>(std::move(stable_id), ThreadExceptionReport{});
     return dialog;
+}
+
+template <>
+void describe_type<PlotLinkGroup>(SchemaSample& sample) {
+    const plots::PlotRange unit{0.0, 1.0};
+    const std::shared_ptr<PlotLinkGroup> group = std::make_shared<PlotLinkGroup>(PlotLinkAxes::x, unit, unit);
+    record_component(*group, sample);
 }
 
 template <>

@@ -27,15 +27,15 @@ constexpr double natural_step_width = 120.0;
 constexpr double check_side = 12.0;
 
 constexpr std::array<PartField<StepIndicator::Parts>, 5> step_indicator_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::region},
-    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::chip},
-    {.declaration = {.name = "glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::glyph},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::divider},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &StepIndicator::Parts::caption},
 }};
 
@@ -51,6 +51,7 @@ constexpr ControlAnatomy step_indicator_anatomy{
     .parts = step_indicator_parts,
     .states = step_indicator_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {
@@ -75,7 +76,7 @@ std::string decimal(std::size_t number) {
 
 StepIndicator::StepIndicator(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = false;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 void StepIndicator::set_steps(std::vector<std::string> steps) {
@@ -129,13 +130,15 @@ std::vector<StepIndicator::StepPlacement> StepIndicator::placements(double width
     return placed;
 }
 
-std::optional<std::size_t> StepIndicator::step_at(Point local_point) const {
+stxlib::Optional<std::size_t> StepIndicator::step_at(Point local_point) const {
     const Rect client = client_rectangle();
     const std::vector<StepPlacement> placed = placements(client.width);
     for (std::size_t index = 0U; index < placed.size(); ++index) {
-        if (placed[index].chip.contains(local_point) || placed[index].caption.contains(local_point)) return index;
+        if (placed[index].chip.contains(local_point) || placed[index].caption.contains(local_point)) {
+            return stxlib::Optional<std::size_t>::of(index);
+        }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 Size StepIndicator::measure(Size available) {
@@ -172,7 +175,7 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
         }
         PartPaint chip{.role = PartRole::chip, .bounds = step.chip, .states = chip_states,
                        .family = ControlVisualRole::selection};
-        chip.corner_radius = chip_side * 0.5;
+        chip.corner_radius.set(chip_side * 0.5);
         paint_part(painter, *this, chip);
         if (complete) {
             const Rect check{step.chip.x + (chip_side - check_side) * 0.5, step.chip.y + (chip_side - check_side) * 0.5,
@@ -202,10 +205,10 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
 
 void StepIndicator::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
-        const std::optional<std::size_t> pressed = step_at(arguments.location);
-        if (pressed && *pressed < current_step.read()) {
+        const stxlib::Optional<std::size_t> pressed = step_at(arguments.location);
+        if (pressed.present() && *pressed.value() < current_step.read()) {
             arguments.handled = true;
-            step_clicked_.emit(*pressed);
+            step_clicked_.emit(*pressed.value());
             if (!is_alive()) return;
         }
     }

@@ -9,7 +9,7 @@ advertised protocol surface; some native integrations are not advertised yet.
 
 ## The host protocol
 
-`HostCapabilities` carries `protocol_version` (currently 12; one row per version in
+`HostCapabilities` carries `protocol_version` (currently 13; one row per version in
 `host_protocol_revisions`), a `platform`
 string, a bit set of `HostCapability` flags and the host's keyboard-command
 defaults (`key_map`, below). `Application::capabilities()`
@@ -50,8 +50,17 @@ whole record for logs.
 | `compositor_notifications` | compositor and preference changes reported at run time | yes | yes | yes |
 | `presentation_preferences` | the host's high contrast and reduced transparency fed to each window; its light or dark preference and accent and highlight colours reported (Windows only so far) | yes | yes | no |
 | `transient_surfaces` | tooltips and the splashscreen in Splash windows, menus, drop-downs and pickers in Popup windows, each the host's own window beside its owner; translucent with the library's shadow and fade (C: `GF_HOST_CAPABILITY_TRANSIENT_SURFACES`, kinds in `gf_host_capabilities.transient_surfaces`) | yes | yes | yes (opaque, with no shadow or fade, without a compositing manager: `opaque_transient_surfaces`, `GF_TRANSIENT_SURFACE_OPAQUE`) |
-| `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`) | no (square) | yes (Windows 11; square before) | no (square) |
+| `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's; the shapes it may report are `HostCapabilities::window_corner_shapes` (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`; see [the window band](window-band.md)) | reported only: square in full screen and for a borderless window, unknown otherwise (the band draws square) | yes (Windows 11; square before) | no (square) |
 | `window_state_reports` | the native window's state reported (`HostWindowStateEvent`): full screen, which hides a band declared `WindowBandFullScreen::hides`, and the maximize, snap and restore changes that can reshape its corners (C: `GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS`) | yes | yes (full screen: a captionless window covering its monitor) | yes (`_NET_WM_STATE_FULLSCREEN`, or the host's own fallback) |
+| `locale` | the platform's locale (`HostCapabilities::locale`: date and time patterns, month and weekday names, AM and PM, number separators, first day of the week), which seeds the application's locale for the DateTimePicker, MonthCalendar and NumericUpDown (host protocol version 14) | yes (CFLocale) | yes (the user's locale through `GetLocaleInfoEx`, with their Region overrides) | yes (the POSIX locale the environment names) |
+| `hosted_content` | a sub-surface program in its own process (`make_hosted_content`, [Content surfaces](content-surfaces.md)): frames through shared memory, input through a channel, its crash leaving the application running (C ABI `GF_HOST_CAPABILITY_HOSTED_CONTENT`, since 1.4) | yes | yes | yes |
+| `relative_pointer` | motion deltas sent per native sample (`HostRelativeMotionEvent`, protocol version 15) for relative pointer mode ([Relative pointer mode](relative-pointer.md); C: `GF_HOST_CAPABILITY_RELATIVE_POINTER`) | yes | not yet (contract in that page) | yes, with XI 2 |
+| `raw_pointer_motion` | unaccelerated deltas where asked (C: `GF_HOST_CAPABILITY_RAW_POINTER_MOTION`) | no (AppKit's deltas are accelerated) | not yet | yes, with XI 2 |
+| `pointer_confinement` | the pointer kept inside a rectangle, or held still and hidden (C: `GF_HOST_CAPABILITY_POINTER_CONFINEMENT`) | yes (warped back; locked disassociates) | not yet | yes (a confined grab) |
+| `pointer_warp` | the pointer moved by request (`HostServices::warp_pointer`; C: `GF_HOST_CAPABILITY_POINTER_WARP`) | yes | not yet | yes |
+| `direct_buffers` | frames written with CPU pixels into buffers the window system gives, with the copy path as the fallback on any refusal or loss ([Presentation](presentation.md); C: `GF_HOST_CAPABILITY_DIRECT_BUFFERS`) | with `GUI_FORMS_PRESENT=direct` (IOSurface) | not yet | with `GUI_FORMS_PRESENT=direct` and libXpresent (Present with MIT-SHM pixmaps) |
+| `host_scroll` | a scroll copy moves the pixels already presented and only the exposed band is copied (C: `GF_HOST_CAPABILITY_HOST_SCROLL`) | no | with `GUI_FORMS_PRESENT=scroll` (`ScrollWindowEx`; refused under a child window or the invalidation overlay) | with `GUI_FORMS_PRESENT=scroll` (`XCopyArea`, while a compositing manager runs) |
+| `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.
@@ -223,9 +232,17 @@ time and position against `Net/DoubleClickTime` and `Net/DoubleClickDistance`
 (2 pixels when the desktop offers none). Controls raise the WinForms event
 set (`MouseDown`, `Click`, `MouseClick`, `DoubleClick`, `MouseDoubleClick`,
 `MouseUp`, `MouseEnter`, `MouseHover`, `MouseLeave`, `MouseMove`,
-`MouseWheel`, `MouseCaptureChanged`, `ContextMenuRequested`) in WinForms'
-order, under `ControlStyles::standard_click` and `standard_double_click`; a
+`MouseWheel`, `MouseCaptureChanged`, `ContextMenuRequested`) in the
+owner's input order, which raises `MouseUp` before `Click`, under `ControlStyles::standard_click` and `standard_double_click`; a
 button raises no double-click.
+
+The first click on an inactive window both activates it and acts on the
+control under the pointer, as on Windows, where `WM_MOUSEACTIVATE` answers
+`MA_ACTIVATE`. On macOS the view accepts the first mouse
+(`acceptsFirstMouse:`), so AppKit makes the window key, which is GUI.Forms'
+activation, and then delivers the press. The press, release and click follow
+in the usual order. (This is not the clear-pixel pass-through that the
+compositor section calls click-through, which no host does.)
 
 A context request comes from the host only (`HostContextRequestEvent`, with a
 pointer or keyboard origin); the core has no key route of its own. The
@@ -242,7 +259,7 @@ What the native hosts do not yet deliver, so a WinForms port should not
 expect it (audit N62): the extra mouse buttons (X1 and X2, Windows
 `WM_XBUTTON*`, macOS buttons 3 and up, X11 buttons 8 and 9) are dropped,
 since `PointerButton` names only the primary, secondary and middle buttons
-and adding back and forward is an ABI change left for the seal; touch and
+and adding back and forward is an ABI change not yet made; touch and
 pen input arrive only as the platform's mouse emulation (no `WM_POINTER*`,
 `WM_TOUCH`, macOS touch events or XInput2 touch); horizontal wheel scrolling
 is delivered by every native host (Windows `WM_MOUSEHWHEEL`, macOS
@@ -287,7 +304,7 @@ keyboard context request with a panel's position menu.
 ## The three native hosts and the headless one
 
 macOS (AppKit)
-: `src/host/macos/`, the only place Objective-C++ is allowed. One `NSWindow`
+: `src/surface/macos/`, the only place AppKit is used. One `NSWindow`
   owns a custom view that presents the CPU raster; a display link drives
   scheduled frames; NSTextInputClient bridges IME composition; Retina scale
   arrives as a scale notification. Pointer capture maps onto the native
@@ -295,7 +312,7 @@ macOS (AppKit)
   the bundle.
 
 Windows (Win32)
-: `src/host/windows/`, the only place Win32 and COM types are allowed. An
+: `src/surface/windows/`, the only place Win32 and COM types are allowed. An
   ordinary resizable top-level window presents a top-down 32-bit DIB with
   software alpha blending. The process asks for per-monitor DPI awareness
   (`SetProcessDpiAwarenessContext`, resolved at run time, falling back to
@@ -310,9 +327,16 @@ Windows (Win32)
   automation channel, off unless the host options set `automation_enabled`
   (the gallery sets it from `--automation`), addresses controls by stable
   ID; it accepts commands of at most 4096 bytes with the prefix
-  `GUI.Forms.Automation/1`. A C ABI window turns it on only for the run flag
-  `GF_WINDOW_RUN_AUTOMATION` or `GUI_FORMS_AUTOMATION=1` in the process
-  environment, which the test harnesses set. Security note: while it is on,
+  `GUI.Forms.Automation/1`. A program run through the portable
+  `Application::run`, whose options cannot ask for it, turns it on only by
+  opting in: it calls `host::accept_automation_environment()`
+  (`gui_forms/platform/windows_host.hpp`) before running, and then
+  `GUI_FORMS_WINDOWS_AUTOMATION=1` in the process environment turns the
+  channel on in every window. Without that call the variable is ignored, so
+  the environment alone opens no program; a build configured with
+  `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=OFF` ignores it even after the
+  call. The menu probe and the application tests opt in; a shipped program
+  does not. Security note: while it is on,
   any process on the same desktop can drive the window and ask for a capture
   written to a path it names, so ship with it off. It is a test channel;
   automation is to move to an MCP integration rather than grow here.
@@ -337,7 +361,7 @@ Windows (Win32)
   placed below the caret. TSF is not used. OLE drag/drop and native menu publication are not implemented.
 
 Linux (X11)
-: `src/host/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
+: `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
   window and event handling, Xcursor cursors, X11 clipboard selections,
   XDND drag destinations, and native ATK/AT-SPI accessibility publication.
   The publication is checked from an AT-SPI client's side on CI:
@@ -397,6 +421,66 @@ tree, including editable text ranges, through the platform's own API
 each host reads it back through that API (stage A). The headless adapter
 publishes nothing and does not advertise it.
 
+## File dialog settings
+
+`OpenFileDialog` and `SaveFileDialog` hold Windows Forms' settings and send
+them in their host requests (`HostOpenFileDialogRequest`,
+`HostSaveFileDialogRequest`); each host applies them to its own dialog.
+
+| Setting | Request field | macOS | Linux (X11) | Windows |
+| --- | --- | --- | --- | --- |
+| `initial_directory` | `initial_directory` | the panel's folder | the listing's folder | the dialog's folder |
+| `filter`, `filter_index` | `filters`, `initial_filter` | a filter menu | a filter box | file types |
+| `multiselect` | `allow_multiple` | yes | yes | yes |
+| `default_ext`, `add_extension` | `default_extension` | yes | yes | yes |
+| `overwrite_prompt` | `confirm_overwrite` | always asks (NSSavePanel) | asks | asks |
+| `check_file_exists` | `check_file_exists` | open: always on; save: told, shown again | refused, the dialog stays open | `FOS_FILEMUSTEXIST`, the dialog stays open |
+| `check_path_exists` | `check_path_exists` | always on | refused, the dialog stays open | `FOS_PATHMUSTEXIST`, the dialog stays open |
+| `create_prompt` (save) | `create_prompt` | asked, No shows the panel again | asked, No keeps the dialog open | `FOS_CREATEPROMPT`, asked by the shell |
+
+The defaults are Windows Forms': opening checks that the file and its
+folder exist; saving checks the folder only and asks before replacing a
+file, not before creating one.
+
+Through the C ABI, `gf_dialog_request.flags` carries the checks so that no
+flag keeps those defaults: `GF_DIALOG_FLAGS_ALLOW_MISSING_FILE` (open) turns
+`check_file_exists` off, `GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE` (save) turns
+it on, `GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER` (open and save) turns
+`check_path_exists` off, and `GF_DIALOG_FLAGS_CREATE_PROMPT` (save) turns
+`create_prompt` on. A flag the kind does not read is refused, as before.
+
+On Windows the common item dialog's options follow the request instead of
+fixed flags (`open_dialog_options` and `save_dialog_options` in the Windows
+host), starting from the shell's own defaults, some of which set these
+flags; each flag is set when its setting holds and cleared otherwise. For `IFileOpenDialog`, `FOS_FILEMUSTEXIST` is set exactly when
+`check_file_exists` holds and `FOS_PATHMUSTEXIST` exactly when
+`check_path_exists` holds; with `check_file_exists` false a typed name of a
+missing file is returned as chosen. For `IFileSaveDialog`,
+`FOS_FILEMUSTEXIST` follows `check_file_exists`, `FOS_PATHMUSTEXIST`
+follows `check_path_exists`, and `FOS_CREATEPROMPT` is set exactly when
+`create_prompt` holds; `FOS_OVERWRITEPROMPT` keeps following
+`confirm_overwrite`. A name the dialog refuses never reaches the result:
+the shell keeps its dialog open, as the other hosts do. Options the shell
+refuses fail the request (`backend_failure`) rather than show a dialog with
+its own checks. The existing `open_file_dialog_tests` and
+`save_file_dialog_tests` show what the component sends;
+`gui_forms_windows_live_idle_tests` checks each flag on the computed
+options and on real dialog objects, which are created but not shown.
+
+## Message boxes
+
+`MessageBox` sends `HostMessageDialogRequest`, whose `icon_image` carries the
+stock icon GUI.Forms bakes for its `icon` (`stock_alert_icon_image`), so the
+icon matches the theme on every platform. The macOS host puts it in its
+alert. The Windows host shows it in the native message box in place of the
+system icon: for the length of the `MessageBoxW` call a thread-local CBT
+hook meets the box as it is activated and gives its icon control (the
+static `SS_ICON` child an `MB_ICON*` style creates) the picture, fitted to
+the control's size. Presentation only: without a picture, with no icon, or
+when a step fails, the box keeps the system icon and the result is the
+same. The X11 host keeps its own icon. `gui_forms_windows_message_box_tests`
+shows real boxes and reads the icon control's pixels.
+
 ## What stays portable
 
 Event order, focus and capture semantics, the close sequence, dialog request
@@ -423,7 +507,7 @@ The host presents pixels; it does not paint them. Painting goes through the
   and encoding on every host use the shared owned codec in
   `src/core/image/` (on stx_zlib), not Skia's or the platform's.
 - On Windows, the host presents the renderer's frames from DIB sections
-  (`src/host/windows/raster/`); it draws nothing itself.
+  (`src/surface/windows/raster/`); it draws nothing itself.
 
 `MetricsSnapshot::renderer_name` names the active one and `cpu_only` is
 always true. No Skia type crosses into a public header, a control or a test

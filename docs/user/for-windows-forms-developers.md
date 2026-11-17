@@ -17,8 +17,8 @@ every Forms type to its GUI.Forms counterpart.
 | `Name` | `StableId`, required and immutable | Unique within a window, checked at attach time. It names the control in metrics, the semantic tree, automation and logs. A stable ID is one or more `.`-separated segments of lowercase ASCII letters and digits joined by single `-`: `textBox1` is spelled `text-box1`, and a refused ID's error states the rule. `name()` is a separate mutable property. |
 | Properties (`button.Text = "OK"`) | Property cells: `(*button).text = "OK";`, read with `(*button).text.read()` | Writing an equal value does nothing. Every actual change marks dirtiness and emits a typed change event. There are no getter and setter pairs for properties. See [Properties](properties). |
 | `Click += handler` with `(sender, EventArgs)` | `on(button.clicked(), owner, &Owner::method)` | The owner is a `Component` that keeps the connection; disposing it disconnects the handler, so you never need `-=`. A handler accepts the leading part of the event's typed arguments, or none. |
-| `MouseDown`, `MouseUp`, `MouseMove`, `MouseWheel`, `MouseClick`, `MouseDoubleClick` with `MouseEventArgs` | `mouse_down()`, `mouse_up()`, `mouse_move()`, `mouse_wheel()`, `mouse_click()`, `mouse_double_click()` with `MouseEventArgs` | Same order as in Forms. `MouseEventArgs` has `button`, `clicks`, `location` (control coordinates), `window_position`, `wheel_delta` and `modifiers`. The host supplies `clicks`. See [Mouse events and context requests](mouse-events). |
-| `Click`, `DoubleClick` (on any control) | `click()`, `double_click()` | Raised on the release over the pressed control, as in Forms. `DoubleClick` comes on the second release. A button's `clicked()` is its activation, raised after `Click` and also by `perform_click()` and the keyboard. |
+| `MouseDown`, `MouseUp`, `MouseMove`, `MouseWheel`, `MouseClick`, `MouseDoubleClick` with `MouseEventArgs` | `mouse_down()`, `mouse_up()`, `mouse_move()`, `mouse_wheel()`, `mouse_click()`, `mouse_double_click()` with `MouseEventArgs` | `MouseUp` comes before `Click` and `MouseClick` (Forms raises `MouseUp` last); a `MouseUp` handler that sets `suppress_click` cancels the clicks. `MouseEventArgs` has `button`, `clicks`, `location` (control coordinates), `window_position`, `wheel_delta` and `modifiers`. The host supplies `clicks`. See [Mouse events and context requests](mouse-events). |
+| `Click`, `DoubleClick` (on any control) | `click()`, `double_click()` | Raised on the release over the pressed control, after `MouseUp`. `DoubleClick` comes on the second release. A button's `clicked()` is its activation, raised after `Click` and also by `perform_click()` and the keyboard. |
 | `MouseEnter`, `MouseHover`, `MouseLeave`, `MouseCaptureChanged` | `mouse_enter()`, `mouse_hover()`, `mouse_leave()`, `mouse_capture_changed()` | `MouseHover` is raised once per entry. On Windows it comes from `WM_MOUSEHOVER`; elsewhere it comes from the window's timer. |
 | `SetStyle(ControlStyles.StandardClick / StandardDoubleClick)`, `GetStyle` | `set_style(ControlStyles::standard_click / standard_double_click, on)`, `has_style` | Same meaning. A button clears `standard_double_click` and clicks for the primary button only. |
 | `ContextMenuStrip` property, `WM_CONTEXTMENU`, Shift+F10 | `context_menu_requested()` with `ContextMenuRequest`, or override `on_context_menu_requested` | Show your `ContextMenu` from the handler and set `handled`. Otherwise the request goes on to each ancestor. Each request has a pointer or keyboard origin. The Linux host emulates both kinds. |
@@ -26,17 +26,19 @@ every Forms type to its GUI.Forms counterpart.
 | `BeginInit` / `EndInit` | `begin_init()` / `end_init()` | During initialization each change event holds only its latest value and is published when the outermost `end_init()` runs. |
 | `SuspendLayout` / `ResumeLayout` / `PerformLayout` | `suspend_layout()` / `resume_layout(perform)` / `perform_layout()` | Per control, as in Forms. `Window::begin_update()` adds a window-wide `UpdateScope` that batches every kind of change, not only layout. See [Update scopes and dirtiness](update-scopes-and-dirtiness). |
 | `Invalidate()`, `Invalidate(Rectangle)`, `Refresh()`, `Update()` | `invalidate(Dirty)`, `invalidate(Rect)` | Invalidation says *what* changed: measure, arrange, paint, hit test, text, semantics. Invalidation never paints; the host paints the accumulated damage on its next frame. |
+| `OnClick`, `OnMouseDown`, `OnKeyDown`, `OnGotFocus` and the other `On*` overrides | Override the raisers `on_click`, `on_mouse_down`, `on_key_down`, `on_got_focus` and the rest | The base raises the event; an override that does not call the base keeps it from the subscribers. C and C# override them through the C ABI class tables (since 1.3). See [Overriding the raisers](input-and-focus.md#overriding-the-raisers). |
 | `OnPaint(PaintEventArgs)` and `Graphics` | Override `on_paint(Painter&, Rect local_damage)`, or use `DrawingSurface` | `Painter` is a renderer-neutral drawing vocabulary over a CPU rasterizer. See [Painting and damage](painting-and-damage). |
 | `Handle`, `CreateControl`, `WndProc` | None | Controls are not native windows. Only the top-level window is native, and reparenting a control creates nothing native. |
 | `Form` and `Application.Run(form)` | The window class a `.form` document generates (a `Window` subclass), `Application::create(config)` and `application.run(std::make_unique<Form1>(model), options)`, which owns the window for the run | `Window` is a complete model that also runs without a native window, which is how tests run. The application compiles the program's theme once and every window it makes joins it. `ApplicationWindowOptions` carries the title, sizes and the `ready`, `closing` and `closed` callbacks. Up to 64 windows run in one host. |
 | `FormClosing` with `e.Cancel` | `closing(HostCloseRequest&)` with `cancel` | The request carries its `reason`. |
 | `AcceptButton`, `CancelButton`, `DialogResult` | `accept-button` and `cancel-button` on the form (`Window::set_accept_button`, `set_cancel_button` in code), `Button::set_dialog_result` | Return and Escape activate the targets when the focused control does not use the key. A button copies its result to the window after its click handlers run. Assigning a cancel button gives it `DialogResult::cancel` if it had none. |
-| `ShowDialog()` | No modal run loop for your own windows | The window's `dialog_result()` is retained state and closes nothing; act on `dialog_result_changed()`. Use an owned dialog panel (`TaskDialog`, shown as an overlay or in a Popup window), an overlay (`AnchoredOverlayLayer`, `Window::open_overlay`) with a focus scope, or a second window. See [Overlays, Popups and Splash](overlays-popups-and-splash). |
-| `MessageBox`, `OpenFileDialog`, `SaveFileDialog`, `FolderBrowserDialog`, `ColorDialog` | Typed requests to `Window::host_services()->show_dialog(...)` | Each request returns a typed result. A host that cannot show a dialog reports `unsupported`. |
+| `ShowDialog()` | `ApplicationWindows::show_modal(window)`, where the host has a nested loop (`supports_modal_windows`) | It opens an owned window, refuses input to the run's other windows and returns the window's `DialogResult` once it closes; a dialog result set on the window's model while it is open asks it to close. Inside one window, the window's `dialog_result()` is retained state; act on `dialog_result_changed()`. Use an owned dialog panel (`TaskDialog`, shown as an overlay or in a Popup window), an overlay (`AnchoredOverlayLayer`, `Window::open_overlay`) with a focus scope, or a second window. See [Overlays, Popups and Splash](overlays-popups-and-splash). |
+| `MessageBox`, `OpenFileDialog`, `SaveFileDialog`, `FolderBrowserDialog`, `ColorDialog` | Typed requests to `Window::host_services()->show_dialog(...)` | Each request returns a typed result. A host that cannot show a dialog reports `unsupported`. A message box carries the stock icon GUI.Forms bakes for its icon (`HostMessageDialogRequest::icon_image`); the macOS and Windows hosts show it, while the X11 host's message box keeps its own icon. |
 | `InvokeRequired`, `Invoke`, `BeginInvoke` | `invoke_required()`, `invoke`, `begin_invoke` | `begin_invoke` returns a `DispatchOperation` with explicit `cancel()`. A property write or other mutation called from the wrong thread on an attached control throws. There is no `DoEvents`. See [Threading](threading). |
-| `BackgroundWorker` | `Worker` and `CancellationFlag`, then `begin_invoke` | The worker never touches a control; it posts results to the UI thread. |
+| `BackgroundWorker` | `BackgroundWorker(window)` with `set_do_work`, `run_worker_async`, `progress_changed()` and `run_worker_completed()`; or `Worker` and `CancellationFlag`, then `begin_invoke` | The work runs on a worker thread and touches only its `BackgroundWorkerTask`; progress and completion arrive on the window's UI thread. See [Threading](threading). |
+| `RightToLeft`, `RightToLeftChanged` | `right_to_left` (stored as `layout_direction`), `right_to_left_changed()` | Same values: `no`, `yes`, `inherit`. See [Layout](layout.md#right-to-left). |
 | `System.Windows.Forms.Timer` | `Timer(Window&)` with `tick()` | Bound to one window and fires on its UI thread. |
-| `Dock`, `Anchor` | `dock = DockStyle::fill`, `anchor = AnchorStyles::top` (properties: assign to write, `.read()` to read) | Same values. The default anchor is top and left. Dock places children backmost first. A fill child takes the whole remaining rectangle, so a later docked sibling gets a zero slot; Windows Forms overlaps it instead. This divergence is deliberate. |
+| `Dock`, `Anchor` | `dock = DockStyle::fill`, `anchor = AnchorStyles::top` (properties: assign to write, `.read()` to read) | Same values. The default anchor is top and left. Dock places children backmost first, as in Windows Forms, but `add_child` puts the new child on top where `Controls.Add` puts it at the back, so in add order the first child added docks first (Windows Forms: the last); add a designer file's controls in reverse, or at the back with `insert_child(child, child_count())`. A fill child takes the whole remaining rectangle, so a later docked sibling gets a zero slot; Windows Forms overlaps it instead. This divergence is deliberate. |
 | Integer pixels, `AutoScaleMode` | Logical pixels as `double`; the window's `scale` | `Rect{x, y, width, height}` is in the parent's client space. `set_bounds` takes `BoundsSpecified` with the Forms flag values. See [Layout](layout). |
 | `DataBindings.Add("Text", source, "Name")` | `data_bindings().add("text", source, "name", options)` | `BindingSource` holds `BindingRecord` rows with named fields, not reflected objects. `Value<T>` holds scalar application state shared between controls. |
 | `CausesValidation`, `Validating`, `Validated`, `AutoValidate` | `causes_validation`, `validating()`, `validated()`, `AutoValidate` | Under the default `AutoValidate` policy, cancelling `validating` keeps focus where it is. See [Input and focus](input-and-focus). |
@@ -50,19 +52,19 @@ every Forms type to its GUI.Forms counterpart.
 
 ### Example: accept and cancel buttons
 
-```text
-/* forms/confirm.form */
-form confirm.window {
-  text: "Confirm";
-  client-size: 400 140;
-  accept-button: confirm.ok;
-  cancel-button: confirm.cancel;   /* assigns DialogResult::cancel */
-
-  panel confirm.root {
-    button confirm.ok { text: "OK"; bounds: 200 96 88 32; anchor: bottom right; }
-    button confirm.cancel { text: "Cancel"; bounds: 296 96 88 32; anchor: bottom right; }
-  }
-}
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- forms/confirm.form; the cancel button assigns DialogResult::cancel -->
+<form xmlns="urn:gui-forms:form:1" id="confirm.window"
+    text="Confirm"
+    client-size="400 140"
+    accept-button="confirm.ok"
+    cancel-button="confirm.cancel">
+  <panel id="confirm.root">
+    <button id="confirm.ok" text="OK" bounds="200 96 88 32" anchor="bottom right"/>
+    <button id="confirm.cancel" text="Cancel" bounds="296 96 88 32" anchor="bottom right"/>
+  </panel>
+</form>
 ```
 
 ```cpp
@@ -94,7 +96,7 @@ controls but play the role of the Forms type.
 | Windows Forms | GUI.Forms | Status | Notes |
 |---|---|---|---|
 | `Application` | [`Application`](../api/generated/gui_forms.Application.rst) | core | Runs one window or a set of windows on the native host. |
-| `BackgroundWorker` | [`Worker`](../api/generated/gui_forms.Worker.rst) | core | With [`CancellationFlag`](../api/generated/gui_forms.CancellationFlag.rst). |
+| `BackgroundWorker` | [`BackgroundWorker`](../api/generated/gui_forms.BackgroundWorker.rst) | core | Or [`Worker`](../api/generated/gui_forms.Worker.rst) with [`CancellationFlag`](../api/generated/gui_forms.CancellationFlag.rst). |
 | `Binding` | [`Binding`](../api/generated/gui_forms.Binding.rst) | stable | |
 | `BindingContext` | [`BindingContext`](../api/generated/gui_forms.BindingContext.rst) | stable | |
 | `BindingSource` | [`BindingSource`](../api/generated/gui_forms.BindingSource.rst) | stable | Holds `BindingRecord` rows. |

@@ -6,6 +6,7 @@
 #include "gui_forms/controls/object_view_values.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/controls/object_view_capabilities.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -17,6 +18,8 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -258,13 +261,15 @@ private:
     [[nodiscard]] bool has_details_columns() const noexcept;
     [[nodiscard]] double header_height() const noexcept;
     [[nodiscard]] double total_column_width() const noexcept;
-    [[nodiscard]] std::optional<std::size_t> column_index(const ObjectColumnId& id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> column_index(const ObjectColumnId& id) const noexcept;
     [[nodiscard]] Rect column_bounds(std::size_t column) const noexcept;
     // Realized rows and realized (visible) details columns. `position`
     // counts visible columns; the result is the column's model index.
+    // realized_column_index throws std::out_of_range for a position past
+    // the visible columns.
     [[nodiscard]] std::size_t realized_row_count() const noexcept;
     [[nodiscard]] std::size_t realized_column_count() const noexcept;
-    [[nodiscard]] std::size_t realized_column_index(std::size_t position) const noexcept;
+    [[nodiscard]] std::size_t realized_column_index(std::size_t position) const;
     [[nodiscard]] ColumnParts column_parts(std::size_t column) const;
     [[nodiscard]] AnatomyStateSet column_states(std::size_t column) const;
     void clamp_horizontal_offset() noexcept;
@@ -299,14 +304,14 @@ private:
     double horizontal_offset_{};
     bool header_focused_{};
     std::size_t focused_column_{};
-    std::optional<std::size_t> pressed_column_{};
-    std::optional<std::size_t> resizing_column_{};
+    stxlib::Optional<std::size_t> pressed_column_{};
+    stxlib::Optional<std::size_t> resizing_column_{};
     double resize_start_x_{};
     double resize_start_width_{};
     std::vector<DetailsTextCache> details_cache_{};
     FontSpec details_cache_font_{};
     ObjectDetailsPaintWork details_paint_work_{};
-    [[nodiscard]] std::optional<std::size_t> item_index(
+    [[nodiscard]] stxlib::Optional<std::size_t> item_index(
         std::string_view stable_id) const noexcept;
     [[nodiscard]] std::size_t columns() const noexcept;
     [[nodiscard]] double row_height() const noexcept;
@@ -314,7 +319,7 @@ private:
     [[nodiscard]] std::size_t fully_visible_row_count() const noexcept;
     [[nodiscard]] std::size_t maximum_top_row() const noexcept;
     [[nodiscard]] Rect item_bounds(std::size_t index) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> index_at(Point absolute) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> index_at(Point absolute) const noexcept;
     void ensure_visible(std::size_t index);
     void select_index(std::size_t index, bool activate,
                       Modifier modifiers = Modifier::none);
@@ -344,26 +349,26 @@ private:
     [[nodiscard]] Point reading_local(Point absolute) const noexcept;
     void paint_shown(Painter& painter, PartPaint part) const;
     void paint_text_shown(Painter& painter, const PartPaint& part, Point origin, double width) const;
-    void invalidate_hover_change(std::optional<std::size_t> previous, std::optional<std::size_t> next);
+    void invalidate_hover_change(stxlib::Optional<std::size_t> previous, stxlib::Optional<std::size_t> next);
 
     detail::LendingVector<ObjectViewItem> items_{};
     std::string selected_id_{};
     std::vector<std::string> selected_ids_{};
     std::string focused_id_{};
     std::string selection_anchor_id_{};
-    std::optional<std::size_t> hovered_index_{};
+    stxlib::Optional<std::size_t> hovered_index_{};
     // The shown items the last paint truncated, and whether it drew a
     // complete-name inspection; rebuilt by each paint, read by the hover
     // damage. Bounded by the shown items.
     std::vector<std::size_t> painted_truncated_{};
     bool painted_inspection_{};
-    std::optional<std::size_t> pressed_index_{};
+    stxlib::Optional<std::size_t> pressed_index_{};
     std::uint32_t pressed_click_count_{1U};
     PointerButton pressed_button_{PointerButton::none};
     ObjectViewMode view_mode_{ObjectViewMode::icons};
     std::size_t top_row_{};
     std::string type_prefix_{};
-    std::chrono::steady_clock::time_point last_type_time_{};
+    IntervalPoint last_type_time_{};
     bool focused_{};
     SubscriptionToken image_list_changed_{};
     Event<const ObjectSelectionChange&> selection_changed_{};
@@ -372,9 +377,10 @@ private:
     // property_codemod begin ObjectView (tools/property_families/object_view.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_font_changed();
 
 private:
     // The routed form of a key the raisers left unhandled.

@@ -221,7 +221,7 @@ void Card::on_paint(Painter& painter, Rect local_damage) {
     face.role = PartRole::face;
     face.bounds = bounds;
     face.states = states;
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     if (focused_ && bounds.width > 8.0 && bounds.height > 8.0) {
         PartPaint ring;
@@ -238,9 +238,11 @@ Insets Card::visual_outsets() const noexcept {
     if (has_background_override() || has_style_override()) {
         return Panel::visual_outsets();
     }
+    const Rect arranged = committed_arranged_bounds();
     return surface_material_visual_outsets(
         effective_theme().resolve(ControlVisualRole::card,
-                                  current_context()).material);
+                                  current_context()).material,
+        Size{arranged.width, arranged.height});
 }
 
 bool Card::hit_test_local(Point local_point) const {
@@ -366,6 +368,7 @@ constexpr ControlAnatomy card_anatomy{
     .parts = panel_detail::parts,
     .states = card_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 namespace gui_forms {
 namespace {
@@ -114,16 +115,22 @@ struct PositionBeforeLine final {
 
 } // namespace
 
-std::optional<std::size_t> RibbonGallery::line_of(std::size_t position) const noexcept {
-    if (position >= order_.size()) return std::nullopt;
+bool RibbonGallery::holds_position(const stxlib::Optional<std::size_t>& held, std::size_t position) noexcept {
+    const std::size_t* const value = held.value();
+    const bool result = value != nullptr && *value == position;
+    return result;
+}
+
+stxlib::Optional<std::size_t> RibbonGallery::line_of(std::size_t position) const noexcept {
+    if (position >= order_.size()) return stxlib::Optional<std::size_t>::none();
     const std::vector<Line>::const_iterator after =
         std::upper_bound(lines_.begin(), lines_.end(), position, PositionBeforeLine{});
     std::size_t line = static_cast<std::size_t>(after - lines_.begin());
     while (line > 0U) {
         --line;
-        if (lines_[line].kind == LineKind::items) return line;
+        if (lines_[line].kind == LineKind::items) return stxlib::Optional<std::size_t>::of(line);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // -- geometry ------------------------------------------------------------------
@@ -190,8 +197,9 @@ bool RibbonGallery::can_scroll_down() const noexcept {
 }
 
 Rect RibbonGallery::cell_bounds(std::size_t position, const Geometry& layout) const noexcept {
-    const std::optional<std::size_t> line = line_of(position);
-    if (!line || first_line_ >= lines_.size()) return {};
+    const stxlib::Optional<std::size_t> found = line_of(position);
+    const std::size_t* const line = found.value();
+    if (line == nullptr || first_line_ >= lines_.size()) return {};
     const Line& row = lines_[*line];
     const double column = static_cast<double>(position - row.first);
     const Rect cell{layout.viewport.x + column * layout.cell.width,
@@ -200,8 +208,9 @@ Rect RibbonGallery::cell_bounds(std::size_t position, const Geometry& layout) co
 }
 
 void RibbonGallery::scroll_into_view(std::size_t position) {
-    const std::optional<std::size_t> line = line_of(position);
-    if (!line) return;
+    const stxlib::Optional<std::size_t> found = line_of(position);
+    const std::size_t* const line = found.value();
+    if (line == nullptr) return;
     const Geometry layout = geometry();
     std::size_t first = first_line_;
     if (*line < first) {
@@ -330,11 +339,11 @@ AnatomyStateSet RibbonGallery::item_states(std::size_t position) const {
     const std::optional<std::string> selected = selected_id.read();
     if (selected && *selected == items_[order_[position]].stable_id) states.insert(AnatomyState::selected);
     if (!item_enabled(position)) states.insert(AnatomyState::disabled);
-    if (hot_ == position) states.insert(AnatomyState::hot);
-    if (pressed_ == position) states.insert(AnatomyState::pressed);
-    if (focused_ == position) states.insert(AnatomyState::current);
+    if (holds_position(hot_, position)) states.insert(AnatomyState::hot);
+    if (holds_position(pressed_, position)) states.insert(AnatomyState::pressed);
+    if (holds_position(focused_, position)) states.insert(AnatomyState::current);
     const Window* const host = attached_window();
-    if (has_focus_ && focused_ == position && host != nullptr && (*host).focus_cue_visible()) {
+    if (has_focus_ && holds_position(focused_, position) && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;
@@ -422,7 +431,7 @@ void RibbonGallery::on_paint(Painter& painter, Rect) {
         part.family = ControlVisualRole::menu_item;
         part.role = PartRole::face;
         part.bounds = item.item_face.bounds;
-        part.key = PartKey{"item_face", record.stable_id, {}};
+        part.key.set(PartKey{"item_face", record.stable_id, {}});
         paint_part(painter, *this, part);
         part.key.reset();
         part.family = ControlVisualRole::selection;
@@ -485,11 +494,11 @@ constexpr std::array<AnatomyState, 3> more_states{{AnatomyState::hot, AnatomySta
 constexpr std::array<AnatomyState, 1> more_glyph_states{{AnatomyState::open}};
 
 constexpr std::array<PartField<RibbonGallery::Parts>, 10> gallery_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::well},
-    {.declaration = {.name = "item_viewport", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "item_viewport", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::item_viewport},
     {.declaration = {.name = "scroll_up", .role = PartRole::actuator, .composed_from = "button",
                      .states = scroll_states},
@@ -509,20 +518,20 @@ constexpr std::array<PartField<RibbonGallery::Parts>, 10> gallery_part_fields{{
     {.declaration = {.name = "more_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = more_glyph_states},
      .member = &RibbonGallery::Parts::more_glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::Parts::focus},
 }};
 
 constexpr std::array<PartField<RibbonGallery::ItemParts>, 5> item_part_fields{{
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_face},
-    {.declaration = {.name = "item_selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "item_selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_selection},
-    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_icon},
-    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_label},
-    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::ItemParts::item_focus},
 }};
 
@@ -536,9 +545,9 @@ constexpr std::array<StateField<RibbonGallery::ItemStates>, 6> item_state_fields
 }};
 
 constexpr std::array<PartField<RibbonGallery::CategoryParts>, 2> category_part_fields{{
-    {.declaration = {.name = "category_caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "category_caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::CategoryParts::category_caption},
-    {.declaration = {.name = "category_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "category_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &RibbonGallery::CategoryParts::category_divider},
 }};
 
@@ -602,16 +611,22 @@ ItemSystemIndex RibbonGallery::publish_realized_item_system(std::size_t item) co
     return category_system;
 }
 
+// The realized-item accessors read a caption with .at(), so an item past the
+// realized items and captions is refused with std::out_of_range
+// (A-gf-controls-12-F7).
 std::string RibbonGallery::realized_item_stable_id(std::size_t item) const {
     const Realized shown = realized(geometry());
     if (item < shown.positions.size()) return items_[order_[shown.positions[item]]].stable_id;
-    const std::size_t line = shown.captions[item - shown.positions.size()];
+    const std::size_t line = shown.captions.at(item - shown.positions.size());
     return std::string(stable_id().value()) + ".category." + categories_[lines_[line].category].stable_id;
 }
 
 AnatomyStateSet RibbonGallery::realized_item_anatomy_states(std::size_t item) const {
     const Realized shown = realized(geometry());
     if (item < shown.positions.size()) return item_states(shown.positions[item]);
+    if (item - shown.positions.size() >= shown.captions.size()) {
+        throw std::out_of_range("RibbonGallery realized item is past the realized items");
+    }
     const AnatomyStateSet none;
     return none;
 }
@@ -624,7 +639,7 @@ void RibbonGallery::publish_realized_item_geometry(std::size_t item, std::span<P
         write_item_parts(anatomy().item_systems[item_system.value], item_part_fields, record, geometry_out);
         return;
     }
-    const CategoryParts record = category_parts(shown.captions[item - shown.positions.size()], layout);
+    const CategoryParts record = category_parts(shown.captions.at(item - shown.positions.size()), layout);
     write_item_parts(anatomy().item_systems[category_system.value], category_part_fields, record, geometry_out);
 }
 

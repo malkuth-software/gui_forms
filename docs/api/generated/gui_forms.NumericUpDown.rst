@@ -73,13 +73,21 @@ gui_forms::NumericUpDown
          Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
 
       **thousands_separator** : ``bool``
-         Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+         Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
       **text_alignment** : ``HorizontalAlignment``
-         Where the editor's text sits (TextAlign): near, center or far.
+         Where the editor's text sits (TextAlign): start, center or end.
 
       **scrubbing** : ``bool``, read-only
          Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
+
+      **scrub_glow** : ``double``, read-only
+         The glow's level now, 0 (none) to 1 (lit), and the level it moves to: 1 while scrubbing, else 0.
+
+      **scrub_glow_target** : ``double``, read-only
+
+      **scrub_glow_effect** : ``EffectInstance``, read-only
+         The glow's effect instance, attached at its first paint.
 
       **parts** : ``Parts``, read-only
 
@@ -262,15 +270,25 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: bool thousands_separator
 
-      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+      Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where the editor's text sits (TextAlign): near, center or far.
+      Where the editor's text sits (TextAlign): start, center or end.
 
    .. cpp:function:: bool scrubbing() const noexcept
 
       Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
+
+   .. cpp:function:: double scrub_glow() const noexcept
+
+      The glow's level now, 0 (none) to 1 (lit), and the level it moves to: 1 while scrubbing, else 0.
+
+   .. cpp:function:: double scrub_glow_target() const noexcept
+
+   .. cpp:function:: const EffectInstance& scrub_glow_effect() const noexcept
+
+      The glow's effect instance, attached at its first paint.
 
    .. cpp:function:: Parts parts() const
 
@@ -323,6 +341,8 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: bool begin_keyboard_drag() override
 
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value_text) override
@@ -341,11 +361,11 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_value_changed()
+   .. cpp:function:: void on_value_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
@@ -357,7 +377,7 @@ gui_forms::NumericUpDown
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 16 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 17 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -440,6 +460,18 @@ Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 
      - GUI.Forms-only
      - ``scrub``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrub_glow``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrub_glow_effect``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrub_glow_target``
+     - supported
    * - property
      - GUI.Forms-only
      - ``scrubbing``

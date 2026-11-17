@@ -3,6 +3,7 @@
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -235,7 +236,7 @@ RichTextFormat RichTextBox::selection_format() const {
                 format.bold = format_state((*span).style.bold);
                 format.italic = format_state((*span).style.italic);
                 format.code = format_state((*span).style.code);
-                format.link = format_state((*span).link.has_value());
+                format.link = format_state((*span).link.present());
             }
         }
     } else {
@@ -254,7 +255,7 @@ RichTextFormat RichTextBox::selection_format() const {
             bold.add(span.style.bold);
             italic.add(span.style.italic);
             code.add(span.style.code);
-            link.add(span.link.has_value());
+            link.add(span.link.present());
         }
         format.bold = bold.state();
         format.italic = italic.state();
@@ -325,7 +326,7 @@ struct OffsetCarrier final {
 
 } // namespace
 
-bool RichTextBox::apply_changes(const std::vector<SourceChange>& changes, std::optional<TextSelection> selection) {
+bool RichTextBox::apply_changes(const std::vector<SourceChange>& changes, stxlib::Optional<TextSelection> selection) {
     require_mutable();
     if (changes.empty() || read_only.read()) return false;
     const BorrowedText source = (*editing_).text();
@@ -341,8 +342,8 @@ bool RichTextBox::apply_changes(const std::vector<SourceChange>& changes, std::o
     replacement.append(source.substr(cursor, region_end - cursor));
     if (replacement == source.substr(region_start, region_end - region_start)) return false;
     TextSelection next{};
-    if (selection) {
-        next = *selection;
+    if (selection.present()) {
+        next = (*selection.value());
     } else {
         const TextSelection old = (*editing_).selection();
         const OffsetCarrier carry{};
@@ -387,7 +388,7 @@ bool RichTextBox::toggle_wrap(std::span<const std::string_view> delimiters) {
                 changes.push_back({.start = caret - length, .end = caret, .text = {}});
                 changes.push_back({.start = caret, .end = caret + length, .text = {}});
                 const Utf8Offset landed(caret - length);
-                const bool done = apply_changes(changes, TextSelection{landed, landed});
+                const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::of(TextSelection{landed, landed}));
                 return done;
             }
         }
@@ -395,7 +396,7 @@ bool RichTextBox::toggle_wrap(std::span<const std::string_view> delimiters) {
         pair.append(written);
         changes.push_back({.start = caret, .end = caret, .text = pair});
         const Utf8Offset landed(caret + written.size());
-        const bool done = apply_changes(changes, TextSelection{landed, landed});
+        const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::of(TextSelection{landed, landed}));
         return done;
     }
     // The selected text on each line it covers, past the line's markers,
@@ -452,7 +453,7 @@ bool RichTextBox::toggle_wrap(std::span<const std::string_view> delimiters) {
             changes.push_back({.start = range.end, .end = range.end, .text = std::string(written)});
         }
     }
-    const bool done = apply_changes(changes, std::nullopt);
+    const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::none());
     return done;
 }
 
@@ -483,7 +484,7 @@ bool RichTextBox::insert_link() {
         const std::size_t caret = selection.caret.value();
         changes.push_back({.start = caret, .end = caret, .text = "[]()"});
         const Utf8Offset landed(caret + 1U);
-        const bool done = apply_changes(changes, TextSelection{landed, landed});
+        const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::of(TextSelection{landed, landed}));
         return done;
     }
     const std::size_t start = selection.start().value();
@@ -492,7 +493,7 @@ bool RichTextBox::insert_link() {
     changes.push_back({.start = end, .end = end, .text = "]()"});
     // The caret goes between the parentheses, where the destination goes.
     const Utf8Offset landed(end + 3U);
-    const bool done = apply_changes(changes, TextSelection{landed, landed});
+    const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::of(TextSelection{landed, landed}));
     return done;
 }
 
@@ -521,7 +522,7 @@ bool RichTextBox::set_heading_level(std::size_t level) {
         changes.push_back({.start = line_start + prefix.marker_end, .end = line_start + prefix.body,
                            .text = marker});
     }
-    const bool done = apply_changes(changes, std::nullopt);
+    const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::none());
     return done;
 }
 
@@ -561,7 +562,7 @@ bool RichTextBox::toggle_list(bool numbered) {
         }
         changes.push_back({.start = start, .end = end, .text = marker});
     }
-    const bool done = apply_changes(changes, std::nullopt);
+    const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::none());
     return done;
 }
 
@@ -597,7 +598,7 @@ bool RichTextBox::continue_list() {
         const std::size_t from = prefix.kind == ListMarkerKind::none ? 0U : prefix.marker_start;
         changes.push_back({.start = line_start + from, .end = line_start + body, .text = {}});
         const Utf8Offset landed(line_start + from);
-        const bool done = apply_changes(changes, TextSelection{landed, landed});
+        const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::of(TextSelection{landed, landed}));
         return done;
     }
     std::string next("\n");
@@ -614,7 +615,7 @@ bool RichTextBox::continue_list() {
     }
     changes.push_back({.start = caret, .end = caret, .text = next});
     const Utf8Offset landed(caret + next.size());
-    const bool done = apply_changes(changes, TextSelection{landed, landed});
+    const bool done = apply_changes(changes, stxlib::Optional<TextSelection>::of(TextSelection{landed, landed}));
     return done;
 }
 

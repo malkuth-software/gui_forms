@@ -21,6 +21,10 @@ Owner-drawn, live and raster surfaces.
      - A thread-safe exchange that hands the newest frame from a pixel producer to the window.
    * - :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>`
      - Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.
+   * - :cpp:class:`ContentSurface <gui_forms::ContentSurface>`
+     - A region whose pixels a consumer renders itself, on its own thread, with its own engine and fonts.
+   * - :cpp:class:`ContentTextEditor <gui_forms::ContentTextEditor>`
+     - Editable text a consumer lays out and renders itself, edited by GUI.Forms.
 
 .. toctree::
    :hidden:
@@ -30,6 +34,8 @@ Owner-drawn, live and raster surfaces.
    generated/gui_forms.NodeCanvas
    generated/gui_forms.LiveSurface
    generated/gui_forms.SubSurfaceHost
+   generated/gui_forms.ContentSurface
+   generated/gui_forms.ContentTextEditor
 
 Related types
 -------------
@@ -38,6 +44,16 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ContentSurface::Parts <gui_forms::ContentSurface::Parts>`
+     - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`ContentSurface::States <gui_forms::ContentSurface::States>`
+     -  
+   * - :cpp:class:`ContentTextEditor::Parts <gui_forms::ContentTextEditor::Parts>`
+     - Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows) and ``selection`` (the union of the highlight's boxes); the focus rectangle is the scrollable base's ``focus`` part.
+   * - :cpp:class:`ContentTextEditor::States <gui_forms::ContentTextEditor::States>`
+     -  
+   * - :cpp:class:`ContentUserEdit <gui_forms::ContentUserEdit>`
+     - One user edit the editor accepted (ContentTextEditor::user_edit): its kind (typing, deletion or paste) and whether the input was an unfinished composition.
    * - :cpp:class:`DrawingSurface::Parts <gui_forms::DrawingSurface::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DrawingSurface::States <gui_forms::DrawingSurface::States>`
@@ -87,7 +103,7 @@ Related types
    * - :cpp:class:`NodeGraphEdited <gui_forms::NodeGraphEdited>`
      -  
    * - :cpp:class:`NodeId <gui_forms::NodeId>`
-     - A node's identity: its slot and the slot's generation when it was added.
+     - A node's identity: its slot and the generation the graph issued it.
    * - :cpp:class:`NodeLinkCheck <gui_forms::NodeLinkCheck>`
      - The compatibility question for one prospective link (node graph gap N6: the graph has no conversion table yet, so the application answers).
    * - :cpp:class:`NodeLinkConnected <gui_forms::NodeLinkConnected>`
@@ -188,6 +204,92 @@ Related types
      - A point in graph space (world units, float64).
    * - :cpp:class:`WorldRect <gui_forms::WorldRect>`
      - An axis-aligned rectangle in graph space: its top-left corner and size.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSurface::Parts final
+
+   ``#include <gui_forms/controls/content_surface.hpp>``
+
+   Stage T1 anatomy, as dot members. ``content`` is the composed frame, present while there is a surface; ``veil`` covers the region and ``caption`` holds the status caption while the status is stale, abandoned or failed, which is the ``interrupted`` state.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry veil
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSurface::States final
+
+   ``#include <gui_forms/controls/content_surface.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool interrupted
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextEditor::Parts final
+
+   ``#include <gui_forms/controls/content_text_editor.hpp>``
+
+   Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows) and ``selection`` (the union of the highlight's boxes); the focus rectangle is the scrollable base's ``focus`` part.
+
+   .. cpp:member:: ScrollableControl::Parts scrollable
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry caret
+
+   .. cpp:member:: PartGeometry selection
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextEditor::States final
+
+   ``#include <gui_forms/controls/content_text_editor.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentUserEdit final
+
+   ``#include <gui_forms/controls/content_text_editor.hpp>``
+
+   One user edit the editor accepted (ContentTextEditor::user_edit): its kind (typing, deletion or paste) and whether the input was an unfinished composition. Raised after the edit's text_changed, or alone when the edit replaced bytes by the same bytes; refused edits, undo, redo and set_text raise none.
+
+   .. cpp:member:: TextEditKind kind
+
+      Default: ``{TextEditKind::typing}``.
+
+   .. cpp:member:: bool composing
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -358,6 +460,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "link_flow", .engine_version = 2U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 8000U, .per_device_pixel = 4U}, .state_budget = 16U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LinkId final
@@ -458,6 +562,10 @@ Related types
 
       The soft style's largest distance between a drawn point and its curve. Default: ``{0.25}``.
 
+   .. cpp:member:: bool count_crossings
+
+      Whether route counts the crossings into its statistics, comparing every segment with every segment of every later route (quadratic in the segments). Off, LinkRouteStatistics::crossings is 0 and the routes are the same. Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LinkRouteStatistics final
@@ -478,7 +586,7 @@ Related types
 
    .. cpp:member:: std::size_t crossings
 
-      Perpendicular crossings between different links after nudging.
+      Perpendicular crossings between different links after nudging; 0 unless LinkRouterOptions::count_crossings.
 
    .. cpp:member:: std::size_t nudged
 
@@ -546,7 +654,7 @@ Related types
 
    .. cpp:member:: std::size_t nodes
 
-   .. cpp:member:: std::optional<LinkId> link
+   .. cpp:member:: stxlib::Optional<LinkId> link
 
 .. cpp:namespace:: gui_forms
 
@@ -833,7 +941,7 @@ Related types
 
    ``#include <gui_forms/controls/node_graph.hpp>``
 
-   A node's identity: its slot and the slot's generation when it was added.
+   A node's identity: its slot and the generation the graph issued it.
 
    .. cpp:member:: std::uint32_t index
 
@@ -881,7 +989,7 @@ Related types
 
    .. cpp:member:: Point local
 
-   .. cpp:member:: std::optional<PortRef> from
+   .. cpp:member:: stxlib::Optional<PortRef> from
 
 .. cpp:namespace:: gui_forms
 
@@ -1686,7 +1794,7 @@ Related types
 
       Default: ``{SubSurfaceToolTipOrigin::pointer}``.
 
-   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+   .. cpp:member:: stxlib::Optional<std::chrono::milliseconds> duration
 
       For a program request (SurfaceRoot::show_tool_tip or request_tool_tip on the sub-surface): how long it shows (none: the parent's auto-pop delay; zero: until revoked).
 
@@ -1892,7 +2000,7 @@ Related types
 
    .. cpp:function:: SubSurfaceStatistics statistics() const
 
-   .. cpp:function:: std::optional<Rect> text_input_caret() const
+   .. cpp:function:: stxlib::Optional<Rect> text_input_caret() const
 
       The sub-surface's text input caret (SurfaceRoot::text_input_caret) in its own coordinates, as its thread last published it at the end of a turn; none while nothing there has focus (design note section 4: the input method follows it without a synchronous call).
 

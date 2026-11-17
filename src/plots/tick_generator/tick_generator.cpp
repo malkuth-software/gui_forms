@@ -2,6 +2,7 @@
 
 #include "gui_forms/binding/number_format/number_format.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -20,6 +21,9 @@ constexpr double minimum_minor_spacing = 4.0;
 constexpr double minimum_decade_for_minors = 40.0;
 // Time spans shorter than this tick as linear seconds.
 constexpr double shortest_calendar_span = 2.0;
+// 2^53: below it every integer is exact in a double, so a tick position
+// counted by adding 1 always advances.
+constexpr double exact_integer_limit = 9007199254740992.0;
 
 // The label thinning multipliers' mantissas: 1, 2, 5, 10, 20, 50, ...
 constexpr std::array<std::size_t, 3> thinning_mantissas{1U, 2U, 5U};
@@ -44,7 +48,14 @@ int step_exponent(double step) noexcept {
 }
 
 void set_label(TickLabel& label, std::string_view text) noexcept {
-    const std::size_t length = std::min(text.size(), maximum_tick_label);
+    std::size_t length = std::min(text.size(), maximum_tick_label);
+    // A cut text ends at the last whole UTF-8 sequence that fits
+    // (A-gf-core-09-F5): while the first byte left out continues a sequence
+    // (10xxxxxx), that sequence is left out whole. A category name is the
+    // application's text and may hold multi-byte characters.
+    if (length < text.size()) {
+        while (length > 0U && (static_cast<unsigned char>(text[length]) & 0xC0U) == 0x80U) length = length - 1U;
+    }
     std::copy(text.begin(), text.begin() + static_cast<std::ptrdiff_t>(length), label.bytes.begin());
     label.bytes[length] = '\0';
     label.length = static_cast<std::uint8_t>(length);
@@ -55,14 +66,58 @@ void label_number(TickLabel& label, double value, int decimals, std::string& scr
     NumberFormat format{};
     if (decimals >= 0 && decimals <= 9) {
         format.kind = NumberFormatKind::fixed;
-        format.precision = static_cast<std::uint32_t>(decimals);
+        format.precision.set(static_cast<std::uint32_t>(decimals));
     } else {
         format.kind = NumberFormatKind::general;
-        format.precision = 6U;
+        format.precision.set(6U);
     }
     // -0 would print "-0": a tick at zero is zero.
     const double shown = value == 0.0 ? 0.0 : value;
     append_formatted_number(scratch, shown, format);
+    set_label(label, scratch);
+}
+
+// A duration label's unit for a whole tick set: what one axis value is
+// multiplied by for the shown number, its suffix and its decimals.
+struct DurationLabel final {
+    double factor{1.0};
+    std::string_view suffix{};
+    int decimals{};
+};
+
+// The unit for `step` axis units of `unit_seconds` each (both finite and
+// positive): the largest of s, ms, µs and ns in which the step is at least
+// 0.1, ns below that, so a half-millisecond step reads "0.5 ms".
+DurationLabel duration_label(double step, double unit_seconds) noexcept {
+    const double step_seconds = step * unit_seconds;
+    DurationLabel label{};
+    if (step_seconds >= 0.1) {
+        label.factor = unit_seconds;
+        label.suffix = " s";
+    } else if (step_seconds >= 1e-4) {
+        label.factor = unit_seconds * 1e3;
+        label.suffix = " ms";
+    } else if (step_seconds >= 1e-7) {
+        label.factor = unit_seconds * 1e6;
+        label.suffix = " \xC2\xB5s";
+    } else {
+        label.factor = unit_seconds * 1e9;
+        label.suffix = " ns";
+    }
+    const int exponent = step_exponent(step * label.factor);
+    label.decimals = std::max(0, -exponent);
+    return label;
+}
+
+void label_duration(TickLabel& label, double value, const DurationLabel& form, std::string& scratch) {
+    scratch.clear();
+    NumberFormat format{};
+    format.kind = NumberFormatKind::fixed;
+    format.precision.set(static_cast<std::uint32_t>(std::min(form.decimals, 9)));
+    const double scaled = value * form.factor;
+    const double shown = scaled == 0.0 ? 0.0 : scaled;
+    append_formatted_number(scratch, shown, format);
+    scratch.append(form.suffix);
     set_label(label, scratch);
 }
 
@@ -184,8 +239,21 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
     out.step = step;
     const double first = std::ceil(low / step);
     const double last = std::floor(high / step);
+    // Tick positions are integers counted in a double. Past 2^53 adding 1
+    // no longer moves a position, so the loops below would repeat one tick
+    // or, for the minors, never end. A domain that narrow for its magnitude
+    // (a constant with rounding noise, which Plot3DScene takes from its
+    // data) has no distinct ticks to show (A-gf-core-09-F2).
+    if (!(std::fabs(first) < exact_integer_limit) || !(std::fabs(last) < exact_integer_limit)) {
+        out.step = 0.0;
+        return TickOutcome::too_small;
+    }
     std::array<std::int64_t, maximum_major_ticks> ordinals{};
     TickOutcome outcome = TickOutcome::generated;
+    const bool durations = request.label_unit == TickLabelUnit::duration &&
+                           mapping.scale().kind == ScaleKind::linear && std::isfinite(request.unit_seconds) &&
+                           request.unit_seconds > 0.0;
+    const DurationLabel duration = durations ? duration_label(step, request.unit_seconds) : DurationLabel{};
     // Integer positions times the step: never accumulated.
     for (double position = first; position <= last; position = position + 1.0) {
         const double transformed = position * step;
@@ -197,8 +265,12 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
             break;
         }
         ordinals[index] = static_cast<std::int64_t>(position);
-        const int decimals = exponent >= 7 || exponent <= -7 ? -1 : std::max(0, -exponent);
-        label_number(out.major[index].label, value, decimals, scratch);
+        if (durations) {
+            label_duration(out.major[index].label, value, duration, scratch);
+        } else {
+            const int decimals = exponent >= 7 || exponent <= -7 ? -1 : std::max(0, -exponent);
+            label_number(out.major[index].label, value, decimals, scratch);
+        }
     }
     thin_labels(out, request, metrics, std::span<const std::int64_t>(ordinals.data(), out.major_count));
     // Minors: a step of 2 divides by 4, others by 5.
@@ -209,6 +281,11 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
     if (minor_device < minimum_minor_spacing) return outcome;
     const double minor_first = std::ceil(low / minor_step);
     const double minor_last = std::floor(high / minor_step);
+    // As for the majors: the minor positions must stay exact integers for
+    // the loop to advance (A-gf-core-09-F2).
+    if (!(std::fabs(minor_first) < exact_integer_limit) || !(std::fabs(minor_last) < exact_integer_limit)) {
+        return outcome;
+    }
     for (double position = minor_first; position <= minor_last; position = position + 1.0) {
         if (std::fmod(position, divisions) == 0.0) continue;
         const double value = mapping.untransform(position * minor_step);

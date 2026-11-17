@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/controls/shared_property_enums.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/check_box_capabilities.hpp"
 

@@ -1,4 +1,5 @@
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/commands/command/command.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
@@ -27,7 +28,12 @@ std::shared_ptr<const PropertyEnumDescriptor> check_state_enum() {
 
 } // namespace
 
+// ButtonBase::bind's refusals are checked before the value binding is
+// retired, so a refused bind leaves the box as it was (A-gf-controls-01-F5);
+// the value binding still goes before the command's state is applied.
 void CheckBox::bind(Command& command) {
+    require_mutable();
+    if (!command.is_alive()) throw std::invalid_argument("cannot bind a disposed Command");
     unbind();
     ButtonBase::bind(command);
 }
@@ -58,6 +64,21 @@ CheckBox::CheckBox(StableId stable_id, std::string text)
 bool CheckBox::bound_checked() const noexcept {
     return check_state_ == CheckState::checked;
 }
+
+namespace {
+
+// Whether the bound value accepts `candidate`; a refusal is the binding's
+// exception, and nothing has changed when it refuses.
+bool bound_value_accepts(const detail::ScalarBinding<CheckBox, bool>& binding, bool candidate) {
+    try {
+        binding.validate_update(candidate);
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
+
+} // namespace
 
 void CheckBox::write_bound_checked(bool value) {
     checked = value;
@@ -123,19 +144,19 @@ void CheckBox::written(const decltype(three_state)&) {
 namespace {
 
 constexpr std::array<PartField<CheckBox::Parts>, 7> check_box_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::face},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::well},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::indicator},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::label},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &CheckBox::Parts::focus},
 }};
 
@@ -163,6 +184,7 @@ constexpr ControlAnatomy check_box_anatomy{
     .parts = check_box_parts,
     .states = check_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -241,11 +263,11 @@ void CheckBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
     record.region = PartGeometry::from_bounds(bounds);
     record.well = PartGeometry::from_bounds(box);
     record.indicator = PartGeometry::from_bounds(mark);
-    if (layout.image.has_value()) {
-        record.icon = PartGeometry::from_bounds(*layout.image);
+    if (layout.image.present()) {
+        record.icon = PartGeometry::from_bounds(*layout.image.value());
     }
-    if (layout.text.has_value()) {
-        record.label = PartGeometry::from_bounds(*layout.text);
+    if (layout.text.present()) {
+        record.label = PartGeometry::from_bounds(*layout.text.value());
     }
     record.focus = PartGeometry::from_bounds(bounds);
     write_parts(anatomy(), check_box_part_fields, record, geometry);
@@ -296,12 +318,12 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     const Rect laid_box = check_box_well(bounds, indicator_style.read());
     const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ground{};
-    std::optional<Color> ink{};
+    stxlib::Optional<Color> ground{};
+    stxlib::Optional<Color> ink{};
     if (has_style_override()) {
         const BasicControlStyle& colors = style();
-        ground = colors.paper;
-        ink = colors.text;
+        ground.set(colors.paper);
+        ink.set(colors.text);
     }
     PartPaint well;
     well.family = ControlVisualRole::choice;
@@ -313,9 +335,9 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     const ControlVisualContext context = part_visual_context(*this, states);
     const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
     const double box_radius = std::min(2.0, theme_radius);
-    well.corner_radius = indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : box_radius;
+    well.corner_radius.set(indicator_style.read() == ChoiceIndicatorStyle::toggle ? 7.5 : box_radius);
     well.authored_background = ground;
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     const PartMark mark = check_box_mark(indicator_style.read(), check_state_);
     if (mark != PartMark::none) {
@@ -327,7 +349,7 @@ void CheckBox::on_paint(Painter& painter, Rect) {
         indicator.bounds = mirrored ? horizontally_mirrored(laid_mark, bounds) : laid_mark;
         indicator.states = states;
         indicator.authored_foreground = ink;
-        indicator.key = PartKey{"indicator", {}, {}};
+        indicator.key.set(PartKey{"indicator", {}, {}});
         paint_part(painter, *this, indicator);
     }
     const Rect laid_content{laid_box.x + laid_box.width + 1.0, 0.0,
@@ -343,7 +365,7 @@ void CheckBox::on_paint(Painter& painter, Rect) {
     focus.role = PartRole::focus;
     focus.bounds = bounds;
     focus.states = states;
-    focus.key = PartKey{"focus", {}, {}};
+    focus.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, focus);
 }
 
@@ -352,8 +374,11 @@ Insets CheckBox::visual_outsets() const noexcept {
     if (appearance.read() == CheckBoxAppearance::button) {
         return resolved_visual_outsets(ControlVisualRole::button, context);
     }
+    // The control's box encloses the glyph's (surface_material_painting.hpp).
+    const Rect arranged = committed_arranged_bounds();
     return surface_material_visual_outsets(
-        effective_theme().resolve(ControlVisualRole::choice, context).material);
+        effective_theme().resolve(ControlVisualRole::choice, context).material,
+        Size{arranged.width, arranged.height});
 }
 
 void CheckBox::on_activate() {
@@ -364,6 +389,14 @@ void CheckBox::on_activate() {
             next = CheckState::checked;
         } else if (check_state_ == CheckState::checked && three_state.read()) {
             next = CheckState::indeterminate;
+        }
+        // A bound Value may refuse the new state (another bound control, an
+        // application's validating handler). Activation comes from a click,
+        // a key or the access key, so the refusal means "no change" here
+        // rather than an exception out of input handling (A-gf-controls-11-F8).
+        // The check runs before the write, which validates again.
+        if (value_binding_ && next != check_state_ && !bound_value_accepts(*value_binding_, next == CheckState::checked)) {
+            return;
         }
         check_state = next;
         if (!is_alive()) {
@@ -500,25 +533,6 @@ BindingValue PropertyValueTraits<CheckState>::to_binding(CheckState value) {
 CheckState PropertyValueTraits<CheckState>::from_binding(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
     return static_cast<CheckState>(choice.value);
-}
-
-PropertyType PropertyValueTraits<ChoiceIndicatorStyle>::type() {
-    return PropertyType{BindingValueKind::enumeration, false, button_base_detail::choice_indicator_style_enum()};
-}
-
-BindingValue PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(ChoiceIndicatorStyle value) {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = button_base_detail::choice_indicator_style_enum();
-    const std::optional<BindingValue> converted =
-        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
-    return *converted;
-}
-
-ChoiceIndicatorStyle PropertyValueTraits<ChoiceIndicatorStyle>::from_binding(const BindingValue& value) {
-    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    return static_cast<ChoiceIndicatorStyle>(choice.value);
 }
 
 const std::array<PropertyEntry, CheckBox::check_box_property_count>& CheckBox::check_box_property_entries() noexcept {

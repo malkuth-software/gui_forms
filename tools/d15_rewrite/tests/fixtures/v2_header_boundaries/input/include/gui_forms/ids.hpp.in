@@ -1,0 +1,102 @@
+#pragma once
+
+#include <cstddef>
+#include <functional>
+#include <map>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+// Iterated by a range-based for (pattern 3) and called with a standard
+// view from a consteval constructor (pattern 4): stays standard, so the
+// literal check stays a constant expression.
+[[nodiscard]] constexpr bool valid_id(std::string_view value) noexcept {
+    if (value.empty()) return false;
+    for (const char character : value) {
+        if (character == ' ') return false;
+    }
+    return true;
+}
+
+void id_literal_is_not_valid() noexcept;
+
+class IdLiteral final {
+public:
+    template <std::size_t Size>
+    consteval IdLiteral(const char (&literal)[Size]) : value_(literal, Size - 1U) {
+        if (!valid_id(value_)) id_literal_is_not_valid();
+    }
+    [[nodiscard]] constexpr std::string_view value() const noexcept { return value_; }
+
+private:
+    std::string_view value_;
+};
+
+// A standard exception built from the parameter (pattern 6).
+class WrongThread final : public std::logic_error {
+public:
+    explicit WrongThread(const std::string& message) : std::logic_error(message) {}
+};
+
+// A constructor given a standard view, which initialises a std::string
+// member (pattern 6).
+class Place final {
+public:
+    [[nodiscard]] static Place after(IdLiteral anchor) { return Place(anchor.value()); }
+    [[nodiscard]] std::string_view anchor() const noexcept { return anchor_; }
+
+private:
+    explicit Place(std::string_view anchor) : anchor_(anchor) {}
+
+    std::string anchor_{};
+};
+
+// A standard map searched with the parameter (pattern 7); entry_count is
+// defined outside include/ and converts.
+class Registry final {
+public:
+    [[nodiscard]] bool holds(const std::string& name) const { return entries_.find(name) != entries_.end(); }
+    [[nodiscard]] std::size_t entry_count(std::string_view name) const;
+
+private:
+    std::map<std::string, int> entries_;
+};
+
+// A standard hash fed the parameter (pattern 5).
+[[nodiscard]] inline std::size_t id_hash(std::string_view id) {
+    const std::size_t result = std::hash<std::string_view>{}(id);
+    return result;
+}
+
+struct Family final {
+    std::string name;
+};
+
+// Compared with each other: the two parameters change together. Given a
+// standard member by find_family, so neither changes, nor find_family's.
+[[nodiscard]] inline bool same_family(std::string_view left, std::string_view right) noexcept {
+    return left == right;
+}
+
+[[nodiscard]] inline const Family* find_family(const Family& family, std::string_view name) noexcept {
+    if (same_family(family.name, name)) return &family;
+    return nullptr;
+}
+
+// Converts: only empty, size and a literal comparison.
+[[nodiscard]] inline std::size_t id_length(std::string_view id) noexcept {
+    if (id.empty() || id == "none") return 0U;
+    return id.size();
+}
+
+// Converts with id_length: a header flow between two candidates ties them.
+[[nodiscard]] inline std::size_t forwarded_length(const std::string& id) noexcept {
+    return id_length(id);
+}
+
+// An empty default spelled with its type becomes the empty TextView.
+void set_title(std::string_view title = std::string_view());
+
+} // namespace gui_forms

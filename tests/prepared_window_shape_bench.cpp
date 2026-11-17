@@ -378,7 +378,7 @@ private:
 
 using FontBank = std::array<std::shared_ptr<const std::vector<std::byte>>, 4U>;
 FontBank load_fonts(const std::filesystem::path& directory) {
-    const std::array<const char*, 4U> names{"Carlito-Regular.ttf", "NotoSansArabic-Regular.ttf",
+    const std::array<const char*, 4U> names{"Carlito-Regular.ttf", "NotoSansArabic-Minimal.ttf",
         "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     FontBank bank{};
     for (std::size_t index = 0U; index < names.size(); ++index) {

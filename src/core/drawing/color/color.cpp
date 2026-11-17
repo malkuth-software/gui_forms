@@ -227,18 +227,20 @@ XyzD65 oklab_to_xyz_d65(Oklab color) {
 
 Oklch oklab_to_oklch(Oklab color) {
     require_oklab(color);
-    const double chroma = std::hypot(color.a, color.b);
+    const double chroma = gui_forms::engine_hypotenuse(color.a, color.b);
     const double hue = chroma <= 1e-15 ? 0.0 : normalized_hue(
-        std::atan2(color.b, color.a) * 180.0 / std::acos(-1.0));
+        gui_forms::engine_arctangent2(color.b, color.a) * 180.0 /
+        3.14159265358979323846);
     return {color.lightness, chroma, hue, color.alpha};
 }
 
 Oklab oklch_to_oklab(Oklch color) {
     require_oklch(color);
-    const double radians = normalized_hue(color.hue_degrees) *
-                           std::acos(-1.0) / 180.0;
-    return {color.lightness, color.chroma * std::cos(radians),
-            color.chroma * std::sin(radians), color.alpha};
+    const gui_forms::EngineSineCosine turn =
+        gui_forms::engine_sine_cosine_degrees(
+            normalized_hue(color.hue_degrees));
+    return {color.lightness, color.chroma * turn.cosine,
+            color.chroma * turn.sine, color.alpha};
 }
 
 SrgbConversion oklch_to_srgb(Oklch color) {
@@ -279,8 +281,9 @@ OklchGamutMapping map_oklch_to_srgb_gamut(Oklch color) {
 }
 
 const SystemPalette& default_system_palette() noexcept {
-    static const SystemPalette palette{};
-    return palette;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const SystemPalette* const palette = new const SystemPalette{};
+    return *palette;
 }
 
 

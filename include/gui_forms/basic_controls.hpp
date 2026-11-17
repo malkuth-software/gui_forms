@@ -12,6 +12,7 @@
 #include "gui_forms/controls/text_block.hpp"
 #include "gui_forms/controls/badge.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/controls/spinner.hpp"
 #include "gui_forms/controls/info_banner.hpp"

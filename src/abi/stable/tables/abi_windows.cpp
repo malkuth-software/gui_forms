@@ -9,13 +9,16 @@
 #include "../events/abi_event_fields.hpp"
 #include "../registry/abi_registry.hpp"
 #include "../schema/abi_schema.hpp"
+#include "../values/abi_values.hpp"
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/application.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/band/window_band.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -42,6 +45,25 @@ constexpr SlotIdentity show_modal_slot{GF_TABLE_WINDOWS, 7U};
 constexpr SlotIdentity show_owned_slot{GF_TABLE_WINDOWS, 8U};
 constexpr SlotIdentity window_properties_slot{GF_TABLE_WINDOWS, 9U};
 constexpr SlotIdentity focused_control_slot{GF_TABLE_WINDOWS, 10U};
+constexpr SlotIdentity declare_band_slot{GF_TABLE_WINDOWS, 11U};
+constexpr SlotIdentity undeclare_band_slot{GF_TABLE_WINDOWS, 12U};
+constexpr SlotIdentity set_band_appearance_slot{GF_TABLE_WINDOWS, 13U};
+constexpr SlotIdentity band_report_slot{GF_TABLE_WINDOWS, 14U};
+constexpr SlotIdentity set_corner_preference_slot{GF_TABLE_WINDOWS, 15U};
+constexpr SlotIdentity content_rect_slot{GF_TABLE_WINDOWS, 16U};
+constexpr SlotIdentity shaping_slot{GF_TABLE_WINDOWS, 17U};
+constexpr SlotIdentity pointer_location_slot{GF_TABLE_WINDOWS, 18U};
+constexpr SlotIdentity show_business_card_slot{GF_TABLE_WINDOWS, 19U};
+
+// The 1.5 sizes of the band and shaping records.
+constexpr std::uint32_t band_options_size_1_5 = 56U;
+constexpr std::uint32_t band_appearance_size_1_5 = 80U;
+constexpr std::uint32_t band_report_size_1_5 = 72U;
+constexpr std::uint32_t shaping_size_1_5 = 32U;
+static_assert(sizeof(gf_window_band_options) == band_options_size_1_5);
+static_assert(sizeof(gf_window_band_appearance) == band_appearance_size_1_5);
+static_assert(sizeof(gf_window_band_report) == band_report_size_1_5);
+static_assert(sizeof(gf_window_shaping) == shaping_size_1_5);
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -153,8 +175,10 @@ struct RunClosed {
         // became ready reports the program's close.
         std::optional<HostCloseReason> reason{HostCloseReason::application};
         Window* const model = (*callbacks).model.get();
-        if (model != nullptr && (*model).host_close_reason().has_value()) {
-            reason = (*model).host_close_reason();
+        if (model != nullptr) {
+            const stxlib::Optional<HostCloseReason> held = (*model).host_close_reason();
+            const HostCloseReason* const host_reason = held.value();
+            if (host_reason != nullptr) reason = *host_reason;
         }
         (*callbacks).model.reset();
         static_cast<void>(call_run_callback(*callbacks, (*callbacks).closed.get(), "closed", reason));
@@ -305,8 +329,11 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     Size client_size = window_options.initial_size;
     if ((*options).width > 0.0) client_size.width = (*options).width;
     if ((*options).height > 0.0) client_size.height = (*options).height;
-    // Admitted first (N21): a refused run leaves a created window as it was
-    // and builds no window around a bare root.
+    // Admitted first (N21): a run refused here (another run under way)
+    // leaves a created window as it was and builds no window around a bare
+    // root. Past this point the window is handed to Application::run, which
+    // destroys it on its own refusals too (A-gf-abi-03-F8; the header says
+    // so). Giving it back would need Application::run to return it.
     const gf_status began = registry().begin_run(root, run_slot);
     if (began != GF_STATUS_OK) {
         disarm_all(callbacks);
@@ -375,14 +402,13 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     return status;
 }
 
+gf_status windows_run_body(gf_object root, const gf_run_options* options) {
+    const gf_status ran = run_window(root, options);
+    return ran;
+}
+
 gf_status GF_CALL windows_run(gf_object root, const gf_run_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(run_slot.table_id, run_slot.slot_index);
-        const gf_status ran = run_window(root, options);
-        return ran;
-    } catch (...) {
-        return fail_with_current_exception(run_slot);
-    }
+    return call_slot(run_slot, windows_run_body, root, options);
 }
 
 // ---------------------------------------------------------------------------
@@ -414,8 +440,11 @@ struct OwnedWindow final {
 // The owned windows from ready until closed, in opening order. UI thread
 // only; bounded by the host's window table (HostWindowing::maximum_windows).
 std::vector<std::shared_ptr<OwnedWindow>>& owned_windows() {
-    static std::vector<std::shared_ptr<OwnedWindow>> windows;
-    return windows;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static std::vector<std::shared_ptr<OwnedWindow>>* const windows = new std::vector<std::shared_ptr<OwnedWindow>>();
+    return *windows;
 }
 
 // The open owned window over root, or null.
@@ -645,15 +674,15 @@ gf_status show_modal_window(gf_object root, const gf_owned_window_options* optio
     return GF_STATUS_OK;
 }
 
+gf_status windows_show_modal_body(gf_object root, const gf_owned_window_options* options,
+                                  gf_dialog_result_code* result) {
+    const gf_status shown = show_modal_window(root, options, result);
+    return shown;
+}
+
 gf_status GF_CALL windows_show_modal(gf_object root, const gf_owned_window_options* options,
                                      gf_dialog_result_code* result) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_modal_slot.table_id, show_modal_slot.slot_index);
-        const gf_status shown = show_modal_window(root, options, result);
-        return shown;
-    } catch (...) {
-        return fail_with_current_exception(show_modal_slot);
-    }
+    return call_slot(show_modal_slot, windows_show_modal_body, root, options, result);
 }
 
 gf_status show_owned_window(gf_object root, const gf_owned_window_options* options) {
@@ -678,53 +707,51 @@ gf_status show_owned_window(gf_object root, const gf_owned_window_options* optio
     return GF_STATUS_OK;
 }
 
+gf_status windows_show_owned_body(gf_object root, const gf_owned_window_options* options) {
+    const gf_status shown = show_owned_window(root, options);
+    return shown;
+}
+
 gf_status GF_CALL windows_show_owned(gf_object root, const gf_owned_window_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_owned_slot.table_id, show_owned_slot.slot_index);
-        const gf_status shown = show_owned_window(root, options);
-        return shown;
-    } catch (...) {
-        return fail_with_current_exception(show_owned_slot);
+    return call_slot(show_owned_slot, windows_show_owned_body, root, options);
+}
+
+gf_status windows_request_close_body(gf_object root) {
+    const gf_status entered = registry().enter_ui(request_close_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(root, request_close_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    // A window show_modal or show_owned opened (since 1.1).
+    const std::shared_ptr<OwnedWindow> owned = find_owned(root);
+    if (owned != nullptr) {
+        const HostServiceStatus asked = (*owned).window.request_close();
+        if (!asked.accepted()) {
+            return owned_status(asked, request_close_slot);
+        }
+        return GF_STATUS_OK;
+    }
+    ApplicationWindowHandle window;
+    const gf_status running = registry().running_window(root, request_close_slot, window);
+    if (running != GF_STATUS_OK) {
+        return running;
+    }
+    if (!window.active()) {
+        return fail(GF_STATUS_INVALID_STATE, request_close_slot, "the window is not ready yet or has closed");
+    }
+    const HostServiceStatus requested = window.request_close();
+    if (!requested.accepted()) {
+        return fail(GF_STATUS_INTERNAL, request_close_slot, "the host refused the close request");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL windows_request_close(gf_object root) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(request_close_slot.table_id, request_close_slot.slot_index);
-        const gf_status entered = registry().enter_ui(request_close_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        Component::Ptr object;
-        const gf_status found = registry().find_component(root, request_close_slot, object);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        // A window show_modal or show_owned opened (since 1.1).
-        const std::shared_ptr<OwnedWindow> owned = find_owned(root);
-        if (owned != nullptr) {
-            const HostServiceStatus asked = (*owned).window.request_close();
-            if (!asked.accepted()) {
-                return owned_status(asked, request_close_slot);
-            }
-            return GF_STATUS_OK;
-        }
-        ApplicationWindowHandle window;
-        const gf_status running = registry().running_window(root, request_close_slot, window);
-        if (running != GF_STATUS_OK) {
-            return running;
-        }
-        if (!window.active()) {
-            return fail(GF_STATUS_INVALID_STATE, request_close_slot, "the window is not ready yet or has closed");
-        }
-        const HostServiceStatus requested = window.request_close();
-        if (!requested.accepted()) {
-            return fail(GF_STATUS_INTERNAL, request_close_slot, "the host refused the close request");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(request_close_slot);
-    }
+    return call_slot(request_close_slot, windows_request_close_body, root);
 }
 
 // A window over root, not yet running. Validated before anything is made.
@@ -754,14 +781,13 @@ gf_status create_window(gf_object root, gf_object* made) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_create_body(gf_object root, gf_object* window) {
+    const gf_status created = create_window(root, window);
+    return created;
+}
+
 gf_status GF_CALL windows_create(gf_object root, gf_object* window) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
-        const gf_status created = create_window(root, window);
-        return created;
-    } catch (...) {
-        return fail_with_current_exception(create_slot);
-    }
+    return call_slot(create_slot, windows_create_body, root, window);
 }
 
 // The interactions every window raises (Window::append_interactions). Their
@@ -773,43 +799,41 @@ std::vector<InteractionDeclaration> window_interactions() {
     return interactions;
 }
 
-gf_status GF_CALL windows_interaction_count(std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(interaction_count_slot.table_id, interaction_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, interaction_count_slot, "interaction_count needs a count output");
-        }
-        const std::vector<InteractionDeclaration> interactions = window_interactions();
-        *count = static_cast<std::uint64_t>(interactions.size());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(interaction_count_slot);
+gf_status windows_interaction_count_body(std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, interaction_count_slot, "interaction_count needs a count output");
     }
+    const std::vector<InteractionDeclaration> interactions = window_interactions();
+    *count = static_cast<std::uint64_t>(interactions.size());
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_interaction_count(std::uint64_t* count) noexcept {
+    return call_slot(interaction_count_slot, windows_interaction_count_body, count);
+}
+
+gf_status windows_interaction_at_body(std::uint64_t interaction, gf_schema_interaction* record) {
+    const gf_status valid = check_record(record, interaction_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    const std::vector<InteractionDeclaration> interactions = window_interactions();
+    if (interaction >= interactions.size()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, interaction_at_slot, "the index is past the end of its list");
+    }
+    const InteractionDeclaration& held = interactions[static_cast<std::size_t>(interaction)];
+    gf_schema_interaction complete{};
+    complete.struct_size = sizeof(gf_schema_interaction);
+    complete.mutable_payload = held.mutable_payload ? 1U : 0U;
+    complete.name = gf_utf8_view{held.name.data(), held.name.size()};
+    const std::string_view fields = interaction_payload_fields(held.payload);
+    complete.payload = gf_utf8_view{fields.data(), fields.size()};
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL windows_interaction_at(std::uint64_t interaction, gf_schema_interaction* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(interaction_at_slot.table_id, interaction_at_slot.slot_index);
-        const gf_status valid = check_record(record, interaction_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        const std::vector<InteractionDeclaration> interactions = window_interactions();
-        if (interaction >= interactions.size()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, interaction_at_slot, "the index is past the end of its list");
-        }
-        const InteractionDeclaration& held = interactions[static_cast<std::size_t>(interaction)];
-        gf_schema_interaction complete{};
-        complete.struct_size = sizeof(gf_schema_interaction);
-        complete.mutable_payload = held.mutable_payload ? 1U : 0U;
-        complete.name = gf_utf8_view{held.name.data(), held.name.size()};
-        const std::string_view fields = interaction_payload_fields(held.payload);
-        complete.payload = gf_utf8_view{fields.data(), fields.size()};
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(interaction_at_slot);
-    }
+    return call_slot(interaction_at_slot, windows_interaction_at_body, interaction, record);
 }
 
 // Raises a created or running window's help request, not keyboard-initiated.
@@ -839,14 +863,13 @@ gf_status request_window_help(gf_object window, std::uint32_t* handled) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_request_help_body(gf_object window, std::uint32_t* handled) {
+    const gf_status requested = request_window_help(window, handled);
+    return requested;
+}
+
 gf_status GF_CALL windows_request_help(gf_object window, std::uint32_t* handled) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(request_help_slot.table_id, request_help_slot.slot_index);
-        const gf_status requested = request_window_help(window, handled);
-        return requested;
-    } catch (...) {
-        return fail_with_current_exception(request_help_slot);
-    }
+    return call_slot(request_help_slot, windows_request_help_body, window, handled);
 }
 
 // Window properties (since 1.1): what the window's host applies.
@@ -875,15 +898,15 @@ gf_status report_window_properties(gf_object window, gf_window_property_flags* s
     return GF_STATUS_OK;
 }
 
+gf_status windows_window_properties_body(gf_object window, gf_window_property_flags* supported,
+                                         gf_window_property_flags* applied) {
+    const gf_status reported = report_window_properties(window, supported, applied);
+    return reported;
+}
+
 gf_status GF_CALL windows_window_properties(gf_object window, gf_window_property_flags* supported,
                                             gf_window_property_flags* applied) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(window_properties_slot.table_id, window_properties_slot.slot_index);
-        const gf_status reported = report_window_properties(window, supported, applied);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(window_properties_slot);
-    }
+    return call_slot(window_properties_slot, windows_window_properties_body, window, supported, applied);
 }
 
 // The focused control of a window from create, or of the window a control
@@ -931,14 +954,122 @@ gf_status report_focused_control(gf_object window_or_root, gf_object* control) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_focused_control_body(gf_object window_or_root, gf_object* control) {
+    const gf_status reported = report_focused_control(window_or_root, control);
+    return reported;
+}
+
 gf_status GF_CALL windows_focused_control(gf_object window_or_root, gf_object* control) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(focused_control_slot.table_id, focused_control_slot.slot_index);
-        const gf_status reported = report_focused_control(window_or_root, control);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(focused_control_slot);
+    return call_slot(focused_control_slot, windows_focused_control_body, window_or_root, control);
+}
+
+// Where the pointer is, as the window of window_or_control last saw it:
+// a window from create reports window coordinates, a control in a window
+// its own (Control::pointer_location). The outputs are written only on
+// success, each one given.
+gf_status report_pointer_location(gf_object window_or_control, gf_logical_point* location,
+                                  gf_logical_point* window_position, std::uint32_t* inside) {
+    const gf_status entered = registry().enter_ui(pointer_location_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window_or_control, pointer_location_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    PointerLocation reported{};
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        const SurfaceRoot* window = (*handle).window();
+        if (!(*handle).is_alive() || window == nullptr) {
+            return fail(GF_STATUS_DISPOSED, pointer_location_slot, "the window has been disposed or has closed");
+        }
+        reported = (*window).pointer_location();
+    } else {
+        const Control::Ptr control = std::dynamic_pointer_cast<Control>(object);
+        if (!control) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, pointer_location_slot,
+                        "pointer_location takes a window or a control in one");
+        }
+        if (!(*control).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, pointer_location_slot, "the object has been disposed");
+        }
+        const SurfaceRoot* attached = (*control).attached_surface_root();
+        if (attached == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, pointer_location_slot, "the control is not in a window");
+        }
+        reported = (*control).pointer_location();
+    }
+    if (location != nullptr) {
+        *location = gf_logical_point{reported.location.x, reported.location.y};
+    }
+    if (window_position != nullptr) {
+        *window_position = gf_logical_point{reported.window_position.x, reported.window_position.y};
+    }
+    if (inside != nullptr) {
+        *inside = reported.inside ? 1U : 0U;
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status windows_pointer_location_body(gf_object window_or_control, gf_logical_point* location,
+                                        gf_logical_point* window_position, std::uint32_t* inside) {
+    const gf_status reported = report_pointer_location(window_or_control, location, window_position, inside);
+    return reported;
+}
+
+gf_status GF_CALL windows_pointer_location(gf_object window_or_control, gf_logical_point* location,
+                                           gf_logical_point* window_position, std::uint32_t* inside) noexcept {
+    return call_slot(pointer_location_slot, windows_pointer_location_body, window_or_control, location, window_position, inside);
+}
+
+// The business card in the hand over a window from create, or over the
+// window a control is in (since 1.5).
+gf_status show_card(gf_object window_or_root, std::uint32_t* shown) {
+    const gf_status entered = registry().enter_ui(show_business_card_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window_or_root, show_business_card_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    Window* window = nullptr;
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        if (!(*handle).is_alive() || (*handle).window() == nullptr) {
+            return fail(GF_STATUS_DISPOSED, show_business_card_slot, "the window has been disposed or has closed");
+        }
+        window = (*handle).window();
+    } else {
+        const Control::Ptr in_window = std::dynamic_pointer_cast<Control>(object);
+        if (!in_window) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, show_business_card_slot,
+                        "show_business_card takes a window or a control in one");
+        }
+        if (!(*in_window).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, show_business_card_slot, "the object has been disposed");
+        }
+        window = (*in_window).attached_window();
+        if (window == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, show_business_card_slot,
+                        "the control is not in a window (or is in a sub-surface)");
+        }
+    }
+    const bool came_out = show_business_card(*window);
+    if (shown != nullptr) *shown = came_out ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status windows_show_business_card_body(gf_object window_or_root, std::uint32_t* shown) {
+    const gf_status reported = show_card(window_or_root, shown);
+    return reported;
+}
+
+gf_status GF_CALL windows_show_business_card(gf_object window_or_root, std::uint32_t* shown) noexcept {
+    return call_slot(show_business_card_slot, windows_show_business_card_body, window_or_root, shown);
 }
 
 static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
@@ -975,14 +1106,387 @@ gf_status read_key_state(gf_object window, std::uint32_t physical_key, std::uint
     return GF_STATUS_OK;
 }
 
+gf_status windows_key_state_body(gf_object window, std::uint32_t physical_key, std::uint32_t* down) {
+    const gf_status read = read_key_state(window, physical_key, down);
+    return read;
+}
+
 gf_status GF_CALL windows_key_state(gf_object window, std::uint32_t physical_key, std::uint32_t* down) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(key_state_slot.table_id, key_state_slot.slot_index);
-        const gf_status read = read_key_state(window, physical_key, down);
-        return read;
-    } catch (...) {
-        return fail_with_current_exception(key_state_slot);
+    return call_slot(key_state_slot, windows_key_state_body, window, physical_key, down);
+}
+
+// --- The window outer band and shaping (since 1.5) ----------------------------
+
+// The window `window_or_root` names: a window from create, or the window a
+// control is in. Fails with the slot's status otherwise.
+gf_status find_band_window(gf_object window_or_root, SlotIdentity slot, Window*& found) {
+    const gf_status entered = registry().enter_ui(slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Component::Ptr object;
+    const gf_status looked_up = registry().find_component(window_or_root, slot, object);
+    if (looked_up != GF_STATUS_OK) {
+        return looked_up;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        Window* const held = (*handle).window();
+        if (!(*handle).is_alive() || held == nullptr) {
+            return fail(GF_STATUS_DISPOSED, slot, "the window has been disposed or has closed");
+        }
+        found = held;
+        return GF_STATUS_OK;
+    }
+    const Control::Ptr control = std::dynamic_pointer_cast<Control>(object);
+    if (!control) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, "the band takes a window or a control in one");
+    }
+    if (!(*control).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, slot, "the object has been disposed");
+    }
+    Window* const window = (*control).attached_window();
+    if (window == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, slot, "the control is not in a window");
+    }
+    found = window;
+    return GF_STATUS_OK;
+}
+
+// The C++ declaration a caller's record gives, or empty when it is not
+// one the window accepts.
+std::optional<WindowBandOptions> band_options_from(const gf_window_band_options& record) noexcept {
+    if (record.reserved != 0U || (record.flags & ~GF_WINDOW_BAND_PER_EDGE) != 0U) return std::nullopt;
+    WindowBandOptions options{};
+    if (record.full_screen == GF_WINDOW_BAND_FULL_SCREEN_STAYS) {
+        options.full_screen = WindowBandFullScreen::stays;
+    } else if (record.full_screen == GF_WINDOW_BAND_FULL_SCREEN_HIDES) {
+        options.full_screen = WindowBandFullScreen::hides;
+    } else {
+        return std::nullopt;
+    }
+    options.width = record.width;
+    if ((record.flags & GF_WINDOW_BAND_PER_EDGE) != 0U) {
+        options.width = 0.0;
+        options.edges.set(WindowBandEdges{record.edges.left, record.edges.top, record.edges.right, record.edges.bottom});
+    }
+    if (!window_band_options_valid(options)) return std::nullopt;
+    return options;
+}
+
+std::optional<WindowBandState> band_state_from(gf_window_band_state state) noexcept {
+    switch (state) {
+    case GF_WINDOW_BAND_STATE_REST: return WindowBandState::rest;
+    case GF_WINDOW_BAND_STATE_LIT: return WindowBandState::lit;
+    case GF_WINDOW_BAND_STATE_FLASHING: return WindowBandState::flashing;
+    case GF_WINDOW_BAND_STATE_CYCLING: return WindowBandState::cycling;
+    default: return std::nullopt;
+    }
+}
+
+std::optional<WindowBandColourRole> band_role_from(gf_window_band_role role) noexcept {
+    switch (role) {
+    case GF_WINDOW_BAND_ROLE_THEME: return WindowBandColourRole::theme;
+    case GF_WINDOW_BAND_ROLE_FOCUS: return WindowBandColourRole::focus;
+    case GF_WINDOW_BAND_ROLE_ACCENT: return WindowBandColourRole::accent;
+    case GF_WINDOW_BAND_ROLE_ACCENT_LIGHT: return WindowBandColourRole::accent_light;
+    case GF_WINDOW_BAND_ROLE_TEXT: return WindowBandColourRole::text;
+    case GF_WINDOW_BAND_ROLE_BORDER: return WindowBandColourRole::border;
+    default: return std::nullopt;
+    }
+}
+
+// The texture a caller's record gives: none, or the procedural pattern or
+// finish it names (GF_PROCEDURAL_PATTERN_*, GF_HATCH_STYLE_* and GF_FINISH_*
+// are the C++ enumerations' orders; a hatch reads its style from the seed).
+// False for an unknown texture, kind or hatch style.
+bool band_texture_from(const gf_window_band_appearance& record, stxlib::Optional<WindowBandTexture>& texture) noexcept {
+    texture.reset();
+    if (record.texture == GF_WINDOW_BAND_TEXTURE_NONE) return true;
+    WindowBandTexture made{};
+    made.opacity = record.texture_opacity;
+    if (record.texture == GF_WINDOW_BAND_TEXTURE_PROCEDURAL) {
+        if (record.texture_kind > GF_PROCEDURAL_PATTERN_HATCH) return false;
+        made.source = WindowBandTextureSource::procedural;
+        made.procedural.pattern = static_cast<ProceduralPattern>(record.texture_kind);
+        made.procedural.seed = record.texture_seed;
+        if (record.texture_kind == GF_PROCEDURAL_PATTERN_HATCH) {
+            if (record.texture_seed > GF_HATCH_STYLE_DIAGONAL_CROSS) return false;
+            made.procedural.seed = 0U;
+            made.procedural.hatch_style = static_cast<HatchStyle>(record.texture_seed);
+        }
+        made.procedural.ground = unpacked_color(record.texture_primary);
+        made.procedural.figure = unpacked_color(record.texture_secondary);
+        made.procedural.tile = record.texture_tile;
+        made.procedural.strength = record.texture_strength;
+    } else if (record.texture == GF_WINDOW_BAND_TEXTURE_FINISH) {
+        if (record.texture_kind > GF_FINISH_CLOTH_WEAVE) return false;
+        made.source = WindowBandTextureSource::finish;
+        made.finish.kind = static_cast<FinishKind>(record.texture_kind);
+        made.finish.seed = static_cast<std::int32_t>(record.texture_seed);
+        made.finish.paint = unpacked_color(record.texture_primary);
+        made.finish.secondary = unpacked_color(record.texture_secondary);
+        made.finish.grain = record.texture_tile;
+        made.finish.relief = record.texture_strength;
+    } else {
+        return false;
+    }
+    texture.set(made);
+    return true;
+}
+
+static_assert(static_cast<std::uint32_t>(ProceduralPattern::checker) == GF_PROCEDURAL_PATTERN_CHECKER &&
+                  static_cast<std::uint32_t>(ProceduralPattern::felt) == GF_PROCEDURAL_PATTERN_FELT &&
+                  static_cast<std::uint32_t>(ProceduralPattern::hatch) == GF_PROCEDURAL_PATTERN_HATCH,
+              "GF_PROCEDURAL_PATTERN_* follow ProceduralPattern");
+static_assert(static_cast<std::uint32_t>(HatchStyle::horizontal) == GF_HATCH_STYLE_HORIZONTAL &&
+                  static_cast<std::uint32_t>(HatchStyle::diagonal_cross) == GF_HATCH_STYLE_DIAGONAL_CROSS,
+              "GF_HATCH_STYLE_* follow HatchStyle");
+static_assert(static_cast<std::uint32_t>(FinishKind::cloth_weave) == GF_FINISH_CLOTH_WEAVE &&
+                  static_cast<std::uint32_t>(FinishKind::dusty_matte) == GF_FINISH_DUSTY_MATTE,
+              "GF_FINISH_* follow FinishKind");
+
+std::optional<WindowBandAppearance> band_appearance_from(const gf_window_band_appearance& record) noexcept {
+    const std::uint32_t known_flags = GF_WINDOW_BAND_REST_COLOUR | GF_WINDOW_BAND_LIT_COLOUR;
+    if (record.reserved != 0U || (record.flags & ~known_flags) != 0U) return std::nullopt;
+    const std::optional<WindowBandState> state = band_state_from(record.state);
+    const std::optional<WindowBandColourRole> role = band_role_from(record.lit_role);
+    if (!state || !role) return std::nullopt;
+    WindowBandAppearance appearance{};
+    appearance.state = *state;
+    appearance.lit_role = *role;
+    appearance.frequency = record.frequency;
+    if ((record.flags & GF_WINDOW_BAND_REST_COLOUR) != 0U) appearance.rest_colour.set(unpacked_color(record.rest_colour));
+    if ((record.flags & GF_WINDOW_BAND_LIT_COLOUR) != 0U) appearance.lit_colour.set(unpacked_color(record.lit_colour));
+    if (!band_texture_from(record, appearance.texture)) return std::nullopt;
+    if (!window_band_appearance_valid(appearance)) return std::nullopt;
+    return appearance;
+}
+
+gf_status declare_window_band(gf_object window, const gf_window_band_options* options) {
+    if (options == nullptr || (*options).struct_size < band_options_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, declare_band_slot, "declare_band needs a 1.5 options record");
+    }
+    const std::optional<WindowBandOptions> declared = band_options_from(*options);
+    if (!declared) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, declare_band_slot,
+                    "the band's widths must be finite from 0 to 32 with a known full-screen choice and flags");
+    }
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, declare_band_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    (*found).declare_band(*declared);
+    return GF_STATUS_OK;
+}
+
+gf_status windows_declare_band_body(gf_object window, const gf_window_band_options* options) {
+    const gf_status declared = declare_window_band(window, options);
+    return declared;
+}
+
+gf_status GF_CALL windows_declare_band(gf_object window, const gf_window_band_options* options) noexcept {
+    return call_slot(declare_band_slot, windows_declare_band_body, window, options);
+}
+
+gf_status undeclare_window_band(gf_object window) {
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, undeclare_band_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    (*found).undeclare_band();
+    return GF_STATUS_OK;
+}
+
+gf_status windows_undeclare_band_body(gf_object window) {
+    const gf_status undeclared = undeclare_window_band(window);
+    return undeclared;
+}
+
+gf_status GF_CALL windows_undeclare_band(gf_object window) noexcept {
+    return call_slot(undeclare_band_slot, windows_undeclare_band_body, window);
+}
+
+gf_status set_window_band_appearance(gf_object window, const gf_window_band_appearance* record) {
+    if (record == nullptr || (*record).struct_size < band_appearance_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_band_appearance_slot,
+                    "set_band_appearance needs a 1.5 appearance record");
+    }
+    const std::optional<WindowBandAppearance> appearance = band_appearance_from(*record);
+    if (!appearance) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_band_appearance_slot,
+                    "the appearance names an unknown state, role, flag or texture, or a value out of range");
+    }
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, set_band_appearance_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    (*found).set_band_appearance(*appearance);
+    return GF_STATUS_OK;
+}
+
+gf_status windows_set_band_appearance_body(gf_object window, const gf_window_band_appearance* appearance) {
+    const gf_status set = set_window_band_appearance(window, appearance);
+    return set;
+}
+
+gf_status GF_CALL windows_set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) noexcept {
+    return call_slot(set_band_appearance_slot, windows_set_band_appearance_body, window, appearance);
+}
+
+gf_status report_window_band(gf_object window, gf_window_band_report* report) {
+    if (report == nullptr || (*report).struct_size < band_report_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, band_report_slot, "band_report needs a 1.5 report record");
+    }
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, band_report_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const WindowBandSnapshot snapshot = (*found).band_snapshot();
+    gf_window_band_status status = 0U;
+    if (snapshot.declared) status = status | GF_WINDOW_BAND_DECLARED;
+    if (snapshot.reserved) status = status | GF_WINDOW_BAND_RESERVED;
+    if (snapshot.flashing) status = status | GF_WINDOW_BAND_FLASHING;
+    if (snapshot.cycling) status = status | GF_WINDOW_BAND_CYCLING;
+    if (snapshot.textured) status = status | GF_WINDOW_BAND_TEXTURED;
+    gf_window_band_report complete{};
+    complete.struct_size = sizeof(gf_window_band_report);
+    complete.status = status;
+    complete.edges = gf_logical_insets{snapshot.edges.left, snapshot.edges.top, snapshot.edges.right,
+                                       snapshot.edges.bottom};
+    complete.drawn_colour = packed_color(snapshot.drawn);
+    complete.full_screen = snapshot.options.full_screen == WindowBandFullScreen::hides
+                               ? GF_WINDOW_BAND_FULL_SCREEN_HIDES
+                               : GF_WINDOW_BAND_FULL_SCREEN_STAYS;
+    complete.frequency = snapshot.frequency;
+    complete.flash_changes = snapshot.flash_changes;
+    complete.cycle_frames = snapshot.cycle_frames;
+    // Leaves the caller's struct_size and any later bytes (A-gf-abi-03-F9).
+    write_record(complete, report);
+    return GF_STATUS_OK;
+}
+
+gf_status windows_band_report_body(gf_object window, gf_window_band_report* report) {
+    const gf_status reported = report_window_band(window, report);
+    return reported;
+}
+
+gf_status GF_CALL windows_band_report(gf_object window, gf_window_band_report* report) noexcept {
+    return call_slot(band_report_slot, windows_band_report_body, window, report);
+}
+
+gf_status set_window_corner_preference(gf_object window, gf_window_corner_preference preference) {
+    WindowCornerPreference asked = WindowCornerPreference::system;
+    switch (preference) {
+    case GF_WINDOW_CORNER_PREFERENCE_SYSTEM: asked = WindowCornerPreference::system; break;
+    case GF_WINDOW_CORNER_PREFERENCE_SQUARE: asked = WindowCornerPreference::square; break;
+    case GF_WINDOW_CORNER_PREFERENCE_ROUND: asked = WindowCornerPreference::round; break;
+    default:
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_corner_preference_slot,
+                    "the corner preference is not a gf_window_corner_preference");
+    }
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, set_corner_preference_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    (*found).set_corner_preference(asked);
+    return GF_STATUS_OK;
+}
+
+gf_status windows_set_corner_preference_body(gf_object window, gf_window_corner_preference preference) {
+    const gf_status set = set_window_corner_preference(window, preference);
+    return set;
+}
+
+gf_status GF_CALL windows_set_corner_preference(gf_object window, gf_window_corner_preference preference) noexcept {
+    return call_slot(set_corner_preference_slot, windows_set_corner_preference_body, window, preference);
+}
+
+gf_status report_content_rect(gf_object window, gf_logical_rect* rect) {
+    if (rect == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, content_rect_slot, "content_rect needs a rectangle output");
+    }
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, content_rect_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const Rect content = (*found).content_rect();
+    *rect = gf_logical_rect{content.x, content.y, content.width, content.height};
+    return GF_STATUS_OK;
+}
+
+gf_status windows_content_rect_body(gf_object window, gf_logical_rect* rect) {
+    const gf_status reported = report_content_rect(window, rect);
+    return reported;
+}
+
+gf_status GF_CALL windows_content_rect(gf_object window, gf_logical_rect* rect) noexcept {
+    return call_slot(content_rect_slot, windows_content_rect_body, window, rect);
+}
+
+std::uint32_t abi_corner_shape(WindowCornerShape shape) noexcept {
+    switch (shape) {
+    case WindowCornerShape::square: return GF_WINDOW_CORNER_SHAPE_SQUARE;
+    case WindowCornerShape::rounded: return GF_WINDOW_CORNER_SHAPE_ROUNDED;
+    case WindowCornerShape::unknown: return 0U;
+    }
+    return 0U;
+}
+
+gf_window_corner_preference abi_corner_preference(WindowCornerPreference preference) noexcept {
+    switch (preference) {
+    case WindowCornerPreference::system: return GF_WINDOW_CORNER_PREFERENCE_SYSTEM;
+    case WindowCornerPreference::square: return GF_WINDOW_CORNER_PREFERENCE_SQUARE;
+    case WindowCornerPreference::round: return GF_WINDOW_CORNER_PREFERENCE_ROUND;
+    }
+    return GF_WINDOW_CORNER_PREFERENCE_SYSTEM;
+}
+
+gf_status report_window_shaping(gf_object window, gf_window_shaping* report) {
+    if (report == nullptr || (*report).struct_size < shaping_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, shaping_slot, "shaping needs a 1.5 report record");
+    }
+    Window* found = nullptr;
+    const gf_status located = find_band_window(window, shaping_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const WindowShapingReport shaping = (*found).shaping_report();
+    gf_window_shaping_flags flags = 0U;
+    if (shaping.host_attached) flags = flags | GF_WINDOW_SHAPING_HOST_ATTACHED;
+    if (shaping.corners_reported) flags = flags | GF_WINDOW_SHAPING_CORNERS_REPORTED;
+    if (shaping.state_reported) flags = flags | GF_WINDOW_SHAPING_STATE_REPORTED;
+    if (shaping.native_border) flags = flags | GF_WINDOW_SHAPING_NATIVE_BORDER;
+    if (shaping.full_screen) flags = flags | GF_WINDOW_SHAPING_FULL_SCREEN;
+    if (shaping.corners.complied) flags = flags | GF_WINDOW_SHAPING_COMPLIED;
+    std::uint32_t shapes = 0U;
+    if (shaping.square_corners) shapes = shapes | GF_WINDOW_CORNER_SHAPE_SQUARE;
+    if (shaping.rounded_corners) shapes = shapes | GF_WINDOW_CORNER_SHAPE_ROUNDED;
+    gf_window_shaping complete{};
+    complete.struct_size = sizeof(gf_window_shaping);
+    complete.flags = flags;
+    complete.preference = abi_corner_preference(shaping.preference);
+    complete.corner_shapes = shapes;
+    complete.corner_shape = abi_corner_shape(shaping.corners.shape);
+    complete.corner_radius = shaping.corners.shape == WindowCornerShape::rounded ? shaping.corners.radius : 0.0;
+    // Leaves the caller's struct_size and any later bytes (A-gf-abi-03-F9).
+    write_record(complete, report);
+    return GF_STATUS_OK;
+}
+
+gf_status windows_shaping_body(gf_object window, gf_window_shaping* report) {
+    const gf_status reported = report_window_shaping(window, report);
+    return reported;
+}
+
+gf_status GF_CALL windows_shaping(gf_object window, gf_window_shaping* report) noexcept {
+    return call_slot(shaping_slot, windows_shaping_body, window, report);
 }
 
 constexpr gf_windows_table table{
@@ -999,6 +1503,15 @@ constexpr gf_windows_table table{
     .show_owned = &windows_show_owned,
     .window_properties = &windows_window_properties,
     .focused_control = &windows_focused_control,
+    .declare_band = &windows_declare_band,
+    .undeclare_band = &windows_undeclare_band,
+    .set_band_appearance = &windows_set_band_appearance,
+    .band_report = &windows_band_report,
+    .set_corner_preference = &windows_set_corner_preference,
+    .content_rect = &windows_content_rect,
+    .shaping = &windows_shaping,
+    .pointer_location = &windows_pointer_location,
+    .show_business_card = &windows_show_business_card,
 };
 
 } // namespace

@@ -82,7 +82,13 @@ void DataGridView::set_cells_text_provider(std::unique_ptr<DataGridViewCellsText
 }
 
 bool DataGridView::cells_on_region() const noexcept {
-    const bool on_region = cells_host_ && draw_mode.read() != ItemDrawMode::owner_draw;
+    // Owner-drawn cells raise their event on the UI thread, and sparkline
+    // cells are drawn there too (the region draws text, checks and images).
+    bool owner_drawn_column = false;
+    for (const DataGridViewColumn& column : columns_) {
+        if (column.owner_draw || column.kind == DataGridViewColumnKind::sparkline) owner_drawn_column = true;
+    }
+    const bool on_region = cells_host_ && draw_mode.read() != ItemDrawMode::owner_draw && !owner_drawn_column;
     return on_region;
 }
 
@@ -95,26 +101,26 @@ bool DataGridView::send_cells_snapshot(const GridLayout& layout, const Parts& gr
     snapshot.look.back_color = ambient_back_color();
     snapshot.look.fore_color = ambient_fore_color();
     snapshot.well = region_part(grid.well, offset);
-    const std::size_t row_end = visible_row_end(layout);
-    const std::size_t first_row = std::min(first_row_, row_end);
-    const std::size_t first_display = first_visible_display(layout);
-    const std::size_t display_end = visible_display_end(layout);
-    if (first_row < row_end && first_display < display_end) {
+    // Frozen rows and columns first, then the scrolling ones; with frozen
+    // panes each cell carries the pane it is cut to.
+    const IndexSpan rows = row_span(layout);
+    const IndexSpan displays = display_span(layout);
+    const bool panes = has_frozen_panes();
+    if (rows.count() != 0U && displays.count() != 0U) {
         // The cells' own extent, where an authored background leaves the
         // theme's ground (as on_paint paints it on the UI thread).
-        const Rect last =
-            cell_bounds(DataGridViewRowPosition{row_end - 1U}, shown_order_[display_end - 1U], layout);
+        const Rect last = cell_bounds(DataGridViewRowPosition{rows.last()}, shown_order_[displays.last()], layout);
         const Rect extent{layout.data.x, layout.data.y, last.x + last.width - layout.data.x,
                           last.y + last.height - layout.data.y};
         const Rect inside = Rect::intersection(extent, layout.data);
         snapshot.cells_extent = Rect{inside.x + offset.x, inside.y + offset.y, inside.width, inside.height};
-        snapshot.cells.reserve((row_end - first_row) * (display_end - first_display));
+        snapshot.cells.reserve(rows.count() * displays.count());
     }
     // Virtual rows with a provider in the region: each row's identity once,
     // for the provided cells (the new row's values are the grid's own).
     const bool provides = cells_text_provided_ && row_source_ == DataGridViewRowSource::virtual_rows;
-    if (provides && first_row < row_end) snapshot.provided_rows.reserve(row_end - first_row);
-    for (std::size_t position = first_row; position < row_end; ++position) {
+    if (provides && rows.count() != 0U) snapshot.provided_rows.reserve(rows.count());
+    for (std::size_t position = rows.start(); position < rows.end; position = rows.next(position)) {
         const DataGridViewRowPosition row{position};
         CellTextSource source{};
         if (provides && !is_new_row(row)) {
@@ -122,12 +128,20 @@ bool DataGridView::send_cells_snapshot(const GridLayout& layout, const Parts& gr
             source.row = snapshot.provided_rows.size();
             snapshot.provided_rows.push_back(row_id_text(row));
         }
-        for (std::size_t display = first_display; display < display_end; ++display) {
+        for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
             DataGridViewCellsCell cell{};
-            if (!resolve_cell(row, shown_order_[display], layout, offset, source, snapshot, cell)) return false;
+            const std::size_t column = shown_order_[display];
+            if (!resolve_cell(row, column, layout, offset, source, snapshot, cell)) return false;
+            if (panes) {
+                const Rect pane = cell_pane(row, column, layout);
+                cell.pane = Rect{pane.x + offset.x, pane.y + offset.y, pane.width, pane.height};
+            }
             snapshot.cells.push_back(cell);
         }
     }
+    // The rows' overlay parts, in the region's coordinates.
+    if (!gather_row_overlays(layout, offset)) return false;
+    snapshot.overlays.assign(row_overlays_.begin(), row_overlays_.end());
     static_cast<void>((*cells_host_).redraw_all(std::make_unique<DataGridViewCellsUpdate>(std::move(snapshot))));
     return true;
 }

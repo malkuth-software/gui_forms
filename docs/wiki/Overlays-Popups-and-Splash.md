@@ -42,4 +42,4 @@ gf::SplashscreenResult splash = gf::Splashscreen::show(std::move(splash_options)
 - X11 without a compositing manager shows Popups and Splash windows opaque,
   without shadow or fade.
 
-Full page: [Overlays, Popups and Splash](https://gui-forms.readthedocs.io/user/overlays-popups-and-splash.html).
+Full page: [Overlays, Popups and Splash](https://gui-forms.readthedocs.io/en/latest/user/overlays-popups-and-splash.html).

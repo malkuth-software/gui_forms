@@ -9,8 +9,8 @@
 // operator delete with matched sizes and alignment and counts each call. The
 // library does not replace or hook the global operator new, so the
 // allocations of the program, of the standard library's own containers
-// elsewhere in GUI.Forms, of Skia, FreeType, HarfBuzz and of the host
-// toolkits are not counted. A figure here is never the process total: read
+// elsewhere in GUI.Forms, of Skia, of STXlib's own allocator (apart from the
+// glyph faces below) and of the host toolkits are not counted. A figure here is never the process total: read
 // a process figure from the platform for that.
 //
 // The counted paths today:
@@ -34,9 +34,14 @@
 // - text_layout: the paragraph layout's reused storage (ParagraphBuffers'
 //   lines, collapsed text, break opportunities, advances, glyph runs and
 //   glyphs) and the bundled engine's shaping workspace arrays (its scalars,
-//   segments, runs, staged glyphs and SheenBidi arena) and its fallback
+//   segments, runs, staged glyphs and bidi analysis) and its fallback
 //   faces' glyph ink-extent caches; the workspace's
-//   grapheme tables and HarfBuzz buffer are not counted.
+//   grapheme tables and the shaper's buffer are not counted. Also the text
+//   rasterizers' glyph faces (STXlib's, which allocate on STXlib's own
+//   allocator): the program's typefaces and each executor's faces count
+//   their bytes_held as it changes, a growth as one allocation of the
+//   difference and a fall as one release, and release what they hold when
+//   they go.
 //
 // Bytes are the bytes asked of operator new, without the allocator's own
 // overhead or rounding. A release is counted by the thread that releases,
@@ -51,6 +56,7 @@
 // are exact for the work that thread did inside the scope.
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <array>
 #include <cstddef>
@@ -132,7 +138,7 @@ public:
     void restart() noexcept;
 
 private:
-    std::thread::id thread_{};
+    ThreadId thread_{};
     AllocationStatistics start_{};
 };
 

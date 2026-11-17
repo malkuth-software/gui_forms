@@ -89,8 +89,13 @@ void plan_follows_reports_and_deadlines() {
     const std::uint64_t generation = publish_one(*surface);
     LivePacingResult held = pacer.plan(start);
     require(held.outcome == LivePacingOutcome::pending, "an unshown frame holds the next");
-    require(held.wake_at == start + refresh + refresh / 2 || held.wake_at > start,
-            "the hold names its deadline");
+    // The deadline is one and a half of the pacer's 60 Hz fallback period;
+    // refresh here is that period rounded to the microsecond, so the two
+    // agree within one microsecond (B-gf-tests-07-F2).
+    const FrameTime expected_deadline = start + refresh + refresh / 2;
+    const FrameInterval tolerance = std::chrono::duration_cast<FrameInterval>(std::chrono::microseconds(1));
+    require(held.wake_at >= expected_deadline - tolerance && held.wake_at <= expected_deadline + tolerance,
+            "the hold names its deadline, one and a half refreshes on");
     LivePacingResult still = pacer.plan(start + refresh);
     require(still.outcome == LivePacingOutcome::pending, "still held within one and a half refreshes");
     LivePacingResult late = pacer.plan(start + refresh * 5);

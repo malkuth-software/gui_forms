@@ -272,9 +272,9 @@ SemanticDescriptor ToolStripPanel::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<ToolStripPanel::Parts>, 2> tool_strip_panel_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ToolStripPanel::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ToolStripPanel::Parts::face},
 }};
 

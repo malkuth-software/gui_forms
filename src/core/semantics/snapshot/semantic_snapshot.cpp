@@ -1,10 +1,14 @@
 #include "gui_forms/semantics.hpp"
 
+#include "../../json/json_text/json_text.hpp"
+
 #include <algorithm>
 #include <sstream>
 
 namespace gui_forms {
 namespace {
+
+using detail::append_json_string;
 
 // Whether an offset lies past `end` (fill_semantic_text_boundaries).
 struct OffsetPast final {
@@ -12,33 +16,17 @@ struct OffsetPast final {
     bool operator()(Utf8Offset offset) const noexcept { return end < offset; }
 };
 
-void append_json_string(std::ostringstream& stream, std::string_view value) {
-    stream << '"';
-    for (const unsigned char character : value) {
-        switch (character) {
-        case '"': stream << "\\\""; break;
-        case '\\': stream << "\\\\"; break;
-        case '\n': stream << "\\n"; break;
-        case '\r': stream << "\\r"; break;
-        case '\t': stream << "\\t"; break;
-        default:
-            if (character < 0x20U) stream << "?";
-            else stream << static_cast<char>(character);
-            break;
-        }
-    }
-    stream << '"';
-}
-
 // Appends `,"name":value`, or `,"name":null` when the field is absent.
-void append_count(std::ostringstream& stream, const char* name, const std::optional<std::size_t>& value) {
+void append_count(std::ostringstream& stream, const char* name, const stxlib::Optional<std::size_t>& value) {
     stream << ",\"" << name << "\":";
-    if (value) stream << *value;
+    const std::size_t* const count = value.value();
+    if (count != nullptr) stream << *count;
     else stream << "null";
 }
-void append_number(std::ostringstream& stream, const char* name, const std::optional<double>& value) {
+void append_number(std::ostringstream& stream, const char* name, const stxlib::Optional<double>& value) {
     stream << ",\"" << name << "\":";
-    if (value) stream << *value;
+    const double* const number = value.value();
+    if (number != nullptr) stream << detail::JsonNumber{*number};
     else stream << "null";
 }
 
@@ -57,25 +45,25 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"description\":";
     append_json_string(stream, node.description);
     stream << ",\"numeric_value\":";
-    if (node.numeric_value) stream << *node.numeric_value;
+    if (node.numeric_value.present()) stream << detail::JsonNumber{*node.numeric_value.value()};
     else stream << "null";
     stream << ",\"minimum_value\":";
-    if (node.minimum_value) stream << *node.minimum_value;
+    if (node.minimum_value.present()) stream << detail::JsonNumber{*node.minimum_value.value()};
     else stream << "null";
     stream << ",\"maximum_value\":";
-    if (node.maximum_value) stream << *node.maximum_value;
+    if (node.maximum_value.present()) stream << detail::JsonNumber{*node.maximum_value.value()};
     else stream << "null";
     stream << ",\"position_in_set\":";
-    if (node.position_in_set) stream << *node.position_in_set;
+    if (node.position_in_set.present()) stream << *node.position_in_set.value();
     else stream << "null";
     stream << ",\"set_size\":";
-    if (node.set_size) stream << *node.set_size;
+    if (node.set_size.present()) stream << *node.set_size.value();
     else stream << "null";
     stream << ",\"has_popup\":" << (node.has_popup ? "true" : "false");
     stream << ",\"controlled_panel\":";
     append_json_string(stream, node.controlled_panel);
     stream << ",\"orientation\":";
-    if (node.orientation) append_json_string(stream, semantic_orientation_name(*node.orientation));
+    if (node.orientation.present()) append_json_string(stream, semantic_orientation_name(*node.orientation.value()));
     else stream << "null";
     append_count(stream, "level", node.level);
     stream << ",\"modal\":" << (node.modal ? "true" : "false");
@@ -88,9 +76,9 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     append_number(stream, "small_step", node.small_step);
     append_number(stream, "large_step", node.large_step);
     stream << ",\"text_selection\":";
-    if (node.text_selection) {
-        stream << "{\"anchor\":" << (*node.text_selection).anchor.value() << ",\"caret\":"
-               << (*node.text_selection).caret.value() << '}';
+    if (node.text_selection.present()) {
+        stream << "{\"anchor\":" << (*node.text_selection.value()).anchor.value() << ",\"caret\":"
+               << (*node.text_selection.value()).caret.value() << '}';
     } else {
         stream << "null";
     }
@@ -98,8 +86,9 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     stream << ",\"tool_tip\":";
     append_json_string(stream, node.tool_tip);
     stream << ",\"announces_on_appearance\":" << (node.announces_on_appearance ? "true" : "false");
-    stream << ",\"bounds\":[" << node.bounds.x << ',' << node.bounds.y << ','
-           << node.bounds.width << ',' << node.bounds.height << "],\"states\":"
+    stream << ",\"bounds\":[" << detail::JsonNumber{node.bounds.x} << ',' << detail::JsonNumber{node.bounds.y}
+           << ',' << detail::JsonNumber{node.bounds.width} << ',' << detail::JsonNumber{node.bounds.height}
+           << "],\"states\":"
            << static_cast<std::uint32_t>(node.states) << ",\"actions\":[";
     for (std::size_t index = 0; index < node.actions.size(); ++index) {
         if (index != 0U) stream << ',';
@@ -170,6 +159,8 @@ const char* semantic_role_name(SemanticRole role) noexcept {
     case SemanticRole::toggle_switch: return "toggle_switch";
     case SemanticRole::search_box: return "search_box";
     case SemanticRole::figure: return "figure";
+    case SemanticRole::document: return "document";
+    case SemanticRole::heading: return "heading";
     case SemanticRole::count: return "generic";
     }
     return "generic";
@@ -316,6 +307,9 @@ std::span<const char* const> semantic_field_names() noexcept {
 
 std::string SemanticSnapshot::to_json() const {
     std::ostringstream stream;
+    // Numbers in the classic locale whatever the program's global one; each
+    // double is written as a JsonNumber, round-trip or null (A-gf-core-11-F1).
+    detail::prepare_json_stream(stream);
     stream << "{\"generation\":" << generation << ",\"node_count\":"
            << node_count << ",\"roots\":[";
     for (std::size_t index = 0; index < roots.size(); ++index) {

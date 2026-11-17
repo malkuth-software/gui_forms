@@ -1,4 +1,5 @@
-/* The Gallery's choices-and-sections page (stage FD, phase FD6.3): one
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gallery's choices-and-sections page (stage FD, phase FD6.3): one
    deployment ring shown by two ChoiceGroups, three review sections with a
    GroupBox of toggles sharing their open state, and a Card and a ReviewCard
    that project the chosen ring. gui_forms_add_form() compiles this document
@@ -10,105 +11,90 @@
    their shared Value<int>, the sections' items, content and Value<bool>s,
    the toggles' bindings, the Card's parts and selection behaviour, the
    review record, every event handler, the status lines' reports (the
-   switches' among them). */
-scaled-panel gallery.choices.document {
-  design-size: 1000 720;
+   switches' among them). -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.choices.document"
+    design-size="1000 720">
 
-  label gallery.choices-and-sections.heading {
-    text: "CHOICES AND SECTIONS";
-    classes: "heading" "page-title";
-    bounds: 24 18 620 34;
-  }
-  label gallery.choices-and-sections.lead {
-    text: "One Value<int> behind two ChoiceGroups, three Value<bool>s behind sections and toggles, and cards that project the choice.";
-    classes: "muted" "body";
-    bounds: 26 52 920 24;
-  }
+  <label id="gallery.choices-and-sections.heading"
+      text="CHOICES AND SECTIONS"
+      classes="heading page-title"
+      bounds="24 18 620 34"/>
+  <label id="gallery.choices-and-sections.lead"
+      text="One Value&lt;int&gt; behind two ChoiceGroups, three Value&lt;bool&gt;s behind sections and toggles, and cards that project the choice."
+      classes="muted body"
+      bounds="26 52 920 24"/>
 
-  scaled-group-box gallery.choices.ring-group {
-    text: "ChoiceGroup · one Value<int>, two views";
-    design-size: 930 120;
-    bounds: 24 92 930 120;
-    classes: "paper" "group-caption";
-    choice-group gallery.choices.ring {
-      accessible-name: "Deployment ring";
-      presentation: segmented;
-      bounds: 20 38 480 32;
-    }
-    choice-group gallery.choices.ring-chips {
-      accessible-name: "Deployment ring (glyphs)";
-      bounds: 540 38 180 32;
-    }
-    label gallery.choices.ring-status {
-      text: "";
-      classes: "positive" "note-medium";
-      bounds: 20 84 890 24;
-    }
-  }
+  <scaled-group-box id="gallery.choices.ring-group"
+      text="ChoiceGroup · one Value&lt;int&gt;, two views"
+      design-size="930 120"
+      bounds="24 92 930 120"
+      classes="paper group-caption">
+    <choice-group id="gallery.choices.ring"
+        accessible-name="Deployment ring"
+        presentation="segmented"
+        bounds="20 38 480 32"/>
+    <choice-group id="gallery.choices.ring-chips"
+        accessible-name="Deployment ring (glyphs)"
+        bounds="540 38 180 32"/>
+    <label id="gallery.choices.ring-status"
+        text=""
+        classes="positive note-medium"
+        bounds="20 84 890 24"/>
+  </scaled-group-box>
 
-  expandable-sections gallery.choices.sections {
-    accessible-name: "Review sections";
-    bounds: 24 230 450 300;
-  }
-  label gallery.choices.sections-status {
-    text: "Checklist open · headers, Space and the toggles share one state";
-    classes: "positive" "note-medium";
-    bounds: 24 540 450 24;
-  }
+  <expandable-sections id="gallery.choices.sections"
+      accessible-name="Review sections"
+      bounds="24 230 450 300"/>
+  <label id="gallery.choices.sections-status"
+      text="Checklist open · headers, Space and the toggles share one state"
+      classes="positive note-medium"
+      bounds="24 540 450 24"/>
 
-  group-box gallery.choices.state {
-    text: "Section state";
-    accessible-name: "Section state";
-    classes: "paper" "group-caption";
-    bounds: 494 230 460 120;
-    check-box gallery.choices.state.checklist {
-      text: "Checklist";
-      indicator-style: toggle;
-      bounds: 20 44 130 28;
-    }
-    check-box gallery.choices.state.notes {
-      text: "Notes";
-      indicator-style: toggle;
-      bounds: 160 44 130 28;
-    }
-    check-box gallery.choices.state.history {
-      text: "History";
-      indicator-style: toggle;
-      bounds: 300 44 130 28;
-    }
-  }
+  <group-box id="gallery.choices.state"
+      text="Section state"
+      accessible-name="Section state"
+      classes="paper group-caption"
+      bounds="494 230 460 120">
+    <check-box id="gallery.choices.state.checklist"
+        text="Checklist"
+        indicator-style="toggle"
+        bounds="20 44 130 28"/>
+    <check-box id="gallery.choices.state.notes"
+        text="Notes"
+        indicator-style="toggle"
+        bounds="160 44 130 28"/>
+    <check-box id="gallery.choices.state.history"
+        text="History"
+        indicator-style="toggle"
+        bounds="300 44 130 28"/>
+  </group-box>
 
-  card gallery.choices.card {
-    accessible-name: "Rollout plan card";
-    bounds: 494 368 220 196;
-  }
-  review-card gallery.choices.review {
-    accessible-name: "Rollout review";
-    bounds: 730 368 224 196;
-  }
+  <card id="gallery.choices.card"
+      accessible-name="Rollout plan card"
+      bounds="494 368 220 196"/>
+  <review-card id="gallery.choices.review"
+      accessible-name="Rollout review"
+      bounds="730 368 224 196"/>
 
-  scaled-group-box gallery.choices.switches {
-    text: "ToggleSwitch · settings that take effect at once";
-    design-size: 930 110;
-    bounds: 24 584 930 110;
-    classes: "paper" "group-caption";
-    toggle-switch gallery.choices.switches.auto-deploy {
-      text: "Deploy automatically";
-      checked: true;
-      on-text: "On";
-      off-text: "Off";
-      bounds: 20 40 300 28;
-    }
-    toggle-switch gallery.choices.switches.notify {
-      text: "Notify reviewers";
-      on-text: "On";
-      off-text: "Off";
-      bounds: 340 40 300 28;
-    }
-    label gallery.choices.switches.status {
-      text: "Automatic deployment is on";
-      classes: "positive" "emphasis";
-      bounds: 20 74 620 24;
-    }
-  }
-}
+  <scaled-group-box id="gallery.choices.switches"
+      text="ToggleSwitch · settings that take effect at once"
+      design-size="930 110"
+      bounds="24 584 930 110"
+      classes="paper group-caption">
+    <toggle-switch id="gallery.choices.switches.auto-deploy"
+        text="Deploy automatically"
+        checked="true"
+        on-text="On"
+        off-text="Off"
+        bounds="20 40 300 28"/>
+    <toggle-switch id="gallery.choices.switches.notify"
+        text="Notify reviewers"
+        on-text="On"
+        off-text="Off"
+        bounds="340 40 300 28"/>
+    <label id="gallery.choices.switches.status"
+        text="Automatic deployment is on"
+        classes="positive emphasis"
+        bounds="20 74 620 24"/>
+  </scaled-group-box>
+</scaled-panel>

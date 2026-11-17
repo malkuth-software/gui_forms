@@ -95,9 +95,9 @@ with the canonical text. `parse_value` returns no value for text such as
 
    std::shared_ptr<gf::ColorValueEditor> tint =
        gf::make_control<gf::ColorValueEditor>(gf::StableId("lamp.tint"));
-   std::optional<gf::Color> parsed =
+   const stxlib::Optional<gf::Color> parsed =
        gf::ColorValueEditor::parse_value(" #2a6fb4 ");   // opaque 42, 111, 180
-   if (parsed) (*tint).value = *parsed;              // no event is raised
+   if (parsed.present()) (*tint).value = *parsed.value();   // no event is raised
    std::shared_ptr<gf::Label> caption = gf::make_control<gf::Label>(
        gf::StableId("lamp.caption"),
        gf::ColorValueEditor::format_value((*tint).value.read()));   // "#2A6FB4FF"

@@ -7,7 +7,8 @@
 // and per paint (counted, not timed), the keyboard, accessibility, right to
 // left, refusals, following the tail, the coalesced announcement of
 // appended rows, the measured-row budget, extended selection, the scrolled
-// event and row invalidation. Heights are whole numbers so every sum is exact.
+// event, row invalidation and the column model (F4: layout, gestures,
+// right to left, owner-drawn cells and header semantics). Heights are whole numbers so every sum is exact.
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -17,6 +18,9 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -29,7 +33,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -38,6 +42,30 @@
 
 namespace {
 using namespace gui_forms;
+
+// D15 Q3: a setter keeps its deprecated std::optional form for one stage;
+// a plain value or {} must not reach it silently. Each plain call below is
+// refused (a deleted overload or an ambiguity), and the stxlib form is
+// accepted.
+template <typename View>
+concept takes_plain_selected_row = requires(View& view) { view.set_selected_row(VirtualRowIndex{1U}); };
+template <typename View>
+concept takes_empty_selected_row = requires(View& view) { view.set_selected_row({}); };
+template <typename View>
+concept takes_plain_sort = requires(View& view) { view.set_sort(std::size_t{1U}, VirtualRowsSort::ascending); };
+template <typename View>
+concept takes_empty_sort = requires(View& view) { view.set_sort({}, VirtualRowsSort::ascending); };
+template <typename View>
+concept takes_plain_budget = requires(View& view) { view.set_measured_row_budget(std::size_t{10U}); };
+template <typename View>
+concept takes_optional_row = requires(View& view) {
+    view.set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{1U}));
+    view.set_sort(stxlib::Optional<std::size_t>::none(), VirtualRowsSort::none);
+    view.set_measured_row_budget(stxlib::Optional<std::size_t>::of(10U));
+};
+static_assert(!takes_plain_selected_row<VirtualRowsView> && !takes_empty_selected_row<VirtualRowsView>);
+static_assert(!takes_plain_sort<VirtualRowsView> && !takes_empty_sort<VirtualRowsView>);
+static_assert(!takes_plain_budget<VirtualRowsView> && takes_optional_row<VirtualRowsView>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -55,11 +83,17 @@ public:
     void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
     void stroke_rect(Rect, Color, double) override {}
     void draw_line(Point, Point, Color, double) override {}
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_text_utf8(Point, std::string_view text, FontSpec font, Color) override {
+        texts.emplace_back(text);
+        text_fonts.push_back(font);
+    }
     void draw_image(ImageId, Rect, double) override {}
 
     // Every fill's colour, in order (the background test reads them).
     std::vector<Color> fills;
+    // Every text run and its font, in order (the theme font test reads them).
+    std::vector<std::string> texts;
+    std::vector<FontSpec> text_fonts;
 };
 
 bool contains_colour(const std::vector<Color>& colours, Color wanted) {
@@ -107,6 +141,10 @@ public:
         if (request.painter == nullptr || request.view != view) null_painter = true;
         if (request.selected != request.states.contains(AnatomyState::selected)) states_disagree = true;
         if (request.mirrored) mirrored_seen = true;
+        if (!(request.foreground ==
+              item_content_text(*request.view, ControlVisualRole::selection, request.states))) {
+            foreground_disagrees = true;
+        }
         if (try_reentry && view != nullptr) {
             try {
                 (*view).reset_rows(3U);
@@ -138,6 +176,7 @@ public:
     std::size_t described{};
     bool null_painter{};
     bool states_disagree{};
+    bool foreground_disagrees{};
     bool mirrored_seen{};
     bool try_reentry{};
     bool reentry_refused{};
@@ -145,10 +184,10 @@ public:
 };
 
 struct RecordSelection final {
-    std::vector<std::optional<std::size_t>>* seen{};
+    std::vector<stxlib::Optional<std::size_t>>* seen{};
     void operator()(const VirtualRowSelection& change) const {
-        std::optional<std::size_t> current{};
-        if (change.current.has_value()) current = (*change.current).value;
+        stxlib::Optional<std::size_t> current{};
+        if (change.current.present()) current.set((*change.current.value()).value);
         (*seen).push_back(current);
     }
 };
@@ -177,8 +216,8 @@ std::shared_ptr<VirtualRowsView> make_view(SyntheticRows& rows, std::size_t coun
     return view;
 }
 
-std::optional<VirtualRowIndex> some_row(std::size_t value) {
-    const std::optional<VirtualRowIndex> row = VirtualRowIndex{value};
+stxlib::Optional<VirtualRowIndex> some_row(std::size_t value) {
+    const stxlib::Optional<VirtualRowIndex> row = stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{value});
     return row;
 }
 
@@ -435,6 +474,7 @@ void million_rows_bounded_work() {
     static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
     require(rows.painted > painted && rows.painted - painted <= paint_bound && !rows.null_painter && !rows.states_disagree,
             "a paint draws only the visible rows");
+    require(!rows.foreground_disagrees, "each row's foreground is the theme's text for its states");
 
     Sequence sequence;
     std::size_t operations = 0U;
@@ -473,7 +513,7 @@ void keyboard_and_activation() {
     std::shared_ptr<VirtualRowsView> view = make_view(rows, 5'000U);
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    std::vector<std::optional<std::size_t>> selections;
+    std::vector<stxlib::Optional<std::size_t>> selections;
     std::vector<std::size_t> activations;
     SubscriptionToken selected = (*view).selection_changed().subscribe(RecordSelection{&selections});
     SubscriptionToken activated = (*view).row_activated().subscribe(RecordActivation{&activations});
@@ -482,7 +522,9 @@ void keyboard_and_activation() {
             "Down with no selection selects the first visible row");
     require(key(window, PhysicalKey::down) && (*view).selected_row() == some_row(1U),
             "Down moves the selection a row");
-    require(key(window, PhysicalKey::page_down) && (*(*view).selected_row()).value > 5U,
+    const bool paged_down = key(window, PhysicalKey::page_down);
+    const stxlib::Optional<VirtualRowIndex> after_page_down = (*view).selected_row();
+    require(paged_down && after_page_down.present() && (*after_page_down.value()).value > 5U,
             "Page Down moves the selection by a viewport");
     require(key(window, PhysicalKey::end) && (*view).selected_row() == some_row(4'999U) &&
                 (*view).end_visible_row().value == 5'000U,
@@ -494,18 +536,18 @@ void keyboard_and_activation() {
             "Home selects and reveals the first row");
     require(key(window, PhysicalKey::enter) && activations == std::vector<std::size_t>({0U}),
             "Enter activates the selected row");
-    require(selections.size() == 6U && selections.back() == std::optional<std::size_t>(0U),
+    require(selections.size() == 6U && selections.back() == stxlib::Optional<std::size_t>::of(0U),
             "every selection change is raised once");
 
     // The selection follows its row through insertions and is dropped with
     // it by an erasure.
-    (*view).set_selected_row(VirtualRowIndex{10U});
+    (*view).set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{10U}));
     (*view).insert_rows(VirtualRowIndex{0U}, 5U);
     require((*view).selected_row() == some_row(15U), "an insertion above moves the selection");
     const std::size_t raised = selections.size();
     (*view).erase_rows(VirtualRowIndex{14U}, 3U);
-    require(!(*view).selected_row().has_value() && selections.size() == raised + 1U &&
-                !selections.back().has_value(),
+    require((*view).selected_row().absent() && selections.size() == raised + 1U &&
+                selections.back().absent(),
             "erasing the selected row unselects it and says so");
     static_cast<void>(selected);
     static_cast<void>(activated);
@@ -517,10 +559,10 @@ void accessibility() {
     (*view).accessible_name = "Messages";
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    (*view).set_selected_row(VirtualRowIndex{2U});
+    (*view).set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{2U}));
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();
     require(descriptor.role == SemanticRole::list && descriptor.name == "Messages" &&
-                descriptor.row_count == 1'000'000U && descriptor.value == "Row 2",
+                descriptor.row_count == stxlib::Optional<std::size_t>::of(1'000'000U) && descriptor.value == "Row 2",
             "the view is a named list sized by every row, its value the selected row's name");
     std::vector<SemanticNode> children = (*view).semantic_virtual_children();
     const std::size_t realized = (*view).end_visible_row().value - (*view).first_visible_row().value;
@@ -531,7 +573,8 @@ void accessibility() {
             "the live region is present, silent before any announcement");
     require(children[0].role == SemanticRole::list_item && children[0].stable_id == "rows.row-0" &&
                 children[0].name == "Row 0" && children[0].value == "Message text of row 0" &&
-                children[0].position_in_set == 1U && children[0].set_size == 1'000'000U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                children[0].set_size == stxlib::Optional<std::size_t>::of(1'000'000U),
             "a row is a list item named by the describe target, placed in the whole set");
     require(has_semantic_state(children[2].states, SemanticState::selected) &&
                 !has_semantic_state(children[1].states, SemanticState::selected),
@@ -557,7 +600,7 @@ void accessibility() {
     (*view).scroll_to_row(VirtualRowIndex{777'777U}, VirtualRowAlignment::start);
     children = (*view).semantic_virtual_children();
     require(!children.empty() && children[0].stable_id == "rows.row-777777" &&
-                children[0].position_in_set == 777'778U,
+                children[0].position_in_set == stxlib::Optional<std::size_t>::of(777'778U),
             "after a jump the children are the rows in view");
     static_cast<void>(activated);
 }
@@ -634,13 +677,13 @@ void themed_background() {
     std::shared_ptr<VirtualRowsView> view = make_view(rows, 100U);
     Window window(view, {400.0, 300.0});
     window.perform_layout();
-    require(!(*view).parts().well.authored_background, "without back_color the theme's ground stands");
+    require(!(*view).parts().well.authored_background.present(), "without back_color the theme's ground stands");
     const Color override_colour = Color::rgba(12, 34, 56);
-    (*view).back_color = override_colour;
+    (*view).back_color = stxlib::Optional<Color>::of(override_colour);
     window.perform_layout();
     RecordingPainter painter;
     (*view).on_paint(painter, (*view).client_rectangle());
-    require((*view).parts().well.authored_background == std::optional<Color>(override_colour) &&
+    require((*view).parts().well.authored_background == stxlib::Optional<Color>::of(override_colour) &&
                 contains_colour(painter.fills, override_colour),
             "back_color overrides the well's ground and is painted through it");
 }
@@ -772,8 +815,8 @@ void measured_row_budget() {
     std::shared_ptr<VirtualRowsView> open = make_view(open_rows, 1'000'000U);
     Window open_window(open, {400.0, 300.0});
     open_window.perform_layout();
-    require(!(*view).measured_row_budget().has_value(), "no budget by default");
-    (*view).set_measured_row_budget(budget);
+    require((*view).measured_row_budget().absent(), "no budget by default");
+    (*view).set_measured_row_budget(stxlib::Optional<std::size_t>::of(budget));
     for (std::size_t step = 0U; step < 400U; ++step) {
         (*view).scroll_to_offset((*view).scroll_offset() + 2'500.0);
         (*open).scroll_to_offset((*open).scroll_offset() + 2'500.0);
@@ -793,12 +836,12 @@ void measured_row_budget() {
     // keeps the rows on screen still.
     const VirtualRowIndex top = (*view).first_visible_row();
     const double top_y = (*view).row_bounds(top).y;
-    (*view).set_measured_row_budget(200U);
+    (*view).set_measured_row_budget(stxlib::Optional<std::size_t>::of(200U));
     require((*view).statistics().index_measured <= 201U + band_rows && (*view).first_visible_row() == top &&
                 (*view).row_bounds(top).y == top_y,
             "forgetting rows above the view does not move the rows on screen");
-    (*view).set_measured_row_budget(std::nullopt);
-    require(!(*view).measured_row_budget().has_value(), "the budget can be lifted");
+    (*view).set_measured_row_budget(stxlib::Optional<std::size_t>::none());
+    require((*view).measured_row_budget().absent(), "the budget can be lifted");
 }
 
 // Extended selection with ListBox's conventions: a press, Shift and Ctrl
@@ -867,7 +910,9 @@ void extended_selection() {
             "an erasure removes its rows from the ranges and joins the rest");
 
     (*view).set_selection_mode(ListSelectionMode::one);
-    const std::size_t current = (*(*view).selected_row()).value;
+    const stxlib::Optional<VirtualRowIndex> selected_now = (*view).selected_row();
+    require(selected_now.present(), "a row is selected before the mode changes");
+    const std::size_t current = (*selected_now.value()).value;
     require(ranges_are(*view, {rows_from(current, 1U)}) &&
                 !has_semantic_state((*view).semantic_descriptor().states, SemanticState::multiselectable),
             "the single mode keeps the current row alone");
@@ -950,7 +995,384 @@ void row_invalidation() {
     rows.shift = 0.0;
 }
 
+// -- columns (F4) -----------------------------------------------------------------------
+
+struct RecordHeaderClick final {
+    std::vector<std::size_t>* seen{};
+    void operator()(const VirtualRowsHeaderClick& click) const { (*seen).push_back(click.column); }
+};
+
+struct RecordColumnIndex final {
+    std::vector<std::size_t>* seen{};
+    void operator()(std::size_t column) const { (*seen).push_back(column); }
+};
+
+struct RecordColumnMove final {
+    std::vector<VirtualRowsColumnMove>* seen{};
+    void operator()(const VirtualRowsColumnMove& change) const { (*seen).push_back(change); }
+};
+
+struct SeenCell final {
+    std::size_t row{};
+    std::size_t column{};
+    std::string stable_id;
+    Rect content{};
+    FontSpec font{};
+};
+
+struct RecordCells final {
+    std::vector<SeenCell>* seen{};
+    void operator()(ItemContentPaint& item) const {
+        SeenCell cell{};
+        cell.row = item.index;
+        cell.column = item.column;
+        cell.stable_id.assign(item.stable_id);
+        cell.content = item.content;
+        cell.font = item.font;
+        (*seen).push_back(cell);
+    }
+};
+
+VirtualRowsColumn column_of(std::string_view id, std::string_view header, double width) {
+    VirtualRowsColumn column{};
+    column.id.assign(id);
+    column.header.assign(header);
+    column.width = width;
+    return column;
+}
+
+// Three columns: a (100), b (80) and c (60, not sortable).
+std::vector<VirtualRowsColumn> three_columns() {
+    std::vector<VirtualRowsColumn> columns{};
+    columns.push_back(column_of("a", "Name", 100.0));
+    columns.push_back(column_of("b", "Self", 80.0));
+    columns.push_back(column_of("c", "Total", 60.0));
+    columns[2].sortable = false;
+    return columns;
+}
+
+bool refuses_columns(VirtualRowsView& view, const std::vector<VirtualRowsColumn>& columns) {
+    try {
+        view.set_columns(columns);
+    } catch (const std::invalid_argument&) {
+        return view.columns().empty();
+    }
+    return false;
+}
+
+std::vector<std::string_view> column_ids(const VirtualRowsView& view) {
+    std::vector<std::string_view> ids{};
+    for (const VirtualRowsColumn& column : view.columns()) ids.push_back(column.id);
+    return ids;
+}
+
+void column_model() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    require((*view).column_header_bounds().empty() && (*view).viewport_bounds().y == 0.0 &&
+                !(*view).parts().column_headers.present,
+            "without columns there is no header strip and the viewport is as before");
+    const std::size_t rows_only = (*view).realized_item_count();
+
+    std::vector<VirtualRowsColumn> bad = three_columns();
+    bad[1].id.clear();
+    require(refuses_columns(*view, bad), "an empty column id is refused and nothing changes");
+    bad = three_columns();
+    bad[2].id = "a";
+    require(refuses_columns(*view, bad), "a repeated column id is refused");
+    bad = three_columns();
+    bad[0].width = 10.0;
+    require(refuses_columns(*view, bad), "a width below the column's minimum is refused");
+    bad = three_columns();
+    bad[0].width = std::numeric_limits<double>::quiet_NaN();
+    require(refuses_columns(*view, bad), "a non-finite width is refused");
+    bad = three_columns();
+    bad[0].header = "\xFF";
+    require(refuses_columns(*view, bad), "a header that is not UTF-8 is refused");
+    bool too_many = false;
+    try {
+        std::vector<VirtualRowsColumn> many(VirtualRowsView::maximum_columns + 1U, column_of("x", "", 20.0));
+        (*view).set_columns(many);
+    } catch (const std::invalid_argument&) {
+        too_many = (*view).columns().empty();
+    }
+    require(too_many, "more than maximum_columns columns are refused");
+
+    (*view).set_columns(three_columns());
+    window.perform_layout();
+    const Rect header = (*view).column_header_bounds();
+    require(header.x == 0.0 && header.y == 0.0 && header.width == 383.0 &&
+                header.height == VirtualRowsView::column_header_height,
+            "the header strip spans the viewport's width at its top");
+    require((*view).viewport_bounds().y == 24.0 && (*view).row_bounds(VirtualRowIndex{0U}).y == 24.0 &&
+                (*view).parts().column_headers.present,
+            "the rows start below the header strip");
+    const Rect row = (*view).row_bounds(VirtualRowIndex{0U});
+    const Rect cell = (*view).column_cell(1U, row);
+    require(cell.x == 100.0 && cell.width == 80.0 && cell.y == row.y && cell.height == row.height,
+            "a cell is its column's extent across the row");
+    require((*view).column_at({150.0, 10.0}) == stxlib::Optional<std::size_t>::of(1U) &&
+                (*view).column_at({300.0, 10.0}).absent(),
+            "column_at finds the column under a point, and none past the last");
+
+    std::vector<std::size_t> resized;
+    SubscriptionToken resize_token = (*view).column_resized().subscribe(RecordColumnIndex{&resized});
+    (*view).set_column_width(0U, 120.0);
+    require(resized == std::vector<std::size_t>({0U}) && (*view).column_cell(1U, row).x == 120.0,
+            "set_column_width moves the later columns and raises column_resized");
+    bool narrow = false;
+    try {
+        (*view).set_column_width(0U, 5.0);
+    } catch (const std::invalid_argument&) {
+        narrow = (*view).columns()[0].width == 120.0;
+    }
+    require(narrow, "a width below the minimum is refused and nothing changes");
+
+    std::vector<VirtualRowsColumnMove> moves;
+    SubscriptionToken move_token = (*view).column_moved().subscribe(RecordColumnMove{&moves});
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(2U), VirtualRowsSort::ascending);
+    (*view).move_column(2U, 0U);
+    require(column_ids(*view) == std::vector<std::string_view>({"c", "a", "b"}) && moves.size() == 1U &&
+                moves[0].from == 2U && moves[0].to == 0U,
+            "move_column reorders and raises column_moved");
+    require((*view).sort_column() == stxlib::Optional<std::size_t>::of(0U) &&
+                (*view).sort_direction() == VirtualRowsSort::ascending,
+            "the sort column follows its column");
+    (*view).move_column(0U, 2U);
+    require((*view).sort_column() == stxlib::Optional<std::size_t>::of(2U), "and follows it back");
+    (*view).move_column(0U, 1U);
+    require(column_ids(*view) == std::vector<std::string_view>({"b", "a", "c"}) &&
+                (*view).sort_column() == stxlib::Optional<std::size_t>::of(2U),
+            "a move that does not cross the sort column leaves it in place");
+
+    window.perform_layout();
+    const std::size_t items = (*view).realized_item_count();
+    require(items == rows_only + 3U && (*view).realized_item_stable_id(rows_only) == "rows.column-b" &&
+                (*view).realized_item_stable_id(rows_only + 2U) == "rows.column-c",
+            "the column headers are realized items after the rows");
+    require((*view).realized_item_anatomy_states(rows_only + 2U).contains(AnatomyState::selected) &&
+                !(*view).realized_item_anatomy_states(rows_only).contains(AnatomyState::selected),
+            "the sort column's header is selected, so its sort indicator shows");
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(2U), VirtualRowsSort::none);
+    require((*view).sort_column().absent(), "a sort with no direction clears the sort");
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(1U), VirtualRowsSort::descending);
+    (*view).set_columns(three_columns());
+    require((*view).sort_column().absent() && column_ids(*view) == std::vector<std::string_view>({"a", "b", "c"}),
+            "new columns clear the sort");
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
+    (*view).set_columns({});
+    window.perform_layout();
+    require((*view).column_header_bounds().empty() && (*view).viewport_bounds().y == 0.0 &&
+                (*view).realized_item_count() == rows_only,
+            "removing the columns gives the viewport back");
+    static_cast<void>(resize_token);
+    static_cast<void>(move_token);
+}
+
+void column_pointer() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    (*view).set_columns(three_columns());
+    window.perform_layout();
+    std::vector<std::size_t> clicks;
+    std::vector<std::size_t> resized;
+    std::vector<VirtualRowsColumnMove> moves;
+    SubscriptionToken click_token = (*view).header_clicked().subscribe(RecordHeaderClick{&clicks});
+    SubscriptionToken resize_token = (*view).column_resized().subscribe(RecordColumnIndex{&resized});
+    SubscriptionToken move_token = (*view).column_moved().subscribe(RecordColumnMove{&moves});
+
+    press_at(window, {140.0, 12.0}, Modifier::none);
+    release_at(window, {141.0, 12.0});
+    require(clicks == std::vector<std::size_t>({1U}) && (*view).selected_row().absent(),
+            "a click on a sortable header raises header_clicked and selects no row");
+    press_at(window, {210.0, 12.0}, Modifier::none);
+    release_at(window, {210.0, 12.0});
+    require(clicks.size() == 1U, "a click on a column that is not sortable raises nothing");
+
+    press_at(window, {101.0, 12.0}, Modifier::none);
+    move_to(window, {120.0, 12.0});
+    require((*view).columns()[0].width == 119.0 && resized.empty(),
+            "a divider drag resizes live, announcing nothing until the release");
+    move_to(window, {-50.0, 12.0});
+    require((*view).columns()[0].width == (*view).columns()[0].minimum_width, "the drag stops at the minimum");
+    move_to(window, {131.0, 12.0});
+    release_at(window, {131.0, 12.0});
+    require((*view).columns()[0].width == 130.0 && resized == std::vector<std::size_t>({0U}) && clicks.size() == 1U,
+            "the release raises column_resized once, and no click");
+
+    press_at(window, {150.0, 12.0}, Modifier::none);
+    move_to(window, {148.0, 12.0});
+    require(moves.empty(), "a move under the threshold is still a click");
+    move_to(window, {20.0, 12.0});
+    release_at(window, {20.0, 12.0});
+    require(moves.size() == 1U && moves[0].from == 1U && moves[0].to == 0U &&
+                column_ids(*view) == std::vector<std::string_view>({"b", "a", "c"}) && clicks.size() == 1U,
+            "a reorder drag moves the column to the place under the release, and is no click");
+
+    std::vector<VirtualRowsColumn> fixed = three_columns();
+    fixed[0].reorderable = false;
+    fixed[0].resizable = false;
+    (*view).set_columns(fixed);
+    window.perform_layout();
+    press_at(window, {100.0, 12.0}, Modifier::none);
+    move_to(window, {140.0, 12.0});
+    release_at(window, {140.0, 12.0});
+    require((*view).columns()[0].width == 100.0, "a column that is not resizable has no divider grip");
+    press_at(window, {50.0, 12.0}, Modifier::none);
+    move_to(window, {150.0, 12.0});
+    release_at(window, {150.0, 12.0});
+    require(column_ids(*view) == std::vector<std::string_view>({"a", "b", "c"}) && moves.size() == 1U,
+            "a column that is not reorderable stays in place");
+    static_cast<void>(click_token);
+    static_cast<void>(resize_token);
+    static_cast<void>(move_token);
+}
+
+void column_right_to_left() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    (*view).layout_direction = LayoutDirection::right_to_left;
+    Window window(view, {400.0, 300.0});
+    (*view).set_columns(three_columns());
+    window.perform_layout();
+    const Rect row = (*view).row_bounds(VirtualRowIndex{0U});
+    require((*view).column_header_bounds().x == 17.0 && (*view).column_cell(0U, row).x == 300.0 &&
+                (*view).column_cell(1U, row).x == 220.0,
+            "right to left the columns run from the right edge");
+    require((*view).column_at({350.0, 10.0}) == stxlib::Optional<std::size_t>::of(0U), "column_at is mirrored too");
+    // The first column's divider is at its left edge: dragging it left
+    // widens the column.
+    press_at(window, {300.0, 12.0}, Modifier::none);
+    move_to(window, {280.0, 12.0});
+    release_at(window, {280.0, 12.0});
+    require((*view).columns()[0].width == 120.0, "right to left a divider drag towards the reading end widens");
+}
+
+void column_owner_draw() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    std::vector<VirtualRowsColumn> columns = three_columns();
+    columns[1].draw_mode = ItemDrawMode::owner_draw;
+    (*view).set_columns(columns);
+    window.perform_layout();
+    std::vector<SeenCell> cells;
+    SubscriptionToken token = (*view).cell_content_paint().subscribe(RecordCells{&cells});
+    RecordingPainter painter;
+    const std::size_t painted_before = rows.painted;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
+    const std::size_t painted = rows.painted - painted_before;
+    require(painted > 0U && cells.size() == painted, "each painted row raises one cell for the owner-drawn column");
+    bool ordered = true;
+    for (std::size_t index = 0U; index < cells.size(); ++index) {
+        const std::size_t expected = (*view).first_visible_row().value + index;
+        const Rect row = (*view).row_bounds(VirtualRowIndex{expected});
+        const Rect shown = Rect::intersection(row, (*view).viewport_bounds());
+        const bool right = cells[index].row == expected && cells[index].column == 1U &&
+                           cells[index].stable_id == "rows.row-" + std::to_string(expected) &&
+                           cells[index].content.x == 100.0 && cells[index].content.width == 80.0 &&
+                           cells[index].content.y == shown.y && cells[index].content.height == shown.height;
+        if (!right) ordered = false;
+    }
+    require(ordered, "the cells come in row order, clipped to the cell and the viewport");
+    // The view has no font property (cp32 ruling): the owner-drawn cell and
+    // the header labels take the theme's control font through their parts,
+    // scaled with the text. The stock theme styles neither part's font.
+    const FontSpec themed = (*view).effective_font((*view).effective_theme().structure().typography.control);
+    bool cell_fonts = true;
+    for (const SeenCell& cell : cells) {
+        if (!(cell.font == themed)) cell_fonts = false;
+    }
+    require(cell_fonts, "an owner-drawn cell is offered the theme's control font");
+    bool header_found = false;
+    bool header_font = true;
+    for (std::size_t index = 0U; index < painter.texts.size(); ++index) {
+        if (painter.texts[index] != "Name") continue;
+        header_found = true;
+        if (!(painter.text_fonts[index] == themed)) header_font = false;
+    }
+    require(header_found && header_font, "a header label is drawn in the theme's control font");
+    static_cast<void>(token);
+}
+
+void column_semantics() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    (*view).set_columns(three_columns());
+    (*view).set_sort(stxlib::Optional<std::size_t>::of(1U), VirtualRowsSort::descending);
+    window.perform_layout();
+    const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
+    std::vector<const SemanticNode*> headers{};
+    for (const SemanticNode& node : children) {
+        if (node.role == SemanticRole::column_header) headers.push_back(&node);
+    }
+    require(headers.size() == 3U && children.back().role == SemanticRole::live_region,
+            "each column is a header child, before the live region");
+    const SemanticNode& name = *headers[0];
+    const SemanticNode& self = *headers[1];
+    const SemanticNode& total = *headers[2];
+    require(name.stable_id == "rows.column-a" && name.name == "Name" &&
+                name.column_index == stxlib::Optional<std::size_t>::of(1U) && name.value.empty() &&
+                name.bounds.x == 0.0 && name.bounds.width == 100.0 && name.bounds.height == 24.0,
+            "a header is named by its column, placed by its index and bounds");
+    require(self.value == "descending" && total.actions.empty() && self.actions.size() == 1U &&
+                self.actions[0] == SemanticAction::press,
+            "the sort column says its direction; only sortable headers can be pressed");
+    std::vector<std::size_t> clicks;
+    SubscriptionToken token = (*view).header_clicked().subscribe(RecordHeaderClick{&clicks});
+    require((*view).on_semantic_child_action("rows.column-a", SemanticAction::press, {}) &&
+                clicks == std::vector<std::size_t>({0U}),
+            "the press action clicks the header");
+    require(!(*view).on_semantic_child_action("rows.column-c", SemanticAction::press, {}) &&
+                !(*view).on_semantic_child_action("rows.column-a", SemanticAction::select, {}) &&
+                !(*view).on_semantic_child_action("rows.column-z", SemanticAction::press, {}) &&
+                !(*view).on_semantic_child_action("rows.column-", SemanticAction::press, {}) &&
+                clicks.size() == 1U,
+            "unsortable, unsupported and unknown header actions are refused");
+    static_cast<void>(token);
+}
+
 } // namespace
+
+// Cuts the view to three rows when it takes focus, once, as a handler that
+// reloads its list on focus does.
+struct ResetOnFocus final {
+    VirtualRowsView* view{};
+    bool* reset{};
+    void operator()(bool focused) const {
+        if (!focused || *reset) return;
+        *reset = true;
+        (*view).reset_rows(3U);
+    }
+};
+
+// A-gf-controls-14-F3: a semantic select or press of row 10 whose focus
+// request cuts the view to three rows selects and activates nothing, and
+// leaves no selection past the rows.
+void focus_handler_resets_the_rows() {
+    for (std::size_t round = 0U; round < 2U; ++round) {
+        SyntheticRows rows;
+        std::shared_ptr<VirtualRowsView> view = make_view(rows, 20U);
+        Window window(view, {400.0, 300.0});
+        window.perform_layout();
+        std::vector<std::size_t> activations;
+        SubscriptionToken activated = (*view).row_activated().subscribe(RecordActivation{&activations});
+        bool reset = false;
+        SubscriptionToken token = (*view).focus_observed().subscribe(ResetOnFocus{view.get(), &reset});
+        const SemanticAction action = round == 0U ? SemanticAction::select : SemanticAction::press;
+        const bool handled = (*view).on_semantic_child_action("rows.row-10", action, {});
+        require(reset && (*view).row_count() == 3U && !handled, "the focus handler cut the rows; row 10 is gone");
+        require((*view).selected_row().absent() && (*view).selected_row_count() == 0U && activations.empty(),
+                "nothing past the rows is selected or activated");
+        static_cast<void>(activated);
+        static_cast<void>(token);
+    }
+}
 
 int main() {
     refinement_invariants();
@@ -968,7 +1390,13 @@ int main() {
     extended_selection();
     scrolled_event();
     row_invalidation();
+    column_model();
+    column_pointer();
+    column_right_to_left();
+    column_owner_draw();
+    column_semantics();
+    focus_handler_resets_the_rows();
     std::cout << "VirtualRowsView: refinement invariants, anchor stability, scrolling to an index, a million rows "
-                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail, append announcements, the measured-row budget, extended selection, scrolled and row invalidation passed\n";
+                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail, append announcements, the measured-row budget, extended selection, scrolled, row invalidation and columns passed\n";
     return 0;
 }

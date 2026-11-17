@@ -245,7 +245,7 @@ gui_forms::PropertyList
           FileSheet file;
           std::shared_ptr<gf::ComboBox> opens =
               std::dynamic_pointer_cast<gf::ComboBox>((*file.sheet).editor("file.opens"));
-          if (opens) (*opens).selected_index = std::size_t{1U};   // opens_with is "Image Laboratory"
+          if (opens) (*opens).selected_index = stxlib::Optional<std::size_t>::of(1U);   // opens_with is "Image Laboratory"
       }
 
 
@@ -356,7 +356,7 @@ gui_forms::PropertyList
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<bool> row_expanded(std::string_view row_id) const
+   .. cpp:function:: stxlib::Optional<bool> row_expanded(std::string_view row_id) const
 
       Whether a row's child rows are shown, or no value when the row is
       unknown or not expandable.
@@ -477,11 +477,11 @@ gui_forms::PropertyList
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
 .. rubric:: Windows Forms correspondence
 

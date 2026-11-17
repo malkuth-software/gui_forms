@@ -5,6 +5,7 @@
 // Input is in node_canvas_input.cpp and painting in node_canvas_paint.cpp.
 
 #include "gui_forms/controls/node_canvas.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "node_canvas_detail.hpp"
 
@@ -86,7 +87,7 @@ constexpr std::array<InteractionDeclaration, 6> node_canvas_interactions{{
 }
 
 [[nodiscard]] double distance_between(Point left, Point right) noexcept {
-    const double distance = std::hypot(left.x - right.x, left.y - right.y);
+    const double distance = engine_hypotenuse(left.x - right.x, left.y - right.y);
     return distance;
 }
 
@@ -284,14 +285,14 @@ void NodeCanvas::set_router_options(const LinkRouterOptions& options) {
 
 bool NodeCanvas::set_grid_spacing(double spacing) {
     if (!std::isfinite(spacing) || spacing < 1.0) return false;
-    grid_spacing_set_ = spacing;
+    grid_spacing_set_.set(spacing);
     if (look_resolved_) look_.grid.spacing = spacing;
     invalidate(Dirty::paint);
     return true;
 }
 
 void NodeCanvas::clear_grid_spacing() {
-    if (!grid_spacing_set_.has_value()) return;
+    if (!grid_spacing_set_.present()) return;
     grid_spacing_set_.reset();
     // The theme's spacing comes back with the next resolution.
     look_resolved_ = false;
@@ -299,7 +300,7 @@ void NodeCanvas::clear_grid_spacing() {
 }
 
 double NodeCanvas::grid_spacing() {
-    if (grid_spacing_set_.has_value()) return *grid_spacing_set_;
+    if (grid_spacing_set_.present()) return *grid_spacing_set_.value();
     if (attached_surface_root() != nullptr) ensure_look();
     if (look_resolved_) return look_.grid.spacing;
     return default_grid_spacing;
@@ -335,15 +336,15 @@ bool NodeCanvas::flow_running() const noexcept {
     return (*root).motion_clock().control_ambient(*this);
 }
 
-std::optional<CanvasPreviewState> NodeCanvas::link_preview_state() const noexcept {
+stxlib::Optional<CanvasPreviewState> NodeCanvas::link_preview_state() const noexcept {
     const bool linking = (gesture_ == NodeCanvasGesture::link && gesture_planned_) || keyboard_link_;
-    if (!linking) return std::nullopt;
-    if (keyboard_link_ && keyboard_target_ < candidates_.size()) return CanvasPreviewState::accepted;
-    if (!keyboard_link_ && link_hit_.has_value() && *link_hit_ < candidates_.size()) {
-        return CanvasPreviewState::accepted;
+    if (!linking) return stxlib::Optional<CanvasPreviewState>::none();
+    if (keyboard_link_ && keyboard_target_ < candidates_.size()) return stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::accepted);
+    if (!keyboard_link_ && link_hit_.present() && *link_hit_.value() < candidates_.size()) {
+        return stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::accepted);
     }
-    if (link_refused_) return CanvasPreviewState::refused;
-    return CanvasPreviewState::seeking;
+    if (link_refused_) return stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::refused);
+    return stxlib::Optional<CanvasPreviewState>::of(CanvasPreviewState::seeking);
 }
 
 // -- caches ---------------------------------------------------------------------------------
@@ -369,7 +370,12 @@ void NodeCanvas::ensure_caches() {
     const std::uint64_t revision = (*graph_).revision();
     if (node_cache_revision_ != revision) rebuild_node_cache();
     if (link_style_ == NodeLinkStyle::routed && router_.routed_revision() != revision) {
-        const LinkRouteStatistics routed = router_.route(*graph_, router_options_);
+        // The statistics are discarded here, so the quadratic crossing count
+        // is skipped; it runs on every frame of a node drag
+        // (A-gf-controls-06-F8). The routes do not depend on it.
+        LinkRouterOptions routing = router_options_;
+        routing.count_crossings = false;
+        const LinkRouteStatistics routed = router_.route(*graph_, routing);
         static_cast<void>(routed);
         ++statistics_.router_runs;
         link_cache_revision_ = 0U;
@@ -581,16 +587,16 @@ void NodeCanvas::refresh_selection_flags() {
         ++kept;
     }
     selection_.resize(kept);
-    if (selected_link_.has_value() && graph.link(*selected_link_) == nullptr) selected_link_.reset();
-    if (focused_node_.has_value() && graph.node(*focused_node_) == nullptr) {
+    if (selected_link_.present() && graph.link(*selected_link_.value()) == nullptr) selected_link_.reset();
+    if (focused_node_.present() && graph.node(*focused_node_.value()) == nullptr) {
         focused_node_.reset();
         focused_port_.reset();
     }
-    if (focused_node_.has_value() && focused_port_.has_value()) {
-        const NodeRecord* node = graph.node(*focused_node_);
-        if (node == nullptr || (*focused_port_).value >= (*node).ports.size()) focused_port_.reset();
+    if (focused_node_.present() && focused_port_.present()) {
+        const NodeRecord* node = graph.node(*focused_node_.value());
+        if (node == nullptr || (*focused_port_.value()).value >= (*node).ports.size()) focused_port_.reset();
     }
-    if (hot_node_.has_value() && *hot_node_ >= selected_flags_.size()) hot_node_.reset();
+    if (hot_node_.present() && *hot_node_.value() >= selected_flags_.size()) hot_node_.reset();
 }
 
 bool NodeCanvas::selected(NodeId node) const noexcept {
@@ -621,8 +627,8 @@ void NodeCanvas::set_announcement(std::string_view text) {
 
 void NodeCanvas::node_states_into(std::uint32_t slot, AnatomyStateSet& states) const {
     if (slot < selected_flags_.size() && selected_flags_[slot] != 0U) states.insert(AnatomyState::selected);
-    if (hot_node_.has_value() && *hot_node_ == slot) states.insert(AnatomyState::hot);
-    const bool current = focused_node_.has_value() && (*focused_node_).index == slot && focused_;
+    if (hot_node_.present() && *hot_node_.value() == slot) states.insert(AnatomyState::hot);
+    const bool current = focused_node_.present() && (*focused_node_.value()).index == slot && focused_;
     if (current) states.insert(AnatomyState::current);
     if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     const Window* const host = attached_window();
@@ -637,7 +643,7 @@ void NodeCanvas::select_only(NodeId node) {
     selected_link_.reset();
     if ((*graph_).node(node) != nullptr) {
         selection_.push_back(node);
-        focused_node_ = node;
+        focused_node_.set(node);
         focused_port_.reset();
     }
     refresh_selection_flags();
@@ -648,7 +654,7 @@ void NodeCanvas::add_to_selection(NodeId node) {
     if (graph_ == nullptr || in_callback_ || (*graph_).node(node) == nullptr || selected(node)) return;
     selection_.push_back(node);
     selected_link_.reset();
-    focused_node_ = node;
+    focused_node_.set(node);
     refresh_selection_flags();
     emit_selection();
 }
@@ -673,13 +679,13 @@ void NodeCanvas::toggle_selection(NodeId node) {
 void NodeCanvas::select_link(LinkId link) {
     if (graph_ == nullptr || in_callback_ || (*graph_).link(link) == nullptr) return;
     selection_.clear();
-    selected_link_ = link;
+    selected_link_.set(link);
     refresh_selection_flags();
     emit_selection();
 }
 
 void NodeCanvas::clear_selection() {
-    if (in_callback_ || (selection_.empty() && !selected_link_.has_value())) return;
+    if (in_callback_ || (selection_.empty() && !selected_link_.present())) return;
     selection_.clear();
     selected_link_.reset();
     refresh_selection_flags();
@@ -719,7 +725,7 @@ std::size_t NodeCanvas::select_in_rect(const WorldRect& area, SpatialQueryMode m
 
 bool NodeCanvas::set_focused_node(NodeId node) {
     if (graph_ == nullptr || (*graph_).node(node) == nullptr) return false;
-    focused_node_ = node;
+    focused_node_.set(node);
     focused_port_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -730,10 +736,10 @@ bool NodeCanvas::set_focused_node(NodeId node) {
 bool NodeCanvas::delete_selection() {
     if (!can_mutate()) return false;
     NodeGraph& graph = *graph_;
-    if (selection_.empty() && !selected_link_.has_value()) return false;
+    if (selection_.empty() && !selected_link_.present()) return false;
     graph.begin_undo_group();
     for (const NodeId id : selection_) static_cast<void>(graph.remove_node(id));
-    if (selected_link_.has_value()) static_cast<void>(graph.disconnect(*selected_link_));
+    if (selected_link_.present()) static_cast<void>(graph.disconnect(*selected_link_.value()));
     static_cast<void>(graph.end_undo_group());
     selection_.clear();
     selected_link_.reset();
@@ -860,10 +866,10 @@ bool NodeCanvas::link_to_nearest(PortRef from) {
     if (!can_mutate()) return false;
     const PortRecord* source = (*graph_).port(from);
     if (source == nullptr || (*source).direction != PortDirection::output) return false;
-    const std::optional<Point> anchor = port_view_anchor(from);
-    if (!anchor.has_value()) return false;
+    const stxlib::Optional<Point> anchor = port_view_anchor(from);
+    if (anchor.absent()) return false;
     link_from_ = from;
-    collect_link_candidates(*anchor, false);
+    collect_link_candidates(*anchor.value(), false);
     const std::size_t tries = std::min(candidates_.size(), keyboard_link_tries);
     for (std::size_t index = 0U; index < tries; ++index) {
         const GraphResult result = connect_ports(from, candidates_[index].port);
@@ -872,24 +878,24 @@ bool NodeCanvas::link_to_nearest(PortRef from) {
     return false;
 }
 
-std::optional<std::uint32_t> NodeCanvas::nearest_node_in_direction(double dx, double dy) const {
-    if (graph_ == nullptr) return std::nullopt;
+stxlib::Optional<std::uint32_t> NodeCanvas::nearest_node_in_direction(double dx, double dy) const {
+    if (graph_ == nullptr) return stxlib::Optional<std::uint32_t>::none();
     const std::span<const NodeRecord> slots = (*graph_).node_slots();
     WorldPoint origin = view_.to_world(Point{client_rectangle().width / 2.0, client_rectangle().height / 2.0});
-    std::optional<std::uint32_t> from{};
-    if (focused_node_.has_value()) {
-        const NodeRecord* node = (*graph_).node(*focused_node_);
+    stxlib::Optional<std::uint32_t> from{};
+    if (focused_node_.present()) {
+        const NodeRecord* node = (*graph_).node(*focused_node_.value());
         if (node != nullptr) {
             origin = WorldPoint{(*node).bounds.x + (*node).bounds.width / 2.0,
                                 (*node).bounds.y + (*node).bounds.height / 2.0};
-            from = (*focused_node_).index;
+            from.set((*focused_node_.value()).index);
         }
     }
-    std::optional<std::uint32_t> best{};
+    stxlib::Optional<std::uint32_t> best{};
     double best_score = std::numeric_limits<double>::infinity();
     for (std::size_t slot = 0U; slot < slots.size(); ++slot) {
         const NodeRecord& node = slots[slot];
-        if (!node.live || (from.has_value() && *from == slot)) continue;
+        if (!node.live || (from.present() && *from.value() == slot)) continue;
         const double cx = node.bounds.x + node.bounds.width / 2.0 - origin.x;
         const double cy = node.bounds.y + node.bounds.height / 2.0 - origin.y;
         const double along = cx * dx + cy * dy;
@@ -900,7 +906,7 @@ std::optional<std::uint32_t> NodeCanvas::nearest_node_in_direction(double dx, do
         const double score = along + 2.0 * across;
         if (score < best_score) {
             best_score = score;
-            best = static_cast<std::uint32_t>(slot);
+            best.set(static_cast<std::uint32_t>(slot));
         }
     }
     return best;
@@ -908,12 +914,12 @@ std::optional<std::uint32_t> NodeCanvas::nearest_node_in_direction(double dx, do
 
 // -- geometry -------------------------------------------------------------------------------
 
-std::optional<Point> NodeCanvas::port_view_anchor(PortRef port) const {
-    if (graph_ == nullptr) return std::nullopt;
+stxlib::Optional<Point> NodeCanvas::port_view_anchor(PortRef port) const {
+    if (graph_ == nullptr) return stxlib::Optional<Point>::none();
     const NodeRecord* node = (*graph_).node(port.node);
     const PortRecord* record = (*graph_).port(port);
-    if (node == nullptr || record == nullptr) return std::nullopt;
-    const Point view = view_.to_view(port_world(*node, *record));
+    if (node == nullptr || record == nullptr) return stxlib::Optional<Point>::none();
+    const stxlib::Optional<Point> view = stxlib::Optional<Point>::of(view_.to_view(port_world(*node, *record)));
     return view;
 }
 
@@ -1044,9 +1050,9 @@ std::size_t NodeCanvas::links_crossing(Point from, Point to, std::span<LinkId> o
 
 // -- editing --------------------------------------------------------------------------------
 
-std::optional<NodeId> NodeCanvas::edited_node() const noexcept {
-    if (editor_ == nullptr) return std::nullopt;
-    return edit_node_;
+stxlib::Optional<NodeId> NodeCanvas::edited_node() const noexcept {
+    if (editor_ == nullptr) return stxlib::Optional<NodeId>::none();
+    return stxlib::Optional<NodeId>::of(edit_node_);
 }
 
 Rect NodeCanvas::edit_bounds() const {
@@ -1127,14 +1133,14 @@ void NodeCanvas::on_focus_changed(bool focused) {
     focused_ = focused;
     // Tab into the canvas: the first visible node (or the first live one)
     // becomes current, so arrows have somewhere to start.
-    if (focused && !focused_node_.has_value() && graph_ != nullptr) {
+    if (focused && !focused_node_.present() && graph_ != nullptr) {
         std::optional<std::uint32_t> first{};
         if (!visible_nodes_.empty()) first = visible_nodes_.front();
         const std::span<const NodeRecord> slots = (*graph_).node_slots();
         for (std::size_t slot = 0U; slot < slots.size() && !first.has_value(); ++slot) {
             if (slots[slot].live) first = static_cast<std::uint32_t>(slot);
         }
-        if (first.has_value() && *first < slots.size() && slots[*first].live) focused_node_ = id_of_slot(*first);
+        if (first.has_value() && *first < slots.size() && slots[*first].live) focused_node_.set(id_of_slot(*first));
     }
     invalidate(Dirty::paint | Dirty::semantics);
     Control::on_focus_changed(focused);
@@ -1150,31 +1156,31 @@ void NodeCanvas::node_identity(std::uint32_t slot, std::string& identity) const 
     append_decimal(identity, id_of_slot(slot).generation);
 }
 
-std::optional<NodeId> NodeCanvas::node_of_child_id(std::string_view stable_id_text) const {
+stxlib::Optional<NodeId> NodeCanvas::node_of_child_id(std::string_view stable_id_text) const {
     const std::string_view own = stable_id().value();
-    if (stable_id_text.size() <= own.size() + node_segment.size()) return std::nullopt;
-    if (stable_id_text.substr(0U, own.size()) != own) return std::nullopt;
+    if (stable_id_text.size() <= own.size() + node_segment.size()) return stxlib::Optional<NodeId>::none();
+    if (stable_id_text.substr(0U, own.size()) != own) return stxlib::Optional<NodeId>::none();
     std::string_view rest = stable_id_text.substr(own.size());
-    if (rest.substr(0U, node_segment.size()) != node_segment) return std::nullopt;
+    if (rest.substr(0U, node_segment.size()) != node_segment) return stxlib::Optional<NodeId>::none();
     rest = rest.substr(node_segment.size());
     std::uint32_t slot = 0U;
     const std::size_t slot_digits = read_decimal(rest, slot);
-    if (slot_digits == 0U || slot_digits >= rest.size() || rest[slot_digits] != '-') return std::nullopt;
+    if (slot_digits == 0U || slot_digits >= rest.size() || rest[slot_digits] != '-') return stxlib::Optional<NodeId>::none();
     rest = rest.substr(slot_digits + 1U);
     std::uint32_t generation = 0U;
     const std::size_t generation_digits = read_decimal(rest, generation);
-    if (generation_digits == 0U) return std::nullopt;
+    if (generation_digits == 0U) return stxlib::Optional<NodeId>::none();
     rest = rest.substr(generation_digits);
     // A port child names its node too: "<node>.port-<n>".
     if (!rest.empty()) {
-        if (rest.substr(0U, port_segment.size()) != port_segment) return std::nullopt;
+        if (rest.substr(0U, port_segment.size()) != port_segment) return stxlib::Optional<NodeId>::none();
         std::uint32_t port = 0U;
         const std::string_view digits = rest.substr(port_segment.size());
-        if (read_decimal(digits, port) != digits.size() || digits.empty()) return std::nullopt;
+        if (read_decimal(digits, port) != digits.size() || digits.empty()) return stxlib::Optional<NodeId>::none();
     }
     const NodeId node{slot, generation};
-    if (graph_ == nullptr || (*graph_).node(node) == nullptr) return std::nullopt;
-    return node;
+    if (graph_ == nullptr || (*graph_).node(node) == nullptr) return stxlib::Optional<NodeId>::none();
+    return stxlib::Optional<NodeId>::of(node);
 }
 
 SemanticDescriptor NodeCanvas::semantic_descriptor() const {
@@ -1213,14 +1219,14 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
         const WorldRect shown_world = view_.rect_to_world(client_rectangle());
         std::vector<std::uint32_t> listed{};
         listed.reserve(slots.size() + 1U);
-        bool focused_listed = !focused_node_.has_value();
+        bool focused_listed = !focused_node_.present();
         for (std::size_t slot = 0U; slot < slots.size(); ++slot) {
             const bool shown = slots[slot].live && world_rects_intersect(shown_world, slots[slot].bounds);
             if (!shown) continue;
             listed.push_back(static_cast<std::uint32_t>(slot));
-            if (focused_node_.has_value() && (*focused_node_).index == slot) focused_listed = true;
+            if (focused_node_.present() && (*focused_node_.value()).index == slot) focused_listed = true;
         }
-        if (!focused_listed) listed.push_back((*focused_node_).index);
+        if (!focused_listed) listed.push_back((*focused_node_.value()).index);
         children.reserve(listed.size() + 1U);
         for (const std::uint32_t slot : listed) {
             if (slot >= slots.size() || !slots[slot].live) continue;
@@ -1237,8 +1243,8 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
             item.states = SemanticState::visible | SemanticState::focusable;
             if (enabled) item.states |= SemanticState::enabled;
             if (slot < selected_flags_.size() && selected_flags_[slot] != 0U) item.states |= SemanticState::selected;
-            const bool current = focused_node_.has_value() && (*focused_node_).index == slot;
-            if (current && focused_ && !focused_port_.has_value()) item.states |= SemanticState::focused;
+            const bool current = focused_node_.present() && (*focused_node_.value()).index == slot;
+            if (current && focused_ && !focused_port_.present()) item.states |= SemanticState::focused;
             item.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
             item.children.reserve(node.ports.size());
             for (std::size_t port = 0U; port < node.ports.size(); ++port) {
@@ -1265,11 +1271,11 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
                 const Point anchor = view_.to_view(port_world(node, record));
                 child.bounds = Rect{absolute.x + anchor.x - port_hit_radius, absolute.y + anchor.y - port_hit_radius,
                                     2.0 * port_hit_radius, 2.0 * port_hit_radius};
-                child.position_in_set = port + 1U;
-                child.set_size = node.ports.size();
+                child.position_in_set.set(port + 1U);
+                child.set_size.set(node.ports.size());
                 child.states = SemanticState::visible;
                 if (enabled) child.states |= SemanticState::enabled;
-                if (current && focused_ && focused_port_.has_value() && (*focused_port_).value == port) {
+                if (current && focused_ && focused_port_.present() && (*focused_port_.value()).value == port) {
                     child.states |= SemanticState::focused;
                 }
                 item.children.push_back(std::move(child));
@@ -1297,15 +1303,16 @@ bool NodeCanvas::on_semantic_child_action(std::string_view stable_id_text, Seman
     if (action != SemanticAction::focus && action != SemanticAction::select && action != SemanticAction::press) {
         return false;
     }
-    const std::optional<NodeId> node = node_of_child_id(stable_id_text);
-    if (!node.has_value()) return false;
+    const stxlib::Optional<NodeId> found = node_of_child_id(stable_id_text);
+    if (found.absent()) return false;
+    const NodeId node = *found.value();
     const Control::Ptr lifetime = shared_from_this();
     SurfaceRoot* root = attached_surface_root();
     if (root != nullptr) static_cast<void>((*root).request_focus(lifetime));
     if (!is_alive()) return true;
-    select_only(*node);
-    reveal_node(*node);
-    if (action == SemanticAction::press && is_alive()) static_cast<void>(begin_edit(*node, NodeEditPart::body));
+    select_only(node);
+    reveal_node(node);
+    if (action == SemanticAction::press && is_alive()) static_cast<void>(begin_edit(node, NodeEditPart::body));
     return true;
 }
 
@@ -1358,13 +1365,13 @@ void NodeCanvas::publish_part_geometry(std::span<PartGeometry> geometry) const {
                                            std::fabs(current_view_.x - press_view_.x),
                                            std::fabs(current_view_.y - press_view_.y)};
     }
-    const NodeRecord* node = graph_ != nullptr && focused_node_.has_value() ? (*graph_).node(*focused_node_) : nullptr;
+    const NodeRecord* node = graph_ != nullptr && focused_node_.present() ? (*graph_).node(*focused_node_.value()) : nullptr;
     if (node != nullptr) {
         const Rect whole = view_.rect_to_view((*node).bounds);
         const double header = std::min(caption_height * view_.zoom, whole.height);
         bounds[canvas_part_node] = whole;
         bounds[canvas_part_node_header] = Rect{whole.x, whole.y, whole.width, header};
-        if (selected(*focused_node_)) {
+        if (selected(*focused_node_.value())) {
             // The ring as painted: its gap and its whole stroke width
             // outside the body, in view units at every zoom.
             const double ring_width = std::max(0.0, look_.selection.stroke_width);
@@ -1390,9 +1397,9 @@ void NodeCanvas::publish_part_geometry(std::span<PartGeometry> geometry) const {
     }
     if (focused_ && node == nullptr) bounds[canvas_part_focus] = client;
     if (node != nullptr) bounds[canvas_part_focus] = inflated(bounds[canvas_part_node].value_or(client), canvas_focus_gap);
-    const LinkRecord* link = graph_ != nullptr && selected_link_.has_value() ? (*graph_).link(*selected_link_) : nullptr;
+    const LinkRecord* link = graph_ != nullptr && selected_link_.present() ? (*graph_).link(*selected_link_.value()) : nullptr;
     if (link != nullptr) {
-        const WorldRect world = link_world_bounds((*selected_link_).index, *link);
+        const WorldRect world = link_world_bounds((*selected_link_.value()).index, *link);
         bounds[canvas_part_link] = view_.rect_to_view(world);
     }
     const std::span<const PartDeclaration> parts = anatomy().parts;

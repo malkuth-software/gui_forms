@@ -3,15 +3,21 @@
 namespace gui_forms {
 
 DateTimeFormatProvider DateTimeFormatProvider::english_united_states() {
+    const DateTimeFormatProvider provider = from_locale(portable_host_locale());
+    return provider;
+}
+
+DateTimeFormatProvider DateTimeFormatProvider::from_locale(const HostLocale& locale) {
     DateTimeFormatProvider provider;
-    provider.month_names = {"January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November",
-                            "December"};
-    provider.abbreviated_month_names = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-    provider.day_names = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
-                          "Friday", "Saturday"};
-    provider.abbreviated_day_names = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    provider.month_names = locale.month_names;
+    provider.abbreviated_month_names = locale.abbreviated_month_names;
+    provider.day_names = locale.day_names;
+    provider.abbreviated_day_names = locale.abbreviated_day_names;
+    provider.long_date_pattern = locale.long_date_pattern;
+    provider.short_date_pattern = locale.short_date_pattern;
+    provider.time_pattern = locale.time_pattern;
+    provider.am_designator = locale.am_designator;
+    provider.pm_designator = locale.pm_designator;
     return provider;
 }
 

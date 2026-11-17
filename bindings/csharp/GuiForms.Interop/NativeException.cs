@@ -169,6 +169,9 @@ internal static class NativeFrames
         case Constants.GF_SHADOW_FRAME_KIND_POSTED_CALLBACK:
             posted_callback(exception, index);
             break;
+        case Constants.GF_SHADOW_FRAME_KIND_GATE:
+            gate(exception, index);
+            break;
         default:
             unknown_frame(exception, index);
             break;
@@ -212,6 +215,13 @@ internal static class NativeFrames
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void posted_callback(NativeException exception, int index)
+    {
+        enter(exception, index + 1);
+        GC.KeepAlive(exception);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void gate(NativeException exception, int index)
     {
         enter(exception, index + 1);
         GC.KeepAlive(exception);

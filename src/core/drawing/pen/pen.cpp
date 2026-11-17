@@ -55,6 +55,19 @@ void Pen::set_line_cap(LineCap cap) {
     cap_ = cap;
 }
 
+void Pen::set_trim(double start, double end, double offset) {
+    require_alive();
+    require_finite(start, "trim start");
+    require_finite(end, "trim end");
+    require_finite(offset, "trim offset");
+    if (start < 0.0 || start > 1.0 || end < 0.0 || end > 1.0) {
+        throw std::invalid_argument("trim start and end must lie in [0, 1]");
+    }
+    trim_start_ = start;
+    trim_end_ = end;
+    trim_offset_ = offset;
+}
+
 PenSnapshot Pen::snapshot() const {
     require_alive();
     PenSnapshot result;
@@ -65,6 +78,9 @@ PenSnapshot Pen::snapshot() const {
     result.join = join_;
     result.miter_limit = miter_limit_;
     result.cap = cap_;
+    result.trim_start = trim_start_;
+    result.trim_end = trim_end_;
+    result.trim_offset = trim_offset_;
     return result;
 }
 

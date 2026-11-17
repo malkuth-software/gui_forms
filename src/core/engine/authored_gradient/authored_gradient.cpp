@@ -1,6 +1,8 @@
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
 
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -14,7 +16,10 @@
 // without fused multiply-add, with the engine's own sine, cosine and
 // arctangent (T2 plan, "Numerics"): the same inputs give the same layer on
 // every host.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -34,23 +39,39 @@ double resolved_length(BoxLength length, double extent) noexcept {
     return resolved;
 }
 
-std::uint8_t rounded_channel(double channel) noexcept {
-    const double rounded = std::clamp(std::floor(channel + 0.5), 0.0, 255.0);
-    return static_cast<std::uint8_t>(rounded);
-}
-
-std::uint8_t mixed_channel(std::uint8_t from, std::uint8_t to, double fraction) noexcept {
-    const double low = static_cast<double>(from);
-    const double high = static_cast<double>(to);
-    const std::uint8_t channel = rounded_channel(low + (high - low) * fraction);
-    return channel;
-}
-
-// The engine's interpolation of straight colour, rounded to 8 bits.
+// The colour `fraction` of the way from `from` to `to`, interpolated
+// premultiplied in linear light as every gradient is
+// (gui_forms/types/linear_light/linear_light.hpp).
 Color mixed_colour(Color from, Color to, double fraction) noexcept {
-    const Color mixed{mixed_channel(from.red, to.red, fraction), mixed_channel(from.green, to.green, fraction),
-                      mixed_channel(from.blue, to.blue, fraction), mixed_channel(from.alpha, to.alpha, fraction)};
+    const Color mixed = interpolate_linear_light(from, to, linear_light_weight(fraction));
     return mixed;
+}
+
+// The colour just past `offset` along the placed stops, padded at the ends.
+Color colour_after(std::span<const GradientStop> placed, double offset) noexcept {
+    std::size_t next = 0U;
+    while (next < placed.size() && placed[next].offset <= offset) next = next + 1U;
+    if (next == 0U) return placed.front().color;
+    if (next == placed.size()) return placed.back().color;
+    const GradientStop& low = placed[next - 1U];
+    const GradientStop& high = placed[next];
+    const double fraction = (offset - low.offset) / (high.offset - low.offset);
+    const Color colour = mixed_colour(low.color, high.color, fraction);
+    return colour;
+}
+
+// The colour just short of `offset` along the placed stops, padded at the
+// ends.
+Color colour_before(std::span<const GradientStop> placed, double offset) noexcept {
+    std::size_t next = placed.size();
+    while (next > 0U && placed[next - 1U].offset >= offset) next = next - 1U;
+    if (next == 0U) return placed.front().color;
+    if (next == placed.size()) return placed.back().color;
+    const GradientStop& low = placed[next - 1U];
+    const GradientStop& high = placed[next];
+    const double fraction = (offset - low.offset) / (high.offset - low.offset);
+    const Color colour = mixed_colour(low.color, high.color, fraction);
+    return colour;
 }
 
 // CSS's placement (css-images-3, "color stop fixup") into `placed`, which
@@ -98,33 +119,6 @@ void place_stops(std::span<const AuthoredGradientStop> stops, double line, std::
     }
 }
 
-// The colour just past `offset` along the placed stops, padded at the ends.
-Color colour_after(std::span<const GradientStop> placed, double offset) noexcept {
-    std::size_t next = 0U;
-    while (next < placed.size() && placed[next].offset <= offset) next = next + 1U;
-    if (next == 0U) return placed.front().color;
-    if (next == placed.size()) return placed.back().color;
-    const GradientStop& low = placed[next - 1U];
-    const GradientStop& high = placed[next];
-    const double fraction = (offset - low.offset) / (high.offset - low.offset);
-    const Color colour = mixed_colour(low.color, high.color, fraction);
-    return colour;
-}
-
-// The colour just short of `offset` along the placed stops, padded at the
-// ends.
-Color colour_before(std::span<const GradientStop> placed, double offset) noexcept {
-    std::size_t next = placed.size();
-    while (next > 0U && placed[next - 1U].offset >= offset) next = next - 1U;
-    if (next == 0U) return placed.front().color;
-    if (next == placed.size()) return placed.back().color;
-    const GradientStop& low = placed[next - 1U];
-    const GradientStop& high = placed[next];
-    const double fraction = (offset - low.offset) / (high.offset - low.offset);
-    const Color colour = mixed_colour(low.color, high.color, fraction);
-    return colour;
-}
-
 // The placed stops within [0, 1], with the colours at both ends, into
 // `stops`, which is cleared first.
 void clipped_stops(std::span<const GradientStop> placed, std::vector<GradientStop>& stops) {
@@ -165,6 +159,19 @@ void rotated_stops(std::span<const GradientStop> period, double phase, std::vect
     stops.push_back(GradientStop{1.0, colour_before(period, seam)});
 }
 
+// One period's stops (`period`, from 0 to 1) followed by their mirror
+// image, as one period of twice the length, into `stops`, which is cleared
+// first: a reflecting gradient's two periods, forward and back. The stop
+// at the turn is written once.
+void mirrored_stops(std::span<const GradientStop> period, std::vector<GradientStop>& stops) {
+    stops.clear();
+    for (const GradientStop& stop : period) stops.push_back(GradientStop{stop.offset * 0.5, stop.color});
+    for (std::size_t index = period.size() - 1U; index > 0U; --index) {
+        const GradientStop& stop = period[index - 1U];
+        stops.push_back(GradientStop{1.0 - stop.offset * 0.5, stop.color});
+    }
+}
+
 // Separates coincident stops by hard_stop_separation, keeping the ends at
 // exactly 0 and 1. `stops` has at least two, from 0 to 1, not decreasing.
 void separate_stops(std::vector<GradientStop>& stops) noexcept {
@@ -186,25 +193,49 @@ void separate_stops(std::vector<GradientStop>& stops) noexcept {
     stops.front().offset = 0.0;
 }
 
+// One colour channel's premultiplied linear light, summed over both ends
+// of every segment (at most 32 × 2 × 65535 × 255, far below 2^63).
+std::uint64_t linear_light_premultiplied(std::uint8_t channel, std::uint8_t alpha) noexcept {
+    const std::uint64_t linear = linear_light_of_srgb(channel).value;
+    const std::uint64_t premultiplied = linear * alpha;
+    return premultiplied;
+}
+
+// The straight sRGB byte of a summed premultiplied channel over the summed
+// alpha (not zero), rounded to the nearest linear step.
+std::uint8_t averaged_channel(std::uint64_t premultiplied, std::uint64_t alpha_sum) noexcept {
+    const std::uint64_t level = (premultiplied + alpha_sum / 2U) / alpha_sum;
+    const std::uint16_t bounded = static_cast<std::uint16_t>(std::min<std::uint64_t>(level, 65535U));
+    const std::uint8_t encoded = srgb_of_linear_light(LinearLightLevel{bounded});
+    return encoded;
+}
+
 // CSS's colour for a repeating gradient of no length: the average of the
-// gradient with the same colours evenly spaced. `stops` has at least two.
+// gradient with the same colours evenly spaced, in linear light as the
+// gradient interpolates. Each segment's average is its middle, the mean of
+// its two ends premultiplied in linear light, so the average is exact in
+// integers. `stops` has at least two.
 Color average_colour(std::span<const AuthoredGradientStop> stops) noexcept {
     const std::size_t segments = stops.size() - 1U;
-    double red = 0.0;
-    double green = 0.0;
-    double blue = 0.0;
-    double alpha = 0.0;
+    std::uint64_t red = 0U;
+    std::uint64_t green = 0U;
+    std::uint64_t blue = 0U;
+    std::uint64_t alpha = 0U;
     for (std::size_t index = 0U; index < segments; ++index) {
         const Color low = stops[index].colour;
         const Color high = stops[index + 1U].colour;
-        red = red + (static_cast<double>(low.red) + static_cast<double>(high.red)) * 0.5;
-        green = green + (static_cast<double>(low.green) + static_cast<double>(high.green)) * 0.5;
-        blue = blue + (static_cast<double>(low.blue) + static_cast<double>(high.blue)) * 0.5;
-        alpha = alpha + (static_cast<double>(low.alpha) + static_cast<double>(high.alpha)) * 0.5;
+        red = red + linear_light_premultiplied(low.red, low.alpha) + linear_light_premultiplied(high.red, high.alpha);
+        green = green + linear_light_premultiplied(low.green, low.alpha) +
+                linear_light_premultiplied(high.green, high.alpha);
+        blue = blue + linear_light_premultiplied(low.blue, low.alpha) +
+               linear_light_premultiplied(high.blue, high.alpha);
+        alpha = alpha + low.alpha + high.alpha;
     }
-    const double count = static_cast<double>(segments);
-    const Color average{rounded_channel(red / count), rounded_channel(green / count), rounded_channel(blue / count),
-                        rounded_channel(alpha / count)};
+    if (alpha == 0U) return Color{0U, 0U, 0U, 0U};
+    const std::uint64_t ends = 2U * static_cast<std::uint64_t>(segments);
+    const std::uint8_t mean_alpha = static_cast<std::uint8_t>((alpha + ends / 2U) / ends);
+    const Color average{averaged_channel(red, alpha), averaged_channel(green, alpha), averaged_channel(blue, alpha),
+                        mean_alpha};
     return average;
 }
 
@@ -266,8 +297,9 @@ void resolve_linear(const AuthoredGradient& gradient, Size box, std::vector<Grad
     }
     period_stops(placed, first, span, stops);
     separate_stops(stops);
+    const GradientSpreadMode spread = gradient.reflecting ? GradientSpreadMode::reflect : GradientSpreadMode::repeat;
     if (first == 0.0 && last == 1.0) {
-        layer = MaterialFillLayer::linear_css_angle(angle, std::move(stops), GradientSpreadMode::repeat);
+        layer = MaterialFillLayer::linear_css_angle(angle, std::move(stops), spread);
         return;
     }
     if (line <= 0.0) {
@@ -281,6 +313,7 @@ void resolve_linear(const AuthoredGradient& gradient, Size box, std::vector<Grad
     const Point start{line_start.x + direction.x * first * line, line_start.y + direction.y * first * line};
     const Point end{line_start.x + direction.x * last * line, line_start.y + direction.y * last * line};
     layer = MaterialFillLayer::repeating_linear(start, end, std::move(stops), MaterialCoordinateSpace::logical);
+    layer.spread = spread;
 }
 
 // A radial gradient's radii about `centre` in a box of `box`.
@@ -347,6 +380,14 @@ void resolve_radial(const AuthoredGradient& gradient, Size box, MaterialCoordina
         clipped_stops(placed, stops);
         separate_stops(stops);
         layer = MaterialFillLayer::radial(centre, radii, std::move(stops), space);
+        if (gradient.focused) {
+            const Point focus{resolved_length(gradient.focus_x, box.width),
+                              resolved_length(gradient.focus_y, box.height)};
+            if (focus_inside_ellipse(centre, radii, focus)) {
+                layer.focused = true;
+                layer.focus = focus;
+            }
+        }
         return;
     }
     const double first = placed.front().offset;
@@ -362,14 +403,43 @@ void resolve_radial(const AuthoredGradient& gradient, Size box, MaterialCoordina
     period.reserve(maximum_gradient_stops);
     period_stops(placed, first, span, period);
     const double periods = first / span;
-    const double phase = periods - std::floor(periods);
-    if (phase == 0.0) {
-        stops = std::move(period);
+    GradientSpreadMode spread = GradientSpreadMode::repeat;
+    if (!gradient.reflecting) {
+        const double phase = periods - std::floor(periods);
+        if (phase == 0.0) {
+            stops = std::move(period);
+        } else {
+            rotated_stops(period, phase, stops);
+        }
     } else {
-        rotated_stops(period, phase, stops);
+        // Reflected periods repeat in pairs: begun at the centre, the
+        // period reflects; begun part way into a pair, the pair (the period
+        // and its mirror image) repeats from there, over twice the radii.
+        const double pairs = periods * 0.5;
+        const double phase = pairs - std::floor(pairs);
+        if (phase == 0.0) {
+            stops = std::move(period);
+            spread = GradientSpreadMode::reflect;
+        } else {
+            std::vector<GradientStop> pair{};
+            pair.reserve(maximum_gradient_stops);
+            mirrored_stops(period, pair);
+            rotated_stops(pair, phase, stops);
+            radii = Size{radii.width * 2.0, radii.height * 2.0};
+        }
     }
     separate_stops(stops);
     layer = MaterialFillLayer::repeating_radial(centre, radii, std::move(stops), space);
+    layer.spread = spread;
+    if (gradient.focused) {
+        // The periods are counted from the focus, kept where it lies inside
+        // one period's ellipse.
+        const Point focus{resolved_length(gradient.focus_x, box.width), resolved_length(gradient.focus_y, box.height)};
+        if (focus_inside_ellipse(centre, radii, focus)) {
+            layer.focused = true;
+            layer.focus = focus;
+        }
+    }
 }
 
 void resolve_conic(const AuthoredGradient& gradient, Size box, MaterialCoordinateSpace space,
@@ -402,6 +472,9 @@ void resolve_conic(const AuthoredGradient& gradient, Size box, MaterialCoordinat
     period_stops(placed, first, span, stops);
     separate_stops(stops);
     layer = MaterialFillLayer::repeating_conic(centre, from, span * 360.0, std::move(stops), space);
+    // Reflected periods: where the turn closes after an odd count of them
+    // the colours meet unmirrored, as at the from-angle of any conic.
+    if (gradient.reflecting) layer.spread = GradientSpreadMode::reflect;
 }
 
 } // namespace
@@ -419,7 +492,14 @@ bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept {
         return false;
     }
     if (!finite_length(gradient.centre_x) || !finite_length(gradient.centre_y) ||
-        !finite_length(gradient.radius_x) || !finite_length(gradient.radius_y)) {
+        !finite_length(gradient.radius_x) || !finite_length(gradient.radius_y) ||
+        !finite_length(gradient.focus_x) || !finite_length(gradient.focus_y)) {
+        return false;
+    }
+    if (gradient.focused && gradient.kind != MaterialFillKind::radial_gradient) return false;
+    if (gradient.reflecting && !gradient.repeating) return false;
+    if (gradient.reflecting && gradient.kind == MaterialFillKind::radial_gradient &&
+        gradient.stops.size() > maximum_reflecting_radial_stops) {
         return false;
     }
     const bool lengths = gradient.extent == RadialExtent::lengths;
@@ -437,6 +517,7 @@ bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept {
 bool authored_gradient_fixed(const AuthoredGradient& gradient) noexcept {
     if (gradient.corner != GradientCorner::none || stops_have_units(gradient.stops)) return false;
     if (has_units(gradient.centre_x) || has_units(gradient.centre_y)) return false;
+    if (gradient.focused && (has_units(gradient.focus_x) || has_units(gradient.focus_y))) return false;
     if (gradient.kind == MaterialFillKind::radial_gradient) {
         const bool fixed = !gradient.circle && !has_units(gradient.radius_x) && !has_units(gradient.radius_y);
         return fixed;

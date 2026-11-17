@@ -17,6 +17,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -209,7 +210,7 @@ void test_forms() {
             "a part without a type, declared by some type");
 
     const LoweredSelector role = lower_one("::role(face)");
-    require(role.selector.role == PartRole::face && role.specificity == specificity(0U, 0U, 1U),
+    require(role.selector.role == stxlib::Optional<PartRole>::of(PartRole::face) && role.specificity == specificity(0U, 0U, 1U),
             "a part role");
 
     const LoweredSelector custom = lower_one("button:state(drop-accepted)");

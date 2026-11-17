@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -323,24 +325,24 @@ private:
             }
             if (!site.frame.finite() || site.frame.empty()) return fail("a floating frame is not valid");
         }
-        for (std::size_t index = 0; index < state_.auto_hidden.size(); ++index) {
-            for (std::size_t earlier = 0; earlier < index; ++earlier) {
-                if (state_.auto_hidden[earlier].stack == state_.auto_hidden[index].stack) {
-                    return fail("a stack is auto-hidden twice");
-                }
-            }
+        std::set<std::uint32_t> hidden_stacks{};
+        for (const DockAutoHideEntry& entry : state_.auto_hidden) {
+            const bool repeated = !hidden_stacks.insert(entry.stack.value).second;
+            if (repeated) return fail("a stack is auto-hidden twice");
         }
         return true;
     }
 
+    // check_tables has proved the nodes sorted by unique ID, so the node is
+    // found by binary search; a scan per node made the check quadratic
+    // (A-gf-core-04-F1).
     bool mark(DockNodeId id) {
-        for (std::size_t index = 0; index < state_.nodes.size(); ++index) {
-            if (!(state_.nodes[index].id == id)) continue;
-            if (visited_[index]) return fail(node_text(id) + " is reached twice");
-            visited_[index] = true;
-            return true;
-        }
-        return fail(node_text(id) + " does not exist");
+        const DockNode* const node = find_dock_node(state_, id);
+        if (node == nullptr) return fail(node_text(id) + " does not exist");
+        const std::size_t index = static_cast<std::size_t>(node - state_.nodes.data());
+        if (visited_[index]) return fail(node_text(id) + " is reached twice");
+        visited_[index] = true;
+        return true;
     }
 
     bool check_panels(const DockNode& node) {
@@ -355,10 +357,8 @@ private:
             if (node.kind == DockNodeKind::tool_stack && (*record).kind != DockPanelKind::tool) {
                 return fail("document " + panel.value + " is in a tool stack");
             }
-            for (const DockPanelId& seen : seen_panels_) {
-                if (seen == panel) return fail("panel " + panel.value + " is placed twice");
-            }
-            seen_panels_.push_back(panel);
+            const bool placed = !seen_panels_.insert(panel).second;
+            if (placed) return fail("panel " + panel.value + " is placed twice");
         }
         return true;
     }
@@ -434,7 +434,8 @@ private:
     const DockLayoutState& state_;
     DockInvariantResult result_{};
     std::vector<bool> visited_{};
-    std::vector<DockPanelId> seen_panels_{};
+    // The panels placed so far; only membership is asked (A-gf-core-04-F1).
+    std::set<DockPanelId> seen_panels_{};
     std::size_t document_areas_{0};
 };
 
@@ -468,13 +469,13 @@ bool unknown_owner_exists(const DockLayoutState& state, const DockUnknownOwner& 
         return find_dock_record(state, owner.panel) != nullptr;
     case DockUnknownOwnerKind::docked_memory:
         record = find_dock_record(state, owner.panel);
-        return record != nullptr && (*record).docked.has_value();
+        return record != nullptr && (*record).docked.present();
     case DockUnknownOwnerKind::floating_memory:
         record = find_dock_record(state, owner.panel);
         return record != nullptr && (*record).floating.has_value();
     case DockUnknownOwnerKind::auto_hidden_memory:
         record = find_dock_record(state, owner.panel);
-        return record != nullptr && (*record).auto_hidden.has_value();
+        return record != nullptr && (*record).auto_hidden.present();
     }
     return false;
 }

@@ -2,12 +2,15 @@
 #include "smoke_test.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 
+#include <clocale>
 #include <memory>
 #include <utility>
 #include <vector>
 #include <string_view>
 
 int main(int argc, const char* argv[]) {
+    // std-rules: allow(locale-change) the program, not the library, chooses its locale: the environment's character type, for X input methods and compose
+    std::setlocale(LC_CTYPE, "");
     std::unique_ptr<gui_forms::Window> product_model = file_manager_demoboard::make_product_window();
     bool product_only = false;
     bool smoke_test = false;

@@ -20,7 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -89,6 +89,10 @@ struct GUI_FORMS_API DataGridViewCellsProvided final {
 // one per cell.
 struct GUI_FORMS_API DataGridViewCellsCell final {
     DataGridViewCellsParts parts{};
+    // The pane the cell is cut to, in the region's coordinates, when the
+    // grid has frozen rows or columns (a scrolling cell passes under the
+    // frozen ones); empty for the whole data area.
+    Rect pane{};
     // The cell's active states (its anatomy's standard and custom states),
     // as the theme reads them; checked draws a check box's indicator.
     AnatomyStateSet states{};
@@ -127,8 +131,8 @@ struct GUI_FORMS_API DataGridViewCellsCell final {
 struct GUI_FORMS_API DataGridViewCellsLook final {
     std::vector<std::string> classes{};
     std::string inline_style{};
-    std::optional<Color> back_color{};
-    std::optional<Color> fore_color{};
+    stxlib::Optional<Color> back_color{};
+    stxlib::Optional<Color> fore_color{};
 
     friend bool operator==(const DataGridViewCellsLook& left, const DataGridViewCellsLook& right) {
         return left.classes == right.classes &&
@@ -141,6 +145,19 @@ struct GUI_FORMS_API DataGridViewCellsLook final {
 // snapshot replaces an older one whole. Coordinates are the region's (the
 // grid's data area at the origin). Made and filled on the UI thread, then
 // moved to the sub-surface's thread inside a DataGridViewCellsUpdate.
+// A part a row_post_paint handler asks the grid to paint over a row's
+// cells (Windows Forms' RowPostPaint, as a part request): drawn through the
+// theme engine as `role` in the grid's editor family, with `mark` (none
+// for a plain part) and an authored background colour (none for the
+// theme's), at `bounds` in the grid's own coordinates and cut to the data
+// area.
+struct GUI_FORMS_API DataGridViewRowOverlayPart final {
+    Rect bounds{};
+    PartRole role{PartRole::glyph};
+    PartMark mark{PartMark::none};
+    stxlib::Optional<Color> background{};
+};
+
 struct GUI_FORMS_API DataGridViewCellsSnapshot final {
     DataGridViewCellsLook look{};
     // The grid's well, placed so that only its ground lies in the region
@@ -158,6 +175,9 @@ struct GUI_FORMS_API DataGridViewCellsSnapshot final {
     // The row identities (DataGridViewRowId values) the provided cells name,
     // one per visible row that has any; empty without a provider.
     std::vector<std::string> provided_rows{};
+    // The rows' overlay parts (row_post_paint), in the region's
+    // coordinates, painted after every cell.
+    std::vector<DataGridViewRowOverlayPart> overlays{};
 };
 
 // Whether every range of `snapshot` lies in its buffers: each cell's text
@@ -178,6 +198,9 @@ GUI_FORMS_API void paint_data_grid_view_cell(Painter& painter, const Control& ow
 // `default_content` the content parts (link, text, image, check box,
 // button) are the owner's and are left out; the drop-down, the error
 // glyph, the rules and the focus part are drawn either way.
+// Paints one row overlay part for `owner` through the theme engine.
+GUI_FORMS_API void paint_data_grid_view_row_overlay(Painter& painter, const Control& owner,
+                                                    const DataGridViewRowOverlayPart& overlay);
 GUI_FORMS_API void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell);
 GUI_FORMS_API void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
                                      const DataGridViewCellsCell& cell, Rect data, bool default_content);

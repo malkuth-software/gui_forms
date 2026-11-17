@@ -32,11 +32,11 @@ constexpr double chip_block_padding = 1.0;
 constexpr double dot_side = 8.0;
 
 constexpr std::array<PartField<Badge::Parts>, 3> badge_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Badge::Parts::region},
-    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "chip", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &Badge::Parts::chip},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Badge::Parts::label},
 }};
 
@@ -58,6 +58,7 @@ constexpr ControlAnatomy badge_anatomy{
     .parts = badge_parts,
     .states = badge_states,
     .custom_states = badge_custom_states,
+    .item_systems = {},
 };
 
 } // namespace
@@ -123,7 +124,7 @@ void Badge::on_paint(Painter& painter, Rect) {
     const Rect chip = chip_bounds(shown);
     const AnatomyStateSet states = anatomy_states();
     PartPaint face{.role = PartRole::chip, .bounds = chip, .states = states, .family = ControlVisualRole::badge};
-    face.corner_radius = std::min(chip.width, chip.height) * 0.5;
+    face.corner_radius.set(std::min(chip.width, chip.height) * 0.5);
     paint_part(painter, *this, face);
     if (shown.empty()) return;
     PartPaint label{.role = PartRole::label, .bounds = chip, .states = states, .family = ControlVisualRole::badge};

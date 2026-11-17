@@ -6,18 +6,20 @@
 // pass", "paint pass"). A debugger, a tracer or a crash report reads it where
 // the native frames say nothing a program's author would recognise.
 //
-// Each thread owns a fixed stack of shadow_stack_capacity records, made
-// with the thread and never allocated again, so a push is a few stores. A
-// record holds a kind, numbers and short copied texts (a stable id, a
-// name), never an address, so two runs' stacks compare. Frames are pushed
-// and popped only by ShadowFrameScope, so an exception that unwinds through
-// a scope pops its frame as a return would.
+// The stack is STXlib's (stxlib/shadow.hpp), kept in the stxlib_state shared
+// library, so every module of a process pushes onto one stack per thread and
+// the gates that catch an exception (the C ABI's slots, the fail-fast
+// entries, the callback gates) see the frames it was thrown under, whichever
+// module threw it. Each thread records shadow_stack_capacity frames, fixed
+// storage made with the thread, so a push is a few stores and a copy of two
+// short texts. A frame holds a kind, numbers and short copied texts (a stable
+// id, a name), never an address, so two runs' stacks compare.
 //
-// An unwinding pop keeps the story of the failure: a popped frame's record
-// stays in the stack's storage until a later push reuses it, and the first
-// scope an exception unwinds notes the depth it was thrown at (two stores,
-// on the exception path only). A boundary that catches the exception reads
-// those frames with copy_failure_shadow_frames.
+// A frame is closed by a mark, never by asking a C++ runtime whether an
+// exception is in flight: a frame left without its mark is being unwound,
+// and the first frame an exception leaves captures the stack at the throw.
+// The library's own code opens frames through STXlib's gates and
+// ShadowFrameCall; ShadowFrameScope stays for the C++ API before 1.0.
 
 #include "gui_forms/export/application_export.hpp"
 #include <array>
@@ -51,6 +53,10 @@ enum class ShadowFrameKind : std::uint32_t {
     // Work posted to the UI thread, run by a binding: subject is the
     // target's stable id when the target is a control (else empty).
     posted_callback = 6U,
+    // A gate of the library's runtime (STXlib) that is not one of the
+    // frames above: name is its operation, such as the site of a native
+    // callback entry ("windows.window_procedure").
+    gate = 7U,
 };
 
 // Set on a frame whose text was longer than its field and was cut at the
@@ -68,7 +74,7 @@ inline constexpr std::size_t shadow_frame_name_capacity = 32U;
 inline constexpr std::size_t shadow_stack_capacity = 64U;
 
 // One frame. Fields a kind does not use are zero and empty. The text arrays
-// hold subject_size and name_size bytes; the bytes past them are stale.
+// hold subject_size and name_size bytes; the bytes past them are zero.
 struct GUI_FORMS_API ShadowFrame final {
     ShadowFrameKind kind = ShadowFrameKind::library_call;
     std::uint32_t flags = 0U;
@@ -94,7 +100,8 @@ struct GUI_FORMS_API ShadowStackState final {
 // Opens a frame on the calling thread for the scope's lifetime and closes
 // it on every exit, an exception's included. Never throws or allocates.
 // Scopes nest strictly (they are not copied or moved), so the frame closed
-// is always the innermost.
+// is always the innermost. Kept for the C++ API before 1.0; the library's
+// own frames are gates and ShadowFrameCall, which need no runtime query.
 class GUI_FORMS_API ShadowFrameScope final {
 public:
     // A frame of kind with subject and name (each cut to its capacity).
@@ -104,23 +111,22 @@ public:
     ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept;
     // Inline on purpose: std::uncaught_exceptions() is read in the module
     // that holds the scope. Where each module links its own C++ runtime
-    // (Windows, add_link_options(-static)), an exception thrown in that
-    // module counts only in that module's runtime, so the library's own copy
-    // would report no exception while it unwinds the scope. An exception
-    // thrown in another module still unwinds the frame, but is not seen as
-    // an unwinding there, so it leaves no mark: a frame whose callees may
-    // throw from another module is a ShadowFrameCall.
+    // (Windows, add_link_options(-static)), an exception thrown in another
+    // module is not counted here, so the frame closes as a return would and
+    // the throw-site capture falls to an outer frame or the catching gate.
     ~ShadowFrameScope() {
         const bool unwinding = std::uncaught_exceptions() != 0;
-        close_frame(unwinding);
+        close_frame(mark_, unwinding);
     }
     ShadowFrameScope(const ShadowFrameScope&) = delete;
     ShadowFrameScope& operator=(const ShadowFrameScope&) = delete;
 
 private:
-    // Pops the innermost frame; unwinding marks the depth for
-    // copy_failure_shadow_frames.
-    static void close_frame(bool unwinding) noexcept;
+    // Leaves the frame mark names; unwinding keeps the capture.
+    static void close_frame(std::uint32_t mark, bool unwinding) noexcept;
+
+    // STXlib's mark for this frame (stxlib::ShadowFrameMark::depth).
+    std::uint32_t mark_ = 0U;
 };
 
 // A frame around an entry that calls into code another module may hold
@@ -129,8 +135,7 @@ private:
 // then calls returned(); a frame destroyed before returned() is being
 // unwound, whichever module threw, so no runtime is asked. The body's own
 // early returns cannot skip the mark, because the mark follows the body's
-// return. Writes the same stack as ShadowFrameScope (the library's), and
-// never throws or allocates.
+// return. Never throws or allocates.
 class GUI_FORMS_API ShadowFrameCall final {
 public:
     ShadowFrameCall(ShadowFrameKind kind, std::string_view subject, std::string_view name,
@@ -143,6 +148,8 @@ public:
     void returned() noexcept { returned_ = true; }
 
 private:
+    // STXlib's mark for this frame (stxlib::ShadowFrameMark::depth).
+    std::uint32_t mark_ = 0U;
     bool returned_ = false;
 };
 
@@ -152,17 +159,13 @@ private:
 // copied. Never throws or allocates.
 GUI_FORMS_API std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
 
-// As copy_shadow_frames, but for a boundary that has just caught an
-// exception: the frames open where the exception was thrown, the frames it
-// unwound included, when no frame has been opened or closed by a return
-// since its last unwinding pop; otherwise (no exception unwound a frame, or
-// the thread has moved on) the frames open now. state.depth is the depth
-// copied from; pushed and dropped are the thread's. Never throws or
-// allocates. The mark cannot tell two unwindings apart when nothing opens
-// or closes a frame between them: an exception caught and handled inside a
-// frame, then another thrown from that frame or an outer one, shows the
-// first's deeper frames above the second's. The outer frames are the
-// second's either way.
+// As copy_shadow_frames, but for a handler that has just caught an
+// exception and is not a gate: the frames open where the exception was
+// thrown, the frames it unwound included, or the frames open now when no
+// frame saw the exception leave. Takes the thread's pending capture
+// (stxlib::park_shadow), so call it once per caught exception, inside the
+// handler. state.depth is the depth copied from; pushed and dropped are the
+// thread's. Never throws or allocates.
 GUI_FORMS_API std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
 
 } // namespace gui_forms

@@ -14,12 +14,14 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 #include "gui_forms/window/window.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -74,7 +76,7 @@ void test_content_shrink_precedes_authored_collapse() {
         {ResponsiveTrackSizeMode::fixed, 40.0, 40.0, 40.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 20.0, 100.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::content, 30.0, 60.0, 100.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     };
     const std::vector<double> measured{0.0, 0.0, 60.0};
     const ResponsiveTrackResolution shrink = resolve_responsive_tracks(
@@ -96,12 +98,12 @@ void test_content_shrink_precedes_authored_collapse() {
 void test_hidden_tracks_and_deterministic_priority_order() {
     const std::vector<ResponsiveTrackSpec> specs{
         {ResponsiveTrackSizeMode::fixed, 123.0, 221.0, 320.0, 1.0,
-         false, 20U},
+         false, stxlib::Optional<std::uint16_t>::of(20U)},
         {ResponsiveTrackSizeMode::remaining, 150.0, 300.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::fixed, 163.0, 291.0, 360.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
         {ResponsiveTrackSizeMode::fixed, 30.0, 30.0, 30.0, 1.0, true,
-         5U},
+         stxlib::Optional<std::uint16_t>::of(5U)},
     };
     const std::vector<double> measured(4U);
     const ResponsiveTrackResolution reference = resolve_responsive_tracks(
@@ -167,7 +169,7 @@ struct FocusFixture final {
         (*root).set_track_specs({
             {ResponsiveTrackSizeMode::remaining, 80.0, 120.0, 0.0, 1.0},
             {ResponsiveTrackSizeMode::fixed, 120.0, 120.0, 120.0, 1.0,
-             false, 10U},
+             false, stxlib::Optional<std::uint16_t>::of(10U)},
         });
         (*content).dock = DockStyle::fill;
         (*selection).dock = DockStyle::fill;
@@ -177,8 +179,8 @@ struct FocusFixture final {
         (*selection).add_child(selection_action);
         (*root).add_child(content);
         (*root).add_child(selection);
-        (*root).child_track[*content] = 0U;
-        (*root).child_track[*selection] = 1U;
+        (*root).child_track[*content] = stxlib::Optional<std::uint32_t>::of(0U);
+        (*root).child_track[*selection] = stxlib::Optional<std::uint32_t>::of(1U);
         (*root).set_track_focus_fallback(1U, *fallback);
         window.perform_layout();
     }
@@ -234,25 +236,25 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
         {ResponsiveTrackSizeMode::content, 28.0, 40.0, 120.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 30.0, 100.0, 0.0, 1.0},
         {ResponsiveTrackSizeMode::content, 20.0, 24.0, 80.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     });
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("responsive.scale.title"), "Current location");
-    (*title).font = FontSpec{FontRole::control, 15.0, 700, false};
+    (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15.0, 700, false});
     (*title).dock = DockStyle::fill;
     std::shared_ptr<Panel> content =
         make_control<Panel>(StableId("responsive.scale.content"));
     (*content).dock = DockStyle::fill;
     std::shared_ptr<Label> status = make_control<Label>(
         StableId("responsive.scale.status"), "Local authority remains available");
-    (*status).font = FontSpec{FontRole::content, 10.0, 400, false};
+    (*status).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 10.0, 400, false});
     (*status).dock = DockStyle::fill;
     (*root).add_child(title);
     (*root).add_child(content);
     (*root).add_child(status);
-    (*root).child_track[*title] = 0U;
-    (*root).child_track[*content] = 1U;
-    (*root).child_track[*status] = 2U;
+    (*root).child_track[*title] = stxlib::Optional<std::uint32_t>::of(0U);
+    (*root).child_track[*content] = stxlib::Optional<std::uint32_t>::of(1U);
+    (*root).child_track[*status] = stxlib::Optional<std::uint32_t>::of(2U);
     Window window(root, {480.0, 300.0});
 
     double previous_title = 0.0;
@@ -303,7 +305,7 @@ void test_invalid_specs_reject_atomically() {
     const std::vector<ResponsiveTrackSpec> accepted{
         {ResponsiveTrackSizeMode::fixed, 20.0, 20.0, 20.0, 1.0},
         {ResponsiveTrackSizeMode::remaining, 10.0, 20.0, 0.0, 1.0,
-         false, 10U},
+         false, stxlib::Optional<std::uint16_t>::of(10U)},
     };
     (*panel).set_track_specs(accepted);
     bool bounds_rejected = false;
@@ -318,9 +320,9 @@ void test_invalid_specs_reject_atomically() {
     try {
         (*panel).set_track_specs({
             {ResponsiveTrackSizeMode::fixed, 10.0, 10.0, 10.0, 1.0,
-             false, 7U},
+             false, stxlib::Optional<std::uint16_t>::of(7U)},
             {ResponsiveTrackSizeMode::fixed, 10.0, 10.0, 10.0, 1.0,
-             false, 7U},
+             false, stxlib::Optional<std::uint16_t>::of(7U)},
         });
     } catch (const std::invalid_argument&) {
         duplicate_priority_rejected = true;
@@ -353,12 +355,12 @@ void test_child_track_child_property() {
     require(provided.size() == 1U && provided[0].name == "child_track" &&
                 provided[0].kind == BindingValueKind::unsigned_integer,
             "track child table: one unsigned child_track");
-    require(!(*panel).child_track[*first].read(), "child track: none before any write");
+    require((*panel).child_track[*first].read().absent(), "child track: none before any write");
     (*panel).set_child_property_value(*first, "child-track", BindingValue{std::uint64_t{1U}});
-    require((*panel).child_track[*first].read() == std::optional<std::uint32_t>(1U) &&
+    require((*panel).child_track[*first].read() == stxlib::Optional<std::uint32_t>::of(1U) &&
                 (*panel).should_serialize_child_property(*first, "child_track"),
             "child track: a name-keyed write reaches the typed read and is serialized");
-    (*panel).child_track[*first] = std::nullopt;
+    (*panel).child_track[*first] = stxlib::Optional<std::uint32_t>::none();
     const std::optional<BindingValue> named = (*panel).child_property_value(*first, "child_track");
     require(named && std::holds_alternative<std::monostate>(*named) &&
                 !(*panel).should_serialize_child_property(*first, "child_track"),
@@ -366,23 +368,23 @@ void test_child_track_child_property() {
 
     bool range_refused = false;
     try {
-        (*panel).child_track[*first] = 2U;
+        (*panel).child_track[*first] = stxlib::Optional<std::uint32_t>::of(2U);
     } catch (const std::out_of_range&) {
         range_refused = true;
     }
     bool stranger_refused = false;
     try {
-        (*panel).child_track[*stranger] = 0U;
+        (*panel).child_track[*stranger] = stxlib::Optional<std::uint32_t>::of(0U);
     } catch (const std::invalid_argument&) {
         stranger_refused = true;
     }
-    require(range_refused && stranger_refused && !(*panel).child_track[*first].read(),
+    require(range_refused && stranger_refused && (*panel).child_track[*first].read().absent(),
             "child track: a track past the specs and a stranger are refused before mutation");
 
-    (*panel).child_track[*first] = 1U;
+    (*panel).child_track[*first] = stxlib::Optional<std::uint32_t>::of(1U);
     static_cast<void>((*panel).remove_child((*first).runtime_id()));
     (*panel).add_child(first);
-    require(!(*panel).child_track[*first].read(), "child track: the value is dropped when the child leaves");
+    require((*panel).child_track[*first].read().absent(), "child track: the value is dropped when the child leaves");
 }
 
 void test_track_settings_as_properties() {
@@ -394,7 +396,7 @@ void test_track_settings_as_properties() {
                                 BindingValue{make_property_collection("String", BindingValueKind::text, items)});
     const std::span<const ResponsiveTrackSpec> specs = (*panel).track_specs();
     require(specs.size() == 2U && specs[0].size_mode == ResponsiveTrackSizeMode::fixed &&
-                specs[0].collapse_priority == std::optional<std::uint16_t>(2U) &&
+                specs[0].collapse_priority == gui_forms::platform::stxlib_optional(std::optional<std::uint16_t>(2U)) &&
                 specs[1].remaining_weight == 2.0 && specs[1].hidden && specs[1].preferred == 200.0,
             "track settings: the specs read from their text");
     const std::optional<BindingValue> read = (*panel).property_value("track_specs");
@@ -407,6 +409,30 @@ void test_track_settings_as_properties() {
             "track settings: orientation and gap by name");
 }
 
+// A-gf-controls-12-F2: a child that answers more than the solver's limit
+// (1,000,000) along the main axis is clamped to it; layout neither throws
+// nor refuses the form.
+void test_oversized_demand_is_clamped() {
+    std::shared_ptr<ResponsiveTrackPanel> panel =
+        make_control<ResponsiveTrackPanel>(StableId("responsive.huge"));
+    (*panel).set_track_specs({{ResponsiveTrackSizeMode::content, 0.0, 10.0, 0.0, 1.0}});
+    std::shared_ptr<Panel> tall = make_control<Panel>(StableId("responsive.huge.tall"));
+    (*tall).set_requested_bounds({0.0, 0.0, 2'000'000.0, 20.0});
+    (*panel).add_child(tall);
+    bool threw = false;
+    try {
+        Window window(panel, {300.0, 60.0});
+        window.perform_layout();
+        const ResponsiveLayoutSnapshot snapshot = (*panel).layout_snapshot();
+        require(snapshot.resolution.tracks.size() == 1U &&
+                    snapshot.resolution.tracks[0].measured_content <= 1'000'000.0,
+                "an oversized demand reaches the solver clamped to its limit");
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(!threw, "an oversized child demand must not make layout throw");
+}
+
 int main() {
     test_fixed_content_remaining_gap_minimum_and_maximum();
     test_content_shrink_precedes_authored_collapse();
@@ -417,6 +443,7 @@ int main() {
     test_invalid_specs_reject_atomically();
     test_child_track_child_property();
     test_track_settings_as_properties();
+    test_oversized_demand_is_clamped();
     std::cout << "responsive-track-panel-tests: pass\n";
     return EXIT_SUCCESS;
 }

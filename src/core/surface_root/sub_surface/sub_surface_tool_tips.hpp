@@ -54,10 +54,10 @@ public:
     void scope_changed() override {}
     void cover(RuntimeId control, std::string_view item_id, bool covered) override;
     // Revokes the program request, then asks for `target`'s tooltip.
-    void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) override;
+    void show_program(const Control::Ptr& target, stxlib::Optional<std::chrono::milliseconds> duration) override;
     // A host nested in a sub-surface shows nothing (not part of stage S3).
     void show_program_item(const Control::Ptr& control, std::string item_id, std::string text, Rect anchor,
-                           std::optional<std::chrono::milliseconds> duration) override;
+                           stxlib::Optional<std::chrono::milliseconds> duration) override;
     // Revokes the program request and forwards request `id` as the program
     // request, with its own content; the parent's answers go to the root
     // (answer_tool_tip_request).
@@ -101,7 +101,7 @@ private:
     // Posts a request for `subject` (which has text) with `description` and
     // records it in `slot`; leaves `slot` empty when there is nowhere to post.
     void post(SubSurfaceToolTipOrigin origin, ToolTipSubject subject, std::string description,
-              std::optional<std::chrono::milliseconds> duration, std::optional<OpenRequest>& slot);
+              stxlib::Optional<std::chrono::milliseconds> duration, std::optional<OpenRequest>& slot);
     // Finds the thing under the pointer again and asks for it when it
     // differs from the open pointer request (always, with `force`).
     void request_pointer(bool force);
@@ -117,7 +117,7 @@ private:
     std::optional<OpenRequest> pointer_{};
     std::optional<OpenRequest> keyboard_{};
     std::optional<OpenRequest> program_{};
-    std::optional<std::chrono::milliseconds> program_duration_{};
+    stxlib::Optional<std::chrono::milliseconds> program_duration_{};
     // The root's request_tool_tip ID the program request carries; 0 for a
     // show_tool_tip one (its content is the target's own tooltip).
     std::uint64_t explicit_request_{};

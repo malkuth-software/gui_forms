@@ -4,6 +4,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -65,7 +66,7 @@ inline constexpr std::size_t familiar_theme_count = static_cast<std::size_t>(Fam
 [[nodiscard]] GUI_FORMS_API std::string_view familiar_theme_id(FamiliarTheme theme) noexcept;
 
 // The theme `id` names, or none.
-[[nodiscard]] GUI_FORMS_API std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept;
 
 // The theme's floor sheet (`<id>/floor.css` in diagnostics). Static
 // storage; empty for `count`.

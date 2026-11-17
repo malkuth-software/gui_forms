@@ -1,0 +1,201 @@
+env.remote_session=0
+env.remote_control=0
+env.dwm_composition=1 hr=0x00000000
+env.desktop=gw_present_lab input_desktop=Default
+env.os=10.0.26200
+env.session_id=1 active_console=1
+dib_bitblt.first_paint=paints=1 copy=1 pixels=76800
+dib_bitblt.frame0.printwindow=matches=48/48 blank=0
+dib_bitblt.frame0.windowdc=matches=48/48 blank=0
+dib_bitblt.partial=paint_rect=160,0,320,240 copy=1 pixels=38400
+dib_bitblt.frame1_partial.printwindow=matches=48/48 blank=0
+dib_bitblt.frame1_partial.windowdc=matches=48/48 blank=0
+dib_bitblt.scrollwindowex=region_kind=2 exposed=0,216,320,240 repaint_pixels=7680
+dib_bitblt.frame2_scrolled.printwindow=matches=48/48 blank=0
+dib_bitblt.frame2_scrolled.windowdc=matches=48/48 blank=0
+stretchdibits.paint=paints=1 lines=240
+stretchdibits.frame.printwindow=matches=48/48 blank=0
+stretchdibits.frame.windowdc=matches=48/48 blank=0
+ulw.update_full=ok
+ulw.frame3.printwindow=matches=48/48 blank=0
+ulw.frame3.windowdc=unavailable error=6
+ulw.update_dirty=ok
+ulw.frame4_dirty.printwindow=matches=48/48 blank=0
+ulw.frame4_dirty.windowdc=unavailable error=6
+ulw.update_partial_size=ok
+bufferedpaint.init=ok hr=0x00000000
+bufferedpaint.paint1=began=1 bits_hr=0x00000000 row_pixels=320 paint_rect=0,0,320,240
+bufferedpaint.frame5.printwindow=matches=48/48 blank=0
+bufferedpaint.frame5.windowdc=matches=48/48 blank=0
+bufferedpaint.paint2=row_pixels=320 paint_rect=160,0,320,240 same_pool_buffer=1
+bufferedpaint.frame6_partial.printwindow=matches=48/48 blank=0
+bufferedpaint.frame6_partial.windowdc=matches=48/48 blank=0
+bufferedpaint.uninit=ok hr=0x00000000
+dxgi.d3d11_hardware=ok hr=0x00000000
+dxgi.driver=hardware feature_level=0xB100
+dxgi.adapter=NVIDIA RTX 2000 Ada Generation vendor=0x10DE device=0x28B0 software_flag=0 dedicated_mb=15136
+dxgi.options2=hr=0x00000000 unified_memory=0 map_on_default_textures=1
+dxgi.allow_tearing=1 hr=0x00000000
+dxgi_variants.hwnd_flip_ignore_alpha=ok hr=0x00000000
+dxgi_variants.hwnd_flip_ignore_alpha.map_back_buffer=fail hr=0x80070057
+dxgi_variants.hwnd_flip_premultiplied=fail hr=0x887A0001
+dxgi_variants.hwnd_flip_cpu_dynamic=fail hr=0x887A0001
+dxgi_variants.hwnd_flip_cpu_read_write=fail hr=0x887A0001
+dxgi_variants.hwnd_bitblt_model_cpu_read_write=fail hr=0x80070057
+dxgi_flip_gdi.create=ok hr=0x00000000
+dxgi_flip_gdi.frame7_getdc=ok hr=0x00000000
+dxgi_flip_gdi.frame7_present1=ok hr=0x087A0001
+dxgi_flip_gdi.frame7.printwindow=matches=48/48 blank=0
+dxgi_flip_gdi.frame7.windowdc=matches=0/48 blank=0
+dxgi_flip_gdi.frame8_getdc=ok hr=0x00000000
+dxgi_flip_gdi.frame8_present1_dirty=ok hr=0x087A0001
+dxgi_flip_gdi.frame8_dirty.printwindow=matches=48/48 blank=0
+dxgi_flip_gdi.frame8_dirty.windowdc=matches=0/48 blank=0
+dxgi_flip_gdi.next_back_buffer_after_dirty=hr=0x00000000 pixel=0xFF080A36 phase_if_scrolled=7 phase_unscrolled=7
+dxgi_flip_gdi.frame8s_getdc=ok hr=0x00000000
+dxgi_flip_gdi.frame8s_present1_scroll=ok hr=0x087A0001
+dxgi_flip_gdi.frame8s_scrolled.printwindow=matches=48/48 blank=0
+dxgi_flip_gdi.frame8s_scrolled.windowdc=matches=0/48 blank=0
+dxgi_flip_gdi.next_back_buffer_after_scroll=hr=0x00000000 pixel=0xFF440A36 phase_if_scrolled=-1 phase_unscrolled=8
+dxgi_flip_gdi.present_test=ok hr=0x087A0001
+dxgi_flip_gdi.frame_statistics=fail hr=0x887A000B
+dxgi_flip_gdi.resize_buffers=ok hr=0x00000000
+dxgi_flip_upload.create=ok hr=0x00000000
+dxgi_flip_upload.upload=ok hr=0x00000000
+dxgi_flip_upload.present1=ok hr=0x087A0001
+dxgi_flip_upload.frame9.printwindow=matches=48/48 blank=0
+dxgi_flip_upload.frame9.windowdc=matches=0/48 blank=0
+dxgi_flip_upload.second_chain_same_window=fail hr=0x80070005
+dxgi_composition.create_premultiplied_gdi_compatible=ok hr=0x00000000
+dxgi_composition.create_premultiplied=ok hr=0x00000000
+dxgi_composition.dcomp_device=ok hr=0x00000000
+dxgi_composition.target=ok hr=0x00000000
+dxgi_composition.upload=ok hr=0x00000000
+dxgi_composition.present1=ok hr=0x087A0001
+dxgi_composition.commit=ok hr=0x00000000
+dxgi_composition.frame10.printwindow=matches=48/48 blank=0
+dxgi_composition.frame10.windowdc=unavailable error=6
+dxgi_composition.check_device_state=valid=1 hr=0x00000000
+dxgi_surface_handle.create_surface_handle=ok hr=0x00000000
+dxgi_surface_handle.factory_media=ok hr=0x00000000
+dxgi_surface_handle.create_chain=ok hr=0x00000000
+dxgi_surface_handle.desktop_device=ok hr=0x00000000
+dxgi_surface_handle.surface_from_handle=ok hr=0x00000000
+dxgi_surface_handle.upload=ok hr=0x00000000
+dxgi_surface_handle.present1=ok hr=0x087A0001
+dxgi_surface_handle.commit=ok hr=0x00000000
+dxgi_surface_handle.frame11.printwindow=matches=48/48 blank=0
+dxgi_surface_handle.frame11.windowdc=unavailable error=6
+dxgi.warp_device=ok hr=0x00000000
+dcomp_null_device.create_device2_null=ok hr=0x00000000
+dcomp_null_device.create_surface=fail hr=0x8000000E
+dcomp_null_device.surface_from_hwnd=ok hr=0x00000000
+dcomp_null_device.commit_hwnd_visual=ok hr=0x00000000
+dcomp_surface.create_device2=ok hr=0x00000000
+dcomp_surface.create_surface=ok hr=0x00000000
+dcomp_surface.frame12.begin_draw_dxgi_surface1=ok hr=0x00000000
+dcomp_surface.frame12=offset=1,1
+dcomp_surface.frame12.get_dc=ok hr=0x00000000
+dcomp_surface.frame12.map=fail hr=0x80070057
+dcomp_surface.frame12.begin_draw_texture=ok hr=0x00000000
+dcomp_surface.frame12.texture=offset=323,1 atlas=1024x1024 usage=0 cpu_access=0x0 bind=0x20 misc=0x8200
+dcomp_surface.frame12.upload=ok hr=0x00000000
+dcomp_surface.frame12.end_draw=ok hr=0x00000000
+dcomp_surface.commit=ok hr=0x00000000
+dcomp_surface.frame12.printwindow=matches=48/48 blank=0
+dcomp_surface.frame12.windowdc=unavailable error=6
+dcomp_surface.frame13_partial.begin_draw_dxgi_surface1=ok hr=0x00000000
+dcomp_surface.frame13_partial=offset=161,1
+dcomp_surface.frame13_partial.get_dc=ok hr=0x00000000
+dcomp_surface.frame13_partial.map=fail hr=0x80070057
+dcomp_surface.frame13_partial.begin_draw_texture=ok hr=0x00000000
+dcomp_surface.frame13_partial.texture=offset=805,1 atlas=1024x1024 usage=0 cpu_access=0x0 bind=0x20 misc=0x8200
+dcomp_surface.frame13_partial.upload=ok hr=0x00000000
+dcomp_surface.frame13_partial.end_draw=ok hr=0x00000000
+dcomp_surface.commit_partial=ok hr=0x00000000
+dcomp_surface.frame13_partial.printwindow=matches=48/48 blank=0
+dcomp_surface.frame13_partial.windowdc=unavailable error=6
+dcomp_surface.surface_scroll=ok hr=0x00000000
+dcomp_surface.frame13_strip.begin_draw_dxgi_surface1=ok hr=0x00000000
+dcomp_surface.frame13_strip=offset=323,217
+dcomp_surface.frame13_strip.get_dc=ok hr=0x00000000
+dcomp_surface.frame13_strip.map=fail hr=0x80070057
+dcomp_surface.frame13_strip.begin_draw_texture=ok hr=0x00000000
+dcomp_surface.frame13_strip.texture=offset=1,459 atlas=1024x1024 usage=0 cpu_access=0x0 bind=0x20 misc=0x8200
+dcomp_surface.frame13_strip.upload=ok hr=0x00000000
+dcomp_surface.frame13_strip.end_draw=ok hr=0x00000000
+dcomp_surface.commit_scroll=ok hr=0x00000000
+dcomp_surface.frame13_scrolled.printwindow=matches=48/48 blank=0
+dcomp_surface.frame13_scrolled.windowdc=unavailable error=6
+dcomp_surface.create_virtual_surface=ok hr=0x00000000
+dcomp_texture.create_device3=ok hr=0x00000000
+dcomp_texture.query_device4=ok hr=0x00000000
+dcomp_texture.query_device5=ok hr=0x00000000
+dcomp_texture.support=1 hr=0x00000000
+dcomp_texture.default_plain.create=ok hr=0x00000000
+dcomp_texture.default_plain.write=ok hr=0x00000000
+dcomp_texture.default_plain.composition_texture=fail hr=0x80070057
+dcomp_texture.default_shared_nthandle.create=ok hr=0x00000000
+dcomp_texture.default_shared_nthandle.write=ok hr=0x00000000
+dcomp_texture.default_shared_nthandle.composition_texture=ok hr=0x00000000
+dcomp_texture.default_shared_nthandle.commit=ok hr=0x00000000
+dcomp_texture.default_shared_nthandle.frame14.printwindow=matches=48/48 blank=0
+dcomp_texture.default_shared_nthandle.frame14.windowdc=unavailable error=6
+dcomp_texture.default_shared_displayable.create=ok hr=0x00000000
+dcomp_texture.default_shared_displayable.write=ok hr=0x00000000
+dcomp_texture.default_shared_displayable.composition_texture=ok hr=0x00000000
+dcomp_texture.cpu_undefined_plain.create=ok hr=0x00000000
+dcomp_texture.cpu_undefined_plain.write=ok hr=0x00000000
+dcomp_texture.cpu_undefined_plain.composition_texture=fail hr=0x80070057
+dcomp_texture.cpu_undefined_shared_nthandle.create=ok hr=0x00000000
+dcomp_texture.cpu_undefined_shared_nthandle.write=ok hr=0x00000000
+dcomp_texture.cpu_undefined_shared_nthandle.composition_texture=ok hr=0x00000000
+dcomp_texture.cpu_row_major_shared_nthandle.create=fail hr=0x80070057
+dcomp_texture.cpu_undefined_shared_displayable.create=fail hr=0x80070057
+dcomp_texture.dynamic.create=ok hr=0x00000000
+dcomp_texture.dynamic.set_texture_whole_slot0=ok hr=0x00000000
+dcomp_texture.dynamic.set_content=ok hr=0x00000000
+dcomp_texture.dynamic.commit=ok hr=0x00000000
+dcomp_texture.dynamic.second_texture=ok hr=0x00000000
+dcomp_texture.dynamic.set_texture_dirty_slot0=ok hr=0x00000000
+dcomp_texture.dynamic.commit_dirty=ok hr=0x00000000
+dcomp_texture.dynamic.frame15_dirty.printwindow=matches=48/48 blank=0
+dcomp_texture.dynamic.frame15_dirty.windowdc=unavailable error=6
+presentation_manager.export=present
+presentation_manager.factory_null_device=fail hr=0x80004003
+presentation_manager.factory=ok hr=0x00000000
+presentation_manager.supported=1 independent_flip=1
+presentation_manager.manager=ok hr=0x00000000
+presentation_manager.surface=ok hr=0x00000000
+presentation_manager.lost_event=hr=0x00000000 handle=1
+presentation_manager.default_plain.create=ok hr=0x00000000
+presentation_manager.default_plain.add_buffer=fail hr=0x80070057
+presentation_manager.default_shared_nthandle.create=ok hr=0x00000000
+presentation_manager.default_shared_nthandle.add_buffer=ok hr=0x00000000
+presentation_manager.default_shared_displayable.create=ok hr=0x00000000
+presentation_manager.default_shared_displayable.add_buffer=ok hr=0x00000000
+presentation_manager.cpu_undefined_shared_nthandle.create=ok hr=0x00000000
+presentation_manager.cpu_undefined_shared_nthandle.add_buffer=ok hr=0x00000000
+presentation_manager.cpu_row_major_shared_nthandle.create=fail hr=0x80070057
+presentation_manager.cpu_undefined_shared_displayable.create=fail hr=0x80070057
+presentation_manager.chosen_buffer=cpu_undefined_shared_nthandle
+presentation_manager.write=ok hr=0x00000000
+presentation_manager.set_buffer=ok hr=0x00000000
+presentation_manager.set_alpha=ok hr=0x00000000
+presentation_manager.set_source_rect=ok hr=0x00000000
+presentation_manager.set_transform=ok hr=0x00000000
+presentation_manager.present=ok hr=0x00000000
+presentation_manager.bind_visual_null_device=ok hr=0x00000000
+presentation_manager.frame15.printwindow=matches=48/48 blank=0
+presentation_manager.frame15.windowdc=unavailable error=6
+presentation_manager.buffer_available_after_present=0 hr=0x00000000
+presentation_manager.lost_signalled=0
+winrt_composition.ro_initialize=ok hr=0x00000001
+winrt_composition.dispatcher_queue=ok hr=0x00000000
+winrt_composition.activate_compositor=ok hr=0x00000000
+winrt_composition.compositor_interop=ok hr=0x00000000
+winrt_composition.compositor_desktop_interop=ok hr=0x00000000
+winrt_composition.graphics_device_null=fail hr=0x80070057
+winrt_composition.graphics_device_d3d11=ok hr=0x00000000
+winrt_composition.desktop_window_target=ok hr=0x00000000
+lab.done=1

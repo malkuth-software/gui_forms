@@ -1,0 +1,20 @@
+#include <gui_forms/rows.hpp>
+
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+// A std::string direct-initialised from the text: one bridge, the copy
+// (text_use), not a second one from the initialiser's flow.
+std::string moved_row(const std::string_view id) {
+    const std::string moved(id);
+    return moved;
+}
+
+std::string owned_key(const std::string& key) {
+    std::string owned(key);
+    return owned;
+}
+
+} // namespace gui_forms

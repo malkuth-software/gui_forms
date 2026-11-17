@@ -6,7 +6,8 @@
 #include "../registry/abi_registry.hpp"
 #include "../tables/abi_records.hpp"
 
-#include "../../../core/resources/fonts/bundled_font_families.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -90,8 +91,10 @@ bool record_binding_value(const BindingValue& held, gf_value& record, std::strin
         record.font.italic = font.italic ? 1U : 0U;
         record.font.size = font.size;
         record.font.letter_spacing = font.letter_spacing;
-        // The family id rides in the reserved word (since 1.2, K1).
-        record.font.reserved = static_cast<std::uint32_t>(font.family.value);
+        // The family id rides in the reserved word's low half (since 1.2, K1), the
+        // family stack's number in its high half (since 1.3).
+        record.font.reserved = static_cast<std::uint32_t>(font.family.value) |
+                               (static_cast<std::uint32_t>(font.stack.value) << 16U);
     } else if (std::holds_alternative<ImageId>(held)) {
         record.kind = GF_VALUE_KIND_IMAGE;
         record.unsigned_integer = std::get<ImageId>(held).value;
@@ -118,14 +121,24 @@ gf_status read_font(const gf_font& font, SlotIdentity slot, BindingValue& conver
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                     "a font has a known role, a weight from 1 to 1000 and italic 0 or 1");
     }
-    // reserved is the bundled family id (since 1.2, K1): zero, or a
-    // numbered family fonts.family_id gives.
-    const BundledFontFamily family{static_cast<std::uint8_t>(font.reserved)};
-    if (font.reserved > 0xFFU || !detail::valid_bundled_family(family)) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a font's family is zero or an id fonts.family_id gives");
+    // reserved's low half is the family id (since 1.2, K1): zero, an id
+    // fonts.family_id gives, or (since 1.5) an application family's id
+    // fonts.load_family gave; its high half the family stack's number
+    // (since 1.3): zero, or one read from a font in this process. Where an
+    // application family may draw is decided when the font is drawn
+    // (admit_font), not here.
+    const FontFamilyId family{static_cast<std::uint16_t>(font.reserved & 0xFFFFU)};
+    const FontFamilyStackId stack{static_cast<std::uint16_t>(font.reserved >> 16U)};
+    if (!known_font_family(family)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                    "a font's family is zero or an id fonts.family_id or fonts.load_family gives");
+    }
+    if (!valid_font_family_stack(stack)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a font's family stack is zero or one read from a font");
     }
     FontSpec spec;
     spec.family = family;
+    spec.stack = stack;
     spec.role = static_cast<FontRole>(font.role);
     spec.size = font.size;
     spec.weight = static_cast<std::uint16_t>(font.weight);

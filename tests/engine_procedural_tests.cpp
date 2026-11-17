@@ -318,7 +318,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, size.width, size.height};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         return part;
     }
     Size size{40.0, 24.0};
@@ -353,12 +353,14 @@ std::shared_ptr<const Theme> procedural_theme(const ProceduralFill& fill) {
     return theme;
 }
 
+// The clock and the painter come first so they outlive the window that
+// borrows them (B-gf-tests-05-F1).
 struct Fixture final {
+    ManualTime time{};
+    RasterWatch painter{};
     std::shared_ptr<Panel> root;
     std::shared_ptr<Pad> pad;
     std::unique_ptr<Window> window;
-    ManualTime time{};
-    RasterWatch painter{};
 };
 
 void repaint(Fixture& fixture) {
@@ -587,6 +589,29 @@ void checker_dithers() {
     }
 }
 
+// The hatch: one 8 by 8 cell per tile, the marked squares the figure; at
+// scale 2 each square is 2 x 2 device pixels.
+void hatch_marks_its_squares() {
+    ProceduralFill fill{};
+    fill.pattern = ProceduralPattern::hatch;
+    fill.hatch_style = HatchStyle::cross;
+    fill.tile = 8.0;
+    fill.ground = Color::rgba(212, 208, 200);
+    fill.figure = Color::rgba(255, 255, 255);
+    const std::array<std::uint8_t, 4> ground{212, 208, 200, 255};
+    const std::array<std::uint8_t, 4> figure{255, 255, 255, 255};
+    const std::shared_ptr<PartRaster> one = make_pattern(fill, 1.0);
+    require((*one).extent().width == 8U && (*one).extent().height == 8U, "the hatch's tile is 8 pixels at scale 1");
+    require(pixel_of(*one, 3U, 0U) == figure && pixel_of(*one, 0U, 3U) == figure && pixel_of(*one, 3U, 7U) == figure,
+            "a cross marks column 3 and row 3");
+    require(pixel_of(*one, 0U, 0U) == ground && pixel_of(*one, 5U, 6U) == ground, "the ground elsewhere");
+    const std::shared_ptr<PartRaster> two = make_pattern(fill, 2.0);
+    require((*two).extent().width == 16U, "the hatch's tile is 16 pixels at scale 2");
+    require(pixel_of(*two, 6U, 0U) == figure && pixel_of(*two, 7U, 0U) == figure && pixel_of(*two, 8U, 0U) == ground &&
+                pixel_of(*two, 5U, 1U) == ground,
+            "each square is 2 x 2 pixels at scale 2");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -596,6 +621,7 @@ int main(int argc, char** argv) {
     }
     reference_patterns();
     checker_dithers();
+    hatch_marks_its_squares();
     patterns_are_seeded();
     tiles_per_scale();
     generated_in_idle_frames();

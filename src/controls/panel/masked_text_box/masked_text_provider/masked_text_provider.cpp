@@ -2,6 +2,7 @@
 
 #include "../../input_control_utilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <utility>
 
@@ -216,29 +217,29 @@ bool MaskedTextProvider::is_assigned(MaskPosition position) const noexcept {
     return result;
 }
 
-std::optional<MaskPosition> MaskedTextProvider::find_edit_position(MaskPosition from,
+stxlib::Optional<MaskPosition> MaskedTextProvider::find_edit_position(MaskPosition from,
                                                                    bool forward) const noexcept {
-    if (slots_.empty()) return std::nullopt;
+    if (slots_.empty()) return stxlib::Optional<MaskPosition>::none();
     if (forward) {
         for (std::size_t index = from.value(); index < slots_.size(); ++index) {
-            if (slots_[index].kind != SlotKind::literal) return MaskPosition(index);
+            if (slots_[index].kind != SlotKind::literal) return stxlib::Optional<MaskPosition>::of(MaskPosition(index));
         }
-        return std::nullopt;
+        return stxlib::Optional<MaskPosition>::none();
     }
     const std::size_t last = slots_.size() - 1U;
     std::size_t index = from.value() < last ? from.value() : last;
     for (std::size_t step = index + 1U; step > 0U; --step) {
         index = step - 1U;
-        if (slots_[index].kind != SlotKind::literal) return MaskPosition(index);
+        if (slots_[index].kind != SlotKind::literal) return stxlib::Optional<MaskPosition>::of(MaskPosition(index));
     }
-    return std::nullopt;
+    return stxlib::Optional<MaskPosition>::none();
 }
 
-std::optional<MaskPosition> MaskedTextProvider::last_assigned_position() const noexcept {
+stxlib::Optional<MaskPosition> MaskedTextProvider::last_assigned_position() const noexcept {
     for (std::size_t step = values_.size(); step > 0U; --step) {
-        if (values_[step - 1U].assigned) return MaskPosition(step - 1U);
+        if (values_[step - 1U].assigned) return stxlib::Optional<MaskPosition>::of(MaskPosition(step - 1U));
     }
-    return std::nullopt;
+    return stxlib::Optional<MaskPosition>::none();
 }
 
 void MaskedTextProvider::set_prompt_character(char32_t character) {
@@ -372,8 +373,8 @@ MaskEditResult MaskedTextProvider::place(std::vector<MaskSlotValue>& values, std
                 ++next;
                 continue;
             }
-            const std::optional<MaskPosition> edit = find_edit_position(MaskPosition(next), true);
-            next = edit ? (*edit).value() : slots_.size();
+            const stxlib::Optional<MaskPosition> edit = find_edit_position(MaskPosition(next), true);
+            next = edit.present() ? ((*edit.value())).value() : slots_.size();
         }
         if (next >= slots_.size()) {
             return MaskEditResult{MaskResultHint::unavailable_edit_position, MaskPosition(next)};
@@ -482,8 +483,8 @@ std::string MaskedTextProvider::to_string(MaskTextFormat format) const {
                           format == MaskTextFormat::include_prompt_and_literals;
     std::size_t end = slots_.size();
     if (!prompts) {
-        const std::optional<MaskPosition> last = last_assigned_position();
-        end = last ? (*last).value() + 1U : 0U;
+        const stxlib::Optional<MaskPosition> last = last_assigned_position();
+        end = last.present() ? ((*last.value())).value() + 1U : 0U;
     }
     std::string text;
     for (std::size_t index = 0U; index < end; ++index) {

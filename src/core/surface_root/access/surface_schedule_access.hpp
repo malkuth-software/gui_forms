@@ -7,7 +7,8 @@
 //
 // Holders: ToolTipPresenter and ToastPresenter (one-shot wakes), MotionClock
 // (its single frame request), AnimationTimer (the cancellation count),
-// CaretBlinkSchedule (the text controls' resting caret timer).
+// CaretBlinkSchedule (the text controls' resting caret timer), ContentSurface
+// (its watchdog's resting check timer).
 //
 // Stale use: every token returned is revoked by the root's teardown
 // (release_tree cancels the frame requests) as well as by its holder, so no

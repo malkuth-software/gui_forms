@@ -1,8 +1,10 @@
-// A form document's model (stage FD, phase FD2). One pass over the syntax
-// tree in document order builds a scratch model and reports every defect;
-// the caller's model is replaced only when there were none.
+// A form document's model (stage FD, phase FD2; XML since cp34). One pass
+// over the read XML document in document order builds a scratch model and
+// reports every defect; the caller's model is replaced only when there were
+// none.
 
 #include "form_model.hpp"
+#include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/control.hpp"
 
@@ -10,11 +12,14 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <variant>
+#include <vector>
 
 namespace gui_forms::form_language {
 
@@ -117,19 +122,14 @@ std::string refused_escape_text(const std::string_view content, const std::size_
 using theme_language::ByteOffset;
 using theme_language::DiagnosticCode;
 using theme_language::LineStartTable;
-using theme_language::NodeIndex;
 using theme_language::SourcePositionCursor;
-using theme_language::SyntaxNode;
-using theme_language::SyntaxNodeKind;
 using theme_language::ThemeDiagnostic;
 using theme_language::ThemeDiagnosticList;
 using theme_language::ThemeNumber;
 using theme_language::ThemeSource;
-using theme_language::ThemeSyntaxTree;
 using theme_language::ThemeTokenBuffer;
 using theme_language::Token;
 using theme_language::TokenKind;
-using theme_language::TokenRange;
 
 // The most value tokens any kind reads: a rectangle's or insets' four, a
 // font's four, a flags enumeration's choices, a text collection's items.
@@ -248,10 +248,52 @@ struct BindingReading final {
     std::string detail{};
 };
 
+// Whether `byte` is XML whitespace, which separates a collection's items.
+[[nodiscard]] bool xml_space(char byte) noexcept {
+    const bool space = byte == ' ' || byte == '\t' || byte == '\r' || byte == '\n';
+    return space;
+}
+
+// Whether `text` is XML whitespace only (the indentation an object element
+// may hold).
+[[nodiscard]] bool xml_space_only(std::string_view text) noexcept {
+    for (const char byte : text) {
+        if (!xml_space(byte)) return false;
+    }
+    return true;
+}
+
+// The number of elements `element` and everything below it hold: how far a
+// skipped subtree moves the walk's position in FormSyntax::locations.
+// Walked in an explicit work list, not recursively.
+[[nodiscard]] std::uint32_t subtree_elements(const XmlElement& element) {
+    std::uint32_t count = 0U;
+    std::vector<const XmlElement*> pending{};
+    pending.push_back(&element);
+    while (!pending.empty()) {
+        const XmlElement* current = pending.back();
+        pending.pop_back();
+        ++count;
+        for (const XmlElement& child : (*current).children) pending.push_back(&child);
+    }
+    return count;
+}
+
+// The text a text-kind attribute value spells: the value itself, less one
+// leading backslash when backslashes then `bind(` begin it (form_model.hpp,
+// text).
+[[nodiscard]] std::string_view literal_text(std::string_view value) noexcept {
+    const std::size_t backslashes = value.find_first_not_of('\\');
+    if (backslashes == 0U || backslashes == std::string_view::npos) return value;
+    if (!value.substr(backslashes).starts_with(binding_function)) return value;
+    const std::string_view text = value.substr(1U);
+    return text;
+}
+
 class ModelBuilder final {
 public:
-    ModelBuilder(const ThemeSource& source, const ThemeTokenBuffer& tokens, const LineStartTable& lines,
-                 const ThemeSyntaxTree& tree, const FormSchema& schema, ThemeDiagnosticList& diagnostics) noexcept;
+    ModelBuilder(const ThemeSource& source, const FormSyntax& syntax, const FormSchema& schema,
+                 ThemeDiagnosticList& diagnostics) noexcept;
 
     // Fills `scratch`; returns whether no defect was found.
     [[nodiscard]] bool run(FormModel& scratch);
@@ -264,92 +306,112 @@ public:
     void order_provided_properties(FormModel& scratch) const;
 
 private:
-    void read_object(NodeIndex node, std::optional<ObjectIndex> parent, FormModel& scratch);
-    // A `span` block of `owner`, whose type holds spans; `type_token` is
-    // its reserved type's token.
-    void read_span(NodeIndex node, ObjectIndex owner, std::uint32_t type_token, FormModel& scratch);
+    // Reads the object `element` and, in document order, its attributes and
+    // child elements. `next_element` is the element's position in
+    // FormSyntax::locations, and is left past its subtree. Objects nest at
+    // most XmlLimits::maximum_depth deep (the reader's bound), so this
+    // recursion's depth is bounded by it.
+    void read_object(const XmlElement& element, std::uint32_t& next_element, std::optional<ObjectIndex> parent,
+                     FormModel& scratch);
+    // A `span` element (position `index`) of `owner`, whose type holds spans.
+    void read_span(const XmlElement& element, std::uint32_t index, ObjectIndex owner, FormModel& scratch);
     // One whole number of `value`'s token `position`, within [minimum,
     // maximum_grid_span_extent - 1] (a cell coordinate) or [1,
     // maximum_grid_span_extent] (an extent).
     [[nodiscard]] std::optional<std::uint32_t> span_number(const ValueTokens& value, std::size_t position,
                                                            std::uint32_t minimum) const;
-    // `written_names` holds the registered names already written in the
-    // owner's block.
-    void read_declaration(NodeIndex node, ObjectIndex owner, WrittenNames& written_names, FormModel& scratch);
-    // Whether `value` is written as a binding: it begins with `bind(`.
-    [[nodiscard]] bool written_as_binding(const ValueTokens& value) const noexcept;
-    // Reads the binding `value` writes for a property of `descriptor`;
-    // `command_slot` says whether the property is a type's Command slot.
+    // The property attribute `attribute` of the element `index`, the
+    // object `owner`'s; `written_names` holds the registered names already
+    // written on it.
+    void read_attribute(const XmlElement& element, std::uint32_t index, std::uint32_t attribute, ObjectIndex owner,
+                        WrittenNames& written_names, FormModel& scratch);
+    // Makes the attribute's value the one the value readers read: its
+    // tokens, its text and where it was written. False, with an E807
+    // reported, when the theme tokenizer finds a lexical defect in it.
+    [[nodiscard]] bool load_value(std::uint32_t index, std::uint32_t attribute, std::string_view text,
+                                  std::string_view rule, std::string_view property);
+    // Reads the binding the loaded value writes for a property of
+    // `descriptor`; `command_slot` says whether the property is a type's
+    // Command slot.
     [[nodiscard]] BindingReading read_binding(const ValueTokens& value, const PropertyDescriptor& descriptor,
                                               bool command_slot) const;
-    [[nodiscard]] ValueReading read_value(const SyntaxNode& node, const PropertyDescriptor& descriptor) const;
-    // The value `value` writes for the descriptor's kind, before the
-    // descriptor's own rules; may move `reading`'s offending token.
+    // The loaded value, read for the descriptor's kind (a kind other than
+    // text and collection), then by the descriptor's own rules.
+    [[nodiscard]] ValueReading read_value(const PropertyDescriptor& descriptor) const;
     [[nodiscard]] std::optional<BindingValue> candidate_value(const ValueTokens& value,
                                                               const PropertyDescriptor& descriptor,
                                                               ValueReading& reading) const;
-    // A stable ID written bare: a name, then names and numbers joined by
-    // '.', with nothing between the tokens. None for any other value.
-    [[nodiscard]] std::optional<std::string> bare_identity(const ValueTokens& value) const;
     [[nodiscard]] std::optional<BindingValue> boolean_value(const ValueTokens& value) const;
     [[nodiscard]] std::optional<BindingValue> integer_value(const ValueTokens& value, BindingValueKind kind) const;
     [[nodiscard]] std::optional<BindingValue> font_value(const ValueTokens& value, ValueReading& reading) const;
-    [[nodiscard]] std::optional<BindingValue> text_collection_value(const ValueTokens& value,
-                                                                    const PropertyDescriptor& descriptor,
-                                                                    ValueReading& reading) const;
     [[nodiscard]] std::optional<BindingValue> geometry_value(const ValueTokens& value, BindingValueKind kind,
                                                              ValueReading& reading) const;
-    [[nodiscard]] ValueTokens value_tokens(TokenRange content) const noexcept;
+    // A text collection's items from the attribute value `text` (written at
+    // `index`, `attribute`): whitespace-separated, a quoted item read as a
+    // form string.
+    [[nodiscard]] ValueReading text_collection_value(std::string_view text, const PropertyDescriptor& descriptor,
+                                                     std::uint32_t index, std::uint32_t attribute) const;
+    // The loaded value's tokens without trivia, at most
+    // maximum_value_tokens of them.
+    [[nodiscard]] ValueTokens value_tokens() const noexcept;
     [[nodiscard]] std::optional<double> number_at(std::uint32_t index) const noexcept;
     [[nodiscard]] std::optional<Color> color_at(std::uint32_t index) const;
     [[nodiscard]] std::optional<BindingValue> enumeration_from(const ValueTokens& value,
                                                               const PropertyDescriptor& descriptor,
                                                               std::uint32_t& offending) const;
     [[nodiscard]] std::string_view token_text(std::uint32_t index) const noexcept;
-    // The bytes of tokens [first, end).
-    [[nodiscard]] std::string_view range_text(std::uint32_t first, std::uint32_t end) const noexcept;
-    void report(DiagnosticCode code, std::uint32_t token, std::string_view rule, std::string_view property,
+    // Where the attribute's value begins in the source; and the source
+    // offset of the loaded value's token `token` (the value's end for the
+    // token count). A value whose entities or line ends XML rewrote
+    // reports at its start, since its token offsets no longer match.
+    [[nodiscard]] std::size_t value_start(std::uint32_t index, std::uint32_t attribute) const noexcept;
+    [[nodiscard]] std::size_t token_offset(std::uint32_t token) const noexcept;
+    [[nodiscard]] std::size_t element_offset(std::uint32_t index) const noexcept;
+    [[nodiscard]] std::size_t attribute_offset(std::uint32_t index, std::uint32_t attribute) const noexcept;
+    void report(DiagnosticCode code, std::size_t offset, std::string_view rule, std::string_view property,
                 std::string detail);
+    void report_at(DiagnosticCode code, theme_language::SourcePosition position, std::string_view rule,
+                   std::string_view property, std::string detail);
+    void report_token(DiagnosticCode code, std::uint32_t token, std::string_view rule, std::string_view property,
+                      std::string detail);
 
     const ThemeSource& source_;
-    std::string_view text_{};
-    const std::vector<Token>& tokens_;
-    const std::vector<ThemeNumber>& numbers_;
-    const ThemeSyntaxTree& tree_;
+    const FormSyntax& syntax_;
     const FormSchema& schema_;
     ThemeDiagnosticList& diagnostics_;
     SourcePositionCursor cursor_;
     std::unordered_set<std::string> identities_{};
     bool defective_{};
+    // The value being read (load_value): the theme tokenizer's tokens of
+    // it, reused from value to value, and its text and source start.
+    ThemeTokenBuffer value_buffer_{};
+    LineStartTable value_lines_{};
+    ThemeDiagnosticList value_diagnostics_{};
+    const std::vector<Token>& tokens_;
+    const std::vector<ThemeNumber>& numbers_;
+    std::string_view text_{};
+    std::size_t value_offset_{};
+    // Whether the value's bytes are as written, so its token offsets map
+    // onto the source.
+    bool value_as_written_{};
 };
 
-ModelBuilder::ModelBuilder(const ThemeSource& source, const ThemeTokenBuffer& tokens, const LineStartTable& lines,
-                           const ThemeSyntaxTree& tree, const FormSchema& schema,
+ModelBuilder::ModelBuilder(const ThemeSource& source, const FormSyntax& syntax, const FormSchema& schema,
                            ThemeDiagnosticList& diagnostics) noexcept
-    : source_(source), text_(source.text), tokens_(tokens.tokens), numbers_(tokens.numbers), tree_(tree),
-      schema_(schema), diagnostics_(diagnostics), cursor_(lines, source.text) {}
+    : source_(source), syntax_(syntax), schema_(schema), diagnostics_(diagnostics),
+      cursor_(syntax.lines, source.text), tokens_(value_buffer_.tokens), numbers_(value_buffer_.numbers) {}
 
 bool ModelBuilder::run(FormModel& scratch) {
-    const std::vector<SyntaxNode>& nodes = tree_.nodes;
-    const std::uint32_t count = static_cast<std::uint32_t>(nodes.size());
-    // The top level: exactly one object, the root.
-    std::size_t roots = 0U;
-    std::uint32_t index = 1U;
-    while (index < count) {
-        if (nodes[index].kind == SyntaxNodeKind::object_rule) {
-            ++roots;
-            if (roots == 2U) {
-                report(DiagnosticCode::form_root_invalid, nodes[index].tokens.first.value, {}, {}, "second root");
-            }
-        }
-        index = nodes[index].subtree_end.value;
+    const XmlElement& root = syntax_.root;
+    // The root declares the vocabulary; read_object refuses an `xmlns`
+    // anywhere else.
+    const XmlAttribute* declared = root.find_attribute(form_namespace_attribute);
+    if (declared == nullptr || (*declared).value != form_namespace) {
+        report(DiagnosticCode::form_xml_invalid, element_offset(0U), {}, form_namespace_attribute,
+               "the root declares xmlns=\"" + std::string(form_namespace) + "\"");
     }
-    if (roots == 0U) {
-        report(DiagnosticCode::form_root_invalid, static_cast<std::uint32_t>(tokens_.size()), {}, {}, "no root");
-        return false;
-    }
-    if (roots > 1U) return false;
-    read_object(NodeIndex{1U}, std::nullopt, scratch);
+    std::uint32_t next_element = 0U;
+    read_object(root, next_element, std::nullopt, scratch);
     check_form_root(scratch);
     check_spans(scratch);
     order_provided_properties(scratch);
@@ -386,7 +448,6 @@ void ModelBuilder::order_provided_properties(FormModel& scratch) const {
         start = end;
     }
 }
-
 // A form root: one control among its children, and its button properties
 // naming objects of the document. Reported after the walk, since they need
 // all of it.
@@ -400,10 +461,8 @@ void ModelBuilder::check_form_root(const FormModel& scratch) {
         const std::size_t type = scratch.objects[child.value].schema_type;
         if (type < schema_.types.size() && schema_.types[type].holds_children) ++controls;
     }
-    const SyntaxNode& root_node = tree_.nodes[root.node.value];
     if (controls != 1U) {
-        report(DiagnosticCode::form_root_invalid, root_node.content.first.value, root.stable_id, {},
-               "a form holds one control");
+        report_at(DiagnosticCode::form_root_invalid, root.position, root.stable_id, {}, "a form holds one control");
     }
     const FormSchemaType& form = schema_.types[root.schema_type];
     for (const FormProperty& property : scratch.properties) {
@@ -412,29 +471,20 @@ void ModelBuilder::check_form_root(const FormModel& scratch) {
         if (name != "accept_button" && name != "cancel_button") continue;
         const std::string& named = std::get<std::string>(property.value);
         if (identities_.count(named) != 0U) continue;
-        const SyntaxNode& declaration = tree_.nodes[property.node.value];
-        report(DiagnosticCode::form_value_invalid, declaration.content.first.value, root.stable_id, name,
-               "names no object of the document");
+        report_at(DiagnosticCode::form_value_invalid, property.position, root.stable_id, name,
+                  "names no object of the document");
     }
 }
 
-// Reads the object at `node` and, in document order, its declarations,
-// style block and objects. Objects nest at most maximum_nesting_depth deep
-// (the parser's bound), so this recursion's depth is bounded by it.
-void ModelBuilder::read_object(NodeIndex node, std::optional<ObjectIndex> parent, FormModel& scratch) {
-    const SyntaxNode& object_node = tree_.nodes[node.value];
-    const std::uint32_t type_token = object_node.content.first.value;
-    // The stable ID: the prelude's tokens after the type and its trivia.
-    std::uint32_t identity_first = type_token + 1U;
-    while (identity_first < object_node.content.end.value && is_trivia(tokens_[identity_first].kind)) {
-        ++identity_first;
-    }
-    const std::string stable_id(range_text(identity_first, object_node.content.end.value));
-    const std::string_view written_type = token_text(type_token);
-    if (parent && written_type == form_span_type_name) {
-        read_span(node, *parent, type_token, scratch);
-        return;
-    }
+void ModelBuilder::read_object(const XmlElement& element, std::uint32_t& next_element,
+                               std::optional<ObjectIndex> parent, FormModel& scratch) {
+    const std::uint32_t index = next_element;
+    ++next_element;
+    const std::size_t start = element_offset(index);
+    const std::string_view written_type = element.name;
+    // The stable ID: the `id` attribute, required.
+    const XmlAttribute* identity = element.find_attribute(form_identity_attribute);
+    const std::string stable_id = identity == nullptr ? std::string{} : (*identity).value;
 
     std::optional<std::size_t> schema_type{};
     const std::optional<std::string> registered_type = registered_from_kebab(written_type);
@@ -446,18 +496,24 @@ void ModelBuilder::read_object(NodeIndex node, std::optional<ObjectIndex> parent
             }
         }
     }
-    if (!schema_type) report(DiagnosticCode::form_type_unknown, type_token, stable_id, {}, std::string(written_type));
-    if (!identities_.insert(stable_id).second) {
-        report(DiagnosticCode::form_identity_repeated, identity_first, stable_id, {}, stable_id);
+    if (!schema_type) report(DiagnosticCode::form_type_unknown, start, stable_id, {}, std::string(written_type));
+    if (stable_id.empty()) {
+        report(DiagnosticCode::form_root_invalid, start, {}, {}, "an object needs an id");
+    } else if (!identities_.insert(stable_id).second) {
+        report(DiagnosticCode::form_identity_repeated, start, stable_id, {}, stable_id);
     }
     if (parent && schema_type && schema_.types[*schema_type].name == form_root_type_name) {
-        report(DiagnosticCode::form_root_invalid, type_token, stable_id, {}, "a form is only the root");
+        report(DiagnosticCode::form_root_invalid, start, stable_id, {}, "a form is only the root");
     }
     if (parent && scratch.objects[(*parent).value].schema_type < schema_.types.size()) {
         const FormSchemaType& parent_type = schema_.types[scratch.objects[(*parent).value].schema_type];
-        if (!parent_type.holds_children) {
-            report(DiagnosticCode::form_children_not_admitted, type_token, stable_id, {}, parent_type.name);
+        // A composite without a slot holds children of its own only.
+        if (!parent_type.holds_children || parent_type.child_placement == FormChildPlacement::refused) {
+            report(DiagnosticCode::form_children_not_admitted, start, stable_id, {}, parent_type.name);
         }
+    }
+    if (!xml_space_only(element.text)) {
+        report(DiagnosticCode::form_xml_invalid, start, stable_id, {}, "an object holds no text");
     }
 
     const ObjectIndex self{static_cast<std::uint32_t>(scratch.objects.size())};
@@ -467,84 +523,87 @@ void ModelBuilder::read_object(NodeIndex node, std::optional<ObjectIndex> parent
     object.schema_type = schema_type ? *schema_type : schema_.types.size();
     object.stable_id = stable_id;
     object.parent = parent;
-    object.node = node;
+    object.element = index;
+    object.position = cursor_.locate(ByteOffset{static_cast<std::uint32_t>(start)});
     scratch.objects.push_back(std::move(object));
     if (parent) scratch.objects[(*parent).value].children.push_back(self);
 
     WrittenNames written{};
-    std::uint32_t child = node.value + 1U;
-    while (child < object_node.subtree_end.value) {
-        const SyntaxNode& item = tree_.nodes[child];
-        const std::uint32_t next = item.subtree_end.value;
-        if (item.kind == SyntaxNodeKind::declaration) {
-            read_declaration(NodeIndex{child}, self, written, scratch);
-        } else if (item.kind == SyntaxNodeKind::style_block) {
-            report(DiagnosticCode::form_style_block, item.tokens.first.value, stable_id, {},
-                   "move its rules to the project theme, on a class the object names in `classes`");
-        } else {
-            // An object: the only other node an object's block holds.
-            read_object(NodeIndex{child}, self, scratch);
+    for (std::uint32_t attribute = 0U; attribute < element.attributes.size(); ++attribute) {
+        const std::string& name = element.attributes[attribute].name;
+        if (name == form_identity_attribute) continue;
+        if (name == form_namespace_attribute && !parent) continue;
+        if (name == form_namespace_attribute || name.starts_with("xmlns:")) {
+            report(DiagnosticCode::form_xml_invalid, attribute_offset(index, attribute), stable_id, name,
+                   "only the root declares the namespace, and no prefix is declared");
+            continue;
         }
-        child = next;
+        read_attribute(element, index, attribute, self, written, scratch);
+    }
+    for (const XmlElement& child : element.children) {
+        if (child.name == form_span_type_name) {
+            const std::uint32_t span_index = next_element;
+            next_element += subtree_elements(child);
+            read_span(child, span_index, self, scratch);
+        } else if (child.name == "style") {
+            report(DiagnosticCode::form_style_block, element_offset(next_element), stable_id, {},
+                   "move its rules to the project theme, on a class the object names in `classes`");
+            next_element += subtree_elements(child);
+        } else {
+            read_object(child, next_element, self, scratch);
+        }
     }
 }
 
-void ModelBuilder::read_span(NodeIndex node, ObjectIndex owner, std::uint32_t type_token, FormModel& scratch) {
-    const SyntaxNode& span_node = tree_.nodes[node.value];
+void ModelBuilder::read_span(const XmlElement& element, std::uint32_t index, ObjectIndex owner, FormModel& scratch) {
     const std::string owner_id = scratch.objects[owner.value].stable_id;
     const std::size_t owner_type = scratch.objects[owner.value].schema_type;
+    const std::size_t start = element_offset(index);
     // An unknown owner type has been reported once.
     if (owner_type >= schema_.types.size()) return;
     if (!schema_.types[owner_type].holds_spans) {
-        report(DiagnosticCode::form_children_not_admitted, type_token, owner_id, form_span_type_name,
+        report(DiagnosticCode::form_children_not_admitted, start, owner_id, form_span_type_name,
                schema_.types[owner_type].name + " holds no spans");
         return;
     }
-    // The name: the prelude's tokens after the type, none for an anonymous
-    // span; lowercase letters, digits and single '-' (as a type's name).
-    std::uint32_t name_first = type_token + 1U;
-    while (name_first < span_node.content.end.value && is_trivia(tokens_[name_first].kind)) ++name_first;
-    const std::string name(range_text(name_first, span_node.content.end.value));
     bool valid = true;
-    if (!name.empty() && !registered_from_kebab(name)) {
-        report(DiagnosticCode::form_value_invalid, name_first, owner_id, form_span_type_name,
-               "a span's name is lowercase letters, digits and single '-'");
+    if (!element.children.empty() || !xml_space_only(element.text)) {
+        report(DiagnosticCode::form_children_not_admitted, start, owner_id, form_span_type_name,
+               "a span holds only anchor, rows and columns");
         valid = false;
     }
     GridSpan span{};
-    span.name = name;
     bool anchored = false;
-    std::unordered_set<std::string> written{};
-    std::uint32_t child = node.value + 1U;
-    while (child < span_node.subtree_end.value) {
-        const SyntaxNode& item = tree_.nodes[child];
-        const std::uint32_t next = item.subtree_end.value;
-        child = next;
-        if (item.kind != SyntaxNodeKind::declaration) {
-            report(DiagnosticCode::form_children_not_admitted, item.tokens.first.value, owner_id,
-                   form_span_type_name, "a span holds only anchor, rows and columns");
-            valid = false;
+    for (std::uint32_t attribute = 0U; attribute < element.attributes.size(); ++attribute) {
+        const XmlAttribute& written = element.attributes[attribute];
+        const std::string& member = written.name;
+        const std::size_t name_offset = attribute_offset(index, attribute);
+        if (member == "name") {
+            // Lowercase letters, digits and single '-' (as a type's name);
+            // empty is an anonymous span.
+            if (!written.value.empty() && !registered_from_kebab(written.value)) {
+                report(DiagnosticCode::form_value_invalid, value_start(index, attribute), owner_id,
+                       form_span_type_name, "a span's name is lowercase letters, digits and single '-'");
+                valid = false;
+            }
+            span.name = written.value;
             continue;
         }
-        const std::uint32_t name_token = item.tokens.first.value;
-        const std::string member(token_text(name_token));
         if (member != "anchor" && member != "rows" && member != "columns") {
-            report(DiagnosticCode::form_property_unknown, name_token, owner_id, member, "span");
+            report(DiagnosticCode::form_property_unknown, name_offset, owner_id, member, "span");
             valid = false;
             continue;
         }
-        if (!written.insert(member).second) {
-            report(DiagnosticCode::form_member_repeated, name_token, owner_id, member, {});
+        if (!load_value(index, attribute, written.value, owner_id, member)) {
             valid = false;
             continue;
         }
-        const ValueTokens value = value_tokens(item.content);
-        const bool important = (item.flags & theme_language::syntax_flag_important) != 0U;
-        const std::uint32_t offending = value.count == 0U ? name_token : value.indices[0];
+        const ValueTokens value = value_tokens();
+        const std::size_t offending = value.count == 0U ? value_start(index, attribute) : token_offset(value.indices[0]);
         if (member == "anchor") {
             const std::optional<std::uint32_t> row = value.count == 2U ? span_number(value, 0U, 0U) : std::nullopt;
             const std::optional<std::uint32_t> column = value.count == 2U ? span_number(value, 1U, 0U) : std::nullopt;
-            if (!row || !column || important || value.overflowed) {
+            if (!row || !column || value.overflowed) {
                 report(DiagnosticCode::form_value_invalid, offending, owner_id, member, "two cell numbers, row column");
                 valid = false;
                 continue;
@@ -554,7 +613,7 @@ void ModelBuilder::read_span(NodeIndex node, ObjectIndex owner, std::uint32_t ty
             continue;
         }
         const std::optional<std::uint32_t> extent = value.count == 1U ? span_number(value, 0U, 1U) : std::nullopt;
-        if (!extent || important) {
+        if (!extent) {
             report(DiagnosticCode::form_value_invalid, offending, owner_id, member, "one whole number from 1");
             valid = false;
             continue;
@@ -566,29 +625,16 @@ void ModelBuilder::read_span(NodeIndex node, ObjectIndex owner, std::uint32_t ty
         }
     }
     if (!anchored && valid) {
-        report(DiagnosticCode::form_value_invalid, type_token, owner_id, "anchor", "a span needs an anchor");
+        report(DiagnosticCode::form_value_invalid, start, owner_id, "anchor", "a span needs an anchor");
         valid = false;
     }
     if (!valid) return;
     FormSpan record{};
     record.owner = owner;
     record.span = std::move(span);
-    record.node = node;
+    record.element = index;
+    record.position = cursor_.locate(ByteOffset{static_cast<std::uint32_t>(start)});
     scratch.spans.push_back(std::move(record));
-}
-
-std::optional<std::uint32_t> ModelBuilder::span_number(const ValueTokens& value, std::size_t position,
-                                                       std::uint32_t minimum) const {
-    const std::uint32_t index = value.indices[position];
-    if (tokens_[index].kind != TokenKind::number) return std::nullopt;
-    const ThemeNumber& number = numbers_[tokens_[index].number];
-    // A coordinate ends before the limit; an extent may reach it.
-    const double maximum = static_cast<double>(maximum_grid_span_extent) - (minimum == 0U ? 1.0 : 0.0);
-    if (!number.integer || number.value < static_cast<double>(minimum) || number.value > maximum) {
-        return std::nullopt;
-    }
-    const std::uint32_t whole = static_cast<std::uint32_t>(number.value);
-    return whole;
 }
 
 void ModelBuilder::check_spans(const FormModel& scratch) {
@@ -596,20 +642,20 @@ void ModelBuilder::check_spans(const FormModel& scratch) {
     for (std::size_t later = 0U; later < spans.size(); ++later) {
         const FormSpan& span = spans[later];
         const std::string& owner_id = scratch.objects[span.owner.value].stable_id;
-        const std::uint32_t token = tree_.nodes[span.node.value].tokens.first.value;
         if (!grid_span_extent_valid(span.span)) {
-            report(DiagnosticCode::form_span_conflict, token, owner_id, span.span.name,
-                   "it ends past the grid's limit");
+            report_at(DiagnosticCode::form_span_conflict, span.position, owner_id, span.span.name,
+                      "it ends past the grid's limit");
             continue;
         }
         for (std::size_t earlier = 0U; earlier < later; ++earlier) {
             const FormSpan& other = spans[earlier];
             if (!(other.owner == span.owner) || !grid_span_extent_valid(other.span)) continue;
             if (!span.span.name.empty() && span.span.name == other.span.name) {
-                report(DiagnosticCode::form_member_repeated, token, owner_id, span.span.name, "a span's name");
+                report_at(DiagnosticCode::form_member_repeated, span.position, owner_id, span.span.name,
+                          "a span's name");
             } else if (grid_spans_overlap(span.span, other.span)) {
-                report(DiagnosticCode::form_span_conflict, token, owner_id, span.span.name,
-                       "it shares a cell with an earlier span");
+                report_at(DiagnosticCode::form_span_conflict, span.position, owner_id, span.span.name,
+                          "it shares a cell with an earlier span");
             }
         }
     }
@@ -619,7 +665,6 @@ void ModelBuilder::check_spans(const FormModel& scratch) {
         const ObjectIndex parent = *object.parent;
         if (!schema_.types[scratch.objects[parent.value].schema_type].holds_spans) continue;
         const std::string& name = form_property_descriptor(schema_, scratch, property).name;
-        const std::uint32_t token = tree_.nodes[property.node.value].content.first.value;
         if (name == "area") {
             const std::string& area = std::get<std::string>(property.value);
             if (area.empty()) continue;
@@ -628,8 +673,8 @@ void ModelBuilder::check_spans(const FormModel& scratch) {
                 if (span.owner == parent && span.span.name == area) named = true;
             }
             if (!named) {
-                report(DiagnosticCode::form_span_conflict, token, object.stable_id, name,
-                       "names no span of the parent");
+                report_at(DiagnosticCode::form_span_conflict, property.position, object.stable_id, name,
+                          "names no span of the parent");
             }
             continue;
         }
@@ -639,15 +684,16 @@ void ModelBuilder::check_spans(const FormModel& scratch) {
                            point.y < maximum_grid_span_extent && std::floor(point.x) == point.x &&
                            std::floor(point.y) == point.y;
         if (!whole) {
-            report(DiagnosticCode::form_value_invalid, token, object.stable_id, name, "two cell numbers, row column");
+            report_at(DiagnosticCode::form_value_invalid, property.position, object.stable_id, name,
+                      "two cell numbers, row column");
             continue;
         }
         const GridCell cell{static_cast<std::uint32_t>(point.x), static_cast<std::uint32_t>(point.y)};
         for (const FormSpan& span : spans) {
             if (!(span.owner == parent) || !grid_span_extent_valid(span.span)) continue;
             if (grid_span_interior(span.span, cell)) {
-                report(DiagnosticCode::form_span_conflict, token, object.stable_id, name,
-                       "it lies inside a span; place the child at the span's anchor");
+                report_at(DiagnosticCode::form_span_conflict, property.position, object.stable_id, name,
+                          "it lies inside a span; place the child at the span's anchor");
             }
         }
     }
@@ -655,11 +701,12 @@ void ModelBuilder::check_spans(const FormModel& scratch) {
     // that cell inside the span, reported once above at the placement.
 }
 
-void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNames& written_names,
-                                    FormModel& scratch) {
-    const SyntaxNode& declaration = tree_.nodes[node.value];
-    const std::uint32_t name_token = declaration.tokens.first.value;
-    const std::string_view written = token_text(name_token);
+void ModelBuilder::read_attribute(const XmlElement& element, std::uint32_t index, std::uint32_t attribute,
+                                  ObjectIndex owner, WrittenNames& written_names, FormModel& scratch) {
+    const XmlAttribute& written_attribute = element.attributes[attribute];
+    const std::string_view written = written_attribute.name;
+    const std::string_view text = written_attribute.value;
+    const std::size_t name_offset = attribute_offset(index, attribute);
     const FormObject& object = scratch.objects[owner.value];
     const std::string stable_id = object.stable_id;
     // An object of an unknown type has been reported once; its members
@@ -689,7 +736,7 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     if (registered) {
         for (const RenamedProperty& renamed : renamed_properties) {
             if (*registered != renamed.registered) continue;
-            report(DiagnosticCode::form_property_renamed, name_token, stable_id, written,
+            report(DiagnosticCode::form_property_renamed, name_offset, stable_id, written,
                    std::string(renamed.detail));
             return;
         }
@@ -697,7 +744,7 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     // A handler reference is refused (E816); a property whose name begins
     // with "on" (a ToggleSwitch's on_text) is not one.
     if (!property && written.starts_with(handler_prefix)) {
-        report(DiagnosticCode::form_handler_removed, name_token, stable_id, written,
+        report(DiagnosticCode::form_handler_removed, name_offset, stable_id, written,
                "a form names no program code: attach the behaviour from program logic");
         return;
     }
@@ -705,42 +752,47 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         const std::string detail = parent_type == nullptr
             ? type.name
             : "neither " + type.name + " nor its parent's type " + (*parent_type).name + " provides it";
-        report(DiagnosticCode::form_property_unknown, name_token, stable_id, written, detail);
+        report(DiagnosticCode::form_property_unknown, name_offset, stable_id, written, detail);
         return;
     }
     const PropertyDescriptor& descriptor = provider == FormPropertyProvider::object_type
         ? type.properties[*property]
         : (*parent_type).child_properties[*property];
-    const ValueTokens value = value_tokens(declaration.content);
-    const bool bound = written_as_binding(value);
+    const bool bound = text.starts_with(binding_function);
     if (!descriptor.writable) {
-        report(DiagnosticCode::form_property_read_only, name_token, stable_id, written, {});
+        report(DiagnosticCode::form_property_read_only, name_offset, stable_id, written, {});
         return;
     }
     // A form is ontological: a font or a colour belongs to the project
     // theme, reached through `classes` (owner, 2026-11-04). A content value
     // (the font a TypographySpecimen shows) is not presentation.
     if (!descriptor.content_value && descriptor.kind == BindingValueKind::font) {
-        report(DiagnosticCode::form_presentation_property, name_token, stable_id, written,
+        report(DiagnosticCode::form_presentation_property, name_offset, stable_id, written,
                "set it in the project theme (font-family, font-size, font-weight, font-style, "
                "letter-spacing) on a class the object names in `classes`");
         return;
     }
     if (!descriptor.content_value && descriptor.kind == BindingValueKind::color) {
-        report(DiagnosticCode::form_presentation_property, name_token, stable_id, written,
+        report(DiagnosticCode::form_presentation_property, name_offset, stable_id, written,
                "set it in the project theme (color, background, border-color) on a class the object "
                "names in `classes`");
         return;
     }
+    // XML refuses an attribute written twice; a registered name reached by
+    // two spellings is the same member written twice.
     if (!written_names.properties.insert(*registered).second) {
-        report(DiagnosticCode::form_member_repeated, name_token, stable_id, written, {});
+        report(DiagnosticCode::form_member_repeated, name_offset, stable_id, written, {});
         return;
     }
-    if ((declaration.flags & theme_language::syntax_flag_important) != 0U) {
-        report(DiagnosticCode::form_value_invalid, name_token, stable_id, written, "!important");
-        return;
-    }
+    FormProperty record{};
+    record.object = owner;
+    record.provider = provider;
+    record.schema_property = *property;
+    record.attribute = attribute;
+    record.position = cursor_.locate(ByteOffset{static_cast<std::uint32_t>(name_offset)});
     if (bound) {
+        if (!load_value(index, attribute, text, stable_id, written)) return;
+        const ValueTokens value = value_tokens();
         const bool window_property = !object.parent && type.name == form_root_type_name;
         const bool command_slot = provider == FormPropertyProvider::object_type && type.bind_command != nullptr &&
                                   descriptor.name == form_command_slot_name;
@@ -756,39 +808,30 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
             binding = read_binding(value, descriptor, command_slot);
         }
         if (!binding.binding) {
-            report(binding.code, binding.offending, stable_id, written, std::move(binding.detail));
+            report_token(binding.code, binding.offending, stable_id, written, std::move(binding.detail));
             return;
         }
-        FormProperty record{};
-        record.object = owner;
-        record.provider = provider;
-        record.schema_property = *property;
-        record.node = node;
         record.binding = std::move(binding.binding);
         scratch.properties.push_back(std::move(record));
         return;
     }
-    // A form's button properties name an object of the document by its
-    // stable ID, written bare as the object writes it (`accept-button:
-    // settings.ok;`) or as a string. check_form_root then checks the name.
-    const bool names_button = !object.parent && type.name == form_root_type_name &&
-                              (descriptor.name == "accept_button" || descriptor.name == "cancel_button");
-    if (names_button) {
-        const std::optional<std::string> named = bare_identity(value);
-        if (named) {
-            FormProperty record{};
-            record.object = owner;
-            record.provider = provider;
-            record.schema_property = *property;
-            record.node = node;
-            record.value = BindingValue{*named};
-            scratch.properties.push_back(std::move(record));
+    ValueReading reading{};
+    if (descriptor.kind == BindingValueKind::text) {
+        // The whole value is the text (form_model.hpp); a form's button
+        // properties name an object, which check_form_root checks.
+        reading.value = convert_property_value(BindingValue{std::string(literal_text(text))}, descriptor);
+        if (!reading.value) {
+            report(DiagnosticCode::form_value_invalid, value_start(index, attribute), stable_id, written, {});
             return;
         }
+    } else if (descriptor.kind == BindingValueKind::collection) {
+        reading = text_collection_value(text, descriptor, index, attribute);
+    } else {
+        if (!load_value(index, attribute, text, stable_id, written)) return;
+        reading = read_value(descriptor);
     }
-    const ValueReading reading = read_value(declaration, descriptor);
     if (reading.not_expressible) {
-        report(DiagnosticCode::not_yet_built, declaration.content.first.value, stable_id, written,
+        report(DiagnosticCode::not_yet_built, value_start(index, attribute), stable_id, written,
                "a value of this kind");
         return;
     }
@@ -797,23 +840,228 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         return;
     }
     if (!reading.value) {
-        report(DiagnosticCode::form_value_invalid, reading.offending, stable_id, written, {});
+        // Text and collection readings carry a source offset; the others a
+        // token of the loaded value.
+        const bool offset_form =
+            descriptor.kind == BindingValueKind::text || descriptor.kind == BindingValueKind::collection;
+        const std::size_t offending = offset_form ? reading.offending : token_offset(reading.offending);
+        report(DiagnosticCode::form_value_invalid, offending, stable_id, written, {});
         return;
     }
-    FormProperty record{};
-    record.object = owner;
-    record.provider = provider;
-    record.schema_property = *property;
-    record.node = node;
-    record.value = *reading.value;
+    record.value = std::move(*reading.value);
     scratch.properties.push_back(std::move(record));
 }
 
-bool ModelBuilder::written_as_binding(const ValueTokens& value) const noexcept {
-    if (value.count == 0U) return false;
+bool ModelBuilder::load_value(std::uint32_t index, std::uint32_t attribute, std::string_view text,
+                              std::string_view rule, std::string_view property) {
+    const detail::XmlAttributeLocation& where = syntax_.locations.elements[index].attributes[attribute];
+    text_ = text;
+    value_offset_ = where.value_offset;
+    value_as_written_ = where.value_end - where.value_offset == text.size();
+    value_diagnostics_.clear();
+    ThemeSource value_source{};
+    value_source.file = source_.file;
+    value_source.text = text;
+    static_cast<void>(theme_language::tokenize_theme_sheet(value_source, value_buffer_, value_lines_,
+                                                           value_diagnostics_));
+    if (value_diagnostics_.error_count() == 0U) return true;
+    const ThemeDiagnostic& first = value_diagnostics_.records()[0];
+    std::string detail = std::string(theme_language::diagnostic_code_name(first.code));
+    const std::size_t offset = value_as_written_ ? value_offset_ + first.position.offset.value : value_offset_;
+    report(DiagnosticCode::form_value_invalid, offset, rule, property, std::move(detail));
+    return false;
+}
+
+ValueTokens ModelBuilder::value_tokens() const noexcept {
+    ValueTokens value{};
+    for (std::uint32_t index = 0U; index < tokens_.size(); ++index) {
+        if (is_trivia(tokens_[index].kind)) continue;
+        if (value.count == maximum_value_tokens) {
+            value.overflowed = true;
+            return value;
+        }
+        value.indices[value.count] = index;
+        ++value.count;
+    }
+    return value;
+}
+
+ValueReading ModelBuilder::read_value(const PropertyDescriptor& descriptor) const {
+    ValueReading reading{};
+    const ValueTokens value = value_tokens();
+    reading.offending = value.count == 0U ? static_cast<std::uint32_t>(tokens_.size()) : value.indices[0];
+    if (value.count == 0U || value.overflowed) return reading;
+    const std::optional<BindingValue> candidate = candidate_value(value, descriptor, reading);
+    if (!candidate) return reading;
+    // The descriptor's own rules: ranges, standard values.
+    reading.value = convert_property_value(*candidate, descriptor);
+    return reading;
+}
+
+std::optional<BindingValue> ModelBuilder::candidate_value(const ValueTokens& value,
+                                                          const PropertyDescriptor& descriptor,
+                                                          ValueReading& reading) const {
     const std::uint32_t first = value.indices[0];
-    const bool binding = tokens_[first].kind == TokenKind::function && token_text(first) == binding_function;
-    return binding;
+    switch (descriptor.kind) {
+    case BindingValueKind::boolean: return boolean_value(value);
+    case BindingValueKind::signed_integer:
+    case BindingValueKind::unsigned_integer: return integer_value(value, descriptor.kind);
+    case BindingValueKind::number: {
+        if (value.count != 1U) return std::nullopt;
+        const std::optional<double> number = number_at(first);
+        if (!number) return std::nullopt;
+        return BindingValue{*number};
+    }
+    case BindingValueKind::point:
+    case BindingValueKind::size:
+    case BindingValueKind::rectangle:
+    case BindingValueKind::insets: return geometry_value(value, descriptor.kind, reading);
+    case BindingValueKind::color: {
+        if (value.count != 1U) return std::nullopt;
+        const std::optional<Color> color = color_at(first);
+        if (!color) return std::nullopt;
+        return BindingValue{*color};
+    }
+    case BindingValueKind::enumeration: {
+        if (!descriptor.enumeration) return std::nullopt;
+        std::uint32_t offending = first;
+        const std::optional<BindingValue> choice = enumeration_from(value, descriptor, offending);
+        reading.offending = offending;
+        return choice;
+    }
+    case BindingValueKind::font: return font_value(value, reading);
+    // Read from the attribute's text by read_attribute, never here.
+    case BindingValueKind::text:
+    case BindingValueKind::collection: return std::nullopt;
+    case BindingValueKind::null:
+    case BindingValueKind::image:
+    case BindingValueKind::object:
+        reading.not_expressible = true;
+        return std::nullopt;
+    }
+    // A kind outside the enumeration: no value of it can be written.
+    return std::nullopt;
+}
+
+// A collection of text (owner decision FD6-4): items separated by
+// whitespace, for a property whose default is a text collection; its item
+// type is the default's. An item that begins with a quote is a form string
+// up to its closing quote. `offending` is a source offset.
+ValueReading ModelBuilder::text_collection_value(std::string_view text, const PropertyDescriptor& descriptor,
+                                                 std::uint32_t index, std::uint32_t attribute) const {
+    ValueReading reading{};
+    const std::size_t start = value_start(index, attribute);
+    const detail::XmlAttributeLocation& where = syntax_.locations.elements[index].attributes[attribute];
+    const bool as_written = where.value_end - where.value_offset == text.size();
+    reading.offending = static_cast<std::uint32_t>(start);
+    const PropertyCollectionValue* model = nullptr;
+    if (descriptor.default_value) model = std::get_if<PropertyCollectionValue>(&*descriptor.default_value);
+    if (model == nullptr || !*model || (*model).item_kind() != BindingValueKind::text) {
+        reading.not_expressible = true;
+        return reading;
+    }
+    std::vector<BindingValue> items{};
+    std::size_t position = 0U;
+    while (position < text.size()) {
+        if (xml_space(text[position])) {
+            ++position;
+            continue;
+        }
+        const std::size_t item_start = position;
+        const char quote = text[position];
+        if (quote != '"' && quote != '\'') {
+            while (position < text.size() && !xml_space(text[position])) ++position;
+            items.emplace_back(std::string(text.substr(item_start, position - item_start)));
+            continue;
+        }
+        // A quoted item: to the matching quote, a backslash escaping the
+        // byte after it; it must end the item.
+        ++position;
+        while (position < text.size() && text[position] != quote) {
+            if (text[position] == '\\') ++position;
+            ++position;
+        }
+        const bool closed = position < text.size();
+        if (closed) ++position;
+        const bool separated = position >= text.size() || xml_space(text[position]);
+        const std::size_t offset = as_written ? start + item_start : start;
+        reading.offending = static_cast<std::uint32_t>(offset);
+        if (!closed || !separated) return reading;
+        FormStringReading item = read_form_string(text.substr(item_start, position - item_start));
+        if (!item.valid) {
+            reading.refused_escape = std::move(item.escape);
+            return reading;
+        }
+        items.emplace_back(std::move(item.text));
+    }
+    if (items.empty()) {
+        reading.offending = static_cast<std::uint32_t>(start);
+        return reading;
+    }
+    BindingValue collection{
+        make_property_collection(std::string((*model).item_type_name()), BindingValueKind::text, std::move(items))};
+    reading.value = convert_property_value(collection, descriptor);
+    return reading;
+}
+
+std::size_t ModelBuilder::value_start(std::uint32_t index, std::uint32_t attribute) const noexcept {
+    const std::size_t offset = syntax_.locations.elements[index].attributes[attribute].value_offset;
+    return offset;
+}
+
+std::size_t ModelBuilder::token_offset(std::uint32_t token) const noexcept {
+    if (!value_as_written_) return value_offset_;
+    const std::size_t inside = token < tokens_.size() ? tokens_[token].offset.value : text_.size();
+    const std::size_t offset = value_offset_ + inside;
+    return offset;
+}
+
+std::size_t ModelBuilder::element_offset(std::uint32_t index) const noexcept {
+    const std::size_t offset = syntax_.locations.elements[index].start_offset;
+    return offset;
+}
+
+std::size_t ModelBuilder::attribute_offset(std::uint32_t index, std::uint32_t attribute) const noexcept {
+    const std::size_t offset = syntax_.locations.elements[index].attributes[attribute].name_offset;
+    return offset;
+}
+
+void ModelBuilder::report(DiagnosticCode code, std::size_t offset, std::string_view rule, std::string_view property,
+                          std::string detail) {
+    const theme_language::SourcePosition position = cursor_.locate(ByteOffset{static_cast<std::uint32_t>(offset)});
+    report_at(code, position, rule, property, std::move(detail));
+}
+
+void ModelBuilder::report_at(DiagnosticCode code, theme_language::SourcePosition position, std::string_view rule,
+                             std::string_view property, std::string detail) {
+    ThemeDiagnostic diagnostic{};
+    diagnostic.code = code;
+    diagnostic.file = std::string(source_.file);
+    diagnostic.position = position;
+    diagnostic.rule = std::string(rule);
+    diagnostic.property = std::string(property);
+    diagnostic.detail = std::move(detail);
+    diagnostics_.add(std::move(diagnostic));
+    defective_ = true;
+}
+
+void ModelBuilder::report_token(DiagnosticCode code, std::uint32_t token, std::string_view rule,
+                                std::string_view property, std::string detail) {
+    report(code, token_offset(token), rule, property, std::move(detail));
+}
+
+std::optional<std::uint32_t> ModelBuilder::span_number(const ValueTokens& value, std::size_t position,
+                                                       std::uint32_t minimum) const {
+    const std::uint32_t index = value.indices[position];
+    if (tokens_[index].kind != TokenKind::number) return std::nullopt;
+    const ThemeNumber& number = numbers_[tokens_[index].number];
+    // A coordinate ends before the limit; an extent may reach it.
+    const double maximum = static_cast<double>(maximum_grid_span_extent) - (minimum == 0U ? 1.0 : 0.0);
+    if (!number.integer || number.value < static_cast<double>(minimum) || number.value > maximum) {
+        return std::nullopt;
+    }
+    const std::uint32_t whole = static_cast<std::uint32_t>(number.value);
+    return whole;
 }
 
 BindingReading ModelBuilder::read_binding(const ValueTokens& value, const PropertyDescriptor& descriptor,
@@ -948,20 +1196,6 @@ BindingReading ModelBuilder::read_binding(const ValueTokens& value, const Proper
     return reading;
 }
 
-ValueTokens ModelBuilder::value_tokens(TokenRange content) const noexcept {
-    ValueTokens value{};
-    for (std::uint32_t index = content.first.value; index < content.end.value; ++index) {
-        if (is_trivia(tokens_[index].kind)) continue;
-        if (value.count == maximum_value_tokens) {
-            value.overflowed = true;
-            return value;
-        }
-        value.indices[value.count] = index;
-        ++value.count;
-    }
-    return value;
-}
-
 std::optional<double> ModelBuilder::number_at(std::uint32_t index) const noexcept {
     const Token& token = tokens_[index];
     if (token.kind != TokenKind::number) return std::nullopt;
@@ -1023,88 +1257,6 @@ std::optional<BindingValue> ModelBuilder::enumeration_from(const ValueTokens& va
     }
     const std::optional<BindingValue> converted = convert_property_value(BindingValue{combined}, descriptor);
     return converted;
-}
-
-ValueReading ModelBuilder::read_value(const SyntaxNode& node, const PropertyDescriptor& descriptor) const {
-    ValueReading reading{};
-    const ValueTokens value = value_tokens(node.content);
-    reading.offending = value.count == 0U ? node.tokens.first.value : value.indices[0];
-    if (value.count == 0U || value.overflowed) return reading;
-    const std::optional<BindingValue> candidate = candidate_value(value, descriptor, reading);
-    if (!candidate) return reading;
-    // The descriptor's own rules: ranges, standard values.
-    reading.value = convert_property_value(*candidate, descriptor);
-    return reading;
-}
-
-std::optional<std::string> ModelBuilder::bare_identity(const ValueTokens& value) const {
-    if (value.count == 0U || value.overflowed) return std::nullopt;
-    const std::uint32_t first = value.indices[0];
-    if (tokens_[first].kind != TokenKind::ident) return std::nullopt;
-    for (std::size_t position = 1U; position < value.count; ++position) {
-        const std::uint32_t index = value.indices[position];
-        // Adjacent tokens only: `a . b` is not an identity.
-        if (index != first + position) return std::nullopt;
-        const TokenKind kind = tokens_[index].kind;
-        const bool dot = kind == TokenKind::delim && token_text(index) == ".";
-        const bool part = kind == TokenKind::ident || kind == TokenKind::number || kind == TokenKind::dimension;
-        if (!dot && !part) return std::nullopt;
-    }
-    const std::uint32_t end = value.indices[value.count - 1U] + 1U;
-    const std::string identity(range_text(first, end));
-    return identity;
-}
-
-std::optional<BindingValue> ModelBuilder::candidate_value(const ValueTokens& value,
-                                                          const PropertyDescriptor& descriptor,
-                                                          ValueReading& reading) const {
-    const std::uint32_t first = value.indices[0];
-    switch (descriptor.kind) {
-    case BindingValueKind::boolean: return boolean_value(value);
-    case BindingValueKind::signed_integer:
-    case BindingValueKind::unsigned_integer: return integer_value(value, descriptor.kind);
-    case BindingValueKind::number: {
-        if (value.count != 1U) return std::nullopt;
-        const std::optional<double> number = number_at(first);
-        if (!number) return std::nullopt;
-        return BindingValue{*number};
-    }
-    case BindingValueKind::text: {
-        if (value.count != 1U || tokens_[first].kind != TokenKind::string) return std::nullopt;
-        FormStringReading text = read_form_string(token_text(first));
-        if (!text.valid) {
-            reading.refused_escape = std::move(text.escape);
-            return std::nullopt;
-        }
-        return BindingValue{std::move(text.text)};
-    }
-    case BindingValueKind::point:
-    case BindingValueKind::size:
-    case BindingValueKind::rectangle:
-    case BindingValueKind::insets: return geometry_value(value, descriptor.kind, reading);
-    case BindingValueKind::color: {
-        if (value.count != 1U) return std::nullopt;
-        const std::optional<Color> color = color_at(first);
-        if (!color) return std::nullopt;
-        return BindingValue{*color};
-    }
-    case BindingValueKind::enumeration: {
-        if (!descriptor.enumeration) return std::nullopt;
-        std::uint32_t offending = first;
-        const std::optional<BindingValue> choice = enumeration_from(value, descriptor, offending);
-        reading.offending = offending;
-        return choice;
-    }
-    case BindingValueKind::font: return font_value(value, reading);
-    case BindingValueKind::collection: return text_collection_value(value, descriptor, reading);
-    case BindingValueKind::null:
-    case BindingValueKind::image:
-    case BindingValueKind::object:
-        reading.not_expressible = true;
-        return std::nullopt;
-    }
-    // A kind outside the enumeration: no value of it can be written.
-    return std::nullopt;
 }
 
 std::optional<BindingValue> ModelBuilder::boolean_value(const ValueTokens& value) const {
@@ -1196,39 +1348,6 @@ std::optional<BindingValue> ModelBuilder::font_value(const ValueTokens& value, V
     return BindingValue{font};
 }
 
-// A collection of text (owner decision FD6-4): one or more strings, for a
-// property whose default is a text collection; its item type is the
-// default's.
-std::optional<BindingValue> ModelBuilder::text_collection_value(const ValueTokens& value,
-                                                                const PropertyDescriptor& descriptor,
-                                                                ValueReading& reading) const {
-    const PropertyCollectionValue* model = nullptr;
-    if (descriptor.default_value) model = std::get_if<PropertyCollectionValue>(&*descriptor.default_value);
-    if (model == nullptr || !*model || (*model).item_kind() != BindingValueKind::text) {
-        reading.not_expressible = true;
-        return std::nullopt;
-    }
-    std::vector<BindingValue> items{};
-    items.reserve(value.count);
-    for (std::size_t position = 0U; position < value.count; ++position) {
-        const std::uint32_t index = value.indices[position];
-        if (tokens_[index].kind != TokenKind::string) {
-            reading.offending = index;
-            return std::nullopt;
-        }
-        FormStringReading item = read_form_string(token_text(index));
-        if (!item.valid) {
-            reading.offending = index;
-            reading.refused_escape = std::move(item.escape);
-            return std::nullopt;
-        }
-        items.emplace_back(std::move(item.text));
-    }
-    BindingValue collection{
-        make_property_collection(std::string((*model).item_type_name()), BindingValueKind::text, std::move(items))};
-    return collection;
-}
-
 std::optional<BindingValue> ModelBuilder::geometry_value(const ValueTokens& value, BindingValueKind kind,
                                                          ValueReading& reading) const {
     std::array<double, 4> numbers{};
@@ -1266,30 +1385,6 @@ std::string_view ModelBuilder::token_text(std::uint32_t index) const noexcept {
     const Token& token = tokens_[index];
     const std::string_view text = text_.substr(token.offset.value, token.length.value);
     return text;
-}
-
-std::string_view ModelBuilder::range_text(std::uint32_t first, std::uint32_t end) const noexcept {
-    if (first >= end) return {};
-    const Token& last = tokens_[end - 1U];
-    const std::size_t begin = tokens_[first].offset.value;
-    const std::size_t stop = static_cast<std::size_t>(last.offset.value) + last.length.value;
-    return text_.substr(begin, stop - begin);
-}
-
-// Reports at `token`'s offset, or at the document's end for the token
-// count.
-void ModelBuilder::report(DiagnosticCode code, std::uint32_t token, std::string_view rule, std::string_view property,
-                          std::string detail) {
-    const std::size_t offset = token < tokens_.size() ? tokens_[token].offset.value : text_.size();
-    ThemeDiagnostic diagnostic{};
-    diagnostic.code = code;
-    diagnostic.file = std::string(source_.file);
-    diagnostic.position = cursor_.locate(ByteOffset{static_cast<std::uint32_t>(offset)});
-    diagnostic.rule = std::string(rule);
-    diagnostic.property = std::string(property);
-    diagnostic.detail = std::move(detail);
-    diagnostics_.add(std::move(diagnostic));
-    defective_ = true;
 }
 
 } // namespace
@@ -1432,16 +1527,22 @@ const PropertyDescriptor& form_property_descriptor(const FormSchema& schema, con
     return schema.types[parent.schema_type].child_properties[property.schema_property];
 }
 
-FormModelOutcome build_form_model(const theme_language::ThemeSource& source,
-                                  const theme_language::ThemeTokenBuffer& tokens,
-                                  const theme_language::LineStartTable& lines,
-                                  const theme_language::ThemeSyntaxTree& tree, const FormSchema& schema,
-                                  FormModel& model, theme_language::ThemeDiagnosticList& diagnostics) {
+FormModelOutcome build_form_model(const theme_language::ThemeSource& source, const FormSyntax& syntax,
+                                  const FormSchema& schema, FormModel& model,
+                                  theme_language::ThemeDiagnosticList& diagnostics) {
     FormModel scratch{};
-    ModelBuilder builder(source, tokens, lines, tree, schema, diagnostics);
+    ModelBuilder builder(source, syntax, schema, diagnostics);
     if (!builder.run(scratch)) return FormModelOutcome::refused;
     model = std::move(scratch);
     return FormModelOutcome::model_built;
+}
+
+FormModelOutcome read_form_model(const theme_language::ThemeSource& source, FormSyntax& syntax,
+                                 const FormSchema& schema, FormModel& model,
+                                 theme_language::ThemeDiagnosticList& diagnostics) {
+    if (read_form_syntax(source, syntax, diagnostics) != FormSyntaxOutcome::read) return FormModelOutcome::refused;
+    const FormModelOutcome outcome = build_form_model(source, syntax, schema, model, diagnostics);
+    return outcome;
 }
 
 } // namespace gui_forms::form_language

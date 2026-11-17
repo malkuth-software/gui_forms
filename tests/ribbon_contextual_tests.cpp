@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace {
 using namespace gui_forms;
 
@@ -35,6 +37,15 @@ void require(bool condition, const char* message) {
     if (condition) return;
     std::cerr << message << '\n';
     std::exit(1);
+}
+
+// The accent of a set the test expects shown; a hidden set fails the test
+// instead of reading an absent accent.
+AccentIndex shown_accent(const Ribbon& ribbon, const std::string& set, const char* message) {
+    const stxlib::Optional<AccentIndex> accent = ribbon.tab_set_accent(set);
+    require(accent.present(), message);
+    const AccentIndex shown = *accent.value();
+    return shown;
 }
 
 RibbonGroupSpec group(const std::string& id, std::size_t commands) {
@@ -87,8 +98,9 @@ std::size_t index_of(const Ribbon& ribbon, std::string_view id) {
 }
 
 std::string selected(const Ribbon& ribbon) {
-    if (!ribbon.selected_tab.read()) return "none";
-    return ribbon.tabs()[*ribbon.selected_tab.read()].stable_id;
+    const stxlib::Optional<std::size_t> tab = ribbon.selected_tab.read();
+    if (tab.absent()) return "none";
+    return ribbon.tabs()[*tab.value()].stable_id;
 }
 
 std::vector<std::string> shown_tabs(const Ribbon& ribbon) {
@@ -183,7 +195,7 @@ void availability_and_selection_rules() {
     require(threw, "an unknown set is refused");
     threw = false;
     try {
-        ribbon.selected_tab = index_of(ribbon, "design");
+        ribbon.selected_tab = stxlib::Optional<std::size_t>::of(index_of(ribbon, "design"));
     } catch (const std::invalid_argument&) {
         threw = true;
     }
@@ -201,38 +213,38 @@ void availability_and_selection_rules() {
 void accents() {
     Fixture fixture = make_fixture();
     Ribbon& ribbon = *fixture.ribbon;
-    require(!ribbon.tab_set_accent("picture"), "a hidden set has no accent");
+    require(ribbon.tab_set_accent("picture").absent(), "a hidden set has no accent");
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::active);
     ribbon.set_tab_set_availability("table", RibbonTabSetAvailability::available);
     (*fixture.window).perform_layout();
-    const std::optional<AccentIndex> picture = ribbon.tab_set_accent("picture");
-    const std::optional<AccentIndex> table = ribbon.tab_set_accent("table");
-    require(picture && table && !(*picture == *table), "shown sets take different accents");
+    const stxlib::Optional<AccentIndex> picture = ribbon.tab_set_accent("picture");
+    const stxlib::Optional<AccentIndex> table = ribbon.tab_set_accent("table");
+    require(picture.present() && table.present() && !(picture == table), "shown sets take different accents");
     const std::vector<Ribbon::Tab> tabs = ribbon.realized_tabs();
     require(tab_named(tabs, "format").parts.tab.accent == picture &&
                 tab_named(tabs, "arrange").parts.tab.accent == picture &&
                 tab_named(tabs, "design").parts.tab.accent == table &&
-                !tab_named(tabs, "home").parts.tab.accent,
+                tab_named(tabs, "home").parts.tab.accent.absent(),
             "a set's tint is on its tabs, and core tabs have none");
     require(ribbon.parts().command_plane.accent == picture, "the selected contextual tab's plane carries its tint");
     click_tab(fixture, "home");
-    require(!ribbon.parts().command_plane.accent, "a core tab's plane carries no tint");
+    require(ribbon.parts().command_plane.accent.absent(), "a core tab's plane carries no tint");
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::not_available);
     ribbon.set_tab_set_availability("chart", RibbonTabSetAvailability::available);
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::available);
-    const std::optional<AccentIndex> chart = ribbon.tab_set_accent("chart");
-    const std::optional<AccentIndex> returned = ribbon.tab_set_accent("picture");
-    require(chart && returned && !(*chart == *table) && !(*returned == *table) && !(*returned == *chart),
+    const stxlib::Optional<AccentIndex> chart = ribbon.tab_set_accent("chart");
+    const stxlib::Optional<AccentIndex> returned = ribbon.tab_set_accent("picture");
+    require(chart.present() && returned.present() && !(chart == table) && !(returned == table) && !(returned == chart),
             "three shown sets have three accents");
-    require(*chart == *picture,
+    require(chart == picture,
             "a newly shown set may take an accent a hidden set gave up, and the returning one takes another");
 
     Fixture second = make_fixture();
     (*second.ribbon).set_tab_set_availability("table", RibbonTabSetAvailability::available);
-    const AccentIndex first_table = *(*second.ribbon).tab_set_accent("table");
+    const AccentIndex first_table = shown_accent(*second.ribbon, "table", "a shown set has an accent");
     (*second.ribbon).set_tab_set_availability("table", RibbonTabSetAvailability::not_available);
     (*second.ribbon).set_tab_set_availability("table", RibbonTabSetAvailability::available);
-    require(*(*second.ribbon).tab_set_accent("table") == first_table, "a returning set keeps its accent when free");
+    require(shown_accent(*second.ribbon, "table", "a returning set has an accent") == first_table, "a returning set keeps its accent when free");
 }
 
 // The sets' accents follow the window's theme: a one-colour ramp gives every
@@ -244,18 +256,19 @@ void accents_follow_theme() {
     ribbon.set_tab_set_availability("picture", RibbonTabSetAvailability::available);
     ribbon.set_tab_set_availability("table", RibbonTabSetAvailability::available);
     window.perform_layout();
-    require(!(*ribbon.tab_set_accent("picture") == *ribbon.tab_set_accent("table")),
+    require(!(shown_accent(ribbon, "picture", "picture is shown") == shown_accent(ribbon, "table", "table is shown")),
             "shown sets take different accents");
     const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
     (*held).id = "one-accent";
     (*held).accent_ramp = {Color::rgba(200, 40, 40)};
     window.set_theme(Theme::create(*held));
     window.perform_layout();
-    require((*ribbon.tab_set_accent("picture")).value == 0U && (*ribbon.tab_set_accent("table")).value == 0U,
+    require(shown_accent(ribbon, "picture", "picture stays shown").value == 0U &&
+                shown_accent(ribbon, "table", "table stays shown").value == 0U,
             "on a one-colour ramp every shown set takes that colour");
     window.set_theme(default_theme());
     window.perform_layout();
-    require(!(*ribbon.tab_set_accent("picture") == *ribbon.tab_set_accent("table")),
+    require(!(shown_accent(ribbon, "picture", "picture stays shown") == shown_accent(ribbon, "table", "table stays shown")),
             "a wider ramp gives the shown sets different accents again");
 }
 
@@ -277,7 +290,7 @@ void modes() {
     require((*ribbon).application_modes.read() == 0x1U &&
                 shown_tabs(*ribbon) == std::vector<std::string>{"home", "edit", "view"},
             "mode 0 shows the core tabs that belong to it, and those in every mode");
-    (*ribbon).selected_tab = index_of(*ribbon, "edit");
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(index_of(*ribbon, "edit"));
     (*ribbon).set_tab_set_availability("picture", RibbonTabSetAvailability::active);
     window.perform_layout();
     require(selected(*ribbon) == "format", "a set shows in its modes");
@@ -285,7 +298,7 @@ void modes() {
     window.perform_layout();
     require(shown_tabs(*ribbon) == std::vector<std::string>{"print", "view"} && selected(*ribbon) == "print",
             "switching modes replaces the core tabs; a hidden selection falls back to the first core tab shown");
-    (*ribbon).selected_tab = index_of(*ribbon, "view");
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(index_of(*ribbon, "view"));
     window.perform_layout();
     require((*ribbon).realized_groups().size() == 2U, "a group in the new mode shows on its tab");
     const std::vector<RibbonLadderEntry> both = (*ribbon).reduction_ladder(index_of(*ribbon, "view"));
@@ -318,14 +331,19 @@ void semantics_and_keyboard() {
     const std::vector<SemanticNode> nodes = ribbon.semantic_virtual_children();
     const SemanticNode& row = nodes[1];
     require(row.children.size() == 6U, "the tab row lists the shown tabs only");
-    require(row.children[2].name == "View" && row.children[2].position_in_set == std::size_t{3U} &&
-                row.children[2].set_size == std::size_t{3U} && row.children[2].description.empty(),
+    require(row.children[2].name == "View" &&
+                row.children[2].position_in_set == stxlib::Optional<std::size_t>::of(3U) &&
+                row.children[2].set_size == stxlib::Optional<std::size_t>::of(3U) &&
+                row.children[2].description.empty(),
             "core tabs count among the core tabs");
-    require(row.children[4].name == "Arrange" && row.children[4].position_in_set == std::size_t{2U} &&
-                row.children[4].set_size == std::size_t{2U} && row.children[4].description == "Picture Tools",
+    require(row.children[4].name == "Arrange" &&
+                row.children[4].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                row.children[4].set_size == stxlib::Optional<std::size_t>::of(2U) &&
+                row.children[4].description == "Picture Tools",
             "a contextual tab counts among its set and is described by the set's caption");
-    require(row.children[5].name == "Chart" && row.children[5].position_in_set == std::size_t{1U} &&
-                row.children[5].set_size == std::size_t{1U},
+    require(row.children[5].name == "Chart" &&
+                row.children[5].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[5].set_size == stxlib::Optional<std::size_t>::of(1U),
             "each set counts its own tabs");
     require(!ribbon.on_semantic_child_action("ribbon.tab.design", SemanticAction::select, {}),
             "a hidden tab is not selectable through accessibility");
@@ -447,18 +465,18 @@ void scaling_with_contextual_tabs() {
             "a contextual tab has its own ladder, built from its groups");
     (*fixture.window).resize({ladder.back().width, 300.0});
     (*fixture.window).perform_layout();
-    require(ribbon.ladder_step() == std::size_t{2U} && ribbon.realized_groups()[0].collapsed &&
+    require(ribbon.ladder_step() == stxlib::Optional<std::size_t>::of(2U) && ribbon.realized_groups()[0].collapsed &&
                 ribbon.parts().command_plane.accent == ribbon.tab_set_accent("picture"),
             "a contextual tab's plane scales and keeps its tint");
     (*fixture.window).resize({ladder.back().width - 10.0, 300.0});
     (*fixture.window).perform_layout();
     require(ribbon.scrolling() && !ribbon.plane_hidden(), "and scrolls below its narrowest entry");
-    ribbon.selected_tab = 0U;
+    ribbon.selected_tab = stxlib::Optional<std::size_t>::of(0U);
     (*fixture.window).resize({home[0].width, 300.0});
     (*fixture.window).perform_layout();
     const std::vector<RibbonLadderEntry> home_again = ribbon.reduction_ladder(0U);
     require(home_again.size() == home.size() && home_again[0].width == home[0].width &&
-                ribbon.ladder_step() == std::size_t{0U},
+                ribbon.ladder_step() == stxlib::Optional<std::size_t>::of(0U),
             "showing sets on the tab row leaves the core tab's ladder unchanged");
 }
 

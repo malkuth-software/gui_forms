@@ -12,6 +12,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -95,9 +96,12 @@ bool table_names(std::span<const std::byte> table, std::string_view name, std::s
         const std::optional<std::string_view> recorded = reader.text();
         const std::optional<std::uint32_t> bound = reader.u32();
         const std::optional<std::uint32_t> setup_bound = reader.u32();
-        const std::optional<std::uint32_t> state_size = reader.u32();
-        if (!recorded || !bound || !setup_bound || !state_size) return false;
-        if (*recorded == name && *state_size == state_size) return true;
+        const std::optional<std::uint32_t> recorded_size = reader.u32();
+        if (!recorded || !bound || !setup_bound || !recorded_size) return false;
+        // The record's size against the effect's own (A-gf-core-05-F2: a
+        // local of the parameter's name once shadowed it, so this compared
+        // the record with itself).
+        if (*recorded == name && static_cast<std::size_t>(*recorded_size) == state_size) return true;
     }
     return false;
 }
@@ -393,6 +397,15 @@ void EffectInstance::rebase(FrameTime now) noexcept {
     pending_ = 0U;
 }
 
+void EffectInstance::set_transition(double progress) noexcept {
+    // The negated test takes a NaN to 0 as well as a negative value.
+    if (!(progress > 0.0)) {
+        transition_ = 0.0;
+        return;
+    }
+    transition_ = progress < 1.0 ? progress : 1.0;
+}
+
 namespace {
 
 // How much input `kind` admits: 0 none, 1 pointer, 2 pointer and keys.
@@ -490,12 +503,12 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     if (declaration.time_model != EffectTimeModel::ambient) {
         PartKey key{};
         key.part = declaration.name;
-        const std::optional<PartRecordHandle> record =
+        const stxlib::Optional<PartRecordHandle> record =
             detail::SurfaceEngineAccess::note_part(*root, host, key, AnatomyStateSet{});
-        if (record) {
+        if (record.present()) {
             const Rect extent{layer.x + place.origin.x, layer.y + place.origin.y, layer.width, layer.height};
-            detail::SurfaceEngineAccess::note_paint(*root, *record, 0U, *place.painted_by, extent);
-            detail::SurfaceEngineAccess::note_backplane_reader(*root, *record, true);
+            detail::SurfaceEngineAccess::note_paint(*root, *record.value(), 0U, *place.painted_by, extent);
+            detail::SurfaceEngineAccess::note_backplane_reader(*root, *record.value(), true);
         }
     }
     const std::optional<std::uint32_t> width = device_side(layer.width, scale);
@@ -516,7 +529,7 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     key.extent = extent;
     key.scale = scale;
     key.half = half;
-    if (backdrop_ && backdrop_key_ && *backdrop_key_ == key) return backdrop_;
+    if (backdrop_ && backdrop_key_.present() && (*backdrop_key_.value()) == key) return backdrop_;
     const PartRaster& image = *lent.image;
     const DeviceExtent grown{extent.width + margin * 2U, extent.height + margin * 2U};
     if (!(image.extent() == grown)) return {};
@@ -564,7 +577,7 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
             destination.pixels[write + element] = static_cast<std::uint8_t>(work.first[read + element]);
         }
     }
-    backdrop_key_ = key;
+    backdrop_key_.set(key);
     return backdrop_;
 }
 
@@ -596,6 +609,7 @@ void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool 
     frame.input = input_;
     frame.input_count = input_count_;
     frame.colours = colours_;
+    frame.transition = transition_;
     // The standing pointer, only where the effect declares input and the
     // host grants it (section 8a(1)); otherwise zero.
     const bool pointer_granted =

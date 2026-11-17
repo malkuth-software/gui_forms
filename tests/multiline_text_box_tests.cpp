@@ -173,8 +173,8 @@ void document_scrollbars() {
     ScrollbarPainter painter{};
     f.editor.invalidate(Dirty::paint);
     const DamageRegion damage = f.window.take_damage();
-    const std::optional<PaintReceipt> receipt = f.window.paint(painter, damage.bounds());
-    require(receipt.has_value(), "retained document paint completes");
+    const stxlib::Optional<PaintReceipt> receipt = f.window.paint(painter, damage.bounds());
+    require(receipt.present(), "retained document paint completes");
     const Rect viewport = f.editor.viewport_rectangle();
     const Rect clip{6.0, 4.0, viewport.width - 10.0, viewport.height - 8.0};
     const Rect horizontal_bar{0.0, viewport.height, viewport.width, 16.0};
@@ -612,14 +612,14 @@ public:
 void paint_retained(Fixture& fixture, CaretPainter& painter) {
     fixture.window.perform_layout();
     const DamageRegion damage = fixture.window.take_damage();
-    const std::optional<PaintReceipt> receipt = fixture.window.paint(painter, damage.bounds());
-    require(receipt.has_value(), "retained caret fixture must paint");
+    const stxlib::Optional<PaintReceipt> receipt = fixture.window.paint(painter, damage.bounds());
+    require(receipt.present(), "retained caret fixture must paint");
 }
 
 Rect blink_damage(Fixture& fixture) {
-    const std::optional<FrameTime> deadline = fixture.window.next_wake();
-    require(deadline.has_value(), "focused caret must retain a deadline");
-    const FramePollResult poll = fixture.window.poll_frame_schedule(*deadline);
+    const stxlib::Optional<FrameTime> deadline = fixture.window.next_wake();
+    require(deadline.present(), "focused caret must retain a deadline");
+    const FramePollResult poll = fixture.window.poll_frame_schedule(*deadline.value());
     // ADR-016: the caret blinks on its own UI timer, which damages only the
     // caret; no paint deadline repaints the whole box.
     require(poll.ui_timer_ticks == 1U && poll.deadlines_fired == 0U,
@@ -641,26 +641,26 @@ void caret_blink_follows_settings() {
     fixture.window.set_presentation_settings(fast);
     require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
     const FrameTime before = FrameClock::now();
-    const std::optional<FrameTime> deadline = fixture.window.next_wake();
-    require(deadline.has_value() && *deadline <= before + std::chrono::milliseconds(200),
+    const stxlib::Optional<FrameTime> deadline = fixture.window.next_wake();
+    require(deadline.present() && *deadline.value() <= before + std::chrono::milliseconds(200),
             "a 200 ms phase times the next blink");
 
     PresentationSettings never = fixture.window.presentation_settings();
     never.caret = CaretSettings{0U, SettingOrigin::host};
     fixture.window.set_presentation_settings(never);
-    static_cast<void>(fixture.window.poll_frame_schedule(*deadline));
+    static_cast<void>(fixture.window.poll_frame_schedule(*deadline.value()));
     static_cast<void>(fixture.window.take_damage());
-    require(!fixture.window.next_wake().has_value(), "turning blinking off stops the running timer");
+    require(fixture.window.next_wake().absent(), "turning blinking off stops the running timer");
     painter.lines = 0U;
     fixture.editor.invalidate(Dirty::paint);
     paint_retained(fixture, painter);
     require(painter.lines == 1U, "the caret stays shown when blinking stops");
 
     require(fixture.window.request_focus({}) && fixture.window.request_focus(fixture.field), "refocus succeeds");
-    require(!fixture.window.next_wake().has_value(), "a caret that never blinks holds no wake");
+    require(fixture.window.next_wake().absent(), "a caret that never blinks holds no wake");
     painter.lines = 0U;
     paint_retained(fixture, painter);
-    require(painter.lines == 1U && !fixture.window.next_wake().has_value(),
+    require(painter.lines == 1U && fixture.window.next_wake().absent(),
             "it is drawn shown, and painting starts no timer");
 }
 
@@ -685,14 +685,14 @@ void localized_caret_blinks() {
                     hidden_damage.y + hidden_damage.height >= old_end.y,
                 "erase damage must contain the previously recorded caret endpoints");
         painter.lines = 0U;
-        const std::optional<PaintReceipt> hidden = fixture.window.paint(painter, hidden_damage);
-        require(hidden.has_value() && painter.lines == 0U,
+        const stxlib::Optional<PaintReceipt> hidden = fixture.window.paint(painter, hidden_damage);
+        require(hidden.present() && painter.lines == 0U,
                 "hidden blink must remove the recorded caret line");
         const Rect visible_damage = blink_damage(fixture);
         require(visible_damage == hidden_damage,
                 "show and erase must damage the same retained caret pixels");
-        const std::optional<PaintReceipt> visible = fixture.window.paint(painter, visible_damage);
-        require(visible.has_value() && painter.lines == 1U,
+        const stxlib::Optional<PaintReceipt> visible = fixture.window.paint(painter, visible_damage);
+        require(visible.present() && painter.lines == 1U,
                 "visible blink must restore the recorded caret line");
         const MetricsSnapshot metrics = fixture.window.metrics_snapshot();
         require(metrics.display_chunks_rebuilt == 2U && metrics.measure_passes == 0U &&
@@ -705,14 +705,14 @@ void localized_caret_blinks() {
         // after the deadline runs no tick. Shown again, it blinks on, its
         // next tick no earlier than the transition.
         fixture.window.set_occluded(true, FrameClock::now());
-        require(!fixture.window.next_wake().has_value(), "an occluded caret holds no wake");
+        require(fixture.window.next_wake().absent(), "an occluded caret holds no wake");
         const FramePollResult hidden_poll =
             fixture.window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(5));
         require(hidden_poll.ui_timer_ticks == 0U, "an occluded caret does not tick");
         const FrameTime shown = FrameClock::now();
         fixture.window.set_occluded(false, shown);
-        const std::optional<FrameTime> resumed = fixture.window.next_wake();
-        require(resumed.has_value() && *resumed >= shown, "a shown caret blinks again");
+        const stxlib::Optional<FrameTime> resumed = fixture.window.next_wake();
+        require(resumed.present() && *resumed.value() >= shown, "a shown caret blinks again");
     }
 
     Fixture fixture{};
@@ -831,7 +831,7 @@ void caret_geometry_fallbacks() {
     paint_retained(fixture, painter);
     const bool blurred = fixture.window.request_focus({});
     require(blurred, "blur must succeed");
-    require(!fixture.window.next_wake().has_value(), "blur revokes caret scheduling");
+    require(fixture.window.next_wake().absent(), "blur revokes caret scheduling");
     const bool focused = fixture.window.request_focus(fixture.field);
     require(focused, "refocus must succeed");
     require_full_blink_fallback(fixture, "refocus cannot reuse previous caret geometry");
@@ -865,6 +865,59 @@ void selected_text_drawn_once() {
     test_support::ClipTrackingPainter unselected{};
     (*line).on_paint(unselected, {0, 0, 200, 28});
     require(unselected.count("hello world") == 1U, "without a selection the line is one draw");
+}
+
+// Counts text measurements; draws nothing.
+class MeasureCountingPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    Size measure_text_utf8(const std::string_view text, const FontSpec font) override {
+        ++measurements;
+        const Size measured = Painter::measure_text_utf8(text, font);
+        return measured;
+    }
+    std::size_t measurements{0};
+};
+
+// A-gf-controls-09-F4: a single-line box measures its grapheme prefixes
+// once per measuring source, text, font and scale; a repaint with the same
+// painter for a caret blink or a selection change reuses them, a text
+// change measures again, and another painter (whose metrics may differ)
+// measures again.
+void single_line_positions_survive_repaints() {
+    std::shared_ptr<TextBox> line = make_control<TextBox>(StableId("positions"));
+    (*line).set_requested_bounds({0, 0, 200, 28});
+    (*line).text = "hello world";
+    Window window(line, {200.0, 28.0});
+    window.perform_layout();
+    require(window.request_focus(line), "the single-line box takes focus");
+    MeasureCountingPainter painter{};
+    (*line).on_paint(painter, {0, 0, 200, 28});
+    require(painter.measurements >= 12U, "the first paint measures every grapheme prefix");
+    painter.measurements = 0U;
+    (*line).on_paint(painter, {0, 0, 200, 28});
+    require(painter.measurements < 12U, "a repaint of the same text reuses the prefix positions");
+    (*line).select(Utf8Offset(2U), Utf8Offset(7U));
+    painter.measurements = 0U;
+    (*line).on_paint(painter, {0, 0, 200, 28});
+    require(painter.measurements < 12U, "a selection change reuses the prefix positions");
+    MeasureCountingPainter other{};
+    (*line).on_paint(other, {0, 0, 200, 28});
+    require(other.measurements >= 12U && other.measurement_identity() != painter.measurement_identity(),
+            "another painter measures the prefixes again");
+    (*line).text = "hello there, world";
+    window.perform_layout();
+    other.measurements = 0U;
+    (*line).on_paint(other, {0, 0, 200, 28});
+    require(other.measurements >= 19U, "a text change measures the new prefixes");
 }
 
 // Types `text` as one text input event, as an input method or a key would.
@@ -978,6 +1031,7 @@ int main() {
         caret_geometry_fallbacks();
         paging_reveal_glides();
         selected_text_drawn_once();
+        single_line_positions_survive_repaints();
         bounded_workload();
         typing_undoes_a_word_at_a_time();
         deep_history_for_a_large_text();

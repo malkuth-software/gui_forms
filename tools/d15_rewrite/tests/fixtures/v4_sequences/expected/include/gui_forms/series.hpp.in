@@ -1,0 +1,16 @@
+#pragma once
+
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
+#include <span>
+#include <vector>
+
+namespace gui_forms {
+
+struct Series final {
+    stxlib::Vector<double> samples;
+};
+
+[[nodiscard]] double total(stxlib::View<double> values) noexcept;
+
+} // namespace gui_forms

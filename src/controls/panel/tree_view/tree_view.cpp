@@ -68,20 +68,20 @@ void TreeView::set_items(std::vector<TreeViewItem> items) {
     const std::string retained_selection = selected_id_;
     const std::string retained_active = active_id_;
     items_ = std::move(items);
-    selected_id_ = item_index(retained_selection) ? retained_selection : std::string{};
-    active_id_ = item_index(retained_active) ? retained_active : std::string{};
+    selected_id_ = item_index(retained_selection).present() ? retained_selection : std::string{};
+    active_id_ = item_index(retained_active).present() ? retained_active : std::string{};
     rebuild_visible();
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-std::optional<std::size_t> TreeView::item_index(std::string_view id) const noexcept {
+stxlib::Optional<std::size_t> TreeView::item_index(std::string_view id) const noexcept {
     std::vector<TreeViewItem>::const_iterator found = items_.begin();
     while (found != items_.end() && (*found).stable_id != id) {
         ++found;
     }
-    return found == items_.end() ? std::optional<std::size_t>{}
-                                : std::optional<std::size_t>{static_cast<std::size_t>(
-                                      std::distance(items_.begin(), found))};
+    if (found == items_.end()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(std::distance(items_.begin(), found)));
+    return result;
 }
 
 std::string TreeView::read_view(const decltype(selected_id)&) const {
@@ -90,7 +90,7 @@ std::string TreeView::read_view(const decltype(selected_id)&) const {
 
 void TreeView::write_view(const decltype(selected_id)&, std::string incoming) {
     require_mutable();
-    if (!incoming.empty() && !item_index(incoming)) {
+    if (!incoming.empty() && item_index(incoming).absent()) {
         throw std::out_of_range("TreeView selection ID is not in the model");
     }
     if (selected_id_ == incoming) return;
@@ -102,21 +102,22 @@ void TreeView::write_view(const decltype(selected_id)&, std::string incoming) {
 }
 
 bool TreeView::expanded(std::string_view id) const {
-    const std::optional<std::size_t> index = item_index(id);
-    if (!index) throw std::out_of_range("TreeView expansion ID is not in the model");
-    return items_[*index].expanded;
+    const stxlib::Optional<std::size_t> index = item_index(id);
+    if (index.absent()) throw std::out_of_range("TreeView expansion ID is not in the model");
+    return items_[*index.value()].expanded;
 }
 
 void TreeView::set_expanded(std::string_view id, bool value) {
     require_mutable();
-    const std::optional<std::size_t> index = item_index(id);
-    if (!index) throw std::out_of_range("TreeView expansion ID is not in the model");
-    TreeViewItem& item = items_[*index];
+    const stxlib::Optional<std::size_t> index = item_index(id);
+    if (index.absent()) throw std::out_of_range("TreeView expansion ID is not in the model");
+    TreeViewItem& item = items_[*index.value()];
     if (!item.expandable || item.expanded == value) return;
     bool selected_descendant{};
     if (!value) {
-        if (const std::optional<std::size_t> selected = item_index(selected_id_);
-            selected && *selected > *index && items_[*selected].depth > item.depth) {
+        const stxlib::Optional<std::size_t> selected = item_index(selected_id_);
+        if (selected.present() && *selected.value() > *index.value() &&
+            items_[*selected.value()].depth > item.depth) {
             selected_descendant = true;
         }
     }
@@ -128,7 +129,93 @@ void TreeView::set_expanded(std::string_view id, bool value) {
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     publish_change(expansion_changed_,
                    TreeExpansionChange{item_id, value});
-    if (selected_descendant && is_alive() && item_index(item_id)) selected_id = item_id;
+    if (selected_descendant && is_alive() && item_index(item_id).present()) selected_id = item_id;
+}
+
+void TreeView::expand_all() {
+    require_mutable();
+    std::vector<std::size_t> changed;
+    for (std::size_t index = 0U; index < items_.size(); ++index) {
+        const TreeViewItem& item = items_[index];
+        if (item.expandable && !item.expanded) changed.push_back(index);
+    }
+    apply_expansion(changed, true);
+}
+
+void TreeView::collapse_all() {
+    require_mutable();
+    std::vector<std::size_t> changed;
+    for (std::size_t index = 0U; index < items_.size(); ++index) {
+        const TreeViewItem& item = items_[index];
+        if (item.expandable && item.expanded) changed.push_back(index);
+    }
+    apply_expansion(changed, false);
+}
+
+void TreeView::expand_to(std::string_view id) {
+    require_mutable();
+    const stxlib::Optional<std::size_t> index = item_index(id);
+    if (index.absent()) throw std::out_of_range("TreeView expansion ID is not in the model");
+    // A copy: `id` may view an item's ID, which an expansion handler can end.
+    const std::string target(id);
+    // The ancestors are the nearest earlier items of each smaller depth,
+    // found walking back; they are collected nearest first.
+    std::vector<std::size_t> changed;
+    std::size_t depth = items_[*index.value()].depth;
+    for (std::size_t after = *index.value(); after > 0U && depth > 0U; --after) {
+        const TreeViewItem& candidate = items_[after - 1U];
+        if (candidate.depth >= depth) continue;
+        depth = candidate.depth;
+        if (candidate.expandable && !candidate.expanded) changed.push_back(after - 1U);
+    }
+    std::reverse(changed.begin(), changed.end());
+    apply_expansion(changed, true);
+    if (!is_alive()) return;
+    const stxlib::Optional<std::size_t> revealed = item_index(target);
+    if (revealed.absent()) return;
+    const std::size_t revealed_index = *revealed.value();
+    const std::vector<std::size_t>::const_iterator row =
+        std::lower_bound(visible_.cbegin(), visible_.cend(), revealed_index);
+    if (row == visible_.cend() || *row != revealed_index) return;
+    const std::size_t previous_top = top_row_;
+    ensure_visible(static_cast<std::size_t>(row - visible_.cbegin()));
+    if (top_row_ == previous_top) return;
+    conceal_cut_off_text();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TreeView::apply_expansion(std::span<const std::size_t> indices, bool value) {
+    if (indices.empty()) return;
+    // Copies: a handler may replace the items.
+    std::vector<std::string> changed_ids;
+    changed_ids.reserve(indices.size());
+    for (std::size_t position = 0U; position < indices.size(); ++position) {
+        TreeViewItem& item = items_[indices[position]];
+        item.expanded = value;
+        changed_ids.push_back(item.stable_id);
+    }
+    rebuild_visible();
+    // A selection the collapse hid moves to its nearest visible ancestor.
+    std::string reselect;
+    const stxlib::Optional<std::size_t> selected = item_index(selected_id_);
+    if (!value && selected.present() && !std::binary_search(visible_.cbegin(), visible_.cend(), *selected.value())) {
+        std::size_t depth = items_[*selected.value()].depth;
+        for (std::size_t after = *selected.value(); after > 0U && depth > 0U; --after) {
+            const TreeViewItem& candidate = items_[after - 1U];
+            if (candidate.depth >= depth) continue;
+            depth = candidate.depth;
+            if (std::binary_search(visible_.cbegin(), visible_.cend(), after - 1U)) {
+                reselect = candidate.stable_id;
+                break;
+            }
+        }
+    }
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    for (std::size_t position = 0U; position < changed_ids.size(); ++position) {
+        publish_change(expansion_changed_, TreeExpansionChange{changed_ids[position], value});
+        if (!is_alive()) return;
+    }
+    if (!reselect.empty() && item_index(reselect).present()) selected_id = reselect;
 }
 
 void TreeView::set_top_row(std::size_t row) {
@@ -179,13 +266,13 @@ void TreeView::on_attached_to_window() {
 
 void TreeView::rebuild_visible() {
     visible_.clear();
-    std::optional<std::size_t> collapsed_depth;
+    stxlib::Optional<std::size_t> collapsed_depth{};
     for (std::size_t index = 0; index < items_.size(); ++index) {
         const TreeViewItem& item = items_[index];
-        if (collapsed_depth && item.depth > *collapsed_depth) continue;
+        if (collapsed_depth.present() && item.depth > *collapsed_depth.value()) continue;
         collapsed_depth.reset();
         visible_.push_back(index);
-        if (item.expandable && !item.expanded) collapsed_depth = item.depth;
+        if (item.expandable && !item.expanded) collapsed_depth.set(item.depth);
     }
     top_row_ = visible_.empty() ? 0U : std::min(top_row_, visible_.size() - 1U);
     hovered_row_.reset();
@@ -258,14 +345,15 @@ std::size_t TreeView::visible_row_count() const noexcept {
         std::floor(std::max(0.0, height - 4.0) / row_height)));
 }
 
-std::optional<std::size_t> TreeView::visible_row_at(Point absolute) const noexcept {
+stxlib::Optional<std::size_t> TreeView::visible_row_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
-    if (!bounds.contains(absolute) || absolute.y < bounds.y + 2.0) return {};
+    if (!bounds.contains(absolute) || absolute.y < bounds.y + 2.0) return stxlib::Optional<std::size_t>::none();
     const double row_height = item_height.read() * effective_text_scale();
     const std::size_t row = top_row_ + static_cast<std::size_t>(
         std::floor((absolute.y - bounds.y - 2.0) / row_height));
-    return row < visible_.size() ? std::optional<std::size_t>{row}
-                                 : std::optional<std::size_t>{};
+    if (row >= visible_.size()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of(row);
+    return result;
 }
 
 void TreeView::ensure_visible(std::size_t row) {
@@ -291,9 +379,10 @@ void TreeView::select_visible_row(std::size_t row, bool activate) {
 
 void TreeView::arrange(Rect final_bounds) {
     Panel::arrange(final_bounds);
-    if (const std::optional<std::size_t> active = item_index(active_id_)) {
+    const stxlib::Optional<std::size_t> active = item_index(active_id_);
+    if (active.present()) {
         const std::vector<std::size_t>::iterator row =
-            std::find(visible_.begin(), visible_.end(), *active);
+            std::find(visible_.begin(), visible_.end(), *active.value());
         if (row != visible_.end()) ensure_visible(static_cast<std::size_t>(
             std::distance(visible_.begin(), row)));
     }
@@ -323,7 +412,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         const double y = 2.0 + static_cast<double>(row - top_row_) * row_height;
         const bool selected = item.stable_id == selected_id_;
         const bool active = focused_ && item.stable_id == active_id_;
-        const bool hovered = hovered_row_ == row;
+        const bool hovered = hovered_row_ == stxlib::Optional<std::size_t>::of(row);
         AnatomyStateSet row_states = states;
         if (hovered) row_states.insert(AnatomyState::hot);
         if (selected) row_states.insert(AnatomyState::selected);
@@ -337,7 +426,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             plate.states = row_states;
             if (overridden) {
                 const Color selected_fill = focused_ ? style().accent : style().accent_light;
-                plate.authored_background = selected ? selected_fill : style().face_light;
+                plate.authored_background.set(selected ? selected_fill : style().face_light);
             }
             paint_part(painter, *this, plate);
         }
@@ -359,7 +448,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             const ImageVisualState state = !item.enabled
                 ? ImageVisualState::disabled
                 : selected ? ImageVisualState::selected
-                : hovered_row_ == row ? ImageVisualState::hot
+                : hovered_row_ == stxlib::Optional<std::size_t>::of(row) ? ImageVisualState::hot
                                       : ImageVisualState::normal;
             const double scale = window() ? (*window()).scale() : 1.0;
             const ImageListResolution resolved =
@@ -393,7 +482,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         label.states = row_states;
         label.text = lend_paint_text(item.text);
         label.font = row_font;
-        if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
+        if (overridden) label.authored_foreground.set(selected && focused_ ? style().highlight : style().text);
         const double label_baseline = y + std::max(row_font.size, row_height * 0.5 + 4.0);
         const double label_room = std::max(0.0, plate_bounds.x + plate_bounds.width - content_x);
         if (mirrored) {
@@ -420,10 +509,10 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
 void TreeView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     if (event.action == PointerAction::move) {
-        const std::optional<std::size_t> row = visible_row_at(event.position);
+        const stxlib::Optional<std::size_t> row = visible_row_at(event.position);
         if (row != hovered_row_) { hovered_row_ = row; invalidate(Dirty::paint); }
-        if (row) {
-            reveal_cut_off_text(*row);
+        if (row.present()) {
+            reveal_cut_off_text(*row.value());
         } else {
             conceal_cut_off_text();
         }
@@ -449,12 +538,18 @@ void TreeView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
+        // The focus, expansion and selection handlers may drop the tree:
+        // `lifetime` keeps it alive through the press, and the row is hit
+        // after the focus handlers ran.
+        const Control::Ptr lifetime = shared_from_this();
+        if (window()) static_cast<void>((*window()).request_focus(lifetime));
+        if (!is_alive()) return;
         pressed_row_ = visible_row_at(event.position);
         pressed_click_count_ = event.click_count;
         pressed_expander_ = false;
-        if (!pressed_row_) return;
-        const TreeViewItem& item = items_[visible_[*pressed_row_]];
+        if (pressed_row_.absent()) return;
+        const std::size_t pressed = *pressed_row_.value();
+        const TreeViewItem& item = items_[visible_[pressed]];
         const Rect absolute = absolute_bounds();
         const double pointer_x = event.position.x - absolute.x;
         // Measured from the right edge in a right-to-left view.
@@ -467,24 +562,26 @@ void TreeView::handle_pointer(PointerEvent& event) {
             pressed_expander_ = true;
             set_expanded(item.stable_id, !item.expanded);
         } else {
-            select_visible_row(*pressed_row_, false);
+            select_visible_row(pressed, false);
         }
         event.handled = true;
     } else if (event.action == PointerAction::up &&
                event.button == PointerButton::primary) {
-        const std::optional<std::size_t> row = visible_row_at(event.position);
-        if (row && pressed_row_ == row && !pressed_expander_) {
-            select_visible_row(*row, pressed_click_count_ >= 2U);
+        const stxlib::Optional<std::size_t> row = visible_row_at(event.position);
+        if (row.present() && pressed_row_ == row && !pressed_expander_) {
+            select_visible_row(*row.value(), pressed_click_count_ >= 2U);
         }
         pressed_row_.reset();
         pressed_expander_ = false;
-        event.handled = row.has_value();
+        event.handled = row.present();
     }
 }
 
 // The mouse raisers hand the target phase to handle_pointer, whose
 // handling predates the raisers and reads the routed form.
 void TreeView::on_mouse_down(MouseEventArgs& arguments) {
+    // handle_pointer's handlers may drop the tree; is_alive() below reads it.
+    const Control::Ptr lifetime = shared_from_this();
     PointerEvent event = pointer_event_of(arguments);
     handle_pointer(event);
     arguments.handled = event.handled;
@@ -526,9 +623,9 @@ void TreeView::on_mouse_leave() {
 
 void TreeView::handle_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down || visible_.empty()) return;
-    std::optional<std::size_t> active_index_value = item_index(active_id_);
-    std::vector<std::size_t>::iterator active_row_iterator = active_index_value
-        ? std::find(visible_.begin(), visible_.end(), *active_index_value)
+    const stxlib::Optional<std::size_t> active_index_value = item_index(active_id_);
+    std::vector<std::size_t>::iterator active_row_iterator = active_index_value.present()
+        ? std::find(visible_.begin(), visible_.end(), *active_index_value.value())
         : visible_.end();
     std::size_t row = active_row_iterator == visible_.end() ? 0U
         : static_cast<std::size_t>(std::distance(visible_.begin(), active_row_iterator));
@@ -582,9 +679,10 @@ void TreeView::type_select(std::string_view text) {
     type_prefix_ += fold_ascii(text);
     if (visible_.empty()) return;
     std::size_t start{};
-    if (const std::optional<std::size_t> active = item_index(active_id_)) {
+    const stxlib::Optional<std::size_t> active = item_index(active_id_);
+    if (active.present()) {
         const std::vector<std::size_t>::iterator found =
-            std::find(visible_.begin(), visible_.end(), *active);
+            std::find(visible_.begin(), visible_.end(), *active.value());
         if (found != visible_.end()) start = (static_cast<std::size_t>(
             std::distance(visible_.begin(), found)) + 1U) % visible_.size();
     }
@@ -638,7 +736,7 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
         node.name = item.text;
         // The items are published flat, in display order; the level says
         // how deep each one is (counting from one at the top level).
-        node.level = item.depth + 1U;
+        node.level.set(item.depth + 1U);
         node.bounds = {tree_bounds.x + 2.0,
                        tree_bounds.y + 2.0 +
                            static_cast<double>(row - top_row_) * row_height,
@@ -659,10 +757,10 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
 bool TreeView::on_semantic_child_action(std::string_view id,
                                         SemanticAction action,
                                         std::string_view) {
-    const std::optional<std::size_t> index = item_index(id);
-    if (!index) return false;
+    const stxlib::Optional<std::size_t> index = item_index(id);
+    if (index.absent()) return false;
     const std::vector<std::size_t>::iterator row =
-        std::find(visible_.begin(), visible_.end(), *index);
+        std::find(visible_.begin(), visible_.end(), *index.value());
     if (row == visible_.end()) return false;
     if (action == SemanticAction::expand || action == SemanticAction::collapse) {
         set_expanded(id, action == SemanticAction::expand);
@@ -670,8 +768,21 @@ bool TreeView::on_semantic_child_action(std::string_view id,
     }
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
-    if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
-    select_visible_row(static_cast<std::size_t>(std::distance(visible_.begin(), row)),
+    // The focus moves first: the losing control's focus handlers run inside
+    // request_focus and may replace the items or collapse rows, so the tree
+    // is held, the identity is copied (id may view storage those handlers
+    // release) and its visible row is found again afterwards
+    // (A-gf-controls-10-F6).
+    const std::string identity(id);
+    const Control::Ptr retained = shared_from_this();
+    if (window()) static_cast<void>((*window()).request_focus(retained));
+    if (!is_alive()) return false;
+    const stxlib::Optional<std::size_t> current = item_index(identity);
+    if (current.absent()) return false;
+    const std::vector<std::size_t>::iterator current_row =
+        std::find(visible_.begin(), visible_.end(), *current.value());
+    if (current_row == visible_.end()) return false;
+    select_visible_row(static_cast<std::size_t>(std::distance(visible_.begin(), current_row)),
                        action == SemanticAction::press);
     return true;
 }
@@ -679,24 +790,24 @@ bool TreeView::on_semantic_child_action(std::string_view id,
 namespace {
 
 constexpr std::array<PartField<TreeView::Parts>, 3> tree_view_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeView::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &TreeView::Parts::edge},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &TreeView::Parts::content},
 }};
 
 constexpr std::array<PartField<TreeView::ItemParts>, 5> tree_view_item_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::row},
-    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::expander},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::label},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TreeView::ItemParts::row_focus},
 }};
 
@@ -767,12 +878,22 @@ std::size_t TreeView::realized_item_count() const {
     return end - top_row_;
 }
 
+// The realized-item accessors refuse an item past the realized rows before
+// it indexes the visible list (A-gf-controls-10-F11).
+void TreeView::require_realized_item(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("TreeView realized item is past the realized rows");
+    }
+}
+
 std::string TreeView::realized_item_stable_id(std::size_t item) const {
+    require_realized_item(item);
     return items_[visible_[top_row_ + item]].stable_id;
 }
 
 void TreeView::publish_realized_item_geometry(std::size_t item,
                                           std::span<PartGeometry> geometry) const {
+    require_realized_item(item);
     ItemParts record;
 
     const Rect bounds = local_bounds();
@@ -818,11 +939,12 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
 }
 
 AnatomyStateSet TreeView::realized_item_anatomy_states(std::size_t item) const {
+    require_realized_item(item);
     AnatomyStateSet states;
     const std::size_t row = top_row_ + item;
     const TreeViewItem& node = items_[visible_[row]];
     if (node.stable_id == selected_id_) states.insert(AnatomyState::selected);
-    if (hovered_row_ == row) states.insert(AnatomyState::hot);
+    if (hovered_row_ == stxlib::Optional<std::size_t>::of(row)) states.insert(AnatomyState::hot);
     if (node.stable_id == active_id_) states.insert(AnatomyState::current);
     if (node.expandable) {
         states.insert(node.expanded ? AnatomyState::open : AnatomyState::closed);

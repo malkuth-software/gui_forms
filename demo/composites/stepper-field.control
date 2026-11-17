@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- stepper-field.control: a field and two buttons (design note 6.1). The
+     field is a child control; the arrows are active parts, so the stepper
+     is one Tab stop and one accessible numeric field. -->
+<control xmlns="urn:gui-forms:control:1" name="stepper-field" version="1.0"
+         base="user-control" family="editor">
+
+  <property name="value" kind="number" default="0" range="minimum maximum" bindable="two-way"
+            category="Behavior" changed="value-changed" affects="paint semantics">
+    <description>The current value, between minimum and maximum.</description>
+  </property>
+  <property name="minimum" kind="number" default="0" category="Behavior"/>
+  <property name="maximum" kind="number" default="100" category="Behavior"/>
+  <property name="step" kind="number" default="1" category="Behavior"/>
+  <property name="read-only" kind="boolean" default="false" category="Behavior" affects="paint semantics"/>
+
+  <event name="value-changed" payload="number"/>
+
+  <command name="step-up" enabled="less(value, maximum) and not(read-only)"
+           run="step(value, step)" semantic-action="increment"/>
+  <command name="step-down" enabled="greater(value, minimum) and not(read-only)"
+           run="step(value, calc(0 - step))" semantic-action="decrement"/>
+
+  <publish state="read-only" when="property(read-only)"/>
+  <publish state="invalid" when="state-of(@field, invalid)"/>
+
+  <part name="face" role="face" shape="rounded-rectangle" corner-radius="3" box="inset(region, 0)"/>
+  <part name="edge" role="edge" shape="rounded-rectangle" corner-radius="3" box="inset(region, 0)"/>
+  <part name="buttons" role="region" box="inset(region, 1) width(18) align-inline(end)"/>
+  <part name="increment-arrow" role="actuator" composed-from="button" states="hot pressed" shape="cap-end"
+        box="split(buttons, block, 0.5) first"
+        hit="shape" press="repeat" activates="step-up" disabled-when="not(command-enabled(step-up))"/>
+  <part name="decrement-arrow" role="actuator" composed-from="button" states="hot pressed" shape="cap-end"
+        box="split(buttons, block, 0.5) second"
+        hit="shape" press="repeat" activates="step-down" disabled-when="not(command-enabled(step-down))"/>
+  <part name="increment-glyph" role="glyph" mark="arrow-up" states="hot pressed" box="inset(increment-arrow, 4)"/>
+  <part name="decrement-glyph" role="glyph" mark="arrow-down" states="hot pressed" box="inset(decrement-arrow, 4)"/>
+
+  <children>
+    <!-- DEPENDS: converters (convert is E999 today), and a logical
+         inline-end margin (margin is physical: top right bottom left). -->
+    <text-box id="@field" dock="fill" margin="0 19 0 0"
+              read-only="bind(self.read-only, one_way)" text="bind(self.value, convert number)"/>
+  </children>
+
+  <focus target="child(@field)" visible-cue="part(focus)"/>
+  <key gesture="arrow-up"><run command="step-up"/></key>
+  <key gesture="arrow-down"><run command="step-down"/></key>
+  <key gesture="page-up"><step property="value" by="calc(step * 10)"/></key>
+  <key gesture="page-down"><step property="value" by="calc(0 - step * 10)"/></key>
+  <on trigger="mouse-wheel(self)" when="focus-within(self)">
+    <step property="value" by="calc(step * wheel-notches)"/>
+  </on>
+
+  <semantics role="numeric-field" name="property(accessible-name)" value="property(value)"
+             range="minimum maximum step"
+             states="read-only(property(read-only)) invalid(state(invalid))"
+             actions="increment(step-up) decrement(step-down) set-value(value)" children="hidden"/>
+
+  <look>
+    stepper-field::part(increment-arrow):hover,
+    stepper-field::part(decrement-arrow):hover { transition: face 90ms ease; }
+    stepper-field::part(increment-arrow):active,
+    stepper-field::part(decrement-arrow):active { translate: 0 1px; }
+  </look>
+</control>

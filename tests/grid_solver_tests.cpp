@@ -329,6 +329,26 @@ void test_auto_repeat() {
             "collapsed tracks and their gaps take no space");
 }
 
+// A-gf-core-08-F1: an automatic repeat of 200 tiny tracks counts 10,000
+// repetitions, 2,000,000 columns, past the cell limit: the solve is refused
+// before the expansion is made, as the cell check after placement refused
+// it.
+void test_auto_repeat_past_the_cell_limit() {
+    Grid grid{};
+    grid.container = definite(400.0, 100.0);
+    grid.style.template_columns.auto_repeat = AutoRepeatKind::auto_fill;
+    grid.style.template_columns.auto_repeat_tracks.assign(200U, px(1.0e-9));
+    grid.style.template_rows.tracks = {px(40.0)};
+    grid.add(placed({}, {}, {}, {}), {1.0, 1.0});
+    require(grid.solve() == GridSolveOutcome::refused_too_many_cells,
+            "an automatic repeat past the cell limit is refused");
+    require(grid.workspace.items().empty() && grid.workspace.columns().empty(),
+            "the refused solve lays nothing out");
+    grid.style.template_columns.auto_repeat_tracks.assign(2U, px(100.0));
+    require(grid.solve() == GridSolveOutcome::solved && grid.workspace.columns().size() == 4U,
+            "the next solve within the limit lays out again");
+}
+
 void test_alignment_and_margins() {
     Grid grid{};
     grid.container = definite(200.0, 100.0);
@@ -428,6 +448,7 @@ int main() {
         test_placement_lines_and_auto_flow();
         test_template_areas();
         test_auto_repeat();
+        test_auto_repeat_past_the_cell_limit();
         test_alignment_and_margins();
         test_right_to_left();
         test_refusals();

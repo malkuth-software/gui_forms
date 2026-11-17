@@ -635,11 +635,13 @@ public:
 };
 
 void slide_frames() {
+    // The time source outlives the window that borrows it
+    // (B-gf-tests-03-F1): the clock reads it until the window is gone.
+    ManualTime time{};
     std::unique_ptr<Fixture> fixture = make_fixture();
     DockWorkspace& workspace = *(*fixture).workspace;
     DockSite& site = *(*fixture).site;
     Window& window = *(*fixture).window;
-    ManualTime time{};
     window.motion_clock().set_time_source(&time);
     apply(workspace, DockEdit::auto_hide(DockSubject::of_stack(stack_of(workspace, "output")), DockSide::bottom, 150.0));
     window.perform_layout();
@@ -700,14 +702,14 @@ void semantics() {
     SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* strip = find_node(snapshot.roots, "site.side.right");
     require(strip != nullptr && (*strip).role == SemanticRole::tab_group && (*strip).name == "Auto-hidden panels" &&
-                (*strip).orientation == SemanticOrientation::vertical,
+                (*strip).orientation == stxlib::Optional<SemanticOrientation>::of(SemanticOrientation::vertical),
             "a right side strip is a vertical tab list");
     const SemanticNode* tab = find_node(snapshot.roots, (*site.side_strip(DockSide::right)).tab_identity(PageId{"properties"}));
     require(tab != nullptr && (*tab).role == SemanticRole::tab && (*tab).name == "Properties", "with one tab per panel");
 
     require(window.perform_semantic_action((*site.side_strip(DockSide::right)).tab_identity(PageId{"properties"}),
-                                           SemanticAction::press) || site.flyout_open(),
-            "the tab's press opens the flyout");
+                                           SemanticAction::press),
+            "the tab's press is handled");
     require(site.flyout_open(), "the flyout is open");
     window.perform_layout();
     snapshot = window.semantic_snapshot();

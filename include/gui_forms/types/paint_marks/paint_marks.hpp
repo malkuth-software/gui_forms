@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
@@ -32,7 +33,13 @@ inline constexpr std::size_t maximum_dash_intervals = 8U;
 // coordinates. `dash_count` of the `dashes` are live, alternately on and off
 // lengths; 0 (or an odd count, which is refused as solid) draws solid.
 // `dash_phase` shifts the pattern's start along the stroke (an effect moving
-// it on the motion clock animates the dashes, piece C13).
+// it on the motion clock animates the dashes, piece C13). `trim` keeps part
+// of a stroked path (paint_path.hpp, StrokeTrim; the default keeps it
+// whole): Painter::stroke_path cuts the path in the core with
+// trim_paint_path at stroke_trim_tolerance, so every painter strokes the
+// same sub-path, and the dashes then run along the kept part from its
+// start. The other stroke calls (stroke_polyline, stroke_segments) draw
+// their whole geometry whatever the trim.
 struct GUI_FORMS_API StrokeStyle final {
     Color color{};
     double width{1.0};
@@ -42,11 +49,13 @@ struct GUI_FORMS_API StrokeStyle final {
     std::array<double, maximum_dash_intervals> dashes{};
     std::size_t dash_count{};
     double dash_phase{};
+    StrokeTrim trim{};
 
     friend bool operator==(const StrokeStyle& left, const StrokeStyle& right) noexcept {
         if (!(left.color == right.color) || left.width != right.width || left.join != right.join ||
             left.miter_limit != right.miter_limit || left.cap != right.cap ||
-            left.dash_count != right.dash_count || left.dash_phase != right.dash_phase) {
+            left.dash_count != right.dash_count || left.dash_phase != right.dash_phase ||
+            !(left.trim == right.trim)) {
             return false;
         }
         for (std::size_t index = 0U; index < maximum_dash_intervals; ++index) {
@@ -58,8 +67,8 @@ struct GUI_FORMS_API StrokeStyle final {
 
 // Whether `style` can be drawn: a finite positive width, a finite miter
 // limit of at least 1, at most maximum_dash_intervals dashes, an even dash
-// count whose entries are finite, non-negative and not all zero, and a
-// finite phase.
+// count whose entries are finite, non-negative and not all zero, a finite
+// phase, and a valid trim (valid_stroke_trim).
 [[nodiscard]] GUI_FORMS_API bool valid_stroke_style(const StrokeStyle& style) noexcept;
 
 // One independent segment of stroke_segments (no joins between segments).
@@ -143,6 +152,52 @@ struct GUI_FORMS_API CheckerPattern final {
                left.anchor == right.anchor;
     }
 };
+
+// The line patterns of a hatch (Painter::fill_hatch), in the compatibility
+// order GUI.Drawing's HatchBrush uses.
+enum class HatchStyle : std::uint8_t {
+    horizontal,
+    vertical,
+    forward_diagonal,
+    backward_diagonal,
+    cross,
+    diagonal_cross,
+};
+
+// The squares across and down one hatch cell.
+inline constexpr std::uint32_t hatch_cell_squares = 8U;
+
+// A hatch: square cells `cell` units wide, each divided into
+// hatch_cell_squares by hatch_cell_squares squares, with the corner of a
+// cell at `anchor` (so the pattern stays put while the filled rectangle
+// moves). The squares hatch_square_marked names are `fore`, the others
+// `back`. A cell of 8 units at scale 1 is GUI.Drawing's HatchBrush, square
+// for square: lines one unit wide.
+struct GUI_FORMS_API HatchPattern final {
+    HatchStyle style{HatchStyle::horizontal};
+    double cell{8.0};
+    Color fore{};
+    Color back{};
+    Point anchor{};
+
+    friend constexpr bool operator==(const HatchPattern& left, const HatchPattern& right) noexcept {
+        return left.style == right.style && left.cell == right.cell && left.fore == right.fore &&
+               left.back == right.back && left.anchor == right.anchor;
+    }
+};
+
+// Whether the square `column` across and `row` down (each below
+// hatch_cell_squares) of a cell is `fore` in `style`: horizontal marks row
+// 3, vertical column 3, forward_diagonal the squares where column + row is
+// 7 (a line rising to the right, y down), backward_diagonal those where
+// column equals row, cross and diagonal_cross the two lines of each pair.
+// False for a square outside the cell or a style outside the enumeration.
+[[nodiscard]] GUI_FORMS_API bool hatch_square_marked(HatchStyle style, std::uint32_t column,
+                                                     std::uint32_t row) noexcept;
+
+// Whether `pattern` can be drawn: a known style, a finite cell of at least
+// one unit, and a finite anchor.
+[[nodiscard]] GUI_FORMS_API bool valid_hatch_pattern(const HatchPattern& pattern) noexcept;
 
 // A world-aligned grid (piece C17; the node canvas's blueprint background):
 // lines `spacing` units apart through `origin`, the point where world

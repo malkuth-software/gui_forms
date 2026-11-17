@@ -1,9 +1,11 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string_view>
 
@@ -112,11 +114,11 @@ enum class RasterViewDefect : std::uint8_t {
 struct GUI_FORMS_API PartKey final {
     std::string_view part{};
     std::string_view item{};
-    std::optional<std::size_t> item_index{};
+    stxlib::Optional<std::size_t> item_index{};
 
     // Whether the key falls back to an item index.
     [[nodiscard]] constexpr bool index_fallback() const noexcept {
-        const bool fallback = item.empty() && item_index.has_value();
+        const bool fallback = item.empty() && item_index.present();
         return fallback;
     }
 };

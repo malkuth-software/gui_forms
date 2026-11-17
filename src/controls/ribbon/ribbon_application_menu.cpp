@@ -230,7 +230,7 @@ void RibbonApplicationMenu::on_paint(Painter& painter, Rect) {
         const std::string_view row_id = entry.recent ? std::string_view((*ribbon_).recent_items_[entry.index].stable_id)
                                                      : std::string_view((*ribbon_).application_menu_[entry.index].stable_id);
         part.control_type = "menu_strip";
-        part.key = PartKey{"menu_item", row_id, {}};
+        part.key.set(PartKey{"menu_item", row_id, {}});
         paint_part(painter, *this, part);
         part.control_type = {};
         part.key.reset();
@@ -275,16 +275,25 @@ void RibbonApplicationMenu::activate(const Row& row) {
     }
     const Control::Ptr lifetime = shared_from_this();
     const Control::Ptr owner = ribbon.shared_from_this();
+    // Copies taken before closing: the control that gets focus back may
+    // replace either list, and running the command may replace the
+    // application menu (A-gf-controls-11-F7).
+    std::string recent_id;
+    MenuItemSpec item;
+    if (row.recent) {
+        recent_id = ribbon.recent_items_[row.index].stable_id;
+    } else {
+        item = ribbon.application_menu_[row.index];
+    }
     // Closes a submenu of this menu too.
     ribbon.close_menus();
+    if (!ribbon.is_alive()) return;
     const std::string ribbon_id(ribbon.stable_id().value());
     if (row.recent) {
-        const RibbonRecentItemInvocation invoked{ribbon_id, ribbon.recent_items_[row.index].stable_id};
+        const RibbonRecentItemInvocation invoked{ribbon_id, recent_id};
         ribbon.recent_item_invoked_.emit(invoked);
         return;
     }
-    // A copy: running the command may replace the application menu.
-    const MenuItemSpec item = ribbon.application_menu_[row.index];
     std::string command_id;
     if (item.command) {
         command_id = (*item.command).stable_id();
@@ -482,12 +491,12 @@ std::vector<SemanticNode> RibbonApplicationMenu::semantic_virtual_children() con
             const RibbonRecentItem& item = ribbon.recent_items_[row.index];
             node.stable_id = menu_id + ".recent." + item.stable_id;
             node.description = item.description.empty() ? ribbon.recent_caption.read() : item.description;
-            node.position_in_set = ++recent_position;
-            node.set_size = recent;
+            node.position_in_set.set(++recent_position);
+            node.set_size.set(recent);
         } else {
             node.stable_id = menu_id + ".item." + ribbon.application_menu_[row.index].stable_id;
-            node.position_in_set = ++command_position;
-            node.set_size = commands;
+            node.position_in_set.set(++command_position);
+            node.set_size.set(commands);
         }
         node.bounds = row.bounds;
         node.states = SemanticState::visible | SemanticState::focusable;

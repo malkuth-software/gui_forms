@@ -53,7 +53,7 @@ KeyEvent key(std::uint32_t physical, Modifier modifiers = Modifier::none) {
     return event;
 }
 
-// The host map a macOS host reports (src/host/macos keeps the real one; the
+// The host map a macOS host reports (src/surface/macos keeps the real one; the
 // macOS build is CI's): Cmd+W closes a document, every other command keeps
 // the PC keys.
 KeyMap macos_style_key_map() {

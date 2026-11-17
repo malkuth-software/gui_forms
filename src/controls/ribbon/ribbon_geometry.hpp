@@ -11,7 +11,7 @@
 namespace gui_forms::ribbon_detail {
 
 // Ribbon geometry in logical units at text scale 1. The command plane holds
-// three 22-unit rows of small commands (or one 66-unit large command) over
+// three 22-unit rows of compact commands (or one 66-unit large command) over
 // a 17-unit caption row.
 inline constexpr double tab_row_extent = 24.0;
 inline constexpr double tab_padding = 12.0;

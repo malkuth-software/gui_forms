@@ -4,9 +4,10 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -44,7 +45,7 @@ enum class SemanticRole : std::uint8_t {
     separator, toolbar, radio_group, split_button, menu_button, pane,
     tab_panel, tree, tree_item, table, row, cell, column_header, row_header,
     tree_grid, dialog, status_bar, live_region, meter, toggle_switch, search_box,
-    figure, count,
+    figure, document, heading, count,
 };
 
 inline constexpr std::size_t semantic_role_count = static_cast<std::size_t>(SemanticRole::count);
@@ -52,11 +53,16 @@ inline constexpr std::size_t semantic_role_count = static_cast<std::size_t>(Sema
 // The role `role` specialises, which a host without a mapping for `role`
 // publishes, and whose behaviour (patterns, interfaces, checked value and
 // text) `role` shares: check_box for toggle_switch, text_box for
-// search_box, image for figure. Every other role is its own fallback.
+// search_box, image for figure, pane for document (a read-only page of
+// text, such as a help page) and static_text for heading (a heading in a
+// document, with its level in SemanticNode::level). Every other role is its
+// own fallback.
 [[nodiscard]] constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept {
     if (role == SemanticRole::toggle_switch) return SemanticRole::check_box;
     if (role == SemanticRole::search_box) return SemanticRole::text_box;
     if (role == SemanticRole::figure) return SemanticRole::image;
+    if (role == SemanticRole::document) return SemanticRole::pane;
+    if (role == SemanticRole::heading) return SemanticRole::static_text;
     // Every other role is its own fallback.
     return role;
 }
@@ -245,24 +251,24 @@ struct GUI_FORMS_API SemanticDescriptor final {
     std::string name;
     std::string value;
     std::string description;
-    std::optional<double> numeric_value;
-    std::optional<double> minimum_value;
-    std::optional<double> maximum_value;
-    std::optional<std::size_t> position_in_set;
-    std::optional<std::size_t> set_size;
+    stxlib::Optional<double> numeric_value;
+    stxlib::Optional<double> minimum_value;
+    stxlib::Optional<double> maximum_value;
+    stxlib::Optional<std::size_t> position_in_set;
+    stxlib::Optional<std::size_t> set_size;
     bool has_popup{};
     std::string controlled_panel;
-    std::optional<SemanticOrientation> orientation;
-    std::optional<std::size_t> level;
+    stxlib::Optional<SemanticOrientation> orientation;
+    stxlib::Optional<std::size_t> level;
     bool modal{};
-    std::optional<std::size_t> row_index;
-    std::optional<std::size_t> column_index;
-    std::optional<std::size_t> row_count;
-    std::optional<std::size_t> column_count;
+    stxlib::Optional<std::size_t> row_index;
+    stxlib::Optional<std::size_t> column_index;
+    stxlib::Optional<std::size_t> row_count;
+    stxlib::Optional<std::size_t> column_count;
     std::string access_key;
-    std::optional<double> small_step;
-    std::optional<double> large_step;
-    std::optional<SemanticTextSelection> text_selection;
+    stxlib::Optional<double> small_step;
+    stxlib::Optional<double> large_step;
+    stxlib::Optional<SemanticTextSelection> text_selection;
     bool multiline{};
     bool announces_on_appearance{};
     SemanticState states{SemanticState::none};
@@ -293,24 +299,24 @@ struct GUI_FORMS_API SemanticNode final {
     std::string name;
     std::string value;
     std::string description;
-    std::optional<double> numeric_value;
-    std::optional<double> minimum_value;
-    std::optional<double> maximum_value;
-    std::optional<std::size_t> position_in_set;
-    std::optional<std::size_t> set_size;
+    stxlib::Optional<double> numeric_value;
+    stxlib::Optional<double> minimum_value;
+    stxlib::Optional<double> maximum_value;
+    stxlib::Optional<std::size_t> position_in_set;
+    stxlib::Optional<std::size_t> set_size;
     bool has_popup{};
     std::string controlled_panel;
-    std::optional<SemanticOrientation> orientation;
-    std::optional<std::size_t> level;
+    stxlib::Optional<SemanticOrientation> orientation;
+    stxlib::Optional<std::size_t> level;
     bool modal{};
-    std::optional<std::size_t> row_index;
-    std::optional<std::size_t> column_index;
-    std::optional<std::size_t> row_count;
-    std::optional<std::size_t> column_count;
+    stxlib::Optional<std::size_t> row_index;
+    stxlib::Optional<std::size_t> column_index;
+    stxlib::Optional<std::size_t> row_count;
+    stxlib::Optional<std::size_t> column_count;
     std::string access_key;
-    std::optional<double> small_step;
-    std::optional<double> large_step;
-    std::optional<SemanticTextSelection> text_selection;
+    stxlib::Optional<double> small_step;
+    stxlib::Optional<double> large_step;
+    stxlib::Optional<SemanticTextSelection> text_selection;
     bool multiline{};
     bool announces_on_appearance{};
     // The thing's plain tooltip text (owner, 2026-10-28): a control's

@@ -18,6 +18,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <unordered_map>
 #include <vector>
 
@@ -123,8 +124,8 @@ std::shared_ptr<Label> label(std::string id, std::string text, Rect bounds,
                              FontSpec font = {FontRole::content, 11.0, 400, false}) {
     std::shared_ptr<gui_forms::Label> result = std::make_shared<Label>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
-    (*result).font = font;
-    (*result).fore_color = ink;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
+    (*result).fore_color = stxlib::Optional<Color>::of(ink);
     return result;
 }
 
@@ -133,7 +134,7 @@ std::shared_ptr<Button> button(std::string id, std::string text, Rect bounds,
     std::shared_ptr<gui_forms::Button> result = std::make_shared<Button>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
     (*result).set_style(house_style());
-    (*result).font = FontSpec{FontRole::control, 10.0, 600, false, 0.18};
+    (*result).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 10.0, 600, false, 0.18});
     (*result).visual_style = visual;
     return result;
 }
@@ -239,13 +240,13 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
     (*panel).add_at(mark, {7.0, 5.0, 30.0, 30.0});
     std::shared_ptr<Label> title = label("fm.title.text", "File Manager  ·  Projects", {45.0, 4.0, 900.0, 32.0},
                        {FontRole::control, 16.0, 700, false, 0.32});
-    (*title).fore_color = Color::rgba(255, 255, 255);
+    (*title).fore_color = stxlib::Optional<Color>::of(Color::rgba(255, 255, 255));
     refs.title = title;
     (*panel).add_at(title, (*title).requested_bounds());
     std::shared_ptr<Label> state = label("fm.title.state", "LOCAL · GENERATION 86", {1160.0, 5.0, 274.0, 30.0},
                        {FontRole::control, 9.0, 600, false, 0.42});
-    (*state).alignment = HorizontalAlignment::far;
-    (*state).fore_color = Color::rgba(245, 249, 255);
+    (*state).alignment = HorizontalAlignment::end;
+    (*state).fore_color = stxlib::Optional<Color>::of(Color::rgba(245, 249, 255));
     (*panel).add_at(state, (*state).requested_bounds());
     return panel;
 }
@@ -329,7 +330,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*refs.path_terminal).accessible_name = "Open complete path matrix";
     (*refs.path_terminal).accessible_description =
         "Browse full fixture paths or edit a path directly";
-    (*refs.path_terminal).expanded_state = false;
+    (*refs.path_terminal).expanded_state = stxlib::Optional<bool>::of(false);
     (*panel).add_at(refs.path_terminal, {936, 7, 35, 26});
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
     (*search).set_requested_bounds({980, 6, 463, 28});
@@ -698,13 +699,13 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
                 {{0.0, Color::rgba(255, 255, 255, 115)},
                  {1.0, Color::rgba(255, 255, 255, 0)}})};
         material_recipe.corner_radius = 4.0;
-        material_recipe.border = MaterialBorder{Color::rgba(56, 72, 92), 1.0};
+        material_recipe.border.set(MaterialBorder{Color::rgba(56, 72, 92), 1.0});
         (*swatch).material = std::move(material_recipe);
         static_cast<void>((*card).set_body(swatch));
         std::shared_ptr<Label> footer = label(std::string("fm.palette.") + spec.id + ".state",
                             index == 8U ? "CURRENT · HOUSE" : "AVAILABLE",
                             {}, {FontRole::content, 8.5, 600, false, 0.28});
-        (*footer).fore_color = muted;
+        (*footer).fore_color = stxlib::Optional<Color>::of(muted);
         static_cast<void>((*card).set_footer(footer));
         (*surface).add_child(card);
         refs.palette_cards.push_back(card);
@@ -953,7 +954,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     (*outer).automatic_collapse_threshold = 700;
     (*outer).first_minimum = 120;
     (*outer).second_minimum = 320;
-    (*outer).first_maximum = 360;
+    (*outer).first_maximum = stxlib::Optional<double>::of(360.0);
     (*(*outer).first_panel()).background = Color::rgba(235,240,246);
     (*(*outer).first_panel()).add_child(make_tree_pane(refs));
     (*(*(*outer).first_panel()).children().back()).dock = DockStyle::fill;
@@ -969,7 +970,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     (*inner).automatic_collapse_threshold = 900;
     (*inner).first_minimum = 260;
     (*inner).second_minimum = 288;
-    (*inner).second_maximum = 420;
+    (*inner).second_maximum = stxlib::Optional<double>::of(420.0);
     (*(*inner).first_panel()).background = paper;
     std::shared_ptr<gui_forms::Panel> daily_content = std::make_shared<Panel>(
         StableId("fm.content.host"));
@@ -1012,7 +1013,7 @@ std::shared_ptr<ScaledPanel> make_status(ProductRefs& refs) {
     refs.status_summary = label("fm.status.summary", "1 selected · 2.8 MB · 14 objects", {8,1,590,22}, {FontRole::content,9.5,400,false});
     (*panel).add_at(refs.status_summary, {8,1,590,22});
     refs.status_authority = label("fm.status.authority", "Local navigation ready · index 86 current", {660,1,520,22}, {FontRole::content,9.5,600,false});
-    (*refs.status_authority).alignment = HorizontalAlignment::far;
+    (*refs.status_authority).alignment = HorizontalAlignment::end;
     (*panel).add_at(refs.status_authority,(*refs.status_authority).requested_bounds());
     refs.status_view = button("fm.status.view", "Icons ▼", {1235,2,205,20}, ButtonVisualStyle::flat);
     (*panel).add_at(refs.status_view, {1235,2,205,20});
@@ -1376,7 +1377,7 @@ private:
         build_overlay();
         AnchoredOverlayPlacement placement;
         placement.preferred_size = {860.0, 424.0};
-        placement.horizontal_alignment = OverlayHorizontalAlignment::far;
+        placement.horizontal_alignment = OverlayHorizontalAlignment::end;
         placement.vertical_preference = OverlayVerticalPreference::below;
         placement.gap = 7.0;
         placement.viewport_margin = 4.0;
@@ -1399,7 +1400,7 @@ private:
                     *this, &PathMatrixController::on_overlay_revoked));
         }
         focus_scope_ = (*window).begin_focus_scope(layer_, current_tail_);
-        (*refs_.path_terminal).expanded_state = true;
+        (*refs_.path_terminal).expanded_state = stxlib::Optional<bool>::of(true);
         (*refs_.path_terminal).accessible_description =
             "Complete path matrix open · activate to close";
         status_("Path matrix open · full current stack · five recent locations");
@@ -1417,7 +1418,7 @@ private:
         std::shared_ptr<Label> heading = label("fm.path.matrix.heading", "COMPLETE PATH MATRIX",
                              {10.0, 5.0, 840.0, 34.0},
                              {FontRole::control, 12.0, 700, false, .45});
-        (*heading).fore_color = Color::rgba(247, 250, 251);
+        (*heading).fore_color = stxlib::Optional<Color>::of(Color::rgba(247, 250, 251));
         (*heading).accessible_description =
             "Browse a full drive-rooted stack or edit the current fixture path";
         std::shared_ptr<DrawingSurface> heading_back = material(
@@ -1654,9 +1655,8 @@ private:
             return;
         }
         if (event.physical_key == PhysicalKey::tab) {
-            if (const std::optional<std::size_t> selected = (*completions_).selected_index()) {
-                accept_completion(*selected);
-            }
+            const stxlib::Optional<std::size_t> selected = (*completions_).selected_index();
+            if (selected.present()) accept_completion(*selected.value());
             event.handled = true;
             return;
         }
@@ -1668,7 +1668,7 @@ private:
                 navigate_and_close(result.destination_id);
             } else {
                 (*resolution_).text = "Path not resolved · " + result.explanation;
-                (*resolution_).fore_color = Color::rgba(139, 43, 47);
+                (*resolution_).fore_color = stxlib::Optional<Color>::of(Color::rgba(139, 43, 47));
                 (*resolution_).accessible_description =
                     "Error: " + result.explanation;
                 status_("Path rejected · " + result.explanation);
@@ -1702,7 +1702,7 @@ private:
         overlay_token_.disconnect();
         overlay_revocation_.disconnect();
         reset_overlay();
-        (*refs_.path_terminal).expanded_state = false;
+        (*refs_.path_terminal).expanded_state = stxlib::Optional<bool>::of(false);
         (*refs_.path_terminal).accessible_description =
             "Browse full fixture paths or edit a path directly";
         closing_ = false;
@@ -1720,7 +1720,7 @@ private:
         overlay_dismissal_.disconnect();
         overlay_revocation_.disconnect();
         reset_overlay();
-        (*refs_.path_terminal).expanded_state = false;
+        (*refs_.path_terminal).expanded_state = stxlib::Optional<bool>::of(false);
         closing_ = false;
     }
 

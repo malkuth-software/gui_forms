@@ -38,6 +38,12 @@ const std::shared_ptr<ApplicationResources>& EngineState::shared_resources() {
 }
 
 void EngineState::hold_theme_request(ApplicationResources& resources, ThemeBase base) {
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build (cmake/HighIntegrity.cmake) reads no theme
+    // from its arguments or environment.
+    static_cast<void>(resources);
+    static_cast<void>(base);
+#else
     // Read first, so a process started without one copies nothing.
     ThemeRequest request = process_theme_request();
     const bool asked = request.kind != ThemeRequestKind::none || !request.error.empty();
@@ -51,6 +57,7 @@ void EngineState::hold_theme_request(ApplicationResources& resources, ThemeBase 
     (*held).context.controls.assign(types.begin(), types.end());
     (*held).context.published_values.assign(published_names_.begin(), published_names_.end());
     resources.hold_theme_request(std::move(held));
+#endif
 }
 
 void EngineState::adopt_application(std::unique_ptr<Application> made) {

@@ -82,9 +82,11 @@ enum class HostCapability : std::uint64_t {
     // The window's corner shape requested and reported
     // (HostServices::apply_window_corners; owner, 2026-11-08: the window
     // outer band follows the host's corners only where the host reports
-    // them). Windows 11 DWM corner preference today; macOS and X11 report
-    // nothing and the band draws square. Additive flag; no protocol version
-    // change.
+    // them). Windows 11 shapes them (DWM corner preference); macOS only
+    // reports them (square in full screen and borderless, unknown in a
+    // titled window); X11 reports nothing and the band draws square. The
+    // shapes a host may report are HostCapabilities::window_corner_shapes.
+    // Additive flag; no protocol version change.
     window_corners = 1ULL << 34U,
     // The host reports the native window's state (HostWindowStateEvent:
     // full screen, and the changes that can reshape its corners, such as
@@ -92,6 +94,61 @@ enum class HostCapability : std::uint64_t {
     // (owner, 2026-11-08: the window outer band hides in full screen when
     // declared so). Windows, macOS and X11. Host protocol version 12.
     window_state_reports = 1ULL << 35U,
+    // The host read the platform's locale into HostCapabilities::locale
+    // (HostLocale: the date and time patterns, names, number separators
+    // and first day of the week; exhibit gap E11). Without it the record
+    // holds the portable default. macOS, Linux and Windows (the user's
+    // locale through GetLocaleInfoEx). Host protocol version 14.
+    locale = 1ULL << 36U,
+    // Hosted content runs here (content/hosted/hosted_content.hpp): a
+    // sub-surface program in its own process, frames through shared memory
+    // and input through a channel; its crash leaves the application running
+    // (owner decisions 2026-11-13, "The two topologies"). macOS, Linux and
+    // Windows.
+    // In the C ABI as GF_HOST_CAPABILITY_HOSTED_CONTENT (since 1.4).
+    // Additive flag; no protocol version change.
+    hosted_content = 1ULL << 37U,
+    // Relative pointer mode (cp34; host protocol version 15;
+    // events/relative_pointer). relative_pointer: the host sends motion
+    // deltas (HostRelativeMotionEvent) and hides and locks the pointer;
+    // raw_pointer_motion: unaccelerated deltas where asked;
+    // pointer_confinement: the pointer kept inside a rectangle;
+    // pointer_warp: the pointer moved by request (HostServices::
+    // warp_pointer). Each is reported only where the adapter implements it.
+    relative_pointer = 1ULL << 38U,
+    raw_pointer_motion = 1ULL << 39U,
+    pointer_confinement = 1ULL << 40U,
+    pointer_warp = 1ULL << 41U,
+    // The host opens a web or mail address in the user's own browser or
+    // mail program (HostServices::open_url; the business card's website).
+    // Each host reports it where it has the platform's handler: Windows
+    // (ShellExecuteW), macOS (NSWorkspace) and X11 (xdg-open, found when
+    // the address is opened). Additive flag; no protocol version change.
+    open_url = 1ULL << 42U,
+    // The presentation shim (owner, 2026-11-16; docs/user/presentation.md),
+    // reserved in fold order before the C ABI seal. Each is reported only
+    // where the adapter implements it and its presentation policy selects
+    // it (GUI_FORMS_PRESENT=direct while the direct paths are verified).
+    // Additive flags; no protocol version change.
+    // direct_buffers: frames are written blind, with CPU pixels, into
+    // buffers the window system gives (possibly GPU-backed: an IOSurface,
+    // an X11 Present pixmap, a wl_shm buffer), never through a GPU API of
+    // the program's own; any refusal or loss falls back to the copy path
+    // with the same pixels.
+    direct_buffers = 1ULL << 43U,
+    // host_scroll: a scroll copy (SurfaceRoot::request_scroll_copy) moves
+    // the pixels already presented in the window system's storage, and only
+    // the band it exposed is copied.
+    host_scroll = 1ULL << 44U,
+    // reference_presentation: the host is GUI.Forms' own window manager
+    // (src/host/surface/), whose presentation is the reference behaviour
+    // the platform paths' traces are compared against.
+    reference_presentation = 1ULL << 45U,
+    // Bits 46 to 48 are reserved, never reported and never reassigned: they
+    // held the GPU-backed buffer routes (CAMetalLayer drawables, X11 DRI3
+    // pixmaps, Wayland linux-dmabuf), withdrawn before the C ABI seal
+    // because GUI.Forms has no GPU surfaces (owner, 2026-11-16). The next
+    // flag is 1ULL << 49U.
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,
@@ -99,6 +156,29 @@ enum class HostCapability : std::uint64_t {
     return static_cast<HostCapability>(static_cast<std::uint64_t>(left) |
                                        static_cast<std::uint64_t>(right));
 }
+
+// `available` without the flags of `removed`.
+[[nodiscard]] constexpr HostCapability without_capability(HostCapability available,
+                                                          HostCapability removed) noexcept {
+    return static_cast<HostCapability>(static_cast<std::uint64_t>(available) &
+                                       ~static_cast<std::uint64_t>(removed));
+}
+
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+// The host services a high-integrity build does not compile
+// (cmake/HighIntegrity.cmake): opening addresses, clipboard images and
+// clipboard file references, frame capture to a file, drag and drop with
+// other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from
+// its own, so their requests are refused as unsupported.
+inline constexpr HostCapability high_integrity_compiled_out_capabilities =
+#if defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
+    HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture |
+    HostCapability::typed_drag_source | HostCapability::typed_drag_destination;
+#else
+    HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture |
+    HostCapability::typed_drag_source | HostCapability::typed_drag_destination | HostCapability::clipboard;
+#endif
+#endif
 
 [[nodiscard]] constexpr bool has_capability(HostCapability available,
                                             HostCapability requested) noexcept {

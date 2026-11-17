@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <stdexcept>
 #include <utility>
@@ -215,8 +216,8 @@ void MaskedTextBox::propose(TextEdit& edit, MaskedTextProvider candidate, MaskPo
 
 MaskPosition MaskedTextBox::caret_after(const MaskedTextProvider& candidate, MaskPosition last) const {
     const MaskPosition after(last.value() + 1U);
-    const std::optional<MaskPosition> edit = candidate.find_edit_position(after, true);
-    if (edit) return *edit;
+    const stxlib::Optional<MaskPosition> edit = candidate.find_edit_position(after, true);
+    if (edit.present()) return (*edit.value());
     const MaskPosition end(candidate.length());
     return end;
 }
@@ -606,11 +607,11 @@ SemanticTextResult MaskedTextBox::on_set_semantic_text_selection(SemanticTextSel
 namespace {
 
 constexpr std::array<PartField<MaskedTextBox::Parts>, 3> masked_text_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &MaskedTextBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &MaskedTextBox::Parts::edge},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &MaskedTextBox::Parts::field},
 }};
 
@@ -637,6 +638,7 @@ constexpr ControlAnatomy masked_text_box_anatomy{
     .parts = masked_text_box_parts,
     .states = masked_text_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

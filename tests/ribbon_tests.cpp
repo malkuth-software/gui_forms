@@ -15,6 +15,7 @@
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -87,6 +88,11 @@ struct RecordClick final {
     void operator()(const RibbonCommandClick& click) const { (*seen).push_back(click.command_id); }
 };
 
+struct RecordHelp final {
+    std::vector<std::string>* seen{};
+    void operator()(const RibbonHelpRequest& request) const { (*seen).push_back(request.tab_id); }
+};
+
 struct RecordLaunch final {
     std::vector<std::string>* seen{};
     void operator()(const RibbonDialogLaunch& launch) const { (*seen).push_back(launch.group_id); }
@@ -128,10 +134,10 @@ std::vector<RibbonTabSpec> sample_tabs(const Commands& commands) {
                                   .command = commands.paste, .image = commands.paste_image,
                                   .drop_down = {MenuItemSpec("paste.special", MenuItemKind::command, commands.choice,
                                                              "Paste special")}});
-    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::small, .command = commands.cut});
-    clipboard.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::small, .command = commands.copy});
+    clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::compact, .command = commands.cut});
+    clipboard.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::compact, .command = commands.copy});
     clipboard.commands.push_back({.stable_id = "bold", .kind = RibbonCommandKind::toggle,
-                                  .size = RibbonCommandSize::small, .command = commands.bold,
+                                  .size = RibbonCommandSize::compact, .command = commands.bold,
                                   .image = commands.bold_image, .show_label = false});
     RibbonGroupSpec font{.stable_id = "font", .caption = "Font"};
     font.commands.push_back({.stable_id = "font-name", .kind = RibbonCommandKind::combo_box, .text = "Font",
@@ -210,7 +216,7 @@ void geometry() {
     require(parts.tab_rail.present && parts.application_button.present && parts.command_plane.present &&
                 parts.command_plane.bounds.y == parts.tab_rail.bounds.height,
             "the tab row is above the command plane");
-    require(find_part(anatomy, "help_button") && !parts.help_button.present,
+    require(find_part(anatomy, "help_button").present() && !parts.help_button.present,
             "the help button's part is reserved and not yet placed (owner, N4)");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
     require(tabs.size() == 2U && tabs[0].states.selected && !tabs[1].states.selected &&
@@ -300,7 +306,7 @@ void tab_navigation() {
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
     require(window.request_focus(ribbon), "the ribbon takes focus on its selected tab");
     require(key(window, PhysicalKey::tab) && (*ribbon).realized_tabs()[1].states.focus_visible &&
-                (*ribbon).selected_tab.read() == std::size_t{0U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U),
             "Tab moves along the tab row without selecting");
     require(key(window, PhysicalKey::tab) && key(window, PhysicalKey::tab, Modifier::shift) &&
                 (*ribbon).realized_tabs()[1].states.focus_visible,
@@ -387,7 +393,7 @@ void menus_repaint_only_their_command() {
     require(!closed.empty() && damage_only_part_or_below(closed, part, shadow),
             "closing it repaints its command and where the menu was, not the ribbon");
     // The table drop-down is on the Insert tab: select it first.
-    (*ribbon).selected_tab = std::size_t{1U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     window.perform_layout();
     const std::vector<Ribbon::CommandItem> closed_items = (*ribbon).realized_commands();
     const Rect table = command_named(closed_items, "table").parts.command_face.bounds;
@@ -423,9 +429,108 @@ void minimize_by_tab_click() {
     window.perform_layout();
     click(window, centre(tabs[1].parts.tab.bounds));
     window.perform_layout();
-    require(!(*ribbon).minimized.read() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*font).effectively_visible() &&
+    require((*ribbon).minimized.read() && (*ribbon).plane_popup_open() &&
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U) && !(*font).effectively_visible() &&
                 (*(*ribbon).text_box("find")).effectively_visible(),
-            "clicking another tab while minimized selects it and shows the plane");
+            "clicking another tab while minimized selects it and opens its plane in the popup");
+    (*ribbon).close_plane_popup();
+    click(window, centre(tabs[1].parts.tab.bounds));
+    window.perform_layout();
+    require(!(*ribbon).minimized.read() && !(*ribbon).plane_popup_open() && (*ribbon).parts().command_plane.present &&
+                (*(*ribbon).text_box("find")).effectively_visible(),
+            "clicking the selected tab of a minimized ribbon shows the plane again");
+}
+
+struct CountClicks final {
+    int* count{};
+    void operator()() const { ++*count; }
+};
+
+// The minimized ribbon's temporary popup (interview G1, D3, T7; ledger R17):
+// it opens below the tab row as wide as the ribbon and as tall as the plane,
+// over the document without pushing it; it casts the overlay shadow; the
+// tab's hosted controls move into it and back; a click outside is consumed
+// and only closes it; Escape and a command run from it close it.
+void minimized_popup() {
+    const Commands commands;
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    (*ribbon).minimized = true;
+    (*ribbon).set_requested_bounds({0.0, 0.0, 900.0, 27.0});
+    std::shared_ptr<Panel> document = make_control<Panel>(StableId("document"));
+    (*document).set_requested_bounds({0.0, 200.0, 900.0, 100.0});
+    (*root).add_child(ribbon);
+    (*root).add_child(document);
+    Window window(root, {900.0, 320.0}, commands.resources);
+    window.perform_layout();
+    int document_clicks = 0;
+    SubscriptionToken clicked = (*document).click().subscribe(CountClicks{&document_clicks});
+    require(!(*ribbon).plane_popup_open() && (*ribbon).plane_popup() == nullptr, "no popup at first");
+    const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
+    click(window, centre(tabs[1].parts.tab.bounds));
+    window.perform_layout();
+    const Control::Ptr popup = (*ribbon).plane_popup();
+    require((*ribbon).plane_popup_open() && popup != nullptr && (*ribbon).minimized.read() &&
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U),
+            "while minimized, another tab opens the popup and the ribbon stays minimized");
+    const Rect placed = (*popup).absolute_bounds();
+    require(placed.x == 0.0 && placed.y == 27.0 && placed.width == 900.0 && placed.height > 0.0 &&
+                (*ribbon).measure({900.0, 400.0}).height == 27.0 && (*document).absolute_bounds().y == 200.0,
+            "the popup sits below the tab row, the ribbon's width, over the document");
+    require((*popup).visual_outsets().bottom > 0.0 || (*popup).visual_outsets().right > 0.0 ||
+                (*popup).visual_outsets().left > 0.0,
+            "the popup casts the overlay shadow");
+    const std::shared_ptr<TextBox> find = (*ribbon).text_box("find");
+    require((*find).parent() == popup && (*find).effectively_visible(), "the tab's hosted controls move into it");
+    click(window, Point{450.0, 250.0});
+    window.perform_layout();
+    require(!(*ribbon).plane_popup_open() && document_clicks == 0 && (*find).parent() == ribbon &&
+                !(*find).effectively_visible() && (*ribbon).minimized.read(),
+            "a click outside is consumed and only closes it; the hosted controls return");
+    require((*ribbon).show_plane_popup() && (*ribbon).plane_popup_open(), "show_plane_popup opens it");
+    static_cast<void>(key(window, PhysicalKey::escape));
+    require(!(*ribbon).plane_popup_open(), "Escape closes it");
+    require((*ribbon).show_plane_popup(), "the popup opens again");
+    click(window, centre(tabs[1].parts.tab.bounds));
+    window.perform_layout();
+    require(!(*ribbon).minimized.read() && !(*ribbon).plane_popup_open() && (*find).parent() == ribbon,
+            "clicking the selected tab while the popup shows pins the plane open");
+    (*ribbon).minimized = true;
+    window.perform_layout();
+    // A command run from the popup closes it.
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(0U);
+    window.perform_layout();
+    require((*ribbon).show_plane_popup(), "the Home tab's popup opens");
+    window.perform_layout();
+    int cuts = 0;
+    SubscriptionToken cut_token = (*commands.cut).invoked().subscribe(CountInvocation{&cuts});
+    require((*ribbon).on_semantic_child_action("ribbon.command.cut", SemanticAction::press, {}) && cuts == 1 &&
+                !(*ribbon).plane_popup_open(),
+            "a command run while the popup shows closes it");
+    require(!(*ribbon).on_semantic_child_action("ribbon.command.cut", SemanticAction::press, {}) && cuts == 1,
+            "with the popup closed, a minimized ribbon's commands do not act");
+    (*ribbon).minimized = false;
+    require(!(*ribbon).show_plane_popup(), "an unminimized ribbon has no popup");
+}
+
+// A ribbon destroyed without dispose() leaves its kept plane popup inert
+// instead of pointing at the freed ribbon (A-gf-controls-11-F6).
+void destroyed_ribbon_detaches_its_plane_popup() {
+    const Commands commands;
+    Control::Ptr kept;
+    {
+        std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+        (*ribbon).minimized = true;
+        Window window(ribbon, {900.0, 320.0}, commands.resources);
+        window.perform_layout();
+        require((*ribbon).show_plane_popup(), "the minimized ribbon's popup opens");
+        kept = (*ribbon).plane_popup();
+        (*ribbon).close_plane_popup();
+    }
+    require(kept != nullptr, "the popup's content is kept");
+    (*kept).arrange({0.0, 0.0, 900.0, 80.0});
+    const Size measured = (*kept).measure({900.0, 80.0});
+    require(measured.width == 900.0, "the kept popup still measures after its ribbon is gone");
 }
 
 void hosted_controls() {
@@ -494,8 +599,8 @@ void semantics_and_region() {
             "the File tab is a menu button with an overlay");
     require(nodes[1].role == SemanticRole::tab_group && nodes[1].children.size() == 2U &&
                 nodes[1].children[0].role == SemanticRole::tab && nodes[1].children[0].name == "Home" &&
-                nodes[1].children[1].position_in_set == std::size_t{2U} &&
-                nodes[1].children[1].set_size == std::size_t{2U},
+                nodes[1].children[1].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                nodes[1].children[1].set_size == stxlib::Optional<std::size_t>::of(2U),
             "the tab row is a tab list with positioned tabs");
     const SemanticNode& plane = nodes[2];
     require(plane.role == SemanticRole::tab_panel && plane.name == "Home" && plane.children.size() == 2U &&
@@ -503,8 +608,9 @@ void semantics_and_region() {
             "the command plane holds the selected tab's groups, named by caption");
     const SemanticNode& clipboard = plane.children[0];
     require(clipboard.children.size() == 5U && clipboard.children[0].role == SemanticRole::split_button &&
-                clipboard.children[0].has_popup && clipboard.children[0].position_in_set == std::size_t{1U} &&
-                clipboard.children[0].set_size == std::size_t{4U} &&
+                clipboard.children[0].has_popup &&
+                clipboard.children[0].position_in_set == stxlib::Optional<std::size_t>::of(1U) &&
+                clipboard.children[0].set_size == stxlib::Optional<std::size_t>::of(4U) &&
                 clipboard.children[4].name == "Clipboard dialog launcher",
             "commands carry split roles, overlays and positions; the launcher is a button");
     require(nodes[1].children[0].access_key == "H" && nodes[1].children[1].access_key == "I" &&
@@ -512,7 +618,7 @@ void semantics_and_region() {
                 clipboard.children[1].access_key.empty(),
             "a tab's or a command's mnemonic is its access key; a command without one has none");
     require((*ribbon).on_semantic_child_action("ribbon.tab.insert", SemanticAction::select, {}) &&
-                (*ribbon).selected_tab.read() == std::size_t{1U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U),
             "selecting a tab node selects the tab");
     const std::string json = window.semantic_snapshot().to_json();
     require(json.find("\"role\":\"menu_button\"") != std::string::npos, "the snapshot carries the ribbon's nodes");
@@ -599,15 +705,15 @@ void labels_and_rows() {
     RibbonTabSpec home{.stable_id = "home", .text = "Home"};
     RibbonGroupSpec history{.stable_id = "history", .caption = "History"};
     history.commands.push_back({.stable_id = "paste", .command = commands.paste});
-    history.commands.push_back({.stable_id = "save", .size = RibbonCommandSize::small, .command = save});
-    history.commands.push_back({.stable_id = "undo", .size = RibbonCommandSize::small, .command = undo});
+    history.commands.push_back({.stable_id = "save", .size = RibbonCommandSize::compact, .command = save});
+    history.commands.push_back({.stable_id = "undo", .size = RibbonCommandSize::compact, .command = undo});
     history.commands.push_back(
-        {.stable_id = "redo", .size = RibbonCommandSize::small, .command = redo, .beside_previous = true});
+        {.stable_id = "redo", .size = RibbonCommandSize::compact, .command = redo, .beside_previous = true});
     history.commands.push_back({.stable_id = "hint", .kind = RibbonCommandKind::label, .text = "Click to place"});
     RibbonGroupSpec pair{.stable_id = "pair", .caption = "Pair"};
     pair.commands.push_back({.stable_id = "cut", .command = commands.cut});
-    pair.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::small, .command = commands.copy});
-    pair.commands.push_back({.stable_id = "bold", .size = RibbonCommandSize::small, .command = commands.bold});
+    pair.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::compact, .command = commands.copy});
+    pair.commands.push_back({.stable_id = "bold", .size = RibbonCommandSize::compact, .command = commands.bold});
     pair.layouts.push_back(RibbonGroupLayout{RibbonGroupSize::large, {}, 2U});
     home.groups.push_back(std::move(history));
     home.groups.push_back(std::move(pair));
@@ -676,7 +782,7 @@ void labels_and_rows() {
     first.push_back(RibbonTabSpec{.stable_id = "home", .text = "Home"});
     RibbonGroupSpec leading{.stable_id = "leading", .caption = "Leading"};
     leading.commands.push_back(
-        {.stable_id = "save", .size = RibbonCommandSize::small, .command = save, .beside_previous = true});
+        {.stable_id = "save", .size = RibbonCommandSize::compact, .command = save, .beside_previous = true});
     first[0].groups.push_back(std::move(leading));
     threw = false;
     try {
@@ -719,6 +825,112 @@ void refusals() {
     require(threw && (*ribbon).tabs().empty(), "a large command may not drop its label, and nothing changes");
 }
 
+// The hosted Quick Access Toolbar (interview D1, ledger R24): on the tab row
+// after File with the tabs after it; on its own row under the plane when
+// placed below (under the tab row while minimized); removed, the tabs go back.
+void quick_access_on_tab_row() {
+    const Commands commands;
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    Window window(ribbon, {900.0, 160.0}, commands.resources);
+    window.perform_layout();
+    const double first_tab_alone = (*ribbon).realized_tabs()[0].parts.tab.bounds.x;
+    std::shared_ptr<QuickAccessToolbar> toolbar = make_control<QuickAccessToolbar>(StableId("qat"));
+    std::vector<QuickAccessToolbarCommand> declared;
+    declared.push_back({.command = commands.cut});
+    declared.push_back({.command = commands.paste});
+    (*toolbar).set_commands(std::move(declared));
+    (*ribbon).set_quick_access_toolbar(toolbar);
+    window.perform_layout();
+    const Rect file = (*ribbon).parts().application_button.bounds;
+    const Rect rail = (*ribbon).parts().tab_rail.bounds;
+    Rect placed = (*toolbar).committed_arranged_bounds();
+    const Rect first_tab = (*ribbon).realized_tabs()[0].parts.tab.bounds;
+    require((*toolbar).parent() == ribbon && (*toolbar).effectively_visible() && placed.x >= file.x + file.width &&
+                placed.y >= rail.y && placed.y + placed.height <= rail.y + rail.height && placed.width > 0.0 &&
+                placed.width <= (*toolbar).content_length(),
+            "above the ribbon, the toolbar sits on the tab row after File");
+    require(first_tab.x >= placed.x + placed.width && first_tab.x > first_tab_alone,
+            "the tabs follow the toolbar on the row");
+    const double row = rail.height;
+    const double plane = (*ribbon).parts().command_plane.bounds.height;
+    (*toolbar).placement = QuickAccessToolbarPlacement::below_ribbon;
+    window.perform_layout();
+    placed = (*toolbar).committed_arranged_bounds();
+    require(placed.y == row + plane && placed.height == row && placed.width == 900.0 &&
+                (*ribbon).measure({900.0, 400.0}).height == row + plane + row &&
+                (*ribbon).realized_tabs()[0].parts.tab.bounds.x == first_tab_alone,
+            "below the ribbon, the toolbar takes its own row under the plane and the tabs go back");
+    (*ribbon).minimized = true;
+    window.perform_layout();
+    placed = (*toolbar).committed_arranged_bounds();
+    require(placed.y == row && (*ribbon).measure({900.0, 400.0}).height == row + row,
+            "while minimized, the row sits under the tab row");
+    (*ribbon).minimized = false;
+    (*ribbon).set_quick_access_toolbar(nullptr);
+    window.perform_layout();
+    require((*toolbar).parent() == nullptr && (*ribbon).quick_access_toolbar() == nullptr &&
+                (*ribbon).realized_tabs()[0].parts.tab.bounds.x == first_tab_alone &&
+                (*ribbon).measure({900.0, 400.0}).height == row + plane,
+            "removed, the toolbar is detached and the row is the ribbon's again");
+    std::shared_ptr<Panel> holder = make_control<Panel>(StableId("holder"));
+    (*holder).add_child(toolbar);
+    bool threw = false;
+    try {
+        (*ribbon).set_quick_access_toolbar(toolbar);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && (*ribbon).quick_access_toolbar() == nullptr, "a toolbar another parent holds is refused");
+}
+
+// The help button (owner ruling N4): hidden by default; shown, a square at the
+// tab row's right end, painted as a plate and a question mark; a click, and
+// accessibility's press, raise help_button_clicked with the selected tab.
+void help_button() {
+    const Commands commands;
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
+    window.perform_layout();
+    require(!(*ribbon).help_button_visible.read() && !(*ribbon).parts().help_button.present,
+            "the help button is hidden by default");
+    std::vector<std::string> requests;
+    SubscriptionToken requested = (*ribbon).help_button_clicked().subscribe(RecordHelp{&requests});
+    (*ribbon).help_button_visible = true;
+    window.perform_layout();
+    const Ribbon::Parts parts = (*ribbon).parts();
+    const Rect help = parts.help_button.bounds;
+    const Rect rail = parts.tab_rail.bounds;
+    require(parts.help_button.present && parts.help_label.present && help.width == help.height &&
+                help.x + help.width == rail.x + rail.width && help.y >= rail.y &&
+                help.y + help.height <= rail.y + rail.height,
+            "the help button is a square at the tab row's right end");
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 115.0}));
+    require(painted(painter, "?"), "the help button paints its question mark");
+    click(window, centre(help));
+    require(requests.size() == 1U && requests[0] == "home", "a click raises help_button_clicked with the selected tab");
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(help)}));
+    require((*ribbon).parts().help_button.states.contains(AnatomyState::pressed), "the press shows pressed");
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, Point{rail.x + 1.0, 60.0}}));
+    require(requests.size() == 1U && !(*ribbon).parts().help_button.states.contains(AnatomyState::pressed),
+            "a release away from the button raises nothing");
+    const std::vector<SemanticNode> nodes = (*ribbon).semantic_virtual_children();
+    bool published = false;
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == "ribbon.help" && node.role == SemanticRole::button) published = true;
+    }
+    require(published, "the help button is published as a button");
+    require((*ribbon).on_semantic_child_action("ribbon.help", SemanticAction::press, {}) && requests.size() == 2U,
+            "accessibility's press raises help_button_clicked");
+    (*ribbon).help_button_visible = false;
+    window.perform_layout();
+    require(!(*ribbon).parts().help_button.present &&
+                !(*ribbon).on_semantic_child_action("ribbon.help", SemanticAction::press, {}),
+            "hidden again, the button is gone and its press refused");
+    (*ribbon).request_help();
+    require(requests.size() == 3U, "request_help raises help_button_clicked without the button (an F1 binding)");
+}
+
 } // namespace
 
 int main() {
@@ -735,6 +947,10 @@ int main() {
     menus_take_the_ribbon_theme();
     refusals();
     labels_and_rows();
+    help_button();
+    quick_access_on_tab_row();
+    minimized_popup();
+    destroyed_ribbon_detaches_its_plane_popup();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";
     return 0;

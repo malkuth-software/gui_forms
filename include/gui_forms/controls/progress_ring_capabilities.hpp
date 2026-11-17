@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/controls/progress_ring_values.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -16,11 +17,11 @@ namespace gui_forms {
 // Each is a standard-layout struct whose only member is its property's
 // cell, taken by the declaring class as a base. A write
 // `(*control).x = value;` runs `assign`: the declaring class's
-// prepare_write hook (require_mutable first, then the value's checks and,
-// where C# lets a subclass rewrite the value, the protected virtual coerce
-// hook), the compare and store, then the written hook (the touch, side
-// effects and the change event, through the protected virtual
-// on_<property>_changed() where Windows Forms has OnXChanged). A read is
+// prepare_write hook (require_mutable first, then the value's checks), the
+// compare and store, then the written hook (the touch, side effects and the
+// change event, through the protected virtual on_<property>_changed() where
+// Windows Forms has an overridable On<Property>Changed; other properties
+// have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
 // The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.
@@ -62,10 +63,32 @@ struct ProgressRingIndeterminateCapability {
     }
 };
 
+// How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
+template <typename Declaring>
+struct ProgressRingStyleCapability {
+    PropertyCell<ProgressRingStyle, ProgressRingStyleCapability<Declaring>> ring_style{ProgressRingStyle::theme};
+
+    static void assign(ProgressRingStyleCapability& capability, ProgressRingStyle incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.ring_style), incoming);
+        if (!capability.ring_style.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.ring_style));
+    }
+};
+
+// ProgressRingStyle as a property value; defined beside ProgressRing's table.
+template <>
+struct PropertyValueTraits<ProgressRingStyle> {
+    static PropertyType type();
+    static BindingValue to_binding(ProgressRingStyle value);
+    static ProgressRingStyle from_binding(const BindingValue& value);
+};
+
 // Every ProgressRing capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>,
                                   public ProgressRingMaximumCapability<Declaring>,
-                                  public ProgressRingIndeterminateCapability<Declaring> {};
+                                  public ProgressRingIndeterminateCapability<Declaring>,
+                                  public ProgressRingStyleCapability<Declaring> {};
 
 } // namespace gui_forms

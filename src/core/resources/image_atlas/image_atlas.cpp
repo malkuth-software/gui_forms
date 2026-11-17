@@ -5,6 +5,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -612,12 +613,12 @@ bool ImageAtlas::draw_unrecorded(Painter& painter, ImageAtlasSlot slot, Rect des
     return true;
 }
 
-std::optional<Rect> ImageAtlas::source_rectangle(ImageAtlasSlot slot) const noexcept {
-    if (!current(slot)) return std::nullopt;
+stxlib::Optional<Rect> ImageAtlas::source_rectangle(ImageAtlasSlot slot) const noexcept {
+    if (!current(slot)) return stxlib::Optional<Rect>::none();
     const Rect source{static_cast<double>(cell_x(slot.index) + layout_.gutter),
                       static_cast<double>(cell_y(slot.index) + layout_.gutter),
                       static_cast<double>(layout_.slot_width), static_cast<double>(layout_.slot_height)};
-    return source;
+    return stxlib::Optional<Rect>::of(source);
 }
 
 ImageAtlasStatistics ImageAtlas::statistics() const noexcept {

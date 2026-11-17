@@ -8,6 +8,7 @@
 
 #include "gui_forms/binding/number_format/number_format.hpp"
 
+#include <stxlib/optional.hpp>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -37,12 +38,12 @@ void fail(std::string_view what, std::string_view format, std::string_view expec
 }
 
 NumberFormat format_of(std::string_view text) {
-    const std::optional<NumberFormat> parsed = parse_number_format(text);
-    if (!parsed) {
+    const stxlib::Optional<NumberFormat> parsed = parse_number_format(text);
+    if (parsed.absent()) {
         fail("a format string", text, "a format", "none");
         return NumberFormat{};
     }
-    return *parsed;
+    return (*parsed.value());
 }
 
 struct DoubleCase final {
@@ -207,17 +208,17 @@ void check_format_strings() {
         std::string_view text;
         bool accepted{};
         NumberFormatKind kind{NumberFormatKind::general};
-        std::optional<std::uint32_t> precision;
+        stxlib::Optional<std::uint32_t> precision;
         bool upper_case{};
     };
     const FormatStringCase cases[] = {
-        {"F2", true, NumberFormatKind::fixed, 2U, true},
-        {"f", true, NumberFormatKind::fixed, std::nullopt, false},
-        {"N99", true, NumberFormatKind::number, 99U, true},
-        {"p0", true, NumberFormatKind::percent, 0U, false},
-        {"C", true, NumberFormatKind::currency, std::nullopt, true},
-        {"e10", true, NumberFormatKind::exponential, 10U, false},
-        {"G0", true, NumberFormatKind::general, 0U, true},
+        {"F2", true, NumberFormatKind::fixed, stxlib::Optional<std::uint32_t>::of(2U), true},
+        {"f", true, NumberFormatKind::fixed, stxlib::Optional<std::uint32_t>::none(), false},
+        {"N99", true, NumberFormatKind::number, stxlib::Optional<std::uint32_t>::of(99U), true},
+        {"p0", true, NumberFormatKind::percent, stxlib::Optional<std::uint32_t>::of(0U), false},
+        {"C", true, NumberFormatKind::currency, stxlib::Optional<std::uint32_t>::none(), true},
+        {"e10", true, NumberFormatKind::exponential, stxlib::Optional<std::uint32_t>::of(10U), false},
+        {"G0", true, NumberFormatKind::general, stxlib::Optional<std::uint32_t>::of(0U), true},
         {"N100", false},
         {"X2", false},
         {"D", false},
@@ -228,15 +229,15 @@ void check_format_strings() {
         {"FF", false},
     };
     for (const FormatStringCase& entry : cases) {
-        const std::optional<NumberFormat> parsed = parse_number_format(entry.text);
-        if (parsed.has_value() != entry.accepted) {
+        const stxlib::Optional<NumberFormat> parsed = parse_number_format(entry.text);
+        if (parsed.present() != entry.accepted) {
             fail("acceptance", entry.text, entry.accepted ? "accepted" : "refused",
-                 parsed ? "accepted" : "refused");
+                 parsed.present() ? "accepted" : "refused");
             continue;
         }
-        if (!parsed) continue;
+        if (parsed.absent()) continue;
         const NumberFormat expected{entry.kind, entry.precision, entry.upper_case};
-        if (!(*parsed == expected)) fail("the parsed format", entry.text, "its kind, precision and case", "another");
+        if (!((*parsed.value()) == expected)) fail("the parsed format", entry.text, "its kind, precision and case", "another");
     }
 }
 

@@ -24,6 +24,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/clip_tracking_painter.hpp"
+#include "support/frame_wake.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -33,6 +34,8 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -302,23 +305,28 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = {195.0, 8.0};
+    // The clock is read on both sides of the press, so the first repeat's
+    // wake is bounded from both whatever the dispatch takes
+    // (B-gf-tests-10-F2).
+    const FrameTime before_press = FrameClock::now();
     require(window.dispatch_pointer(press) && near((*bar).value.read(), 1.0),
             "pressing the increment button must step once");
-    const FrameTime pressed = FrameClock::now();
-    require(window.next_wake().has_value() &&
-                *window.next_wake() >= pressed + (*bar).initial_repeat_delay.read() - std::chrono::milliseconds(5),
+    const FrameTime after_press = FrameClock::now();
+    const FrameInterval initial_delay = (*bar).initial_repeat_delay.read();
+    require(window.next_wake().present() && armed_wake(window) >= before_press + initial_delay &&
+                armed_wake(window) <= after_press + initial_delay,
             "holding must schedule the first repeat after the initial delay, on a UI timer");
-    const FrameTime first = *window.next_wake();
+    const FrameTime first = armed_wake(window);
     const FramePollResult repeat = window.poll_frame_schedule(first);
     require(repeat.ui_timer_ticks == 1U && near((*bar).value.read(), 2.0) &&
-                *window.next_wake() == first + (*bar).repeat_interval.read(),
+                armed_wake(window) == first + (*bar).repeat_interval.read(),
             "each repeat must step once and schedule the next one an interval later");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require(near((*bar).value.read(), 3.0), "a held press must keep repeating");
     PointerEvent release = press;
     release.action = PointerAction::up;
     static_cast<void>(window.dispatch_pointer(release));
-    require(!window.next_wake().has_value() && near((*bar).value.read(), 3.0),
+    require(window.next_wake().absent() && near((*bar).value.read(), 3.0),
             "release must stop the repeat timer");
 }
 
@@ -610,16 +618,16 @@ void test_built_in_bars_hover_press_and_repeat() {
                 (*f.panel).parts().scrollable.vertical_increment_arrow.states.contains(AnatomyState::pressed) &&
                 f.window.captured_control() == f.panel,
             "an arrow press must step once, capture and show the arrow pressed");
-    require(f.window.next_wake().has_value(), "holding must schedule the repeat on a UI timer");
-    const FrameTime first = *f.window.next_wake();
+    require(f.window.next_wake().present(), "holding must schedule the repeat on a UI timer");
+    const FrameTime first = armed_wake(f.window);
     const FramePollResult repeat = f.window.poll_frame_schedule(first);
     require(repeat.ui_timer_ticks == 1U && near((*f.panel).scroll_position().y, small * 2.0) &&
-                f.window.next_wake().has_value() &&
-                *f.window.next_wake() == first + scroll_repeat_interval_default,
+                f.window.next_wake().present() &&
+                armed_wake(f.window) == first + scroll_repeat_interval_default,
             "each repeat must step once and schedule the next an interval later");
     const PointerEvent release = pointer_at(PointerAction::up, {92.0, 95.0});
     static_cast<void>(f.window.dispatch_pointer(release));
-    require(!f.window.next_wake().has_value() && !f.window.captured_control() &&
+    require(f.window.next_wake().absent() && !f.window.captured_control() &&
                 !(*f.panel).parts().scrollable.vertical_increment_arrow.states.contains(AnatomyState::pressed) &&
                 near((*f.panel).scroll_position().y, small * 2.0),
             "release must stop the repeat, release capture and clear the press");
@@ -635,12 +643,12 @@ void test_built_in_track_repeat_stops_at_the_pointer() {
                 (*f.panel).parts().scrollable.vertical_track.states.contains(AnatomyState::pressed),
             "a track press must page once and show the track pressed");
     int polls = 0;
-    while (f.window.next_wake().has_value() && polls < 40) {
-        static_cast<void>(f.window.poll_frame_schedule(*f.window.next_wake()));
+    while (f.window.next_wake().present() && polls < 40) {
+        static_cast<void>(f.window.poll_frame_schedule(armed_wake(f.window)));
         ++polls;
     }
     const Rect thumb = (*f.panel).parts().scrollable.vertical_thumb.bounds;
-    require(!f.window.next_wake().has_value() && thumb.bottom() >= 70.0,
+    require(f.window.next_wake().absent() && thumb.bottom() >= 70.0,
             "the track's repeat must stop once the thumb reaches the pointer");
     static_cast<void>(f.window.dispatch_pointer(pointer_at(PointerAction::up, {92.0, 70.0})));
 }
@@ -666,6 +674,15 @@ void test_built_in_thumb_snaps_to_device_pixels() {
                 near((*f.panel).scroll_position().y, 333.0),
             "a press just inside the painted thumb must take the thumb, not the track");
     static_cast<void>(f.window.dispatch_pointer(pointer_at(PointerAction::up, {92.0, thumb.y + 0.2})));
+
+    // A thumb drag whose capture is taken away ends: a later plain move
+    // does not scroll (A-gf-controls-13-F3).
+    require(f.window.dispatch_pointer(press), "the thumb takes a second press");
+    (*f.panel).set_pointer_capture(false);
+    static_cast<void>(f.window.dispatch_pointer(pointer_at(PointerAction::move, {92.0, thumb.y + 40.0})));
+    require(near((*f.panel).scroll_position().y, 333.0) &&
+                !(*f.panel).parts().scrollable.vertical_thumb.states.contains(AnatomyState::captured),
+            "after its capture is lost a move leaves the scroll position");
 }
 
 // Bars shorter than two arrows and a thumb: the arrows share the bar, the
@@ -788,6 +805,86 @@ void test_focus_scrolls_the_focused_control_into_view() {
             "a panel without auto scroll must not scroll on focus");
 }
 
+// A precise wheel event at `position` scrolling down by `pixels`, in
+// gesture phase `phase`.
+PointerEvent gesture_wheel(Point position, double pixels, WheelPhase phase) {
+    PointerEvent event{};
+    event.action = PointerAction::wheel;
+    event.position = position;
+    event.wheel_delta = {0.0, -pixels};
+    event.wheel_unit = WheelDeltaUnit::pixels;
+    event.wheel_phase = phase;
+    return event;
+}
+
+// Scroll latching (WheelPhase, cp33): a gesture and its momentum stay on
+// the control the gesture began over, even when the scrolling content
+// brings a nested scrolling panel under the pointer; a nested panel that
+// scrolled for a gesture keeps the rest of it at its edge instead of
+// chaining it to its ancestor; a detented wheel (no phase) still chains.
+void test_scroll_gesture_latches_and_does_not_chain() {
+    std::shared_ptr<Panel> outer = make_control<Panel>(StableId("latch.outer"));
+    std::shared_ptr<Control> spacer = make_control<Control>(StableId("latch.spacer"));
+    (*spacer).set_requested_bounds({0.0, 0.0, 40.0, 300.0});
+    std::shared_ptr<Panel> inner = make_control<Panel>(StableId("latch.inner"));
+    (*inner).set_requested_bounds({0.0, 120.0, 100.0, 60.0});
+    (*inner).auto_scroll = true;
+    std::shared_ptr<Control> inner_content = make_control<Control>(StableId("latch.inner.content"));
+    (*inner_content).set_requested_bounds({0.0, 0.0, 40.0, 300.0});
+    (*inner).add_child(inner_content);
+    (*outer).add_child(spacer);
+    (*outer).add_child(inner);
+    (*outer).auto_scroll = true;
+    Window window(outer, {100.0, 100.0});
+    reduce_motion(window);
+    window.perform_layout();
+    const Point pointer{20.0, 20.0};
+
+    require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::began)) &&
+                near((*outer).scroll_position().y, 30.0),
+            "a gesture's first event scrolls the panel under the pointer");
+    for (int step = 0; step < 3; ++step) {
+        static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::changed)));
+        window.perform_layout();
+    }
+    require(near((*outer).scroll_position().y, 120.0), "the gesture's changes keep scrolling the outer panel");
+    require(window.hit_test(pointer) == inner_content, "the scroll brought the inner panel under the pointer");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 0.0, WheelPhase::ended)));
+    // Momentum moves the page 20 more, which keeps the inner panel (window
+    // y -20 to 40) under the pointer for the next gesture.
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 10.0, WheelPhase::momentum)));
+    window.perform_layout();
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 10.0, WheelPhase::momentum)));
+    window.perform_layout();
+    require(near((*outer).scroll_position().y, 140.0) && near((*inner).scroll_position().y, 0.0),
+            "momentum stays on the outer panel the gesture began over, not the inner one now under the pointer");
+    require(window.hit_test(pointer) == inner_content, "the inner panel is still under the pointer");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 0.0, WheelPhase::momentum_ended)));
+
+    // A new gesture begins over the inner panel and scrolls it.
+    require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::began)) &&
+                near((*inner).scroll_position().y, 30.0) && near((*outer).scroll_position().y, 140.0),
+            "a new gesture begins over the inner panel and scrolls it");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 500.0, WheelPhase::changed)));
+    // The end is the axis's own maximum position (the content's extent less
+    // the viewport the panel's bars leave), read from its public range as
+    // ScrollProperties::maximum_position (private) works it out.
+    const ScrollProperties& inner_axis = (*inner).vertical_scroll();
+    const double inner_end =
+        std::max(inner_axis.minimum(), inner_axis.maximum() - inner_axis.large_change() + 1.0);
+    require(inner_end > 30.0 && near((*inner).scroll_position().y, inner_end), "the inner panel scrolls to its end");
+    require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::momentum)) &&
+                near((*outer).scroll_position().y, 140.0),
+            "momentum at the inner panel's end stops there, not chaining to the outer panel");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 0.0, WheelPhase::momentum_ended)));
+
+    // A detented wheel (no gesture) at the inner panel's end chains to the
+    // outer panel, as before.
+    PointerEvent line = gesture_wheel(pointer, 10.0, WheelPhase::none);
+    require(window.dispatch_pointer(line) && near((*outer).scroll_position().y, 150.0),
+            "a wheel event outside any gesture chains past an inner panel at its end");
+}
+
 int main() {
     try {
         test_control_family_and_manual_axis_contract();
@@ -799,6 +896,7 @@ int main() {
         test_damage_moves_with_a_scroll_copy();
         test_wheel_glides_on_the_motion_clock();
         test_wheel_scrolls_off_leaves_the_wheel_to_the_consumer();
+        test_scroll_gesture_latches_and_does_not_chain();
         test_bar_glides_and_immediate_input_stops_it();
         test_built_in_bars_hover_press_and_repeat();
         test_built_in_track_repeat_stops_at_the_pointer();

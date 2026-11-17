@@ -28,6 +28,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 #include <vector>
 
@@ -65,8 +66,8 @@ void add_at(const std::shared_ptr<Parent>& parent,
 std::shared_ptr<Label> make_label(std::string id, std::string text,
                                   FontSpec font, Color color = ink) {
     std::shared_ptr<Label> result = make_control<Label>(StableId(std::move(id)), std::move(text));
-    (*result).font = font;
-    (*result).fore_color = color;
+    (*result).font = stxlib::Optional<FontSpec>::of(font);
+    (*result).fore_color = stxlib::Optional<Color>::of(color);
     return result;
 }
 
@@ -235,7 +236,7 @@ bool invalid_geometry_is_rejected() {
 const char* seam_state_name(SplitSeamState state) noexcept {
     switch (state) {
     case SplitSeamState::idle: return "IDLE";
-    case SplitSeamState::near: return "NEAR";
+    case SplitSeamState::nearby: return "NEARBY";
     case SplitSeamState::hot: return "HOT";
     case SplitSeamState::dragging: return "DRAGGING";
     case SplitSeamState::focused: return "FOCUSED";

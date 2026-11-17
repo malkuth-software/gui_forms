@@ -1,134 +1,109 @@
 #include "gui_forms/controls/data_grid_view_row_heights.hpp"
 
+#include "../collections/row_height_index.hpp"
+
 #include <cmath>
+#include <memory>
 
 namespace gui_forms {
 
-namespace {
+// The first estimate is replaced by the first reset; 22 is the grid's
+// default row height.
+DataGridViewRowHeights::DataGridViewRowHeights() : index_(std::make_unique<RowHeightIndex>(22.0)), default_height_(22.0) {}
 
-std::size_t lowest_bit(std::size_t index) noexcept {
-    const std::size_t result = index & (~index + 1U);
-    return result;
-}
-
-std::size_t largest_power_of_two_not_above(std::size_t count) noexcept {
-    std::size_t step = count == 0U ? 0U : 1U;
-    while (step != 0U && step <= count / 2U) step *= 2U;
-    return step;
-}
-
-} // namespace
+DataGridViewRowHeights::~DataGridViewRowHeights() {}
 
 void DataGridViewRowHeights::reset(std::size_t count, double default_height) {
-    count_ = count;
+    // Every row estimated: one run, whatever the count.
+    (*index_).assign(count, default_height);
     default_height_ = default_height;
-    differences_.clear();
-    differences_.shrink_to_fit();
-    tree_.clear();
-    tree_.shrink_to_fit();
-    difference_total_ = 0.0;
-    different_rows_ = 0U;
-    top_step_ = largest_power_of_two_not_above(count);
 }
 
 void DataGridViewRowHeights::reset(std::size_t count, double default_height,
                                    std::span<const DataGridViewRowHeight> heights) {
     reset(count, default_height);
     if (heights.empty()) return;
-    begin_differences();
+    RowHeightIndex& index = *index_;
+    const double estimate = index.estimated_height();
+    // Runs of consecutive positions with heights other than the default are
+    // staged and stored in one leaf pass; a default height, or a break in
+    // the run, stores what is staged first. A later height for a position
+    // wins because it is stored later.
+    index.clear_staged();
+    std::size_t run_first = 0U;
+    std::size_t run_length = 0U;
     for (const DataGridViewRowHeight& given : heights) {
-        differences_[given.position] = given.height - default_height_;
+        const bool default_row = RowHeightIndex::stored_height(given.height) == estimate;
+        const bool continues = run_length != 0U && given.position == run_first + run_length;
+        if (run_length != 0U && (default_row || !continues)) {
+            static_cast<void>(index.store_staged(run_first, run_length));
+            run_length = 0U;
+        }
+        if (default_row) {
+            index.forget(given.position, 1U);
+            continue;
+        }
+        if (run_length == 0U) run_first = given.position;
+        if (index.stage_height(given.height)) ++run_length;
     }
-    // The tree in one pass: each node adds its finished sum to its parent.
-    double total = 0.0;
-    std::size_t different = 0U;
-    for (std::size_t index = 1U; index <= count_; ++index) {
-        const double difference = differences_[index - 1U];
-        if (difference != 0.0) ++different;
-        total += difference;
-        tree_[index - 1U] += difference;
-        const std::size_t parent = index + lowest_bit(index);
-        if (parent <= count_) tree_[parent - 1U] += tree_[index - 1U];
-    }
-    difference_total_ = total;
-    different_rows_ = different;
-    if (different_rows_ == 0U) reset(count_, default_height_);
-}
-
-void DataGridViewRowHeights::begin_differences() {
-    differences_.assign(count_, 0.0);
-    tree_.assign(count_, 0.0);
+    if (run_length != 0U) static_cast<void>(index.store_staged(run_first, run_length));
+    index.clear_staged();
+    // Rows back at the default leave no measured row: one run again.
+    if (index.measured_count() == 0U) index.assign(count, default_height);
 }
 
 void DataGridViewRowHeights::set_height(std::size_t position, double height) {
-    const double difference = height - default_height_;
-    if (differences_.empty()) {
-        if (difference == 0.0) return;
-        begin_differences();
-    }
-    const double previous = differences_[position];
-    if (previous == difference) return;
-    differences_[position] = difference;
-    if (previous == 0.0) ++different_rows_;
-    if (difference == 0.0) --different_rows_;
-    if (different_rows_ == 0U) {
-        reset(count_, default_height_);
+    store(position, height);
+    // The last row with its own height gone: one run again.
+    RowHeightIndex& index = *index_;
+    if (index.measured_count() == 0U) index.assign(index.count(), default_height_);
+}
+
+void DataGridViewRowHeights::store(std::size_t position, double height) {
+    RowHeightIndex& index = *index_;
+    if (RowHeightIndex::stored_height(height) == index.estimated_height()) {
+        if (index.measured(position)) index.forget(position, 1U);
         return;
     }
-    const double change = difference - previous;
-    difference_total_ += change;
-    for (std::size_t index = position + 1U; index <= count_; index += lowest_bit(index)) {
-        tree_[index - 1U] += change;
-    }
+    static_cast<void>(index.set_height(position, height));
+}
+
+std::size_t DataGridViewRowHeights::count() const noexcept {
+    return (*index_).count();
+}
+
+bool DataGridViewRowHeights::uniform() const noexcept {
+    const bool result = (*index_).measured_count() == 0U;
+    return result;
 }
 
 double DataGridViewRowHeights::height(std::size_t position) const noexcept {
-    const double difference = differences_.empty() ? 0.0 : differences_[position];
-    const double result = default_height_ + difference;
-    return result;
-}
-
-double DataGridViewRowHeights::difference_before(std::size_t position) const noexcept {
-    double sum = 0.0;
-    if (differences_.empty()) return sum;
-    for (std::size_t index = position; index > 0U; index -= lowest_bit(index)) sum += tree_[index - 1U];
-    return sum;
+    return (*index_).height_of(position);
 }
 
 double DataGridViewRowHeights::top(std::size_t position) const noexcept {
-    const double rows = static_cast<double>(position) * default_height_;
-    const double result = rows + difference_before(position);
-    return result;
+    return (*index_).offset_of(position);
 }
 
 double DataGridViewRowHeights::total() const noexcept {
-    const double result = static_cast<double>(count_) * default_height_ + difference_total_;
-    return result;
+    return (*index_).total_height();
 }
 
 std::size_t DataGridViewRowHeights::position_at(double offset) const noexcept {
-    if (count_ == 0U || !(offset > 0.0)) return 0U;
-    if (offset >= total()) return count_;
-    if (differences_.empty()) {
-        const double rows = std::floor(offset / default_height_);
-        const std::size_t result = rows >= static_cast<double>(count_) ? count_ - 1U : static_cast<std::size_t>(rows);
-        return result;
-    }
-    // Descend the tree: take each node whose rows end at or before the
-    // offset. `position` rows are then taken, and the next row holds it.
-    std::size_t position = 0U;
-    double remaining = offset;
-    for (std::size_t step = top_step_; step != 0U; step /= 2U) {
-        const std::size_t next = position + step;
-        if (next > count_) continue;
-        const double span = static_cast<double>(step) * default_height_ + tree_[next - 1U];
-        if (span <= remaining) {
-            position = next;
-            remaining -= span;
-        }
-    }
-    const std::size_t result = position < count_ ? position : count_ - 1U;
+    const RowHeightIndex& index = *index_;
+    const std::size_t count = index.count();
+    if (count == 0U || !(offset > 0.0)) return 0U;
+    if (offset >= index.total_height()) return count;
+    const std::size_t result = index.row_at(offset);
     return result;
+}
+
+double DataGridViewRowHeights::stored_height(double height) noexcept {
+    return RowHeightIndex::stored_height(height);
+}
+
+std::size_t DataGridViewRowHeights::storage_bytes() const noexcept {
+    return (*index_).storage_bytes();
 }
 
 } // namespace gui_forms

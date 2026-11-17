@@ -6,7 +6,7 @@
 
 namespace gui_forms::host {
 HeadlessHost::HeadlessHost(Window& window)
-    : window_(&window), services_(),
+    : window_(window.window_ref()), services_(),
       session_(window, headless_capabilities(), &services_) {
     window.set_dispatch_wake_handler(
         detail::BoundMemberFunction<void (HeadlessHost::*)() noexcept>(
@@ -59,9 +59,10 @@ void HeadlessHost::observe_dispatch(
          << " shutdown=" << (snapshot.shutdown ? 1 : 0);
     // Compositor reports (stage T5) add the state and the window's grant;
     // other lines are unchanged.
-    if (std::holds_alternative<HostCompositorEvent>(event.payload)) {
-        const CompositorState& state = (*window_).compositor_state();
-        const WindowBackdropGrant& grant = (*window_).backdrop_grant();
+    const Window* const window = window_.get();
+    if (window != nullptr && std::holds_alternative<HostCompositorEvent>(event.payload)) {
+        const CompositorState& state = (*window).compositor_state();
+        const WindowBackdropGrant& grant = (*window).backdrop_grant();
         line << " compositor_generation=" << state.generation.value
              << " compositing=" << compositor_presence_name(state.compositing)
              << " backdrop=" << window_backdrop_name(grant.granted)
@@ -73,16 +74,21 @@ void HeadlessHost::observe_dispatch(
 }
 
 HeadlessHost::~HeadlessHost() {
-    if (window_ != nullptr) {
-        (*window_).set_paint_wake_handler({});
-        (*window_).set_dispatch_wake_handler({});
+    Window* const window = window_.get();
+    if (window != nullptr) {
+        (*window).set_paint_wake_handler({});
+        (*window).set_dispatch_wake_handler({});
     }
 }
 
 DispatchDrainResult HeadlessHost::pump_dispatcher(
     std::size_t maximum_callbacks) {
     dispatcher_wake_pending_.store(false, std::memory_order_release);
-    return (*window_).drain_posted_work(maximum_callbacks);
+    Window* const window = window_.get();
+    // A destroyed window has no posted work left.
+    if (window == nullptr) return DispatchDrainResult{};
+    const DispatchDrainResult drained = (*window).drain_posted_work(maximum_callbacks);
+    return drained;
 }
 
 HostDispatchResult HeadlessHost::dispatch(HostEventPayload payload,

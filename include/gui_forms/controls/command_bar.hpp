@@ -7,6 +7,7 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <optional>
 #include <span>
 #include <vector>
@@ -18,7 +19,7 @@ struct GUI_FORMS_API CommandItem final {
     GUI_FORMS_LOCALIZABLE(text) std::string label{};
     std::string glyph{};
     GUI_FORMS_LOCALIZABLE(accessible_name) std::string accessible_name{};
-    std::optional<KeyGesture> shortcut{};
+    stxlib::Optional<KeyGesture> shortcut{};
     Command* command{}; // Borrowed at set_items; subsequent access is token-guarded.
 };
 

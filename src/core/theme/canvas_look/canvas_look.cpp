@@ -96,18 +96,20 @@ struct CanvasColouring final {
 // The colour a part draws: the rule's (or the forced high-contrast
 // floor's) when set, else `stock`; either mapped to dark as `colouring`
 // says.
-[[nodiscard]] Color canvas_colour(const std::optional<Color>& set, Color stock, detail::DarkColourClass kind,
+[[nodiscard]] Color canvas_colour(const stxlib::Optional<Color>& set, Color stock, detail::DarkColourClass kind,
                                   const CanvasColouring& colouring) noexcept {
-    if (set.has_value()) {
-        if (colouring.darken_rules) return dark_keeping_alpha(*set, kind);
-        return *set;
+    const Color* const written = set.value();
+    if (written != nullptr) {
+        if (colouring.darken_rules) return dark_keeping_alpha(*written, kind);
+        return *written;
     }
     if (colouring.darken_stock) return dark_keeping_alpha(stock, kind);
     return stock;
 }
 
-[[nodiscard]] double canvas_length(const std::optional<double>& set, double stock) noexcept {
-    if (set.has_value() && std::isfinite(*set) && *set >= 0.0) return *set;
+[[nodiscard]] double canvas_length(const stxlib::Optional<double>& set, double stock) noexcept {
+    const double* const written = set.value();
+    if (written != nullptr && std::isfinite(*written) && *written >= 0.0) return *written;
     return stock;
 }
 
@@ -145,9 +147,9 @@ struct CanvasResolver final {
 // dashes, corners, widths, grid spacing and flow are geometry and are kept.
 void apply_high_contrast_paint(const ControlVisualRecipe& recipe, ControlCanvasPaint& canvas) noexcept {
     const SurfaceMaterial& material = recipe.material;
-    if (!material.fills.empty()) canvas.fill = material.fills.front().color;
-    if (material.border.has_value()) canvas.stroke = (*material.border).color;
-    canvas.halo = recipe.focus_ring;
+    if (!material.fills.empty()) canvas.fill.set(material.fills.front().color);
+    if (material.border.present()) canvas.stroke.set((*material.border.value()).color);
+    canvas.halo.set(recipe.focus_ring);
     canvas.texture.reset();
 }
 
@@ -547,9 +549,9 @@ namespace {
     band = std::clamp(band, minimum_canvas_grid_band, maximum_canvas_grid_band);
     look.grid.band.minimum_spacing = band;
     look.grid.band.maximum_spacing = band * grid_level_ratio;
-    if (region.canvas.texture.has_value() && !context.high_contrast) {
+    if (region.canvas.texture.present() && !context.high_contrast) {
         // Each layer whose clamped contrast is above 0, in order.
-        const CanvasTextureLayers& authored = *region.canvas.texture;
+        const CanvasTextureLayers& authored = *region.canvas.texture.value();
         const std::size_t authored_count = std::min(authored.count, authored.items.size());
         for (std::size_t index = 0U; index < authored_count; ++index) {
             CanvasTextureLayer layer = authored.items[index];
@@ -626,7 +628,7 @@ namespace {
         if (context.high_contrast) apply_high_contrast_line(look.links[index], state);
         if (context.high_contrast) apply_high_contrast_line(look.dashed_links[index], state);
         if (state != CanvasLinkState::normal) continue;
-        if (link.canvas.flow.has_value()) look.flow.style = *link.canvas.flow;
+        if (link.canvas.flow.present()) look.flow.style = *link.canvas.flow.value();
         look.flow.speed = canvas_length(link.canvas.flow_speed, 48.0);
         look.flow.speed = std::min(look.flow.speed, maximum_canvas_flow_speed);
         look.flow.spacing = canvas_length(link.canvas.flow_spacing, 16.0);
@@ -675,7 +677,7 @@ namespace {
     const CanvasPartPaint focus = resolve_canvas_part(resolver, focus_query);
     look.focus.fill = clear_colour;
     look.focus.stroke = focus.focus;
-    if (focus.canvas.stroke.has_value() && !context.high_contrast) {
+    if (focus.canvas.stroke.present() && !context.high_contrast) {
         look.focus.stroke = canvas_colour(focus.canvas.stroke, focus.focus, detail::DarkColourClass::cue, colouring);
     }
     look.focus.stroke_width = std::max(canvas_length(focus.canvas.stroke_width, 2.0), minimum_canvas_focus_width);
@@ -729,6 +731,7 @@ ProceduralFill canvas_texture_fill(const CanvasTextureLayer& layer, CanvasTextur
     fill.seed = layer.seed;
     fill.tile = layer.tile;
     fill.strength = layer.strength;
+    fill.hatch_style = layer.hatch_style;
     fill.ground = screened ? black : white;
     fill.figure = screened ? white : black;
     fill.accent = fill.ground;

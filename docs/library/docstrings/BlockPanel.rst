@@ -161,7 +161,7 @@ Centre a row of 80-wide inline buttons, wrapping the third:
    std::shared_ptr<gf::BlockPanel> row =
        gf::make_control<gf::BlockPanel>(gf::StableId("row"));
    (*row).text_align = gf::TextAlignment::center;
-   (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
+   (*row).line_strut = stxlib::Optional<gf::LineStrut>::of(gf::LineStrut{});   // lines as tall as their items
    gf::BlockFlowItemLayout atomic{};
    atomic.level = gf::BlockFlowLevel::inline_level;
    atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,

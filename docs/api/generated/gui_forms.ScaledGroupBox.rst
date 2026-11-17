@@ -136,7 +136,7 @@ gui_forms::ScaledGroupBox
       a negative size, throw ``std::invalid_argument``; the errors of
       ``add_child`` also apply.
 
-   .. cpp:function:: std::optional<Rect> design_bounds(const Control& child) const
+   .. cpp:function:: stxlib::Optional<Rect> design_bounds(const Control& child) const
 
       The child's slot in design coordinates, or empty if it has none.
 

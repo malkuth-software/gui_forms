@@ -10,7 +10,10 @@
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp
 // and finish_kernel.hpp). The reference (JavaScript) never fuses.
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -145,7 +148,9 @@ Linear linear_of(Color colour) noexcept {
 
 // Linear light to an sRGB byte through the reference's 4097-step table.
 std::uint8_t encode(double value) noexcept {
-    const double clamped = value <= 0.0 ? 0.0 : (value >= 1.0 ? 1.0 : value);
+    // !(value > 0.0) takes NaN to 0 as well: no value reaches the conversion
+    // unclamped (A-gf-core-06-F1).
+    const double clamped = !(value > 0.0) ? 0.0 : (value >= 1.0 ? 1.0 : value);
     const std::size_t step = static_cast<std::size_t>(clamped * 4096.0);
     return finish_encode_table[step];
 }

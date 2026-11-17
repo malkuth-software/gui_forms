@@ -3,7 +3,7 @@
 // Exercises the Windows host's raster in the same translation unit.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <algorithm>
 #include <cmath>
@@ -79,7 +79,7 @@ int main() {
     expect(painter.resize(size, 1.0), "the raster is allocated");
     expect(painter.synchronize_images(window.image_resources()), "images synchronize");
     painter.begin_frame();
-    expect(window.paint(painter.painter()).has_value(), "the first frame paints");
+    expect(window.paint(painter.painter()).present(), "the first frame paints");
     static_cast<void>(window.take_damage());
     expect(painter.save_bmp(L"dp_before.bmp"), "the first frame saves");
 
@@ -92,7 +92,7 @@ int main() {
 
     const MetricsSnapshot before = window.metrics_snapshot();
     painter.begin_frame();
-    expect(window.paint(painter.painter(), rectangles).has_value(), "the rectangle set paints");
+    expect(window.paint(painter.painter(), rectangles).present(), "the rectangle set paints");
     const MetricsSnapshot after = window.metrics_snapshot();
     expect(painter.save_bmp(L"dp_after.bmp"), "the second frame saves");
 

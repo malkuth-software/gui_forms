@@ -274,6 +274,7 @@ constexpr ControlAnatomy master_detail_view_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

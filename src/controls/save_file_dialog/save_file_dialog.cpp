@@ -58,6 +58,9 @@ void SaveFileDialog::reset() {
     default_ext = std::string{};
     add_extension = true;
     overwrite_prompt = true;
+    check_file_exists = false;
+    check_path_exists = true;
+    create_prompt = false;
     file_names_.clear();
     status_ = {};
 }
@@ -72,6 +75,9 @@ HostSaveFileDialogRequest SaveFileDialog::request() const {
     if (add_extension.read()) built.default_extension = default_ext.read();
     built.filters = filters_;
     built.confirm_overwrite = overwrite_prompt.read();
+    built.check_file_exists = check_file_exists.read();
+    built.check_path_exists = check_path_exists.read();
+    built.create_prompt = create_prompt.read();
     built.initial_filter = filter_index.read() < filters_.size() ? filter_index.read() : 0U;
     return built;
 }
@@ -80,9 +86,10 @@ HostSaveFileDialogRequest SaveFileDialog::request() const {
 // first extension, as Windows Forms takes it, unless that filter is any file
 // or the host did not tell which was chosen; then default_ext. The view
 // borrows the dialog's own settings.
-std::string_view SaveFileDialog::added_extension(std::optional<std::size_t> chosen_filter) const noexcept {
-    if (chosen_filter && *chosen_filter < filters_.size()) {
-        const HostFileDialogFilter& offered = filters_[*chosen_filter];
+std::string_view SaveFileDialog::added_extension(const stxlib::Optional<std::size_t>& chosen_filter) const noexcept {
+    const std::size_t* const chosen = chosen_filter.value();
+    if (chosen != nullptr && *chosen < filters_.size()) {
+        const HostFileDialogFilter& offered = filters_[*chosen];
         const bool concrete = !offered.extensions.empty() && offered.extensions.front() != "*" &&
                               detail::file_dialog_extension_valid(offered.extensions.front());
         if (concrete) return offered.extensions.front();
@@ -142,7 +149,8 @@ DialogResult SaveFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = std::move(chosen);
-            if ((*paths).chosen_filter) filter_index = *(*paths).chosen_filter;
+            const std::size_t* const chosen_filter = (*paths).chosen_filter.value();
+            if (chosen_filter != nullptr) filter_index = *chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.
@@ -200,6 +208,18 @@ void SaveFileDialog::written(const decltype(add_extension)&) {}
 void SaveFileDialog::prepare_write(const decltype(overwrite_prompt)&, bool&) {}
 
 void SaveFileDialog::written(const decltype(overwrite_prompt)&) {}
+
+void SaveFileDialog::prepare_write(const decltype(check_file_exists)&, bool&) {}
+
+void SaveFileDialog::written(const decltype(check_file_exists)&) {}
+
+void SaveFileDialog::prepare_write(const decltype(check_path_exists)&, bool&) {}
+
+void SaveFileDialog::written(const decltype(check_path_exists)&) {}
+
+void SaveFileDialog::prepare_write(const decltype(create_prompt)&, bool&) {}
+
+void SaveFileDialog::written(const decltype(create_prompt)&) {}
 
 // property_codemod end SaveFileDialog
 

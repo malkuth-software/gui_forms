@@ -84,14 +84,21 @@ std::size_t SeriesRingChannel::consume(std::span<SeriesColumn<double>* const> co
     }
     if (torn != 0U) overrun_.fetch_add(torn, std::memory_order_relaxed);
     const std::size_t intact = count - torn;
+    // Every column is checked before any changes: a column refusing the
+    // block (a monotone x going back after a restart or a clock step) drops
+    // it from every stream, so the columns keep their pairing. Pushing each
+    // stream on its own let y take a block x refused, pairing every later x
+    // with another sample's y (A-gf-controls-10-F3).
     std::size_t taken = intact;
     for (std::size_t stream = 0U; stream < stream_count_; ++stream) {
         const std::span<const double> values(scratch.data() + stream * capacity_ + torn, intact);
-        const SeriesEditOutcome outcome = (*columns[stream]).push_overwrite(values);
-        // A column refusing the block (a monotone column going back) loses
-        // it; the streams' columns may then differ in length until the
-        // caller clears them.
-        if (outcome != SeriesEditOutcome::applied) taken = 0U;
+        if ((*columns[stream]).check_push_overwrite(values) != SeriesEditOutcome::applied) taken = 0U;
+    }
+    if (taken != 0U) {
+        for (std::size_t stream = 0U; stream < stream_count_; ++stream) {
+            const std::span<const double> values(scratch.data() + stream * capacity_ + torn, intact);
+            static_cast<void>((*columns[stream]).push_overwrite(values));
+        }
     }
     if (taken != intact) overrun_.fetch_add(intact, std::memory_order_relaxed);
     consumed_through_ = published;

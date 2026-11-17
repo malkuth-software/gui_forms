@@ -125,8 +125,8 @@ void collection_contract() {
     collection.insert(0U, "Tromsø");
     collection.set(2U, "Stavanger");
     require(collection.size() == 3U && collection.at(0U) == "Tromsø" && collection.at(2U) == "Stavanger" &&
-                collection.contains("Oslo") && collection.index_of("Oslo") == 1U &&
-                !collection.index_of("Bergen") && changes == 4U,
+                collection.contains("Oslo") && collection.index_of("Oslo") == stxlib::Optional<std::size_t>::of(1U) &&
+                collection.index_of("Bergen").absent() && changes == 4U,
             "insert and set place items and raise changed");
     bool threw = false;
     try {
@@ -159,18 +159,18 @@ void collection_contract() {
 }
 
 void text_matching() {
-    require(find_text_match("California", "cal", TextMatchMode::prefix, false) == 0U,
+    require(find_text_match("California", "cal", TextMatchMode::prefix, false) == stxlib::Optional<std::size_t>::of(0U),
             "a prefix matches ignoring ASCII case");
-    require(!find_text_match("California", "cal", TextMatchMode::prefix, true),
+    require(find_text_match("California", "cal", TextMatchMode::prefix, true).absent(),
             "a case-sensitive prefix compares case");
-    require(!find_text_match("Cal", "Calgary", TextMatchMode::prefix, false),
+    require(find_text_match("Cal", "Calgary", TextMatchMode::prefix, false).absent(),
             "a pattern longer than the candidate does not match");
-    require(find_text_match("New Calgary", "CALG", TextMatchMode::substring, false) == 4U,
+    require(find_text_match("New Calgary", "CALG", TextMatchMode::substring, false) == stxlib::Optional<std::size_t>::of(4U),
             "a substring match reports where it starts");
-    require(!find_text_match("Calgary", "", TextMatchMode::substring, false),
+    require(find_text_match("Calgary", "", TextMatchMode::substring, false).absent(),
             "an empty pattern matches nothing");
-    require(!find_text_match("Évora", "é", TextMatchMode::prefix, false) &&
-                find_text_match("Évora", "É", TextMatchMode::prefix, false) == 0U,
+    require(find_text_match("Évora", "é", TextMatchMode::prefix, false).absent() &&
+                find_text_match("Évora", "É", TextMatchMode::prefix, false) == stxlib::Optional<std::size_t>::of(0U),
             "letters outside ASCII compare exactly");
 }
 
@@ -191,7 +191,7 @@ void suggest_keyboard_trace() {
     require(shown.size() == 5U && shown[0] == "Calgary" && shown[1] == "California" &&
                 shown[2] == "Cambridge" && shown[3] == "calgary" && shown[4] == "Caen",
             "the list shows matches in source order, each text once");
-    require(box.text.read() == "c" && !box.auto_complete_highlighted(), "suggest mode does not change the text");
+    require(box.text.read() == "c" && box.auto_complete_highlighted().absent(), "suggest mode does not change the text");
     require(window.find("ac.suggest.auto-complete.list") != nullptr && window.focused_control() == fixture.box,
             "the list is an overlay and the box keeps the focus");
     window.perform_layout();
@@ -211,17 +211,17 @@ void suggest_keyboard_trace() {
             "deleting widens the list again");
 
     trace.clear();
-    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 0U &&
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(0U) &&
                 box.text.read() == "Calgary" && box.selection().caret == Utf8Offset(7U),
             "Down highlights the first suggestion and shows it in the box");
-    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == 1U && box.text.read() == "California",
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(1U) && box.text.read() == "California",
             "Down moves to the next suggestion");
     require(press(window, PhysicalKey::up) && press(window, PhysicalKey::up) &&
-                !box.auto_complete_highlighted() && box.text.read() == "ca",
+                box.auto_complete_highlighted().absent() && box.text.read() == "ca",
             "Up from the first suggestion returns to the typed text");
-    require(press(window, PhysicalKey::up) && box.auto_complete_highlighted() == 4U && box.text.read() == "Caen",
+    require(press(window, PhysicalKey::up) && box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(4U) && box.text.read() == "Caen",
             "Up from the typed text highlights the last suggestion");
-    require(press(window, PhysicalKey::down) && !box.auto_complete_highlighted() && box.text.read() == "ca",
+    require(press(window, PhysicalKey::down) && box.auto_complete_highlighted().absent() && box.text.read() == "ca",
             "Down from the last suggestion returns to the typed text");
     require(trace.size() == 6U && trace[0] == "text Calgary" && trace[5] == "text ca",
             "each highlight change shows its text once");
@@ -338,7 +338,7 @@ void suggest_append_mode() {
     Window& window = *fixture.window;
     TextBox& box = *fixture.box;
     require(type(window, "c") && box.text.read() == "calgary" && box.auto_complete_open() &&
-                !box.auto_complete_highlighted(),
+                box.auto_complete_highlighted().absent(),
             "suggest-append appends the first match and opens the list");
     require(press(window, PhysicalKey::down) && box.text.read() == "Calgary" && box.selection().empty(),
             "Down replaces the appended completion with the highlighted suggestion");
@@ -394,7 +394,7 @@ void pointer_and_dismissal() {
     const Rect list = (*window.find("ac.pointer.auto-complete.list")).absolute_bounds();
     const Point third{list.x + 20.0, list.y + 2.0 + 2.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}) &&
-                box.auto_complete_highlighted() == 2U && box.text.read() == "Cambridge" &&
+                box.auto_complete_highlighted() == stxlib::Optional<std::size_t>::of(2U) && box.text.read() == "Cambridge" &&
                 window.focused_control() == fixture.box,
             "pressing a row highlights it without taking the focus");
     require(window.dispatch_pointer({PointerAction::up, PointerButton::primary, third}) &&
@@ -589,8 +589,8 @@ void paste_suggests_without_appending() {
 
 struct TraceIndex final {
     std::vector<std::string>* trace{};
-    void operator()(std::optional<std::size_t> index) const {
-        (*trace).push_back(index ? "index " + std::to_string(*index) : std::string("index none"));
+    void operator()(stxlib::Optional<std::size_t> index) const {
+        (*trace).push_back(index.present() ? "index " + std::to_string(*index.value()) : std::string("index none"));
     }
 };
 struct TraceDropDown final {
@@ -624,12 +624,12 @@ void combo_drop_down_style() {
     ComboFixture fixture = make_combo("combo.edit");
     Window& window = *fixture.window;
     ComboBox& combo = *fixture.combo;
-    combo.selected_index = 1U;
+    combo.selected_index = stxlib::Optional<std::size_t>::of(1U);
     require(!combo.editor() && combo.text.read() == "California" && combo.focusable.read(),
             "a new combo box is a drop-down list with no editor");
     combo.drop_down_style = ComboBoxStyle::drop_down;
     const std::shared_ptr<TextBox> editor = combo.editor();
-    require(editor && (*editor).text.read() == "California" && combo.selected_index.read() == 1U &&
+    require(editor && (*editor).text.read() == "California" && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(1U) &&
                 !combo.focusable.read() && window.find("combo.edit.editor") == editor,
             "the drop_down style adds an editor showing the selected item");
     window.perform_layout();
@@ -647,15 +647,15 @@ void combo_drop_down_style() {
     SubscriptionToken drops = combo.drop_down_changed().subscribe(TraceDropDown{&trace});
     require(window.request_focus(editor), "the editor takes the focus");
     (*editor).select_all();
-    require(type(window, "d") && combo.text.read() == "d" && !combo.selected_index.read(),
+    require(type(window, "d") && combo.text.read() == "d" && combo.selected_index.read().absent(),
             "typed text that equals no item clears the selection");
-    require(type(window, "OVER") && combo.text.read() == "dOVER" && combo.selected_index.read() == 3U,
+    require(type(window, "OVER") && combo.text.read() == "dOVER" && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(3U),
             "typed text equal to an item, ignoring ASCII case, selects it and stays as typed");
     require(trace.size() == 4U && trace[0] == "text d" && trace[1] == "index none" &&
                 trace[2] == "text dOVER" && trace[3] == "index 3",
             "each edit raises text_changed, then any selection change");
     trace.clear();
-    require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U && combo.text.read() == "Cambridge",
+    require(press(window, PhysicalKey::up) && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && combo.text.read() == "Cambridge",
             "Up selects the previous item and shows it");
     require(trace.size() == 2U && trace[0] == "text Cambridge" && trace[1] == "index 2",
             "choosing an item shows its text, then raises the selection");
@@ -666,10 +666,10 @@ void combo_drop_down_style() {
                 window.focused_control() == editor,
             "F4 opens the list without taking the focus from the editor");
     require(!(*window.find("combo.edit.overlay.list")).focusable.read(), "the open list never takes the focus");
-    require(press(window, PhysicalKey::up) && combo.selected_index.read() == 2U && combo.dropped_down.read() &&
-                (*std::static_pointer_cast<ListBox>(window.find("combo.edit.overlay.list"))).selected_index() == 2U,
+    require(press(window, PhysicalKey::up) && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && combo.dropped_down.read() &&
+                (*std::static_pointer_cast<ListBox>(window.find("combo.edit.overlay.list"))).selected_index() == stxlib::Optional<std::size_t>::of(2U),
             "Up moves through the open list and the field shows each item");
-    require(type(window, "s") && combo.text.read() == "Cambridges" && combo.dropped_down.read() && !combo.selected_index.read(),
+    require(type(window, "s") && combo.text.read() == "Cambridges" && combo.dropped_down.read() && combo.selected_index.read().absent(),
             "typing goes on in the editor while the list is open");
     require(press(window, PhysicalKey::enter) && !combo.dropped_down.read() && combo.text.read() == "Cambridges",
             "Enter closes the list");
@@ -683,7 +683,7 @@ void combo_drop_down_style() {
     const Point first{list.x + 20.0, list.y + 2.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, first}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, first}) &&
-                !combo.dropped_down.read() && combo.selected_index.read() == 0U && combo.text.read() == "Calgary" &&
+                !combo.dropped_down.read() && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(0U) && combo.text.read() == "Calgary" &&
                 window.focused_control() == editor,
             "clicking a row chooses it, closes the list and keeps the focus in the editor");
     const Point button{10.0 + 220.0 - 10.0, 25.0};
@@ -699,19 +699,19 @@ void combo_drop_down_style() {
             "the list closes when the field loses the focus");
 
     combo.text = "CAMBRIDGE";
-    require(combo.text.read() == "CAMBRIDGE" && combo.selected_index.read() == 2U,
+    require(combo.text.read() == "CAMBRIDGE" && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(2U),
             "set_text sets the editor's text and the selection follows it");
     require(combo.property_value("Text") == BindingValue{std::string("CAMBRIDGE")},
             "the Text property is the field's text");
     require(window.perform_semantic_action("combo.edit", SemanticAction::set_value, "Somewhere") &&
-                combo.text.read() == "Somewhere" && !combo.selected_index.read(),
+                combo.text.read() == "Somewhere" && combo.selected_index.read().absent(),
             "an assistive technology may set any text");
     combo.items = {"Somewhere", "Elsewhere"};
-    require(combo.selected_index.read() == 0U, "new items are matched against the text");
+    require(combo.selected_index.read() == stxlib::Optional<std::size_t>::of(0U), "new items are matched against the text");
 
     combo.drop_down_style = ComboBoxStyle::drop_down_list;
     require(!combo.editor() && !window.find("combo.edit.editor") && combo.focusable.read() &&
-                combo.selected_index.read() == 0U && combo.text.read() == "Somewhere",
+                combo.selected_index.read() == stxlib::Optional<std::size_t>::of(0U) && combo.text.read() == "Somewhere",
             "back in the drop_down_list style the editor is gone and the selection kept");
 }
 
@@ -734,12 +734,12 @@ void combo_auto_complete() {
     require(type(window, "c") && combo.text.read() == "calgary" && (*editor).auto_complete_open() &&
                 (*editor).auto_complete_suggestions().size() == 3U && !combo.dropped_down.read(),
             "list_items completes from the items: the first is appended and the matches suggested");
-    require(combo.selected_index.read() == 0U, "the appended completion equals an item, so it is selected");
+    require(combo.selected_index.read() == stxlib::Optional<std::size_t>::of(0U), "the appended completion equals an item, so it is selected");
     window.perform_layout();
     const Rect list = (*window.find("combo.ac.editor.auto-complete.list")).absolute_bounds();
     require(list.width == 220.0 && list.y >= 40.0, "the suggestion list opens under the whole field");
     require(press(window, PhysicalKey::down) && press(window, PhysicalKey::down) &&
-                combo.text.read() == "California" && combo.selected_index.read() == 1U && !combo.dropped_down.read(),
+                combo.text.read() == "California" && combo.selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && !combo.dropped_down.read(),
             "Down moves through the suggestions, not the combo box's own list");
     require(press(window, PhysicalKey::enter) && !(*editor).auto_complete_open() &&
                 combo.text.read() == "California" && trace.size() == 1U,
@@ -763,7 +763,7 @@ void combo_auto_complete() {
     combo.auto_complete_source = AutoCompleteSource::custom_source;
     require((*editor).auto_complete_custom_source.read() == towns, "custom_source hands the collection to the editor");
     (*editor).select_all();
-    require(type(window, "d") && combo.text.read() == "dartmouth" && !combo.selected_index.read(),
+    require(type(window, "d") && combo.text.read() == "dartmouth" && combo.selected_index.read().absent(),
             "custom_source completes from the collection, not the items");
     combo.auto_complete_source = AutoCompleteSource::history_list;
     (*editor).select_all();

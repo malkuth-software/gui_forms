@@ -93,7 +93,7 @@ GuidedTasksPage::GuidedTasksPage(const std::shared_ptr<Surface>& body) {
                   .version = "2.5",
                   .description = "The control gallery of GUI.Forms, a retained, CPU-rendered user interface library.",
                   .copyright = "Copyright the GUI.Forms authors. MIT licence.",
-                  .credits = "Portsmouth Rapids typeface, MIT. HarfBuzz and FreeType text. Skia CPU rendering."});
+                  .credits = "Portsmouth Rapids typeface, MIT. STXlib text. Skia CPU rendering."});
     on((*about_).closed(), *this, &GuidedTasksPage::on_about_closed);
 }
 

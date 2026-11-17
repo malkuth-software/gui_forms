@@ -41,7 +41,8 @@ enum class DisplayOperation : std::uint8_t {
     draw_part_raster = 22,
     // A paint group (Painter::begin_group): `rect` its bounds, `scalar` its
     // opacity, `secondary_scalar` its composite mode's value,
-    // `tertiary_scalar` 1 when it is isolated at any opacity.
+    // `tertiary_scalar` 1 when it is isolated at any opacity, and
+    // `group_effect` its effect, or null.
     begin_group = 23,
     end_group = 24,
     // A part raster shown scaled (Painter::draw_part_raster_scaled): `rect`
@@ -71,6 +72,28 @@ enum class DisplayOperation : std::uint8_t {
     // width.
     fill_rounded_rect_corners = 37,
     stroke_rounded_rect_corners = 38,
+    // Curved paths (Painter::fill_path, Painter::stroke_path): the verbs
+    // and points in `marks`.
+    fill_path = 39,
+    stroke_path = 40,
+    // A path clip (Painter::clip_path): the verbs, points and rule in
+    // `marks`, and `rect` the path's bounds (empty for an invalid path),
+    // which readers that keep clips as rectangles use.
+    clip_path = 41,
+    // A radial gradient with a spread: as fill_radial_gradient (`rect`,
+    // `first` the centre, `second` the radii, `gradient_stops`) with
+    // `gradient_spread`.
+    fill_radial_gradient_spread = 42,
+    // A hatch: `rect`, with the pattern in `marks`.
+    fill_hatch = 43,
+    // A focal radial gradient: as fill_radial_gradient_spread, with the
+    // focus in `scalar` (x) and `secondary_scalar` (y).
+    fill_focal_radial_gradient = 44,
+    // A transform group (Painter::begin_transform): `rect` its bounds in
+    // content coordinates; the map's xx and yx in `first`, xy and yy in
+    // `second`, dx in `scalar` and dy in `secondary_scalar`.
+    begin_transform = 45,
+    end_transform = 46,
 };
 
 // The payload of a batched mark or pattern command: the caller's spans,
@@ -84,7 +107,10 @@ enum class DisplayOperation : std::uint8_t {
 // - fill_rects_each: `rects`, `colors`;
 // - stroke_segments: `segments`, `stroke`;
 // - draw_markers: `points`, `marker`;
-// - fill_checker: `checker`; fill_grid_pattern: `grid`.
+// - fill_checker: `checker`; fill_grid_pattern: `grid`; fill_hatch: `hatch`;
+// - fill_path: `path_verbs`, `points`, `color` on the command, `fill_rule`;
+// - stroke_path: `path_verbs`, `points`, `stroke`;
+// - clip_path: `path_verbs`, `points`, `fill_rule`.
 struct DisplayMarks final {
     std::vector<Point> points;
     std::vector<Point> lower_points;
@@ -95,7 +121,18 @@ struct DisplayMarks final {
     MarkerStyle marker{};
     CheckerPattern checker{};
     GridPattern grid{};
+    HatchPattern hatch{};
     PolygonFillRule fill_rule{PolygonFillRule::nonzero};
+    std::vector<PaintPathVerb> path_verbs;
+
+    // The recorded path, borrowed from these marks.
+    [[nodiscard]] PaintPathView path() const& noexcept {
+        PaintPathView view{};
+        view.verbs = std::span<const PaintPathVerb>(path_verbs.data(), path_verbs.size());
+        view.points = std::span<const Point>(points.data(), points.size());
+        return view;
+    }
+    PaintPathView path() const&& = delete;
 };
 
 struct DisplayCommand final {
@@ -118,6 +155,10 @@ struct DisplayCommand final {
     // The reading direction of draw_text_utf8. A turned run replays through
     // Painter::draw_turned_text_utf8, without the retained cache.
     TextOrientation text_orientation{TextOrientation::horizontal};
+    // The turn of a rotated run (Painter::draw_rotated_text_utf8), in
+    // degrees anticlockwise as seen, or 0. A rotated run replays through
+    // draw_rotated_text_utf8, without the retained cache.
+    double text_degrees{};
     // Renderer-derived data shared by every replay copy of this recording.
     std::shared_ptr<RetainedDrawCache> retained_cache{};
     // The raster of draw_part_raster, shared read-only with its maker. The
@@ -132,6 +173,8 @@ struct DisplayCommand final {
     // otherwise.
     std::shared_ptr<const SurfaceMaterial> surface_material{};
     std::shared_ptr<const PreparedTextStorage> prepared_text{};
+    // A begin_group's effect (PaintGroup::effect), else null.
+    std::shared_ptr<const PaintGroupEffect> group_effect{};
     // The spans and styles of a batched mark or pattern, else null.
     std::shared_ptr<const DisplayMarks> marks{};
     LayoutAuthority prepared_authority{};

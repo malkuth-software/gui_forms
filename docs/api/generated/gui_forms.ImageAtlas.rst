@@ -196,7 +196,7 @@ gui_forms::ImageAtlas
       Draws a slot without remembering a control, for a painter that is not a
       control's paint; a change to the slot repaints nothing drawn this way.
 
-   .. cpp:function:: std::optional<Rect> source_rectangle(ImageAtlasSlot slot) const noexcept
+   .. cpp:function:: stxlib::Optional<Rect> source_rectangle(ImageAtlasSlot slot) const noexcept
 
       The slot's rectangle in the backing image, inside its gutter; none for a stale handle.
 

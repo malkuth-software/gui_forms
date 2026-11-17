@@ -9,17 +9,21 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
@@ -87,10 +91,15 @@ struct PropertyGrid::Impl final {
     struct PropertyRefresh final {
         Impl* implementation{};
         std::string canonical;
+        // During a commit the notification is recorded and refreshed after
+        // the committed property (A-gf-controls-09-F2): a setter that moves
+        // another notifying property must not leave that row stale.
         void operator()() const {
-            if (!(*implementation).committing) {
-                (*implementation).refresh_one(canonical, true);
+            if ((*implementation).committing) {
+                (*implementation).defer_refresh(canonical);
+                return;
             }
+            (*implementation).refresh_one(canonical, true);
         }
     };
 
@@ -736,27 +745,50 @@ struct PropertyGrid::Impl final {
         }
     }
 
+    // An editor that could not be installed, reported after the loop.
+    struct EditorFailure final {
+        std::string property_path;
+        std::string message;
+    };
+
+    // The factory, the binding's connections and edit_failed's handlers are
+    // the program's code, and any of them may rebuild the grid, which clears
+    // edit_targets and the row maps (A-gf-controls-09-F1). The loop walks a
+    // copy of the target names, finds each again, stops as soon as the
+    // projection revision moves, and raises the failures only after it, in
+    // order, stopping when a handler rebuilt the grid (that rebuild installed
+    // its own editors).
     void install_custom_editors() {
         if (!list || !editors) return;
-        for (const std::pair<const std::string, EditTarget>& target_entry :
-             edit_targets) {
-            const std::string& canonical = target_entry.first;
-            const EditTarget& target_spec = target_entry.second;
+        const std::uint64_t expected_projection = projection_revision;
+        std::vector<std::string> canonicals;
+        canonicals.reserve(edit_targets.size());
+        for (const std::pair<const std::string, EditTarget>& target_entry : edit_targets) {
+            canonicals.push_back(target_entry.first);
+        }
+        std::vector<EditorFailure> failures;
+        for (const std::string& canonical : canonicals) {
+            if (!owner.is_alive() || projection_revision != expected_projection) return;
+            const EditTargetMap::iterator target_entry = edit_targets.find(canonical);
+            if (target_entry == edit_targets.end()) continue;
+            const EditTarget& target_spec = (*target_entry).second;
             if (!target_spec.writable) continue;
             const ValueMap::iterator value = values.find(canonical);
             const StringMap::iterator row = property_to_row.find(canonical);
             if (value == values.end() || row == property_to_row.end()) {
                 continue;
             }
+            const std::string row_id = (*row).second;
             PropertyEditorRequest request;
-            request.stable_id = (*row).second + ".custom-editor";
-            request.property_path = row_to_property.at((*row).second);
+            request.stable_id = row_id + ".custom-editor";
+            request.property_path = row_to_property.at(row_id);
             request.descriptor = target_spec.descriptor;
             request.value = (*value).second;
             request.writable = target_spec.writable;
             request.top_level = target_spec.path.empty();
             try {
                 std::optional<PropertyEditorBinding> binding = (*editors).create(request);
+                if (!owner.is_alive() || projection_revision != expected_projection) return;
                 if (!binding) continue;
                 const Control::WeakPtr owner_lifetime = owner.weak_from_this();
                 SubscriptionToken committed = (*binding).connect_committed(
@@ -776,7 +808,8 @@ struct PropertyGrid::Impl final {
                             "Property editor factory returned no failure subscription");
                     }
                 }
-                if (!(*list).replace_editor((*row).second, (*binding).control)) {
+                if (!owner.is_alive() || projection_revision != expected_projection) return;
+                if (!(*list).replace_editor(row_id, (*binding).control)) {
                     throw std::logic_error(
                         "Property editor row disappeared during installation");
                 }
@@ -785,8 +818,12 @@ struct PropertyGrid::Impl final {
                     InstalledEditor{std::move(*binding), std::move(committed),
                                     std::move(failure)});
             } catch (const std::exception& error) {
-                report_error(request.property_path, "<editor>", error.what());
+                failures.push_back(EditorFailure{request.property_path, std::string(error.what())});
             }
+        }
+        for (EditorFailure& failure : failures) {
+            if (!owner.is_alive() || projection_revision != expected_projection) return;
+            report_error(std::move(failure.property_path), "<editor>", std::move(failure.message));
         }
     }
 
@@ -860,6 +897,34 @@ struct PropertyGrid::Impl final {
         }
     }
 
+    // Records a notifying property whose change arrived during a commit,
+    // once.
+    void defer_refresh(const std::string& canonical) {
+        const std::vector<std::string>::iterator found =
+            std::find(deferred_refreshes.begin(), deferred_refreshes.end(), canonical);
+        if (found == deferred_refreshes.end()) deferred_refreshes.push_back(canonical);
+    }
+
+    // Refreshes, publishing each change, the properties recorded during a
+    // commit, in arrival order. A refresh publishes property_value_changed,
+    // whose handlers may change more properties (recorded and refreshed in
+    // turn while the commit lasts), rebuild the projection, retarget the grid
+    // or dispose it; the flush stops at any of the last three, since a
+    // rebuild has refreshed every row and a retargeted or disposed grid shows
+    // nothing of `object`. Nothing read before a refresh is used after it.
+    void refresh_deferred(const Control::Ptr& object, std::uint64_t expected_projection) {
+        while (!deferred_refreshes.empty()) {
+            if (!owner.is_alive() || projection_revision != expected_projection ||
+                target().get() != object.get()) {
+                deferred_refreshes.clear();
+                return;
+            }
+            const std::string canonical = deferred_refreshes.front();
+            deferred_refreshes.erase(deferred_refreshes.begin());
+            refresh_one(canonical, true);
+        }
+    }
+
     void report_error(std::string property_name, std::string attempted,
                       std::string message) {
         // The error names the registered path, whichever spelling the caller
@@ -881,6 +946,9 @@ struct PropertyGrid::Impl final {
 
     bool set_value(std::string_view property_name, BindingValue value,
                    bool reset, bool structural = false) {
+        // Held for the call: the commit's events run application handlers,
+        // after which the deferred refreshes still read the grid.
+        const Control::Ptr retained_owner = owner.weak_from_this().lock();
         const Control::Ptr object = target();
         const std::vector<Control::Ptr> objects = targets();
         if (!object || objects.empty()) return false;
@@ -975,6 +1043,7 @@ struct PropertyGrid::Impl final {
             return false;
         }
         const BindingValue previous_value = edits.front().previous_value;
+        deferred_refreshes.clear();
         committing = true;
         struct CommitReset final {
             bool& flag;
@@ -1037,6 +1106,7 @@ struct PropertyGrid::Impl final {
                     origin, reset};
                 owner.publish_change(owner.property_value_changed_, change);
             }
+            refresh_deferred(object, expected_projection);
             return true;
         } catch (const std::exception& error) {
             if (!owner.is_alive()) return false;
@@ -1046,7 +1116,9 @@ struct PropertyGrid::Impl final {
             }
             if ((*object).is_alive()) {
                 refresh_one(property_canonical, false);
+                refresh_deferred(object, expected_projection);
             }
+            if (!owner.is_alive()) return false;
             report_error(authored_path,
                          reset ? std::string("<reset>")
                                : binding_value_to_string(value),
@@ -1172,10 +1244,17 @@ struct PropertyGrid::Impl final {
             : convert_property_value(BindingValue{change.current_value},
                                      effective);
         if (!converted) {
-            report_error((*property).second, change.current_value,
+            // edit_failed's handlers may rebuild the grid, which clears the
+            // maps these iterators point into (A-gf-controls-09-F1): the
+            // names are copied first, and a rebuild already shows the
+            // present values.
+            const std::string property_name = (*property).second;
+            const std::string target_name = (*target_spec).second.property_name;
+            const std::uint64_t expected_projection = projection_revision;
+            report_error(property_name, change.current_value,
                          "Property text cannot convert through its declared converter");
-            refresh_one(registered_name(
-                (*target_spec).second.property_name), false);
+            if (!owner.is_alive() || projection_revision != expected_projection) return;
+            refresh_one(registered_name(target_name), false);
             return;
         }
         static_cast<void>(set_value((*property).second, *converted, false));
@@ -1200,6 +1279,9 @@ struct PropertyGrid::Impl final {
     SubscriptionToken list_reset;
     std::optional<PropertyGridEditError> last_error;
     std::uint64_t projection_revision{};
+    // Canonical names whose change notifications arrived while committing,
+    // in arrival order, each once; emptied by refresh_deferred.
+    std::vector<std::string> deferred_refreshes;
     bool committing{};
 };
 
@@ -1363,16 +1445,15 @@ std::optional<PropertyDescriptor> PropertyGrid::selected_descriptor(
         : std::optional<PropertyDescriptor>{(*target).second.descriptor};
 }
 
-std::optional<PropertyValueOrigin> PropertyGrid::selected_origin(
+stxlib::Optional<PropertyValueOrigin> PropertyGrid::selected_origin(
     std::string_view property_name) const {
     const Control::Ptr selected = selected_object();
     if (!selected) return {};
     const Impl::EditTargetMap::iterator target = (*impl_).edit_targets.find(
         registered_name(property_name));
     return target != (*impl_).edit_targets.end()
-        ? std::optional<PropertyValueOrigin>{
-              (*selected).property_value_origin((*target).second.property_name)}
-        : std::optional<PropertyValueOrigin>{};
+        ? stxlib::Optional<PropertyValueOrigin>::of((*selected).property_value_origin((*target).second.property_name))
+        : stxlib::Optional<PropertyValueOrigin>::none();
 }
 
 bool PropertyGrid::set_property_expanded(std::string_view property_name,
@@ -1391,14 +1472,14 @@ bool PropertyGrid::set_property_expanded(std::string_view property_name,
     return (*(*impl_).list).set_row_expanded((*found).second, expanded);
 }
 
-std::optional<bool> PropertyGrid::property_expanded(
+stxlib::Optional<bool> PropertyGrid::property_expanded(
     std::string_view property_name) const {
     if (!(*impl_).list) return {};
     const std::string canonical = registered_name(property_name);
     const Impl::StringMap::iterator found =
         (*impl_).property_to_row.find(canonical);
     return found == (*impl_).property_to_row.end()
-        ? std::optional<bool>{}
+        ? stxlib::Optional<bool>::none()
         : (*(*impl_).list).row_expanded((*found).second);
 }
 
@@ -1506,6 +1587,7 @@ constexpr ControlAnatomy property_grid_anatomy{
     .parts = panel_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

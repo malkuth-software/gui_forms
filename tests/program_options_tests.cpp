@@ -92,9 +92,9 @@ void test_deadline_without_a_presented_frame_fails() {
 void test_presented_frame_passes() {
     std::unique_ptr<Window> window = make_window("smoke.presented.root");
     NullPainter painter;
-    const std::optional<PaintReceipt> receipt =
+    const stxlib::Optional<PaintReceipt> receipt =
         (*window).paint(painter, (*window).take_damage().bounds());
-    require(receipt.has_value() && (*window).notify_presented(*receipt) &&
+    require(receipt.present() && (*window).notify_presented(*receipt.value()) &&
                 (*window).metrics_snapshot().frames_presented == 1U,
             "the headless window did not present its first frame");
     const FrameTime started = FrameTime{} + 1s;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 #include <cstdint>
 #include <thread>
 
@@ -18,7 +19,7 @@ public:
     void dispose();
     [[nodiscard]] ObjectState state() const;
     [[nodiscard]] bool is_disposed() const;
-    [[nodiscard]] std::thread::id owner_thread() const noexcept { return owner_thread_; }
+    [[nodiscard]] gui_forms::ThreadId owner_thread() const noexcept { return owner_thread_; }
     void verify_access() const;
     // ABI/frontends may transfer a drawing value between serialized calls.
     // This is never an authorization for concurrent access.
@@ -29,7 +30,7 @@ protected:
     virtual void on_dispose() noexcept;
 
 private:
-    std::thread::id owner_thread_;
+    gui_forms::ThreadId owner_thread_;
     ObjectState state_{ObjectState::alive};
 };
 

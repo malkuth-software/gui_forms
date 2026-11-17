@@ -200,15 +200,15 @@ DockNodeId DockLayout::document_area() const noexcept {
     return DockNodeId{};
 }
 
-std::optional<DockNodeId> DockLayout::pin_owner(const DockPanelId& panel) const {
+stxlib::Optional<DockNodeId> DockLayout::pin_owner(const DockPanelId& panel) const {
     const DockPanelLocation location = locate(panel);
-    if (location.stack == DockNodeId{}) return std::nullopt;
+    if (location.stack == DockNodeId{}) return stxlib::Optional<DockNodeId>::none();
     const DockNodePlace place = detail::dock_place_of(state_, location.stack);
     const bool pinned_out = place.region == DockRegion::auto_hidden;
     const DockNode& stack = *find_node(location.stack);
     const bool docked_tool = place.region == DockRegion::main_tools && stack.kind == DockNodeKind::tool_stack;
-    if (!pinned_out && !docked_tool) return std::nullopt;
-    const std::optional<DockNodeId> owner = location.stack;
+    if (!pinned_out && !docked_tool) return stxlib::Optional<DockNodeId>::none();
+    const stxlib::Optional<DockNodeId> owner = stxlib::Optional<DockNodeId>::of(location.stack);
     return owner;
 }
 

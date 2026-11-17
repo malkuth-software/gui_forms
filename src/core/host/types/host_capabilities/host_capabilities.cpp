@@ -1,5 +1,7 @@
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 
+#include "../../../json/json_text/json_text.hpp"
+
 #include <array>
 #include <sstream>
 #include <utility>
@@ -35,7 +37,7 @@ void append_chord(std::ostringstream& output, KeyChord chord, bool first) {
 } // namespace
 
 std::string HostCapabilities::to_json() const {
-    constexpr std::array<std::pair<HostCapability, const char*>, 36> names{{
+    constexpr std::array<std::pair<HostCapability, const char*>, 46> names{{
         {HostCapability::lifecycle, "lifecycle"},
         {HostCapability::scale_notifications, "scale_notifications"},
         {HostCapability::monitor_geometry, "monitor_geometry"},
@@ -72,8 +74,21 @@ std::string HostCapabilities::to_json() const {
         {HostCapability::opaque_transient_surfaces, "opaque_transient_surfaces"},
         {HostCapability::window_corners, "window_corners"},
         {HostCapability::window_state_reports, "window_state_reports"},
+        {HostCapability::locale, "locale"},
+        {HostCapability::hosted_content, "hosted_content"},
+        {HostCapability::relative_pointer, "relative_pointer"},
+        {HostCapability::raw_pointer_motion, "raw_pointer_motion"},
+        {HostCapability::pointer_confinement, "pointer_confinement"},
+        {HostCapability::pointer_warp, "pointer_warp"},
+        {HostCapability::open_url, "open_url"},
+        {HostCapability::direct_buffers, "direct_buffers"},
+        {HostCapability::host_scroll, "host_scroll"},
+        {HostCapability::reference_presentation, "reference_presentation"},
     }};
     std::ostringstream output;
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"protocol_version\":" << protocol_version
            << ",\"platform\":\"" << json_escape(platform)
            << "\",\"available_bits\":"
@@ -95,7 +110,9 @@ std::string HostCapabilities::to_json() const {
         append_chord(output, binding.secondary, binding.primary.empty());
         output << ']';
     }
-    output << "}}";
+    output << "},\"locale\":" << host_locale_json(locale);
+    output << ",\"window_corner_shapes\":{\"square\":" << (window_corner_shapes.square ? "true" : "false")
+           << ",\"rounded\":" << (window_corner_shapes.rounded ? "true" : "false") << "}}";
     return output.str();
 }
 

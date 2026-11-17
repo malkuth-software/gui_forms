@@ -27,7 +27,10 @@ build. `.github/workflows/native.yml` runs one job per platform (`macos-15`,
 
 1. reuses an earlier successful result for the identical tree if one exists;
 2. otherwise restores the closest object cache, compiles only what changed,
-   and runs every native, installed-SDK and development-profile test;
+   and runs every native, installed-SDK and development-profile test (on a
+   pull request, `--test-targets-only --changed-from HEAD^1`: the tests the
+   change can affect, built without installing anything; a pull request
+   that changes only documentation builds nothing);
 3. uploads its tested cache archive and a validation receipt;
 4. on `main`, publishes that archive to the `build-<sha>` pre-release at
    once, without waiting for the other platforms.
@@ -84,9 +87,9 @@ layout, so nothing in the job names an absolute directory:
 ├── .ccache/                               CCACHE_DIR
 ├── cache-manifest.json                    written beside a cache archive
 └── .build/
-    ├── native-<platform>/gui-forms/       toolkit build tree
+    ├── native-<platform>/gui-forms/       toolkit build tree (with stx-package/)
     ├── native-<platform>/gui-forms-sdk/   install prefix
-    ├── native-<platform>/skia/            Skia build output
+    ├── native-<platform>/gui-forms-sanitize/  the sanitizer tree
     └── toolchain/llvm-22.1.8-macos14/     macOS runtime prefix
 ```
 
@@ -105,6 +108,16 @@ leading argument (`cmake/TestPrecompiledHeader.cmake`). Without that sloppiness
 `ccache` refuses every unit that reads a precompiled header. These settings
 come from CMake, so a local build tree caches the same units as CI whatever
 its shell exports.
+
+`ccache` also rewrites the paths in each object's dependency file, relative to
+the compiler's real working directory. With the build tree behind a symlink,
+its real depth differs from the logical one, so a header comes back spelled
+as a long `../../…` path that Ninja treats as a different file. A header
+generated in the build tree (a form or control header) would then not rebuild
+the objects that include it. `gui_forms_add_form` and `gui_forms_add_control`
+name the generated header as an explicit dependency of their target's own
+objects, so this cannot happen to them; any other generated header of your
+own needs the same (`OBJECT_DEPENDS`), or keep the build tree off symlinks.
 
 ### Local builds
 
@@ -143,8 +156,17 @@ echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
 echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
 echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
 echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
-echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
+echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
 ```
+
+The limit is above one full tree's objects (0.9 to 1.2 GB), so nothing is
+evicted during a build; the sanitizer and profile jobs use the same limit.
+The saved cache holds only the entries the build used (`ci_cache.py evict`).
+Main saves its objects after a passing build. A pull request saves its own,
+after a failed build or test too, under the family
+`gui-objects-v2-<platform>-<compiler>-pr<number>-`, and its next push
+restores that before main's; `cache-prune-pull-request` in `native.yml`
+deletes the generations each save supersedes.
 
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
 path or timestamp. The only sloppiness options are the two a precompiled header
@@ -152,10 +174,11 @@ needs: the test programs share one per group of programs with equal options
 (`cmake/TestPrecompiledHeader.cmake`), which takes most of the test sources' parse
 time away; the daily build compiles the tests without it
 (`GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF`), so each test still includes what it
-uses. Most test programs link one shared test runtime instead of the static
-libraries (`cmake/TestRuntime.cmake`), so a change to a library source relinks
-that runtime once rather than every program that uses the library; each program
-is still its own process, so the tests stay independent. The Objective-C++ launcher
+uses. Most test programs link the toolkit's libraries through one static test
+runtime (`cmake/TestRuntime.cmake`); it was a shared library, which relinked
+once per library change, until no shared object of ours could carry the static
+C++ runtime (one module), so a library change relinks each program that uses
+it. Each program is its own process, so the tests stay independent. The Objective-C++ launcher
 matters on macOS, where the AppKit host is Objective-C++. The CPU renderer and the
 text stack come from the stx package (`cmake/Stx.cmake`), which CI restores from an
 Actions cache keyed by `stx.lock`, the package recipe, the platform and the compiler;

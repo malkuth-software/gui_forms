@@ -2,9 +2,12 @@
 
 #include "../../../core/text/shaping/shaped_text_geometry.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
+#include "../textlayout/text_analysis.hpp"
 #include "bounded_shape_workspace.hpp"
 #include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
+
+#include <stxlib/glyph_shape.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -12,9 +15,6 @@
 #include <span>
 #include <vector>
 
-struct hb_buffer_t;
-// stx_text_allocation.h's arena, which only the engine's sources include.
-struct StxSheenBidiArena;
 
 namespace gui_forms::render::text {
 
@@ -48,19 +48,19 @@ struct StagedShaping final {
 //   capacity, capacity and twice capacity elements);
 // - the staged runs (twice capacity: at most one a visual segment) and
 //   glyphs (four a byte, plus 64);
-// - the HarfBuzz buffer, kept across calls (allocated to twice capacity
-//   glyphs at reserve) and lent to each shape call;
-// - the SheenBidi arena (40 bytes a byte of text, plus 16 KiB), installed
-//   for each call's bidi analysis. SheenBidi 2.9 asks for about 34 bytes a
-//   byte at most (its types, levels, links and flags, and a run of 24 bytes
-//   a byte in the worst case), with fixed-size queue blocks; a request the
-//   arena cannot hold goes to the C heap and is counted there
-//   (stx_text_sheenbidi_heap_allocations).
-// The arrays are counted under AllocationSubsystem::text_layout; the
-// grapheme workspace's own arrays and the HarfBuzz buffer are not (the
-// buffer is HarfBuzz's, counted by stx_text_harfbuzz_allocations).
-// Single-threaded: one shaping at a time, on the thread that installs the
-// arena.
+// - the shaping scratch (ShapeScratch: capacity characters and clusters,
+//   and room for twice capacity glyphs), kept across calls and lent to each
+//   shape call;
+// - the bidi analysis (stxlib::textlayout's Paragraph and Line, one
+//   TextAnalysis), reused for each call. It cannot be reserved: it grows to
+//   the largest paragraph it has held (about 6 bytes a byte of one-level
+//   text, 31 to 39 with a right-to-left character, up to about 62 with an
+//   explicit formatting character) and keeps that storage.
+// The arrays and the analysis (its bytes_held) are counted under
+// AllocationSubsystem::text_layout; the grapheme workspace's own arrays and
+// the scratch's glyphs are not (the glyphs are STXlib's storage). Each
+// face's shaper keeps its own working buffer, grown to the longest run it
+// has shaped. Single-threaded: one shaping at a time.
 class ReusableShapeWorkspace final : public ShapingWorkspace {
 public:
     explicit ReusableShapeWorkspace(std::uint64_t engine_identity);
@@ -79,12 +79,6 @@ private:
 
     template <typename Value>
     using CountedArray = std::vector<Value, gui_forms::detail::CountedAllocator<Value, AllocationSubsystem::text_layout>>;
-    // One aligned unit of the SheenBidi arena (STX_SHEENBIDI_ARENA_ALIGNMENT
-    // bytes; reusable_shape_workspace.cpp checks the two agree).
-    struct alignas(16) ArenaUnit final {
-        unsigned char bytes[16];
-    };
-
     // Forgets the last shaping: the reads answer none until the next.
     void forget_shaping() noexcept;
     // Records a completed shaping of `text_bytes` bytes by the engine in the
@@ -100,10 +94,9 @@ private:
     CountedArray<WorkspaceVisualSegment> visual_{};
     CountedArray<BoundedFontRun> runs_{};
     CountedArray<ShapedGlyph> glyphs_{};
-    CountedArray<ArenaUnit> arena_units_{};
-    // The arena over arena_units_, created with the workspace.
-    std::unique_ptr<StxSheenBidiArena> arena_;
-    std::unique_ptr<hb_buffer_t, void (*)(hb_buffer_t*)> buffer_;
+    // The bidi analysis each shaping reuses.
+    TextAnalysis analysis_{};
+    ShapeScratch scratch_{};
     // Pointers into runs_ and glyphs_, refreshed at reserve.
     StagedShaping staged_{};
     // The last shaping: whether there is one, its text's size and the face

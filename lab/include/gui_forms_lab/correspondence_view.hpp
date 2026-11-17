@@ -225,6 +225,8 @@ private:
     void emit_expansion_delta(std::string_view stable_id, bool before,
                               bool after,
                               CorrespondenceExpansionReason reason);
+    void emit_present_expansion_delta(std::string_view stable_id, bool before,
+                                      CorrespondenceExpansionReason reason);
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
 
@@ -294,9 +296,10 @@ private:
     // property_codemod begin CorrespondenceView (tools/property_families/correspondence_view.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_font_changed();
 
 private:
     friend struct CorrespondenceViewSelectedIdCapability<CorrespondenceView>;

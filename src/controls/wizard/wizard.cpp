@@ -32,13 +32,13 @@ constexpr double cancel_gap = 16.0;
 constexpr double divider_thickness = 1.0;
 
 constexpr std::array<PartField<Wizard::Parts>, 4> wizard_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::region},
-    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::caption},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::label},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &Wizard::Parts::divider},
 }};
 
@@ -53,6 +53,7 @@ constexpr ControlAnatomy wizard_anatomy{
     .parts = wizard_parts,
     .states = wizard_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -132,8 +133,13 @@ bool Wizard::go_to(std::uint32_t index) {
     const std::uint32_t from = current_page.read();
     if (index >= count || index == from) return false;
     WizardPageChangingEvent request{from, index, false};
+    // A handler may drop the wizard's last other reference, or add and
+    // remove pages: the wizard stays alive and the target is checked again
+    // before it is written (A-gf-controls-14-F8).
+    const Control::Ptr lifetime = weak_from_this().lock();
     page_changing_.emit(request);
-    if (request.cancel || current_page.read() != from) return false;
+    if (request.cancel || !is_alive() || current_page.read() != from) return false;
+    if (index >= page_count()) return false;
     current_page = index;
     return true;
 }

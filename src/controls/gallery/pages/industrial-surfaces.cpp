@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <system_error>
 
@@ -173,7 +174,7 @@ void IndustrialSurfacesPage::place_lamps() {
         std::shared_ptr<IndicatorLamp> lamp = make_control<IndicatorLamp>(StableId(id));
         (*lamp).accessible_name = std::string(choice.accessible_name);
         (*lamp).light_planes = bake;
-        (*lamp).lamp_color = std::optional<Color>{choice.colour};
+        (*lamp).lamp_color = stxlib::Optional<Color>::of(choice.colour);
         (*lamp).set_bounds(choice.bounds);
         keys.add_child(lamp);
         lamps_.push_back(std::move(lamp));

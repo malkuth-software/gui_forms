@@ -12,6 +12,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string_view>
 
 namespace {
@@ -195,9 +196,9 @@ void require_smoke_verdict() {
 
     std::unique_ptr<gui_forms::Window> shown = file_manager_demoboard::make_product_window();
     NullPainter painter;
-    const std::optional<gui_forms::PaintReceipt> receipt =
+    const stxlib::Optional<gui_forms::PaintReceipt> receipt =
         (*shown).paint(painter, (*shown).take_damage().bounds());
-    require(receipt.has_value() && (*shown).notify_presented(*receipt),
+    require(receipt.present() && (*shown).notify_presented(*receipt.value()),
             "the product window did not present its first frame");
     const std::shared_ptr<int> shown_closes = std::make_shared<int>(0);
     const std::shared_ptr<file_manager_demoboard::SmokeTest> seen =
@@ -257,7 +258,7 @@ int main() {
     const gui_forms::Control::Ptr matrix = (*product).find("fm.path.matrix");
     const std::shared_ptr<gui_forms::AnchoredOverlayLayer> matrix_layer = std::dynamic_pointer_cast<gui_forms::AnchoredOverlayLayer>(
         (*product).find("fm.path.matrix.layer"));
-    require(matrix && matrix_layer && (*terminal).expanded_state.read() == true &&
+    require(matrix && matrix_layer && (*terminal).expanded_state.read() == stxlib::Optional<bool>::of(true) &&
                 (*matrix).absolute_bounds() == gui_forms::Rect{111,169,860,424} &&
                 (*product).focused_control() ==
                     (*product).find("fm.path.matrix.current.tail"),
@@ -315,7 +316,7 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}) &&
                 !(*product).find("fm.path.matrix") &&
-                (*terminal).expanded_state.read() == false &&
+                (*terminal).expanded_state.read() == stxlib::Optional<bool>::of(false) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.title.text"))).text.read().find("North Shore") !=
                     std::string::npos,
@@ -619,7 +620,7 @@ int main() {
     const std::shared_ptr<gui_forms::ComboBox> kind_value = std::dynamic_pointer_cast<gui_forms::ComboBox>(
         (*criteria_edit).find("fm.criteria.module.criteria-kind-images.value"));
     require(edit_rack && kind_value, "Criteria live editor projection is absent");
-    (*kind_value).selected_index = 1U;
+    (*kind_value).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require((*edit_rack).modules()[0].state ==
                 gui_forms::InstrumentModuleState::live &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
@@ -888,7 +889,7 @@ int main() {
                     (*product).find("fm.selection.object-name"))).text.read() ==
                     "Facade Final.png",
             "valid session rename must update one coherent object/property projection");
-    (*property_handler).selected_index = 1U;
+    (*property_handler).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require((*property_list).value("fm.property.handler") == "Image Laboratory" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.status.authority"))).text.read().find(
@@ -1248,36 +1249,36 @@ int main() {
             "controller semantic-sound policy toggle is absent");
     require(reduced_motion && !(*reduced_motion).checked.read(),
             "controller reduced-motion policy toggle is absent");
-    (*surface_choice).selected_index = 1U;
+    (*surface_choice).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require((*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Search choice must reach the public product-surface transition");
-    (*surface_choice).selected_index = 2U;
+    (*surface_choice).selected_index = stxlib::Optional<std::size_t>::of(2U);
     require((*(*responsive).find("fm.criteria.surface")).visible.read() &&
                 (*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*responsive).find("fm.folder.objects")).visible.read(),
             "controller Criteria choice must reach the public retained surface transition");
-    (*surface_choice).selected_index = 3U;
+    (*surface_choice).selected_index = stxlib::Optional<std::size_t>::of(3U);
     require((*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
                 !(*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.criteria.surface")).visible.read(),
             "controller Palettes choice must reach the public Card laboratory");
-    (*surface_choice).selected_index = 6U;
+    (*surface_choice).selected_index = stxlib::Optional<std::size_t>::of(6U);
     require((*(*responsive).find("fm.review.dna")).visible.read() &&
                 !(*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller DNA choice must reach the public MasterDetail laboratory");
-    (*surface_choice).selected_index = 0U;
+    (*surface_choice).selected_index = stxlib::Optional<std::size_t>::of(0U);
     require(!(*(*responsive).find("fm.search.surface")).visible.read() &&
                 !(*(*responsive).find("fm.review.palettes")).visible.read() &&
                 !(*(*responsive).find("fm.review.dna")).visible.read() &&
                 (*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Folder choice must restore the retained Folder projection");
-    (*text_scale).selected_index = 4U;
+    (*text_scale).selected_index = stxlib::Optional<std::size_t>::of(4U);
     require((*responsive).presentation_settings().text_scale == 2.25,
             "controller text-scale selector did not reach the product presentation contract");
-    (*text_scale).selected_index = 0U;
+    (*text_scale).selected_index = stxlib::Optional<std::size_t>::of(0U);
     require((*responsive).presentation_settings().text_scale == 1.0,
             "controller did not restore the product to 100% text");
     const gui_forms::SemanticSnapshot semantic_before_sound_toggle =

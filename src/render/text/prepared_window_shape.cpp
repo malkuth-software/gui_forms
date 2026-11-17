@@ -68,8 +68,11 @@ PreparedTextStatus PreparedWindowShaper::initialize() {
         for (std::size_t index = 0U; index < bank.face_count; ++index) {
             const detail::PreparedFontFace& face = bank.faces[index];
             const std::span<const std::byte> encoded(face.bytes.get(), face.size);
-            const std::optional<FontFaceId> id = (*candidate).register_owned_typeface(
-                face.role, face.weight, face.italic, encoded, fonts_, face.index);
+            const std::optional<FontFaceId> id = face.family.value != 0U
+                ? (*candidate).register_owned_family_typeface(face.family, face.weight, face.italic, encoded, fonts_,
+                                                              face.index)
+                : (*candidate).register_owned_typeface(face.role, face.weight, face.italic, encoded, fonts_,
+                                                       face.index);
             if (!id) return PreparedTextStatus::incompatible_font;
             ids[index] = *id;
         }

@@ -4,6 +4,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -223,9 +224,9 @@ struct GUI_FORMS_API DockPanelRecord final {
     DockPanelKind kind{DockPanelKind::tool};
     // Where show() returns a hidden panel: docked, floating or auto_hidden.
     DockPlacementKind last_placement{DockPlacementKind::docked};
-    std::optional<DockDockedMemory> docked{};
+    stxlib::Optional<DockDockedMemory> docked{};
     std::optional<DockFloatingMemory> floating{};
-    std::optional<DockAutoHideMemory> auto_hidden{};
+    stxlib::Optional<DockAutoHideMemory> auto_hidden{};
 
     friend bool operator==(const DockPanelRecord& left, const DockPanelRecord& right) noexcept {
         return left.id == right.id && left.kind == right.kind &&

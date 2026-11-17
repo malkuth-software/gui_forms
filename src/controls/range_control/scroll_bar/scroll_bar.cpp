@@ -12,7 +12,6 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -23,7 +22,7 @@ ScrollBar::ScrollBar(StableId stable_id, Orientation initial_orientation)
     : RangeControl(std::move(stable_id)) {
     orientation = initial_orientation;
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 void ScrollBar::prepare_write(const decltype(initial_repeat_delay)&, FrameInterval& incoming) {
@@ -142,6 +141,7 @@ constexpr ControlAnatomy scroll_bar_anatomy{
     .parts = scroll_bar_detail::parts,
     .states = scroll_bar_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -320,7 +320,7 @@ void ScrollBar::on_paint(Painter& painter, Rect) {
         focus.bounds = parts.thumb.empty() ? parts.track : parts.thumb;
         focus.states = parts.states;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
@@ -349,6 +349,8 @@ void ScrollBar::on_mouse_wheel(MouseEventArgs& arguments) {
 }
 
 void ScrollBar::on_mouse_down(MouseEventArgs& arguments) {
+    // press_part's handlers may drop the bar; the raise below still uses it.
+    const Control::Ptr lifetime = shared_from_this();
     if (eligible_for_input() && arguments.button == PointerButton::primary) press_part(arguments);
     RangeControl::on_mouse_down(arguments);
 }
@@ -371,9 +373,10 @@ void ScrollBar::on_mouse_move(MouseEventArgs& arguments) {
     RangeControl::on_mouse_move(arguments);
 }
 
+// The release ends a press whatever the bar's eligibility: a bar disabled
+// while an arrow is held stops repeating (A-gf-controls-11-F4).
 void ScrollBar::on_mouse_up(MouseEventArgs& arguments) {
-    if (eligible_for_input() && arguments.button == PointerButton::primary &&
-        pressed_part_ != ScrollBarPart::none) {
+    if (arguments.button == PointerButton::primary && pressed_part_ != ScrollBarPart::none) {
         const bool was_thumb = tracking_thumb_;
         if (has_pointer_capture()) set_pointer_capture(false);
         stop_interaction();
@@ -387,7 +390,11 @@ void ScrollBar::on_mouse_up(MouseEventArgs& arguments) {
 // A primary press focuses the bar and presses the part under the pointer:
 // the thumb starts a drag, any other part applies at once and repeats.
 void ScrollBar::press_part(MouseEventArgs& arguments) {
-    if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
+    // The focus and value handlers may drop the bar: `lifetime` keeps it
+    // alive through the press, and the part is hit after the focus handlers.
+    const Control::Ptr lifetime = shared_from_this();
+    if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
+    if (!is_alive()) return;
     const Point local = arguments.location;
     pressed_part_ = part_at(local);
     if (pressed_part_ == ScrollBarPart::none) return;
@@ -450,7 +457,25 @@ void ScrollBar::on_focus_changed(bool focused) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+// The window ends a primary press's capture after its release, when the
+// press has already ended; any other loss ends it here (A-gf-controls-11-F4).
+void ScrollBar::on_mouse_capture_changed() {
+    RangeControl::on_mouse_capture_changed();
+    if (pressed_part_ == ScrollBarPart::none) return;
+    const bool was_thumb = tracking_thumb_;
+    stop_interaction();
+    if (was_thumb) invalidate(Dirty::paint | Dirty::semantics);
+    else invalidate(Dirty::paint);
+}
+
 void ScrollBar::repeat_step() {
+    // A repeat outlives neither the press's capture nor the bar's
+    // eligibility for input (A-gf-controls-11-F4).
+    if (!eligible_for_input() || !has_pointer_capture()) {
+        stop_interaction();
+        invalidate(Dirty::paint);
+        return;
+    }
     if (pressed_part_ == ScrollBarPart::decrement_track ||
         pressed_part_ == ScrollBarPart::increment_track) {
         if (part_at(repeat_pointer_) != pressed_part_) {
@@ -471,17 +496,23 @@ SemanticDescriptor ScrollBar::semantic_descriptor() const {
     descriptor.role = SemanticRole::scroll_bar;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    std::ostringstream value_text;
-    value_text << value.read();
-    descriptor.value = value_text.str();
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    // A default stream writes "%g" in the global C++ locale; this is that
+    // text in the C locale's form, which set_value parses back
+    // (A-gf-controls-11-F5).
+    std::string value_text;
+    number_text::append_number_text(value_text, value.read(), std::chars_format::general, 6);
+    descriptor.value = value_text;
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     // The arrow keys move by the small change, the page keys by the large.
-    descriptor.small_step = small_change.read();
-    descriptor.large_step = large_change.read();
-    descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
-                          SemanticAction::decrement, SemanticAction::set_value};
+    descriptor.small_step.set(small_change.read());
+    descriptor.large_step.set(large_change.read());
+    descriptor.actions = {SemanticAction::increment, SemanticAction::decrement, SemanticAction::set_value};
+    // A bar a composite owns without focus (ListView's, a scroll viewer's)
+    // offers no focus action: the window refuses to focus it, so a client's
+    // default action would fail.
+    if (focusable.read()) descriptor.actions.insert(descriptor.actions.begin(), SemanticAction::focus);
     descriptor.exposed = true;
     return descriptor;
 }
@@ -614,7 +645,7 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     actuator.role = PartRole::actuator;
     actuator.bounds = button;
     actuator.states = states;
-    actuator.key = PartKey{incrementing ? "increment_arrow" : "decrement_arrow", drawn.item, {}};
+    actuator.key.set(PartKey{incrementing ? "increment_arrow" : "decrement_arrow", drawn.item, {}});
     actuator.control_type = drawn.control_type;
     paint_part(painter, control, actuator);
     const Rect mark = arrow_mark_bounds(button);
@@ -632,7 +663,7 @@ void paint_arrow_button(Painter& painter, const Control& control, const ScrollBa
     }
     arrow.bounds = mark;
     arrow.states = states;
-    arrow.key = PartKey{incrementing ? "increment_glyph" : "decrement_glyph", drawn.item, {}};
+    arrow.key.set(PartKey{incrementing ? "increment_glyph" : "decrement_glyph", drawn.item, {}});
     arrow.control_type = drawn.control_type;
     paint_part(painter, control, arrow);
 }
@@ -661,7 +692,7 @@ void paint_scroll_bar_parts(Painter& painter, const Control& control, const Scro
     track.role = PartRole::track;
     track.bounds = drawn.track;
     track.states = part_states(drawn.states, track_part(drawn.pressed), false, track_part(drawn.hot));
-    track.key = PartKey{"track", drawn.item, {}};
+    track.key.set(PartKey{"track", drawn.item, {}});
     track.control_type = drawn.control_type;
     paint_part(painter, control, track);
     paint_arrow_button(painter, control, drawn, drawn.decrement, false);
@@ -673,7 +704,7 @@ void paint_scroll_bar_parts(Painter& painter, const Control& control, const Scro
     thumb.bounds = drawn.thumb;
     thumb.states = part_states(drawn.states, drawn.pressed == ScrollBarPart::thumb, drawn.thumb_captured,
                                drawn.hot == ScrollBarPart::thumb);
-    thumb.key = PartKey{"thumb", drawn.item, {}};
+    thumb.key.set(PartKey{"thumb", drawn.item, {}});
     thumb.control_type = drawn.control_type;
     paint_part(painter, control, thumb);
 }

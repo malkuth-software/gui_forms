@@ -16,12 +16,16 @@
 #include "gui_forms/window/window.hpp"
 #include "support/named_callbacks.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <cmath>
 #include <exception>
 #include <iostream>
+#include <span>
 #include <stdexcept>
 #include <string_view>
+#include <stxlib/optional.hpp>
+#include <vector>
 
 namespace {
 
@@ -75,6 +79,35 @@ public:
         last_center = center;
         last_radii = radii;
         last_stop_count = stops.size();
+    }
+    void fill_radial_gradient_spread(Rect, Point center, Size radii, std::span<const GradientStop> stops,
+                                     GradientSpreadMode spread) override {
+        ++spread_radial_fills;
+        last_center = center;
+        last_radii = radii;
+        last_stop_count = stops.size();
+        last_spread = spread;
+    }
+    void fill_focal_radial_gradient(Rect, Point center, Size radii, Point focus, std::span<const GradientStop> stops,
+                                    GradientSpreadMode spread) override {
+        ++focal_fills;
+        last_center = center;
+        last_radii = radii;
+        last_focus = focus;
+        last_stop_count = stops.size();
+        last_spread = spread;
+    }
+    void fill_hatch(Rect rect, const HatchPattern& pattern) override {
+        ++hatch_fills;
+        last_clip = rect;
+        last_hatch = pattern;
+    }
+    void fill_conic_gradient(Rect, Point center, double start_degrees,
+                             std::span<const GradientStop> stops) override {
+        ++conic_fills;
+        last_center = center;
+        last_start_degrees = start_degrees;
+        conic_stops.assign(stops.begin(), stops.end());
     }
     void draw_box_shadow(Rect, double, Point, double, double, Color) override {
         ++shadows;
@@ -130,6 +163,14 @@ public:
     unsigned linear_fills{};
     unsigned spread_linear_fills{};
     unsigned radial_fills{};
+    unsigned spread_radial_fills{};
+    unsigned conic_fills{};
+    unsigned focal_fills{};
+    unsigned hatch_fills{};
+    Point last_focus{};
+    HatchPattern last_hatch{};
+    double last_start_degrees{};
+    std::vector<GradientStop> conic_stops;
     unsigned shadows{};
     unsigned inset_shadows{};
     double last_radius{};
@@ -177,7 +218,7 @@ SurfaceMaterial specimen_material() {
         MaterialFillLayer::radial({0.5, 0.5}, {0.5, 0.5}, glow)};
     material.shadows = {{{0.0, 3.0}, 6.0, 1.0,
                          Color::rgba(15, 25, 45, 80)}};
-    material.border = MaterialBorder{Color::rgba(25, 45, 75), 2.0};
+    material.border.set(MaterialBorder{Color::rgba(25, 45, 75), 2.0});
     material.corner_radius = 9.0;
     return material;
 }
@@ -206,7 +247,7 @@ void test_generated_pointer_count_construction_is_owned_and_bounded() {
                 material.fills[1].stops[1].offset == 0.55 &&
                 material.shadows.size() == 1U &&
                 material.shadows[0].blur_radius == 7.0 &&
-                material.border == border && material.corner_radius == 8.0,
+                material.border == stxlib::Optional<MaterialBorder>::of(border) && material.corner_radius == 8.0,
             "pointer/count construction must copy generated static data into retained ownership");
 
     bool rejected{};
@@ -397,13 +438,14 @@ void test_retained_replay_preserves_material_operations() {
     require(painter.last_spread == GradientSpreadMode::pad,
             "retained material must preserve its explicit gradient spread");
 
-    const std::optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
+    const stxlib::Optional<DisplayChunkInfo> before = (*panel).display_chunk_info();
     (*panel).material = SurfaceMaterial{};
     const DamageRegion damage = window.take_damage();
-    require(before && !damage.empty(),
+    require(before.present() && !damage.empty(),
             "material mutation must invalidate its retained display chunk");
     window.paint(painter, damage.bounds());
-    require((*(*panel).display_chunk_info()).generation > (*before).generation,
+    const stxlib::Optional<DisplayChunkInfo> after = (*panel).display_chunk_info();
+    require(after.present() && (*after.value()).generation > (*before.value()).generation,
             "material mutation must rebuild rather than reuse stale pixels");
 }
 
@@ -429,6 +471,93 @@ void test_repeating_material_survives_record_and_replay() {
                 painter.last_end == Point{8.0, 8.0} &&
                 painter.last_stop_count == 4U,
             "repeat mode and logical period must survive the retained display list");
+}
+
+// The painter path draws a repeating radial layer with its spread and a
+// conic layer as a conic gradient (it drew them padded and as one colour
+// before the Painter had the calls).
+// A focused radial layer reaches the painter as a focal gradient and a
+// hatch pattern as fill_hatch anchored at the box; a focus outside the
+// ellipse is refused by validation.
+void test_focal_radial_and_hatch_layers_reach_the_painter() {
+    const std::vector<GradientStop> two{{0.0, Color::rgba(200, 30, 40)}, {1.0, Color::rgba(20, 40, 210)}};
+    MaterialFillLayer focal = MaterialFillLayer::radial({0.5, 0.5}, {0.5, 0.5}, two);
+    focal.focused = true;
+    focal.focus = Point{0.25, 0.5};
+    SurfaceMaterial lens;
+    lens.fills = {focal};
+    require(valid_surface_material(lens), "a focus inside the ellipse is valid");
+    RichPainter painter;
+    paint_surface_material(painter, Rect{0.0, 0.0, 80.0, 40.0}, lens);
+    require(painter.focal_fills == 1U && painter.radial_fills == 0U && painter.last_center == Point{40.0, 20.0} &&
+                painter.last_radii == Size{40.0, 20.0} && painter.last_focus == Point{20.0, 20.0},
+            "a focused radial layer must reach the painter as a focal gradient");
+    SurfaceMaterial outside = lens;
+    outside.fills.front().focus = Point{1.0, 0.5};
+    require(!valid_surface_material(outside), "a focus on the ellipse is refused");
+
+    ProceduralFill hatch{};
+    hatch.pattern = ProceduralPattern::hatch;
+    hatch.hatch_style = HatchStyle::diagonal_cross;
+    hatch.tile = 8.0;
+    hatch.ground = Color::rgba(255, 255, 255);
+    hatch.figure = Color::rgba(0, 0, 0);
+    SurfaceMaterial hatched;
+    hatched.fills = {MaterialFillLayer::procedural_pattern(hatch)};
+    require(valid_surface_material(hatched), "a hatch pattern is valid");
+    RichPainter lines;
+    paint_surface_material(lines, Rect{4.0, 6.0, 80.0, 40.0}, hatched);
+    require(lines.hatch_fills == 1U && lines.last_hatch.style == HatchStyle::diagonal_cross &&
+                lines.last_hatch.cell == 8.0 && lines.last_hatch.anchor == Point{4.0, 6.0} &&
+                lines.last_hatch.fore == Color::rgba(0, 0, 0) && lines.last_hatch.back == Color::rgba(255, 255, 255),
+            "a hatch pattern must reach the painter as fill_hatch anchored at the box");
+}
+
+void test_conic_and_repeating_radial_layers_reach_the_painter() {
+    const std::vector<GradientStop> two{{0.0, Color::rgba(200, 30, 40)}, {1.0, Color::rgba(20, 40, 210)}};
+    SurfaceMaterial rings;
+    rings.fills = {MaterialFillLayer::repeating_radial({0.5, 0.5}, {0.25, 0.25}, two)};
+    RichPainter radial;
+    paint_surface_material(radial, Rect{0.0, 0.0, 80.0, 40.0}, rings);
+    require(radial.spread_radial_fills == 1U && radial.radial_fills == 0U &&
+                radial.last_spread == GradientSpreadMode::repeat && radial.last_center == Point{40.0, 20.0} &&
+                radial.last_radii == Size{20.0, 10.0} && radial.last_stop_count == 2U,
+            "a repeating radial layer must reach the painter with its spread");
+
+    SurfaceMaterial wheel;
+    wheel.fills = {MaterialFillLayer::conic({0.5, 0.5}, 30.0, two)};
+    RichPainter conic;
+    paint_surface_material(conic, Rect{0.0, 0.0, 80.0, 40.0}, wheel);
+    // The layer's angle is clockwise from up; the painter's from +x.
+    require(conic.conic_fills == 1U && conic.solid_fills == 0U && conic.last_center == Point{40.0, 20.0} &&
+                conic.last_start_degrees == -60.0 && conic.conic_stops.size() == 2U,
+            "a conic layer must reach the painter as a conic gradient");
+
+    // A quarter-turn period repeats four times: each period after the
+    // first starts a millionth of a turn past its boundary, and the last
+    // ends the turn on its own last stop.
+    SurfaceMaterial quarters;
+    quarters.fills = {MaterialFillLayer::repeating_conic({0.5, 0.5}, 0.0, 90.0, two)};
+    RichPainter repeated;
+    paint_surface_material(repeated, Rect{0.0, 0.0, 80.0, 40.0}, quarters);
+    const std::array<double, 8> offsets{{0.0, 0.25, 0.25 + 1.0e-6, 0.5, 0.5 + 1.0e-6, 0.75, 0.75 + 1.0e-6, 1.0}};
+    require(repeated.conic_fills == 1U && repeated.conic_stops.size() == offsets.size() &&
+                valid_gradient_stops(repeated.conic_stops),
+            "a repeating conic layer must expand to one valid turn of stops");
+    for (std::size_t index = 0U; index < offsets.size(); ++index) {
+        const GradientStop& stop = repeated.conic_stops[index];
+        const Color wanted = index % 2U == 0U ? two[0].color : two[1].color;
+        require(std::abs(stop.offset - offsets[index]) < 1.0e-12 && stop.color == wanted,
+                "each period of a repeating conic layer must repeat its stops");
+    }
+
+    // A period too short for the stops a gradient holds draws one colour.
+    SurfaceMaterial fine;
+    fine.fills = {MaterialFillLayer::repeating_conic({0.5, 0.5}, 0.0, 10.0, two)};
+    RichPainter flat;
+    paint_surface_material(flat, Rect{0.0, 0.0, 80.0, 40.0}, fine);
+    require(flat.conic_fills == 0U && flat.solid_fills == 1U,
+            "a repeating conic layer past the stop bound must draw one colour");
 }
 
 void test_image_materials_retain_crop_tile_and_nine_patch() {
@@ -645,6 +774,8 @@ int main() {
         test_material_validation_is_atomic();
         test_retained_replay_preserves_material_operations();
         test_repeating_material_survives_record_and_replay();
+        test_conic_and_repeating_radial_layers_reach_the_painter();
+        test_focal_radial_and_hatch_layers_reach_the_painter();
         test_image_materials_retain_crop_tile_and_nine_patch();
         test_minimal_painter_fallbacks_are_bounded();
         test_shadow_outsets_participate_in_damage();

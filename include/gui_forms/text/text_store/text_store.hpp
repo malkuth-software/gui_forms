@@ -4,6 +4,7 @@
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -47,12 +48,14 @@ public:
     }
     BorrowedSpan<TextStyleSpan> style_spans() const&& = delete;
 
+    // The text or replacement may view this store's own text (utf8() or a
+    // slice of it); it is copied before the edit.
     void set_text(std::string_view text);
     [[nodiscard]] TextEditResult replace(
         Utf8Range range, std::string_view replacement,
-        std::optional<TextStyleId> inserted_style = std::nullopt);
+        stxlib::Optional<TextStyleId> inserted_style = stxlib::Optional<TextStyleId>::none());
     void set_style_spans(std::span<const TextStyleSpan> spans);
-    [[nodiscard]] std::optional<TextStyleId> style_at(
+    [[nodiscard]] stxlib::Optional<TextStyleId> style_at(
         Utf8Offset position) const;
     [[nodiscard]] bool is_scalar_boundary(Utf8Offset position) const noexcept;
     [[nodiscard]] bool is_grapheme_boundary(Utf8Offset position) const noexcept;
@@ -81,7 +84,7 @@ private:
         std::string_view candidate_text) const;
     [[nodiscard]] std::vector<TextStyleSpan> transform_style_spans(
         Utf8Range removed, std::size_t inserted_bytes,
-        std::optional<TextStyleId> inserted_style,
+        stxlib::Optional<TextStyleId> inserted_style,
         std::string_view candidate_text) const;
     void validate_position(Utf8Offset position) const;
     void validate_range(Utf8Range range) const;

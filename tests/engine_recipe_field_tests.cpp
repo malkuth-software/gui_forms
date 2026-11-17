@@ -10,6 +10,7 @@
 #include "gui_forms/control.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
@@ -97,7 +98,7 @@ void test_field_names() {
         "stripe_pitch", "stripe_ratio", "stripe_angle", "stripe_lean", "stripe_direction", "stripe_speed",
         "stripe_colour", "stripe_ground_colour", "stripe_gloss", "stripe_reduced_motion",
         "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width", "halo_colour", "corner_radius",
-        "grid_spacing", "grid_band", "texture_layers", "flow_style", "flow_speed", "flow_spacing",
+        "grid_spacing", "grid_band", "texture_layers", "flow_style", "flow_speed", "flow_spacing", "ring_style",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {
@@ -124,7 +125,7 @@ void test_compile() {
     on_part_outline.recipe_fields.push_back(number_field(RecipeField::outline_width, 2.0));
     sheet.rules.push_back(on_part_outline);
     ThemeRule on_role = control_rule("on-role", "pad");
-    on_role.selector.role = PartRole::label;
+    on_role.selector.role.set(PartRole::label);
     on_role.recipe_fields.push_back(colour_field(RecipeField::text, green));
     sheet.rules.push_back(on_role);
     ThemeRule wide = control_rule("wide", "pad");
@@ -352,8 +353,9 @@ void test_resolve() {
     require(resolved.authored() && recipe.text == red && recipe.authored_focus_outline &&
                 recipe.focus_ring == green && recipe.focus_width == 2.0 && recipe.focus_offset == 1.5,
             "the text colour and a solid outline outside the bounds");
-    require(recipe.text_shadow && (*recipe.text_shadow).offset == Point{1.0, 2.0} &&
-                (*recipe.text_shadow).blur_radius == 3.0 && (*recipe.text_shadow).color == blue,
+    const ControlTextShadow* const shadow = recipe.text_shadow.value();
+    require(shadow != nullptr && (*shadow).offset == Point{1.0, 2.0} && (*shadow).blur_radius == 3.0 &&
+                (*shadow).color == blue,
             "the text shadow");
     require(recipe.material == floor.material && recipe.muted_text == floor.muted_text &&
                 recipe.default_ring == floor.default_ring,
@@ -365,7 +367,7 @@ void test_resolve() {
     const ResolvedControlRecipe dimmed = theme.resolve(first, ControlVisualRole::button, off);
     const ControlVisualRecipe& dimmed_recipe = dimmed.recipe();
     require(dimmed_recipe.text == disabled_floor.text && dimmed_recipe.focus_width == 0.0 &&
-                !dimmed_recipe.text_shadow && dimmed_recipe.focus_ring == green,
+                dimmed_recipe.text_shadow.absent() && dimmed_recipe.focus_ring == green,
             "disabled: initial keeps the floor's text, no outline has no width, none has no shadow");
 
     const ControlVisualContext second_context = second.visual_context();
@@ -406,7 +408,7 @@ void test_part_text_colour() {
     const ResolvedControlRecipe other = theme.resolve(first, ControlVisualRole::button, context, states, "face");
     require(whole.recipe().text == red && other.recipe().text == red, "the control's text colour without the part");
     require(part.recipe().text == blue && part.recipe().glyph == green, "the part's own text and glyph colours");
-    require(part.recipe().fill_text == std::optional<Color>{red} && !whole.recipe().fill_text,
+    require(part.recipe().fill_text == stxlib::Optional<Color>::of(red) && whole.recipe().fill_text.absent(),
             "the part's own colour over a fill, absent on the control");
 }
 
@@ -468,7 +470,7 @@ void test_authored_colours() {
     const Labelled& first = *(*fixture).first;
     const Labelled& second = *(*fixture).second;
     PartPaint label = first.label();
-    label.authored_foreground = green;
+    label.authored_foreground.set(green);
     TextWatch over{};
     paint_part(over, first, label);
     TextWatch under{};
@@ -540,6 +542,51 @@ void test_kept_recipes() {
     require(after.authored() && after.recipe().text == blue, "a parent's class written after a resolve is inherited");
 }
 
+// RecipeField::ring_style (claude/geometry-1): a rule naming a ring sets its
+// style; a ProgressRing whose ring_style is `theme` follows it, its own
+// style stands over it, and a value outside the enumeration is dropped.
+void test_ring_style() {
+    ThemeRuleSheet sheet{};
+    ThemeRule wrong = control_rule("wrong", "ring");
+    RecipeDeclaration outside{};
+    outside.field = RecipeField::ring_style;
+    outside.ring_style = static_cast<RingStyle>(7);
+    wrong.recipe_fields.push_back(outside);
+    sheet.rules.push_back(wrong);
+    const CompiledThemeRules refused = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(has_diagnostic(refused, RuleDiagnosticKind::recipe_field_invalid, "wrong", "ring_style"),
+            "a ring style outside the enumeration is dropped");
+
+    std::vector<ThemeRule> rules{};
+    ThemeRule arc = control_rule("ring", "ring");
+    RecipeDeclaration style{};
+    style.field = RecipeField::ring_style;
+    style.ring_style = RingStyle::arc;
+    arc.recipe_fields.push_back(style);
+    rules.push_back(arc);
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("ring"));
+    std::shared_ptr<ProgressRing> plain = make_control<ProgressRing>(StableId("plain"));
+    (*ring).set_requested_bounds(Rect{0.0, 0.0, 40.0, 40.0});
+    (*plain).set_requested_bounds(Rect{40.0, 0.0, 40.0, 40.0});
+    (*root).add_child(ring);
+    (*root).add_child(plain);
+    Window window(root, Size{100.0, 100.0});
+    const std::unique_ptr<ThemeDefinition> held_definition = test_support::professional_definition();
+    ThemeDefinition& definition = *held_definition;
+    definition.id = "engine-recipe-field-ring-test";
+    definition.rules.rules = rules;
+    window.set_theme(Theme::create(definition));
+    require(window.theme().engine().rules().diagnostics().empty(), "the ring theme compiles cleanly");
+    window.perform_layout();
+    require((*ring).draws_arc() && !(*plain).draws_arc(), "the theme's ring-style reaches the ring it names");
+    require((*ring).parts().arc_track.present && !(*ring).parts().track.present,
+            "an arc ring publishes its arc track, not its dots");
+    (*ring).ring_style = ProgressRingStyle::dots;
+    (*plain).ring_style = ProgressRingStyle::arc;
+    require(!(*ring).draws_arc() && (*plain).draws_arc(), "the ring's own style stands over the theme's");
+}
+
 int main() {
     test_field_names();
     test_compile();
@@ -552,6 +599,7 @@ int main() {
     test_label_part();
     test_authored_colours();
     test_kept_recipes();
+    test_ring_style();
     std::cout << "gui_forms_engine_recipe_field_tests: passed\n";
     return 0;
 }

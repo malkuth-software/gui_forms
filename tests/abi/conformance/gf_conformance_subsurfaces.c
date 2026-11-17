@@ -8,15 +8,22 @@
  * root fails with a reason. */
 
 /* glibc declares usleep only with _DEFAULT_SOURCE under strict C11; macOS
- * and MinGW declare it regardless. Must precede every include. */
+ * and MinGW declare it regardless; the Microsoft target uses Sleep. Must precede every include. */
 #define _DEFAULT_SOURCE 1
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <stdatomic.h>
 #include <string.h>
+#if defined(_WIN32) && !defined(__MINGW32__)
+/* The Microsoft target has no unistd.h; gf_conformance_pthread.h has
+ * already included windows.h there, so the millisecond wait is Sleep. */
+static void wait_one_millisecond(void) { Sleep(1); }
+#else
 #include <unistd.h>
+static void wait_one_millisecond(void) { usleep(1000); }
+#endif
 
 /* How many times the UI thread looks for the sub-surface to reach a state,
  * one millisecond apart. */
@@ -146,7 +153,7 @@ static void poll_again(subsurface_run* run) {
         (void)(*kit).windows.request_close((*run).root);
         return;
     }
-    usleep(1000);
+    wait_one_millisecond();
     (void)(*kit).dispatch.begin_invoke((*run).root, &(*run).poll_callback);
 }
 

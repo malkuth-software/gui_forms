@@ -41,7 +41,7 @@ gui_forms::SaveFileDialog
 
       **filter** : ``std::string``, default empty
          The filter in Windows Forms' syntax, as :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>` reads it:
-         ``"Reports|*.txt|All files|*.*"``. A write throws
+         ``"Reports\|*.txt\|All files\|*.*"``. A write throws
          ``std::invalid_argument`` for a string ``parse_file_dialog_filter`` refuses,
          and keeps the old filter.
 
@@ -72,6 +72,15 @@ gui_forms::SaveFileDialog
       **file_name** : ``std::string``
          The chosen path, or empty. Before the dialog is shown, a name written
          here is the one the dialog suggests.
+
+      **check_file_exists** : ``bool``
+         Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+
+      **check_path_exists** : ``bool``
+         Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+
+      **create_prompt** : ``bool``
+         Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
 
       **filters** : ``std::span<const HostFileDialogFilter>``, read-only
          The host filters the filter parsed into, in order.
@@ -182,7 +191,7 @@ gui_forms::SaveFileDialog
    .. cpp:member:: std::string filter
 
       The filter in Windows Forms' syntax, as :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>` reads it:
-      ``"Reports|*.txt|All files|*.*"``. A write throws
+      ``"Reports\|*.txt\|All files\|*.*"``. A write throws
       ``std::invalid_argument`` for a string ``parse_file_dialog_filter`` refuses,
       and keeps the old filter.
 
@@ -218,6 +227,18 @@ gui_forms::SaveFileDialog
 
       The chosen path, or empty. Before the dialog is shown, a name written
       here is the one the dialog suggests.
+
+   .. cpp:member:: bool check_file_exists
+
+      Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+
+   .. cpp:member:: bool check_path_exists
+
+      Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+
+   .. cpp:member:: bool create_prompt
+
+      Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
 
    .. cpp:function:: std::span<const HostFileDialogFilter> filters() const& noexcept
 

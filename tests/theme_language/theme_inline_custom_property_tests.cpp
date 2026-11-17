@@ -31,6 +31,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -72,7 +73,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         return part;
     }
 };
@@ -130,9 +131,9 @@ std::shared_ptr<const Theme> theme_from(std::string_view sheet) {
 
 std::size_t amplitude_index() {
     const EnginePrimitive* const bulge = builtin_primitive_registry().find("bulge");
-    const std::optional<std::size_t> found =
-        bulge == nullptr ? std::optional<std::size_t>{} : find_parameter((*bulge).descriptor(), "amplitude");
-    return found ? *found : 0U;
+    const stxlib::Optional<std::size_t> found =
+        bulge == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*bulge).descriptor(), "amplitude");
+    return found.present() ? (*found.value()) : 0U;
 }
 
 double face_amplitude(const PadWindow& held) {

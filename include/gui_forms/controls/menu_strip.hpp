@@ -21,6 +21,8 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/menu_strip_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 namespace detail {
@@ -38,7 +40,7 @@ struct GUI_FORMS_API MenuStripItemSpec final {
     // (MergeAction, merge_strips), and its position there; none matches by
     // text only.
     MergeAction merge_action{MergeAction::append};
-    std::optional<std::size_t> merge_index{};
+    stxlib::Optional<std::size_t> merge_index{};
 };
 
 struct GUI_FORMS_API MenuStripInvocation final {
@@ -61,7 +63,7 @@ public:
     }
     const std::vector<MenuStripItemSpec>& items() const&& = delete;
     void set_items(std::vector<MenuStripItemSpec> items);
-    [[nodiscard]] std::optional<std::size_t> active_index() const noexcept {
+    [[nodiscard]] stxlib::Optional<std::size_t> active_index() const noexcept {
         return active_index_;
     }
     // Unknown modes throw invalid_argument before reusing or replacing an overlay.
@@ -72,7 +74,7 @@ public:
     [[nodiscard]] Event<const MenuStripInvocation&>& item_invoked() noexcept {
         return item_invoked_;
     }
-    [[nodiscard]] Event<std::optional<std::size_t>>& open_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<std::size_t>>& open_changed() noexcept {
         return open_changed_;
     }
 
@@ -136,8 +138,9 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item,
                                         std::span<PartGeometry> geometry) const override;
-    // The model position of a realized (visible) top-level item.
-    [[nodiscard]] std::size_t realized_item_index(std::size_t item) const noexcept;
+    // The model position of a realized (visible) top-level item. Throws
+    // std::out_of_range for an item past realized_item_count().
+    [[nodiscard]] std::size_t realized_item_index(std::size_t item) const;
 
 private:
     friend class detail::StripMergeAccess;
@@ -145,19 +148,21 @@ private:
     void apply_items(std::vector<MenuStripItemSpec> items, bool merged);
     [[nodiscard]] std::vector<Rect> item_bounds() const;
     [[nodiscard]] double preferred_height() const;
-    [[nodiscard]] std::optional<std::size_t> index_at(Point window_point) const;
-    [[nodiscard]] std::optional<std::size_t> next_enabled(
+    [[nodiscard]] stxlib::Optional<std::size_t> index_at(Point window_point) const;
+    // Whether `held` (active_index_ or hot_index_) holds item `index`.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> next_enabled(
         std::size_t start, int direction) const;
     bool navigate_root(int direction);
     bool handle_overlay_pointer(const PointerEvent& event);
     void on_overlay_item_invoked(const MenuItemInvocation& invocation);
     void on_overlay_open_changed(bool open_state);
-    void set_hot(std::optional<std::size_t> index);
+    void set_hot(stxlib::Optional<std::size_t> index);
 
     std::vector<MenuStripItemSpec> items_{};
     std::unique_ptr<ContextMenu> overlay_{};
-    std::optional<std::size_t> active_index_{};
-    std::optional<std::size_t> hot_index_{};
+    stxlib::Optional<std::size_t> active_index_{};
+    stxlib::Optional<std::size_t> hot_index_{};
     std::string selected_item_id_{};
     bool focused_{};
     bool switching_{};
@@ -166,7 +171,7 @@ private:
     SubscriptionToken overlay_invoked_{};
     SubscriptionToken overlay_changed_{};
     Event<const MenuStripInvocation&> item_invoked_{};
-    Event<std::optional<std::size_t>> open_changed_{};
+    Event<stxlib::Optional<std::size_t>> open_changed_{};
     // property_codemod begin MenuStrip (tools/property_families/menu_strip.json; generated, do not edit)
 private:
     friend struct MenuStripUseMnemonicCapability<MenuStrip>;

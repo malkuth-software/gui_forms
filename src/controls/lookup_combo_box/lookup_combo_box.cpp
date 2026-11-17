@@ -30,17 +30,17 @@ constexpr double cell_padding = 6.0;
 constexpr double disclosure_side = 8.0;
 
 constexpr std::array<PartField<LookupComboBox::Parts>, 6> lookup_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::well},
-    {.declaration = {.name = "label", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::label},
-    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = {}},
+    {.declaration = {.name = "actuator", .role = PartRole::actuator, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::actuator},
-    {.declaration = {.name = "glyph", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &LookupComboBox::Parts::focus},
 }};
 
@@ -56,6 +56,7 @@ constexpr ControlAnatomy lookup_anatomy{
     .parts = lookup_parts,
     .states = lookup_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 char ascii_lower(char letter) noexcept {
@@ -101,7 +102,7 @@ public:
     List(StableId stable_id, LookupComboBox& owner) : Control(std::move(stable_id)), owner_(owner) {
         set_paint_plane(PaintPlane::overlay);
         focusable = false;
-        cursor = CursorKind::arrow;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     }
 
     [[nodiscard]] Event<std::size_t>& row_activated() noexcept { return row_activated_; }
@@ -153,7 +154,8 @@ public:
         const std::size_t end = std::min(shown.size(), first_ + visible);
         for (std::size_t position = first_; position < end; ++position) {
             const double y = header_height + row_height * static_cast<double>(position - first_);
-            const bool highlighted = owner_.highlighted_ && *owner_.highlighted_ == position;
+            const std::size_t* const highlighted_position = owner_.highlighted_.value();
+            const bool highlighted = highlighted_position != nullptr && *highlighted_position == position;
             AnatomyStateSet row_states = states;
             if (highlighted) row_states.insert(AnatomyState::selected);
             if (highlighted) {
@@ -217,7 +219,7 @@ private:
 
 LookupComboBox::LookupComboBox(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 LookupComboBox::~LookupComboBox() {
@@ -254,21 +256,22 @@ void LookupComboBox::set_rows(std::vector<LookupRow> rows) {
     keys.clear();
     rows_ = std::move(rows);
     refilter();
-    if (!selected_key.read().empty() && !row_of(selected_key.read())) selected_key = std::string{};
+    if (!selected_key.read().empty() && row_of(selected_key.read()).absent()) selected_key = std::string{};
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> LookupComboBox::row_of(std::string_view key) const noexcept {
+stxlib::Optional<std::size_t> LookupComboBox::row_of(std::string_view key) const noexcept {
     for (std::size_t index = 0U; index < rows_.size(); ++index) {
-        if (rows_[index].key == key) return index;
+        if (rows_[index].key == key) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::string LookupComboBox::shown_text() const {
     if (dropped_down_ && !filter_.empty()) return filter_;
-    const std::optional<std::size_t> row = row_of(selected_key.read());
-    if (!row) return {};
+    const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
+    const std::size_t* const row = found.value();
+    if (row == nullptr) return {};
     const std::vector<std::string>& cells = rows_[*row].cells;
     const std::size_t column = display_column.read();
     if (column >= cells.size()) return {};
@@ -287,13 +290,15 @@ void LookupComboBox::refilter() {
         if (matched) filtered_.push_back(index);
     }
     highlighted_.reset();
-    const std::optional<std::size_t> chosen = row_of(selected_key.read());
+    const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
+    const std::size_t* const chosen = found.value();
     for (std::size_t position = 0U; position < filtered_.size(); ++position) {
-        if (chosen && filtered_[position] == *chosen) highlighted_ = position;
+        if (chosen != nullptr && filtered_[position] == *chosen) highlighted_.set(position);
     }
-    if (!highlighted_ && !filtered_.empty() && !filter_.empty()) highlighted_ = 0U;
+    if (highlighted_.absent() && !filtered_.empty() && !filter_.empty()) highlighted_.set(0U);
     if (list_) {
-        if (highlighted_) (*list_).reveal(*highlighted_);
+        const std::size_t* const highlighted = highlighted_.value();
+        if (highlighted != nullptr) (*list_).reveal(*highlighted);
         (*list_).invalidate(Dirty::paint);
     }
 }
@@ -336,11 +341,11 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint well{.role = PartRole::well, .bounds = placed.well, .states = states,
                    .family = ControlVisualRole::editor};
-    well.key = PartKey{"well", {}, {}};
+    well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
     PartPaint drop_down{.role = PartRole::actuator, .bounds = placed.actuator, .states = states,
                         .family = ControlVisualRole::choice};
-    drop_down.key = PartKey{"actuator", {}, {}};
+    drop_down.key.set(PartKey{"actuator", {}, {}});
     paint_part(painter, *this, drop_down);
     PartPaint disclosure{.role = PartRole::disclosure, .bounds = placed.glyph, .states = states,
                          .family = ControlVisualRole::choice};
@@ -394,23 +399,26 @@ void LookupComboBox::move_highlight(std::ptrdiff_t delta, bool to_edge) {
     if (filtered_.empty()) return;
     const std::ptrdiff_t last = static_cast<std::ptrdiff_t>(filtered_.size()) - 1;
     std::ptrdiff_t next = 0;
+    const std::size_t* const highlighted = highlighted_.value();
     if (to_edge) {
         next = delta < 0 ? 0 : last;
-    } else if (highlighted_) {
-        next = std::clamp(static_cast<std::ptrdiff_t>(*highlighted_) + delta, std::ptrdiff_t{0}, last);
+    } else if (highlighted != nullptr) {
+        next = std::clamp(static_cast<std::ptrdiff_t>(*highlighted) + delta, std::ptrdiff_t{0}, last);
     } else {
         next = delta < 0 ? last : 0;
     }
-    highlighted_ = static_cast<std::size_t>(next);
-    if (list_) (*list_).reveal(*highlighted_);
+    const std::size_t moved = static_cast<std::size_t>(next);
+    highlighted_.set(moved);
+    if (list_) (*list_).reveal(moved);
 }
 
 void LookupComboBox::step_selection(std::ptrdiff_t delta) {
     if (rows_.empty()) return;
-    const std::optional<std::size_t> chosen = row_of(selected_key.read());
+    const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
+    const std::size_t* const chosen = found.value();
     const std::ptrdiff_t last = static_cast<std::ptrdiff_t>(rows_.size()) - 1;
     std::ptrdiff_t next = 0;
-    if (chosen) next = std::clamp(static_cast<std::ptrdiff_t>(*chosen) + delta, std::ptrdiff_t{0}, last);
+    if (chosen != nullptr) next = std::clamp(static_cast<std::ptrdiff_t>(*chosen) + delta, std::ptrdiff_t{0}, last);
     choose_row(static_cast<std::size_t>(next));
 }
 
@@ -422,6 +430,9 @@ void LookupComboBox::choose_row(std::size_t row) {
 void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
     if (arguments.handled) return;
+    // Held across choose_row, whose selected_key_changed handlers may
+    // remove the box and drop it (A-gf-controls-06-F5).
+    const Control::Ptr retained = weak_from_this().lock();
     const bool alt = has_modifier(arguments.modifiers, Modifier::alt);
     const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::f4 || (alt && (key == PhysicalKey::down || key == PhysicalKey::up))) {
@@ -430,7 +441,9 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
             open_drop_down();
             return;
         }
-        if (key == PhysicalKey::up && highlighted_) choose_row(filtered_[*highlighted_]);
+        const std::size_t* const highlighted = highlighted_.value();
+        if (key == PhysicalKey::up && highlighted != nullptr) choose_row(filtered_[*highlighted]);
+        if (!is_alive()) return;
         close_drop_down();
         return;
     }
@@ -450,8 +463,11 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
         }
         return;
     }
+    // A page is one row fewer than the list shows, and at least one row: no
+    // row fits before the list's first layout or in a very short window, and
+    // 0 - 1 would wrap to a page of -1 (A-gf-controls-06-F6).
     const std::ptrdiff_t page =
-        list_ ? static_cast<std::ptrdiff_t>(std::max<std::size_t>(1U, (*list_).visible_rows() - 1U)) : 1;
+        list_ ? static_cast<std::ptrdiff_t>(std::max<std::size_t>((*list_).visible_rows(), 2U) - 1U) : 1;
     bool recognized = true;
     switch (key) {
     case PhysicalKey::up: move_highlight(-1, false); break;
@@ -460,10 +476,16 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     case PhysicalKey::page_down: move_highlight(page, false); break;
     case PhysicalKey::home: move_highlight(-1, true); break;
     case PhysicalKey::end: move_highlight(1, true); break;
-    case PhysicalKey::enter:
-        if (highlighted_) choose_row(filtered_[*highlighted_]);
+    case PhysicalKey::enter: {
+        const std::size_t* const highlighted = highlighted_.value();
+        if (highlighted != nullptr) choose_row(filtered_[*highlighted]);
+        if (!is_alive()) {
+            arguments.handled = true;
+            return;
+        }
         close_drop_down();
         break;
+    }
     case PhysicalKey::escape: close_drop_down(); break;
     case PhysicalKey::backspace:
         if (!filter_.empty()) {
@@ -527,7 +549,8 @@ void LookupComboBox::open_drop_down() {
             *this, Delegate<>::bind<LookupComboBox, &LookupComboBox::on_overlay_revoked>(*this));
     }
     dropped_down_ = true;
-    if (highlighted_) (*list_).reveal(*highlighted_);
+    const std::size_t* const highlighted = highlighted_.value();
+    if (highlighted != nullptr) (*list_).reveal(*highlighted);
     invalidate(Dirty::paint | Dirty::semantics);
     drop_down_changed_.emit(true);
 }
@@ -554,7 +577,13 @@ void LookupComboBox::close_drop_down() {
 
 void LookupComboBox::on_row_activated(std::size_t position) {
     if (position >= filtered_.size()) return;
+    // The pointer dispatch holds the list, not the box: the box holds
+    // itself across choose_row's selected_key_changed handlers, which may
+    // remove and drop it, and stops if one disposed it
+    // (A-gf-controls-06-F5).
+    const Control::Ptr retained = weak_from_this().lock();
     choose_row(filtered_[position]);
+    if (!is_alive()) return;
     close_drop_down();
 }
 
@@ -636,7 +665,7 @@ void LookupComboBox::on_dispose() noexcept {
 
 void LookupComboBox::prepare_write(const decltype(selected_key)&, std::string& incoming) {
     require_mutable();
-    if (!incoming.empty() && !row_of(incoming)) {
+    if (!incoming.empty() && row_of(incoming).absent()) {
         throw std::invalid_argument("LookupComboBox selected key names no row");
     }
 }

@@ -3,10 +3,10 @@
 #include "gui_forms/binding/collection_cell/collection_cell.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -43,10 +43,18 @@ protected:
     // The replaced positions below the watermark, appended to `replaced`,
     // and the watermark (CollectionDirty::take). For the declaring class's
     // flush.
-    [[nodiscard]] static std::optional<std::size_t> take_dirty(TextItemsCapability& capability,
+    [[nodiscard]] static stxlib::Optional<std::size_t> take_dirty(TextItemsCapability& capability,
                                                                std::vector<std::uint32_t>& replaced) {
-        const std::optional<std::size_t> structural_from = capability.items.take_dirty(replaced);
+        const stxlib::Optional<std::size_t> structural_from = capability.items.take_dirty(replaced);
         return structural_from;
+    }
+
+    // How many edits and owner stores the items have seen: a declaring class
+    // that raises a handler compares it before and after, to act only on the
+    // items the handler saw (CollectionCell::revision).
+    [[nodiscard]] static std::uint64_t items_revision(const TextItemsCapability& capability) noexcept {
+        const std::uint64_t revision = capability.items.revision();
+        return revision;
     }
 
     // Reorders the items in place by `order` and records every position

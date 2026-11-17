@@ -9,6 +9,7 @@
 #include "gui_forms/controls/property_grid.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/track_bar.hpp"
+#include <stxlib/optional.hpp>
 
 namespace gallery_pages_tests {
 
@@ -49,7 +50,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
                 bounds_x_editor && (*bounds_x_editor).visible.read() &&
                 (*property_grid).selected_object() == inspected_numeric &&
                 (*property_grid).selected_origin("Value") ==
-                    PropertyValueOrigin::local,
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::local),
             "gallery must dogfood the public metadata-driven PropertyGrid against a stock compound control");
     require(window.request_focus((*value_editor).editor()),
             "gallery PropertyGrid numeric editor must expose its ordinary retained text focus target");
@@ -67,7 +68,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
             "gallery inspector actions must be application Commands shown through one CommandBar");
     click(window, window.find("gallery.values.inspector-commands.item.2"));
     require(items_target && (*property_grid).selected_object() == items_target &&
-                (*property_grid).property_expanded("Items") == true &&
+                (*property_grid).property_expanded("Items") == stxlib::Optional<bool>::of(true) &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*property_grid).editor("Items[1]"))).text.read() == "FM",
             "gallery must expose the stock ComboBox.Items collection through the same recursive PropertyGrid");

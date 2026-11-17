@@ -1,0 +1,15 @@
+{
+  "program": "plan_paint.js",
+  "version": "0",
+  "arguments": [],
+  "persist": "/home/web_user",
+  "packs": [
+    { "script": "assets.js", "required": true }
+  ],
+  "fonts": {
+    "required": [
+      { "script": "fonts-interface.js", "group": "interface" }
+    ],
+    "lazy": []
+  }
+}

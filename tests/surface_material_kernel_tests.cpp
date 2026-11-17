@@ -56,7 +56,7 @@ SurfaceMaterial well_material() {
     SurfaceMaterial made{};
     made.fills = {MaterialFillLayer::solid(Color::rgba(238, 243, 247))};
     made.corner_radius = 3.0;
-    made.border = MaterialBorder{.color = Color::rgba(132, 148, 163), .width = 1.0};
+    made.border.set(MaterialBorder{.color = Color::rgba(132, 148, 163), .width = 1.0});
     MaterialShadow inner{};
     inner.offset = Point{0.0, 1.0};
     inner.blur_radius = 2.0;
@@ -77,7 +77,7 @@ SurfaceMaterial card_material() {
                                             {GradientStop{0.0, Color::rgba(250, 252, 254)},
                                              GradientStop{1.0, Color::rgba(214, 224, 234)}})};
     made.corner_radius = 6.0;
-    made.border = MaterialBorder{.color = Color::rgba(112, 130, 156), .width = 1.0};
+    made.border.set(MaterialBorder{.color = Color::rgba(112, 130, 156), .width = 1.0});
     return made;
 }
 
@@ -180,17 +180,17 @@ void test_rounded_single_edges() {
     SurfaceMaterial well{};
     well.fills = {MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
     well.corner_radius = 7.5;
-    well.border_edges.top = MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0};
-    well.border_edges.left = MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0};
-    well.border_edges.bottom = MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0};
-    well.border_edges.right = MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0};
+    well.border_edges.top.set(MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0});
+    well.border_edges.left.set(MaterialBorder{.color = Color::rgba(128, 128, 128), .width = 1.0});
+    well.border_edges.bottom.set(MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0});
+    well.border_edges.right.set(MaterialBorder{.color = Color::rgba(255, 255, 255), .width = 1.0});
     well.keylines = {MaterialKeyline{.edge = MaterialEdge::top, .color = Color::rgba(64, 64, 64), .width = 1.0, .inset = 1.0},
                      MaterialKeyline{.edge = MaterialEdge::left, .color = Color::rgba(64, 64, 64), .width = 1.0, .inset = 1.0},
                      MaterialKeyline{.edge = MaterialEdge::bottom, .color = Color::rgba(212, 208, 200), .width = 1.0, .inset = 1.0},
                      MaterialKeyline{.edge = MaterialEdge::right, .color = Color::rgba(212, 208, 200), .width = 1.0, .inset = 1.0}};
     require(valid_surface_material(well), "rounded single edges of one width are valid");
     SurfaceMaterial uneven = well;
-    (*uneven.border_edges.top).width = 2.0;
+    (*uneven.border_edges.top.value()).width = 2.0;
     require(!valid_surface_material(uneven), "rounded single edges of differing widths are refused");
     const double outset = detail::material_raster_outset(well);
     const std::shared_ptr<const PartRaster> raster =
@@ -216,11 +216,42 @@ void test_rounded_single_edges() {
     require(blue[5] < 200U, "the outer ring's top is the shadow edge");
 }
 
+// A focused radial fill (the theme language's `focus`): the kernel's first
+// stop lies at the focus, and the rings crowd towards the edge nearer it.
+void test_focal_radial_bakes() {
+    const std::vector<GradientStop> stops{{0.0, Color::rgba(255, 0, 0)}, {1.0, Color::rgba(0, 0, 255)}};
+    MaterialFillLayer focal = MaterialFillLayer::radial(Point{0.5, 0.5}, Size{0.5, 0.5}, stops);
+    focal.focused = true;
+    focal.focus = Point{0.25, 0.5};
+    SurfaceMaterial lens{};
+    lens.fills = {focal};
+    require(valid_surface_material(lens), "a focused radial fill is valid");
+    const double outset = detail::material_raster_outset(lens);
+    const std::shared_ptr<const PartRaster> raster =
+        detail::bake_material_raster(lens, Size{32.0, 32.0}, DeviceScale{1.0}, outset);
+    require(raster != nullptr, "the focused lens bakes");
+    if (raster == nullptr) return;
+    const PartRaster& baked = *raster;
+    const std::size_t origin = static_cast<std::size_t>(outset);
+    const std::size_t row_bytes = baked.row_bytes();
+    const std::span<const std::uint8_t> pixels = baked.pixels();
+    // BGRA: the blue byte first, the red third.
+    const std::size_t at_focus = (origin + 16U) * row_bytes + (origin + 8U) * 4U;
+    const std::size_t nearer = (origin + 16U) * row_bytes + (origin + 2U) * 4U;
+    const std::size_t farther = (origin + 16U) * row_bytes + (origin + 14U) * 4U;
+    // The focus pixel's centre lies a little past t = 0 (about 0.04), where
+    // linear light gives blue about 56.
+    require(pixels[at_focus + 2U] > 220U && pixels[at_focus] < 75U, "the focus takes the first stop");
+    require(static_cast<int>(pixels[nearer]) > static_cast<int>(pixels[farther]) + 40,
+            "the rings crowd towards the edge nearer the focus");
+}
+
 } // namespace
 
 int main() {
     test_three_paths_agree();
     test_rounded_single_edges();
+    test_focal_radial_bakes();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

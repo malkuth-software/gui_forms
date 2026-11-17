@@ -4,6 +4,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <array>
 #include <cstddef>
@@ -13,6 +14,8 @@
 #include <string_view>
 #include <thread>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -302,8 +305,12 @@ public:
     [[nodiscard]] HostServiceStatus bring_to_front(HostWindowId window);
     // Closes and destroys a window opened by this run without asking its
     // closing handler: the program decided. Its closed callback runs before
-    // this returns and its identity is retired. The primary window and a
-    // window that still owns live windows are invalid_argument.
+    // this returns and its identity is retired. The popup-kind windows it
+    // owns (the warm Popup slots and tooltip the run keeps for its model)
+    // are destroyed first, each with its closed callback. The primary
+    // window and a window that still owns any other live window are
+    // invalid_argument; a refusal after its popups went leaves the window
+    // open without them.
     [[nodiscard]] HostServiceStatus destroy_window(HostWindowId window);
     // Monitors in desktop logical units.
     [[nodiscard]] HostMonitorResult query_monitors();
@@ -341,12 +348,12 @@ public:
     [[nodiscard]] std::size_t modal_depth() const noexcept { return modal_depth_; }
 
     // Table queries (no capability needed).
-    [[nodiscard]] std::optional<HostWindowId> find(std::string_view stable_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<HostWindowId> find(std::string_view stable_id) const noexcept;
     [[nodiscard]] bool live(HostWindowId window) const noexcept;
-    [[nodiscard]] std::optional<HostWindowKind> kind(HostWindowId window) const noexcept;
+    [[nodiscard]] stxlib::Optional<HostWindowKind> kind(HostWindowId window) const noexcept;
     // The owner, or an invalid identity for a window without one. Empty for
     // an unknown window.
-    [[nodiscard]] std::optional<HostWindowId> owner(HostWindowId window) const noexcept;
+    [[nodiscard]] stxlib::Optional<HostWindowId> owner(HostWindowId window) const noexcept;
     [[nodiscard]] HostWindowId primary() const noexcept { return primary_; }
     // Whether the window should be on screen now: what the program asked
     // for, after the floating policy. Adapters show a new window only when
@@ -460,7 +467,7 @@ private:
         HostWindowId owner{};
         HostWindowKind kind{HostWindowKind::standard};
         // The frame last reported, until the first report.
-        std::optional<HostWindowFrame> frame{};
+        stxlib::Optional<HostWindowFrame> frame{};
         // Visibility: what the program wants, and what the policy last put
         // on screen.
         bool requested_visible{};
@@ -475,14 +482,14 @@ private:
         // origins is the policy's own placement, possibly answered late
         // (X11), and never changes the offset; the targets are forgotten when
         // the user moves the window.
-        std::optional<Point> offset{};
+        stxlib::Optional<Point> offset{};
         std::array<Point, 4> recent_targets{};
         std::size_t recent_target_count{};
         // The primary window's client origin when its followers were last
         // placed (none before the first placement); a follower move seen
         // while the primary has moved since then is the platform carrying
         // it, not the user.
-        std::optional<Point> followed_origin{};
+        stxlib::Optional<Point> followed_origin{};
     };
 
     void apply_visibility(WindowRecord& entry);
@@ -504,7 +511,7 @@ private:
     [[nodiscard]] WindowRecord* record(HostWindowId window) noexcept;
     [[nodiscard]] const WindowRecord* record(HostWindowId window) const noexcept;
 
-    std::thread::id ui_thread_;
+    ThreadId ui_thread_;
     HostWindowingSnapshot snapshot_;
     // Live windows in admission order. Capacity maximum_windows is reserved
     // at construction; admission refuses beyond it, so the table never

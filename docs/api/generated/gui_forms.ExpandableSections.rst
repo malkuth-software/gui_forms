@@ -51,6 +51,8 @@ gui_forms::ExpandableSections
          takes its state from its :cpp:class:`Value <gui_forms::Value>`. No :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` events are raised during
          the replacement.
 
+      **revealing** : ``bool``, read-only
+
    :Events:
 
       **toggled** : ``Event<int, bool>``
@@ -78,6 +80,8 @@ gui_forms::ExpandableSections
         - Whether the section at an index is open.
       * - :cpp:func:`part <gui_forms::ExpandableSections::part>`
         - ``part("header", index)`` returns the section's header control and ``part("body", index)`` its content; any other name returns null.
+      * - :cpp:func:`section_reveal <gui_forms::ExpandableSections::section_reveal>`
+        - How far section ``index``'s host is open, 0 to 1 (std::out_of_range for a bad index), and whether a reveal is moving.
       * - :cpp:func:`set_expanded <gui_forms::ExpandableSections::set_expanded>`
         - Opens or closes the section at an index, as if the user had toggled its header.
 
@@ -196,6 +200,8 @@ gui_forms::ExpandableSections
 
       Sets :cpp:func:`items <gui_forms::ExpandableSections::items>`; see the property's description above.
 
+   .. cpp:function:: bool revealing() const noexcept
+
 
    .. rubric:: Events
 
@@ -222,6 +228,10 @@ gui_forms::ExpandableSections
       index outside :cpp:func:`items <gui_forms::ExpandableSections::items>` throws ``std::out_of_range``. Checking or
       unchecking the header is the same as calling :cpp:func:`set_expanded <gui_forms::ExpandableSections::set_expanded>`.
 
+   .. cpp:function:: double section_reveal(int index) const
+
+      How far section ``index``'s host is open, 0 to 1 (std::out_of_range for a bad index), and whether a reveal is moving.
+
    .. cpp:function:: void set_expanded(int index, bool expanded)
 
       Opens or closes the section at an index, as if the user had toggled its
@@ -237,6 +247,12 @@ gui_forms::ExpandableSections
       and spans the full width, and an open section's content follows it at
       the full width and the height of its requested bounds.
 
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
+   .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
+
+      The panel's paint; the reveal timer waits for it after each tick.
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
@@ -247,7 +263,7 @@ gui_forms::ExpandableSections
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 0 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 0 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -262,6 +278,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 5 su
      - GUI.Forms-only
      - ``items``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``revealing``
+     - supported
    * - event
      - GUI.Forms-only
      - ``toggled``
@@ -273,6 +293,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 5 su
    * - method
      - GUI.Forms-only
      - ``part``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``section_reveal``
      - supported
    * - method
      - GUI.Forms-only

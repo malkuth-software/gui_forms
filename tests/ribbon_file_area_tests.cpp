@@ -40,6 +40,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -90,8 +91,8 @@ struct RecordFont final {
 };
 
 struct RecordColor final {
-    std::vector<std::optional<Color>>* seen{};
-    void operator()(const std::optional<Color>& value) const { (*seen).push_back(value); }
+    std::vector<stxlib::Optional<Color>>* seen{};
+    void operator()(const stxlib::Optional<Color>& value) const { (*seen).push_back(value); }
 };
 
 struct RecordRecent final {
@@ -163,21 +164,21 @@ void value_commands() {
     int color_runs = 0;
     SubscriptionToken color_counted = (*color).invoked().subscribe(CountInvocation{&color_runs});
     for (std::uint8_t index = 0; index < 12U; ++index) {
-        static_cast<void>(color_command.commit(Color::rgba(index, 0, 0), "test"));
+        static_cast<void>(color_command.commit(stxlib::Optional<Color>::of(Color::rgba(index, 0, 0)), "test"));
     }
     require(color_runs == 12 && color_command.recent_colors().size() == ColorCommand::maximum_recent_colors &&
                 color_command.recent_colors()[0] == Color::rgba(11, 0, 0) &&
                 color_command.recent_colors()[9] == Color::rgba(2, 0, 0),
             "committed colours are recent, most recent first, the oldest falling off past ten");
-    static_cast<void>(color_command.commit(Color::rgba(5, 0, 0), "test"));
+    static_cast<void>(color_command.commit(stxlib::Optional<Color>::of(Color::rgba(5, 0, 0)), "test"));
     require(color_command.recent_colors()[0] == Color::rgba(5, 0, 0) && color_command.recent_colors().size() == 10U &&
                 color_command.recent_colors()[1] == Color::rgba(11, 0, 0),
             "a recommitted colour moves to the front without repeating");
-    static_cast<void>(color_command.commit(std::nullopt, "test"));
-    require(!color_command.value() && color_command.recent_colors()[0] == Color::rgba(5, 0, 0),
+    static_cast<void>(color_command.commit(stxlib::Optional<Color>::none(), "test"));
+    require(color_command.value().absent() && color_command.recent_colors()[0] == Color::rgba(5, 0, 0),
             "Automatic is a value but not a recent colour");
-    color_command.set_value(Color::rgba(1, 2, 3));
-    require(color_runs == 14 && color_command.value() == Color::rgba(1, 2, 3), "set_value runs nothing");
+    color_command.set_value(stxlib::Optional<Color>::of(Color::rgba(1, 2, 3)));
+    require(color_runs == 14 && color_command.value() == stxlib::Optional<Color>::of(Color::rgba(1, 2, 3)), "set_value runs nothing");
 }
 
 void font_control() {
@@ -190,20 +191,20 @@ void font_control() {
     window.perform_layout();
     const std::shared_ptr<ComboBox> family = (*control).family_box();
     const std::shared_ptr<ComboBox> size = (*control).size_box();
-    require((*family).selected_index.read() == std::size_t{0U} && (*size).selected_text() == "12",
+    require((*family).selected_index.read() == stxlib::Optional<std::size_t>::of(0U) && (*size).selected_text() == "12",
             "the fields show the command's value");
     require((*control).parts().family_field.bounds == (*family).committed_arranged_bounds() &&
                 (*control).parts().size_field.present,
             "the fields sit where the control's parts say");
     int runs = 0;
     SubscriptionToken counted = (*(*command).command()).invoked().subscribe(CountInvocation{&runs});
-    (*family).selected_index = std::size_t{2U};
+    (*family).selected_index = stxlib::Optional<std::size_t>::of(2U);
     require(runs == 1 && (*command).value().family == "Tahoma" && (*command).value().size == 12.0,
             "choosing a family commits it with the shown size");
-    (*size).selected_index = std::size_t{0U};
+    (*size).selected_index = stxlib::Optional<std::size_t>::of(0U);
     require(runs == 2 && (*command).value().size == 8.0, "choosing a size commits it with the shown family");
     (*command).set_value({"Unknown face", 10.5});
-    require(!(*family).selected_index.read() && (*size).selected_text() == "10.5" && runs == 2,
+    require((*family).selected_index.read().absent() && (*size).selected_text() == "10.5" && runs == 2,
             "a value outside the lists shows that field empty; the program's change runs nothing");
     (*(*command).command()).set_enabled(false);
     require(!(*family).enabled.read() && !(*size).enabled.read(), "a disabled command disables both fields");
@@ -242,11 +243,11 @@ void color_picker() {
     std::vector<RibbonColorPicker::PaletteEntry> entries = (*picker).realized_entries();
     require(entries.size() == 11U && entries[0].kind == RibbonPaletteEntryKind::automatic &&
                 entries[0].parts.entry_label.present && entries[0].states.selected &&
-                entries[3].color == Color::rgba(255, 192, 0),
+                entries[3].color == stxlib::Optional<Color>::of(Color::rgba(255, 192, 0)),
             "the palette holds Automatic (selected while no colour is set) and the ten standard colours");
     require(entries[0].parts.entry_well.present && !entries[0].parts.entry_sample.present &&
                 entries[3].parts.entry_well.present &&
-                entries[3].parts.entry_sample.content_color == Color::rgba(255, 192, 0),
+                entries[3].parts.entry_sample.content_color == stxlib::Optional<Color>::of(Color::rgba(255, 192, 0)),
             "Automatic shows an empty well; each colour a fill with its content colour inside its well");
     FillRecorder palette;
     static_cast<void>(window.paint(palette, {0.0, 0.0, 300.0, 300.0}));
@@ -254,21 +255,21 @@ void color_picker() {
             "the recording painter sees each swatch's content colour");
     const Control::Ptr overlay = (*picker).palette_overlay();
     click(window, centre(to_window(*overlay, entries[2].parts.entry_face.bounds)));
-    require(!(*picker).palette_open() && runs == 1 && (*command).value() == Color::rgba(255, 0, 0) &&
+    require(!(*picker).palette_open() && runs == 1 && (*command).value() == stxlib::Optional<Color>::of(Color::rgba(255, 0, 0)) &&
                 (*command).recent_colors().size() == 1U,
             "a click on a colour commits it and closes the palette");
     // Owner decision W-7: the samples are fills carrying content colours,
     // painted by role.
     const RibbonColorPicker::Parts own = (*picker).parts();
-    require(own.color_sample.present && own.color_sample.content_color == Color::rgba(255, 0, 0) &&
-                own.color_bar.present && !own.color_bar.content_color,
+    require(own.color_sample.present && own.color_sample.content_color == stxlib::Optional<Color>::of(Color::rgba(255, 0, 0)) &&
+                own.color_bar.present && !own.color_bar.content_color.present(),
             "the colour bar is a well holding a fill whose content colour is the value");
     FillRecorder bar;
     static_cast<void>(window.paint(bar, {0.0, 0.0, 300.0, 300.0}));
     require(filled(bar, own.color_sample.bounds, Color::rgba(255, 0, 0)),
             "the recording painter sees the colour bar's content colour");
     click(window, centre((*picker).parts().face.bounds));
-    require(runs == 2 && (*command).value() == Color::rgba(255, 0, 0), "the face applies the current colour again");
+    require(runs == 2 && (*command).value() == stxlib::Optional<Color>::of(Color::rgba(255, 0, 0)), "the face applies the current colour again");
     require(window.request_focus(picker), "the picker takes focus");
     press_key(window, PhysicalKey::down);
     require((*picker).palette_open(), "Down opens the palette");
@@ -286,7 +287,7 @@ void color_picker() {
     press_key(window, PhysicalKey::home);
     for (int step = 0; step < 3; ++step) press_key(window, PhysicalKey::right);
     press_key(window, PhysicalKey::enter);
-    require(!(*picker).palette_open() && (*command).value() == Color::rgba(255, 192, 0) && runs == 3,
+    require(!(*picker).palette_open() && (*command).value() == stxlib::Optional<Color>::of(Color::rgba(255, 192, 0)) && runs == 3,
             "the arrows move through the palette and Enter commits");
     press_key(window, PhysicalKey::down);
     press_key(window, PhysicalKey::escape);
@@ -315,7 +316,7 @@ std::shared_ptr<Ribbon> make_ribbon(const std::shared_ptr<RibbonFontControl>& fo
     group.commands.push_back({.stable_id = "colour", .kind = RibbonCommandKind::color_picker, .text = "Colour",
                               .color_picker = colour});
     group.commands.push_back({.stable_id = "bold", .kind = RibbonCommandKind::toggle,
-                              .size = RibbonCommandSize::small, .command = std::make_shared<Command>("bold", "Bold"),
+                              .size = RibbonCommandSize::compact, .command = std::make_shared<Command>("bold", "Bold"),
                               .image = ImageId{2U}, .show_label = false});
     home.groups.push_back(std::move(group));
     RibbonTabSpec view{.stable_id = "view", .text = "&View"};
@@ -394,8 +395,9 @@ void recent_pane() {
     const Control::Ptr overlay = (*ribbon).application_menu_overlay();
     std::vector<SemanticNode> rows = (*overlay).semantic_virtual_children();
     require(rows.size() == 4U && rows[0].name == "Open" && rows[1].name == "Save" && rows[2].name == "1 Report.txt" &&
-                rows[2].description == "C:\\Documents" && rows[3].position_in_set == std::size_t{2U} &&
-                rows[3].set_size == std::size_t{2U},
+                rows[2].description == "C:\\Documents" &&
+                rows[3].position_in_set == stxlib::Optional<std::size_t>::of(2U) &&
+                rows[3].set_size == stxlib::Optional<std::size_t>::of(2U),
             "the commands sit beside the numbered recent items, each positioned in its pane");
     require(rows[2].bounds.x > rows[0].bounds.x + rows[0].bounds.width - 1.0 &&
                 rows[0].bounds.y >= (*ribbon).parts().application_button.bounds.height,
@@ -458,7 +460,7 @@ void backstage() {
     int closes = 0;
     SubscriptionToken saved = (*save).invoked().subscribe(CountInvocation{&saves});
     SubscriptionToken closed = (*close).invoked().subscribe(CountInvocation{&closes});
-    require((*view).selected_topic.read() == std::size_t{1U}, "the first topic is selected");
+    require((*view).selected_topic.read() == stxlib::Optional<std::size_t>::of(1U), "the first topic is selected");
     click(window, centre((*ribbon).parts().application_button.bounds));
     require((*ribbon).backstage_open() && (*ribbon).parts().application_button.states.contains(AnatomyState::open),
             "the File tab opens Backstage");
@@ -497,7 +499,7 @@ void backstage() {
     require((*ribbon).show_backstage(), "and again");
     window.perform_layout();
     click(window, centre((*ribbon).realized_tabs()[1].parts.tab.bounds));
-    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*ribbon).minimized.read(),
+    require(!(*ribbon).backstage_open() && (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U) && !(*ribbon).minimized.read(),
             "a tab closes it and selects that tab");
     require((*ribbon).show_backstage(), "Backstage reopens");
     window.perform_layout();
@@ -544,8 +546,8 @@ void backstage() {
 // entry that remains.
 void color_palette_shrinks_while_open() {
     std::shared_ptr<ColorCommand> command = std::make_shared<ColorCommand>(std::make_shared<Command>("ink", "Ink"));
-    static_cast<void>((*command).commit(Color::rgba(1, 2, 3), "test"));
-    static_cast<void>((*command).commit(Color::rgba(4, 5, 6), "test"));
+    static_cast<void>((*command).commit(stxlib::Optional<Color>::of(Color::rgba(1, 2, 3)), "test"));
+    static_cast<void>((*command).commit(stxlib::Optional<Color>::of(Color::rgba(4, 5, 6)), "test"));
     std::shared_ptr<RibbonColorPicker> picker = make_control<RibbonColorPicker>(StableId("shrinking"));
     (*picker).command = command;
     Window window(picker, {300.0, 300.0});
@@ -630,6 +632,50 @@ void font_field_widths() {
 
 } // namespace
 
+// Closes Backstage when the ribbon loses focus, once, as a handler that
+// leaves Backstage when the document is touched does.
+struct CloseBackstageOnBlur final {
+    Ribbon* ribbon{};
+    bool* closed{};
+    void operator()(bool focused) const {
+        if (focused || *closed) return;
+        *closed = true;
+        (*ribbon).close_backstage();
+    }
+};
+
+struct RecordOpen final {
+    std::vector<bool>* seen{};
+    void operator()(bool open) const { (*seen).push_back(open); }
+};
+
+// A-gf-controls-11-F2: opening Backstage moves focus into it; a blur
+// handler that closes it leaves Backstage closed, its focus scope ended
+// (focus may leave it), and no backstage_open_changed(true) after the false.
+void backstage_closed_while_opening() {
+    std::shared_ptr<Ribbon> ribbon = make_ribbon(make_control<RibbonFontControl>(StableId("ribbon.font")),
+                                                 make_control<RibbonColorPicker>(StableId("ribbon.colour")));
+    std::shared_ptr<BackstageView> view = make_control<BackstageView>(StableId("backstage"));
+    std::shared_ptr<Label> info = make_control<Label>(StableId("backstage.info"), "Information");
+    (*view).set_items({{.stable_id = "info", .kind = BackstageItemKind::topic, .text = "&Info", .page = info}});
+    (*ribbon).backstage = view;
+    Window window(ribbon, {900.0, 500.0});
+    window.perform_layout();
+    require(window.request_focus(ribbon), "the ribbon takes focus");
+    bool closed = false;
+    std::vector<bool> changes;
+    SubscriptionToken blurred = (*ribbon).focus_observed().subscribe(CloseBackstageOnBlur{ribbon.get(), &closed});
+    SubscriptionToken recorded = (*ribbon).backstage_open_changed().subscribe(RecordOpen{&changes});
+    const bool opened = (*ribbon).show_backstage();
+    require(closed, "opening Backstage moved focus off the ribbon");
+    require(!(*ribbon).backstage_open() && !opened && changes == std::vector<bool>{false},
+            "Backstage closed by a focus handler while it opened stays closed, with no later open report");
+    require(window.request_focus(ribbon) && window.focused_control() == ribbon,
+            "no focus scope of the closed Backstage holds focus");
+    static_cast<void>(blurred);
+    static_cast<void>(recorded);
+}
+
 int main() {
     value_commands();
     font_control();
@@ -640,6 +686,7 @@ int main() {
     arranged_within_maximum_size();
     font_field_widths();
     color_palette_shrinks_while_open();
+    backstage_closed_while_opening();
     std::cout << "Ribbon file area: value commands, font control, colour picker, hosting, recent pane and Backstage "
                  "passed\n";
     return 0;

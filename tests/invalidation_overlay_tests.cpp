@@ -6,7 +6,9 @@
 // attributes painted damage to a control's invalidation (named by its
 // stable id), to layout on a resize and to a host expose for a painted area
 // nothing asked for; the process switch reaches windows without a setting
-// of their own, and a window's own setting wins.
+// of their own, and a window's own setting wins; the counters card (the
+// diagnostic overlay) keeps bounded lines, draws at the top left with no
+// outline and no legend, and a window fills it from its metrics.
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/label.hpp"
@@ -17,12 +19,14 @@
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -31,6 +35,27 @@
 namespace {
 
 using namespace gui_forms;
+
+// D15 Q3: set_invalidation_overlay and set_tool_tips_shown keep their
+// deprecated std::optional forms for one stage; a plain bool or {} must not
+// reach them silently. Each plain call below is refused (a deleted overload
+// or an ambiguity), and the stxlib form is accepted.
+template <typename Root>
+concept takes_plain_overlay = requires(Root& root) { root.set_invalidation_overlay(true); };
+template <typename Root>
+concept takes_empty_overlay = requires(Root& root) { root.set_invalidation_overlay({}); };
+template <typename Root>
+concept takes_plain_tool_tips = requires(Root& root) { root.set_tool_tips_shown(false); };
+template <typename Root>
+concept takes_empty_tool_tips = requires(Root& root) { root.set_tool_tips_shown({}); };
+template <typename Root>
+concept takes_optional_switches = requires(Root& root) {
+    root.set_invalidation_overlay(stxlib::Optional<bool>::of(true));
+    root.set_tool_tips_shown(stxlib::Optional<bool>::none());
+};
+static_assert(!takes_plain_overlay<Window> && !takes_empty_overlay<Window>);
+static_assert(!takes_plain_tool_tips<Window> && !takes_empty_tool_tips<Window>);
+static_assert(takes_optional_switches<Window>);
 
 class NullPainter final : public Painter {
 public:
@@ -164,11 +189,11 @@ void window_attribution() {
     Window window(root, Size{200.0, 120.0});
     window.perform_layout();
     NullPainter painter;
-    window.set_invalidation_overlay(false);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(false));
     window.paint(painter, {0.0, 0.0, 200.0, 120.0});
     expect(window.invalidation_overlay() == nullptr, "off, a window keeps no overlay");
 
-    window.set_invalidation_overlay(true);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(true));
     InvalidationOverlay* const overlay = window.invalidation_overlay();
     expect(overlay != nullptr && window.invalidation_overlay_enabled(), "on, the window makes its overlay");
     (*label).text = "Changed";
@@ -192,7 +217,7 @@ void window_attribution() {
     expect(records_cause(*overlay, InvalidationCause::external_content, "shim"),
            "a host's presented external content is outlined");
 
-    window.set_invalidation_overlay(false);
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(false));
     expect(window.invalidation_overlay() == nullptr, "turned off, the overlay is released");
 }
 
@@ -202,7 +227,7 @@ void process_switch() {
     Window following(root, Size{100.0, 80.0});
     std::shared_ptr<Panel> other_root = make_control<Panel>(StableId("switch.other"));
     Window opted_out(other_root, Size{100.0, 80.0});
-    opted_out.set_invalidation_overlay(false);
+    opted_out.set_invalidation_overlay(stxlib::Optional<bool>::of(false));
 
     const std::uint64_t generation = invalidation_overlay_default_generation();
     set_invalidation_overlay_default(!before);
@@ -214,7 +239,7 @@ void process_switch() {
     std::shared_ptr<Panel> late_root = make_control<Panel>(StableId("switch.late"));
     Window late(late_root, Size{100.0, 80.0});
     expect(late.invalidation_overlay_enabled(), "a window made later follows the switch too");
-    opted_out.set_invalidation_overlay(std::nullopt);
+    opted_out.set_invalidation_overlay(stxlib::Optional<bool>::none());
     expect(opted_out.invalidation_overlay_enabled(), "a cleared setting follows the switch again");
     set_invalidation_overlay_default(false);
     expect(!following.invalidation_overlay_enabled() && !late.invalidation_overlay_enabled(),
@@ -224,11 +249,67 @@ void process_switch() {
 
 } // namespace
 
+void counters_card() {
+    InvalidationOverlay overlay;
+    std::vector<DevicePixelRect> regions;
+    overlay.fill_regions(1.0, 320U, 200U, regions);
+    expect(regions.empty(), "with no outline and no counters nothing is drawn");
+
+    const std::string long_line(100U, '7');
+    std::vector<std::string_view> lines(maximum_overlay_counter_lines + 3U, std::string_view{"paint 1"});
+    lines[0] = long_line;
+    overlay.set_counters(std::span<const std::string_view>(lines.data(), lines.size()));
+    expect(overlay.counters().size() == maximum_overlay_counter_lines, "the card keeps at most its line count");
+    expect(overlay.counters()[0].size() == maximum_overlay_counter_characters, "a long line is cut");
+    expect(overlay.empty(), "counters are not outlines, so nothing fades");
+
+    const std::array<std::string_view, 2> two{std::string_view{"renderer test"}, std::string_view{"paint 3"}};
+    overlay.set_counters(std::span<const std::string_view>(two.data(), two.size()));
+    expect(overlay.counters().size() == 2U && overlay.counters()[1] == "paint 3", "the lines are replaced");
+    overlay.fill_regions(1.0, 320U, 200U, regions);
+    expect(regions.size() == 1U && regions[0].left < 40 && regions[0].top < 40,
+           "the counters card alone draws one region, at the top left (no legend)");
+
+    Frame card(320U, 200U);
+    overlay.compose(card.target(), 1.0, InvalidationClock::now(), DevicePixelRect{0, 0, 320, 200});
+    bool lit = false;
+    for (std::uint32_t y = static_cast<std::uint32_t>(regions[0].top);
+         y < static_cast<std::uint32_t>(regions[0].bottom); ++y) {
+        for (std::uint32_t x = static_cast<std::uint32_t>(regions[0].left);
+             x < static_cast<std::uint32_t>(regions[0].right); ++x) {
+            if (card.red(x, y) > 128) lit = true;
+        }
+    }
+    expect(lit, "the counters card draws its text");
+    expect(card.red(300U, 190U) == 0, "with no outline the legend is not drawn");
+
+    overlay.set_counters(std::span<const std::string_view>{});
+    overlay.fill_regions(1.0, 320U, 200U, regions);
+    expect(regions.empty(), "no lines, no card");
+
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("counters.root"));
+    Window window(root, Size{200.0, 120.0});
+    window.perform_layout();
+    window.set_invalidation_overlay(stxlib::Optional<bool>::of(true));
+    NullPainter painter;
+    window.paint(painter, {0.0, 0.0, 200.0, 120.0});
+    InvalidationOverlay* const filled = window.invalidation_overlay();
+    expect(filled != nullptr && (*filled).counters().size() >= 6U, "a window fills the counters card after a paint");
+    expect((*filled).counters()[0].substr(0U, 8U) == "renderer", "the first line names the renderer");
+    bool paints = false;
+    for (const std::string& line : (*filled).counters()) {
+        if (line.substr(0U, 6U) == "paint ") paints = true;
+    }
+    expect(paints, "a line counts paints and damage");
+    window.set_invalidation_overlay(stxlib::Optional<bool>::none());
+}
+
 int main() {
     outline_store();
     composition();
     window_attribution();
     process_switch();
+    counters_card();
     std::cout << "invalidation overlay tests passed\n";
     return EXIT_SUCCESS;
 }

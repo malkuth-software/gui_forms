@@ -27,7 +27,7 @@ Related types
    :widths: 35 65
 
    * - :cpp:class:`BundledFontDiagnostics <gui_forms::BundledFontDiagnostics>`
-     - What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source).
+     - What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source), and what decoding the pack refused.
    * - :cpp:class:`ExpectationThresholds <gui_forms::ExpectationThresholds>`
      - What each expectation allows.
    * - :cpp:class:`Metrics <gui_forms::Metrics>`
@@ -67,7 +67,7 @@ Related types
 
    ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
 
-   What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source). A host looks once per application run and once per window it opens. The first lookup that finds no source also writes one line to stderr, the refusal bundled_font_refusal returns; later ones are only counted. Any thread.
+   What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source), and what decoding the pack refused. A host looks once per application run and once per window it opens. The first lookup that finds no source also writes one line to stderr, the refusal bundled_font_refusal returns; later ones are only counted. The first refused pack group is written to stderr the same way (bundled_font_pack_refusal). Any thread.
 
    .. cpp:member:: std::uint64_t lookups
 
@@ -79,9 +79,13 @@ Related types
 
    .. cpp:member:: std::uint32_t fallback_faces_found
 
-      The bundled fallback faces (the Noto faces for CJK, emoji, Arabic, Hebrew, Devanagari, Bengali and Gurmukhi) that the most recent lookup's directory holds, of how many the library knows. They are optional: an install or app package may leave out their component (fallback_fonts, GUI_FORMS_INSTALL_FALLBACK_FONTS), and text only they cover then falls back as for any missing face (missing-glyph boxes). Found is 0 when the lookup found no directory; bundled_font_notice names the absent faces.
+      The bundled fallback faces (the Noto faces for CJK, emoji, Arabic, Hebrew, Devanagari, Bengali and Gurmukhi) that the most recent lookup's source holds, of how many the library knows. They are optional: a build may leave them out of the pack (GUI_FORMS_INSTALL_FALLBACK_FONTS), a development directory may lack them, and text only they cover then falls back as for any missing face (missing-glyph boxes). Found is 0 when the lookup found no source; bundled_font_notice names the absent faces.
 
    .. cpp:member:: std::uint32_t fallback_faces_expected
+
+   .. cpp:member:: std::uint64_t pack_refusals
+
+      Pack groups (or whole packs) a font set refused when it decoded them: a face that fails its CRC-32, a damaged stream, or no memory. Their faces are refused (FontSetError:: pack_refused) and draw as missing.
 
 .. cpp:namespace:: gui_forms
 
@@ -269,6 +273,8 @@ Related types
 
       Counts a scheduled frame request.
 
+   .. cpp:function:: void record_internal_wake_refused() noexcept
+
    .. cpp:function:: void record_frame_poll(std::uint64_t deadlines_fired, std::uint64_t motion_clock_ticks, std::uint64_t ui_timer_ticks, std::uint64_t coalesced_requests) noexcept
 
       Accumulates deadlines, motion-clock frames, coalescing, and nonempty scheduler wakes.
@@ -304,6 +310,12 @@ Related types
    .. cpp:function:: void record_engine_dither_degradations(std::uint64_t steps) noexcept
 
       A material's dither was lowered by ``steps`` to stay within the bake budget (MetricsSnapshot::engine_dither_degradations).
+
+   .. cpp:function:: void record_engine_built_in_fallback() noexcept
+
+      A part with an engine primitive drawn by the built-in recipe at this paint (MetricsSnapshot::engine_built_in_fallbacks), and of those, one the primitive accepted but no raster was made for (MetricsSnapshot::engine_raster_failures).
+
+   .. cpp:function:: void record_engine_raster_failure() noexcept
 
    .. cpp:function:: void record_engine_material_assembly() noexcept
 
@@ -536,6 +548,10 @@ Related types
 
    .. cpp:member:: std::uint64_t frame_requests_coalesced
 
+   .. cpp:member:: std::uint64_t internal_wakes_refused
+
+      The window's own one-shot wakes (the hover wake, the band's flash or cycle, the tooltip and toast timing) refused because the window already held maximum_scheduled_frame_requests. Each fails soft and is retried at the requester's next event (A-gf-core-17-F3).
+
    .. cpp:member:: std::uint64_t wake_expectation_misses
 
       Missed housekeeping expectations (HousekeepingExpectation), one counter each, and the telemetry lines printed for them.
@@ -635,6 +651,14 @@ Related types
    .. cpp:member:: std::uint64_t engine_dither_degradations
 
       Steps a dithered material's dither gave way so that its part stays within the bake budget (EnginePrimitive::affordable_dither): one for blue noise to the ordered table or the ordered table to none, two for blue noise to none. Counted at every paint that lends the lowered material, so a face keeps its material and loses only the dither, never falling back to the built-in look for it.
+
+   .. cpp:member:: std::uint64_t engine_built_in_fallbacks
+
+      Paints at which a part whose rule chose an engine primitive was drawn by the built-in recipe instead: the primitive refused it (engine_primitive_refusals, which counts only the start of a keyed refusal), no raster was made (engine_raster_failures), or the plan put an animated primitive over the frame budget at the part's device size (maximum_animated_operations_per_frame). Counted at every such paint, so a delta across one state change (a hover) names the parts that changed.
+
+   .. cpp:member:: std::uint64_t engine_raster_failures
+
+      Paints at which a primitive accepted a part but no raster was made for it (the part table's raster or shared bake, a keyframe, came back null), so the built-in recipe drew it.
 
    .. cpp:member:: std::uint64_t engine_material_assemblies
 
@@ -807,7 +831,7 @@ Related types
 
    .. cpp:member:: std::string stable_id
 
-   .. cpp:member:: std::optional<RuntimeId> parent_runtime_id
+   .. cpp:member:: stxlib::Optional<RuntimeId> parent_runtime_id
 
    .. cpp:member:: std::string parent_stable_id
 
@@ -837,7 +861,7 @@ Related types
 
    .. cpp:member:: std::optional<SurfaceMaterial> authored_material
 
-   .. cpp:member:: std::optional<DisplayChunkInfo> display_chunk
+   .. cpp:member:: stxlib::Optional<DisplayChunkInfo> display_chunk
 
    .. cpp:member:: bool display_chunk_current
 
@@ -1079,9 +1103,17 @@ Related types
 
       The reading direction of a draw_text operation. Default: ``{TextOrientation::horizontal}``.
 
+   .. cpp:member:: double text_degrees
+
+      A rotated run's turn in degrees (Painter::draw_rotated_text_utf8), or 0.
+
    .. cpp:member:: std::size_t element_count
 
       A batched mark's length: its points, rectangles, segments or markers (a band counts its upper points); 0 for every other operation, whose JSON leaves the field out.
+
+   .. cpp:member:: std::shared_ptr<const PaintGroupEffect> group_effect
+
+      A begin_group's effect (PaintGroup::effect), shared with the recording; null otherwise, and the JSON leaves the field out.
 
 Enumerations
 ------------
@@ -1096,13 +1128,9 @@ Enumerations
 
    .. cpp:enumerator:: environment
 
-   .. cpp:enumerator:: executable
+   .. cpp:enumerator:: source_tree
 
-   .. cpp:enumerator:: library_module
-
-   .. cpp:enumerator:: install_share
-
-   .. cpp:enumerator:: application_bundle
+   .. cpp:enumerator:: embedded_pack
 
 .. cpp:namespace:: gui_forms
 
@@ -1196,6 +1224,22 @@ Enumerations
 
    .. cpp:enumerator:: stroke_rounded_rect_corners
 
+   .. cpp:enumerator:: fill_path
+
+   .. cpp:enumerator:: stroke_path
+
+   .. cpp:enumerator:: clip_path
+
+   .. cpp:enumerator:: fill_radial_gradient_spread
+
+   .. cpp:enumerator:: fill_hatch
+
+   .. cpp:enumerator:: fill_focal_radial_gradient
+
+   .. cpp:enumerator:: begin_transform
+
+   .. cpp:enumerator:: end_transform
+
 Functions, constants and aliases
 --------------------------------
 
@@ -1241,7 +1285,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string_view bundled_font_source_name(BundledFontSource source) noexcept
 
-   The source's name in diagnostics: "none", "environment", "executable", "library_module", "install_share" or "application_bundle".
+   The source's name in diagnostics: "none", "environment", "source_tree" or "embedded_pack".
 
 .. cpp:function:: BundledFontDiagnostics bundled_font_diagnostics() noexcept
 
@@ -1251,7 +1295,11 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string bundled_font_notice()
 
-   The most recent lookup's note on absent fallback faces: which of them its directory lacks and what that means for text, as one line of UTF-8. Empty when every fallback face is present, when that lookup found no directory (bundled_font_refusal says why), or before the first lookup. Only recorded, never written to stderr, since leaving the faces out is an install's or a package's choice. A copy; any thread.
+   The most recent lookup's notes, as one line of UTF-8: which fallback faces its source lacks and what that means for text, and, in a development build, that no directory held the faces so the embedded pack was used. Empty when there is nothing to note, when that lookup found no source (bundled_font_refusal says why), or before the first lookup. Only recorded, never written to stderr, since leaving the faces out is a build's choice. A copy; any thread.
+
+.. cpp:function:: std::string bundled_font_pack_refusal()
+
+   The most recent pack refusal (BundledFontDiagnostics::pack_refusals): which group was refused, why (the loader's phrase, "bad check value" for a face whose CRC-32 differs), and which faces it held, as one line of UTF-8. Empty before the first refusal. A copy; any thread.
 
 .. cpp:namespace:: gui_forms
 

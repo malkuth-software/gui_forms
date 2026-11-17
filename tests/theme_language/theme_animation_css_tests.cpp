@@ -25,6 +25,7 @@
 #include <iostream>
 #include <limits>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -135,7 +136,7 @@ PropertyTransition entered(std::string_view property, std::optional<double> from
     machine.property = std::string(property);
     PresentationState state{};
     state.target = target;
-    state.enter_from = from;
+    if (from) state.enter_from.set(*from);
     state.stops = std::move(stops);
     machine.states.push_back(std::move(state));
     machine.curve = curve;
@@ -193,7 +194,7 @@ void test_moves() {
     const Compilation rest_compiled = compile(rest);
     const ThemeRule& rest_rule = only_rule(rest_compiled, rest);
     require(rest_rule.transitions.size() == 1U && rest_rule.transitions[0].states[0].target == 1.0 &&
-                rest_rule.transitions[0].states[0].enter_from == 0.5,
+                rest_rule.transitions[0].states[0].enter_from == stxlib::Optional<double>::of(0.5),
             "without `to` or a value of its own, the target is the property's rest");
 
     const std::string_view slide =
@@ -274,14 +275,14 @@ void test_keyframe_forms() {
         "#pad::part(face) { opacity: 0.5; animation: a 100ms; animation: none }\n";
     const Compilation none_compiled = compile(none);
     const ThemeRule& none_rule = only_rule(none_compiled, none);
-    require(none_rule.transitions.size() == 1U && !none_rule.transitions[0].states[0].enter_from.has_value(),
+    require(none_rule.transitions.size() == 1U && none_rule.transitions[0].states[0].enter_from.absent(),
             "`animation: none` plays nothing");
     const std::string_view initial =
         "@keyframes a { from { opacity: 0 } }\n"
         "#pad::part(face) { opacity: 0.5; animation: a 100ms; animation-name: initial }\n";
     const Compilation initial_compiled = compile(initial);
     const ThemeRule& initial_rule = only_rule(initial_compiled, initial);
-    require(initial_rule.transitions.size() == 1U && !initial_rule.transitions[0].states[0].enter_from.has_value(),
+    require(initial_rule.transitions.size() == 1U && initial_rule.transitions[0].states[0].enter_from.absent(),
             "`initial` resets the names to none");
 
     const std::string_view defaults =
@@ -290,7 +291,7 @@ void test_keyframe_forms() {
         " animation-direction: normal; animation-fill-mode: none; animation-play-state: running }\n";
     const Compilation defaults_compiled = compile(defaults);
     const ThemeRule& defaults_rule = only_rule(defaults_compiled, defaults);
-    require(defaults_rule.transitions.size() == 1U && defaults_rule.transitions[0].states[0].enter_from == 0.0,
+    require(defaults_rule.transitions.size() == 1U && defaults_rule.transitions[0].states[0].enter_from == stxlib::Optional<double>::of(0.0),
             "the initial direction, fill mode, play state and count are admitted");
 
     const std::string_view unused = "@keyframes a { from { amplitude: 0.5 } 40% { sparkle: 2 } }";
@@ -390,7 +391,7 @@ void require_loop(std::string_view keyframes, std::string_view timing, std::span
     AmbientEffect ambient{};
     ambient.period = milliseconds(2000);
     ambient.frames_per_second = maximum_ambient_frames_per_second;
-    require(rule.ambient == ambient, "the loop's ambient effect: its period, 30 frames a second, at rest at 0: " + sheet);
+    require(rule.ambient == stxlib::Optional<AmbientEffect>::of(ambient), "the loop's ambient effect: its period, 30 frames a second, at rest at 0: " + sheet);
     const RuleDeclaration* const amplitude = declaration_of(rule, "amplitude");
     require(amplitude != nullptr && (*amplitude).kind == RuleValueKind::expression,
             "the amplitude is the loop's expression, replacing the rule's own value: " + sheet);
@@ -459,7 +460,7 @@ void test_loops() {
     expected.period = milliseconds(1500);
     expected.frames_per_second = 12.0;
     expected.pose = milliseconds(300);
-    require(named_rule.ambient == expected, "animation-frame-rate and animation-rest-pose set the ambient effect");
+    require(named_rule.ambient == stxlib::Optional<AmbientEffect>::of(expected), "animation-frame-rate and animation-rest-pose set the ambient effect");
 }
 
 // engine_motion_tests' ambient_rule(): amplitude = 0.125 + time_in_state / 2
@@ -477,7 +478,7 @@ ThemeRule written_ambient_rule() {
     effect.period = milliseconds(1000);
     effect.frames_per_second = 30.0;
     effect.pose = milliseconds(250);
-    rule.ambient = effect;
+    rule.ambient.set(effect);
     return rule;
 }
 
@@ -618,7 +619,7 @@ void test_warnings() {
                 compiled.diagnostics[1].code == DiagnosticCode::property_not_admitted,
             "properties the language leaves out are dropped with a warning, in keyframes too");
     const ThemeRule& rule = only_rule(compiled, sheet);
-    require(rule.transitions.size() == 1U && rule.transitions[0].states[0].enter_from == 0.0,
+    require(rule.transitions.size() == 1U && rule.transitions[0].states[0].enter_from == stxlib::Optional<double>::of(0.0),
             "and the rest applies");
 }
 

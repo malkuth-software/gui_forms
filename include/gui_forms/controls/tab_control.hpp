@@ -11,7 +11,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -26,8 +25,8 @@ struct ImageListChange;
 struct PageInvocation;
 
 struct GUI_FORMS_API TabSelectionChange final {
-    std::optional<std::size_t> old_index;
-    std::optional<std::size_t> new_index;
+    stxlib::Optional<std::size_t> old_index;
+    stxlib::Optional<std::size_t> new_index;
 };
 
 // Which step of a change of page an event reports (Windows Forms'
@@ -159,7 +158,7 @@ protected:
 private:
     using RememberedFocusMap =
         std::unordered_map<std::uint64_t, Control::WeakPtr>;
-    [[nodiscard]] std::optional<std::size_t> index_of(
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of(
         const std::shared_ptr<TabPage>& page) const;
     void select_relative(int delta);
     // Raises deselecting and selecting for a change to `target`; false when
@@ -235,8 +234,8 @@ private:
     void written(const decltype(image_list)& cell);
     void write_view(const decltype(draw_mode)& cell, ItemDrawMode incoming);
     [[nodiscard]] ItemDrawMode read_view(const decltype(draw_mode)& cell) const;
-    void write_view(const decltype(selected_index)& cell, std::optional<std::size_t> incoming);
-    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
+    void write_view(const decltype(selected_index)& cell, stxlib::Optional<std::size_t> incoming);
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(const decltype(selected_index)& cell) const;
     void write_view(const decltype(selected_tab)& cell, std::shared_ptr<TabPage> incoming);
     [[nodiscard]] std::shared_ptr<TabPage> read_view(const decltype(selected_tab)& cell) const;
     // property_codemod end TabControl

@@ -8,6 +8,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 
 #include "docking-workspace_form.hpp"
+#include <optional>
 
 namespace gui_forms::gallery::pages {
 
@@ -181,12 +182,12 @@ private:
     }
 
     void on_apply_named() {
-        const std::optional<std::size_t> selected = (*document_.gallery_docking_named).selected_index();
+        const stxlib::Optional<std::size_t> selected = (*document_.gallery_docking_named).selected_index();
         const std::span<const DockNamedLayout> layouts = (*workspace_).named_layouts();
-        if (!selected || *selected >= layouts.size()) return;
+        if (selected.absent() || *selected.value() >= layouts.size()) return;
         // The name is copied: the restore may not touch the list, but the
         // borrow would end with any change to it.
-        const std::string name = layouts[*selected].name;
+        const std::string name = layouts[*selected.value()].name;
         const DockRestoreResult result = (*workspace_).apply_named_layout(name);
         report_restore(result);
     }

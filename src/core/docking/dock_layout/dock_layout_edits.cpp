@@ -1,5 +1,6 @@
 #include "dock_layout_internal.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -231,7 +232,7 @@ private:
             for (const DockPanelId& panel : stack.panels) {
                 DockPanelRecord* record = find_dock_record(state_, panel);
                 if (record == nullptr) continue;
-                (*record).auto_hidden = memory;
+                (*record).auto_hidden.set(memory);
                 (*record).last_placement = DockPlacementKind::auto_hidden;
             }
             return;
@@ -259,7 +260,7 @@ private:
                                           .neighbour = surroundings.neighbour,
                                           .side = surroundings.side,
                                           .ratio = surroundings.ratio};
-            (*record).docked = memory;
+            (*record).docked.set(memory);
             (*record).last_placement = DockPlacementKind::docked;
         }
     }
@@ -815,8 +816,8 @@ private:
 
     bool try_remembered(const DockPanelId& panel_id, const DockPanelRecord& record, DockRefusal& last) {
         const DockSubject subject = DockSubject::of_panel(panel_id);
-        if (record.last_placement == DockPlacementKind::docked && record.docked.has_value()) {
-            const DockDockedMemory& memory = *record.docked;
+        if (record.last_placement == DockPlacementKind::docked && record.docked.present()) {
+            const DockDockedMemory& memory = (*record.docked.value());
             const DockNode* stack = find_dock_node(state_, memory.stack);
             if (stack != nullptr && is_dock_stack((*stack).kind) &&
                 dock_place_of(state_, memory.stack).region != DockRegion::detached) {
@@ -838,8 +839,8 @@ private:
             }
             if (try_edit(DockEdit::float_subject(subject, memory.frame, memory.monitor_id), last)) return true;
         }
-        if (record.last_placement == DockPlacementKind::auto_hidden && record.auto_hidden.has_value()) {
-            const DockAutoHideMemory& memory = *record.auto_hidden;
+        if (record.last_placement == DockPlacementKind::auto_hidden && record.auto_hidden.present()) {
+            const DockAutoHideMemory& memory = (*record.auto_hidden.value());
             if (find_dock_auto_hidden(state_, memory.stack) != nullptr) {
                 if (try_edit(DockEdit::dock_into(subject, memory.stack), last)) return true;
             }

@@ -36,6 +36,20 @@ class GalleryOptionTests(unittest.TestCase):
             self.assertFalse(ci_build.gallery_enabled(False, {'GUI_FORMS_CI_BUILD_GALLERY': value}), value)
 
 
+class TestJobTests(unittest.TestCase):
+    def test_auto_is_the_processors_capped(self) -> None:
+        self.assertEqual(ci_build.test_job_count('auto', 2), 2)
+        self.assertEqual(ci_build.test_job_count('auto', 16), ci_build.TEST_JOBS_CAP)
+        self.assertEqual(ci_build.test_job_count('auto', 0), 1)
+        self.assertEqual(ci_build.test_job_count('3'), 3)
+
+    def test_other_values_are_refused(self) -> None:
+        value: str
+        for value in ('0', '-2', 'many', ''):
+            with self.assertRaises(ci_build.argparse.ArgumentTypeError):
+                ci_build.test_job_count(value)
+
+
 CHECKOUT: Path = Path(__file__).resolve().parents[1]
 FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'tests', 'examples',
                                             'file_manager_demoboard')
@@ -328,6 +342,86 @@ class PullRequestTargetListTests(unittest.TestCase):
         self.assertNotIn(b'\r', pattern)
         # The CRLF pattern a Windows tool printed reaches ctest without its CR.
         self.assertEqual(listed.call_args.args[1], 'a_tests|b_tests')
+
+
+class WholeTreeTestTests(unittest.TestCase):
+    """A test labelled sdk installs the whole tree (gui_forms_sdk_consumer_link):
+    a pull request that selects it builds `all`, since the merged Application
+    archive it installs is no output its command names (#483, native linux)."""
+
+    def listing(self) -> dict:
+        return {'tests': [{'name': 'a_tests', 'command': ['a_tests'],
+                           'properties': [{'name': 'LABELS', 'value': ['area_controls']}]},
+                          {'name': 'gui_forms_sdk_consumer_link', 'command': ['python3'],
+                           'properties': [{'name': 'LABELS', 'value': ['area_controls', 'sdk']}]}]}
+
+    def test_the_sdk_label_marks_a_whole_tree_test(self) -> None:
+        self.assertEqual(ci_build.whole_tree_tests(self.listing()), ['gui_forms_sdk_consumer_link'])
+        self.assertEqual(ci_build.whole_tree_tests({'tests': self.listing()['tests'][:1]}), [])
+
+    def test_the_programs_list_is_all_when_a_whole_tree_test_runs(self) -> None:
+        raw: io.BytesIO = io.BytesIO()
+        stdout: io.TextIOWrapper = io.TextIOWrapper(raw, encoding='utf-8')
+        with tempfile.TemporaryDirectory() as scratch:
+            with mock.patch.object(ci_build, 'test_listing', return_value=self.listing()), \
+                    mock.patch.object(ci_build, 'test_build_targets') as narrowed, \
+                    mock.patch.object(sys, 'stdout', stdout), mock.patch('sys.stderr'):
+                self.assertEqual(pr_build_targets.main(['--build-dir', scratch]), 0)
+                stdout.flush()
+        self.assertEqual(raw.getvalue(), b'all\n')
+        narrowed.assert_not_called()
+
+
+class KeepGoingBuildTests(unittest.TestCase):
+    """A build keeps going past a failed command (ninja -k 0) and a failed
+    one ends with its distinct error lines, so one CI run reports every
+    compile error (#483: one miss per run before)."""
+
+    def test_a_failed_build_keeps_going_and_lists_each_error_once(self) -> None:
+        output: str = ('[1/3] Building a.cpp\n'
+                       'src/a.cpp:3:1: error: one\n'
+                       'src/a.cpp:3:1: error: one\n'
+                       'src/b.cpp:9:2: error: two\n'
+                       'ninja: build stopped: cannot make progress due to previous errors.\n')
+        commands: list[list[str]] = []
+
+        class FailedBuild:
+            def __init__(self, command: list[str], **unused: object) -> None:
+                commands.append(command)
+                self.stdout = io.StringIO(output)
+
+            def wait(self) -> int:
+                return 1
+
+        printed: io.StringIO = io.StringIO()
+        with tempfile.TemporaryDirectory() as scratch:
+            with mock.patch.object(ci_build.subprocess, 'Popen', FailedBuild), \
+                    mock.patch.object(sys, 'stdout', printed):
+                with self.assertRaises(ci_build.subprocess.CalledProcessError):
+                    ci_build.build_logged(Path(scratch), False, '--parallel', '4')
+        self.assertEqual(commands[0][-3:], ['--', '-k', '0'])
+        summary: str = printed.getvalue().split('build failed: ')[1]
+        self.assertTrue(summary.startswith('2 distinct error lines'))
+        self.assertEqual(summary.count('src/a.cpp:3:1: error: one'), 1)
+        self.assertIn('src/b.cpp:9:2: error: two', summary)
+
+    def test_a_logged_build_records_its_clock_even_when_it_fails(self) -> None:
+        class FailedBuild:
+            def __init__(self, command: list[str], **unused: object) -> None:
+                self.stdout = io.StringIO('[1/1] Building CXX object a.cpp.obj\nsrc/a.cpp:1:1: error: one\n')
+
+            def wait(self) -> int:
+                return 1
+
+        printed: io.StringIO = io.StringIO()
+        with tempfile.TemporaryDirectory() as scratch:
+            with mock.patch.object(ci_build.subprocess, 'Popen', FailedBuild), \
+                    mock.patch.object(sys, 'stdout', printed):
+                with self.assertRaises(ci_build.subprocess.CalledProcessError):
+                    ci_build.build_logged(Path(scratch), False, '--parallel', '4')
+            clock: dict = json.loads((Path(scratch) / ci_build.BUILD_CLOCK_NAME).read_text(encoding='utf-8'))
+        self.assertGreater(clock['started_ms'], 1700000000000)
+        self.assertGreaterEqual(clock['finished_ms'], clock['started_ms'])
 
 
 if __name__ == '__main__':

@@ -207,10 +207,10 @@ InspectorContent inspector_content(Window* owner, const std::string& target_stab
         {"MATERIAL", material_summary(*target), inspector_ink},
         {"RESOLVED FONT", representative_font_text(*target), inspector_ink},
         {"DISPLAY", operation_summary(*target), inspector_ink},
-        {"CHUNK", (*target).display_chunk
+        {"CHUNK", (*target).display_chunk.present()
              ? ((*target).display_chunk_current ? "current generation " :
                                                 "STALE generation ") +
-                   std::to_string((*(*target).display_chunk).generation)
+                   std::to_string(((*(*target).display_chunk.value())).generation)
              : "not painted", (*target).display_chunk_current ? inspector_blue :
                                                                inspector_gold},
         {"THEME", (*target).theme_id +
@@ -466,7 +466,7 @@ void VisualInspectorOverlay::paint_outline(Painter& painter, Rect bounds, Color 
     PartPaint side;
     side.family = ControlVisualRole::panel;
     side.role = PartRole::fill;
-    side.content_color = colour;
+    side.content_color.set(colour);
     for (const Rect& edge : sides) {
         side.bounds = edge;
         paint_part(painter, *this, side);
@@ -484,15 +484,15 @@ SemanticDescriptor VisualInspectorOverlay::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<VisualInspectorView::Parts>, 5> visual_inspector_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::face},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::header},
-    {.declaration = {.name = "accent_strip", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "accent_strip", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::accent_strip},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VisualInspectorView::Parts::focus},
 }};
 
@@ -514,6 +514,7 @@ constexpr ControlAnatomy visual_inspector_view_anatomy{
     .parts = visual_inspector_view_parts,
     .states = visual_inspector_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -553,11 +554,11 @@ VisualInspectorView::States VisualInspectorView::states() const {
 namespace {
 
 constexpr std::array<PartField<VisualInspectorOverlay::Parts>, 3> visual_inspector_overlay_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VisualInspectorOverlay::Parts::region},
-    {.declaration = {.name = "highlight", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "highlight", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &VisualInspectorOverlay::Parts::highlight},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VisualInspectorOverlay::Parts::focus},
 }};
 
@@ -579,6 +580,7 @@ constexpr ControlAnatomy visual_inspector_overlay_anatomy{
     .parts = visual_inspector_overlay_parts,
     .states = visual_inspector_overlay_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

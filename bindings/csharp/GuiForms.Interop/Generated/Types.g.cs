@@ -287,7 +287,68 @@ public unsafe struct gf_owned_window_options
     public gf_callback* closed;
 }
 
-/// <summary>gf_windows_table (table, 96 bytes).</summary>
+/// <summary>gf_window_band_options (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_band_options
+{
+    public uint struct_size;
+    public gf_window_band_flags flags;
+    public gf_window_band_full_screen full_screen;
+    public uint reserved;
+    public double width;
+    public gf_logical_insets edges;
+}
+
+/// <summary>gf_window_band_appearance (extensible, 80 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_band_appearance
+{
+    public uint struct_size;
+    public gf_window_band_state state;
+    public gf_window_band_appearance_flags flags;
+    public gf_window_band_role lit_role;
+    public uint rest_colour;
+    public uint lit_colour;
+    public double frequency;
+    public gf_window_band_texture texture;
+    public uint texture_kind;
+    public uint texture_seed;
+    public uint texture_primary;
+    public uint texture_secondary;
+    public uint reserved;
+    public double texture_tile;
+    public double texture_strength;
+    public double texture_opacity;
+}
+
+/// <summary>gf_window_band_report (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_band_report
+{
+    public uint struct_size;
+    public gf_window_band_status status;
+    public gf_logical_insets edges;
+    public uint drawn_colour;
+    public gf_window_band_full_screen full_screen;
+    public double frequency;
+    public ulong flash_changes;
+    public ulong cycle_frames;
+}
+
+/// <summary>gf_window_shaping (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_shaping
+{
+    public uint struct_size;
+    public gf_window_shaping_flags flags;
+    public gf_window_corner_preference preference;
+    public uint corner_shapes;
+    public uint corner_shape;
+    public uint reserved;
+    public double corner_radius;
+}
+
+/// <summary>gf_windows_table (table, 168 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -304,6 +365,15 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_owned_window_options*, gf_status> show_owned;
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_property_flags*, gf_window_property_flags*, gf_status> window_properties;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> focused_control;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_band_options*, gf_status> declare_band;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> undeclare_band;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_band_appearance*, gf_status> set_band_appearance;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_band_report*, gf_status> band_report;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_corner_preference, gf_status> set_corner_preference;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> content_rect;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_shaping*, gf_status> shaping;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point*, gf_logical_point*, uint*, gf_status> pointer_location;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> show_business_card;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -442,7 +512,26 @@ public unsafe struct gf_schema_effect
     public gf_logical_insets outsets;
 }
 
-/// <summary>gf_schema_table (table, 184 bytes).</summary>
+/// <summary>gf_schema_composite (extensible, 128 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_schema_composite
+{
+    public uint struct_size;
+    public uint reserved;
+    public ulong composite;
+    public gf_utf8_view id;
+    public gf_utf8_view name;
+    public gf_utf8_view version;
+    public gf_utf8_view slot;
+    public ulong part_count;
+    public ulong state_count;
+    public ulong custom_state_count;
+    public ulong property_count;
+    public ulong event_count;
+    public ulong command_count;
+}
+
+/// <summary>gf_schema_table (table, 256 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_schema_table
 {
@@ -470,6 +559,15 @@ public unsafe struct gf_schema_table
     public delegate* unmanaged[Cdecl]<ulong, ulong*, gf_status> child_property_count;
     public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_property*, gf_status> child_property_at;
     public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_schema_choice*, gf_status> child_choice_at;
+    public delegate* unmanaged[Cdecl]<ulong*, gf_status> composite_count;
+    public delegate* unmanaged[Cdecl]<ulong, gf_schema_composite*, gf_status> composite_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_part*, gf_status> composite_part_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_utf8_view*, gf_status> composite_state_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_utf8_view*, gf_status> composite_custom_state_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_property*, gf_status> composite_property_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_schema_choice*, gf_status> composite_choice_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_interaction*, gf_status> composite_event_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_utf8_view*, gf_status> composite_command_at;
 }
 
 /// <summary>gf_bytes_view (record, 16 bytes).</summary>
@@ -655,7 +753,22 @@ public unsafe struct gf_failure_snapshot
     public fixed byte site[64];
 }
 
-/// <summary>gf_diagnostics_table (table, 72 bytes).</summary>
+/// <summary>gf_failure_detail (extensible, 544 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_failure_detail
+{
+    public uint struct_size;
+    public gf_status status;
+    public ulong sequence;
+    public uint type_size;
+    public uint trace_count;
+    public fixed byte type[256];
+    public fixed ulong trace[32];
+    public gf_failure_detail_flags flags;
+    public uint reserved;
+}
+
+/// <summary>gf_diagnostics_table (table, 96 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_diagnostics_table
 {
@@ -669,6 +782,9 @@ public unsafe struct gf_diagnostics_table
     public delegate* unmanaged[Cdecl]<uint, gf_status> set_exception_reflection;
     public delegate* unmanaged[Cdecl]<uint*, gf_status> exception_reflection;
     public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> raise_native_exception;
+    public delegate* unmanaged[Cdecl]<gf_failure_detail*, gf_status> failure_detail;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_diagnostic_overlay;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> toggle_diagnostic_overlay;
 }
 
 /// <summary>gf_layout_transaction (extensible, 32 bytes).</summary>
@@ -716,7 +832,84 @@ public unsafe struct gf_scroll_snapshot
     public double event_new_value;
 }
 
-/// <summary>gf_controls_table (table, 112 bytes).</summary>
+/// <summary>gf_relative_pointer_request (extensible, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_relative_pointer_request
+{
+    public uint struct_size;
+    public gf_relative_pointer_mode mode;
+    public uint hide_cursor;
+    public uint raw_motion;
+    public uint until_release;
+    public uint reserved;
+}
+
+/// <summary>gf_relative_pointer_grant (extensible, 24 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_relative_pointer_grant
+{
+    public uint struct_size;
+    public gf_relative_pointer_result result;
+    public gf_relative_pointer_mode mode;
+    public uint raw;
+    public uint cursor_hidden;
+    public uint host_relative;
+}
+
+/// <summary>gf_relative_pointer_state (extensible, 96 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_relative_pointer_state
+{
+    public uint struct_size;
+    public uint owned;
+    public uint active;
+    public uint suspended;
+    public gf_relative_pointer_mode mode;
+    public uint raw;
+    public uint host_relative;
+    public gf_relative_pointer_end last_end;
+    public ulong grants;
+    public ulong samples;
+    public ulong suspensions;
+    public ulong resumptions;
+    public ulong ends;
+    public uint support_relative_motion;
+    public uint support_raw_motion;
+    public uint support_lock;
+    public uint support_confine;
+    public uint support_warp;
+    public uint reserved;
+}
+
+/// <summary>gf_effect_mask_layer (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_effect_mask_layer
+{
+    public uint struct_size;
+    public gf_effect_mask_mode mode;
+    public gf_effect_mask_composite composite;
+    public uint start_rgba;
+    public uint end_rgba;
+    public uint reserved;
+    public gf_logical_point start;
+    public gf_logical_point end;
+}
+
+/// <summary>gf_content_effect (extensible, 1216 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_effect
+{
+    public uint struct_size;
+    public uint has_colour_matrix;
+    public uint has_colour_table;
+    public uint mask_count;
+    public fixed double colour_matrix[20];
+    public fixed byte colour_table[1024];
+    public double blur;
+    public gf_effect_mask_layer* masks;
+}
+
+/// <summary>gf_controls_table (table, 160 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_controls_table
 {
@@ -735,6 +928,12 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> invalidate;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> focus;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, uint*, gf_status> focus_state;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_relative_pointer_request*, gf_relative_pointer_grant*, gf_status> request_relative_pointer;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> release_relative_pointer;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_relative_pointer_state*, gf_status> relative_pointer_state;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point, uint*, gf_status> warp_pointer;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, uint, gf_status> set_pointer_release_regions;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_effect*, gf_status> set_content_effect;
 }
 
 /// <summary>gf_text_decoration (record, 56 bytes).</summary>
@@ -897,7 +1096,19 @@ public unsafe struct gf_custom_control_spec
     public gf_custom_layout_callbacks* layout;
 }
 
-/// <summary>gf_custom_controls_table (table, 24 bytes).</summary>
+/// <summary>gf_composite_spec (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_composite_spec
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view file;
+    public gf_utf8_view document;
+    public gf_utf8_view* child_types;
+    public ulong child_type_count;
+}
+
+/// <summary>gf_custom_controls_table (table, 56 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_custom_controls_table
 {
@@ -905,6 +1116,10 @@ public unsafe struct gf_custom_controls_table
     public uint abi_minor;
     public delegate* unmanaged[Cdecl]<gf_custom_control_spec*, gf_utf8_view, gf_object*, gf_status> create;
     public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> notify_changed;
+    public delegate* unmanaged[Cdecl]<gf_composite_spec*, gf_object*, gf_status> load_composite;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object*, gf_status> create_composite;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, uint*, gf_status> perform_composite;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object*, gf_status> composite_child;
 }
 
 /// <summary>gf_binding_arguments (extensible, 96 bytes).</summary>
@@ -1053,7 +1268,21 @@ public unsafe struct gf_application_config
     public uint reserved;
 }
 
-/// <summary>gf_application_table (table, 32 bytes).</summary>
+/// <summary>gf_program_identity (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_program_identity
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view product;
+    public gf_utf8_view version;
+    public gf_utf8_view vendor;
+    public gf_utf8_view website;
+    public gf_utf8_view copyright;
+    public gf_utf8_view credits;
+}
+
+/// <summary>gf_application_table (table, 40 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_application_table
 {
@@ -1062,6 +1291,7 @@ public unsafe struct gf_application_table
     public delegate* unmanaged[Cdecl]<gf_application_config*, gf_theme_report*, gf_status> create;
     public delegate* unmanaged[Cdecl]<ulong*, gf_status> close;
     public delegate* unmanaged[Cdecl]<gf_application_state*, gf_status> state;
+    public delegate* unmanaged[Cdecl]<gf_program_identity*, gf_status> set_program_identity;
 }
 
 /// <summary>gf_rule_condition (extensible, 32 bytes).</summary>
@@ -1285,7 +1515,18 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_dock_window_visibility, gf_status> set_floating_window_visibility;
 }
 
-/// <summary>gf_fonts_table (table, 24 bytes).</summary>
+/// <summary>gf_app_font_face (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_app_font_face
+{
+    public uint struct_size;
+    public uint reserved;
+    public uint weight;
+    public uint italic;
+    public gf_bytes_view bytes;
+}
+
+/// <summary>gf_fonts_table (table, 40 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_fonts_table
 {
@@ -1293,6 +1534,8 @@ public unsafe struct gf_fonts_table
     public uint abi_minor;
     public delegate* unmanaged[Cdecl]<gf_utf8_view, uint*, gf_status> family_id;
     public delegate* unmanaged[Cdecl]<uint, byte*, ulong, ulong*, gf_status> family_name;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_app_font_face*, ulong, uint*, gf_status> load_family;
+    public delegate* unmanaged[Cdecl]<uint, uint*, gf_status> unload_family;
 }
 
 /// <summary>gf_help_table (table, 128 bytes).</summary>
@@ -1316,6 +1559,289 @@ public unsafe struct gf_help_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> use_built_in_language;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, byte*, ulong, ulong*, gf_status> export_template;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_locale_field, byte*, ulong, ulong*, gf_locale_origin*, gf_status> read_field;
+}
+
+/// <summary>gf_content_pixel_rect (record, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_pixel_rect
+{
+    public uint x;
+    public uint y;
+    public uint width;
+    public uint height;
+}
+
+/// <summary>gf_content_frame (extensible, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_frame
+{
+    public uint struct_size;
+    public gf_content_pixel_format pixel_format;
+    public uint width;
+    public uint height;
+    public ulong row_bytes;
+    public uint opaque;
+    public uint reserved;
+    public gf_content_pixel_rect damage;
+    public gf_bytes_view pixels;
+}
+
+/// <summary>gf_content_request (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_request
+{
+    public uint struct_size;
+    public uint width;
+    public uint height;
+    public uint reserved;
+    public double scale;
+    public ulong generation;
+}
+
+/// <summary>gf_content_semantics (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_semantics
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view name;
+    public gf_utf8_view text;
+    public gf_utf8_view description;
+}
+
+/// <summary>gf_content_statistics (extensible, 80 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_statistics
+{
+    public uint struct_size;
+    public gf_content_publish_result last_refusal;
+    public ulong frames_published;
+    public ulong frames_refused;
+    public ulong frames_dropped;
+    public ulong heartbeats;
+    public ulong stale_transitions;
+    public ulong recoveries;
+    public ulong semantics_published;
+    public ulong semantics_refused;
+    public ulong after_revocation;
+}
+
+/// <summary>gf_content_program (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_program
+{
+    public uint struct_size;
+    public uint opaque;
+    public gf_callback run;
+}
+
+/// <summary>gf_hosted_options (extensible, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_hosted_options
+{
+    public uint struct_size;
+    public uint opaque;
+    public gf_utf8_view executable;
+    public gf_utf8_view* arguments;
+    public ulong argument_count;
+    public ulong slot_bytes;
+    public ulong start_timeout_ms;
+    public ulong stop_grace_ms;
+}
+
+/// <summary>gf_hosted_input_report (extensible, 16 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_hosted_input_report
+{
+    public uint struct_size;
+    public uint connected;
+    public ulong dropped;
+}
+
+/// <summary>gf_content_text_line (record, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_text_line
+{
+    public ulong start;
+    public ulong end;
+    public gf_logical_rect bounds;
+}
+
+/// <summary>gf_content_text_cluster (record, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_text_cluster
+{
+    public ulong start;
+    public ulong end;
+    public uint line;
+    public uint right_to_left;
+    public gf_logical_rect bounds;
+}
+
+/// <summary>gf_content_caret_stop (record, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_caret_stop
+{
+    public ulong offset;
+    public gf_logical_rect caret;
+}
+
+/// <summary>gf_content_layout_transform (record, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_layout_transform
+{
+    public double xx;
+    public double xy;
+    public double yx;
+    public double yy;
+    public double dx;
+    public double dy;
+}
+
+/// <summary>gf_content_quad (record, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_quad
+{
+    public gf_logical_point top_left;
+    public gf_logical_point top_right;
+    public gf_logical_point bottom_right;
+    public gf_logical_point bottom_left;
+}
+
+/// <summary>gf_content_text_layout (extensible, 120 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_text_layout
+{
+    public uint struct_size;
+    public uint reserved;
+    public ulong text_revision;
+    public gf_content_text_line* lines;
+    public ulong line_count;
+    public gf_content_text_cluster* clusters;
+    public ulong cluster_count;
+    public gf_content_caret_stop* carets;
+    public ulong caret_count;
+    public uint transformed;
+    public uint transform_reserved;
+    public gf_content_layout_transform transform;
+}
+
+/// <summary>gf_content_table (table, 368 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_content_sink*, gf_status> open_content;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> close_content;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_program*, gf_status> start_program;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_hosted_options*, gf_status> start_hosted;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> terminate;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> set_termination_grace;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> set_stale_interval;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_status*, gf_status> status;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> failure;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_statistics*, gf_status> statistics;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_request*, gf_status> request;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_status, gf_utf8_view, gf_status> set_status_caption;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_semantics*, gf_status> set_semantics;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> program_running;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_hosted_input_report*, gf_status> hosted_input;
+    public delegate* unmanaged[Cdecl]<gf_hosted_support*, gf_status> hosted_support;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, gf_content_frame*, gf_content_publish_result*, gf_status> sink_publish;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, gf_status> sink_heartbeat;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, gf_content_semantics*, gf_content_semantics_result*, gf_status> sink_publish_semantics;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, gf_content_request*, gf_status> sink_request;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, ulong, ulong, gf_content_request*, gf_status> sink_wait_for_request;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, uint*, uint*, gf_status> sink_state;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, gf_content_statistics*, gf_status> sink_statistics;
+    public delegate* unmanaged[Cdecl]<gf_content_sink, gf_status> sink_release;
+    public delegate* unmanaged[Cdecl]<gf_content_sink*, gf_status> program_sink;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> program_fail;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> editor_text_revision;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> editor_text;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> editor_set_text;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_text_layout*, gf_content_layout_result*, gf_status> editor_submit_layout;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> editor_layout_current;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_content_sink*, gf_status> editor_open_frames;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_logical_rect*, gf_status> editor_caret_rectangle;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, ulong, ulong*, gf_status> editor_selection_rectangles;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point, ulong*, gf_status> editor_position_at;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_draws_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_multiline;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_read_only;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_accepts_tab;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, uint*, gf_status> editor_replace_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> editor_delete_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, ulong*, ulong*, gf_status> editor_composition_range;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_content_quad*, gf_status> editor_caret_quad;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_quad*, ulong, ulong*, gf_status> editor_selection_quads;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_quad*, ulong, ulong*, gf_status> editor_composition_quads;
+}
+
+/// <summary>gf_list_view_column (extensible, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_column
+{
+    public uint struct_size;
+    public gf_list_view_alignment alignment;
+    public double width;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view text;
+}
+
+/// <summary>gf_list_view_item (extensible, 88 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_item
+{
+    public uint struct_size;
+    public uint @checked;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view text;
+    public gf_utf8_view image_key;
+    public gf_utf8_view group;
+    public gf_utf8_view* sub_items;
+    public ulong sub_item_count;
+}
+
+/// <summary>gf_list_view_group (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_group
+{
+    public uint struct_size;
+    public gf_list_view_alignment header_alignment;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view header;
+}
+
+/// <summary>gf_list_view_table (table, 184 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> column_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_column*, byte*, ulong, ulong*, gf_status> column_at;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_list_view_column*, ulong, gf_status> set_columns;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, double, gf_status> set_column_width;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> item_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_item*, byte*, ulong, ulong*, gf_status> item_at;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong, byte*, ulong, ulong*, gf_status> item_sub_item;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_list_view_item*, ulong, gf_status> set_items;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong*, gf_status> index_of;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, uint, gf_status> set_item_checked;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> group_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_group*, byte*, ulong, ulong*, gf_status> group_at;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_list_view_group*, ulong, gf_status> set_groups;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, ulong, ulong*, gf_status> selected_items;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, uint, gf_status> set_selected;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> select_all;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, long*, gf_status> focused_item;
+    public delegate* unmanaged[Cdecl]<gf_object, long, gf_status> set_focused_item;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> ensure_visible;
+    public delegate* unmanaged[Cdecl]<gf_object, long, gf_list_view_sort_order, gf_status> set_sort_indicator;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_sort_order, gf_status> sort_items;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

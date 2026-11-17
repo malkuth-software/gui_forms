@@ -36,6 +36,25 @@ HostServiceStatus HeadlessHostServices::set_pointer_capture_impl(
     return {};
 }
 
+HostServiceStatus HeadlessHostServices::set_relative_pointer_impl(const HostRelativePointerRequest& request) {
+    relative_pointer_request_ = request;
+    return {};
+}
+
+HostServiceStatus HeadlessHostServices::warp_pointer_impl(Point position) {
+    last_pointer_warp_ = position;
+    return {};
+}
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+HostServiceStatus HeadlessHostServices::open_url_impl(std::string_view url_utf8) {
+    opened_urls_.emplace_back(url_utf8);
+    return {};
+}
+#endif
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
 HostClipboardTextResult HeadlessHostServices::read_clipboard_text_impl() {
     return {{}, clipboard_text_, clipboard_generation_, clipboard_has_text_};
 }
@@ -48,6 +67,7 @@ HostServiceStatus HeadlessHostServices::write_clipboard_text_impl(
     ++clipboard_generation_;
     return {};
 }
+#endif
 
 void HeadlessHostServices::queue_dialog_result(HostDialogResult result) {
     dialog_results_.push_back(std::move(result));
@@ -57,6 +77,7 @@ void HeadlessHostServices::set_dialog_handler(DialogHandler handler) {
     dialog_handler_ = std::move(handler);
 }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 HostClipboardImageResult HeadlessHostServices::read_clipboard_image_impl() {
     if (!clipboard_image_.has_value()) return HostClipboardImageResult::nothing_read(clipboard_generation_);
     // A copy: the consumer's image never shares the clipboard's storage.
@@ -71,6 +92,7 @@ HostServiceStatus HeadlessHostServices::write_clipboard_image_impl(HostImageView
     ++clipboard_generation_;
     return {};
 }
+#endif
 
 HostDialogResult HeadlessHostServices::show_dialog_impl(
     const HostDialogRequest& request) {

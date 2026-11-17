@@ -139,8 +139,9 @@ void test_placement() {
 
     linear.stops = {stop_at(red, -0.5), stop_at(blue, 1.5)};
     const MaterialFillLayer clipped = resolved(linear, Size{});
-    require(clipped.stops.size() == 2U && clipped.stops[0].color == Color::rgba(191, 0, 64) &&
-                clipped.stops[1].color == Color::rgba(64, 0, 191),
+    // A quarter and three quarters of the way, mixed in linear light.
+    require(clipped.stops.size() == 2U && clipped.stops[0].color == Color::rgba(225, 0, 137) &&
+                clipped.stops[1].color == Color::rgba(137, 0, 225),
             "stops past the ends are clipped to the colours at the ends");
 
     linear.stops = {stop(red)};
@@ -178,8 +179,9 @@ void test_linear_geometry() {
                                                         GradientSpreadMode::repeat),
             "a repeating gradient over the whole line keeps its CSS angle");
     repeating.stops = {stop_at(red, 0.5), stop_at(blue, 0.5)};
-    require(resolved(repeating, Size{40.0, 24.0}) == MaterialFillLayer::solid(Color::rgba(128, 0, 128)),
-            "a repeating gradient of no length is CSS's average colour");
+    // The average in linear light, as the gradient interpolates.
+    require(resolved(repeating, Size{40.0, 24.0}) == MaterialFillLayer::solid(Color::rgba(188, 0, 188)),
+            "a repeating gradient of no length is the gradient's average colour");
 }
 
 void test_radial_geometry() {
@@ -213,10 +215,34 @@ void test_radial_geometry() {
     rings.extent = RadialExtent::lengths;
     rings.radius_x = BoxLength{0.0, 100.0};
     const MaterialFillLayer ringed = resolved(rings, Size{40.0, 24.0});
-    const Color middle = Color::rgba(128, 0, 128);
+    // Red and blue mixed half and half in linear light.
+    const Color middle = Color::rgba(188, 0, 188);
     require(ringed.spread == GradientSpreadMode::repeat && ringed.radii == (Size{50.0, 50.0}) &&
                 ringed.stops == stops_of({{0.0, middle}, {0.5, blue}, {0.5 + separation, red}, {1.0, middle}}),
             "a repeating period that begins off the centre is rotated to begin there");
+
+    // Reflected off the centre: the period and its mirror image repeat as
+    // one pair of twice the radii, rotated as a repeating period is.
+    AuthoredGradient mirrored = rings;
+    mirrored.reflecting = true;
+    const MaterialFillLayer reflected = resolved(mirrored, Size{40.0, 24.0});
+    require(reflected.spread == GradientSpreadMode::repeat && reflected.radii == (Size{100.0, 100.0}) &&
+                reflected.stops ==
+                    stops_of({{0.0, middle}, {0.25, red}, {0.25 + separation, red}, {0.75, blue}, {1.0, middle}}),
+            "a reflecting period that begins off the centre repeats with its mirror image");
+    AuthoredGradient centred = rings;
+    centred.reflecting = true;
+    centred.stops = {stop_at(red, 0.0, 0.0), stop_at(blue, 0.0, 50.0)};
+    const MaterialFillLayer reflecting = resolved(centred, Size{40.0, 24.0});
+    require(reflecting.spread == GradientSpreadMode::reflect && reflecting.radii == (Size{50.0, 50.0}) &&
+                reflecting.stops == stops_of({{0.0, red}, {1.0, blue}}),
+            "a reflecting period that begins at the centre reflects");
+    AuthoredGradient unrepeated = centred;
+    unrepeated.repeating = false;
+    require(!valid_authored_gradient(unrepeated), "a reflecting gradient repeats");
+    AuthoredGradient crowded = centred;
+    crowded.stops.assign(maximum_reflecting_radial_stops + 1U, stop(red));
+    require(!valid_authored_gradient(crowded), "a reflecting radial gradient's stops fit twice over");
 
     AuthoredGradient wrong = circle;
     wrong.extent = RadialExtent::lengths;
@@ -375,6 +401,16 @@ void test_lowering() {
                 (*modes).blend_modes == (std::vector<MaterialBlendMode>{MaterialBlendMode::multiply,
                                                                         MaterialBlendMode::screen}),
             "background-blend-mode keeps CSS's order");
+    const std::string_view separable_sheet =
+        "#pad::part(face) { background-blend-mode: overlay, color-burn, Soft-Light, exclusion }";
+    const Compilation separable = compile(separable_sheet);
+    const MaterialDeclaration* const separable_modes =
+        field_of(only_rule(separable, separable_sheet), MaterialField::fill_blend_modes);
+    require(separable_modes != nullptr &&
+                (*separable_modes).blend_modes ==
+                    (std::vector<MaterialBlendMode>{MaterialBlendMode::overlay, MaterialBlendMode::color_burn,
+                                                    MaterialBlendMode::soft_light, MaterialBlendMode::exclusion}),
+            "the separable modes take their CSS names, in any case");
 
     const std::string_view initial_sheet = "#pad::part(face) { background: initial }";
     const Compilation initial = compile(initial_sheet);
@@ -402,7 +438,7 @@ void test_border_lowering() {
     const MaterialDeclaration* const dash =
         field_of(only_rule(style, style_sheet), MaterialField::border_bottom_style);
     require(omitted != nullptr && (*omitted).initial && dash != nullptr &&
-                (*dash).border_style == MaterialBorderStyle::dashed,
+                (*dash).border_style == stxlib::Optional<MaterialBorderStyle>::of(MaterialBorderStyle::dashed),
             "a part the shorthand omits keeps the floor's");
 
     const std::string_view colour_sheet = "#pad::part(face) { border-color: red green blue }";
@@ -419,7 +455,7 @@ void test_border_lowering() {
     const Compilation none = compile(none_sheet);
     const MaterialDeclaration* const no_line = field_of(only_rule(none, none_sheet), MaterialField::border_left_style);
     const MaterialDeclaration* const thick = field_of(only_rule(none, none_sheet), MaterialField::border_right_width);
-    require(no_line != nullptr && !(*no_line).border_style && thick != nullptr && (*thick).number == 5.0,
+    require(no_line != nullptr && (*no_line).border_style.absent() && thick != nullptr && (*thick).number == 5.0,
             "none is no line; thick is 5px");
 
     const std::string_view radius_sheet = "#pad::part(face) { border-radius: 4px 50%; border-top-left-radius: 3px }";
@@ -457,7 +493,7 @@ void test_line_lowering() {
     const ThemeRule& rule = only_rule(compiled, sheet);
     const MaterialDeclaration* const top = field_of(rule, MaterialField::border_top_style);
     const MaterialDeclaration* const right = field_of(rule, MaterialField::border_right_style);
-    require(top != nullptr && (*top).border_style == MaterialBorderStyle::solid &&
+    require(top != nullptr && (*top).border_style == stxlib::Optional<MaterialBorderStyle>::of(MaterialBorderStyle::solid) &&
                 (*top).edge_lines == MaterialEdgeLines::double_line && right != nullptr &&
                 (*right).edge_lines == MaterialEdgeLines::groove,
             "double and groove are solid edges drawn as two lines");
@@ -563,7 +599,7 @@ void test_filter_lowering() {
     const MaterialDeclaration* const none_drop = field_of(none_rule, MaterialField::drop_shadow);
     const MaterialDeclaration* const none_blur = field_of(none_rule, MaterialField::filter_blur);
     require(none_rule.materials.size() == 3U && none_colour != nullptr && !(*none_colour).colour_filter &&
-                none_drop != nullptr && !(*none_drop).drop_shadow && none_blur != nullptr &&
+                none_drop != nullptr && (*none_drop).drop_shadow.absent() && none_blur != nullptr &&
                 (*none_blur).number == 0.0 && selects_material(none_rule),
             "filter: none clears the three filter fields");
 
@@ -581,9 +617,10 @@ void test_filter_lowering() {
         MaterialColourMatrix::opacity(0.5).then(MaterialColourMatrix::invert(1.0));
     require(colour != nullptr && (*colour).colour_filter && *(*colour).colour_filter == expected,
             "the colour functions compose in source order");
-    require(drop != nullptr && (*drop).drop_shadow && (*(*drop).drop_shadow).offset == Point{0.0, 1.0} &&
-                (*(*drop).drop_shadow).blur_radius == 0.0 &&
-                (*(*drop).drop_shadow).color == Color::rgba(0, 255, 255),
+    require(drop != nullptr && (*drop).drop_shadow.present() &&
+            (*(*drop).drop_shadow.value()).offset == Point{0.0, 1.0} &&
+                (*(*drop).drop_shadow.value()).blur_radius == 0.0 &&
+                (*(*drop).drop_shadow.value()).color == Color::rgba(0, 255, 255),
             "a drop shadow's colour takes the colour functions after it, not those before");
 
     const std::string_view finish_sheet = "#pad::part(face) { surface-finish: 25% }";
@@ -636,24 +673,64 @@ void test_filter_lowering() {
     const std::string_view fixed_sheet = "#pad::part(face) { mask-image: linear-gradient(black, transparent) }";
     const Compilation fixed = compile(fixed_sheet);
     const MaterialDeclaration* const fixed_mask = field_of(only_rule(fixed, fixed_sheet), MaterialField::mask);
-    require(fixed_mask != nullptr && (*fixed_mask).gradients.empty() && (*fixed_mask).mask &&
-                *(*fixed_mask).mask ==
+    require(fixed_mask != nullptr && (*fixed_mask).gradients.empty() && (*fixed_mask).masks.size() == 1U &&
+                (*fixed_mask).masks.front() ==
                     MaterialFillLayer::linear_css_angle(180.0, stops_of({{0.0, black}, {1.0, transparent}})),
             "a fixed mask gradient is resolved when the sheet compiles");
     const std::string_view sized_sheet = "#pad::part(face) { mask-image: radial-gradient(circle 10px, black, transparent) }";
     const Compilation sized = compile(sized_sheet);
     const MaterialDeclaration* const sized_mask = field_of(only_rule(sized, sized_sheet), MaterialField::mask);
-    require(sized_mask != nullptr && (*sized_mask).gradients.size() == 1U && (*sized_mask).mask,
+    require(sized_mask != nullptr && (*sized_mask).gradients.size() == 1U && (*sized_mask).masks.size() == 1U,
             "a mask gradient of lengths waits for the box");
     std::array<const MaterialDeclaration*, material_field_count> masked{};
     masked[static_cast<std::size_t>(MaterialField::mask)] = sized_mask;
     require(material_fields_read_box(masked), "a mask gradient of lengths reads the box");
     assemble_material(SurfaceMaterial{}, masked, Size{40.0, 24.0}, assembled);
-    require(assembled.mask &&
-                *assembled.mask == MaterialFillLayer::radial(Point{20.0, 12.0}, Size{10.0, 10.0},
-                                                             stops_of({{0.0, black}, {1.0, transparent}}),
-                                                             MaterialCoordinateSpace::logical),
+    require(assembled.masks.size() == 1U &&
+                assembled.masks.front().source == MaterialFillLayer::radial(Point{20.0, 12.0}, Size{10.0, 10.0},
+                                                                            stops_of({{0.0, black}, {1.0, transparent}}),
+                                                                            MaterialCoordinateSpace::logical),
             "the mask is resolved for the part's box");
+
+    // Several layers (E9.6, owner 2026-11-16): CSS lists the top layer
+    // first, the material holds them bottom first; a deferred layer's
+    // neighbours keep a solid placeholder gradient.
+    const std::string_view layered_sheet =
+        "#pad::part(face) { mask-image: linear-gradient(black, transparent), radial-gradient(circle 10px, black, "
+        "transparent); mask-mode: luminance, inverse-alpha; mask-composite: subtract, add }";
+    const Compilation layered = compile(layered_sheet);
+    const ThemeRule& layered_rule = only_rule(layered, layered_sheet);
+    const MaterialDeclaration* const layers = field_of(layered_rule, MaterialField::mask);
+    require(layers != nullptr && (*layers).masks.size() == 2U && (*layers).gradients.size() == 2U &&
+                (*layers).gradients[0].kind != MaterialFillKind::solid &&
+                (*layers).gradients[1].kind == MaterialFillKind::solid,
+            "two mask layers, bottom first, the radial one waiting for the box");
+    const MaterialDeclaration* const modes = field_of(layered_rule, MaterialField::mask_modes);
+    require(modes != nullptr &&
+                (*modes).mask_modes ==
+                    std::vector<MaterialMaskMode>{MaterialMaskMode::luminance, MaterialMaskMode::inverse_alpha},
+            "mask-mode lowers in CSS's order");
+    const MaterialDeclaration* const composites = field_of(layered_rule, MaterialField::mask_composites);
+    require(composites != nullptr && (*composites).mask_composites ==
+                                         std::vector<MaterialMaskComposite>{MaterialMaskComposite::subtract,
+                                                                            MaterialMaskComposite::add},
+            "mask-composite lowers in CSS's order");
+    std::array<const MaterialDeclaration*, material_field_count> layered_fields{};
+    layered_fields[static_cast<std::size_t>(MaterialField::mask)] = layers;
+    layered_fields[static_cast<std::size_t>(MaterialField::mask_modes)] = modes;
+    layered_fields[static_cast<std::size_t>(MaterialField::mask_composites)] = composites;
+    assemble_material(SurfaceMaterial{}, layered_fields, Size{40.0, 24.0}, assembled);
+    require(assembled.masks.size() == 2U && assembled.masks[1].mode == MaterialMaskMode::luminance &&
+                assembled.masks[1].composite == MaterialMaskComposite::subtract &&
+                assembled.masks[0].mode == MaterialMaskMode::inverse_alpha &&
+                assembled.masks[0].source.kind == MaterialFillKind::radial_gradient &&
+                assembled.masks[1].source.kind == MaterialFillKind::linear_gradient,
+            "the top layer takes the first mode and composite");
+    const std::string_view modes_only_sheet = "#pad::part(face) { mask-mode: match-source }";
+    const Compilation modes_only = compile(modes_only_sheet);
+    const MaterialDeclaration* const matched = field_of(only_rule(modes_only, modes_only_sheet), MaterialField::mask_modes);
+    require(matched != nullptr && (*matched).mask_modes == std::vector<MaterialMaskMode>{MaterialMaskMode::alpha},
+            "match-source reads an image layer's alpha");
 }
 
 void test_image_lowering() {
@@ -689,6 +766,13 @@ void test_image_lowering() {
                 (*repeats).image_repeats[0] == MaterialImageRepeat::no_repeat &&
                 (*repeats).image_repeats[1] == MaterialImageRepeat::repeat,
             "background-repeat reads each layer's repetition");
+    const std::string_view mirror_sheet = "#pad::part(face) { background-repeat: mirror, extend extend }";
+    const Compilation mirrored = compile(mirror_sheet);
+    const MaterialDeclaration* const mirrors = field_of(only_rule(mirrored, mirror_sheet), MaterialField::fill_repeats);
+    require(mirrors != nullptr && (*mirrors).image_repeats.size() == 2U &&
+                (*mirrors).image_repeats[0] == MaterialImageRepeat::mirror &&
+                (*mirrors).image_repeats[1] == MaterialImageRepeat::extend,
+            "background-repeat reads mirror and extend");
 
     const std::string_view image_sheet = "#pad::part(face) { background-image: url(\"resource:tile.quadrant\") }";
     const Compilation imaged = compile(image_sheet);
@@ -735,13 +819,176 @@ void test_reflection_lowering() {
     for (const Lowered& entry : lowered) {
         const Compilation compiled = compile(entry.sheet);
         const MaterialDeclaration* const declaration = field_of(only_rule(compiled, entry.sheet), MaterialField::reflection);
-        require(declaration != nullptr && (*declaration).reflection && *(*declaration).reflection == entry.reflection,
+        require(declaration != nullptr && (*declaration).reflection.present() &&
+                (*(*declaration).reflection.value()) == entry.reflection,
                 std::string("the reflection lowers: ") + std::string(entry.sheet));
     }
     const std::string_view none_sheet = "#pad::part(face) { reflection: none }";
     const Compilation none = compile(none_sheet);
     const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::reflection);
-    require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
+    require(cleared != nullptr && (*cleared).reflection.absent(), "reflection: none clears it");
+}
+
+// transform and clip-path on a material (owner 2026-11-16): rotate() and
+// scale() compose as a CSS transform list into the linear map about the
+// box's centre; polygon() and path() lower to the clip path's verbs and
+// points, with their fill rule; `none` clears each; malformed values are
+// refused at their place.
+void test_shape_lowering() {
+    struct Turned final {
+        std::string_view sheet;
+        MaterialTransform transform;
+    };
+    // Every quarter turn is exact (the engine's deterministic degree form).
+    const std::array<Turned, 9> turned{{
+        {"#pad::part(face) { transform: rotate(0deg) }", MaterialTransform{1.0, 0.0, 0.0, 1.0}},
+        {"#pad::part(face) { transform: rotate(90deg) }", MaterialTransform{0.0, 1.0, -1.0, 0.0}},
+        {"#pad::part(face) { transform: rotate(180deg) }", MaterialTransform{-1.0, 0.0, 0.0, -1.0}},
+        {"#pad::part(face) { transform: rotate(270deg) }", MaterialTransform{0.0, -1.0, 1.0, 0.0}},
+        {"#pad::part(face) { transform: rotate(-450deg) }", MaterialTransform{0.0, -1.0, 1.0, 0.0}},
+        {"#pad::part(face) { transform: scale(2, 50%) }", MaterialTransform{2.0, 0.0, 0.0, 0.5}},
+        {"#pad::part(face) { transform: scale(1.5) }", MaterialTransform{1.5, 0.0, 0.0, 1.5}},
+        // The last function applies first: scale, then the quarter turn.
+        {"#pad::part(face) { transform: rotate(90deg) scale(2) }", MaterialTransform{0.0, 2.0, -2.0, 0.0}},
+        {"#pad::part(face) { transform: none }", MaterialTransform{}},
+    }};
+    for (const Turned& entry : turned) {
+        const Compilation compiled = compile(entry.sheet);
+        const MaterialDeclaration* const declaration =
+            field_of(only_rule(compiled, entry.sheet), MaterialField::transform);
+        require(declaration != nullptr && (*declaration).transform == entry.transform,
+                std::string("the transform lowers: ") + std::string(entry.sheet));
+    }
+
+    const std::string_view polygon_sheet = "#pad::part(face) { clip-path: polygon(50% 0, 100% 100%, 0 10px) }";
+    const Compilation polygon = compile(polygon_sheet);
+    const MaterialDeclaration* const outlined = field_of(only_rule(polygon, polygon_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> closed_triangle{MaterialClipVerb::move, MaterialClipVerb::line,
+                                                        MaterialClipVerb::line, MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> polygon_points{MaterialClipPoint{0.0, 0.5, 0.0, 0.0},
+                                                        MaterialClipPoint{0.0, 1.0, 0.0, 1.0},
+                                                        MaterialClipPoint{0.0, 0.0, 10.0, 0.0}};
+    require(outlined != nullptr && (*outlined).clip_path && (*(*outlined).clip_path).verbs == closed_triangle &&
+                (*(*outlined).clip_path).points == polygon_points &&
+                (*(*outlined).clip_path).rule == MaterialClipRule::nonzero,
+            "polygon() lowers its vertices, lengths and percentages of the box, and closes");
+
+    const std::string_view ruled_sheet = "#pad::part(face) { clip-path: polygon(evenodd, 0 0, 10px 0, 0 10px) }";
+    const Compilation ruled = compile(ruled_sheet);
+    const MaterialDeclaration* const even = field_of(only_rule(ruled, ruled_sheet), MaterialField::clip_path);
+    require(even != nullptr && (*even).clip_path && (*(*even).clip_path).rule == MaterialClipRule::even_odd,
+            "polygon() takes a leading fill rule");
+
+    // Relative and absolute commands, H and V, a move's further pair as a
+    // line, curves, and decimals without a leading digit or with an
+    // exponent.
+    const std::string_view path_sheet =
+        "#pad::part(face) { clip-path: path(evenodd, \"M1e1,0 h 10 V.5e1 l-5 5 Q 0 10 0 5 c 0 -1 1 -2 2 -2 z\") }";
+    const Compilation traced = compile(path_sheet);
+    const MaterialDeclaration* const path = field_of(only_rule(traced, path_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> path_verbs{MaterialClipVerb::move,      MaterialClipVerb::line,
+                                                   MaterialClipVerb::line,      MaterialClipVerb::line,
+                                                   MaterialClipVerb::quadratic, MaterialClipVerb::cubic,
+                                                   MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> path_points{
+        MaterialClipPoint{10.0, 0.0, 0.0, 0.0}, MaterialClipPoint{20.0, 0.0, 0.0, 0.0},
+        MaterialClipPoint{20.0, 0.0, 5.0, 0.0}, MaterialClipPoint{15.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{0.0, 0.0, 10.0, 0.0}, MaterialClipPoint{0.0, 0.0, 5.0, 0.0},
+        MaterialClipPoint{0.0, 0.0, 4.0, 0.0},  MaterialClipPoint{1.0, 0.0, 3.0, 0.0},
+        MaterialClipPoint{2.0, 0.0, 3.0, 0.0}};
+    require(path != nullptr && (*path).clip_path && (*(*path).clip_path).verbs == path_verbs &&
+                (*(*path).clip_path).points == path_points &&
+                (*(*path).clip_path).rule == MaterialClipRule::even_odd,
+            "path() reads SVG path data in px from the box's corner");
+
+    const std::string_view none_sheet = "#pad::part(face) { clip-path: none }";
+    const Compilation none = compile(none_sheet);
+    const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::clip_path);
+    require(cleared != nullptr && !(*cleared).clip_path, "clip-path: none clears it");
+
+    // S and T reflect the previous curve's last control point about the
+    // current point.
+    const std::string_view smooth_sheet =
+        "#pad::part(face) { clip-path: path(\"M0 0 C 0 10 10 10 10 0 S 20 -10 20 0 Q 25 10 30 0 T 40 0 Z\") }";
+    const Compilation smooth = compile(smooth_sheet);
+    const MaterialDeclaration* const smoothed = field_of(only_rule(smooth, smooth_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> smooth_verbs{MaterialClipVerb::move,      MaterialClipVerb::cubic,
+                                                     MaterialClipVerb::cubic,     MaterialClipVerb::quadratic,
+                                                     MaterialClipVerb::quadratic, MaterialClipVerb::close};
+    const std::vector<MaterialClipPoint> smooth_points{
+        MaterialClipPoint{0.0, 0.0, 0.0, 0.0},   MaterialClipPoint{0.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{10.0, 0.0, 10.0, 0.0}, MaterialClipPoint{10.0, 0.0, 0.0, 0.0},
+        MaterialClipPoint{10.0, 0.0, -10.0, 0.0}, MaterialClipPoint{20.0, 0.0, -10.0, 0.0},
+        MaterialClipPoint{20.0, 0.0, 0.0, 0.0},  MaterialClipPoint{25.0, 0.0, 10.0, 0.0},
+        MaterialClipPoint{30.0, 0.0, 0.0, 0.0},  MaterialClipPoint{35.0, 0.0, -10.0, 0.0},
+        MaterialClipPoint{40.0, 0.0, 0.0, 0.0}};
+    require(smoothed != nullptr && (*smoothed).clip_path && (*(*smoothed).clip_path).verbs == smooth_verbs &&
+                (*(*smoothed).clip_path).points == smooth_points,
+            "S and T lower to a cubic and a quadratic with the reflected control point");
+
+    // An arc lowers to cubics by its fixed subdivision: a half turn of
+    // radius 10 from (0, 0) to (20, 0), sweeping clockwise on screen, is two
+    // quarter pieces through (10, -10), ending exactly at (20, 0). The flags
+    // may be written without separators.
+    const std::array<std::string_view, 2> arc_sheets{
+        "#pad::part(face) { clip-path: path(\"M 0 0 A 10 10 0 0 1 20 0 Z\") }",
+        "#pad::part(face) { clip-path: path(\"M0 0a10 10 0 0120 0z\") }"};
+    for (const std::string_view arc_sheet : arc_sheets) {
+        const Compilation arced = compile(arc_sheet);
+        const MaterialDeclaration* const arc = field_of(only_rule(arced, arc_sheet), MaterialField::clip_path);
+        const bool lowered = arc != nullptr && (*arc).clip_path;
+        require(lowered, std::string("the arc lowers: ") + std::string(arc_sheet));
+        if (!lowered) continue;
+        const MaterialClipPath& clip = *(*arc).clip_path;
+        const std::vector<MaterialClipVerb> arc_verbs{MaterialClipVerb::move, MaterialClipVerb::cubic,
+                                                      MaterialClipVerb::cubic, MaterialClipVerb::close};
+        require(clip.verbs == arc_verbs && clip.points.size() == 7U, "a half turn is two cubic pieces");
+        if (clip.points.size() != 7U) continue;
+        const MaterialClipPoint middle = clip.points[3];
+        const MaterialClipPoint last = clip.points[6];
+        require(std::abs(middle.x_units - 10.0) < 1e-9 && std::abs(middle.y_units + 10.0) < 1e-9,
+                "the pieces meet at the top of the half turn");
+        require(last.x_units == 20.0 && last.y_units == 0.0, "the last piece ends exactly at the arc's end");
+        // The quarter piece's handle: 4/3 tan(22.5 degrees) = 4/3 (sqrt(2) - 1)
+        // of the radius, the constant 0.55228474983079339840.
+        const double handle = 0.55228474983079339840 * 10.0;
+        require(std::abs(clip.points[1].y_units + handle) < 1e-9 && std::abs(clip.points[1].x_units) < 1e-9,
+                "the first handle leaves the start upward by the stated length");
+    }
+    // A zero radius draws a line; equal endpoints draw nothing.
+    const std::string_view flat_sheet = "#pad::part(face) { clip-path: path(\"M 0 0 A 0 5 0 0 1 10 0 A 5 5 0 0 1 10 0 L 0 10 Z\") }";
+    const Compilation flat = compile(flat_sheet);
+    const MaterialDeclaration* const flattened = field_of(only_rule(flat, flat_sheet), MaterialField::clip_path);
+    const std::vector<MaterialClipVerb> flat_verbs{MaterialClipVerb::move, MaterialClipVerb::line,
+                                                   MaterialClipVerb::line, MaterialClipVerb::close};
+    require(flattened != nullptr && (*flattened).clip_path && (*(*flattened).clip_path).verbs == flat_verbs,
+            "an arc of zero radius is a line, and one to its own start is nothing");
+
+    const std::array<Refusal, 14> refusals{{
+        {"#a { transform: rotate(1px) }", DiagnosticCode::value_wrong_kind},
+        {"#a { transform: rotate(10deg, 20deg) }", DiagnosticCode::value_syntax},
+        {"#a { transform: scale(1, 2, 3) }", DiagnosticCode::value_syntax},
+        {"#a { transform: scale(0) }", DiagnosticCode::value_out_of_range},
+        {"#a { transform: scale(100) }", DiagnosticCode::value_out_of_range},
+        {"#a { transform: red }", DiagnosticCode::value_wrong_kind},
+        {"#a { clip-path: border-box }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: polygon(0 0, 1px 1px) }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: polygon(0 0, 1em 0, 0 1px) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { clip-path: polygon(sideways, 0 0, 1px 0, 0 1px) }", DiagnosticCode::keyword_unknown},
+        {"#a { clip-path: path(\"M 0 0 A 1 1 0 2 1 2 2\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(\"L 0 0\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(\"M 0 0 L\") }", DiagnosticCode::value_syntax},
+        {"#a { clip-path: path(10px) }", DiagnosticCode::value_wrong_kind},
+    }};
+    for (const Refusal& refusal : refusals) {
+        const Compilation compiled = compile(refusal.sheet);
+        const bool refused = compiled.outcome == CompileOutcome::refused && !compiled.diagnostics.empty() &&
+                             compiled.diagnostics.back().code == refusal.code;
+        if (!refused && !compiled.diagnostics.empty()) {
+            std::cerr << "  got " << diagnostic_code_name(compiled.diagnostics.back().code) << '\n';
+        }
+        require(refused, std::string("refused: ") + std::string(refusal.sheet));
+    }
 }
 
 // The seat (skeudoindustrial surfaces): `seat` lowers to its height, as a
@@ -812,8 +1059,52 @@ void test_seat() {
             "a quarter of an 8-unit side seats the part 2 units proud");
 }
 
+// `@filter <id>` and `filter: url(#id)` (capability review, owner
+// 2026-11-16): the declared matrix and table, composed where named.
+void test_theme_filters() {
+    const std::string_view sheet = "#pad::part(face) { filter: url(#warm) contrast(1.5) }\n"
+                                   "@filter warm { color-matrix: saturate(0.5); color-matrix: hue-rotate(90deg);\n"
+                                   "  component-transfer: red linear(0.5 0.25) alpha discrete(0 1) }";
+    const Compilation warm = compile(sheet);
+    const MaterialDeclaration* const filter = field_of(only_rule(warm, sheet), MaterialField::colour_filter);
+    require(filter != nullptr && (*filter).colour_filter.has_value() && (*filter).colour_filter.table() != nullptr,
+            "a named filter lowers to a matrix and a table");
+    const MaterialColourMatrix matrix =
+        MaterialColourMatrix::saturate(0.5).then(MaterialColourMatrix::hue_rotate(90.0));
+    require(*(*filter).colour_filter == matrix, "its color-matrix declarations compose in order");
+    MaterialTransferFunction red{};
+    red.kind = MaterialTransferKind::linear;
+    red.slope = 0.5;
+    red.intercept = 0.25;
+    MaterialTransferFunction alpha{};
+    alpha.kind = MaterialTransferKind::discrete;
+    alpha.values = {0.0, 1.0};
+    const MaterialColourTable table =
+        MaterialColourTable::transfer(red, MaterialTransferFunction{}, MaterialTransferFunction{}, alpha)
+            .then_matrix(MaterialColourMatrix::contrast(1.5));
+    require(*(*filter).colour_filter.table() == table, "a per-channel function after it folds into the table");
+
+    const std::string_view quoted = "@filter alpha-of { color-matrix: luminance-to-alpha }\n"
+                                    "#pad::part(face) { filter: url(\"#alpha-of\") }";
+    const Compilation alpha_of = compile(quoted);
+    const MaterialDeclaration* const luminance = field_of(only_rule(alpha_of, quoted), MaterialField::colour_filter);
+    MaterialColourMatrix to_alpha{};
+    to_alpha.values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                       0.0, 0.0, 0.0, 0.0, 0.0, 0.2125, 0.7154, 0.0721, 0.0, 0.0};
+    require(luminance != nullptr && *(*luminance).colour_filter == to_alpha &&
+                (*luminance).colour_filter.table() == nullptr,
+            "a quoted fragment names the filter too, and a matrix alone has no table");
+
+    const std::string_view raw = "@filter swap { color-matrix: 0 1 0 0 0  1 0 0 0 0  0 0 1 0 0  0 0 0 1 0 }\n"
+                                 "#pad::part(face) { filter: url(#swap) }";
+    const Compilation swapped = compile(raw);
+    const MaterialDeclaration* const swap = field_of(only_rule(swapped, raw), MaterialField::colour_filter);
+    require(swap != nullptr && (*(*swap).colour_filter).values[1] == 1.0 && (*(*swap).colour_filter).values[5] == 1.0,
+            "twenty numbers are the matrix's rows");
+}
+
 void test_refusals() {
-    const std::array<Refusal, 81> refusals{{
+    const std::array<Refusal, 104> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
         {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
@@ -831,12 +1122,16 @@ void test_refusals() {
         {"#a { background: red fixed }", DiagnosticCode::value_form_not_admitted},
         {"#a { background: red, linear-gradient(red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: none, linear-gradient(red, blue) }", DiagnosticCode::value_form_not_admitted},
-        {"#a { background-blend-mode: overlay }", DiagnosticCode::value_form_not_admitted},
+        {"#a { background-blend-mode: hue }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-blend-mode: sideways }", DiagnosticCode::keyword_unknown},
         {"#a { background-color: 3px }", DiagnosticCode::value_wrong_kind},
         {"#a { background-color: inherit }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(circle 10%, red, blue) }", DiagnosticCode::value_wrong_kind},
         {"#a { background-image: radial-gradient(-4px 4px, red, blue) }", DiagnosticCode::value_out_of_range},
+        {"#a { background-image: reflecting-radial-gradient(red, blue, red, blue, red, blue, red, blue, red, blue, "
+         "red, blue, red, blue, red, blue) }",
+         DiagnosticCode::value_out_of_range},
+        {"#a { background-image: radial-gradient(at center focus, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: linear-gradient(to center, red, blue) }", DiagnosticCode::value_syntax},
         {"#a { background-image: radial-gradient(at left 10px top, red, blue) }",
          DiagnosticCode::value_form_not_admitted},
@@ -864,6 +1159,27 @@ void test_refusals() {
         {"#a { filter: blur(-1px) }", DiagnosticCode::value_out_of_range},
         {"#a { filter: hue-rotate(2px) }", DiagnosticCode::value_wrong_kind},
         {"#a { filter: red }", DiagnosticCode::value_wrong_kind},
+        {"#a { filter: tritone(black, grey, white) saturate(2) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: tritone(black, grey, white) tritone(black, grey, white) }",
+         DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) duotone(black, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black, white) tritone(black, grey, white) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black, white) saturate(2) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: duotone(black) }", DiagnosticCode::value_syntax},
+        {"#a { filter: fill(1px) }", DiagnosticCode::value_wrong_kind},
+        {"#a { filter: tritone(black grey white) }", DiagnosticCode::value_syntax},
+        {"#a { filter: url(#missing) }", DiagnosticCode::resource_unknown},
+        {"@filter f { color-matrix: 1 2 3 } #a { filter: url(#f) }", DiagnosticCode::value_syntax},
+        {"@filter f { color-matrix: saturate(1px) } #a { filter: url(#f) }", DiagnosticCode::value_wrong_kind},
+        {"@filter f { component-transfer: red identity; component-transfer: blue identity } #a { opacity: 1 }",
+         DiagnosticCode::value_form_not_admitted},
+        {"@filter f { component-transfer: red identity; color-matrix: saturate(2) } #a { opacity: 1 }",
+         DiagnosticCode::value_form_not_admitted},
+        {"@filter f { component-transfer: red gamma(1 0 0) } #a { opacity: 1 }", DiagnosticCode::value_out_of_range},
+        {"@filter f { component-transfer: red identity red identity } #a { opacity: 1 }", DiagnosticCode::value_syntax},
+        {"@filter g { component-transfer: red table(0 1) } #a { filter: tritone(black, grey, white) url(#g) }",
+         DiagnosticCode::value_form_not_admitted},
         {"#a { surface-finish: 2 }", DiagnosticCode::value_out_of_range},
         {"#a { surface-finish: 1px }", DiagnosticCode::value_wrong_kind},
         {"#a { gradient-dither: dots }", DiagnosticCode::keyword_unknown},
@@ -873,13 +1189,18 @@ void test_refusals() {
         {"#a { glow: red 1px, red 1px, red 1px }", DiagnosticCode::too_many_layers},
         {"#a { glow: red 8px }", DiagnosticCode::value_out_of_range},
         {"#a { glow-placement: sideways }", DiagnosticCode::keyword_unknown},
-        {"#a { mask-image: linear-gradient(black, white), linear-gradient(black, white) }",
+        {"#a { mask-image: linear-gradient(black, white), linear-gradient(black, white), "
+         "linear-gradient(black, white), linear-gradient(black, white), linear-gradient(black, white) }",
          DiagnosticCode::too_many_layers},
         {"#a { mask-image: url(\"resource:icon.check\") }", DiagnosticCode::value_wrong_kind},
+        {"#a { mask-image: url(\"resource:tile.quadrant\") }", DiagnosticCode::value_form_not_admitted},
+        {"#a { filter: drop-shadow(1px 1px red) }", DiagnosticCode::value_form_not_admitted},
+        {"#a { mask-image: linear-gradient(currentcolor, transparent) }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: 10px 20px }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: 0px }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-size: -1px }", DiagnosticCode::value_out_of_range},
         {"#a { background-repeat: repeat-x }", DiagnosticCode::value_form_not_admitted},
+        {"#a { background-repeat: mirror repeat }", DiagnosticCode::value_form_not_admitted},
         {"#a { background-repeat: sideways }", DiagnosticCode::keyword_unknown},
         {"#a { background-position: 150% }", DiagnosticCode::value_out_of_range},
         {"#a { background-position: left 10px top }", DiagnosticCode::value_form_not_admitted},
@@ -925,6 +1246,72 @@ void test_refusals() {
             "an unknown filter function drops the declaration with a warning");
 }
 
+// A rule with no part, role or item writing `filter` or `mask-*` is the
+// control's content effect (owner 2026-11-16): its declarations go to the
+// rule's content_effect, not its materials, and select no primitive. A
+// part keeps the material's own filter and mask, an image mask among them;
+// on a control, the mask's image placement is not admitted.
+void test_content_effect_lowering() {
+    const std::string_view sheet =
+        "#a { filter: grayscale(1) blur(1px); mask-image: linear-gradient(black, transparent); mask-mode: luminance }";
+    const Compilation compiled = compile(sheet);
+    const ThemeRule& rule = only_rule(compiled, sheet);
+    bool filter = false;
+    bool blur = false;
+    bool mask = false;
+    bool modes = false;
+    bool shadow = false;
+    for (const MaterialDeclaration& declaration : rule.content_effect) {
+        if (declaration.field == MaterialField::colour_filter) filter = declaration.colour_filter.has_value();
+        if (declaration.field == MaterialField::filter_blur) blur = declaration.number == 2.0;
+        if (declaration.field == MaterialField::mask) mask = declaration.masks.size() == 1U;
+        if (declaration.field == MaterialField::mask_modes) modes = declaration.mask_modes.size() == 1U;
+        if (declaration.field == MaterialField::drop_shadow) shadow = true;
+    }
+    require(rule.materials.empty() && rule.declarations.empty() && rule.content_effect.size() == 4U && filter &&
+                blur && mask && modes && !shadow,
+            "a control's filter and mask are its content effect, with no drop shadow and no primitive");
+    const std::string_view on_part = "#a::part(face) { mask-image: url(\"resource:tile.quadrant\") }";
+    const Compilation part = compile(on_part);
+    const ThemeRule& part_rule = only_rule(part, on_part);
+    require(part_rule.content_effect.empty() && field_of(part_rule, MaterialField::mask) != nullptr,
+            "a part's mask is the material's own, an image allowed");
+    const Compilation placed = compile("#a { mask-size: 8px }");
+    require(placed.outcome == CompileOutcome::compiled && !placed.diagnostics.empty() &&
+                placed.diagnostics.back().code == DiagnosticCode::property_not_admitted,
+            "a control's mask has no image placement");
+    const std::string_view cleared_sheet = "#a { filter: none }";
+    const Compilation cleared = compile(cleared_sheet);
+    const ThemeRule& cleared_rule = only_rule(cleared, cleared_sheet);
+    require(cleared_rule.content_effect.size() == 2U && cleared_rule.materials.empty(),
+            "filter: none clears the effect's colour filter and blur");
+}
+
+// A-gf-core-15-F1: a "one value" problem whose value has no second
+// top-level component (one function with arguments, or a part shape
+// missing its length or colour) is refused and placed inside the value,
+// not at a component read past the value's end. Each sheet is compiled
+// first, so nothing earlier left a longer value in the storage past it.
+void test_one_value_without_a_second() {
+    const std::array<std::string_view, 6> sheets{{
+        "#a { outline-width: blur(2px) }",
+        "#a { border-top-color: linear-gradient(red, blue) }",
+        "#pad::part(face) { taper: red }",
+        "#pad::part(face) { flare: red }",
+        "#pad::part(face) { edge-shadow: 10px }",
+        "#pad::part(face) { edge-shadow: red }",
+    }};
+    for (const std::string_view sheet : sheets) {
+        const Compilation compiled = compile(sheet);
+        require(!compiled.diagnostics.empty(), std::string("a problem is reported: ") + std::string(sheet));
+        const ThemeDiagnostic& last = compiled.diagnostics.back();
+        require(last.position.offset.value < sheet.size(),
+                std::string("the problem is placed inside the sheet: ") + std::string(sheet));
+        require(compiled.outcome == CompileOutcome::refused || last.code == DiagnosticCode::unknown_function,
+                std::string("the value is refused: ") + std::string(sheet));
+    }
+}
+
 // -- the gate: a sheet and C++ bake the same pixels ------------------------------------
 
 class RasterWatch final : public Painter {
@@ -950,7 +1337,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, part);
     }
 };
@@ -1060,10 +1447,39 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
                                                      MaterialCoordinateSpace::logical)}));
     rows.push_back(filled("background: repeating-radial-gradient(closest-side, red, blue 50%)",
                           {MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue)}));
+    MaterialFillLayer focused = MaterialFillLayer::radial(Point{0.5, 0.5}, Size{corner, corner}, red_blue);
+    focused.focused = true;
+    focused.focus = Point{0.25, 0.5};
+    rows.push_back(filled("background: radial-gradient(at 50% 50% focus 25% 50%, red, blue)", {focused}));
+    ProceduralFill crossed{};
+    crossed.pattern = ProceduralPattern::hatch;
+    crossed.hatch_style = HatchStyle::cross;
+    crossed.tile = 8.0;
+    crossed.strength = 1.0;
+    crossed.ground = red;
+    crossed.figure = blue;
+    crossed.accent = red;
+    rows.push_back(filled("background: pattern(hatch-cross, red, blue)",
+                          {MaterialFillLayer::procedural_pattern(crossed)}));
     rows.push_back(filled("background: conic-gradient(from 90deg, red, blue)",
                           {MaterialFillLayer::conic(Point{0.5, 0.5}, 90.0, red_blue)}));
     rows.push_back(filled("background: repeating-conic-gradient(red 0deg, blue 90deg)",
                           {MaterialFillLayer::repeating_conic(Point{0.5, 0.5}, 0.0, 90.0, red_blue)}));
+    MaterialFillLayer reflected_conic = MaterialFillLayer::repeating_conic(Point{0.5, 0.5}, 0.0, 90.0, red_blue);
+    reflected_conic.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-conic-gradient(red 0deg, blue 90deg)", {reflected_conic}));
+    MaterialFillLayer reflected_linear = MaterialFillLayer::repeating_linear(Point{20.0, 24.0}, Point{20.0, 18.0},
+                                                                             red_blue, MaterialCoordinateSpace::logical);
+    reflected_linear.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-linear-gradient(0deg, red 0px, blue 6px)", {reflected_linear}));
+    MaterialFillLayer reflected_rings = MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue);
+    reflected_rings.spread = GradientSpreadMode::reflect;
+    rows.push_back(filled("background: reflecting-radial-gradient(closest-side, red, blue 50%)", {reflected_rings}));
+    MaterialFillLayer focused_rings = MaterialFillLayer::repeating_radial(Point{0.5, 0.5}, Size{0.25, 0.25}, red_blue);
+    focused_rings.focused = true;
+    focused_rings.focus = Point{0.4, 0.5};
+    rows.push_back(filled("background: repeating-radial-gradient(closest-side at 50% 50% focus 40% 50%, red, blue 50%)",
+                          {focused_rings}));
     rows.push_back(filled("background: linear-gradient(red, blue) green",
                           {MaterialFillLayer::solid(green), MaterialFillLayer::linear_css_angle(180.0, red_blue)}));
     MaterialFillLayer multiplied = MaterialFillLayer::linear_css_angle(90.0, red_blue);
@@ -1073,29 +1489,29 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
 
     GateRow border{};
     border.declarations = "border: 2px solid red";
-    border.material.border = border_of(red, 2.0, MaterialBorderStyle::solid);
+    border.material.border.set(border_of(red, 2.0, MaterialBorderStyle::solid));
     rows.push_back(border);
     GateRow dashed{};
     dashed.declarations = "border: 2px dashed red; border-radius: 6px";
-    dashed.material.border = border_of(red, 2.0, MaterialBorderStyle::dashed);
+    dashed.material.border.set(border_of(red, 2.0, MaterialBorderStyle::dashed));
     dashed.material.corner_radius = 6.0;
     rows.push_back(dashed);
     GateRow edges{};
     edges.declarations = "border-top: 3px solid blue; border-bottom: 1px solid red";
-    edges.material.border_edges.top = border_of(blue, 3.0, MaterialBorderStyle::solid);
-    edges.material.border_edges.bottom = border_of(red, 1.0, MaterialBorderStyle::solid);
+    edges.material.border_edges.top.set(border_of(blue, 3.0, MaterialBorderStyle::solid));
+    edges.material.border_edges.bottom.set(border_of(red, 1.0, MaterialBorderStyle::solid));
     rows.push_back(edges);
     GateRow sides{};
     sides.declarations = "border-style: solid; border-width: 1px 2px; border-color: red blue";
-    sides.material.border_edges.top = border_of(red, 1.0, MaterialBorderStyle::solid);
-    sides.material.border_edges.right = border_of(blue, 2.0, MaterialBorderStyle::solid);
-    sides.material.border_edges.bottom = border_of(red, 1.0, MaterialBorderStyle::solid);
-    sides.material.border_edges.left = border_of(blue, 2.0, MaterialBorderStyle::solid);
+    sides.material.border_edges.top.set(border_of(red, 1.0, MaterialBorderStyle::solid));
+    sides.material.border_edges.right.set(border_of(blue, 2.0, MaterialBorderStyle::solid));
+    sides.material.border_edges.bottom.set(border_of(red, 1.0, MaterialBorderStyle::solid));
+    sides.material.border_edges.left.set(border_of(blue, 2.0, MaterialBorderStyle::solid));
     rows.push_back(sides);
     GateRow radii{};
     radii.declarations = "border-radius: 4px 8px";
     radii.material.corner_radius = 4.0;
-    radii.material.corner_radii = MaterialCornerRadii{4.0, 8.0, 4.0, 8.0};
+    radii.material.corner_radii.set(MaterialCornerRadii{4.0, 8.0, 4.0, 8.0});
     rows.push_back(radii);
     GateRow relative{};
     relative.declarations = "border-radius: 50%";
@@ -1112,6 +1528,29 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     colours.material.fills = {MaterialFillLayer::solid(red)};
     colours.material.colour_filter = MaterialColourMatrix::grayscale(1.0).then(MaterialColourMatrix::brightness(0.5));
     rows.push_back(colours);
+    // The theme language's colour stages (owner 2026-11-16).
+    GateRow filled_stage{};
+    filled_stage.declarations = "background: red; filter: fill(#102030)";
+    filled_stage.material.fills = {MaterialFillLayer::solid(red)};
+    filled_stage.material.colour_filter = MaterialColourMatrix::fill(Color::rgba(16, 32, 48));
+    rows.push_back(filled_stage);
+    GateRow duotoned{};
+    duotoned.declarations = "background: red; filter: duotone(#000000, #ffffff)";
+    duotoned.material.fills = {MaterialFillLayer::solid(red)};
+    // duotone() is the luminance matrix and a two-colour table, mixed in
+    // linear light as tritone()'s is.
+    duotoned.material.colour_filter =
+        MaterialColourFilter(MaterialColourMatrix::luminance(),
+                             MaterialColourTable::duotone(Color::rgba(0, 0, 0), Color::rgba(255, 255, 255)));
+    rows.push_back(duotoned);
+    GateRow tritoned{};
+    tritoned.declarations = "background: red; filter: tritone(blue, lime, red) brightness(0.5)";
+    tritoned.material.fills = {MaterialFillLayer::solid(red)};
+    const MaterialColourTable tones =
+        MaterialColourTable::tritone(Color::rgba(0, 0, 255), Color::rgba(0, 255, 0), Color::rgba(255, 0, 0));
+    tritoned.material.colour_filter =
+        MaterialColourFilter(MaterialColourMatrix::luminance(), tones.then_matrix(MaterialColourMatrix::brightness(0.5)));
+    rows.push_back(tritoned);
     GateRow blurred{};
     blurred.declarations = "background: blue; filter: blur(1px) blur(1px)";
     blurred.material.fills = {MaterialFillLayer::solid(blue)};
@@ -1125,7 +1564,7 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     drop.offset = Point{1.0, 2.0};
     drop.blur_radius = 2.0;
     drop.color = Color::rgba(0, 255, 255);
-    dropped.material.drop_shadow = drop;
+    dropped.material.drop_shadow.set(drop);
     rows.push_back(dropped);
     GateRow finished{};
     finished.declarations = "background: blue; surface-finish: 0.5";
@@ -1157,13 +1596,14 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     GateRow linear_mask{};
     linear_mask.declarations = "background: blue; mask-image: linear-gradient(black, transparent)";
     linear_mask.material.fills = {MaterialFillLayer::solid(blue)};
-    linear_mask.material.mask = MaterialFillLayer::linear_css_angle(180.0, fading);
+    linear_mask.material.masks = {MaterialMaskLayer{.source = MaterialFillLayer::linear_css_angle(180.0, fading)}};
     rows.push_back(linear_mask);
     GateRow radial_mask{};
     radial_mask.declarations = "background: blue; mask-image: radial-gradient(circle 10px, black, transparent)";
     radial_mask.material.fills = {MaterialFillLayer::solid(blue)};
-    radial_mask.material.mask =
+    const MaterialFillLayer radial_fade =
         MaterialFillLayer::radial(Point{20.0, 12.0}, Size{10.0, 10.0}, fading, MaterialCoordinateSpace::logical);
+    radial_mask.material.masks = {MaterialMaskLayer{.source = radial_fade}};
     rows.push_back(radial_mask);
 
     const Size four{4.0, 4.0};
@@ -1188,13 +1628,39 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-size: 50% auto; "
                           "background-repeat: no-repeat",
                           {white, half}));
+    MaterialFillLayer mirrored_tiles = tiles;
+    mirrored_tiles.image_mode = MaterialImageMode::mirror;
+    rows.push_back(filled("background: url(\"resource:tile.quadrant\") mirror", {mirrored_tiles}));
+    MaterialFillLayer extended_tile = tiles;
+    extended_tile.image_mode = MaterialImageMode::extend;
+    extended_tile.image_anchor = Point{0.5, 0.5};
+    rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-repeat: extend; "
+                          "background-position: center",
+                          {white, extended_tile}));
     rows.push_back(filled("background-image: url(\"resource:tile.quadrant\"); background-size: 100% 100%",
                           {white, MaterialFillLayer::stretched_image(images.quadrant, four)}));
     GateRow image_mask{};
     image_mask.declarations = "background: blue; mask-image: url(\"resource:mask.dots\")";
     image_mask.material.fills = {MaterialFillLayer::solid(blue)};
-    image_mask.material.mask = MaterialFillLayer::tiled_image(images.dots, Size{2.0, 2.0}, 0.5);
+    image_mask.material.masks = {MaterialMaskLayer{.source = MaterialFillLayer::tiled_image(images.dots, Size{2.0, 2.0}, 0.5)}};
     rows.push_back(image_mask);
+    // The mask longhands (owner 2026-11-16): an image layer placed as a
+    // background image is, under a luminance gradient that subtracts it.
+    GateRow placed_mask{};
+    placed_mask.declarations = "background: blue; mask-image: linear-gradient(black, transparent), "
+                               "url(\"resource:mask.dots\"); mask-mode: luminance, alpha; mask-composite: subtract; "
+                               "mask-size: auto, 8px; mask-repeat: repeat, mirror; mask-position: 0 0, center";
+    placed_mask.material.fills = {MaterialFillLayer::solid(blue)};
+    MaterialFillLayer placed_dots = MaterialFillLayer::tiled_image(images.dots, Size{2.0, 2.0}, 0.5);
+    placed_dots.image_scale = 2.0 / 8.0;
+    placed_dots.image_mode = MaterialImageMode::mirror;
+    placed_dots.image_anchor = Point{0.5, 0.5};
+    placed_mask.material.masks = {
+        MaterialMaskLayer{.source = placed_dots},
+        MaterialMaskLayer{.source = MaterialFillLayer::linear_css_angle(180.0, fading),
+                          .mode = MaterialMaskMode::luminance,
+                          .composite = MaterialMaskComposite::subtract}};
+    rows.push_back(placed_mask);
 
     // Each edge's two lines, the outer first, in CSS's edge order.
     const std::array<MaterialEdge, 4> each_edge{MaterialEdge::top, MaterialEdge::right, MaterialEdge::bottom,
@@ -1286,6 +1752,7 @@ void test_gate() {
 } // namespace
 
 int main() {
+    test_one_value_without_a_second();
     test_placement();
     test_linear_geometry();
     test_radial_geometry();
@@ -1297,7 +1764,10 @@ int main() {
     test_filter_lowering();
     test_image_lowering();
     test_reflection_lowering();
+    test_shape_lowering();
     test_seat();
+    test_theme_filters();
+    test_content_effect_lowering();
     test_refusals();
     test_gate();
     if (failures != 0) {

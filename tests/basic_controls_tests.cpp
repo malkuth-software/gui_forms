@@ -1,4 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/value/value.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -20,6 +22,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <span>
@@ -97,6 +100,7 @@ public:
         texts.emplace_back(text);
         text_colors.push_back(color);
         roles.push_back(font.role);
+        text_sizes.push_back(font.size);
         text_origins.push_back(origin);
         text_line_order.push_back('T');
     }
@@ -124,6 +128,7 @@ public:
     std::uint64_t lines{};
     std::size_t text_measurements{};
     std::size_t measured_text_bytes{};
+    std::vector<double> text_sizes{};
     Rect last_fill_bounds{};
     Color last_fill_color{};
     Rect last_rounded_stroke_bounds{};
@@ -643,7 +648,7 @@ void test_control_back_color_paints_background_once() {
     std::shared_ptr<Control> child = make_control<Control>(StableId("back-color.child"));
     (*child).set_requested_bounds({10.0, 10.0, 60.0, 24.0});
     (*root).add_child(child);
-    (*root).back_color = root_color;
+    (*root).back_color = stxlib::Optional<Color>::of(root_color);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -651,10 +656,10 @@ void test_control_back_color_paints_background_once() {
     RecordingPainter inherited_painter{};
     window.paint(inherited_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(inherited_painter.fill_colors.begin(), inherited_painter.fill_colors.end(), root_color) == 1 &&
-                (*child).ambient_back_color() == root_color,
+                (*child).ambient_back_color() == stxlib::Optional<Color>::of(root_color),
             "an inherited background must paint once, on the control that sets it");
 
-    (*child).back_color = child_color;
+    (*child).back_color = stxlib::Optional<Color>::of(child_color);
     RecordingPainter own_painter{};
     window.paint(own_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(own_painter.fill_colors.begin(), own_painter.fill_colors.end(), root_color) == 1 &&
@@ -674,7 +679,7 @@ void test_control_back_color_paints_background_once() {
 void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     const MnemonicText escaped = parse_mnemonic_text("Save && E&xit");
     require(escaped.display_text == "Save & Exit" &&
-                escaped.mnemonic == U'x' && is_mnemonic(U'X', "E&xit") &&
+                escaped.mnemonic == stxlib::Optional<char32_t>::of(U'x') && is_mnemonic(U'X', "E&xit") &&
                 is_mnemonic(U'a', "&Save &As") &&
                 !is_mnemonic(U'&', "&&&") &&
                 !is_mnemonic(U'e', "Save && Exit"),
@@ -892,6 +897,24 @@ void test_checkbox_state_and_click_order() {
             "indeterminate CheckBox must return to unchecked without duplicate bool change");
 }
 
+// A refused command bind leaves the value binding in place (A-gf-controls-01-F5).
+void test_checkbox_refused_command_bind_keeps_its_value_binding() {
+    Value<bool> model(true);
+    std::shared_ptr<CheckBox> check = make_control<CheckBox>(StableId("check.refused-command"), "Bound");
+    (*check).bind(model);
+    const std::shared_ptr<Command> gone = std::make_shared<Command>("gone", "Gone");
+    (*gone).dispose();
+    bool refused = false;
+    try {
+        (*check).bind(*gone);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    model.set(false);
+    require(refused && !(*check).checked.read(),
+            "a refused command bind keeps the CheckBox's value binding");
+}
+
 void test_radio_group_scope_and_order() {
     std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("radio.group"), "Mode");
     (*group).set_requested_bounds({0.0, 0.0, 360.0, 70.0});
@@ -925,6 +948,47 @@ void test_radio_group_scope_and_order() {
             "RadioButton must uncheck its group peer before checking/clicking itself");
 }
 
+// Adds controls to a parent when the button it watches loses the check, as
+// a handler that swaps a detail panel with the selection might.
+struct AddPanesWhenCleared final {
+    std::shared_ptr<GroupBox> parent;
+    std::size_t panes{};
+    void operator()(bool checked) const {
+        if (checked) return;
+        for (std::size_t index = 0; index < panes; ++index) {
+            Control::Ptr pane = make_control<Control>(StableId("radio.pane." + std::to_string(index)));
+            (*parent).add_child(std::move(pane));
+        }
+    }
+};
+
+// A checked_changed handler on the button losing the check that adds
+// controls to the same parent (A-gf-controls-01-F1): the group is cleared
+// over a copy of the children, so the walk never reads the list's moved
+// storage, and the clicked button is still checked.
+void test_radio_clear_survives_a_handler_editing_the_parent() {
+    std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("radio.edit.group"), "Mode");
+    (*group).set_requested_bounds({0.0, 0.0, 360.0, 70.0});
+    std::shared_ptr<gui_forms::RadioButton> first = make_control<RadioButton>(StableId("radio.edit.first"), "First");
+    std::shared_ptr<gui_forms::RadioButton> second = make_control<RadioButton>(StableId("radio.edit.second"), "Second");
+    std::shared_ptr<gui_forms::RadioButton> third = make_control<RadioButton>(StableId("radio.edit.third"), "Third");
+    (*first).set_requested_bounds({10.0, 24.0, 100.0, 24.0});
+    (*second).set_requested_bounds({120.0, 24.0, 100.0, 24.0});
+    (*third).set_requested_bounds({230.0, 24.0, 100.0, 24.0});
+    (*group).add_child(first);
+    (*group).add_child(second);
+    (*group).add_child(third);
+    (*first).checked = true;
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(group, Size{360.0, 70.0});
+    Window& window = *held_window;
+    const SubscriptionToken first_changed = (*first).checked_changed().subscribe(AddPanesWhenCleared{group, 64U});
+    const std::size_t children_before = (*group).child_count();
+    click(window, second);
+    require(!(*first).checked.read() && (*second).checked.read() && !(*third).checked.read(),
+            "the clicked radio button is checked and its peer cleared");
+    require((*group).child_count() == children_before + 64U, "the handler's controls are in the parent");
+}
+
 // The colour LinkLabel's text takes when it paints.
 Color painted_link_color(LinkLabel& link) {
     RecordingPainter painter;
@@ -932,6 +996,21 @@ Color painted_link_color(LinkLabel& link) {
     require(painter.text_colors.size() == 1U, "LinkLabel must draw its text once");
     const Color color = painter.text_colors.front();
     return color;
+}
+
+// LinkLabel paints with the font measure sized it with: at a text scale
+// above 1 the drawn text is larger than the authored size
+// (A-gf-controls-01-F3).
+void test_link_label_paints_at_the_text_scale() {
+    std::shared_ptr<gui_forms::LinkLabel> link = make_control<LinkLabel>(StableId("link.scaled"), "Open");
+    (*link).set_requested_bounds({0.0, 0.0, 160.0, 48.0});
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(link, Size{160.0, 48.0});
+    (*held_window).set_text_scale(2.0);
+    (*held_window).perform_layout();
+    RecordingPainter painter;
+    (*link).on_paint(painter, {});
+    require(painter.text_sizes.size() == 1U && painter.text_sizes.front() > (*link).font.read().size,
+            "LinkLabel draws its text at the effective text scale");
 }
 
 // The link families (owner decision W-Q5): LinkLabel's text takes the link
@@ -1108,13 +1187,41 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
             "content-derived label width must still resolve text");
 }
 
+// Exhibit gap E12: a hint label given a width and no height, placed by its
+// parent's layout, wraps into as many lines as its text needs and is laid
+// out that tall, beside a one-line label of the same font.
+void test_label_wraps_at_its_width_in_layout() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("hint"));
+    const std::shared_ptr<Label> hint =
+        make_control<Label>(StableId("hint.wrapped"), "Open the inlet valve before starting the pump");
+    (*hint).set_requested_bounds({20.0, 10.0, 120.0, 0.0});
+    (*hint).text_wrapping = TextWrapping::word;
+    const std::shared_ptr<Label> single = make_control<Label>(StableId("hint.single"), "Open");
+    (*single).set_requested_bounds({20.0, 120.0, 120.0, 0.0});
+    (*root).add_child(hint);
+    (*root).add_child(single);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{300.0, 200.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    RecordingPainter painter{};
+    window.paint(painter, {0.0, 0.0, 300.0, 200.0});
+    const Rect wrapped = (*hint).arranged_bounds();
+    const Rect one_line = (*single).arranged_bounds();
+    std::size_t hint_lines = 0U;
+    for (const std::string& text : painter.texts) {
+        if (text != "Open") hint_lines = hint_lines + 1U;
+    }
+    require(wrapped.width == 120.0 && hint_lines >= 2U, "the hint wraps at its own width");
+    require(wrapped.height > one_line.height * 1.5, "and is laid out as tall as its lines");
+}
+
 void test_label_multiline_wrapping_and_alignment() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.multiline"),
                                      "Retained labels wrap words\nand preserve breaks");
     (*label).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
     (*label).text_wrapping = TextWrapping::word;
-    (*label).vertical_alignment = VerticalAlignment::near;
-    (*label).alignment = HorizontalAlignment::far;
+    (*label).vertical_alignment = VerticalAlignment::start;
+    (*label).alignment = HorizontalAlignment::end;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{120.0, 80.0});
     Window& window = *held_window;
     RecordingPainter painter{};
@@ -1284,7 +1391,7 @@ void test_label_line_limit_bounds_hidden_wrapping_work() {
     for (std::size_t index = 0U; index < 4096U; ++index) source.append("one two three x ");
     const std::shared_ptr<Label> label = make_control<Label>(StableId("label.preview-cost"), source);
     (*label).set_requested_bounds({0.0, 0.0, 190.0, 108.0});
-    (*label).font = FontSpec{FontRole::content, 13.0, 400, false};
+    (*label).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 13.0, 400, false});
     (*label).text_wrapping = TextWrapping::word;
     (*label).maximum_lines = 7U;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(label, Size{190.0, 108.0});
@@ -1335,15 +1442,15 @@ void test_owner_decoration_is_retained_and_owner_relative() {
     OwnerDecorationRecipe before_recipe{};
     before_recipe.layer = OwnerDecorationLayer::before_content;
     before_recipe.size = {10.0, 10.0};
-    before_recipe.top = 14.0;
-    before_recipe.left = 10.0;
+    before_recipe.top.set(14.0);
+    before_recipe.left.set(10.0);
     before_recipe.rotation_degrees = 45.0;
     before_recipe.border_edges = MaterialBorderEdges::from_parts(
         &edge, &edge, nullptr, nullptr);
     OwnerDecorationRecipe after_recipe = before_recipe;
     after_recipe.layer = OwnerDecorationLayer::after_content;
     after_recipe.left.reset();
-    after_recipe.right = 10.0;
+    after_recipe.right.set(10.0);
     const OwnerDecorationRecipe recipes[]{before_recipe, after_recipe};
     (*button).set_owned_decorations(recipes, 2U);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(button, Size{80.0, 40.0});
@@ -1421,7 +1528,7 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
     }
     require(rejected_lines && rejected_alignment &&
                 (*label).maximum_lines.read() == 2U &&
-                (*label).alignment.read() == HorizontalAlignment::near,
+                (*label).alignment.read() == HorizontalAlignment::start,
             "Label bounded and enum properties must reject invalid values atomically");
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.content-padding"), "Run");
@@ -1467,29 +1574,29 @@ void test_label_inherits_theme_typography_until_explicitly_overridden() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.theme"), "Heading");
     (*label).set_theme_override(Theme::create(definition));
     (*label).text_style_role = TextStyleRole::heading;
-    require(!(*label).font.read().has_value() &&
+    require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 17.0, 650, false,
                                           0.31} &&
-                !(*label).fore_color.read().has_value() &&
+                (*label).fore_color.read().absent() &&
                 (*label).foreground() == themed_text,
             "Label must resolve typography and text color from inherited theme roles");
 
     const FontSpec explicit_font{FontRole::content, 11.0, 500, true};
-    (*label).font = explicit_font;
+    (*label).font = stxlib::Optional<FontSpec>::of(explicit_font);
     (*label).text_style_role = TextStyleRole::title;
-    require((*label).font.read().has_value() && (*label).resolved_font() == explicit_font,
+    require((*label).font.read().present() && (*label).resolved_font() == explicit_font,
             "explicit Label font must remain authoritative across role changes");
-    (*label).font = std::nullopt;
-    require(!(*label).font.read().has_value() &&
+    (*label).font = stxlib::Optional<FontSpec>::none();
+    require((*label).font.read().absent() &&
                 (*label).resolved_font() == FontSpec{FontRole::control, 23.0, 700, false,
                                           0.19},
             "clearing Label font must restore inherited role typography");
 
     constexpr Color explicit_text = Color::rgba(91, 37, 19);
-    (*label).fore_color = explicit_text;
+    (*label).fore_color = stxlib::Optional<Color>::of(explicit_text);
     require((*label).foreground() == explicit_text,
             "explicit Label foreground must override theme text");
-    (*label).fore_color = std::nullopt;
+    (*label).fore_color = stxlib::Optional<Color>::none();
     require((*label).foreground() == themed_text,
             "clearing Label foreground must restore inherited theme text");
 }
@@ -1663,7 +1770,7 @@ void test_public_drawing_metrics_and_control_tag() {
 
 void test_button_disclosure_semantics() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.disclosure"), "Options");
-    (*button).expanded_state = false;
+    (*button).expanded_state = stxlib::Optional<bool>::of(false);
     SemanticDescriptor collapsed = (*button).semantic_descriptor();
     require(!has_semantic_state(collapsed.states, SemanticState::expanded) &&
                 std::find(collapsed.actions.begin(), collapsed.actions.end(),
@@ -1676,7 +1783,7 @@ void test_button_disclosure_semantics() {
     require(operation_check_46, "semantic expand must route through the button's shared activation");
     const bool operation_check_47 = activations == 1U;
     require(operation_check_47, "semantic expand must route through the button's shared activation");
-    (*button).expanded_state = true;
+    (*button).expanded_state = stxlib::Optional<bool>::of(true);
     const SemanticDescriptor expanded = (*button).semantic_descriptor();
     require(has_semantic_state(expanded.states, SemanticState::expanded) &&
                 std::find(expanded.actions.begin(), expanded.actions.end(),
@@ -1772,6 +1879,15 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
     require(operation_check_58, "split activation ownership must follow the pressed region rather than release drift");
     const bool operation_check_59 = split_requests == 1U;
     require(operation_check_59, "split activation ownership must follow the pressed region rather than release drift");
+    // The primary segment applies dialog_result as a Button does (A-gf-controls-01-F4).
+    (*split).dialog_result = DialogResult::yes;
+    window.set_dialog_result(DialogResult::none);
+    const bool primary_down = window.dispatch_pointer({PointerAction::down, PointerButton::primary, primary});
+    const bool primary_up = window.dispatch_pointer({PointerAction::up, PointerButton::primary, primary});
+    require(primary_down && primary_up && split_clicks == 3U && window.dialog_result() == DialogResult::yes,
+            "split drop-down primary click hands its dialog result to the window");
+    (*split).dialog_result = DialogResult::none;
+    window.set_dialog_result(DialogResult::none);
 
     const bool operation_check_60 = window.request_focus(menu);
     require(operation_check_60, "Alt+Down must request the focused drop-down menu");
@@ -2142,13 +2258,17 @@ int main() {
         test_nested_authored_surfaces_are_control_background_layers();
         test_mnemonics_and_dialog_buttons_are_retained_commands();
         test_checkbox_state_and_click_order();
+    test_checkbox_refused_command_bind_keeps_its_value_binding();
         test_radio_group_scope_and_order();
+        test_radio_clear_survives_a_handler_editing_the_parent();
         test_link_and_callback_disposal();
         test_link_families();
+    test_link_label_paints_at_the_text_scale();
         test_wrong_thread_property_mutation_is_rejected();
         test_fixed_label_text_is_paint_only();
         test_fixed_label_measurement_does_not_resolve_unused_text();
         test_label_multiline_wrapping_and_alignment();
+        test_label_wraps_at_its_width_in_layout();
         test_label_wrapping_reuses_widths_only_within_the_current_call();
         test_label_wrapping_reuses_live_text_without_retaining_paragraph_storage();
         test_label_line_limit_bounds_hidden_wrapping_work();

@@ -18,15 +18,19 @@
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/application/application.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include <stxlib/optional.hpp>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -36,6 +40,11 @@ namespace {
 constexpr SlotIdentity create_slot{GF_TABLE_APPLICATION, 0U};
 constexpr SlotIdentity close_slot{GF_TABLE_APPLICATION, 1U};
 constexpr SlotIdentity state_slot{GF_TABLE_APPLICATION, 2U};
+constexpr SlotIdentity set_program_identity_slot{GF_TABLE_APPLICATION, 3U};
+
+// The 1.5 size of gf_program_identity: a caller passes at least this much.
+constexpr std::uint32_t program_identity_size_1_5 = 104U;
+static_assert(sizeof(gf_program_identity) == program_identity_size_1_5);
 
 // The 1.1 size of gf_application_config: a caller passes at least this much.
 constexpr std::uint32_t application_config_size_1_1 = 32U;
@@ -138,7 +147,7 @@ gf_status create_application(const gf_application_config* config, gf_theme_repor
     }
     ApplicationConfig application_config{};
     if (read.presentation == GF_PRESENTATION_SOURCE_DEFAULTS) {
-        application_config.presentation = PresentationSettings{};
+        application_config.presentation.set(PresentationSettings{});
     }
     ApplicationCreateResult created = Application::create(std::move(application_config));
     if (created.error == ApplicationCreateError::already_exists) {
@@ -177,65 +186,111 @@ gf_status create_application(const gf_application_config* config, gf_theme_repor
     return GF_STATUS_OK;
 }
 
+gf_status application_create_body(const gf_application_config* config, gf_theme_report* report) {
+    const gf_status created = create_application(config, report);
+    return created;
+}
+
 gf_status GF_CALL application_create(const gf_application_config* config, gf_theme_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
-        const gf_status created = create_application(config, report);
-        return created;
-    } catch (...) {
-        return fail_with_current_exception(create_slot);
+    return call_slot(create_slot, application_create_body, config, report);
+}
+
+gf_status application_close_body(std::uint64_t* windows_alive) {
+    if (windows_alive == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, close_slot, "close needs a window count output");
     }
+    const gf_status entered = registry().enter_ui(close_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    Application* const application = state.application();
+    if (application == nullptr) {
+        *windows_alive = 0U;
+        return GF_STATUS_OK;
+    }
+    const std::size_t alive = (*application).window_count();
+    const ApplicationResult closed = (*application).close();
+    if (closed.error == ApplicationError::windows_alive) {
+        *windows_alive = alive;
+        return fail(GF_STATUS_INVALID_STATE, close_slot, "windows of the application are alive");
+    }
+    if (!closed.accepted()) {
+        return fail(GF_STATUS_INTERNAL, close_slot, "the application refused to close");
+    }
+    state.release_application();
+    *windows_alive = 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL application_close(std::uint64_t* windows_alive) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(close_slot.table_id, close_slot.slot_index);
-        if (windows_alive == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, close_slot, "close needs a window count output");
-        }
-        const gf_status entered = registry().enter_ui(close_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        Application* const application = state.application();
-        if (application == nullptr) {
-            *windows_alive = 0U;
-            return GF_STATUS_OK;
-        }
-        const std::size_t alive = (*application).window_count();
-        const ApplicationResult closed = (*application).close();
-        if (closed.error == ApplicationError::windows_alive) {
-            *windows_alive = alive;
-            return fail(GF_STATUS_INVALID_STATE, close_slot, "windows of the application are alive");
-        }
-        if (!closed.accepted()) {
-            return fail(GF_STATUS_INTERNAL, close_slot, "the application refused to close");
-        }
-        state.release_application();
-        *windows_alive = 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(close_slot);
+    return call_slot(close_slot, application_close_body, windows_alive);
+}
+
+gf_status application_state_body(gf_application_state* state) {
+    if (state == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
+    const gf_status entered = registry().enter_ui(state_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const bool current = engine().application() != nullptr;
+    *state = current ? GF_APPLICATION_STATE_CURRENT : GF_APPLICATION_STATE_NONE;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL application_state(gf_application_state* state) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(state_slot.table_id, state_slot.slot_index);
-        if (state == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
-        }
-        const gf_status entered = registry().enter_ui(state_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const bool current = engine().application() != nullptr;
-        *state = current ? GF_APPLICATION_STATE_CURRENT : GF_APPLICATION_STATE_NONE;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(state_slot);
+    return call_slot(state_slot, application_state_body, state);
+}
+
+// Reads one identity field into `field` (copied: the record is read during
+// the call only).
+gf_status read_identity_field(gf_utf8_view view, std::string& field) {
+    std::string_view text;
+    const gf_status read = read_text(view, set_program_identity_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
     }
+    field.assign(text);
+    return GF_STATUS_OK;
+}
+
+gf_status apply_program_identity(const gf_program_identity* identity) {
+    if (identity == nullptr || (*identity).struct_size < program_identity_size_1_5 || (*identity).reserved != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_program_identity_slot,
+                    "set_program_identity needs a record of at least its 1.5 size with reserved zero");
+    }
+    const gf_status entered = registry().enter_ui(set_program_identity_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    ProgramIdentity made;
+    const std::array<gf_utf8_view, 6> views{(*identity).product, (*identity).version, (*identity).vendor,
+                                            (*identity).website, (*identity).copyright, (*identity).credits};
+    const std::array<std::string*, 6> fields{&made.product, &made.version, &made.vendor,
+                                             &made.website, &made.copyright, &made.credits};
+    for (std::size_t index = 0U; index < views.size(); ++index) {
+        const gf_status read = read_identity_field(views[index], *fields[index]);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+    }
+    try {
+        set_program_identity(made);
+    } catch (const std::invalid_argument& refused) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_program_identity_slot, refused.what());
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status application_set_program_identity_body(const gf_program_identity* identity) {
+    const gf_status applied = apply_program_identity(identity);
+    return applied;
+}
+
+gf_status GF_CALL application_set_program_identity(const gf_program_identity* identity) noexcept {
+    return call_slot(set_program_identity_slot, application_set_program_identity_body, identity);
 }
 
 constexpr gf_application_table table{
@@ -244,6 +299,7 @@ constexpr gf_application_table table{
     .create = &application_create,
     .close = &application_close,
     .state = &application_state,
+    .set_program_identity = &application_set_program_identity,
 };
 
 } // namespace

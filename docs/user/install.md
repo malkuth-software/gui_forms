@@ -39,10 +39,31 @@ macOS
 
 Linux (Ubuntu 24.04)
 : Add the `llvm-toolchain-noble-22` repository from apt.llvm.org, then
-  install `clang-22 cmake ninja-build ccache generate-ninja pkg-config
-  libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev
-  libatk1.0-dev libatk-bridge2.0-dev`. Put `/usr/lib/llvm-22/bin` first on
-  `PATH`.
+  install `clang-22 libc++-22-dev libc++abi-22-dev libunwind-22-dev cmake ninja-build ccache
+  generate-ninja pkg-config libx11-dev libxext-dev libxrandr-dev
+  libxcursor-dev libxfixes-dev libatk1.0-dev libatk-bridge2.0-dev`. Put
+  `/usr/lib/llvm-22/bin` first on `PATH`. GUI.Forms builds against LLVM's
+  libc++ 22 and libc++abi on Linux, as on macOS and Windows, never the
+  distribution's libstdc++, and the C++ runtime is the harness's own, not
+  the distribution's libc++ packages: that clang only bootstraps it. Build
+  it once with that compiler and point `GUI_FORMS_LLVM_RUNTIME` at it:
+
+  ```sh
+  runtime="$PWD/.build/toolchain/$(python3 template_harness/harness/linux_runtime_manifest.py --directory-name)"
+  python3 template_harness/harness/build_linux_runtimes.py --work "$PWD/.build/llvm-runtimes" \
+      --prefix "$runtime" --jobs 4
+  export GUI_FORMS_LLVM_RUNTIME="$runtime"
+  ```
+
+  It holds position-independent, hermetic static archives of libc++,
+  libc++abi and libunwind from LLVM 22.1.8 for your C library (glibc or
+  musl). `cmake/llvm22.cmake` refuses to configure without them, compiles
+  against their headers and links them statically, so Linux programs carry
+  libc++ and need no C++ runtime library installed, and `gui_forms_abi`
+  carries it too. A C++ program that uses the SDK builds with the same
+  toolchain file and runtime. On musl (Alpine 3.24) install `clang22
+  compiler-rt` as the bootstrap compiler; the toolchain file also links
+  compiler-rt there.
 
 Windows
 : Install MSYS2 and, in the CLANG64 environment, the packages listed in
@@ -57,11 +78,16 @@ export CC=clang CXX=clang++ OBJCXX=clang++
 
 ## Configure, build, install
 
-Run all commands from the repository root. Configuring fetches the stx
-checkout pinned in `stx.lock`, which holds the CPU renderer and every
-third-party source; pass `-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<path>` to
-use a local stx checkout at that commit instead. Use the configure command for
-your platform.
+Run all commands from the repository root. Everything GUI.Forms takes from
+the stx repository (the CPU renderer, the stx libraries and every third-party
+source) is linked as one built package (`cmake/Stx.cmake`). Configuring fetches
+the stx commit pinned in `stx.lock` and builds that package in the build tree,
+once; a later configure reuses it while its inputs are unchanged. Pass
+`-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<path>` to build from a local stx
+checkout instead, or `-DGUI_FORMS_STX_PREFIX=<dir>` to link a package that is
+already built (the configure stops unless it was built from `stx.lock`'s commit
+with this configuration's choices). Use the configure command for your
+platform.
 
 macOS (with `GUI_FORMS_LLVM_RUNTIME` set as above):
 
@@ -98,9 +124,8 @@ ctest --test-dir build --output-on-failure
 cmake --install build
 ```
 
-The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout,
-as do HarfBuzz, FreeType, SheenBidi and MD4C; libunibreak (also in stx) is
-needed only for the optional development text-mask profile. Linux native tests need an X11 display;
+The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout.
+Linux native tests need an X11 display;
 use `xvfb-run -a ctest --test-dir build --output-on-failure` on a headless runner.
 
 Pass the absolute path to the same `cmake/llvm22.cmake` to every consumer
@@ -113,13 +138,26 @@ consumer built with different settings is not binary compatible.
 | Path under the prefix | Content |
 |---|---|
 | `include/gui_forms/` | Public portable headers |
-| `${CMAKE_INSTALL_LIBDIR}/` (usually `lib/`) | `GUIForms::Core`, `Controls`, `Drawing` (static), `GUIForms::Threading` (shared), `GUIForms::Application` (shared, when a native host is enabled), `GUIForms::Audio` (static, when enabled); Windows runtime DLLs go in `bin/` |
+| `${CMAKE_INSTALL_LIBDIR}/` (usually `lib/`) | `GUIForms::Core`, `Controls`, `Drawing`, `Threading`, `GUIForms::Application` (when a native host is enabled) and `GUIForms::Audio` (when enabled), all static archives linked into the program |
 | `${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms/` | `GUIFormsConfig.cmake` and exported target files |
-| `share/GUIForms/fonts/` | Bundled font set and licences, installed with a native host; exported as `GUIForms_FONT_DIR`. The seven Noto fallback faces and their OFL texts are the separate `fallback_fonts` component, present when `GUI_FORMS_INSTALL_FALLBACK_FONTS` was ON (the default; `GUIForms_FALLBACK_FONTS` says which) |
+| C ABI files, when a native host is enabled | `include/gui_forms/c/gf_abi.h` (with the other headers), the one shared library, self-contained (`libgui_forms_abi.1.dylib`, `libgui_forms_abi.so.1`, or `gui_forms_abi1.dll` in `bin/` with its import libraries; on Windows it also carries the Win32 compatibility shim), `lib/pkgconfig/gui_forms_abi.pc`, and `share/GUIForms/abi/` (the audited manifest `gf_abi.json` and the export allowlist) |
+| `share/GUIForms/fonts/` | The bundled faces' licences and attribution (the faces themselves are compiled into the library), installed with a native host; exported as `GUIForms_FONT_DIR`. The Noto fallback faces' OFL texts are the separate `fallback_fonts` component, present when `GUI_FORMS_INSTALL_FALLBACK_FONTS` was ON (the default; `GUIForms_FALLBACK_FONTS` says which) |
 | `share/licenses/` | Third-party notices |
 
 Nothing from Skia, AppKit, Win32 or X11 appears in the installed headers;
 those remain private adapters inside the `Application` library.
+
+### Checked borrowed views
+
+A build configured with `GUI_FORMS_CHECKED_BORROWS=ON` (the sanitizer tree:
+`tools/ci_build.py --sanitize` sets it) checks every borrowed view against its
+owner ([Retained tree](retained-tree.md#borrowed-views)). The borrowed types
+differ between the two modes, so a consumer is built the same way as the SDK
+it links: an installed checked SDK adds `GUI_FORMS_CHECKED_BORROWS=1` to the
+compile definitions of its `Core`, `Controls` and `Application` targets, and `GUIForms_CHECKED_BORROWS`
+says which mode the prefix holds. A checked consumer linked against an ordinary
+library fails at link time, naming `gui_forms_checked_borrows_v1`, instead of
+misbehaving at run time.
 
 ### Package components
 
@@ -134,7 +172,9 @@ message saying which build provides it.
 | `Audio` | `GUIForms::Audio` | `GUI_FORMS_BUILD_AUDIO` (on in CI and in `build_sdk.py`) |
 | `TextMasks` | `GUIForms::TextMasks` | `GUI_FORMS_BUILD_TEXT_MASKS` with a native host (`build_sdk.py --features all`) |
 | `AudioLoopTransport` | `GUIForms::AudioLoopTransport` | `GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT` with audio (`build_sdk.py --features all`) |
-| `FreeType`, `HarfBuzz` | `GUIForms::FreeType`, `GUIForms::HarfBuzz` | `GUI_FORMS_INSTALL_TEXT_STACK` with the text engine (`build_sdk.py --features all`) |
+| `CAbi` | `GUIForms::CAbi` | A native host is enabled: the C ABI library, which links `Application` |
+| `CAbiConformance` | `GUIForms::CAbiConformance` | With `CAbi`: the C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)) |
+| `GalleryModel`, `Lab`, `DemoControls` | `GUIForms::GalleryModel`, `::Lab`, `::DemoControls` | `GUI_FORMS_INSTALL_GALLERY_MODEL` with `GUI_FORMS_INSTALL_LAB` (`build_sdk.py --features all`): the Gallery's model, for a project that builds the Gallery program from an installed SDK |
 
 `TextMasks` is an interface on `Application`, which already contains the
 text-mask service. Link it beside `Application`, never beside `Core`; see
@@ -153,24 +193,9 @@ find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application TextMasks Audio
 target_link_libraries(my_app PRIVATE GUIForms::Application GUIForms::TextMasks GUIForms::AudioLoopTransport)
 ```
 
-`FreeType` and `HarfBuzz` are the pinned FreeType 2.14.2 and HarfBuzz 14.6.0
-that GUI.Forms' text engine links, for a product that calls them directly.
-They install as the static libraries GUI.Forms builds, with its options:
-FreeType without zlib, so it refuses gzip-compressed fonts, and HarfBuzz with
-its FreeType functions (`hb-ft.h`). Their headers keep the upstream layouts,
-`include/freetype2/` and `include/harfbuzz/`, and each target puts its
-directory on the include path, so `#include <ft2build.h>` and
-`#include <hb.h>` work. `GUIForms::HarfBuzz` links `GUIForms::FreeType`.
-GUI.Forms' own libraries hold their own copies, so pass no FreeType or
-HarfBuzz object between them and your code. The licences are
-`FreeType-FTL.txt` and `HarfBuzz-COPYING.txt` in `share/licenses/GUIForms/`.
-FreeType's licence asks a product that ships it to credit it in its
-documentation; `THIRD_PARTY_NOTICES.md` there carries the credit.
-
-```cmake
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS FreeType HarfBuzz)
-target_link_libraries(my_compositor PRIVATE GUIForms::HarfBuzz GUIForms::FreeType)
-```
+GUI.Forms no longer installs FreeType or HarfBuzz components: since
+2026-11-16 it builds no third-party code, and a product that calls
+either links its own copy.
 
 ## The source SDK
 
@@ -185,7 +210,7 @@ holds one directory, `gui-forms-sdk-<version>/`, containing:
 
   | Path | Source | Pinned in |
   |---|---|---|
-  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and every third-party source (HarfBuzz without `test/` and `perf/`, FreeType, libunibreak, MD4C, SheenBidi, the Unicode data) | `stx.lock` |
+  | `stx/` | the stx repository: `stx_skia/`, the stx libraries and the data it keeps (the Unicode data and the Noto fallback fonts) | `stx.lock` |
   | `third_party/miniaudio/` | miniaudio | `cmake/Audio.cmake` |
 
 - `SDK_MANIFEST.json`, which names the build entry point (`"build":
@@ -221,15 +246,16 @@ as in [Verify the installation](#verify-the-installation).
 
 `default`
 : The components CI builds and tests: `Core`, `Controls`, `Drawing`,
-  `Threading`, the host's `Application` with the HarfBuzz/FreeType text
-  engine, and `Audio` with the stx Vorbis decoder.
+  `Threading`, the host's `Application` with the text engine (STXlib's font
+  tables, shaper and text layout), and `Audio` with the stx Vorbis decoder.
 
 `all`
 : The default set, plus every optional component a product may link:
   `TextMasks` (`GUI_FORMS_BUILD_TEXT_MASKS`), `AudioLoopTransport`
-  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), and `FreeType` and `HarfBuzz`
-  (`GUI_FORMS_INSTALL_TEXT_STACK`). One such install serves every
-  product; template_harness's lockstep build uses it.
+  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), and `GalleryModel` with `Lab` and
+  `DemoControls` (`GUI_FORMS_INSTALL_GALLERY_MODEL`,
+  `GUI_FORMS_INSTALL_LAB`). One such install serves every product;
+  template_harness's lockstep build uses it.
 
 The prepared-text service (`GUI_FORMS_BUILD_PREPARED_TEXT`) is in neither
 set. It cannot be installed, and it changes `Application`'s declarations for

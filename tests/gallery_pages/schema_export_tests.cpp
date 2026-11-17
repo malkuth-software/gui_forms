@@ -1,5 +1,9 @@
 #include "support.hpp"
 
+#include "src/core/control_language/composite_definition/composite_definition.hpp"
+#include "src/core/control_language/control_model/control_model.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
+
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/help_book.hpp"
@@ -11,8 +15,10 @@
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/sparkline.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
@@ -22,6 +28,7 @@
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
@@ -43,6 +50,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/controls/plot_view_links.hpp"
 
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/engine.hpp"
@@ -770,12 +778,28 @@ void record_control_as(std::string_view id, const Control& control, std::vector<
     keep_common_interactions(record.interactions, interactions);
 }
 
-void record_tree(const Control::Ptr& root, std::vector<TypeRecord>& records) {
+// The composite types (cp34) the Gallery shows, once each by registered
+// name, in first-seen order. The definitions are the generated classes'
+// shared ones, kept for the program's life by each class's static, so the
+// pointers stay valid after the page that showed them goes.
+void record_composite(const Control& control, std::vector<const CompositeDefinition*>& composites) {
+    const CompositeControl* const composite = dynamic_cast<const CompositeControl*>(&control);
+    if (composite == nullptr) return;
+    const CompositeDefinition& definition = (*composite).definition();
+    for (const CompositeDefinition* const listed : composites) {
+        if ((*listed).registered == definition.registered) return;
+    }
+    composites.push_back(&definition);
+}
+
+void record_tree(const Control::Ptr& root, std::vector<TypeRecord>& records,
+                 std::vector<const CompositeDefinition*>& composites) {
     std::vector<Control::Ptr> pending{root};
     while (!pending.empty()) {
         const Control::Ptr control = pending.back();
         pending.pop_back();
         record_control(*control, records);
+        record_composite(*control, composites);
         const std::span<const Control::Ptr> children = (*control).children();
         for (std::size_t index = 0; index < children.size(); ++index) {
             pending.push_back(children[index]);
@@ -792,7 +816,78 @@ void record_component(std::string_view id, const Component& component,
     record.seen = true;
 }
 
-std::string render_schema(std::span<const TypeRecord> records) {
+// One composite type as a designer lists it: its anatomy, its declared
+// properties (the bindable values; presentational and command properties
+// are the composite's own), events with their payload kinds, commands and
+// slot.
+void append_composite(std::string& out, const CompositeDefinition& definition) {
+    out += "    {\n";
+    append_key(out, "      ", "id");
+    append_json_string(out, definition.registered);
+    out += ",\n";
+    append_key(out, "      ", "name");
+    append_json_string(out, definition.name);
+    out += ",\n";
+    append_key(out, "      ", "version");
+    append_json_string(out, std::to_string(definition.version_major) + "." +
+                                std::to_string(definition.version_minor));
+    out += ",\n";
+    append_key(out, "      ", "kind");
+    append_json_string(out, "composite");
+    out += ",\n";
+    append_key(out, "      ", "slot");
+    if (definition.slot.empty()) {
+        out += "null";
+    } else {
+        append_json_string(out, definition.slot);
+    }
+    out += ",\n";
+    append_key(out, "      ", "parts");
+    append_parts(out, "      ", definition.anatomy.parts);
+    out += ",\n";
+    append_key(out, "      ", "states");
+    append_state_list(out, definition.anatomy.states);
+    out += ",\n";
+    append_key(out, "      ", "custom_states");
+    append_custom_state_list(out, definition.anatomy.custom_states);
+    out += ",\n";
+    std::vector<PropertyDescriptor> declared;
+    for (const control_language::CompositePropertyDefinition& property : definition.properties) {
+        if (property.presentational || property.command) continue;
+        declared.push_back(property.descriptor);
+    }
+    append_key(out, "      ", "properties");
+    append_properties(out, declared);
+    out += ",\n";
+    append_key(out, "      ", "events");
+    out += '[';
+    for (std::size_t index = 0; index < definition.events.size(); ++index) {
+        const control_language::CompositeEventDefinition& event = definition.events[index];
+        if (index > 0U) out += ", ";
+        out += "{\"name\": ";
+        append_json_string(out, event.name);
+        out += ", \"payload\": ";
+        if (event.payload) {
+            // In the C++ events' payload words (bool, not boolean): one
+            // vocabulary, which the C ABI maps through interaction_fields.json.
+            append_json_string(out, control_language::control_payload_type_name(*event.payload));
+        } else {
+            out += "null";
+        }
+        out += '}';
+    }
+    out += "],\n";
+    append_key(out, "      ", "commands");
+    out += '[';
+    for (std::size_t index = 0; index < definition.commands.size(); ++index) {
+        if (index > 0U) out += ", ";
+        append_json_string(out, definition.commands[index].name);
+    }
+    out += "]\n    }";
+}
+
+std::string render_schema(std::span<const TypeRecord> records,
+                          std::span<const CompositeDefinition* const> composites) {
     std::string out;
     out += "{\n";
     out += "  \"schema\": 2,\n";
@@ -802,7 +897,10 @@ std::string render_schema(std::span<const TypeRecord> records) {
            "Do not edit.\",\n";
     out += "    \"Controls list their parts, states, item systems, properties and interactions; "
            "components list their interactions. Every name is stored in snake_case; CSS-family "
-           "documents write it in kebab-case and displays in PascalCase.\"\n";
+           "documents write it in kebab-case and displays in PascalCase.\",\n";
+    out += "    \"Composites list the composite controls the Gallery shows (.control documents): their "
+           "anatomy, declared properties, events with payload kinds, commands and slot; their name, "
+           "events and commands are as the document writes them.\"\n";
     out += "  ],\n";
     append_vocabulary(out);
     append_engine(out);
@@ -819,14 +917,19 @@ std::string render_schema(std::span<const TypeRecord> records) {
         append_json_string(out, entry.type);
         out += ",\n";
         append_key(out, "      ", "kind");
-        if (record.anatomy != nullptr) {
+        // Made only from a definition (CompositeControl): listed, with
+        // nothing of its own, as the C ABI lists it.
+        const bool defined = entry.construction == "definition";
+        if (defined) {
+            append_json_string(out, "defined_control");
+        } else if (record.anatomy != nullptr) {
             append_json_string(out, "control");
         } else if (record.seen) {
             append_json_string(out, "component");
         } else {
             append_json_string(out, "service");
         }
-        if (record.anatomy != nullptr) {
+        if (!defined && record.anatomy != nullptr) {
             const ControlAnatomy& anatomy = *record.anatomy;
             out += ",\n";
             append_key(out, "      ", "parts");
@@ -851,7 +954,11 @@ std::string render_schema(std::span<const TypeRecord> records) {
         }
         out += ",\n";
         append_key(out, "      ", "interactions");
-        append_interactions(out, record.interactions);
+        if (defined) {
+            out += "[]";
+        } else {
+            append_interactions(out, record.interactions);
+        }
         out += "\n    }";
     }
     // The window (windows.create's object), after the registry's types as
@@ -872,7 +979,15 @@ std::string render_schema(std::span<const TypeRecord> records) {
     append_key(out, "      ", "interactions");
     append_interactions(out, window_interactions);
     out += "\n    }";
-    out += "\n  ]\n}\n";
+    out += "\n  ],\n";
+    // The composite types the Gallery shows (cp34), apart from the
+    // registry's: a designer lists them with their slot and events.
+    out += "  \"composites\": [";
+    for (std::size_t index = 0; index < composites.size(); ++index) {
+        out += index == 0U ? "\n" : ",\n";
+        append_composite(out, *composites[index]);
+    }
+    out += composites.empty() ? "]\n}\n" : "\n  ]\n}\n";
     return out;
 }
 
@@ -896,11 +1011,12 @@ void test_schema_export() {
     std::unique_ptr<Window> owned = gallery::make_gallery();
     Window& window = *owned;
     std::vector<TypeRecord> records(gallery::control_catalog.size());
+    std::vector<const CompositeDefinition*> composites;
     for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
         require(gallery::select_gallery_page(window, page.id),
                 "every Gallery page must be selectable");
         window.perform_layout();
-        record_tree(window.root(), records);
+        record_tree(window.root(), records, composites);
     }
     // Registry controls the Gallery does not attach to its root tree, as in
     // the anatomy coverage test.
@@ -927,8 +1043,9 @@ void test_schema_export() {
     const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
     record_control(*toast, records);
     // Types no Gallery page shows yet: the plots and instruments packages'
-    // PlotView with its item children and Sparkline, the ValueBar and the
-    // VirtualRowsView (the NodeCanvas is on node-graphs). The
+    // PlotView with its item children and Sparkline, the ValueBar, the
+    // VirtualRowsView and the WindowCapsule (the NodeCanvas is on
+    // node-graphs). The
     // items have no anatomy of their own: they are recorded by their ids
     // with the base anatomy, as the C ABI describes them.
     const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
@@ -948,6 +1065,13 @@ void test_schema_export() {
     record_control(*sparkline, records);
     record_control(*value_bar, records);
     record_control(*virtual_rows, records);
+    const std::shared_ptr<WindowCapsule> window_capsule =
+        make_control<WindowCapsule>(StableId("schema.window-capsule"));
+    record_control(*window_capsule, records);
+    // Plot3DView has no Gallery page yet, so it is recorded here as
+    // WindowCapsule is; otherwise it would count as a second service.
+    const std::shared_ptr<Plot3DView> plot3d_view = make_control<Plot3DView>(StableId("schema.plot3d-view"));
+    record_control(*plot3d_view, records);
     // The final controls and the help system shown only inside another or
     // on demand. WizardPage and HelpBookViewer have no anatomy of their own
     // yet and GaugeBase, TextBoxBase, ListControl and UpDownBase are bases:
@@ -974,6 +1098,9 @@ void test_schema_export() {
     record_control(*modal_layer, records);
     record_control_as("help_book_viewer", *help_viewer, records);
     record_control(*help_book, records);
+    const std::shared_ptr<BusinessCard> business_card =
+        make_control<BusinessCard>(StableId("schema.business-card"));
+    record_control(*business_card, records);
 
     // Components, constructed directly.
     const std::shared_ptr<Command> command = std::make_shared<Command>();
@@ -1028,6 +1155,11 @@ void test_schema_export() {
     record_component("binding_source", *binding_source, records);
     record_component("binding_context", *binding_context, records);
     record_component("dock_workspace", *dock_workspace, records);
+    // A non-visual component, recorded as binding_source is: it links the
+    // axes of PlotViews and has no form of its own on a page.
+    const std::shared_ptr<PlotLinkGroup> plot_link_group = std::make_shared<PlotLinkGroup>(
+        PlotLinkAxes::x, plots::PlotRange{0.0, 1.0}, plots::PlotRange{0.0, 1.0});
+    record_component("plot_link_group", *plot_link_group, records);
     const std::shared_ptr<AboutDialog> about_dialog =
         std::make_shared<AboutDialog>(StableId("schema.about"), AboutInfo{});
     const std::shared_ptr<HelpBookSystem> help_system = std::make_shared<HelpBookSystem>();
@@ -1035,11 +1167,18 @@ void test_schema_export() {
     record_component("help_book_system", *help_system, records);
 
     std::size_t services = 0;
+    std::size_t defined = 0;
     for (std::size_t index = 0; index < records.size(); ++index) {
-        if (!records[index].seen) ++services;
+        if (gallery::control_catalog[index].construction == "definition") {
+            ++defined;
+        } else if (!records[index].seen) {
+            ++services;
+        }
     }
     require(services == 1U, "every registry type but the LiveSurface service is exported");
-    const std::string schema = render_schema(records);
+    require(defined == 1U, "CompositeControl alone is made only from a definition");
+    require(composites.size() == 2U, "the Gallery shows the two worked composite examples");
+    const std::string schema = render_schema(records, composites);
 
     const char* committed_path = std::getenv("GUI_FORMS_CONTROL_SCHEMA");
     if (committed_path == nullptr) {

@@ -9,6 +9,7 @@
 
 #include "../../../core/failure/failure_snapshot.hpp"
 
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
@@ -31,6 +32,16 @@ constexpr SlotIdentity failure_snapshot_slot{GF_TABLE_DIAGNOSTICS, 3U};
 constexpr SlotIdentity set_exception_reflection_slot{GF_TABLE_DIAGNOSTICS, 5U};
 constexpr SlotIdentity exception_reflection_slot{GF_TABLE_DIAGNOSTICS, 6U};
 constexpr SlotIdentity raise_native_exception_slot{GF_TABLE_DIAGNOSTICS, 7U};
+constexpr SlotIdentity failure_detail_slot{GF_TABLE_DIAGNOSTICS, 8U};
+constexpr SlotIdentity set_diagnostic_overlay_slot{GF_TABLE_DIAGNOSTICS, 9U};
+
+// The 1.5 failure detail record; its capacities are the core snapshot's.
+constexpr std::uint32_t failure_detail_size_1_5 = 544U;
+static_assert(sizeof(gf_failure_detail) == failure_detail_size_1_5);
+static_assert(GF_FAILURE_TYPE_CAPACITY == detail::failure_type_capacity);
+static_assert(GF_FAILURE_TRACE_CAPACITY == detail::failure_trace_capacity);
+static_assert(sizeof(gf_failure_detail{}.type) == detail::failure_type_capacity);
+static_assert(sizeof(gf_failure_detail{}.trace) / sizeof(std::uint64_t) == detail::failure_trace_capacity);
 
 // The 1.2 snapshot record.
 constexpr std::uint32_t failure_snapshot_size_1_2 = 104U;
@@ -54,6 +65,7 @@ static_assert(GF_SHADOW_FRAME_KIND_INPUT_DISPATCH == static_cast<std::uint32_t>(
 static_assert(GF_SHADOW_FRAME_KIND_EVENT_CALLBACK == static_cast<std::uint32_t>(ShadowFrameKind::event_callback));
 static_assert(GF_SHADOW_FRAME_KIND_LAYOUT_PASS == static_cast<std::uint32_t>(ShadowFrameKind::layout_pass));
 static_assert(GF_SHADOW_FRAME_KIND_PAINT_PASS == static_cast<std::uint32_t>(ShadowFrameKind::paint_pass));
+static_assert(GF_SHADOW_FRAME_KIND_GATE == static_cast<std::uint32_t>(ShadowFrameKind::gate));
 static_assert(GF_SHADOW_FRAME_KIND_POSTED_CALLBACK == static_cast<std::uint32_t>(ShadowFrameKind::posted_callback));
 static_assert(GF_SHADOW_FRAME_SUBJECT_TRUNCATED == static_cast<std::uint32_t>(ShadowFrameFlags::subject_truncated));
 static_assert(GF_SHADOW_FRAME_NAME_TRUNCATED == static_cast<std::uint32_t>(ShadowFrameFlags::name_truncated));
@@ -121,6 +133,23 @@ gf_status GF_CALL diagnostics_invalidation_overlay(std::uint32_t* enabled) noexc
         return fail(GF_STATUS_INVALID_ARGUMENT, invalidation_overlay_slot, "invalidation_overlay needs an output");
     }
     *enabled = invalidation_overlay_default() ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+// The diagnostic overlay (since 1.5): the same process switch, with the
+// counters card whenever it is on (business_card.hpp). Any thread, no
+// frame of its own.
+gf_status GF_CALL diagnostics_set_diagnostic_overlay(std::uint32_t enabled) noexcept {
+    if (enabled > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_diagnostic_overlay_slot, "enabled must be 0 or 1");
+    }
+    gui_forms::set_diagnostic_overlay(enabled == 1U);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL diagnostics_toggle_diagnostic_overlay(std::uint32_t* enabled) noexcept {
+    const bool now = gui_forms::toggle_diagnostic_overlay();
+    if (enabled != nullptr) *enabled = now ? 1U : 0U;
     return GF_STATUS_OK;
 }
 
@@ -193,10 +222,9 @@ gf_status GF_CALL diagnostics_exception_reflection(std::uint32_t* enabled) noexc
     return GF_STATUS_OK;
 }
 
-// Throws under a frame of its own, inside the boundary every slot has, so a
+// Throws inside the slot gate every slot has, under the slot's frame, so a
 // binding sees exactly what a real failure gives it.
-[[noreturn]] void throw_native_exception(std::string_view message) {
-    const ShadowFrameScope shadow_frame(raise_native_exception_slot.table_id, raise_native_exception_slot.slot_index);
+gf_status raise_native_exception_body(std::string_view message) {
     throw std::runtime_error(std::string(message));
 }
 
@@ -210,11 +238,47 @@ gf_status GF_CALL diagnostics_raise_native_exception(gf_utf8_view message) noexc
         return fail(GF_STATUS_INVALID_ARGUMENT, raise_native_exception_slot,
                     "the message is longer than GF_FAILURE_MESSAGE_CAPACITY bytes");
     }
-    try {
-        throw_native_exception(text);
-    } catch (...) {
-        return fail_with_current_exception(raise_native_exception_slot);
+    return call_slot(raise_native_exception_slot, raise_native_exception_body, text);
+}
+
+// gf_failure_detail's first 1.5 size, before flags and reserved (provisional,
+// gf_abi.h): a caller compiled then is still served, with the bytes that fit.
+constexpr std::uint32_t failure_detail_size_first_1_5 = 536U;
+static_assert(offsetof(gf_failure_detail, flags) == failure_detail_size_first_1_5);
+
+// Copies the thread's failure detail out. Opens no frame of its own.
+gf_status GF_CALL diagnostics_failure_detail(gf_failure_detail* output) noexcept {
+    if (output == nullptr || (*output).struct_size < failure_detail_size_first_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, failure_detail_slot,
+                    "the output record is null or smaller than its first 1.5 size");
     }
+    // The thread's own storage, read on its thread.
+    const detail::FailureSnapshot& source = detail::thread_failure_snapshot();
+    gf_failure_detail complete{};
+    complete.struct_size = sizeof(gf_failure_detail);
+    complete.status = source.status;
+    complete.sequence = source.status == 0 ? 0U : source.sequence;
+    complete.flags = GF_FAILURE_DETAIL_FLAGS_NONE;
+    if (source.status != 0) {
+        complete.type_size = source.type_size;
+        complete.trace_count = source.trace_count;
+        std::memcpy(complete.type, source.type.data(), source.type.size());
+        for (std::uint32_t index = 0U; index < source.trace_count; ++index) {
+            complete.trace[index] = source.trace[index];
+        }
+        if (source.frames_lost_at_park) {
+            complete.flags = complete.flags | GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK;
+        }
+    }
+    // The fields after struct_size that the caller's record holds; struct_size
+    // and any later bytes stay as the caller set them (abi_records.hpp).
+    const std::size_t skipped = sizeof(std::uint32_t);
+    const std::size_t known = sizeof(gf_failure_detail);
+    const std::size_t written = (*output).struct_size < known ? (*output).struct_size : known;
+    unsigned char* destination = reinterpret_cast<unsigned char*>(output);
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(&complete);
+    std::memcpy(destination + skipped, bytes + skipped, written - skipped);
+    return GF_STATUS_OK;
 }
 
 constexpr gf_diagnostics_table table{
@@ -228,6 +292,9 @@ constexpr gf_diagnostics_table table{
     .set_exception_reflection = &diagnostics_set_exception_reflection,
     .exception_reflection = &diagnostics_exception_reflection,
     .raise_native_exception = &diagnostics_raise_native_exception,
+    .failure_detail = &diagnostics_failure_detail,
+    .set_diagnostic_overlay = &diagnostics_set_diagnostic_overlay,
+    .toggle_diagnostic_overlay = &diagnostics_toggle_diagnostic_overlay,
 };
 
 } // namespace

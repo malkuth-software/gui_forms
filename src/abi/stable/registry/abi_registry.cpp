@@ -3,6 +3,7 @@
 #include "abi_registry.hpp"
 
 #include "../../../core/failure/failure_snapshot.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include "gui_forms/component/failures/component_failures.hpp"
 #include "gui_forms/control.hpp"
@@ -10,7 +11,10 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/types.hpp>
+
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -30,6 +34,16 @@ static_assert(sizeof(gf_callback) == callback_size_1_0);
 std::uint32_t next_generation(std::uint32_t generation) noexcept {
     const std::uint32_t next = generation == std::numeric_limits<std::uint32_t>::max() ? 1U : generation + 1U;
     return next;
+}
+
+// A-gf-abi-02-F9: a slot whose generation has reached the last value is
+// retired instead of freed, so its generations never wrap and a stale
+// identity kept since generation 1 cannot name a later object. The free
+// list is a stack, so one busy slot can get there; retiring it costs one
+// slot per 2^32 reuses.
+bool retires_at(std::uint32_t generation) noexcept {
+    const bool retires = generation == std::numeric_limits<std::uint32_t>::max();
+    return retires;
 }
 
 } // namespace
@@ -57,8 +71,17 @@ CallbackBinding::~CallbackBinding() {
     }
 }
 
+void CallbackBinding::invoke(const CallbackFrame& frame, gf_event& event) const noexcept {
+    void* context = callback_.context;
+    gf_event* delivered = &event;
+    call_client(frame, callback_.invoke, context, delivered);
+}
+
 void CallbackBinding::invoke(gf_event& event) const noexcept {
-    callback_.invoke(callback_.context, &event);
+    const std::string_view name = event.name.data == nullptr
+        ? std::string_view{} : std::string_view(event.name.data, static_cast<std::size_t>(event.name.size));
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, std::string_view{}, name};
+    invoke(frame, event);
 }
 
 void CallbackBinding::disarm() noexcept {
@@ -102,23 +125,23 @@ std::string_view frame_subject(const Component* component) noexcept {
 } // namespace
 
 void SubscriptionBinding::emit(const gf_value* payload) noexcept {
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, frame_subject(source_), name_, 0U);
     gf_event event{};
     event.struct_size = sizeof(gf_event);
     event.sender = registry().identity_of(source_);
     event.name.data = name_.data();
     event.name.size = name_.size();
     event.payload = payload;
-    callback_.invoke(event);
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, frame_subject(source_), name_};
+    callback_.invoke(frame, event);
 }
 
 void SubscriptionBinding::emit(gf_event& event) noexcept {
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, frame_subject(source_), name_, 0U);
     event.struct_size = sizeof(gf_event);
     event.sender = registry().identity_of(source_);
     event.name.data = name_.data();
     event.name.size = name_.size();
-    callback_.invoke(event);
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, frame_subject(source_), name_};
+    callback_.invoke(frame, event);
 }
 
 void SubscriptionBinding::disarm() noexcept {
@@ -331,16 +354,38 @@ WindowDispatcher HandleRegistry::wake_locked(ThreadDomain domain) noexcept {
 namespace {
 
 // Posts a domain's drain through the dispatcher wake_locked returned, after
-// the registry's lock is left. An empty dispatcher posts nothing; a closed
-// one cancels the work, which the domain's end then covers.
-void post_drain(const WindowDispatcher& dispatcher, ThreadDomain domain) {
-    if (!dispatcher.window_alive()) {
-        return;
+// the registry's lock is left. Returns false when no drain is now queued: the
+// window closed between the two steps (the domain's end then covers the
+// work) or the post's allocation failed.
+bool post_drain(const WindowDispatcher& dispatcher, ThreadDomain domain) noexcept {
+    try {
+        const DispatchOperation operation = dispatcher.begin_invoke(DrainDomain{domain});
+        const bool queued = operation.pending();
+        return queued;
+    } catch (const std::exception&) {
+        return false;
     }
-    static_cast<void>(dispatcher.begin_invoke(DrainDomain{domain}));
 }
 
 } // namespace
+
+// A-gf-abi-02-F6: wake_locked set drain_pending before the post; a post that
+// queued nothing clears it again, so the next wake tries anew instead of the
+// domain waiting until its thread happens to drain. An empty dispatcher
+// (wake_locked declined) posts nothing and changes nothing.
+void HandleRegistry::post_wake(const WindowDispatcher& dispatcher, ThreadDomain domain) noexcept {
+    if (!dispatcher.window_alive()) {
+        return;
+    }
+    if (post_drain(dispatcher, domain)) {
+        return;
+    }
+    const std::scoped_lock lock(mutex_);
+    SubSurfaceDomain& owner = domains_[domain.value - 1U];
+    if (owner.occupied) {
+        owner.drain_pending = false;
+    }
+}
 
 ThreadDomain HandleRegistry::begin_domain() {
     const std::scoped_lock lock(mutex_);
@@ -372,7 +417,7 @@ void HandleRegistry::set_domain_wake(ThreadDomain domain, const WindowDispatcher
             wake = wake_locked(domain);
         }
     }
-    post_drain(wake, domain);
+    post_wake(wake, domain);
 }
 
 void HandleRegistry::drain_domain(ThreadDomain domain) {
@@ -569,9 +614,11 @@ void HandleRegistry::drop_reference_locked(gf_object object, ObjectSlot& slot, C
     slot.object.reset();
     slot.occupied = false;
     slot.orphaned = false;
-    slot.generation = next_generation(slot.generation);
     // free_objects_ has capacity for every slot (add_reference reserves it).
-    free_objects_.push_back(identity.slot);
+    if (!retires_at(slot.generation)) {
+        slot.generation = next_generation(slot.generation);
+        free_objects_.push_back(identity.slot);
+    }
     --live_objects_;
 }
 
@@ -607,7 +654,7 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
         }
     }
     if (!on_owner_thread) {
-        post_drain(wake, owner);
+        post_wake(wake, owner);
         return GF_STATUS_OK;
     }
     // On its own thread the control (and any subtree only it held) ends
@@ -707,9 +754,11 @@ void HandleRegistry::free_subscription_locked(std::uint32_t index, SubscriptionT
     slot.source.reset();
     slot.source_key = nullptr;
     slot.occupied = false;
-    slot.generation = next_generation(slot.generation);
     // free_subscriptions_ has room for every slot (reserve_subscription).
-    free_subscriptions_.push_back(index);
+    if (!retires_at(slot.generation)) {
+        slot.generation = next_generation(slot.generation);
+        free_subscriptions_.push_back(index);
+    }
     --live_subscriptions_;
 }
 
@@ -862,7 +911,7 @@ gf_status HandleRegistry::post(gf_object target, std::unique_ptr<CallbackBinding
         ++(*found).references;
         wake = wake_locked(owner);
     }
-    post_drain(wake, owner);
+    post_wake(wake, owner);
     return GF_STATUS_OK;
 }
 
@@ -902,14 +951,14 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
             if (reference_live) target = (*found).object;
         }
         if (target && (*target).is_alive()) {
-            const ShadowFrameScope shadow_frame(ShadowFrameKind::posted_callback, frame_subject(target.get()),
-                                                std::string_view{}, 0U);
             gf_event event{};
             event.struct_size = sizeof(gf_event);
             event.sender = call.target;
             event.name.data = "invoke";
             event.name.size = 6U;
-            (*call.callback).invoke(event);
+            const CallbackFrame frame{GF_SHADOW_FRAME_KIND_POSTED_CALLBACK, frame_subject(target.get()),
+                                      std::string_view{}};
+            (*call.callback).invoke(frame, event);
             ++invoked;
         }
         call.callback.reset();
@@ -924,7 +973,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
             wake = wake_locked(domain);
         }
     }
-    post_drain(wake, domain);
+    post_wake(wake, domain);
     unbind_if_idle();
     return invoked;
 }
@@ -997,59 +1046,166 @@ HandleRegistry& registry() noexcept {
 
 namespace {
 
-// The status and message the C ABI gives an exception: the core's own
-// failure types and the standard ones name the status the header documents
-// (N6), whichever table reached them. message borrows the exception's
-// what(), valid while the caller's catch block holds the exception.
+// The calling thread's copy of the whole what() of the exception a slot
+// classified, which the ErrorRecord's 200 bytes could not hold. Written by
+// the classifier inside the gate's handler and read by fail_with_record
+// right after the gate returns, on the same thread; pending says the copy
+// belongs to the failure being filed (a gate built without exceptions never
+// classifies). thread_local in this module: the classifier, the gates and
+// fail_with_record are all this library's.
+struct SlotMessage final {
+    bool pending = false;
+    std::uint32_t size = 0U;
+    std::array<char, failure_message_capacity> text{};
+};
+
+thread_local SlotMessage slot_message;
+
+// Copies text, cut at a whole UTF-8 sequence, into the slot message.
+void keep_slot_message(const std::string_view text) noexcept {
+    SlotMessage& message = slot_message;
+    const std::size_t size = utf8_prefix_length(text, failure_message_capacity);
+    if (size != 0U) {
+        std::memcpy(message.text.data(), text.data(), size);
+    }
+    message.size = static_cast<std::uint32_t>(size);
+    message.pending = true;
+}
+
+// The status the C ABI gives the exception being handled (N6), whichever
+// table reached it; its what() goes to the slot message. recognised is
+// false for an exception that is not a std::exception (STXlib keeps its own
+// foreign_exception classification for it).
 struct ExceptionOutcome final {
     gf_status status = GF_STATUS_INTERNAL;
-    std::string_view message;
+    bool recognised = false;
 };
 
 ExceptionOutcome classify_current_exception() noexcept {
     try {
         throw;
     } catch (const std::bad_alloc&) {
-        return ExceptionOutcome{GF_STATUS_OUT_OF_MEMORY, "out of memory"};
+        keep_slot_message("out of memory");
+        return ExceptionOutcome{GF_STATUS_OUT_OF_MEMORY, true};
     } catch (const WrongThreadError& error) {
-        return ExceptionOutcome{GF_STATUS_WRONG_THREAD, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_WRONG_THREAD, true};
     } catch (const DisposedError& error) {
-        return ExceptionOutcome{GF_STATUS_DISPOSED, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_DISPOSED, true};
     } catch (const std::invalid_argument& error) {
-        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, true};
     } catch (const std::out_of_range& error) {
-        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, true};
     } catch (const std::length_error& error) {
         // The core reports its size and count limits as length_error.
-        return ExceptionOutcome{GF_STATUS_LIMIT_EXCEEDED, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_LIMIT_EXCEEDED, true};
     } catch (const std::logic_error& error) {
-        return ExceptionOutcome{GF_STATUS_INVALID_STATE, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_STATE, true};
     } catch (const std::exception& error) {
-        return ExceptionOutcome{GF_STATUS_INTERNAL, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INTERNAL, true};
     } catch (...) {
-        return ExceptionOutcome{GF_STATUS_INTERNAL, "an unknown exception reached the C ABI"};
+        keep_slot_message("an unknown exception reached the C ABI");
+        return ExceptionOutcome{GF_STATUS_INTERNAL, false};
     }
+}
+
+// STXlib's nearest kind for a status the classifier gives.
+stxlib::ErrorKind error_kind_of(const gf_status status) noexcept {
+    switch (status) {
+    case GF_STATUS_OUT_OF_MEMORY:
+        return stxlib::ErrorKind::out_of_memory;
+    case GF_STATUS_WRONG_THREAD:
+        return stxlib::ErrorKind::wrong_thread;
+    case GF_STATUS_DISPOSED:
+        return stxlib::ErrorKind::disposed;
+    case GF_STATUS_INVALID_ARGUMENT:
+        return stxlib::ErrorKind::invalid_argument;
+    case GF_STATUS_LIMIT_EXCEEDED:
+        return stxlib::ErrorKind::limit_exceeded;
+    default:
+        // INVALID_STATE and INTERNAL: a broken invariant.
+        return stxlib::ErrorKind::internal_failure;
+    }
+}
+
+// STXlib's classifier hook (gate.hpp): runs inside the gate's handler.
+bool classify_slot_exception(void* const context, stxlib::ExceptionClass& decided) noexcept {
+    static_cast<void>(context);
+    const ExceptionOutcome outcome = classify_current_exception();
+    if (!outcome.recognised) {
+        return false;
+    }
+    decided.kind = error_kind_of(outcome.status);
+    decided.code = static_cast<stxlib::u32>(outcome.status);
+    return true;
+}
+
+// The message of the failure being filed: the classifier's whole copy when
+// it is pending, else fallback. Clears the pending mark. The view borrows
+// the thread's slot message or fallback's storage.
+std::string_view take_slot_message(const std::string_view fallback) noexcept {
+    SlotMessage& message = slot_message;
+    if (!message.pending) {
+        return fallback;
+    }
+    message.pending = false;
+    const std::string_view kept(message.text.data(), message.size);
+    return kept;
+}
+
+// The status a failure is filed with: an exception with no status of its
+// own is the native exception a binding reflects, when reflection is on.
+gf_status filed_status(const gf_status status) noexcept {
+    if (status == GF_STATUS_INTERNAL && detail::exception_reflection()) {
+        return GF_STATUS_NATIVE_EXCEPTION;
+    }
+    return status;
 }
 
 static_assert(GF_STATUS_NATIVE_EXCEPTION == detail::failure_native_exception_status);
 static_assert(GF_FAILURE_SITE_CAPACITY == detail::failure_site_capacity);
 static_assert(GF_FAILURE_MESSAGE_CAPACITY == detail::failure_snapshot_message_capacity);
+static_assert(failure_message_capacity == detail::failure_snapshot_message_capacity);
+static_assert(GF_SHADOW_FRAME_KIND_LIBRARY_CALL == static_cast<std::uint32_t>(ShadowFrameKind::library_call));
 
 } // namespace
 
-gf_status fail_with_current_exception(SlotIdentity slot) noexcept {
-    ExceptionOutcome outcome = classify_current_exception();
-    // An exception with no status of its own is the native exception a
-    // binding reflects, when reflection is on.
-    if (outcome.status == GF_STATUS_INTERNAL && detail::exception_reflection()) {
-        outcome.status = GF_STATUS_NATIVE_EXCEPTION;
-    }
-    // The snapshot before the error detail: nothing opens a frame between
-    // the slot's catch and here, so the unwind mark is current.
-    const detail::FailureBoundary boundary{detail::c_abi_failure_site, outcome.status, slot.table_id,
-                                           slot.slot_index};
-    detail::record_failure_snapshot(boundary, outcome.message);
-    return fail(outcome.status, slot, outcome.message);
+const stxlib::ExceptionClassifier slot_classifier{&classify_slot_exception, nullptr};
+
+gf_status fail_with_record(const SlotIdentity slot, const stxlib::ErrorRecord& record) noexcept {
+    const stxlib::u32 code = record.code();
+    const gf_status status = filed_status(code != 0U ? static_cast<gf_status>(code) : GF_STATUS_INTERNAL);
+    const std::string_view message = take_slot_message(platform::standard_text(record.message()));
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    detail::record_failure_snapshot(boundary, message, record);
+    const gf_status failed = fail(status, slot, message);
+    return failed;
+}
+
+gf_status fail_with_current_exception(const SlotIdentity slot) noexcept {
+    const ExceptionOutcome outcome = classify_current_exception();
+    const gf_status status = filed_status(outcome.status);
+    const std::string_view message = take_slot_message("an unknown exception reached the C ABI");
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    detail::record_failure_snapshot(boundary, message);
+    const gf_status failed = fail(status, slot, message);
+    return failed;
+}
+
+gf_status fail_with_current_exception(const SlotIdentity slot, const stxlib::ShadowReference parked) noexcept {
+    const ExceptionOutcome outcome = classify_current_exception();
+    const gf_status status = filed_status(outcome.status);
+    const std::string_view message = take_slot_message("an unknown exception reached the C ABI");
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    detail::record_failure_snapshot(boundary, message, parked);
+    const gf_status failed = fail(status, slot, message);
+    return failed;
 }
 
 gf_status read_text(gf_utf8_view view, SlotIdentity slot, std::string_view& text) noexcept {

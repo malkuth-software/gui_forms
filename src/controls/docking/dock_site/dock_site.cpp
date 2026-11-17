@@ -9,6 +9,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -103,7 +104,7 @@ DockSite::DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floa
       stamp_motion_(*this, drag_gesture::stamp_curve(), 1.0),
       tile_fade_(*this, MotionCurve::timed(tile_fade_duration, MotionEasing::linear), 1.0),
       flyout_slide_(*this, MotionCurve::timed(flyout_slide_duration, MotionEasing::linear), 1.0) {
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     stamp_motion_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
     tile_fade_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
@@ -157,7 +158,7 @@ DockSite::~DockSite() {
 void DockSite::on_dispose() noexcept {
     capture_token_.disconnect();
     active_token_.disconnect();
-    reset_drag();
+    abandon_drag(false);
     close_flyout(DockFlyoutCause::programmatic);
     close_navigator();
     close_position_menu();
@@ -175,6 +176,9 @@ void DockSite::on_dispose() noexcept {
 }
 
 void DockSite::release_workspace() noexcept {
+    // A drag under way ends here: end_drag refuses once the workspace is
+    // gone (A-gf-controls-04-F2).
+    abandon_drag(true);
     close_flyout(DockFlyoutCause::programmatic);
     close_navigator();
     close_position_menu();
@@ -403,8 +407,8 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
             ++shown;
             const PageId page{panel.value};
             const std::string title = (*workspace_).panel_title(panel);
-            const std::optional<PagePosition> found = pages.find(page);
-            if (!found) {
+            const stxlib::Optional<PagePosition> found = pages.find(page);
+            if (found.absent()) {
                 PageRecord record{};
                 record.id = page;
                 record.title = title;
@@ -413,7 +417,7 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
                                                 PagePlacement::at(PagePosition{place_index})));
                 continue;
             }
-            if ((*found).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
+            if ((*found.value()).value != place_index) static_cast<void>(pages.move(page, PagePosition{place_index}));
             if (pages.record_at(PagePosition{place_index}).title != title) {
                 static_cast<void>(pages.set_title(page, title));
             }
@@ -448,16 +452,27 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
 }
 
 // The selected panel of a stack being shown gets its content, created by
-// its factory the first time (lazy creation).
-void DockSite::supply_content(StackSlot& slot) {
-    if (workspace_ == nullptr || !slot.view || (slot.collapsed && !slot.in_flyout)) return;
-    const std::optional<DockPanelId> panel = selected_panel(slot);
+// its factory the first time (lazy creation). The stack is named by its
+// node, not a slot: the factory is application code, and a layout edit it
+// makes (show_panel, activate_panel, hide_panel, add_panels) realizes the
+// site again, which replaces stacks_. The view is held across the
+// factory, and the content is given only if the stack's slot still holds
+// that view (A-gf-controls-03-F2).
+void DockSite::supply_content(DockNodeId stack) {
+    const StackSlot* const slot = slot_for(stack);
+    if (workspace_ == nullptr || slot == nullptr || !(*slot).view || ((*slot).collapsed && !(*slot).in_flyout)) {
+        return;
+    }
+    const std::optional<DockPanelId> panel = selected_panel(*slot);
     if (!panel) return;
+    const std::shared_ptr<StackView> view = (*slot).view;
     const PageId page{(*panel).value};
-    if ((*slot.view).page_content(page)) return;
+    if ((*view).page_content(page)) return;
     const Control::Ptr content = (*workspace_).create_panel_content(*panel);
     if (!content) return;
-    static_cast<void>((*slot.view).set_page_content(page, content));
+    const StackSlot* const after = slot_for(stack);
+    if (after == nullptr || (*after).view != view) return;
+    static_cast<void>((*view).set_page_content(page, content));
 }
 
 // The stacks are the window's F6 regions in tree order, where the site's
@@ -546,7 +561,7 @@ void DockSite::on_layout_changed(const DockLayoutChange&) {
             static_cast<void>((*(*slot).view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
             syncing_ = false;
             (*slot).title = (*workspace_).panel_title(*flyout_panel_);
-            supply_content(*slot);
+            supply_content(flyout_stack_);
             place_flyout();
         }
     }
@@ -590,12 +605,17 @@ void DockSite::on_view_selection(DockNodeId stack, const PageSelectionChange& ch
     DockTransaction transaction{};
     transaction.origin = DockEditOrigin::user;
     transaction.edits.push_back(DockEdit::select(panel));
+    // Held across the layout change's and activation's handlers, which may
+    // release the workspace or edit the layout (A-gf-controls-03-F3).
+    const Control::Ptr retained = weak_from_this().lock();
     static_cast<void>((*workspace_).apply(transaction));
+    if (workspace_ == nullptr || !is_alive()) return;
     // A stack that held the active panel now shows another: it becomes
     // active (focus, if it moved, says the same).
     const std::optional<DockPanelId>& active = (*workspace_).active_panel();
     if (change.old_page && active && (*active).value == (*change.old_page).value) {
         (*workspace_).note_active(panel, DockActivationCause::keyboard);
+        if (workspace_ == nullptr || !is_alive()) return;
     }
     StackSlot* const slot = slot_for(stack);
     if (slot != nullptr) {
@@ -606,8 +626,7 @@ void DockSite::on_view_selection(DockNodeId stack, const PageSelectionChange& ch
 
 void DockSite::on_view_content(DockNodeId stack, const PageContentRequest&) {
     if (syncing_) return;
-    StackSlot* const slot = slot_for(stack);
-    if (slot != nullptr) supply_content(*slot);
+    supply_content(stack);
 }
 
 // A document tab's close (the accessibility action until the document
@@ -657,10 +676,20 @@ void DockSite::on_focus_moved(const FocusedControlChange&) {
     if (index >= stacks_.size()) return;
     const std::optional<DockPanelId> panel = selected_panel(stacks_[index]);
     if (!panel) return;
+    // The view and the site held, and both checked again, across
+    // activation_changed's handlers: one may hide or close a panel
+    // (stacks_ shrinks or is replaced) or release the workspace
+    // (A-gf-controls-03-F3).
+    const DockNodeId stack = stacks_[index].stack;
+    const std::shared_ptr<StackView> view = stacks_[index].view;
+    const Control::Ptr retained = weak_from_this().lock();
     (*workspace_).note_active(*panel, DockActivationCause::focus);
+    if (workspace_ == nullptr || !is_alive() || !view) return;
+    const StackSlot* const slot = slot_for(stack);
+    if (slot == nullptr || (*slot).view != view) return;
     // Only a control in the panel's content is remembered (not the stack's
     // tabs), so activation returns into the panel itself.
-    const Control::Ptr content = (*stacks_[index].view).page_content(PageId{(*panel).value});
+    const Control::Ptr content = (*view).page_content(PageId{(*panel).value});
     const bool in_content =
         content && ((*content).runtime_id() == (*focused).runtime_id() || (*content).contains(*focused));
     if (!in_content) return;
@@ -684,7 +713,7 @@ void DockSite::focus_panel(const DockPanelId& panel) {
     Window* const host = attached_window();
     if (host == nullptr || workspace_ == nullptr) return;
     const DockPanelLocation location = (*workspace_).layout().locate(panel);
-    StackSlot* const slot = slot_for(location.stack);
+    const StackSlot* slot = slot_for(location.stack);
     if (slot == nullptr) return;
     // A panel behind a side tab opens in its flyout, which takes focus.
     if (!(*slot).in_flyout && ((*slot).auto_hidden || (*slot).side_tabbed)) {
@@ -692,23 +721,31 @@ void DockSite::focus_panel(const DockPanelId& panel) {
         return;
     }
     if ((*slot).collapsed && !(*slot).in_flyout) return;
-    supply_content(*slot);
+    supply_content(location.stack);
+    // The factory may have edited the layout: the slot is found again.
+    slot = slot_for(location.stack);
+    if (slot == nullptr || !(*slot).view) return;
+    // Held, with the remembered controls copied, before any focus request:
+    // a focus handler may edit the layout (replacing stacks_) or the
+    // remembered list.
+    const std::shared_ptr<StackView> view = (*slot).view;
     const PageId page{panel.value};
+    std::vector<Control::Ptr> remembered;
     for (const RememberedFocus& entry : remembered_focus_) {
         if (!(entry.panel == panel)) continue;
-        const Control::Ptr control = entry.control.lock();
-        if (control && focus_candidate(*control) && (*(*slot).view).contains(*control) &&
-            (*host).request_focus(control)) {
-            return;
-        }
+        Control::Ptr control = entry.control.lock();
+        if (control) remembered.push_back(std::move(control));
     }
-    const Control::Ptr content = (*(*slot).view).page_content(page);
+    for (const Control::Ptr& control : remembered) {
+        if (focus_candidate(*control) && (*view).contains(*control) && (*host).request_focus(control)) return;
+    }
+    const Control::Ptr content = (*view).page_content(page);
     if (content) {
         if (focus_candidate(*content) && (*host).request_focus(content)) return;
         const Control::Ptr inner = first_focusable(content);
         if (inner && (*host).request_focus(inner)) return;
     }
-    const std::shared_ptr<PageStrip>& strip = (*(*slot).view).strip();
+    const std::shared_ptr<PageStrip> strip = (*view).strip();
     if (strip && focus_candidate(*strip)) static_cast<void>((*host).request_focus(strip));
 }
 
@@ -779,14 +816,16 @@ void DockSite::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     // The stamp's picture is the former window's image. A release that
     // fails (allocation while marking the repaint) leaves the image to the
     // window's end.
-    if (drag_.picture && !drag_.guest) {
+    if (drag_.picture.present() && !drag_.guest) {
         try {
-            static_cast<void>(former_window.release_control_snapshot((*drag_.picture).image));
+            static_cast<void>(former_window.release_control_snapshot((*drag_.picture.value()).image));
         } catch (...) {
         }
     }
     drag_.picture.reset();
-    reset_drag();
+    // The guest showing this drag stops too (A-gf-controls-04-F2); the
+    // former window ends the capture itself.
+    abandon_drag(false);
     focus_token_.disconnect();
     followed_window_ = nullptr;
     root_pointer_.disconnect();
@@ -833,7 +872,7 @@ void DockSite::move_view_to_flyout(StackSlot& slot) {
     static_cast<void>((*slot.view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
     syncing_ = false;
     slot.title = (*workspace_).panel_title(*flyout_panel_);
-    supply_content(slot);
+    supply_content(slot.stack);
 }
 
 void DockSite::move_view_to_site(StackSlot& slot) {
@@ -1204,7 +1243,12 @@ void DockSite::finish_layout_pass(const PreviousPass& previous, Size surface, bo
     // The site takes focus (for its seams) only while it has some, and while
     // a drag runs (for its keys).
     focusable = !seams_.empty() || drag_.phase != DockDragPhase::idle;
-    for (StackSlot& slot : stacks_) supply_content(slot);
+    // Over the stacks' node IDs, copied first: a factory's layout edit
+    // replaces stacks_ (A-gf-controls-03-F2).
+    std::vector<DockNodeId> shown_stacks;
+    shown_stacks.reserve(stacks_.size());
+    for (const StackSlot& slot : stacks_) shown_stacks.push_back(slot.stack);
+    for (const DockNodeId stack : shown_stacks) supply_content(stack);
     if (drag_layer_) set_child_layout(drag_layer_, Rect{0.0, 0.0, surface.width, surface.height});
     if (drag_.phase == DockDragPhase::dragging) plan_drag_targets();
     if (drag_.phase == DockDragPhase::settling) place_settle_target();
@@ -1268,7 +1312,7 @@ bool DockSite::stack_current(const StackSlot& slot) const {
     if (workspace_ == nullptr) return false;
     const std::optional<DockPanelId>& active = (*workspace_).active_panel();
     if (!active || !slot.view) return false;
-    const bool current = (*slot.view).pages().find(PageId{(*active).value}).has_value();
+    const bool current = (*slot.view).pages().find(PageId{(*active).value}).present();
     return current;
 }
 
@@ -1276,8 +1320,8 @@ bool DockSite::pin_shown(const StackSlot& slot) const {
     if (workspace_ == nullptr || slot.kind != DockNodeKind::tool_stack) return false;
     const std::optional<DockPanelId> panel = selected_panel(slot);
     if (!panel) return false;
-    const std::optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
-    const bool shown = owner.has_value() && *owner == slot.stack;
+    const stxlib::Optional<DockNodeId> owner = (*workspace_).layout().pin_owner(*panel);
+    const bool shown = owner.present() && *owner.value() == slot.stack;
     return shown;
 }
 
@@ -1360,7 +1404,7 @@ void DockSite::on_paint(Painter& painter, Rect) {
     // Every part carries its anatomy name (PartKey), so that a theme's
     // `dock-site::part(...)` rules reach it; a seam item is known by its
     // split's node.
-    part.key = PartKey{"document_area", {}, {}};
+    part.key.set(PartKey{"document_area", {}, {}});
     paint_part(painter, *this, part);
     for (std::size_t seam = 0; seam < seams_.size(); ++seam) {
         const SeamParts parts = seam_parts(seam);
@@ -1369,12 +1413,12 @@ void DockSite::on_paint(Painter& painter, Rect) {
         part.states = seam_states(seam);
         part.role = PartRole::seam;
         part.bounds = parts.seam_bar.bounds;
-        part.key = PartKey{"seam_bar", item, {}};
+        part.key.set(PartKey{"seam_bar", item, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::grip;
         part.mark = PartMark::grip_dots;
         part.bounds = parts.seam_grip.bounds;
-        part.key = PartKey{"seam_grip", item, {}};
+        part.key.set(PartKey{"seam_grip", item, {}});
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -1404,23 +1448,23 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.states = states;
     part.role = PartRole::face;
     part.bounds = moved(placed.caption, offset);
-    part.key = PartKey{"caption", item, {}};
+    part.key.set(PartKey{"caption", item, {}});
     paint_part(painter, surface, part);
     if (states.contains(AnatomyState::current)) {
         part.role = PartRole::keyline;
         part.bounds = moved(placed.accent, offset);
-        part.key = PartKey{"caption_accent", item, {}};
-        part.accent = AccentIndex{0U};
+        part.key.set(PartKey{"caption_accent", item, {}});
+        part.accent.set(AccentIndex{0U});
         paint_part(painter, surface, part);
         part.accent.reset();
     }
     part.role = PartRole::chip;
     part.bounds = moved(placed.key, offset);
-    part.key = PartKey{"caption_key", item, {}};
+    part.key.set(PartKey{"caption_key", item, {}});
     paint_part(painter, surface, part);
     part.role = PartRole::caption;
     part.bounds = moved(placed.label, offset);
-    part.key = PartKey{"caption_label", item, {}};
+    part.key.set(PartKey{"caption_label", item, {}});
     part.text = lend_paint_text(slot.title);
     paint_part(painter, surface, part);
     part.text = {};
@@ -1432,7 +1476,7 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     if (!grip.empty()) {
         part.role = PartRole::grip;
         part.bounds = moved(grip, offset);
-        part.key = PartKey{"caption_grip", item, {}};
+        part.key.set(PartKey{"caption_grip", item, {}});
         paint_part(painter, surface, part);
     }
     // The buttons: flat at rest with a plate when hot (the menu-item family,
@@ -1449,12 +1493,12 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
         part.states = button_states(index, zones[button]);
         part.role = PartRole::actuator;
         part.bounds = moved(buttons[button], offset);
-        part.key = PartKey{button_names[button], item, {}};
+        part.key.set(PartKey{button_names[button], item, {}});
         paint_part(painter, surface, part);
         part.role = PartRole::glyph;
         part.bounds = moved(glyphs[button], offset);
         part.mark = marks[button];
-        part.key = PartKey{glyph_names[button], item, {}};
+        part.key.set(PartKey{glyph_names[button], item, {}});
         paint_part(painter, surface, part);
         part.mark = PartMark::none;
     }
@@ -1492,7 +1536,7 @@ void DockSite::set_hot(Hit hit) {
         shape = seams_[hit.index].axis == DockAxis::horizontal ? CursorKind::resize_horizontal
                                                                : CursorKind::resize_vertical;
     }
-    cursor = shape;
+    cursor = stxlib::Optional<CursorKind>::of(shape);
     invalidate(Dirty::paint);
 }
 
@@ -1554,9 +1598,9 @@ bool DockSite::focus_seam(std::size_t seam) {
     return focused;
 }
 
-std::optional<std::size_t> DockSite::focused_seam() const noexcept {
-    if (!focused_ || seams_.empty()) return std::nullopt;
-    const std::optional<std::size_t> seam = keyboard_seam_;
+stxlib::Optional<std::size_t> DockSite::focused_seam() const noexcept {
+    if (!focused_ || seams_.empty()) return stxlib::Optional<std::size_t>::none();
+    const stxlib::Optional<std::size_t> seam = stxlib::Optional<std::size_t>::of(keyboard_seam_);
     return seam;
 }
 
@@ -2023,8 +2067,8 @@ bool DockSite::position_command_enabled(const DockPanelId& panel, DockPositionCo
     case DockPositionCommand::auto_hide: {
         // A root-level tool stack (DK decision 28) that the layout lets go to
         // auto-hide.
-        const std::optional<DockNodeId> owner = layout.pin_owner(panel);
-        if (auto_hidden || !tool || !owner || !(*owner == location.stack)) return false;
+        const stxlib::Optional<DockNodeId> owner = layout.pin_owner(panel);
+        if (auto_hidden || !tool || owner.absent() || !(*owner.value() == location.stack)) return false;
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
         transaction.edits.push_back(DockEdit::auto_hide(DockSubject::of_stack(location.stack), DockSide::left));
@@ -2109,8 +2153,8 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
         }
         const StackSlot* const slot = slot_for(location.stack);
         if (!remembered && slot != nullptr && !(*slot).bounds.empty()) {
-            const std::optional<Point> corner = to_desktop(Point{(*slot).bounds.x, (*slot).bounds.y});
-            if (corner) frame = {(*corner).x, (*corner).y, (*slot).bounds.width, (*slot).bounds.height};
+            const stxlib::Optional<Point> corner = to_desktop(Point{(*slot).bounds.x, (*slot).bounds.y});
+            if (corner.present()) frame = {((*corner.value())).x, ((*corner.value())).y, (*slot).bounds.width, (*slot).bounds.height};
         }
         if (flyout_panel_ && flyout_stack_ == location.stack) close_flyout(DockFlyoutCause::pointer);
         result = (*workspace_).float_subject(DockSubject::of_panel(panel), frame);
@@ -2452,9 +2496,9 @@ std::vector<SemanticNode> DockSite::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::split_pane;
         node.name = slot.axis == DockAxis::horizontal ? "Vertical seam" : "Horizontal seam";
-        node.numeric_value = slot.first;
-        node.minimum_value = slot.first_minimum;
-        node.maximum_value = std::max(slot.first_minimum, slot.span - slot.second_minimum);
+        node.numeric_value.set(slot.first);
+        node.minimum_value.set(slot.first_minimum);
+        node.maximum_value.set(std::max(slot.first_minimum, slot.span - slot.second_minimum));
         node.value = std::to_string(static_cast<long long>(std::lround(slot.first)));
         node.bounds = to_window(absolute, slot.bar);
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;
@@ -2752,7 +2796,7 @@ void DockSite::publish_part_geometry(std::span<PartGeometry> geometry) const {
     if (layer) {
         record.drag_stamp = PartGeometry::from_bounds(drag_.stamp);
         record.drag_stamp_label = PartGeometry::from_bounds(drag_label_bounds());
-        if (drag_.picture) record.drag_stamp_image = PartGeometry::from_bounds(drag_image_bounds());
+        if (drag_.picture.present()) record.drag_stamp_image = PartGeometry::from_bounds(drag_image_bounds());
     }
     const std::optional<DockDropTarget> target = drag_target();
     if (target) {

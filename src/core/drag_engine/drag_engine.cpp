@@ -2,6 +2,7 @@
 // kernel, the keyboard stepping and the session's state machine.
 
 #include "drag_engine.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -655,7 +656,7 @@ double DragEngine::distance_to(const DragLanding& landing, Point adjusted_pointe
         const Rect rect = landing.rect;
         const double dx = std::max({rect.x - adjusted_pointer.x, 0.0, adjusted_pointer.x - (rect.x + rect.width)});
         const double dy = std::max({rect.y - adjusted_pointer.y, 0.0, adjusted_pointer.y - (rect.y + rect.height)});
-        const double distance = std::hypot(dx, dy);
+        const double distance = engine_hypotenuse(dx, dy);
         return distance;
     }
     case DragMetric::euclidean:
@@ -664,7 +665,7 @@ double DragEngine::distance_to(const DragLanding& landing, Point adjusted_pointe
     }
     const double dx = adjusted_pointer.x - landing.anchor.x;
     const double dy = adjusted_pointer.y - landing.anchor.y;
-    const double distance = std::hypot(dx, dy);
+    const double distance = engine_hypotenuse(dx, dy);
     return distance;
 }
 
@@ -1283,6 +1284,10 @@ void DragEngine::drag_to(Point pointer, Modifier modifiers, DragTraceEvent event
 
 bool DragEngine::pointer(const PointerEvent& event) {
     if (mode_ != DragInputMode::pointer) return false;
+    // A non-finite position is refused as the press is (A-gf-core-04-F2):
+    // past this point it would plan a session and reach the indexed slot
+    // search's conversion to an index, which is undefined for NaN.
+    if (!finite_point(event.position)) return false;
     if (phase_ != DragPhase::armed && phase_ != DragPhase::dragging) return false;
     if (event.action != PointerAction::move && event.action != PointerAction::up) return false;
     const std::size_t landings_capacity = landings_.capacity();

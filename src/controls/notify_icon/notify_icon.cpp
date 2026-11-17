@@ -208,8 +208,11 @@ void NotifyIcon::on_tray_event(const HostTrayIconEvent& event) {
         return;
     case HostTrayIconAction::context: {
         const NotifyIconClick clicked{PointerButton::secondary};
+        const std::weak_ptr<Presence> presence = presence_;
         click_.emit(clicked);
-        if (is_alive()) show_menu();
+        // A click handler may have destroyed the icon: nothing of it is
+        // read unless it is still present.
+        if (!presence.expired() && is_alive()) show_menu();
         return;
     }
     case HostTrayIconAction::notification_clicked:
@@ -255,7 +258,11 @@ void NotifyIcon::show_menu() {
         if (menu.items.size() == HostServices::maximum_tray_menu_items) break;
     }
     if (menu.items.empty()) return;
+    // The host's modal loop runs other callbacks, which may destroy the
+    // icon: it is touched afterwards only if still present.
+    const std::weak_ptr<Presence> presence = presence_;
     const HostTrayMenuResult chosen = services.show_tray_menu(icon_id_, menu);
+    if (presence.expired()) return;
     status_ = chosen.status;
     if (!chosen.status.accepted() || chosen.chosen_id.empty() || !is_alive() || !context_menu.read()) return;
     // The command may replace or remove this icon's menu, or the menu's rows:
@@ -288,7 +295,7 @@ void NotifyIcon::show_menu() {
     } else {
         executed = (*command).execute(notify_icon_source);
     }
-    if (!executed || !is_alive()) return;
+    if (!executed || presence.expired() || !is_alive()) return;
     menu_item_invoked_.emit(invocation);
 }
 

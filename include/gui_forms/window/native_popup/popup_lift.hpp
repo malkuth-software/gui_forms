@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -75,6 +76,6 @@ private:
 // above it when it would overrun the area's bottom, and moved and cut to stay
 // inside the area. None when the run has no Popup windows or cannot say the
 // work area; the caller then places the drop-down in its client. UI thread.
-[[nodiscard]] GUI_FORMS_API std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x);
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x);
 
 } // namespace gui_forms

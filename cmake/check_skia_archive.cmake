@@ -41,8 +41,9 @@ if(symbols MATCHES "[0-9a-fA-F]+ T __ZN(2Gr|5skgpu8graphite)")
     message(FATAL_ERROR "Defined GPU backend symbol found in CPU-only Skia archive")
 endif()
 
-# ADR-004 phase 7: text is GUI.Forms' own HarfBuzz/FreeType engine. Skia's
-# font managers, platform typefaces and its bundled FreeType are forbidden.
+# ADR-004 phase 7: text is GUI.Forms' own engine (over STXlib's glyphs since
+# 2026-11-16). Skia's font managers, platform typefaces and its bundled
+# FreeType are forbidden.
 set(forbidden_font_backend_patterns
     "SkFontMgr_New_"
     "SkFontMgr_Custom"

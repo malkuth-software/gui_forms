@@ -35,7 +35,12 @@ void replay_marks(const DisplayCommand& command, Painter& painter) {
         painter.stroke_rounded_rect_corners(command.rect, recorded_radii(command), command.color, command.scalar);
         return;
     }
-    if (!command.marks) return;
+    if (!command.marks) {
+        // A clip without its path clips everything away, as a refused path
+        // does, so it never shows what it was to hide.
+        if (command.operation == DisplayOperation::clip_path) painter.clip_rect(Rect{});
+        return;
+    }
     const DisplayMarks& marks = *command.marks;
     switch (command.operation) {
     case DisplayOperation::stroke_polyline: painter.stroke_polyline(marks.points, marks.stroke); return;
@@ -47,6 +52,10 @@ void replay_marks(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::draw_markers: painter.draw_markers(marks.points, marks.marker); return;
     case DisplayOperation::fill_checker: painter.fill_checker(command.rect, marks.checker); return;
     case DisplayOperation::fill_grid_pattern: painter.fill_grid_pattern(command.rect, marks.grid); return;
+    case DisplayOperation::fill_path: painter.fill_path(marks.path(), command.color, marks.fill_rule); return;
+    case DisplayOperation::stroke_path: painter.stroke_path(marks.path(), marks.stroke); return;
+    case DisplayOperation::clip_path: painter.clip_path(marks.path(), marks.fill_rule); return;
+    case DisplayOperation::fill_hatch: painter.fill_hatch(command.rect, marks.hatch); return;
     default:
         // Not a batched operation: replay_command handles it.
         return;
@@ -90,6 +99,10 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::fill_grid_pattern:
     case DisplayOperation::fill_rounded_rect_corners:
     case DisplayOperation::stroke_rounded_rect_corners:
+    case DisplayOperation::fill_path:
+    case DisplayOperation::stroke_path:
+    case DisplayOperation::clip_path:
+    case DisplayOperation::fill_hatch:
         replay_marks(command, painter);
         return;
     case DisplayOperation::fill_rect:
@@ -122,6 +135,15 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
             command.rect, command.first,
             {command.second.x, command.second.y}, command.gradient_stops);
         return;
+    case DisplayOperation::fill_radial_gradient_spread:
+        painter.fill_radial_gradient_spread(command.rect, command.first, Size{command.second.x, command.second.y},
+                                            command.gradient_stops, command.gradient_spread);
+        return;
+    case DisplayOperation::fill_focal_radial_gradient:
+        painter.fill_focal_radial_gradient(command.rect, command.first, Size{command.second.x, command.second.y},
+                                           Point{command.scalar, command.secondary_scalar}, command.gradient_stops,
+                                           command.gradient_spread);
+        return;
     case DisplayOperation::draw_box_shadow:
         if (command.retained_cache) {
             painter.draw_retained_box_shadow(
@@ -146,7 +168,10 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
                           command.scalar);
         return;
     case DisplayOperation::draw_text_utf8:
-        if (command.text_orientation != TextOrientation::horizontal) {
+        if (command.text_degrees != 0.0) {
+            painter.draw_rotated_text_utf8(command.first, command.text, command.font, command.color,
+                                           command.text_degrees);
+        } else if (command.text_orientation != TextOrientation::horizontal) {
             painter.draw_turned_text_utf8(command.first, command.text, command.font,
                                           command.color, command.text_orientation);
         } else if (command.retained_cache) {
@@ -184,15 +209,31 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
         // The recording painter writes the enumerator; any other value
         // replays as source-over.
         const double composite = command.secondary_scalar;
-        const bool known = composite >= 0.0 && composite <= static_cast<double>(PaintGroupComposite::copy);
+        const bool known = composite >= 0.0 && composite <= static_cast<double>(paint_group_composite_last);
         group.composite = known ? static_cast<PaintGroupComposite>(static_cast<std::uint8_t>(composite))
                                 : PaintGroupComposite::source_over;
         group.isolated = command.tertiary_scalar != 0.0;
+        group.effect = command.group_effect;
         painter.begin_group(group);
         return;
     }
     case DisplayOperation::end_group:
         painter.end_group();
+        return;
+    case DisplayOperation::begin_transform: {
+        PaintTransformGroup group{};
+        group.bounds = command.rect;
+        group.transform.xx = command.first.x;
+        group.transform.yx = command.first.y;
+        group.transform.xy = command.second.x;
+        group.transform.yy = command.second.y;
+        group.transform.dx = command.scalar;
+        group.transform.dy = command.secondary_scalar;
+        painter.begin_transform(group);
+        return;
+    }
+    case DisplayOperation::end_transform:
+        painter.end_transform();
         return;
     case DisplayOperation::draw_image_region:
         painter.draw_image_region(
@@ -228,30 +269,25 @@ std::uint64_t replay_display_chunk(const DisplayChunk& chunk, Painter& painter) 
     return chunk.commands().size();
 }
 
-namespace {
-
 // Whether a command changes only the painter's state (what a replay of the
 // saves open at an occluder must reproduce without drawing). Paint groups
-// are excluded: none is open at an occluder, and a closed one leaves no
-// state behind.
-bool state_only(const DisplayOperation operation) noexcept {
+// and transform groups are excluded: none is open at an occluder, and a
+// closed one leaves no state behind. Also the blend study's counter's
+// (count_display_blend.cpp).
+bool display_state_only(const DisplayOperation operation) noexcept {
     const bool state = operation == DisplayOperation::save || operation == DisplayOperation::restore ||
                        operation == DisplayOperation::translate || operation == DisplayOperation::clip_rect ||
                        operation == DisplayOperation::clip_rounded_rect ||
-                       operation == DisplayOperation::clip_rounded_rect_corners;
+                       operation == DisplayOperation::clip_rounded_rect_corners ||
+                       operation == DisplayOperation::clip_path;
     return state;
 }
 
-} // namespace
-
-std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
+Rect display_chunk_hidden_rect(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
     const std::optional<DisplayOccluder>& occluder = chunk.occluder();
-    const DisplayCommandList& commands = chunk.commands();
-    if (!occluder || (*occluder).command == 0U || clip.empty()) {
-        return replay_display_chunk(chunk, painter);
-    }
+    if (!occluder || (*occluder).command == 0U || clip.empty()) return Rect{};
     const DisplayOccluder& found = *occluder;
-    const DisplayCommand& surface = commands[found.command];
+    const DisplayCommand& surface = chunk.commands()[found.command];
     // Asked in the chunk's coordinates: the translations between differ
     // from them only by `offset`.
     const Rect destination{surface.rect.x + found.offset.x, surface.rect.y + found.offset.y, surface.rect.width,
@@ -259,16 +295,28 @@ std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& 
     Rect cover = painter.opaque_live_surface_cover(surface.live_surface, destination, surface.scalar);
     if (found.clipped) cover = Rect::intersection(cover, found.clip);
     const Rect hidden = Rect::intersection(cover, clip);
-    if (hidden.empty()) return replay_display_chunk(chunk, painter);
-    // The clip less the hidden rectangle: full-width bands above and below
-    // it, and the parts beside it between them. In each, everything before
-    // the surface is replayed, and the saves still open there are closed.
+    if (hidden.empty()) return Rect{};
+    return hidden;
+}
+
+std::array<Rect, 4> display_occlusion_bands(const Rect clip, const Rect hidden) noexcept {
     const std::array<Rect, 4> bands{{
         {clip.x, clip.y, clip.width, hidden.y - clip.y},
         {clip.x, hidden.bottom(), clip.width, clip.bottom() - hidden.bottom()},
         {clip.x, hidden.y, hidden.x - clip.x, hidden.height},
         {hidden.right(), hidden.y, clip.right() - hidden.right(), hidden.height},
     }};
+    return bands;
+}
+
+std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& painter, const Rect clip) {
+    const Rect hidden = display_chunk_hidden_rect(chunk, painter, clip);
+    if (hidden.empty()) return replay_display_chunk(chunk, painter);
+    const DisplayOccluder& found = *chunk.occluder();
+    const DisplayCommandList& commands = chunk.commands();
+    // The clip less the hidden rectangle: in each band, everything before
+    // the surface is replayed, and the saves still open there are closed.
+    const std::array<Rect, 4> bands = display_occlusion_bands(clip, hidden);
     std::uint64_t replayed = 0U;
     std::size_t index = 0U;
     for (const Rect band : bands) {
@@ -283,7 +331,7 @@ std::uint64_t replay_display_chunk_occluded(const DisplayChunk& chunk, Painter& 
     // The state the surface is drawn in, without drawing what it hides;
     // then the surface and everything after it.
     for (index = found.group_start; index < found.command; ++index) {
-        if (!state_only(commands[index].operation)) continue;
+        if (!display_state_only(commands[index].operation)) continue;
         replay_command(commands[index], painter);
         ++replayed;
     }

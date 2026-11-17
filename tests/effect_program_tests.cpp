@@ -11,6 +11,8 @@
 // its record's bounds fit its budgets; this file is compiled without the
 // pass, so its own test effect is labelled unverified either way.
 
+#include "gui_forms/controls/dock_site_effects.hpp"
+#include "gui_forms/controls/numeric_up_down_effects.hpp"
 #include "gui_forms/controls/progress_bar_effects.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
@@ -50,18 +52,24 @@
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
 #include "../src/core/control/control/control_input_access.hpp"
+#include "support/frame_wake.hpp"
 
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -260,10 +268,17 @@ void bounded_ranges() {
 
 void registry_checks() {
     const EffectRegistry& registry = built_in_effect_registry();
-    require(registry.count() == 7U,
-            "seven built-in effects: the progress bar's five, the sweep scope's and the node canvas's link flow");
+    require(registry.count() == 9U,
+            "nine built-in effects: the progress bar's five, the sweep scope's, the node canvas's link flow, the "
+            "dock site's drop pulse and the numeric field's scrub glow");
     require(built_in("scope_sweep").parent == "sweep_scope", "the sweep scope's effect names its parent");
     require(built_in("link_flow").parent == "node_canvas", "the link flow names the node canvas as its parent");
+    require(built_in("drop_pulse").parent == "dock_site" &&
+                (*built_in("drop_pulse").declaration).time_model == EffectTimeModel::ambient,
+            "the drop pulse is ambient on the dock site");
+    require(built_in("scrub_glow").parent == "numeric_up_down" &&
+                (*built_in("scrub_glow").declaration).time_model == EffectTimeModel::transition,
+            "the scrub glow is a transition on the numeric field");
     const std::array<std::string_view, 5> names{"progress_stripes", "progress_pulse", "progress_laser",
                                                  "progress_woven_stripes", "progress_bubbles"};
     for (const std::string_view name : names) {
@@ -376,6 +391,11 @@ void verification() {
         require(record.setup_bound <= declaration.setup_cost, "setup's bound fits its setup budget");
         require((entry.setup != nullptr) == (record.setup_bound > 0U), "setup is bounded when there is one");
         require(record.state_size == entry.size, "the record's state size is sizeof the effect");
+        // A-gf-core-05-F2: a record of another size does not verify the effect.
+        const void* const thunk = reinterpret_cast<const void*>(entry.run);
+        require(effect_verification_recorded(declaration.name, entry.size, thunk) &&
+                    !effect_verification_recorded(declaration.name, entry.size + 1U, thunk),
+                "the verification record counts only for the effect's own state size");
         if (printing) {
             std::cout << declaration.name << ": run bound " << record.bound << " of " << declaration.cost.fixed
                       << ", setup bound " << record.setup_bound << " of " << declaration.setup_cost << ", state "
@@ -593,7 +613,7 @@ void bubbles_and_steam() {
 // The bar hosts its effects: the style's own by default, another by name,
 // none for a name no progress-bar effect has; the seed follows the stable
 // ID unless the application sets one; steam widens the bar's outsets.
-std::uint64_t hosted_checksum(const char* id, std::optional<std::uint64_t> seed) {
+std::uint64_t hosted_checksum(const char* id, stxlib::Optional<std::uint64_t> seed) {
     std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId(std::string_view(id)));
     (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
     (*bar).value = 70.0;
@@ -613,14 +633,14 @@ void progress_bar_hosting() {
     (*bar).value = 50.0;
     Window window(bar, {200.0, 40.0});
     window.perform_layout();
-    require((*bar).effect_instance().entry() == nullptr && !window.next_wake().has_value(),
+    require((*bar).effect_instance().entry() == nullptr && window.next_wake().absent(),
             "a continuous bar hosts no effect and asks for no frames");
     (*bar).visual_style = ProgressBarVisualStyle::laser_etch;
-    require((*bar).effect_instance().entry() == &built_in("progress_laser") && !window.next_wake().has_value(),
+    require((*bar).effect_instance().entry() == &built_in("progress_laser") && window.next_wake().absent(),
             "the laser style hosts the laser effect, and asks for no frame before it is drawn");
     RecordingPainter drawn;
     (*bar).on_paint(drawn, {0.0, 0.0, 200.0, 20.0});
-    require(window.next_wake().has_value(), "the drawn laser animates");
+    require(window.next_wake().present(), "the drawn laser animates");
     (*bar).effect = "progress_bubbles";
     require((*bar).effect_instance().entry() == &built_in("progress_bubbles") &&
                 (*bar).visual_outsets().top == ProgressBubbles::steam_outset,
@@ -646,11 +666,11 @@ void progress_bar_hosting() {
     (*bar).effect = "";
     require((*bar).effect_instance().entry() == &built_in("progress_laser"), "an empty name restores the style's");
 
-    const std::uint64_t first = hosted_checksum("effects.woven", std::nullopt);
-    require(first == hosted_checksum("effects.woven", std::nullopt), "the default seed follows the stable ID");
-    require(first != hosted_checksum("effects.other", std::nullopt), "another stable ID weaves another pattern");
-    require(first != hosted_checksum("effects.woven", 7U) && hosted_checksum("effects.woven", 7U) ==
-                                                               hosted_checksum("effects.other", 7U),
+    const std::uint64_t first = hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::none());
+    require(first == hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::none()), "the default seed follows the stable ID");
+    require(first != hosted_checksum("effects.other", stxlib::Optional<std::uint64_t>::none()), "another stable ID weaves another pattern");
+    require(first != hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::of(7U)) && hosted_checksum("effects.woven", stxlib::Optional<std::uint64_t>::of(7U)) ==
+                                                               hosted_checksum("effects.other", stxlib::Optional<std::uint64_t>::of(7U)),
             "an application seed replaces the default");
 }
 
@@ -669,16 +689,16 @@ void progress_bar_on_the_motion_clock() {
     require(!clock.control_ambient(*bar), "a laser bar not yet drawn is not on the motion clock");
     RecordingPainter first;
     (*bar).on_paint(first, {0.0, 0.0, 200.0, 20.0});
-    require(clock.control_ambient(*bar) && clock.ambient_count() == 1U && window.next_wake().has_value(),
+    require(clock.control_ambient(*bar) && clock.ambient_count() == 1U && window.next_wake().present(),
             "the drawn laser bar is enlisted on the motion clock");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     RecordingPainter second;
     (*bar).on_paint(second, {0.0, 0.0, 200.0, 20.0});
     require((*bar).effect_instance().counters().ticks > 0U, "a clock frame makes ticks due, and the paint runs them");
     require(window.metrics_snapshot().effect_ambient_frames == 1U, "the window counts the effects' ambient frame");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require(!clock.control_ambient(*bar) && !window.next_wake().has_value(),
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require(!clock.control_ambient(*bar) && window.next_wake().absent(),
             "a bar not painted between frames is dropped, and the window rests");
     RecordingPainter again;
     (*bar).on_paint(again, {0.0, 0.0, 200.0, 20.0});
@@ -707,7 +727,62 @@ void progress_bar_on_the_motion_clock() {
     (*bar).on_paint(switched_on, {0.0, 0.0, 200.0, 20.0});
     require(clock.control_ambient(*bar), "with the ambient switch on the next paint enlists them again");
     (*bar).visual_style = ProgressBarVisualStyle::continuous;
-    require(!clock.control_ambient(*bar) && !window.next_wake().has_value(), "a style without an effect withdraws");
+    require(!clock.control_ambient(*bar) && window.next_wake().absent(), "a style without an effect withdraws");
+}
+
+// A control whose ambient frame changes the clock's records
+// (A-gf-core-05-F1): it enlists another control, which may take its freed
+// record's place or grow the records, and withdraws itself. The clock acts
+// on its own record only if it is still that control's, so the count is
+// taken down once and the newly enlisted control keeps its frames.
+class FrameHook final : public Control {
+public:
+    explicit FrameHook(StableId stable_id) : Control(std::move(stable_id)) {}
+    bool on_ambient_frame(FrameTime now) override {
+        static_cast<void>(now);
+        frames = frames + 1U;
+        SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return false;
+        MotionClock& clock = (*root).motion_clock();
+        if (withdraw_self) clock.withdraw_control_ambient(*this);
+        if (enlist_on_frame != nullptr) {
+            static_cast<void>(clock.enlist_control_ambient(*enlist_on_frame, std::chrono::milliseconds(4)));
+            enlist_on_frame = nullptr;
+        }
+        return !withdraw_self;
+    }
+
+    Control* enlist_on_frame{};
+    bool withdraw_self{};
+    std::uint32_t frames{};
+};
+
+void ambient_frame_changes_the_records() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("effects.hooks"));
+    std::shared_ptr<FrameHook> leaving = make_control<FrameHook>(StableId("effects.hooks.leaving"));
+    std::shared_ptr<FrameHook> arriving = make_control<FrameHook>(StableId("effects.hooks.arriving"));
+    (*leaving).set_requested_bounds({0.0, 0.0, 50.0, 20.0});
+    (*arriving).set_requested_bounds({0.0, 20.0, 50.0, 20.0});
+    (*root).add_child(leaving);
+    (*root).add_child(arriving);
+    Window window(root, {100.0, 60.0});
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    require(clock.enlist_control_ambient(*leaving, std::chrono::milliseconds(4)), "the first control is enlisted");
+    (*leaving).withdraw_self = true;
+    (*leaving).enlist_on_frame = arriving.get();
+    require(window.next_wake().present(), "an enlisted control arms the clock");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require((*leaving).frames == 1U, "the first control has its frame");
+    require(!clock.control_ambient(*leaving), "the control that withdrew itself is off the clock");
+    require(clock.control_ambient(*arriving) && clock.ambient_count() == 1U,
+            "the control enlisted in the frame stays, and the count is taken down once");
+    require(window.next_wake().present(), "the enlisted control keeps the clock armed");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require((*arriving).frames == 1U && clock.control_ambient(*arriving) && clock.ambient_count() == 1U,
+            "the control enlisted in the frame has its own frames");
+    clock.withdraw_control_ambient(*arriving);
+    require(clock.ambient_count() == 0U && window.next_wake().absent(), "withdrawn, the window rests");
 }
 
 // The effect properties set what the methods set, and a granted pointer
@@ -724,9 +799,9 @@ void effect_properties_and_input() {
     require(std::holds_alternative<std::monostate>(*(*bar).property_value("effect_seed")),
             "the effect seed is null by default");
     (*bar).set_property_value("effect_seed", BindingValue{std::uint64_t{42U}});
-    require((*bar).effect_seed.read() == std::optional<std::uint64_t>{42U}, "the effect_seed property sets the seed");
+    require((*bar).effect_seed.read() == stxlib::Optional<std::uint64_t>::of(42U), "the effect_seed property sets the seed");
     (*bar).set_property_value("effect_seed", BindingValue{});
-    require(!(*bar).effect_seed.read().has_value(), "null restores the derived seed");
+    require((*bar).effect_seed.read().absent(), "null restores the derived seed");
     require(!(*bar).hit_test_local({10.0, 10.0}), "without a grant the pointer passes through the bar");
     (*bar).set_property_value("effect_input", BindingValue{PropertyEnumValue{"effect_input_kind", "pointer", 1}});
     require((*bar).effect_input.read() == EffectInputKind::pointer && (*bar).hit_test_local({10.0, 10.0}),
@@ -933,7 +1008,7 @@ std::unique_ptr<ThemeDefinition> colour_role_theme() {
     definition.rules.rules.push_back(light);
     ThemeRule dark = light;
     dark.label = "progress-bar::part(fill) (dark)";
-    dark.media.dark_scheme = true;
+    dark.media.dark_scheme.set(true);
     dark.declarations[0].colour = Color::rgba(120, 170, 255);
     dark.declarations[1].colour = Color::rgba(40, 44, 52);
     definition.rules.rules.push_back(dark);
@@ -1481,6 +1556,79 @@ void backdrop_sampling() {
             "a changed backplane is blurred again, into a new raster while the old one is held");
 }
 
+// The interaction cues (roadmap row 2.6): the drop pulse draws a tint and
+// an edge while it moves, only the edge when still, and advances only on
+// moving frames; the scrub glow draws nothing at transition 0 and a tint
+// and an edge above it, and its host's transition is held to [0, 1].
+void interaction_cues() {
+    const Rect part{10.0, 20.0, 120.0, 80.0};
+    const EffectView<DockSite> drop{};
+    EffectColours colours{};
+    colours.primary = Color::rgba(38, 114, 185, 255);
+    colours.secondary = Color::rgba(38, 114, 185, 255);
+
+    EffectInstance pulse;
+    pulse.attach(built_in("drop_pulse"), 1U, start);
+    pulse.set_colours(colours);
+    RecordingPainter still;
+    pulse.paint(still, part, 1.0, true, drop);
+    require(still.stroked == 1 && still.rects == 0, "a still pulse draws its steady edge and no tint");
+    const std::uint64_t resting = pulse.state_checksum();
+    static_cast<void>(pulse.advance(at_milliseconds(50)));
+    RecordingPainter held;
+    pulse.paint(held, part, 1.0, true, drop);
+    require(pulse.state_checksum() == resting && pulse.counters().ticks == 0U, "a still frame advances nothing");
+    // The breath starts at its low level, where the tint vanishes (its
+    // opacity is pulse_tint times the level): the first moving frame, three
+    // ticks in, draws the edge, and the tint shows as the breath rises.
+    RecordingPainter moving;
+    pulse.paint(moving, part, 1.0, false, drop);
+    require(moving.stroked == 1, "a moving pulse draws its edge");
+    require(pulse.counters().ticks == 3U && pulse.state_checksum() != resting, "a moving frame runs the ticks due");
+    require(pulse.last_meter().refused == 0U, "the pulse stays within budget");
+    // Nine more moving frames, 50 ms apart: 30 ticks, 0.5 s into a 1.2 s
+    // breath, near its top (level 0.93).
+    int risen_stroked = 0;
+    int risen_rects = 0;
+    for (std::int64_t frame = 2; frame <= 10; ++frame) {
+        static_cast<void>(pulse.advance(at_milliseconds(50 * frame)));
+        RecordingPainter risen;
+        pulse.paint(risen, part, 1.0, false, drop);
+        risen_stroked = risen.stroked;
+        risen_rects = risen.rects;
+    }
+    require(pulse.counters().ticks == 30U, "each moving frame runs its three ticks");
+    require(risen_stroked == 1 && risen_rects == 1,
+            "a moving pulse near the top of its breath draws its tint and its edge");
+    RecordingPainter narrow;
+    pulse.paint(narrow, Rect{0.0, 0.0, 1.0, 40.0}, 1.0, true, drop);
+    require(narrow.stroked == 0, "a part narrower than the edge draws nothing");
+
+    const EffectView<NumericUpDown> field{};
+    EffectInstance glow;
+    glow.attach(built_in("scrub_glow"), 1U, start);
+    glow.set_colours(colours);
+    require(glow.transition() == 0.0, "the transition starts at 0");
+    RecordingPainter dark;
+    glow.paint(dark, part, 1.0, false, field);
+    require(dark.stroked == 0 && dark.rects == 0, "at transition 0 the glow draws nothing");
+    glow.set_transition(0.5);
+    RecordingPainter half;
+    glow.paint(half, part, 1.0, false, field);
+    require(half.stroked == 1 && half.rects == 1, "midway the glow draws its tint and its edge");
+    glow.set_transition(2.0);
+    require(glow.transition() == 1.0, "a transition above 1 is held at 1");
+    glow.set_transition(std::numeric_limits<double>::quiet_NaN());
+    require(glow.transition() == 0.0, "a NaN transition is 0");
+    glow.set_transition(-0.5);
+    require(glow.transition() == 0.0, "a negative transition is 0");
+    glow.set_transition(1.0);
+    RecordingPainter lit;
+    glow.paint(lit, part, 2.0, true, field);
+    require(lit.stroked == 1 && lit.rects == 1, "a still frame still shows the transition's level");
+    require(glow.last_meter().refused == 0U, "the glow stays within budget");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -1493,6 +1641,7 @@ int main() {
     bubbles_and_steam();
     progress_bar_hosting();
     progress_bar_on_the_motion_clock();
+    ambient_frame_changes_the_records();
     effect_properties_and_input();
     themes_select_effects();
     effects_take_colour_roles();
@@ -1501,10 +1650,12 @@ int main() {
     part_shape_clip();
     backdrop_sampling();
     vocabulary_version_two();
+    interaction_cues();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
+                 "ambient frames changing the records, "
                  "properties and input, themes selecting effects, colour roles, right to left, pointer record, "
                  "part shape clip, "
-                 "backdrop, vocabulary version 2\n";
+                 "backdrop, vocabulary version 2, interaction cues\n";
     return 0;
 }

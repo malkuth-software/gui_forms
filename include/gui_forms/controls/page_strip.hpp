@@ -10,6 +10,8 @@
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/controls/page_strip_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -239,14 +241,14 @@ public:
     // tab; never inside the pinned group. None outside the strip. Under
     // `shrink_then_list` the selected page shown after the front run counts
     // for nothing.
-    [[nodiscard]] std::optional<PagePosition> insertion_position_at(Point window_point) const;
+    [[nodiscard]] stxlib::Optional<PagePosition> insertion_position_at(Point window_point) const;
     // Shows the insertion mark (the `insertion_mark` part) at a gap, until
     // `clear_insertion_mark` or a change to the set's pages or order. False,
     // showing nothing, when the gap is beyond the set or not between laid-out
     // tabs.
     bool show_insertion_mark(PagePosition gap);
     void clear_insertion_mark() noexcept;
-    [[nodiscard]] std::optional<PagePosition> insertion_mark() const noexcept { return insertion_gap_; }
+    [[nodiscard]] stxlib::Optional<PagePosition> insertion_mark() const noexcept { return insertion_gap_; }
 
     [[nodiscard]] Event<const PageInvocation&>& page_invoked() noexcept { return page_invoked_; }
     [[nodiscard]] Event<PageCloseRequest&>& page_close_requested() noexcept {
@@ -469,7 +471,7 @@ private:
         std::size_t hidden{};
         // The selected page's position when the layout was computed (the
         // set's revision, part of the key, moves with every selection).
-        std::optional<std::size_t> selected{};
+        stxlib::Optional<std::size_t> selected{};
         // The label font the tabs' measured widths were made with, and
         // whether those widths are held (see measured_widths_current).
         FontSpec measured_font{};
@@ -494,7 +496,7 @@ private:
     void layout_scroll(bool scroll_only) const;
     void layout_shrink() const;
     [[nodiscard]] double shrink_cap(std::size_t begin, std::size_t end, double area,
-                                    std::optional<std::size_t> extra) const;
+                                    const stxlib::Optional<std::size_t>& extra) const;
     // The band a tab or button occupies, `length` along the row from
     // `start` (see placement).
     [[nodiscard]] Rect band_rect(double start, double length) const;
@@ -543,8 +545,8 @@ private:
     // the same batch.
     bool choose_from_list(std::size_t position);
     void move_keyboard(std::size_t position);
-    [[nodiscard]] std::optional<std::size_t> keyboard_position() const;
-    [[nodiscard]] std::optional<std::size_t> selected_position() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> keyboard_position() const;
+    [[nodiscard]] stxlib::Optional<std::size_t> selected_position() const;
     bool scroll_by(int direction);
     void reveal(std::size_t position);
     void freeze_widths();
@@ -552,7 +554,7 @@ private:
     void request_pin(std::size_t position, bool pinned);
     void on_pointer_release(PointerEvent& event, Hit hit);
     void on_middle_button(PointerEvent& event, Hit hit);
-    [[nodiscard]] std::optional<std::size_t> position_of_tab_identity(std::string_view identity) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> position_of_tab_identity(std::string_view identity) const;
 
     // -- dragging --
     // A live drag: armed by a press on a tab, then claimed by an owner or
@@ -618,7 +620,7 @@ private:
     // The page a middle press went down on, for a close on its release.
     std::optional<PageId> middle_pressed_{};
     DragState drag_{};
-    std::optional<PagePosition> insertion_gap_{};
+    stxlib::Optional<PagePosition> insertion_gap_{};
     bool focused_{};
     // The keyboard's page while focused; under automatic activation it is
     // the selected page.

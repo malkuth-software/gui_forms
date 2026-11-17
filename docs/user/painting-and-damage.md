@@ -75,6 +75,36 @@ the PNG structure and retains its encoded bytes; the renderer decodes and
 caches the pixels. Controls refer to resources by `ImageId`. The registry
 also accepts raw pixels through `load_bgra32_premultiplied`.
 
+## Image atlases
+
+Many small images of one size made at run time (avatars, thumbnails, icons)
+go into an `ImageAtlas` (`gui_forms/resources/image_atlas/image_atlas.hpp`)
+instead of one registry image each. The atlas owns one backing image in the
+`ApplicationResources` it was made with, so its slots are valid in every
+window sharing them, and divides it into fixed-size slots
+(`ImageAtlasLayout`: the slot size, the slot count, a gutter of repeated
+edge pixels so that scaled drawing samples only the slot's own colours, and
+the replacement policy).
+
+- **Slots.** `acquire(key)` gives a key a slot (`hit`, `assigned`, or
+  `replaced` when the least recently used key loses its slot; under
+  `ImageAtlasReplacement::caller` a full atlas answers `full` and the caller
+  releases a slot itself). Handles carry a generation, so a handle kept past
+  its slot's replacement or release is refused as stale.
+- **Fills.** `fill(slot, row_bytes, pixels)` writes premultiplied BGRA
+  pixels into the backing image in place, so its `ImageId` never changes and
+  recorded display chunks stay valid. A fill made while a window sharing the
+  resources is painting is deferred (`ImageAtlasError::deferred`) and
+  written when that paint ends.
+- **Drawing and damage.** `draw(painter, user, slot, destination)` draws a
+  slot and remembers the control that drew it (up to
+  `users_per_slot`), so a later fill, replacement or release repaints only
+  the controls that drew that slot.
+- **Memory and threads.** The constructor allocates every table; acquire,
+  fill, release, find and draw allocate nothing of the atlas's own. All
+  mutations belong to the resources' UI thread. `statistics()` counts hits,
+  assignments, replacements, fills and deferred fills.
+
 ## Coherent frames
 
 A paint pass holds one exclusive UI-thread paint lease. Within the pass,
@@ -126,6 +156,40 @@ repeat, runs on `Window::schedule_ui_timer`, which the control stops itself.
 `schedule_paint` requests one later repaint. Deadlines coalesce, callback
 faults are isolated per request, and nothing repaints while the window is
 idle: `Window::next_wake` is empty in a resting window.
+
+A host arms its clock for `next_wake` after each poll of the frame schedule.
+A frame request made anywhere else would wait for unrelated activity: a
+Timer started or restarted from posted work or from another window's
+callback, a `schedule_paint` deadline, motion frames, or the idle frames the
+engine arms while painting (procedural patterns, finish tiles, keyframes).
+`set_schedule_wake_handler` closes that gap: such a request calls the
+handler once until the host's next `poll_frame_schedule`, and a request made
+inside a poll calls nothing, since the host arms after the poll. The handler
+runs inside model calls, painting included, so it only schedules: it posts
+work, writes a pipe or posts a message, and returns. The work it schedules
+polls, takes damage and re-arms the clock.
+
+Host contracts for the schedule wake:
+
+- macOS: a damage collection posted through the run loop (CollectDamageWake),
+  which polls and arms the wake timer. The wake timer's own handler only
+  posts the wake, so that a nested loop entered from application code (a
+  modal opened from a Timer) does not hold the main dispatch queue.
+- Linux (X11, including under XWayland): a write to the run's wake pipe.
+  `Runtime::step` reads every window's `next_wake` after its update each
+  turn, so ending the wait is enough.
+- Windows: a posted window message, `schedule_wake_message`. `initialize`
+  installs the seam next to the paint wake; its `noexcept` target only posts
+  the message and returns, and the model coalesces its calls until the
+  next poll. The message's handler calls `collect_damage`, which polls and
+  calls `arm_scheduled_wake`. Posted messages are pumped by the window's own
+  nested loops (the native size/move loop and modal loops), so the wake
+  works inside them. The handler is cleared wherever the paint wake handler
+  is (destruction and `WM_DESTROY`). A refused post leaves the wake owed
+  until the window's next poll.
+  `gui_forms_windows_schedule_wake_tests` restarts a Timer from another
+  window's posted work and requires the tick with no other input, and
+  requires a paint deadline set from `on_paint` to repaint by itself.
 
 ## Live surfaces
 

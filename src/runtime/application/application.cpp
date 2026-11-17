@@ -8,11 +8,14 @@
 
 #if defined(GUI_FORMS_APPLICATION_MACOS)
 #include "gui_forms/platform/macos_host.hpp"
-#include <pthread.h>
+#include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 #elif defined(GUI_FORMS_APPLICATION_WINDOWS)
 #include "gui_forms/platform/windows_host.hpp"
 #elif defined(GUI_FORMS_APPLICATION_LINUX)
 #include "gui_forms/platform/linux_host.hpp"
+#elif defined(GUI_FORMS_APPLICATION_WEB)
+#include "gui_forms/platform/web_host.hpp"
 #endif
 
 #if defined(GUI_FORMS_APPLICATION_SKIA)
@@ -21,6 +24,18 @@
 
 namespace gui_forms {
 namespace {
+
+#if defined(GUI_FORMS_APPLICATION_MACOS)
+// AppKit's run and shutdown belong to the process's initial thread. STXlib
+// answers with pthread_main_np on macOS (stxlib::is_main_thread); a refused
+// answer counts as the wrong thread.
+bool on_main_thread() noexcept {
+    const stxlib::OperationResult<bool> answer = stxlib::is_main_thread();
+    if (answer.failed()) return false;
+    const bool result = *answer.value();
+    return result;
+}
+#endif
 std::atomic_flag running = ATOMIC_FLAG_INIT;
 // Set once by Application::shutdown. Read and written only while `running`
 // is held, so the flag orders it; atomic so a refused caller on another
@@ -248,6 +263,11 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.options.initially_visible = (*bridge).options.initially_visible;
     entry.options.hide_on_close = (*bridge).options.hide_on_close;
     entry.options.minimizable = (*bridge).options.minimizable;
+#if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_LINUX)
+    // The macOS and Linux X11 hosts carry out the first-frame show gate; the
+    // other hosts' options have no ceiling and show at once.
+    entry.options.first_frame_show_ceiling = (*bridge).options.first_frame_show_ceiling;
+#endif
     entry.options.print_metrics_on_close = (*bridge).options.print_metrics_on_close;
     entry.options.host_ready = HostReady{bridge};
     entry.options.dispatch_pending = DispatchPending{bridge};
@@ -288,22 +308,22 @@ HostServiceError runtime_entry_refusal(const ApplicationWindow& entry, const Hos
     if (detail::primary_window_entry(entry)) return HostServiceError::invalid_argument;
     // A host that opens no popup windows refuses a popup before any native
     // request (HostWindowing::supports_popup_windows).
-    if (entry.popup.has_value() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
-    if (entry.popup.has_value() && host_transient_is_splash((*entry.popup).kind) &&
+    if (entry.popup.present() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
+    if (entry.popup.present() && host_transient_is_splash(((*entry.popup.value())).kind) &&
         !windowing.supports_splash_windows()) {
         return HostServiceError::unsupported;
     }
-    std::optional<HostWindowId> owner{};
+    stxlib::Optional<HostWindowId> owner{};
     if (!entry.owner_id.empty()) {
         owner = windowing.find(entry.owner_id);
-        if (!owner.has_value()) return HostServiceError::invalid_argument;
+        if (owner.absent()) return HostServiceError::invalid_argument;
     }
     const bool floating = entry.floating != HostWindowFloating::none;
     // A floating window is owned by the primary window itself.
-    if (floating && !(owner.has_value() && *owner == windowing.primary())) {
+    if (floating && !(owner == stxlib::Optional<HostWindowId>::of(windowing.primary()))) {
         return HostServiceError::invalid_argument;
     }
-    if (windowing.find(entry.stable_id).has_value()) return HostServiceError::invalid_argument;
+    if (windowing.find(entry.stable_id).present()) return HostServiceError::invalid_argument;
     if (windowing.window_count() >= HostWindowing::maximum_windows) return HostServiceError::too_large;
     const bool floating_full =
         floating && windowing.floating_window_count() >= HostWindowing::maximum_floating_windows;
@@ -399,6 +419,8 @@ HostCapabilities Application::capabilities() {
     const HostCapabilities result = host::windows_capabilities();
 #elif defined(GUI_FORMS_APPLICATION_LINUX)
     const HostCapabilities result = host::linux_capabilities();
+#elif defined(GUI_FORMS_APPLICATION_WEB)
+    const HostCapabilities result = host::web_capabilities();
 #else
     const HostCapabilities result{HostCapabilities::current_protocol_version, "unsupported", HostCapability::none};
 #endif
@@ -418,7 +440,7 @@ ApplicationResult Application::run(std::unique_ptr<Window> window, ApplicationWi
 
 ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
 #if defined(GUI_FORMS_APPLICATION_MACOS)
-    if (pthread_main_np() == 0) return {ApplicationError::wrong_thread};
+    if (!on_main_thread()) return {ApplicationError::wrong_thread};
 #endif
     const RunningScope running_scope{};
     if (!running_scope.acquired()) return {ApplicationError::already_running};
@@ -459,6 +481,16 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
         WindowingReady<host::LinuxApplicationWindow>{&bridges, failure, run_state};
     application.windowing_ended = WindowingEnded{run_state};
     result.native_exit_code = host::run_linux_application(std::move(native), std::move(application));
+#elif defined(GUI_FORMS_APPLICATION_WEB)
+    // The browser's program thread (PROXY_TO_PTHREAD's main); the page's
+    // main thread is refused by the host (exit code 3).
+    std::vector<host::WebApplicationWindow> native{};
+    prepare(windows, bridges, failure, run_state, native);
+    host::WebApplicationOptions application{};
+    application.windowing_ready =
+        WindowingReady<host::WebApplicationWindow>{&bridges, failure, run_state};
+    application.windowing_ended = WindowingEnded{run_state};
+    result.native_exit_code = host::run_web_application(std::move(native), std::move(application));
 #else
     result.error = ApplicationError::unsupported;
 #endif
@@ -471,12 +503,15 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     } else if (result.native_exit_code != 0) {
         result.error = ApplicationError::backend_failure;
     }
+#if defined(GUI_FORMS_APPLICATION_WEB)
+    if (!(*failure).exception && result.native_exit_code == 3) result.error = ApplicationError::wrong_thread;
+#endif
     return result;
 }
 
 ApplicationResult Application::shutdown() {
 #if defined(GUI_FORMS_APPLICATION_MACOS)
-    if (pthread_main_np() == 0) return {ApplicationError::wrong_thread};
+    if (!on_main_thread()) return {ApplicationError::wrong_thread};
 #endif
     // Holding the run flag keeps a run from starting while the library ends.
     const RunningScope running_scope{};

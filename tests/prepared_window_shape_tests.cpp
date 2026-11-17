@@ -1,8 +1,7 @@
 #include "../src/render/text/prepared_window_shape.hpp"
 #include "prepared_text_test_support.hpp"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+#include <stxlib/font_file.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -149,39 +148,52 @@ struct Worker final {
     }
 };
 
-struct MetricFaceOwner final {
-    FT_Library library{};
-    FT_Face face{};
-    MetricFaceOwner() = default;
-    ~MetricFaceOwner() {
-        if (face != nullptr) FT_Done_Face(face);
-        if (library != nullptr) FT_Done_FreeType(library);
-    }
-    MetricFaceOwner(const MetricFaceOwner&) = delete;
-    MetricFaceOwner& operator=(const MetricFaceOwner&) = delete;
-};
+// FreeType 2.14's 16.16 rounding, written out here as the oracle:
+// FT_DivFix and FT_MulFix round half away from zero.
+std::int64_t oracle_divide(const std::int64_t dividend, const std::int64_t divisor) {
+    require(dividend >= 0 && divisor > 0, "oracle division of positive values");
+    const std::int64_t quotient = (dividend * 65536 + divisor / 2) / divisor;
+    return quotient;
+}
 
+std::int64_t oracle_multiply(const std::int64_t value, const std::int64_t scale) {
+    const std::int64_t magnitude = value < 0 ? -value : value;
+    const std::int64_t product = (magnitude * scale + 0x8000) / 65536;
+    const std::int64_t result = value < 0 ? -product : product;
+    return result;
+}
+
+// The whole pixel at or below `value` (26.6), in 26.6.
+std::int64_t oracle_floor_pixel(const std::int64_t value) {
+    std::int64_t pixels = value / 64;
+    if (value % 64 != 0 && value < 0) --pixels;
+    const std::int64_t floored = pixels * 64;
+    return floored;
+}
+
+// The face's size metrics at `device_size` (26.6) as FreeType 2.14 gave
+// them (y_scale = size / units per em; ascender up, descender down, height
+// to the nearest whole pixel), from the face's design numbers as STXlib's
+// independent font reader reads them.
 text::PrimaryLineMetrics reference_primary_metrics(const detail::PreparedFontFace& source,
     const std::int64_t device_size) {
-    MetricFaceOwner owner{};
-    const FT_Error initialized = FT_Init_FreeType(&owner.library);
-    require(initialized == 0, "independent font metric library");
-    require(source.size <= static_cast<std::size_t>(std::numeric_limits<FT_Long>::max()), "native font length fits");
-    const FT_Byte* const bytes = reinterpret_cast<const FT_Byte*>(source.bytes.get());
-    const FT_Long length = static_cast<FT_Long>(source.size);
-    const FT_Long face_index = static_cast<FT_Long>(source.index);
-    const FT_Error opened = FT_New_Memory_Face(owner.library, bytes, length, face_index, &owner.face);
-    require(opened == 0 && owner.face != nullptr, "independent admitted font face");
-    require(device_size > 0 && device_size <= std::numeric_limits<FT_F26Dot6>::max(), "native metric size fits");
-    const FT_F26Dot6 size = static_cast<FT_F26Dot6>(device_size);
-    const FT_Error sized = FT_Set_Char_Size(owner.face, 0, size, 72U, 72U);
-    require(sized == 0 && (*owner.face).size != nullptr, "independent rounded native size");
-    const FT_Size_Metrics& native = (*(*owner.face).size).metrics;
+    stxlib::glyphs::Font font{};
+    const stxlib::View<stxlib::u8> bytes(reinterpret_cast<const stxlib::u8*>(source.bytes.get()), source.size);
+    const stxlib::OperationStatus opened = stxlib::glyphs::open_font(bytes, source.index, font);
+    require(opened.succeeded() && font.units_per_em != 0U, "independent admitted font face");
+    require(device_size > 0, "native metric size fits");
+    const std::int64_t y_scale = oracle_divide(device_size, static_cast<std::int64_t>(font.units_per_em));
+    const std::int64_t ascender = oracle_multiply(font.ascender, y_scale);
+    const std::int64_t descender = oracle_multiply(font.descender, y_scale);
+    const std::int64_t height = oracle_multiply(font.height, y_scale);
+    const std::int64_t ascender_ceiling = oracle_floor_pixel(ascender + 63);
+    const std::int64_t descender_floor = oracle_floor_pixel(descender);
+    const std::int64_t height_rounded = oracle_floor_pixel(height + 32);
     text::PrimaryLineMetrics result{};
-    result.ascent_device = static_cast<double>(native.ascender) / 64.0;
-    result.descent_device = -static_cast<double>(native.descender) / 64.0;
-    const double height = static_cast<double>(native.height) / 64.0;
-    const double gap = height - result.ascent_device - result.descent_device;
+    result.ascent_device = static_cast<double>(ascender_ceiling) / 64.0;
+    result.descent_device = -static_cast<double>(descender_floor) / 64.0;
+    const double line_height = static_cast<double>(height_rounded) / 64.0;
+    const double gap = line_height - result.ascent_device - result.descent_device;
     result.line_gap_device = std::max(0.0, gap);
     return result;
 }
@@ -300,7 +312,7 @@ void test_exact_primary_metrics(const std::span<const std::byte> font) {
 // Consolas have one) reaches the one line-height rule. The table directory
 // is read in place: a 12-byte header, then 16-byte records of tag,
 // checksum, offset and length; the line gap is hhea's signed 16-bit field
-// at byte 8. The stale checksum is not read by FreeType.
+// at byte 8. The stale checksum is not read by the font reader.
 std::vector<std::byte> with_line_gap(const std::span<const std::byte> font, const std::int16_t gap) {
     std::vector<std::byte> result(font.begin(), font.end());
     require(result.size() >= 12U, "font table directory header");
@@ -607,7 +619,7 @@ int main(const int argc, char** argv) {
         require(argc == 2, "font directory required");
         const std::filesystem::path directory(argv[1]);
         const std::vector<std::byte> font = prepared_test::read_font(directory);
-        const std::filesystem::path arabic_path = directory / "NotoSansArabic-Regular.ttf";
+        const std::filesystem::path arabic_path = directory / "NotoSansArabic-Minimal.ttf";
         const std::filesystem::path hebrew_path = directory / "NotoSansHebrew-Regular.ttf";
         const std::vector<std::byte> arabic = read_fallback(arabic_path);
         const std::vector<std::byte> hebrew = read_fallback(hebrew_path);

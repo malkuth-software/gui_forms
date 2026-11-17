@@ -128,7 +128,7 @@ struct NumericUpDownScrubCapability {
     }
 };
 
-// Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+// Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 template <typename Declaring>
 struct NumericUpDownThousandsSeparatorCapability {
     PropertyCell<bool, NumericUpDownThousandsSeparatorCapability<Declaring>> thousands_separator{false};
@@ -141,10 +141,10 @@ struct NumericUpDownThousandsSeparatorCapability {
     }
 };
 
-// Where the editor's text sits (TextAlign): near, center or far.
+// Where the editor's text sits (TextAlign): start, center or end.
 template <typename Declaring>
 struct NumericUpDownTextAlignmentCapability {
-    PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::near};
+    PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment{HorizontalAlignment::start};
 
     static void assign(NumericUpDownTextAlignmentCapability& capability, HorizontalAlignment incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

@@ -30,6 +30,7 @@ struct HostEventNameVisitor final {
     const char* operator()(const HostContextRequestEvent&) const noexcept { return "context_request"; }
     const char* operator()(const HostHoverEvent&) const noexcept { return "hover"; }
     const char* operator()(const HostWindowStateEvent&) const noexcept { return "window_state"; }
+    const char* operator()(const HostRelativeMotionEvent&) const noexcept { return "relative_motion"; }
 };
 
 struct HostDialogKindVisitor final {
@@ -192,6 +193,7 @@ const char* cursor_kind_name(CursorKind cursor) noexcept {
     case CursorKind::forbidden: return "forbidden";
     case CursorKind::resize_diagonal_down: return "resize_diagonal_down";
     case CursorKind::resize_diagonal_up: return "resize_diagonal_up";
+    case CursorKind::help: return "help";
     }
     return "unknown";
 }

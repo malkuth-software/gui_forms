@@ -12,9 +12,12 @@ Everything since builds on the sealed interfaces additively. A change to a
 sealed interface needs a recorded owner decision.
 
 The package version is 0.6 (owner, 2026-11-12): release tags are `v0.6.N`
-and consumers ask for `find_package(GUIForms 0.6 ...)`. Under the 0.2 number
-the series was tagged `v0.2.N`; the stages 0.3 to 0.5 were not tagged
+and consumers ask for `find_package(GUIForms 0.6 ...)`. The first build
+under it is `v0.6.1541` (checkpoints 29 to 31). Under the 0.2 number the
+series was tagged `v0.2.N`; the stages 0.3 to 0.5 were not tagged
 separately. Those tags are kept.
+
+These notes cover checkpoints 24 to 31 (pull requests #474 to #482).
 
 ## Breaking changes
 
@@ -33,6 +36,32 @@ separately. Those tags are kept.
   minimum beyond the host's own, as Windows Forms' empty `MinimumSize`.
   `Application::validate` names why it refused
   (`ApplicationResult::refusal`).
+- **Flat control headers.** Every control header moved to
+  `include/gui_forms/controls/<name>.hpp`, with no forwarding headers;
+  `tools/control_header_moves.json` maps the old paths to the new, and
+  `tools/flatten_control_headers.py check` finds old spellings. The
+  umbrella headers (`basic_controls.hpp` and the others) are unchanged.
+- **Lab controls left the installed library.** CorrespondenceView,
+  ReviewCard and InstrumentRack moved to the optional `GUIForms::Lab`
+  (`lab/include/gui_forms_lab/`, installed with `GUI_FORMS_INSTALL_LAB`);
+  EasingPreview, TypographySpecimen and the visual inspector moved to the
+  Gallery's own controls and are not installed.
+- **Exports.** The shared libraries export exactly what `GUI_FORMS_API`
+  marks, through generated export lists (`cmake/exports/`); a symbol
+  without the mark is no longer visible to a program.
+- **Per-event raisers.** `Control::on_pointer` and `Control::on_key` are
+  gone. A control overrides the Windows Forms-shaped raisers instead
+  (`on_mouse_down`, `on_key_down`, `on_click` and the others, 30 in all);
+  `MouseEventArgs` gains the routed event's fields and `handled`. MouseUp
+  is raised before Click, and `suppress_click` and `suppress_key_press`
+  follow Windows Forms.
+- **`right_to_left` replaces `layout_direction`** as the visible spelling
+  (`no`, `yes`, `inherit`, inherited down the tree). A form document that
+  writes `layout-direction` is refused with E820, which names the new
+  spelling; `tools/migrate_right_to_left.py` rewrites forms, JSON and
+  registry writes.
+- **The 0.x C ABI is retired.** The sealed C ABI (`gf_abi.h`,
+  `GUIForms::CAbi`) is the one C surface; `c_api.h` is gone.
 
 ## Other changes
 
@@ -108,12 +137,27 @@ separately. Those tags are kept.
 - The ribbon gaps: its drop-down menus and Backstage take the ribbon's
   theme.
 
-### Pending (checkpoint 27, not yet on main)
-- The look integration.
+### Checkpoint 27 (pull request #480)
+- The look integration's rows: overlapping folder tabs with a shadow,
+  dither hover, scale-1 faces, ribbon labels and row stacks, field hit
+  areas, check-box sizing and label clipping.
+- The final controls: SevenSegmentDisplay, LinearGauge and RadialGauge,
+  Dial, StepIndicator, Wizard, Callout, ModalLayer, LookupComboBox and
+  AboutDialog, with new arc, needle, beak and scrim theme parts.
+- The help system: help lines, help bodies and keywords in each control's
+  text record, stand-alone topics, HelpBook and its CHM-shaped viewer and
+  window, search, F1 and What's This, and a print layout.
 - The declarative drag engine (Splitter and SplitContainer on it), the
   Blender-style value bar, the new drawing primitives (batch and polyline
   drawing, a conic gradient) and the plots package (PlotView, its items and
   Sparkline).
+- The invalidation overlay: areas presented again are outlined for 300 ms,
+  coloured by cause (environment variable, C++, C ABI and a Gallery
+  switch).
+- Tooltip rules: a blank tooltip never shows, none shows under an open
+  menu, and programs and windows can switch them off; tooltips bake on a
+  worker thread.
+- The automation channel is off unless a program asks for it.
 - Themes: application colour roles, a build-time theme check and window
   capture.
 - FlexPanel: a reversed axis opens on its main-axis start, and the
@@ -131,3 +175,53 @@ separately. Those tags are kept.
   surfaces and reuses cached moved shadows, horizontal wheel input
   (`WM_MOUSEHWHEEL`); each damaged band is presented as a whole-height
   top-down DIB.
+
+### Checkpoint 28 (pull request #481)
+- **C ABI 1.2** (owner decision D9): the window, focus, decoration,
+  anchored overlay, data grid, docking and font surfaces, additions only;
+  custom-control layout callbacks; a data-provider binding (schema,
+  provider, column store, sorted and filtered views, and the C#
+  `BindingListProvider`); the help table.
+- **Cost:** the window tree's paint cost falls from about 782,000 to about
+  30,000 ns per control in the tree-cost benchmark; kept text layouts;
+  content scroll copies (`Control::scroll_content`, RasterCanvas pans).
+- TreeListView shows virtual rows over a height-indexed tree.
+- **Themes:** every program takes a theme from its command line
+  (`--theme`, `GUI_FORMS_THEME_SHEET`), and a plain sheet loads at run time
+  (`themes.load_sheet` in the C ABI); the windows-professional theme is
+  redone.
+- **Failure:** native entry points fail fast through one boundary that
+  reports the site, the exception and a stack; housekeeping keeps counters
+  against named expectations instead (`gui-forms-telemetry=expectation`).
+- Hosts: an idle handshake, input-method fixes, the Windows file dialog
+  through `IFileDialog`, and MIT-SHM presentation on X11.
+- Images drawn below 1x scale go through `stx_conv`.
+- The Windows application DLL shrinks from 38.8 MB to 23.9 MB.
+
+### Checkpoints 29 to 31 (pull request #482)
+- **C ABI 1.3:** generated class tables, so C and C# programs can override
+  a control's `On*` hooks (additions only; the audit against 1.1 and 1.2
+  reports no break).
+- **Controls:** `Control::RightToLeft`; TextBoxBase, ListControl and
+  UpDownBase as Windows Forms' shared bases; VirtualRowsView;
+  IndicatorLamp, a lamp control in every theme with an optional light-plane
+  lens; `Button::danger`, the danger key; the public NodeCanvas, a node
+  graph canvas with its own theme parts and a spatial index.
+- **Libraries:** DragTracker; NodeGraph undo, redo and the
+  `gui-forms-graph 1` save format; paragraph layout, with glyph runs as
+  output and `Painter::draw_glyph_runs`; ImageAtlas; allocation statistics.
+- **Rows:** row heights indexed by `stx_btree` (from stx_auxlib) with
+  fixed-point heights; 3 to 5 times faster than the previous index at
+  10 million rows in the package's timings.
+- **Borrowed views** with a checked build (`GUI_FORMS_CHECKED_BORROWS`, on
+  in the sanitizer tree), and the member manifest (`manifests/members.json`),
+  which classifies every control member against Windows Forms.
+- **Industrial surfaces:** eight per-pixel paint finishes and the glint as
+  a `finish(...)` material, baked light planes composited at run time, the
+  GOST paint palette and the industrial theme, with a Gallery page.
+- **Themes:** custom states in selectors (`:state(x)` against a control's
+  declared states); the canvas theme with `:item()` selectors and
+  world-anchored finish tiles; dithered gradient fills (ordered and blue
+  noise).
+- **API traps closed:** a direct child `arrange()` during a layout pass is
+  refused and counted; stale image ids are reported.

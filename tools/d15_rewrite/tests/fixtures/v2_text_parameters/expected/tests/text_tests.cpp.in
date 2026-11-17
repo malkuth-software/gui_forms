@@ -1,0 +1,13 @@
+#include <gui_forms/text.hpp>
+
+#include <stxlib/fail_fast.hpp>
+#include <string>
+#include "../src/platform/stxlib_bridge.hpp"
+
+int main() {
+    const std::string owned = "dial";
+    const std::size_t first = gui_forms::measure("knob");
+    const std::size_t second = gui_forms::measure(stxlib::take_or_fail_fast(gui_forms::platform::validated_text(owned)));
+    const bool named = gui_forms::same_name(stxlib::take_or_fail_fast(gui_forms::platform::validated_text(owned)));
+    return first + second == 0U && named ? 1 : 0;
+}

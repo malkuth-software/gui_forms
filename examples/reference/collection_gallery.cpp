@@ -4,6 +4,7 @@
 #include <gui_forms/application.hpp>
 #include <gui_forms/collection_controls.hpp>
 
+#include <stxlib/optional.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -44,7 +45,7 @@ private:
     void rebuild_commands() {
         const std::string run_label = alternate_ ? "Run again" : "Run";
         (*window_.commands).set_items(
-            {{.id = 1, .label = run_label, .shortcut = gf::KeyGesture{gf::PhysicalKey::r, gf::Modifier::control},
+            {{.id = 1, .label = run_label, .shortcut = stxlib::Optional<gui_forms::KeyGesture>::of(gf::KeyGesture{gf::PhysicalKey::r, gf::Modifier::control}),
               .command = &model_.run},
              {.id = 2, .label = "Enable / disable Run"},
              {.id = 3, .label = "Rebuild items"}});

@@ -8,6 +8,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/host/session/host_session.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 #include "gui_forms/host/types/host_capability/host_capability.hpp"
 #include "gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp"
@@ -29,6 +30,7 @@
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "support/routed_input_probe.hpp"
+#include "support/frame_wake.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -40,6 +42,10 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+
+#include <stxlib/optional.hpp>
+
+using gui_forms::test_support::wake_at;
 
 namespace {
 
@@ -777,6 +783,12 @@ void test_typed_drag_destination_routing_and_bounds() {
     require(fixture.host.dispatch(std::move(invalid), 6).error ==
                 HostDispatchError::invalid_payload,
             "aggregate drag payloads beyond 16 MiB must fail before callbacks");
+    // A-gf-host-01-F5: typed text is checked as UTF-8 at the boundary too.
+    TextInputEvent latin_one{};
+    latin_one.text_utf8 = std::string{"\xE9", 1};
+    require(fixture.host.dispatch(std::move(latin_one), 7).error ==
+                HostDispatchError::invalid_payload,
+            "text input that is not UTF-8 must fail at the host boundary");
 
     std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("drag.root"));
     (*root).set_requested_bounds({0.0, 0.0, 100.0, 40.0});
@@ -955,12 +967,12 @@ void test_display_capture_and_occlusion_synchronization() {
     FrameRequestToken active = fixture.window.schedule_paint(
         fixture.probe, base + std::chrono::nanoseconds(10));
     require(fixture.host.dispatch(HostOcclusionEvent{true}, 7).accepted() &&
-                fixture.window.occluded() && !fixture.window.next_wake().has_value() &&
+                fixture.window.occluded() && fixture.window.next_wake().absent() &&
                 active.connected(),
             "host occlusion must pause rather than revoke retained paint work");
     require(fixture.host.dispatch(HostOcclusionEvent{false}, 20).accepted() &&
                 !fixture.window.occluded() &&
-                fixture.window.next_wake() == base + std::chrono::nanoseconds(10),
+                fixture.window.next_wake() == wake_at(base + std::chrono::nanoseconds(10)),
             "host resume must expose the overdue paint deadline once");
     const FramePollResult resumed =
         fixture.window.poll_frame_schedule(base + std::chrono::nanoseconds(20));
@@ -1068,6 +1080,48 @@ void test_sequence_geometry_and_shutdown_guards() {
             "events after shutdown must be rejected deterministically");
 }
 
+// A window destroyed before its session (house style 4: the session
+// observes the window and does not own it). The session sees the window
+// gone, refuses later events with after_shutdown and ends without touching
+// it; its shutdown and destructor run without the window's dispatcher,
+// which went with the window (before, ~HostSession locked the freed
+// window's mutex). The sanitizer tree reports any read of the window.
+void test_session_outlives_its_window() {
+    std::shared_ptr<InputProbe> probe = make_control<InputProbe>(StableId("host.gone.probe"));
+    std::unique_ptr<Window> window = std::make_unique<Window>(probe, Size{100.0, 80.0});
+    std::unique_ptr<HostSession> session = std::make_unique<HostSession>(*window, host::headless_capabilities());
+    HostEvent attach{1, 1, HostAttachEvent{{100.0, 80.0}, 1.0}};
+    require((*session).dispatch(std::move(attach)).accepted(), "the session attaches to its window");
+    window.reset();
+    probe.reset();
+    HostEvent resize{2, 2, HostResizeEvent{{120.0, 90.0}}};
+    require((*session).dispatch(std::move(resize)).error == HostDispatchError::after_shutdown,
+            "an event after the window was destroyed is refused as after shutdown");
+    const HostSessionSnapshot ended = (*session).snapshot();
+    require(ended.shutdown && !ended.attached && ended.phase == HostLifecyclePhase::shutdown,
+            "the session ends with its window");
+    (*session).shutdown();
+    session.reset();
+
+    // Never dispatched to: the destructor alone meets the destroyed window.
+    std::shared_ptr<InputProbe> second_probe = make_control<InputProbe>(StableId("host.gone.second"));
+    std::unique_ptr<Window> second = std::make_unique<Window>(second_probe, Size{100.0, 80.0});
+    std::unique_ptr<HostSession> quiet = std::make_unique<HostSession>(*second, host::headless_capabilities());
+    second.reset();
+    quiet.reset();
+
+    // The headless host, which holds a session with services, likewise.
+    std::shared_ptr<InputProbe> hosted_probe = make_control<InputProbe>(StableId("host.gone.hosted"));
+    std::unique_ptr<Window> hosted = std::make_unique<Window>(hosted_probe, Size{100.0, 80.0});
+    std::unique_ptr<host::HeadlessHost> headless = std::make_unique<host::HeadlessHost>(*hosted);
+    require((*headless).dispatch(HostAttachEvent{{100.0, 80.0}, 1.0}, 1U).accepted(), "the headless host attaches");
+    hosted.reset();
+    require((*headless).pump_dispatcher(8U).invoked == 0U, "a destroyed window has no posted work");
+    require((*headless).dispatch(HostActivationEvent{true}, 2U).error == HostDispatchError::after_shutdown,
+            "the headless host's session ends with its window");
+    headless.reset();
+}
+
 // Counts the presentation_changed notifications a window raises.
 struct PresentationChangeCounter final {
     unsigned* count{};
@@ -1075,12 +1129,13 @@ struct PresentationChangeCounter final {
 };
 
 void test_input_settings_report_and_validation() {
-    require(host_protocol_revisions.size() == 6U && host_protocol_revisions[1].version == 9U &&
+    require(host_protocol_revisions.size() == 8U && host_protocol_revisions[1].version == 9U &&
                 host_protocol_revisions[2].version == 10U && host_protocol_revisions[3].version == 11U &&
                 host_protocol_revisions[4].version == 12U && host_protocol_revisions[5].version == 13U &&
-                HostCapabilities::current_protocol_version == 13U,
+                host_protocol_revisions[6].version == 14U && host_protocol_revisions[7].version == 15U &&
+                HostCapabilities::current_protocol_version == 15U,
             "the compositor report is version 9, the input settings 10, the mouse conventions 11, the "
-            "window state 12 and the caret blink 13");
+            "window state 12, the caret blink 13, the locale 14 and the relative pointer 15");
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     const PresentationSettings initial = fixture.window.presentation_settings();
@@ -1301,6 +1356,38 @@ void test_close_cancellation_and_closed_cleanup() {
             "closed lifecycle must account cancellation and revoke scheduled work");
 }
 
+// A-gf-host-02-F1: a quit asks every window before it closes any, with
+// query_only. The observers hear the query and may refuse; an allowed query
+// leaves the session attached, so when another window refuses the quit the
+// windows that agreed still take input and can still be closed.
+void test_close_query_authorizes_nothing() {
+    const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
+    Fixture& fixture = *held_fixture;
+    static_cast<void>(fixture.host.dispatch(HostAttachEvent{{320.0, 180.0}, 1.0}, 1));
+    require(fixture.host.dispatch(
+                HostCloseRequest{HostCloseReason::quit, false, false, true}, 2).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::attached,
+            "an allowed close query must leave the session attached");
+    PointerEvent input;
+    input.action = PointerAction::move;
+    input.position = {10.0, 10.0};
+    require(fixture.host.dispatch(input, 3).accepted(),
+            "input must still reach a window that agreed to a quit another window refused");
+    SubscriptionToken cancellation =
+        fixture.host.session().closing().subscribe(cancel_close);
+    require(!fixture.host.dispatch(
+                 HostCloseRequest{HostCloseReason::quit, false, false, true}, 4).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::attached,
+            "a close query reaches the closing observers, who may refuse it");
+    cancellation.disconnect();
+    require(fixture.host.dispatch(
+                HostCloseRequest{HostCloseReason::user, false}, 5).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::close_authorized,
+            "a window that agreed to a query can still be closed by a real request");
+    require(fixture.host.session().snapshot().close_requests == 3U,
+            "queries are counted as close requests");
+}
+
 // A session end (HostCloseReason::session_end) asks the closing handler
 // with its reason; an allowed request leaves the window attached, since the
 // platform may still call the session's end off, and live input still
@@ -1309,7 +1396,7 @@ void test_session_end_close_stays_attached_until_closed() {
     const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
     Fixture& fixture = *held_fixture;
     static_cast<void>(fixture.host.dispatch(HostAttachEvent{{320.0, 180.0}, 1.0}, 1));
-    require(!fixture.window.host_close_reason().has_value(),
+    require(fixture.window.host_close_reason().absent(),
             "an open window must report no close reason");
     SubscriptionToken cancellation =
         fixture.host.session().closing().subscribe(cancel_close);
@@ -1330,7 +1417,7 @@ void test_session_end_close_stays_attached_until_closed() {
     require(fixture.host.dispatch(HostClosedEvent{HostCloseReason::session_end}, 5).accepted() &&
                 fixture.host.session().snapshot().phase == HostLifecyclePhase::closed,
             "the host's closed event must close a session-ending window");
-    require(fixture.window.host_close_reason() == HostCloseReason::session_end,
+    require(fixture.window.host_close_reason() == stxlib::Optional<HostCloseReason>::of(HostCloseReason::session_end),
             "the window must record the closed event's reason");
 }
 
@@ -1449,10 +1536,12 @@ int main() {
         test_display_capture_and_occlusion_synchronization();
         test_environment_services_are_bounded_and_deterministic();
         test_sequence_geometry_and_shutdown_guards();
+        test_session_outlives_its_window();
         test_input_settings_report_and_validation();
         test_lifecycle_transition_guards();
         test_close_cancellation_and_closed_cleanup();
         test_session_end_close_stays_attached_until_closed();
+        test_close_query_authorizes_nothing();
         test_headless_trace_is_byte_deterministic();
         test_headless_host_observes_model_originated_paint_wakes();
         test_normalized_host_input_reports_paint_lease_deferral();

@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <utility>
 
@@ -105,6 +106,19 @@ struct DataGridViewAllowUserToDeleteRowsCapability {
         control.prepare_write(std::as_const(capability.allow_user_to_delete_rows), incoming);
         if (!capability.allow_user_to_delete_rows.replace(std::move(incoming))) return;
         control.written(std::as_const(capability.allow_user_to_delete_rows));
+    }
+};
+
+// Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.
+template <typename Declaring>
+struct DataGridViewShowCellToolTipsCapability {
+    PropertyCell<bool, DataGridViewShowCellToolTipsCapability<Declaring>> show_cell_tool_tips{true};
+
+    static void assign(DataGridViewShowCellToolTipsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.show_cell_tool_tips), incoming);
+        if (!capability.show_cell_tool_tips.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.show_cell_tool_tips));
     }
 };
 
@@ -228,9 +242,9 @@ struct DataGridViewEnableHeadersVisualStylesCapability {
 // The authored colour of the grid lines; empty takes the theme's (GridColor).
 template <typename Declaring>
 struct DataGridViewGridColorCapability {
-    PropertyCell<std::optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color{};
+    PropertyCell<stxlib::Optional<Color>, DataGridViewGridColorCapability<Declaring>> grid_color{};
 
-    static void assign(DataGridViewGridColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(DataGridViewGridColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.grid_color), incoming);
         if (!capability.grid_color.replace(std::move(incoming))) return;
@@ -241,9 +255,9 @@ struct DataGridViewGridColorCapability {
 // The authored colour behind the cells; empty takes the theme's (BackgroundColor).
 template <typename Declaring>
 struct DataGridViewBackgroundColorCapability {
-    PropertyCell<std::optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color{};
+    PropertyCell<stxlib::Optional<Color>, DataGridViewBackgroundColorCapability<Declaring>> background_color{};
 
-    static void assign(DataGridViewBackgroundColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(DataGridViewBackgroundColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.background_color), incoming);
         if (!capability.background_color.replace(std::move(incoming))) return;
@@ -355,6 +369,19 @@ struct DataGridViewColumnHeadersHeightCapability {
     }
 };
 
+// Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).
+template <typename Declaring>
+struct DataGridViewColumnHeadersHeightSizeModeCapability {
+    PropertyCell<DataGridViewColumnHeadersHeightSizeMode, DataGridViewColumnHeadersHeightSizeModeCapability<Declaring>> column_headers_height_size_mode{DataGridViewColumnHeadersHeightSizeMode::enable_resizing};
+
+    static void assign(DataGridViewColumnHeadersHeightSizeModeCapability& capability, DataGridViewColumnHeadersHeightSizeMode incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.column_headers_height_size_mode), incoming);
+        if (!capability.column_headers_height_size_mode.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.column_headers_height_size_mode));
+    }
+};
+
 // The row header band's width, 4 to 1024 logical units (RowHeadersWidth).
 template <typename Declaring>
 struct DataGridViewRowHeadersWidthCapability {
@@ -378,6 +405,32 @@ struct DataGridViewRowHeightCapability {
         control.prepare_write(std::as_const(capability.row_height), incoming);
         if (!capability.row_height.replace(std::move(incoming))) return;
         control.written(std::as_const(capability.row_height));
+    }
+};
+
+// The least height of every row, 4 to 4096 logical units (RowTemplate.MinimumHeight, for every row): user resizing, automatic heights and set_row_height_at stop there, and shorter heights are laid out at it.
+template <typename Declaring>
+struct DataGridViewMinimumRowHeightCapability {
+    PropertyCell<double, DataGridViewMinimumRowHeightCapability<Declaring>> minimum_row_height{4.0};
+
+    static void assign(DataGridViewMinimumRowHeightCapability& capability, double incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.minimum_row_height), incoming);
+        if (!capability.minimum_row_height.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.minimum_row_height));
+    }
+};
+
+// The leading rows that stay at the top of the data area while the other rows scroll (Windows Forms' DataGridViewRow.Frozen, which freezes a row and every row above it); counts past the rows freeze them all.
+template <typename Declaring>
+struct DataGridViewFrozenRowCountCapability {
+    PropertyCell<std::size_t, DataGridViewFrozenRowCountCapability<Declaring>> frozen_row_count{0U};
+
+    static void assign(DataGridViewFrozenRowCountCapability& capability, std::size_t incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.frozen_row_count), incoming);
+        if (!capability.frozen_row_count.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.frozen_row_count));
     }
 };
 
@@ -502,6 +555,32 @@ struct DataGridViewAllowUserToAddRowsCapability {
     }
 };
 
+// Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).
+template <typename Declaring>
+struct DataGridViewAutoGenerateColumnsCapability {
+    PropertyCell<bool, DataGridViewAutoGenerateColumnsCapability<Declaring>> auto_generate_columns{false};
+
+    static void assign(DataGridViewAutoGenerateColumnsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.auto_generate_columns), incoming);
+        if (!capability.auto_generate_columns.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.auto_generate_columns));
+    }
+};
+
+// Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.
+template <typename Declaring>
+struct DataGridViewStandardTabCapability {
+    PropertyCell<bool, DataGridViewStandardTabCapability<Declaring>> standard_tab{false};
+
+    static void assign(DataGridViewStandardTabCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.standard_tab), incoming);
+        if (!capability.standard_tab.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.standard_tab));
+    }
+};
+
 // The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
 template <typename Declaring>
 struct DataGridViewDataSourceCapability {
@@ -535,6 +614,7 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewRowOrderPolicyCapability<Declaring>,
                                   public DataGridViewRowOrderThresholdsCapability<Declaring>,
                                   public DataGridViewAllowUserToDeleteRowsCapability<Declaring>,
+                                  public DataGridViewShowCellToolTipsCapability<Declaring>,
                                   public DataGridViewShowCellErrorsCapability<Declaring>,
                                   public DataGridViewShowRowErrorsCapability<Declaring>,
                                   public DataGridViewShowEditingIconCapability<Declaring>,
@@ -554,8 +634,11 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewColumnHeadersVisibleCapability<Declaring>,
                                   public DataGridViewRowHeadersVisibleCapability<Declaring>,
                                   public DataGridViewColumnHeadersHeightCapability<Declaring>,
+                                  public DataGridViewColumnHeadersHeightSizeModeCapability<Declaring>,
                                   public DataGridViewRowHeadersWidthCapability<Declaring>,
                                   public DataGridViewRowHeightCapability<Declaring>,
+                                  public DataGridViewMinimumRowHeightCapability<Declaring>,
+                                  public DataGridViewFrozenRowCountCapability<Declaring>,
                                   public FontCapability<Declaring>,
                                   public DataGridViewReadOnlyCapability<Declaring>,
                                   public DataGridViewAllowUserToResizeColumnsCapability<Declaring>,
@@ -566,6 +649,8 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewEditModeCapability<Declaring>,
                                   public DataGridViewCellsOnSubSurfaceCapability<Declaring>,
                                   public DataGridViewAllowUserToAddRowsCapability<Declaring>,
+                                  public DataGridViewAutoGenerateColumnsCapability<Declaring>,
+                                  public DataGridViewStandardTabCapability<Declaring>,
                                   public DataGridViewDataSourceCapability<Declaring> {
     DataGridViewCapabilities() : FontCapability<Declaring>(FontSpec{FontSpec{FontRole::content, 11.0, 400, false}}) {}
 };

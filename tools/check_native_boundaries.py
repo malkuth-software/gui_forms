@@ -32,7 +32,7 @@ import os
 import re
 import sys
 
-HOST_DIRECTORIES = ('src/host/windows', 'src/host/linux', 'src/host/macos')
+HOST_DIRECTORIES = ('src/surface/windows', 'src/surface/linux', 'src/surface/macos')
 SOURCE_SUFFIXES = ('.cpp', '.hpp', '.inc', '.mm', '.h')
 BASELINE = 'tools/native_boundary_baseline.txt'
 BOUNDARY_CALL = 'call_failing_fast('
@@ -259,7 +259,7 @@ def read_baseline(root):
 
 
 SELF_TEST = {
-    'src/host/windows/sample.cpp': '''
+    'src/surface/windows/sample.cpp': '''
 LRESULT CALLBACK routed_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
     return gui_forms::detail::call_failing_fast("windows.sample", &deliver, window, message, wparam, lparam);
 }
@@ -271,7 +271,7 @@ HRESULT STDMETHODCALLTYPE Sample::get_Name(BSTR* out) {
     return answer(out);
 }
 ''',
-    'src/host/linux/sample.cpp': '''
+    'src/surface/linux/sample.cpp': '''
 gint routed_count(AtkText* text) {
     return gui_forms::detail::call_failing_fast("linux.atk.count", &answer_count, text);
 }
@@ -283,7 +283,7 @@ void text_init(gpointer raw, gpointer) noexcept {
 void bus_changed(GDBusConnection*, gpointer) { read(); }
 void subscribe() { g_dbus_connection_signal_subscribe(connection, bus_changed, nullptr); }
 ''',
-    'src/host/macos/sample.mm': '''
+    'src/surface/macos/sample.mm': '''
 @implementation SampleView
 - (void)drawRect:(NSRect)dirty {
     gui_forms::detail::call_failing_fast("macos.draw", &run_draw, self, dirty);
@@ -301,11 +301,11 @@ void subscribe() { g_dbus_connection_signal_subscribe(connection, bus_changed, n
 ''',
 }
 SELF_TEST_EXPECTED = {
-    'src/host/windows/sample.cpp::bare_procedure',
-    'src/host/windows/sample.cpp::Sample::get_Name',
-    'src/host/linux/sample.cpp::bare_offset',
-    'src/host/linux/sample.cpp::bus_changed',
-    'src/host/macos/sample.mm::SampleView.mouseDown:',
+    'src/surface/windows/sample.cpp::bare_procedure',
+    'src/surface/windows/sample.cpp::Sample::get_Name',
+    'src/surface/linux/sample.cpp::bare_offset',
+    'src/surface/linux/sample.cpp::bus_changed',
+    'src/surface/macos/sample.mm::SampleView.mouseDown:',
 }
 
 
@@ -316,7 +316,7 @@ def self_test():
     unrouted = {entry.key() for entry in entries if not entry.routed}
     routed = {entry.key() for entry in entries if entry.routed}
     ok = unrouted == SELF_TEST_EXPECTED and len(routed) == 5
-    stale = findings(entries, {'src/host/macos/sample.mm::SampleView.drawRect:', 'src/host/gone.cpp::missing'})
+    stale = findings(entries, {'src/surface/macos/sample.mm::SampleView.drawRect:', 'src/host/gone.cpp::missing'})
     ok = ok and sum(1 for line in stale if 'routed now' in line) == 1 and \
         sum(1 for line in stale if 'no longer an entry' in line) == 1
     print(f'native boundary self-test: {"pass" if ok else "FAIL"} '

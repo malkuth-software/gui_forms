@@ -103,6 +103,33 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_binding_option_invalid:
     case DiagnosticCode::form_binding_source_refused:
     case DiagnosticCode::form_property_renamed:
+    case DiagnosticCode::form_xml_invalid:
+    case DiagnosticCode::control_xml_invalid:
+    case DiagnosticCode::control_root_invalid:
+    case DiagnosticCode::control_element_unknown:
+    case DiagnosticCode::control_attribute_unknown:
+    case DiagnosticCode::control_attribute_missing:
+    case DiagnosticCode::control_vocabulary_unknown:
+    case DiagnosticCode::control_name_repeated:
+    case DiagnosticCode::control_limit_exceeded:
+    case DiagnosticCode::control_state_shadows_standard:
+    case DiagnosticCode::control_geometry_engine_input:
+    case DiagnosticCode::control_physical_direction:
+    case DiagnosticCode::control_part_inactive:
+    case DiagnosticCode::control_command_unreachable:
+    case DiagnosticCode::control_drag_invalid:
+    case DiagnosticCode::control_semantics_missing:
+    case DiagnosticCode::control_key_not_admitted:
+    case DiagnosticCode::control_presentation_property:
+    case DiagnosticCode::control_style_outside_look:
+    case DiagnosticCode::control_reference_unknown:
+    case DiagnosticCode::control_cycle:
+    case DiagnosticCode::control_look_foreign_type:
+    case DiagnosticCode::control_child_invalid:
+    case DiagnosticCode::control_value_invalid:
+    case DiagnosticCode::control_lock_violation:
+    case DiagnosticCode::control_expression_invalid:
+    case DiagnosticCode::control_expression_over_budget:
     case DiagnosticCode::not_yet_built:
         return DiagnosticSeverity::error;
     case DiagnosticCode::unknown_property:
@@ -117,6 +144,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::backdrop_not_on_window:
     case DiagnosticCode::band_not_on_window:
     case DiagnosticCode::part_not_themed:
+    case DiagnosticCode::font_family_unavailable:
     case DiagnosticCode::needs_newer_engine:
     case DiagnosticCode::keyword_from_newer_engine:
     case DiagnosticCode::literal_colour_unremappable:
@@ -125,6 +153,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::theme_variant_missing:
     case DiagnosticCode::inline_colour:
     case DiagnosticCode::clear_control_paints_face:
+    case DiagnosticCode::control_state_without_cue:
     case DiagnosticCode::icon_unknown:
     case DiagnosticCode::icon_not_overridable:
     case DiagnosticCode::icon_refused:
@@ -213,6 +242,33 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_binding_option_invalid: return "form_binding_option_invalid";
     case DiagnosticCode::form_binding_source_refused: return "form_binding_source_refused";
     case DiagnosticCode::form_property_renamed: return "form_property_renamed";
+    case DiagnosticCode::form_xml_invalid: return "form_xml_invalid";
+    case DiagnosticCode::control_xml_invalid: return "control_xml_invalid";
+    case DiagnosticCode::control_root_invalid: return "control_root_invalid";
+    case DiagnosticCode::control_element_unknown: return "control_element_unknown";
+    case DiagnosticCode::control_attribute_unknown: return "control_attribute_unknown";
+    case DiagnosticCode::control_attribute_missing: return "control_attribute_missing";
+    case DiagnosticCode::control_vocabulary_unknown: return "control_vocabulary_unknown";
+    case DiagnosticCode::control_name_repeated: return "control_name_repeated";
+    case DiagnosticCode::control_limit_exceeded: return "control_limit_exceeded";
+    case DiagnosticCode::control_state_shadows_standard: return "control_state_shadows_standard";
+    case DiagnosticCode::control_geometry_engine_input: return "control_geometry_engine_input";
+    case DiagnosticCode::control_physical_direction: return "control_physical_direction";
+    case DiagnosticCode::control_part_inactive: return "control_part_inactive";
+    case DiagnosticCode::control_command_unreachable: return "control_command_unreachable";
+    case DiagnosticCode::control_drag_invalid: return "control_drag_invalid";
+    case DiagnosticCode::control_semantics_missing: return "control_semantics_missing";
+    case DiagnosticCode::control_key_not_admitted: return "control_key_not_admitted";
+    case DiagnosticCode::control_presentation_property: return "control_presentation_property";
+    case DiagnosticCode::control_style_outside_look: return "control_style_outside_look";
+    case DiagnosticCode::control_reference_unknown: return "control_reference_unknown";
+    case DiagnosticCode::control_cycle: return "control_cycle";
+    case DiagnosticCode::control_look_foreign_type: return "control_look_foreign_type";
+    case DiagnosticCode::control_child_invalid: return "control_child_invalid";
+    case DiagnosticCode::control_value_invalid: return "control_value_invalid";
+    case DiagnosticCode::control_lock_violation: return "control_lock_violation";
+    case DiagnosticCode::control_expression_invalid: return "control_expression_invalid";
+    case DiagnosticCode::control_expression_over_budget: return "control_expression_over_budget";
     case DiagnosticCode::not_yet_built: return "not_yet_built";
     case DiagnosticCode::unknown_property: return "unknown_property";
     case DiagnosticCode::unknown_primitive: return "unknown_primitive";
@@ -226,6 +282,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::backdrop_not_on_window: return "backdrop_not_on_window";
     case DiagnosticCode::band_not_on_window: return "band_not_on_window";
     case DiagnosticCode::part_not_themed: return "part_not_themed";
+    case DiagnosticCode::font_family_unavailable: return "font_family_unavailable";
     case DiagnosticCode::needs_newer_engine: return "needs_newer_engine";
     case DiagnosticCode::keyword_from_newer_engine: return "keyword_from_newer_engine";
     case DiagnosticCode::literal_colour_unremappable: return "literal_colour_unremappable";
@@ -234,6 +291,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::theme_variant_missing: return "theme_variant_missing";
     case DiagnosticCode::inline_colour: return "inline_colour";
     case DiagnosticCode::clear_control_paints_face: return "clear_control_paints_face";
+    case DiagnosticCode::control_state_without_cue: return "control_state_without_cue";
     case DiagnosticCode::icon_unknown: return "icon_unknown";
     case DiagnosticCode::icon_not_overridable: return "icon_not_overridable";
     case DiagnosticCode::icon_refused: return "icon_refused";

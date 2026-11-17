@@ -14,6 +14,13 @@
 
 #include "../failure/abi_failure.hpp"
 
+#include "../../../core/diagnostics/shadow_frames/shadow_frame_records.hpp"
+#include "../../../core/failure/fail_fast.hpp"
+
+#include <stxlib/error.hpp>
+#include <stxlib/gate.hpp>
+#include <stxlib/result.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -55,6 +62,48 @@ inline constexpr ThreadDomain ui_domain{0U};
 // the UI thread, exactly once, after its last invoke. disarm() is for a call
 // that fails after building the binding: the library then never took the
 // callback and must not release it.
+// The shadow frame a client's callback runs under: an event's
+// (event_callback, the sender's stable id and the event's name) or a posted
+// callback's (posted_callback, the target's stable id). The texts are copied
+// when the frame opens.
+struct CallbackFrame final {
+    gf_shadow_frame_kind kind = GF_SHADOW_FRAME_KIND_EVENT_CALLBACK;
+    std::string_view subject;
+    std::string_view name;
+};
+
+// The callback gate's target for a client's C function: calls it with the
+// gate's arguments.
+template <typename Result, typename... Parameters>
+struct ClientFunctionCall final {
+    Result (GF_CALL* function)(Parameters...);
+
+    template <typename... Given>
+    Result operator()(Given&... given) const {
+        return (*function)(given...);
+    }
+};
+
+// Calls a client's C function behind STXlib's callback gate (survey B2,
+// S2 = 1) inside frame, the frame's only shadow frame. A C client cannot
+// throw; a C++ client that lets an exception out breaks the header's rule,
+// and the gate records it with the frames it was thrown under and fails
+// fast through GUI.Forms' report (fail_fast.hpp). The arguments are lvalues
+// the function takes by value.
+template <typename Result, typename... Parameters, typename... Arguments>
+Result call_client(const CallbackFrame& frame, Result (GF_CALL* function)(Parameters...),
+                   Arguments&... arguments) noexcept {
+    detail::ensure_fail_fast_reporter();
+    const ClientFunctionCall<Result, Parameters...> call{function};
+    const stxlib::GateFrame gate{
+        .operation = "gui_forms.client_callback",
+        .kind = frame.kind,
+        .subject = detail::well_formed_text(frame.subject),
+        .name = detail::well_formed_text(frame.name),
+    };
+    return stxlib::invoke_callback_classified(detail::fail_fast_classifier, gate, call, arguments...);
+}
+
 class CallbackBinding final {
 public:
     explicit CallbackBinding(const gf_callback& callback) noexcept;
@@ -62,6 +111,10 @@ public:
     CallbackBinding(const CallbackBinding&) = delete;
     CallbackBinding& operator=(const CallbackBinding&) = delete;
 
+    // Calls the client's invoke with event through call_client, inside
+    // frame.
+    void invoke(const CallbackFrame& frame, gf_event& event) const noexcept;
+    // As above, inside an event_callback frame named by the event's name.
     void invoke(gf_event& event) const noexcept;
     void disarm() noexcept;
 
@@ -283,6 +336,9 @@ private:
     // which the caller posts after leaving the lock (an empty one when a
     // drain is pending or there is no dispatcher yet).
     [[nodiscard]] WindowDispatcher wake_locked(ThreadDomain domain) noexcept;
+    // Posts the drain wake_locked asked for, without the lock; clears
+    // drain_pending again when the post queued nothing.
+    void post_wake(const WindowDispatcher& dispatcher, ThreadDomain domain) noexcept;
     [[nodiscard]] ObjectSlot* object_slot_locked(gf_object object) noexcept;
     [[nodiscard]] SubscriptionSlot* subscription_slot_locked(gf_subscription subscription) noexcept;
     // find_component's search; the caller holds the lock.
@@ -331,12 +387,72 @@ private:
 // destroyed, so no callback is released by a static destructor at exit.
 [[nodiscard]] HandleRegistry& registry() noexcept;
 
-// The status and message for the exception being handled; for use inside a
-// catch block of a slot, which is the subsystem boundary, before anything
-// opens a shadow frame. Takes the thread's failure snapshot (C ABI 1.2), and
-// gives an exception with no status of its own GF_STATUS_NATIVE_EXCEPTION
-// when exception reflection is on, GF_STATUS_INTERNAL when it is off.
+// The exception policy of every slot gate (abi_registry.cpp), STXlib's
+// classifier hook (survey N6): the core's own failure types and the standard
+// ones name the status the header documents. It sets the ErrorRecord's code
+// to that gf_status (INVALID_STATE has no ErrorKind of its own, which is why
+// the code carries it) and copies the whole what(), up to
+// failure_message_capacity bytes, into the calling thread's slot message,
+// which the record's 200 bytes could not hold. An exception that is not a
+// C++ exception of this runtime is left to STXlib (foreign_exception, code 0).
+extern const stxlib::ExceptionClassifier slot_classifier;
+
+// Files a failure a slot gate recorded, on the gate's thread, after the gate
+// returned: the status is the record's code (GF_STATUS_INTERNAL when it has
+// none, and GF_STATUS_NATIVE_EXCEPTION for that when exception reflection is
+// on); the message is the classifier's whole copy (else the record's); the
+// failure snapshot (C ABI 1.2) takes the frames of the record's shadow
+// record. Returns the status, which is never GF_STATUS_OK.
+gf_status fail_with_record(SlotIdentity slot, const stxlib::ErrorRecord& record) noexcept;
+
+// As fail_with_record, for the few slot handlers that must keep the exception
+// itself (the class bridge's park): to be called inside the catch block. It
+// classifies the exception as the slot gate does and takes the thread's
+// pending capture (stxlib::park_shadow) for the snapshot's frames.
 gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
+
+// As fail_with_current_exception, with the exception's shadow record already
+// parked by the handler (ParkedFailure::park, abi_failure.hpp); takes no
+// capture of its own.
+gf_status fail_with_current_exception(SlotIdentity slot, stxlib::ShadowReference parked) noexcept;
+
+// Adapts a slot body, which returns its gf_status (fail(...) included), to
+// the gate's OperationResult: a status, failed or not, is a success of the gate; only
+// an exception is the gate's failure.
+template <typename Body, typename... Arguments>
+struct SlotCall final {
+    Body& body;
+
+    stxlib::OperationResult<gf_status> operator()(Arguments&... arguments) const {
+        const gf_status status = body(arguments...);
+        stxlib::OperationResult<gf_status> result = stxlib::OperationResult<gf_status>::success(status);
+        return result;
+    }
+};
+
+// Calls body(arguments...) for slot behind STXlib's gate, inside the slot's
+// library_call frame (table id and slot index), and returns its status. An
+// exception that leaves the body is caught by the gate (survey B1), recorded
+// with the frames it was thrown under, and filed by fail_with_record. The
+// body is a named function taking the slot's parameters by value; the
+// arguments are the slot's own parameters.
+template <typename Body, typename... Arguments>
+gf_status call_slot(const SlotIdentity slot, Body& body, Arguments&... arguments) noexcept {
+    SlotCall<Body, Arguments...> call{body};
+    const stxlib::GateFrame frame{
+        .operation = "gui_forms.c_abi",
+        .first = slot.table_id,
+        .second = slot.slot_index,
+        .kind = GF_SHADOW_FRAME_KIND_LIBRARY_CALL,
+    };
+    const stxlib::OperationResult<gf_status> outcome = stxlib::call_gate_classified(slot_classifier, frame, call, arguments...);
+    if (outcome.succeeded()) {
+        const gf_status status = *outcome.value();
+        return status;
+    }
+    const gf_status failed = fail_with_record(slot, *outcome.error());
+    return failed;
+}
 
 // The failure message for a stable id that breaks the rule
 // (valid_stable_id): what the rule is, with an example.

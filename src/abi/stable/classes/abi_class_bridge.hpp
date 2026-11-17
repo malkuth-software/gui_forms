@@ -30,7 +30,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <memory>
 #include <optional>
 #include <span>
@@ -46,8 +45,8 @@ struct HookKey final {
     std::uint32_t entry = 0U;
 };
 
-// The most segments one class's chain has. The registry checks every chain
-// against it.
+// The most segments one class's chain has. ClassTableView::read refuses a
+// table with more (A-gf-abi-01-F7).
 inline constexpr std::size_t max_class_segments = 16U;
 
 // The bytes of a gf_segment_header, and of one entry.
@@ -140,9 +139,10 @@ struct HookFrame final {
     gf_event* published_event = nullptr;
     HookFieldOperations operations{};
     std::string_view name;
-    // A C++ exception base caught from the raiser below, rethrown once the
-    // entry returns so the raise fails as it would without a table.
-    std::exception_ptr failure;
+    // A C++ exception base caught from the raiser below, with the shadow
+    // record of its throw, rethrown once the entry returns so the raise fails
+    // as it would without a table (survey B8).
+    ParkedFailure failure;
 };
 
 // The table-dependent half of every bridge: the caller's view and instance,
@@ -182,7 +182,7 @@ protected:
     // inside a frame, keeping control alive through the call. False, and
     // nothing called, when control is no longer alive: the layer then runs
     // the raiser below as if there were no table. A C++ exception base caught
-    // is rethrown after entry returns.
+    // is rethrown after entry returns, with the shadow record of its throw.
     [[nodiscard]] bool enter_class_hook(Control& control, gf_hook_entry entry, HookKey hook,
                                         std::string_view property, gf_base_raiser base);
     // The same for a raiser with one parameter: argument is lent to base,
@@ -282,8 +282,9 @@ public:
     [[nodiscard]] Control& bridged_control() noexcept override { return *this; }
 };
 
-// Makes a bridge over Layers from stable_id, bound to view and instance and
-// armed; null when the stock class is not made from a stable id alone (an
+// Makes a bridge over Layers from stable_id, bound to view and instance but
+// not armed (classes.create arms it once the registry has taken it, so a
+// failure before then calls no release, A-gf-abi-01-F6); null when the stock class is not made from a stable id alone (an
 // abstract base, a class whose constructor needs more), so classes.create
 // refuses with GF_STATUS_UNSUPPORTED_CAPABILITY.
 using BridgeFactory = Control::Ptr (*)(StableId stable_id, const ClassTableView& view, void* instance);
@@ -294,7 +295,6 @@ Control::Ptr create_bridge(StableId stable_id, const ClassTableView& view, void*
     if constexpr (std::is_constructible_v<Stock, StableId> && !std::is_abstract_v<Stock>) {
         std::shared_ptr<FinalBridge<Layers>> made = make_control<FinalBridge<Layers>>(std::move(stable_id));
         (*made).bind_class_table(view, instance);
-        (*made).arm_class_table();
         Control::Ptr control = std::move(made);
         return control;
     } else {

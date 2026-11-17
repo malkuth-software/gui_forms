@@ -10,23 +10,10 @@ endif()
 if(NOT GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT)
     message(FATAL_ERROR "Consumer fixture requires the loop transport")
 endif()
-get_target_property(text_core GUIForms::TextMasks INTERFACE_GUI_FORMS_CORE_LINKAGE)
-if(NOT text_core STREQUAL "application")
-    message(FATAL_ERROR "TextMasks must advertise Application's Core")
-endif()
 add_executable(gui_forms_application_text_consumer main.cpp)
 target_link_libraries(gui_forms_application_text_consumer PRIVATE
     GUIForms::Application GUIForms::TextMasks GUIForms::Audio)
 if(TARGET GUIForms::PreparedText)
     target_link_libraries(gui_forms_application_text_consumer PRIVATE GUIForms::PreparedText)
-endif()
-if(LINK_CASE STREQUAL "static_core")
-    target_link_libraries(gui_forms_application_text_consumer PRIVATE GUIForms::Core)
-endif()
-if(WIN32)
-    add_custom_command(TARGET gui_forms_application_text_consumer POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "$<TARGET_FILE:gui_forms_application>" "$<TARGET_FILE:gui_forms_threading>"
-            "$<TARGET_FILE_DIR:gui_forms_application_text_consumer>")
 endif()
 add_test(NAME gui_forms_application_text_consumer COMMAND gui_forms_application_text_consumer)

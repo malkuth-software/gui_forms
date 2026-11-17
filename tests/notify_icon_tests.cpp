@@ -315,6 +315,59 @@ void menu_removed_by_its_command() {
             "the invocation is reported from the menu the row ran in");
 }
 
+// Destroys the icon from a handler: on a click, or as a command runs.
+struct DestroyIconOnClick final {
+    std::unique_ptr<NotifyIcon>* held{};
+    void operator()(const NotifyIconClick&) const { (*held).reset(); }
+};
+
+struct DestroyIconOnCommand final {
+    std::unique_ptr<NotifyIcon>* held{};
+    void operator()(const CommandInvocation&) const { (*held).reset(); }
+};
+
+// A click handler or the chosen command that destroys the icon
+// (A-gf-controls-07-F2): the icon observes its presence across them and
+// touches nothing of itself once it is gone, so no menu is shown after the
+// click and nothing is reported after the command.
+void destroyed_by_its_handlers() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("notify.destroyed"));
+    Window window(root, {320.0, 200.0});
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    const std::shared_ptr<Command> quit = std::make_shared<Command>("tray.quit", "Quit");
+    std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("tray.menu");
+    (*menu).set_items({MenuItemSpec("tray.menu.quit", MenuItemKind::command, quit)});
+
+    std::unique_ptr<NotifyIcon> clicked = std::make_unique<NotifyIcon>(window);
+    (*clicked).icon = std::vector<HostImage>{solid_image(16U)};
+    (*clicked).visible = true;
+    (*clicked).context_menu = menu;
+    require((*clicked).shown(), "the first icon shows");
+    const HostTrayIconId clicked_id{1U};
+    const SubscriptionToken on_click = (*clicked).click().subscribe(DestroyIconOnClick{&clicked});
+    const std::size_t menus_before = services.tray_trace().size();
+    services.simulate_tray_icon_event({clicked_id, HostTrayIconAction::context});
+    require(!clicked, "the click handler destroyed the icon");
+    require(services.tray_trace().find("tray menu id=1", menus_before) == std::string::npos,
+            "an icon destroyed by its click shows no menu");
+
+    std::unique_ptr<NotifyIcon> commanded = std::make_unique<NotifyIcon>(window);
+    (*commanded).icon = std::vector<HostImage>{solid_image(16U)};
+    (*commanded).visible = true;
+    (*commanded).context_menu = menu;
+    require((*commanded).shown(), "the second icon shows");
+    const HostTrayIconId commanded_id{2U};
+    ClickLog log;
+    const SubscriptionToken invoked = (*commanded).menu_item_invoked().subscribe(
+        Delegate<const MenuItemInvocation&>::bind<ClickLog, &ClickLog::on_menu>(log));
+    const SubscriptionToken destroying = (*quit).invoked().subscribe(DestroyIconOnCommand{&commanded});
+    services.queue_tray_menu_choice("tray.menu.quit");
+    services.simulate_tray_icon_event({commanded_id, HostTrayIconAction::context});
+    require(!commanded, "the command destroyed the icon");
+    require(log.invocations.empty(), "an icon destroyed by its command reports nothing after it");
+}
+
 void session_end() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("notify.session"));
     Window window(root, {320.0, 200.0});
@@ -337,6 +390,7 @@ int main() {
     contract();
     component();
     menu_removed_by_its_command();
+    destroyed_by_its_handlers();
     session_end();
     std::cout << "NotifyIcon: image choice, tray contract, headless host, clicks, menu, notifications, "
                  "visibility, disposal and session end passed\n";

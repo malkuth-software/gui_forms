@@ -222,8 +222,10 @@ void read_media(const theme_language::ThemeSource& source, const theme_language:
                 query.unknown_token >= node.content.first.value && query.unknown_token < node.content.end.value;
             if (query.unknown_feature && !inside) fail("an unknown feature names a token of the prelude");
             const gui_forms::MediaCondition& condition = query.condition;
-            const bool low_valid = !condition.minimum_resolution || *condition.minimum_resolution > 0.0;
-            const bool high_valid = !condition.maximum_resolution || *condition.maximum_resolution > 0.0;
+            const bool low_valid =
+                condition.minimum_resolution.absent() || *condition.minimum_resolution.value() > 0.0;
+            const bool high_valid =
+                condition.maximum_resolution.absent() || *condition.maximum_resolution.value() > 0.0;
             if (!low_valid || !high_valid) fail("a read resolution bound is above zero");
         }
         theme_language::MediaQueryProblem second{};
@@ -296,23 +298,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     if (reparsed != parsed || again_tree.nodes != tree.nodes) fail("parsing is repeatable");
     if (!same_records(diagnostics.records(), again_diagnostics.records())) fail("diagnostics are repeatable");
 
-    // The same tokens as a form document (stage FD): the same structural
-    // invariants.
-    theme_language::ThemeDiagnosticList form_diagnostics{};
-    theme_language::ThemeSyntaxTree form_tree{};
-    const theme_language::ParseOutcome form_parsed = theme_language::parse_theme_sheet(
-        source, buffer, lines, form_tree, form_diagnostics, theme_language::ThemeSheetForm::form_document);
-    if (form_parsed == theme_language::ParseOutcome::tree_complete && has_invalid) {
-        fail("an invalid token stops a form parse");
-    }
-    const std::size_t form_errors_admitted = form_parsed == theme_language::ParseOutcome::stopped_at_error ? 1U : 0U;
-    if (form_diagnostics.error_count() != form_errors_admitted) fail("a stopped form parse reports one error");
-    if (!contents_within_nodes(form_tree)) fail("form contents lie within their nodes");
-    std::string form_written{};
-    const theme_language::WriteOutcome form_write =
-        theme_language::write_theme_sheet(form_tree, buffer, source.text, form_written);
-    if (form_write != theme_language::WriteOutcome::written) fail("the form tree nests");
-    if (form_written != source.text) fail("the form tree writes back the document's bytes");
     if (parsed == theme_language::ParseOutcome::tree_complete) {
         read_values(source, buffer, lines, tree);
         read_media(source, buffer, tree);

@@ -1,6 +1,9 @@
 #include "text_mask_native.hpp"
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
 #include <algorithm>
 #include <cmath>
+#include <new>
 
 namespace gui_forms::detail::mask_native {
 void resize_native_glyphs(NativeGlyphBuffer& glyphs, const std::size_t count) {
@@ -18,23 +21,6 @@ void resize_native_glyphs(NativeGlyphBuffer& glyphs, const std::size_t count) {
     glyphs.resize(count);
 }
 namespace {
-struct ScriptLocator final {
-    SBScriptLocatorRef value{SBScriptLocatorCreate()};
-    ScriptLocator() { if (value == nullptr) throw std::bad_alloc{}; }
-    ~ScriptLocator() { SBScriptLocatorRelease(value); }
-    ScriptLocator(const ScriptLocator&) = delete;
-    ScriptLocator& operator=(const ScriptLocator&) = delete;
-};
-struct BidiLine final {
-    SBLineRef value{};
-    explicit BidiLine(const SBParagraphRef paragraph, const std::size_t begin, const std::size_t length)
-        : value(SBParagraphCreateLine(paragraph, begin, length)) {
-        if (value == nullptr) throw std::bad_alloc{};
-    }
-    ~BidiLine() { SBLineRelease(value); }
-    BidiLine(const BidiLine&) = delete;
-    BidiLine& operator=(const BidiLine&) = delete;
-};
 bool same_cluster_run(const NativeCluster& left, const NativeCluster& right) noexcept {
     const bool equal = left.face == right.face && left.script == right.script;
     return equal;
@@ -55,7 +41,9 @@ NativeParagraph::NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, Nati
     NativeWork& work, const std::string_view text)
     : fonts_(fonts), work_(work), text_(text),
       edges_(MaskAllocator<std::size_t>(ledger, MaskResource::workspace)),
-      clusters_(MaskAllocator<NativeCluster>(ledger, MaskResource::workspace)) {
+      clusters_(MaskAllocator<NativeCluster>(ledger, MaskResource::workspace)),
+      run_characters_(MaskAllocator<std::uint32_t>(ledger, MaskResource::workspace)),
+      run_clusters_(MaskAllocator<std::uint32_t>(ledger, MaskResource::workspace)), ledger_(ledger) {
     const GraphemeStorageRequirement requirement = grapheme_storage_requirement(text);
     if (requirement.status != GraphemeStorageStatus::success) throw NativeFailure(TextMaskStatus::invalid_input);
     {
@@ -74,45 +62,64 @@ NativeParagraph::NativeParagraph(const std::shared_ptr<MaskLedger>& ledger, Nati
     }
     if (text.empty()) return;
     clusters_.resize(edges_.size() - 1U);
-    const SBCodepointSequence sequence{SBStringEncodingUTF8, text.data(), text.size()};
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(text.data(), text.size());
+    const stxlib::TextView* const view = validated.value();
+    if (view == nullptr) throw NativeFailure(TextMaskStatus::invalid_input);
     try {
-        algorithm_ = SBAlgorithmCreate(&sequence);
-        if (algorithm_ == nullptr) throw std::bad_alloc{};
-        paragraph_ = SBAlgorithmCreateParagraph(algorithm_, 0, text.size(), SBLevelDefaultLTR);
-        if (paragraph_ == nullptr) throw std::bad_alloc{};
-        if (SBParagraphGetLength(paragraph_) != text.size()) throw NativeFailure(TextMaskStatus::unsupported_profile);
-        buffer_ = hb_buffer_create();
-        if (buffer_ == nullptr || buffer_ == hb_buffer_get_empty() || !hb_buffer_allocation_successful(buffer_)) throw std::bad_alloc{};
-        ScriptLocator scripts{};
-        SBScriptLocatorLoadCodepoints(scripts.value, &sequence);
-        SBBoolean available = SBScriptLocatorMoveNext(scripts.value);
-        const SBScriptAgent* script = SBScriptLocatorGetAgent(scripts.value);
+        // One analysis gives the levels and the script runs. The content
+        // holds no line feed; another paragraph separator inside it ends
+        // the paragraph early, which this path does not support.
+        const stxlib::OperationStatus analysed = stxlib::textlayout::analyse_paragraph(
+            *view, 0U, stxlib::textlayout::BaseDirection::automatic_left_to_right, paragraph_);
+        charge_analysis();
+        if (analysed.failed()) {
+            if ((*analysed.error()).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc{};
+            throw NativeFailure(TextMaskStatus::native_failure);
+        }
+        if (static_cast<std::size_t>(paragraph_.length()) != text.size()) {
+            throw NativeFailure(TextMaskStatus::unsupported_profile);
+        }
+        // A cluster takes the script of the run holding its first byte; the
+        // runs cover the paragraph in order.
+        const stxlib::View<stxlib::textlayout::ScriptRun> scripts = paragraph_.script_runs();
+        const std::size_t script_count = scripts.count();
+        std::size_t script_index = 0;
         for (std::size_t index = 0; index < clusters_.size(); ++index) {
             NativeCluster& cluster = clusters_[index];
             cluster.begin = edges_[index];
             cluster.end = edges_[index + 1U];
-            while (available && script != nullptr && cluster.begin >= (*script).offset + (*script).length) {
-                available = SBScriptLocatorMoveNext(scripts.value);
-                script = SBScriptLocatorGetAgent(scripts.value);
+            while (script_index < script_count &&
+                   cluster.begin >= static_cast<std::size_t>(scripts[script_index].offset) +
+                                        static_cast<std::size_t>(scripts[script_index].length)) {
+                ++script_index;
             }
-            if (!available || script == nullptr || (*script).offset > cluster.begin ||
-                (*script).offset > text.size() || (*script).length > text.size() - (*script).offset) {
+            if (script_index == script_count || static_cast<std::size_t>(scripts[script_index].offset) > cluster.begin) {
                 throw NativeFailure(TextMaskStatus::native_failure);
             }
-            const SBUInt32 tag = SBScriptGetUnicodeTag((*script).script);
-            cluster.script = hb_script_from_iso15924_tag(tag);
+            const std::uint32_t tag = stxlib::textlayout::script_tag(scripts[script_index].script);
+            // Common, inherited and unknown text takes the run's first
+            // character's script in the shaper (TextRun::script 0).
+            const bool own_script = tag != 0x5A797979U && tag != 0x5A696E68U && tag != 0x5A7A7A7AU;  // Zyyy, Zinh, Zzzz
+            cluster.script = own_script ? tag : 0U;
             const std::string_view characters = text.substr(cluster.begin, cluster.end - cluster.begin);
             cluster.face = fonts.select_face(characters);
         }
     } catch (...) { release(); throw; }
 }
 void NativeParagraph::release() noexcept {
-    if (buffer_ != nullptr) hb_buffer_destroy(buffer_);
-    if (paragraph_ != nullptr) SBParagraphRelease(paragraph_);
-    if (algorithm_ != nullptr) SBAlgorithmRelease(algorithm_);
-    buffer_ = nullptr;
-    paragraph_ = nullptr;
-    algorithm_ = nullptr;
+    paragraph_.release();
+    line_.release();
+    analysis_charge_.reset();
+    charged_bytes_ = 0;
+}
+void NativeParagraph::charge_analysis() {
+    const std::size_t held =
+        static_cast<std::size_t>(paragraph_.bytes_held()) + static_cast<std::size_t>(line_.bytes_held());
+    if (held == charged_bytes_) return;
+    analysis_charge_.reset();
+    charged_bytes_ = 0;
+    analysis_charge_.acquire(ledger_, MaskResource::workspace, held);
+    charged_bytes_ = held;
 }
 NativeParagraph::~NativeParagraph() { release(); }
 std::span<const std::size_t> NativeParagraph::edges() const noexcept {
@@ -125,49 +132,60 @@ void NativeParagraph::append_run(const std::size_t line_begin, const std::size_t
     const bool rtl, NativeGlyphBuffer& output, NativeShape& shape) {
     const std::string_view line = text_.substr(line_begin, line_end - line_begin);
     work_.admit(line.size());
-    hb_buffer_reset(buffer_);
-    hb_buffer_set_cluster_level(buffer_, HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES);
-    unsigned flags = HB_BUFFER_FLAG_REMOVE_DEFAULT_IGNORABLES;
-    if (run_begin == line_begin) flags |= HB_BUFFER_FLAG_BOT;
-    if (run_end == line_end) flags |= HB_BUFFER_FLAG_EOT;
-    hb_buffer_set_flags(buffer_, static_cast<hb_buffer_flags_t>(flags));
-    hb_buffer_add_utf8(buffer_, line.data(), static_cast<int>(line.size()),
-        static_cast<unsigned>(run_begin - line_begin), static_cast<int>(run_end - run_begin));
-    hb_buffer_set_direction(buffer_, rtl ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
-    hb_buffer_set_script(buffer_, cluster.script);
-    hb_buffer_set_language(buffer_, hb_language_from_string("und", -1));
-    hb_buffer_guess_segment_properties(buffer_);
-    if (!hb_buffer_allocation_successful(buffer_)) throw std::bad_alloc{};
+    // The run's characters, each with its byte offset in the line as its cluster. STXlib
+    // shapes the run alone: no context from the line around it (HarfBuzz's pre- and
+    // post-context reached only the joining scripts, which are drawn unshaped), and default
+    // ignorables come back as zero-advance spaces where HarfBuzz removed them.
+    run_characters_.clear();
+    run_clusters_.clear();
+    std::size_t offset = run_begin;
+    while (offset < run_end) {
+        const unsigned char first = static_cast<unsigned char>(text_[offset]);
+        std::uint32_t scalar = first;
+        std::size_t following = 0;
+        if (first >= 0xF0) { scalar = first & 7U; following = 3; }
+        else if (first >= 0xE0) { scalar = first & 15U; following = 2; }
+        else if (first >= 0xC0) { scalar = first & 31U; following = 1; }
+        for (std::size_t index = 1; index <= following; ++index) {
+            scalar = (scalar << 6U) | (static_cast<unsigned char>(text_[offset + index]) & 63U);
+        }
+        run_characters_.push_back(scalar);
+        run_clusters_.push_back(static_cast<std::uint32_t>(offset - line_begin));
+        offset += following + 1U;
+    }
+    stxlib::glyphs::TextRun run{};
+    run.characters = stxlib::View<std::uint32_t>(run_characters_.data(), run_characters_.size());
+    run.clusters = stxlib::View<std::uint32_t>(run_clusters_.data(), run_clusters_.size());
+    run.direction = rtl ? stxlib::glyphs::TextDirection::right_to_left : stxlib::glyphs::TextDirection::left_to_right;
+    run.script = cluster.script;
+    // Advances and offsets in 26.6 pixels at the job's size, unhinted.
+    run.size = fonts_.size_64;
     NativeFace& face = fonts_.faces[cluster.face];
-    const hb_bool_t shaped = hb_shape_full(face.shaping, buffer_, nullptr, 0, nullptr);
-    if (!hb_buffer_allocation_successful(buffer_)) throw std::bad_alloc{};
-    if (!shaped) throw NativeFailure(TextMaskStatus::native_failure);
-    unsigned count = 0;
-    unsigned position_count = 0;
-    const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer_, &count);
-    const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer_, &position_count);
-    if (count != position_count || (count != 0 && (infos == nullptr || positions == nullptr))) {
+    const stxlib::OperationStatus shaped = face.shaper.shape(run, run_glyphs_);
+    if (shaped.failed()) {
+        const stxlib::ErrorRecord* const record = shaped.error();
+        if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc{};
         throw NativeFailure(TextMaskStatus::native_failure);
     }
+    const std::size_t count = run_glyphs_.count();
     if (count > 65536U - shape.glyph_count) throw MaskLimitFailure(TextMaskLimit::shaping_payload);
     resize_native_glyphs(output, shape.glyph_count + count);
     double pen = shape.advance;
-    for (unsigned index = 0; index < count; ++index) {
-        const hb_glyph_info_t& info = infos[index];
-        const hb_glyph_position_t& position = positions[index];
-        if (info.codepoint == 0) throw NativeFailure(TextMaskStatus::missing_font_coverage);
-        if (info.codepoint >= static_cast<std::uint64_t>((*face.value).num_glyphs) ||
+    for (std::size_t index = 0; index < count; ++index) {
+        const stxlib::glyphs::ShapedGlyph& info = run_glyphs_[index];
+        if (info.glyph == 0) throw NativeFailure(TextMaskStatus::missing_font_coverage);
+        if (info.glyph >= (*face.font).glyph_count ||
             info.cluster < run_begin - line_begin || info.cluster >= run_end - line_begin) {
             throw NativeFailure(TextMaskStatus::native_failure);
         }
         NativeGlyph& glyph = output[shape.glyph_count];
         glyph.face = cluster.face;
-        glyph.glyph = info.codepoint;
+        glyph.glyph = info.glyph;
         glyph.cluster = static_cast<std::uint32_t>(line_begin + info.cluster);
-        glyph.x = pen + static_cast<double>(position.x_offset) / 64.0;
-        glyph.y = -static_cast<double>(position.y_offset) / 64.0;
-        glyph.advance = static_cast<double>(position.x_advance) / 64.0;
-        if (position.y_advance != 0 || glyph.advance < 0.0) throw NativeFailure(TextMaskStatus::unsupported_profile);
+        glyph.x = pen + static_cast<double>(info.x_offset) / 64.0;
+        glyph.y = -static_cast<double>(info.y_offset) / 64.0;
+        glyph.advance = static_cast<double>(info.x_advance) / 64.0;
+        if (info.y_advance != 0 || glyph.advance < 0.0) throw NativeFailure(TextMaskStatus::unsupported_profile);
         pen += glyph.advance;
         ++shape.glyph_count;
     }
@@ -184,34 +202,42 @@ NativeShape NativeParagraph::shape(const std::size_t begin, const std::size_t en
     result.ascent = fonts_.faces[fonts_.primary].ascent;
     result.descent = fonts_.faces[fonts_.primary].descent;
     if (begin == end) return result;
-    BidiLine line(paragraph_, begin, end - begin);
-    const SBRun* runs = SBLineGetRunsPtr(line.value);
-    const std::size_t count = SBLineGetRunCount(line.value);
-    if (count != 0 && runs == nullptr) throw NativeFailure(TextMaskStatus::native_failure);
+    // The line's levels after L1 and its runs in visual order; the line
+    // analysis is reused from trial to trial.
+    const stxlib::OperationStatus lined = stxlib::textlayout::analyse_line(paragraph_, begin, end - begin, line_);
+    charge_analysis();
+    if (lined.failed()) {
+        if ((*lined.error()).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc{};
+        throw NativeFailure(TextMaskStatus::native_failure);
+    }
+    const stxlib::View<stxlib::textlayout::BidiRun> runs = line_.runs();
+    const std::size_t count = runs.count();
     const std::span<const NativeCluster> clusters(clusters_.data(), clusters_.size());
     for (std::size_t index = 0; index < count; ++index) {
-        const SBRun& run = runs[index];
-        if (run.offset < begin || run.offset >= end || run.length == 0 || run.length > end - run.offset) {
+        const stxlib::textlayout::BidiRun& run = runs[index];
+        const std::size_t run_offset = run.offset;
+        const std::size_t run_length = run.length;
+        if (run_offset < begin || run_offset >= end || run_length == 0 || run_length > end - run_offset) {
             throw NativeFailure(TextMaskStatus::native_failure);
         }
-        const std::size_t run_end = run.offset + run.length;
+        const std::size_t run_end = run_offset + run_length;
         const bool rtl = (run.level & 1U) != 0;
         if (!rtl) {
-            std::size_t first = cluster_at(clusters, run.offset);
+            std::size_t first = cluster_at(clusters, run_offset);
             while (first < clusters.size() && clusters[first].begin < run_end) {
                 std::size_t last = first + 1U;
                 while (last < clusters.size() && clusters[last].begin < run_end && same_cluster_run(clusters[first], clusters[last])) ++last;
-                const std::size_t segment_begin = std::max(run.offset, clusters[first].begin);
+                const std::size_t segment_begin = std::max(run_offset, clusters[first].begin);
                 const std::size_t segment_end = std::min(run_end, clusters[last - 1U].end);
                 append_run(begin, end, segment_begin, segment_end, clusters[first], false, output, result);
                 first = last;
             }
         } else {
             std::size_t last = cluster_at(clusters, run_end - 1U) + 1U;
-            while (last != 0 && clusters[last - 1U].end > run.offset) {
+            while (last != 0 && clusters[last - 1U].end > run_offset) {
                 std::size_t first = last - 1U;
-                while (first != 0 && clusters[first - 1U].end > run.offset && same_cluster_run(clusters[last - 1U], clusters[first - 1U])) --first;
-                const std::size_t segment_begin = std::max(run.offset, clusters[first].begin);
+                while (first != 0 && clusters[first - 1U].end > run_offset && same_cluster_run(clusters[last - 1U], clusters[first - 1U])) --first;
+                const std::size_t segment_begin = std::max(run_offset, clusters[first].begin);
                 const std::size_t segment_end = std::min(run_end, clusters[last - 1U].end);
                 append_run(begin, end, segment_begin, segment_end, clusters[first], true, output, result);
                 last = first;

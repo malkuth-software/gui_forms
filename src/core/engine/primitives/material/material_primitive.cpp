@@ -11,10 +11,12 @@
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <limits>
 #include <array>
@@ -32,7 +34,10 @@
 #include <vector>
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -116,6 +121,21 @@ constexpr std::size_t maximum_outer = SurfaceMaterial::maximum_shadows + Surface
 // destination holds all of it (valid_surface_material).
 static_assert(SurfaceMaterial::maximum_glow_reach <= material_outset, "a glow stays within the material's outsets");
 
+// How a gradient's colour between two stops enters the pixel arithmetic,
+// chosen once per bake from the material's dither (resolve_look_at).
+enum class StopEncoding : std::uint8_t {
+    // Rounded to the nearest sRGB byte by the engine's integer tables
+    // (interpolate_linear_light), as the Skia painter's stops are: the
+    // undithered bake.
+    nearest_byte,
+    // Kept between sRGB bytes (continuous_linear_light), so that the
+    // dither's threshold, not an earlier rounding, chooses each pixel's
+    // byte. Rounded to a byte first, every pixel of a ramp would already be
+    // whole and every threshold would leave it as it is: the three dither
+    // modes would bake the same bytes.
+    continuous,
+};
+
 struct ResolvedFill final {
     MaterialFillKind kind{MaterialFillKind::solid};
     Color colour{};
@@ -127,17 +147,32 @@ struct ResolvedFill final {
     double step_y{};
     double inverse_radius_x{};
     double inverse_radius_y{};
+    // A focused radial gradient's focus in the unit circle's coordinates
+    // (offsets from the centre over the radii) and 1 / (1 − |focus|²).
+    bool focused{};
+    double focus_x{};
+    double focus_y{};
+    double focal_scale{1.0};
     // A conic gradient's centre is the origin; t is the turn clockwise from
     // up past `from_turn` (in [0, 1)), times the turns to one period.
     double from_turn{};
     double periods_per_turn{1.0};
     GradientSpreadMode spread{GradientSpreadMode::pad};
+    StopEncoding stop_encoding{StopEncoding::nearest_byte};
     MaterialBlendMode blend{MaterialBlendMode::normal};
     // Borrowed from the material for the bake.
     std::span<const GradientStop> stops{};
     // An image fill's opacity and its resampled layer (MaterialImages).
     double opacity{1.0};
     std::size_t image{};
+};
+
+// One mask layer (E9.6): its fill, how its sample is read, and how it
+// joins the layers beneath.
+struct ResolvedMask final {
+    ResolvedFill fill{};
+    MaterialMaskMode mode{MaterialMaskMode::alpha};
+    MaterialMaskComposite composite{MaterialMaskComposite::add};
 };
 
 struct ResolvedBand final {
@@ -210,6 +245,8 @@ struct MaterialLook final {
     // The colour filter, applied to each finished pixel (E9.6).
     bool filtered{};
     MaterialColourMatrix filter{};
+    // The colour filter's table stage after `filter`, if it has one.
+    std::optional<MaterialColourTable> table{};
     bool border{};
     Color border_colour{};
     Rect border_inner{};
@@ -221,11 +258,11 @@ struct MaterialLook final {
     // A rounded box's single edges, then its keylines, as rings.
     std::array<ResolvedRing, maximum_rings> rings{};
     std::size_t ring_count{};
-    // An alpha mask (E9.6), evaluated at each pixel centre moved into the
-    // box, so that outside the box it extends at its edge value; an image
-    // mask's variant is MaterialImages' mask_layer.
-    bool masked{};
-    ResolvedFill mask{};
+    // The mask's layers (E9.6), bottom first, each evaluated at each pixel
+    // centre moved into the box, so that outside the box it extends at its
+    // edge value; an image layer's variant is MaterialImages' mask_layer.
+    std::array<ResolvedMask, SurfaceMaterial::maximum_mask_layers> masks{};
+    std::size_t mask_count{};
 };
 
 // An image mask's variant slot (E9.6), after the fills'.
@@ -271,7 +308,8 @@ Rect material_box(const PrimitiveTarget& target, double outset) noexcept {
 }
 
 double material_radius(const SurfaceMaterial& material, const PrimitiveTarget& target) noexcept {
-    const double logical = target.corner_radius ? std::max(0.0, *target.corner_radius) : material.corner_radius;
+    const double logical =
+        target.corner_radius.present() ? std::max(0.0, *target.corner_radius.value()) : material.corner_radius;
     const double radius = logical * target.scale.value;
     return radius;
 }
@@ -294,12 +332,12 @@ MaterialOutline material_outline(const SurfaceMaterial& material, const Primitiv
     outline.kind = kind;
     outline.radius = material_radius(material, target);
     // A part's own radius overrides the material's corners.
-    const bool own_radius = target.corner_radius.has_value();
-    if (kind == PartShapeKind::rounded_rectangle && (own_radius || !material.corner_radii)) return outline;
+    const bool own_radius = target.corner_radius.present();
+    if (kind == PartShapeKind::rounded_rectangle && (own_radius || material.corner_radii.absent())) return outline;
     outline.uniform = false;
     if (kind == PartShapeKind::rounded_rectangle) {
         const double scale = target.scale.value;
-        const MaterialCornerRadii& corners = *material.corner_radii;
+        const MaterialCornerRadii& corners = (*material.corner_radii.value());
         outline.corners = PartCornerRadii{corners.top_left * scale, corners.top_right * scale,
                                           corners.bottom_right * scale, corners.bottom_left * scale};
     }
@@ -411,6 +449,20 @@ ResolvedFill resolve_fill(const MaterialFillLayer& layer, Rect box, double scale
         fill.origin_y = centre.y;
         if (radius_x > 0.0) fill.inverse_radius_x = 1.0 / radius_x;
         if (radius_y > 0.0) fill.inverse_radius_y = 1.0 / radius_y;
+        if (layer.focused) {
+            const Point focus = resolved_point(layer.focus, layer.coordinate_space, box, scale);
+            const double across = (focus.x - centre.x) * fill.inverse_radius_x;
+            const double down = (focus.y - centre.y) * fill.inverse_radius_y;
+            const double inside = 1.0 - (across * across + down * down);
+            // A valid layer's focus is strictly inside; a focus rounding onto
+            // the edge draws as a centred gradient.
+            if (inside > 0.0 && std::isfinite(inside)) {
+                fill.focused = true;
+                fill.focus_x = across;
+                fill.focus_y = down;
+                fill.focal_scale = 1.0 / inside;
+            }
+        }
     }
     if (layer.kind == MaterialFillKind::conic_gradient) {
         const Point centre = resolved_point(layer.center, layer.coordinate_space, box, scale);
@@ -605,43 +657,57 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
         look.outer[look.outer_count] = resolved;
         look.outer_count = look.outer_count + 1U;
     }
+    // A dithered bake keeps its gradients between bytes for the dither's
+    // threshold (StopEncoding).
+    const StopEncoding stop_encoding =
+        material.dither == MaterialDither::none ? StopEncoding::nearest_byte : StopEncoding::continuous;
     for (std::size_t index = 0U; index < material.fills.size(); ++index) {
         const MaterialFillLayer& layer = material.fills[index];
         if (layer.kind == MaterialFillKind::solid && layer.color.alpha == 0U) continue;
         look.fills[look.fill_count] = resolve_fill(layer, box, scale);
         look.fills[look.fill_count].image = index;
+        look.fills[look.fill_count].stop_encoding = stop_encoding;
         look.fill_count = look.fill_count + 1U;
         if (layer.blend != MaterialBlendMode::normal) look.face_blends = true;
     }
-    if (material.mask) {
-        look.mask = resolve_fill(*material.mask, box, scale);
-        look.mask.image = mask_layer;
-        look.masked = true;
+    // A valid material holds at most maximum_mask_layers layers.
+    const std::size_t mask_count = std::min(material.masks.size(), look.masks.size());
+    for (std::size_t index = 0U; index < mask_count; ++index) {
+        const MaterialMaskLayer& layer = material.masks[index];
+        ResolvedMask& resolved = look.masks[index];
+        resolved.fill = resolve_fill(layer.source, box, scale);
+        resolved.fill.image = mask_layer;
+        resolved.fill.stop_encoding = stop_encoding;
+        resolved.mode = layer.mode;
+        resolved.composite = layer.composite;
     }
-    if (material.border) {
-        const double width = (*material.border).width * scale;
+    look.mask_count = mask_count;
+    if (material.border.present()) {
+        const double width = (*material.border.value()).width * scale;
         look.border = true;
-        look.border_colour = (*material.border).color;
+        look.border_colour = (*material.border.value()).color;
         look.border_inner = Rect{box.x + width, box.y + width, std::max(0.0, box.width - width * 2.0),
                                  std::max(0.0, box.height - width * 2.0)};
         look.border_inner_shape = grown(outline, look.border_inner, -width).shape;
-        look.border_path = border_path((*material.border).style, outline, box, width);
+        look.border_path = border_path((*material.border.value()).style, outline, box, width);
     }
     const MaterialBorderEdges& edges = material.border_edges;
     // A rounded box draws its single edges and keylines as rings (their
     // widths are equal: valid_surface_material); a square one as bands.
     const bool rounded_edges = radius > 0.0 && !edges.empty();
     if (rounded_edges) {
-        const std::array<const std::optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
-                                                                         &edges.left};
+        const std::array<const stxlib::Optional<MaterialBorder>*, 4> sides{&edges.top, &edges.right, &edges.bottom,
+                                                                            &edges.left};
         double width = 0.0;
-        for (const std::optional<MaterialBorder>* side : sides) {
-            if (*side) width = std::max(width, (**side).width * scale);
+        for (const stxlib::Optional<MaterialBorder>* side : sides) {
+            const MaterialBorder* const border = (*side).value();
+            if (border != nullptr) width = std::max(width, (*border).width * scale);
         }
         std::optional<ResolvedRing> ring = rounded_ring(outline, box, 0.0, width);
         if (ring) {
             for (std::size_t index = 0U; index < sides.size(); ++index) {
-                if (*sides[index]) (*ring).colours[index] = (**sides[index]).color;
+                const MaterialBorder* const border = (*sides[index]).value();
+                if (border != nullptr) (*ring).colours[index] = (*border).color;
             }
             add_ring(look, *ring);
         }
@@ -652,21 +718,21 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
             add_ring(look, *line);
         }
     }
-    if (edges.top && !rounded_edges) {
-        const double width = (*edges.top).width * scale;
-        add_band(look, Rect{box.x, box.y, box.width, width}, (*edges.top).color, false);
+    if (edges.top.present() && !rounded_edges) {
+        const double width = (*edges.top.value()).width * scale;
+        add_band(look, Rect{box.x, box.y, box.width, width}, (*edges.top.value()).color, false);
     }
-    if (edges.right && !rounded_edges) {
-        const double width = (*edges.right).width * scale;
-        add_band(look, Rect{box.right() - width, box.y, width, box.height}, (*edges.right).color, false);
+    if (edges.right.present() && !rounded_edges) {
+        const double width = (*edges.right.value()).width * scale;
+        add_band(look, Rect{box.right() - width, box.y, width, box.height}, (*edges.right.value()).color, false);
     }
-    if (edges.bottom && !rounded_edges) {
-        const double width = (*edges.bottom).width * scale;
-        add_band(look, Rect{box.x, box.bottom() - width, box.width, width}, (*edges.bottom).color, false);
+    if (edges.bottom.present() && !rounded_edges) {
+        const double width = (*edges.bottom.value()).width * scale;
+        add_band(look, Rect{box.x, box.bottom() - width, box.width, width}, (*edges.bottom.value()).color, false);
     }
-    if (edges.left && !rounded_edges) {
-        const double width = (*edges.left).width * scale;
-        add_band(look, Rect{box.x, box.y, width, box.height}, (*edges.left).color, false);
+    if (edges.left.present() && !rounded_edges) {
+        const double width = (*edges.left.value()).width * scale;
+        add_band(look, Rect{box.x, box.y, width, box.height}, (*edges.left.value()).color, false);
     }
     const bool clip_keylines = radius > 0.0;
     if (!rounded_edges) {
@@ -675,6 +741,8 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
     if (material.colour_filter) {
         look.filtered = true;
         look.filter = *material.colour_filter;
+        const MaterialColourTable* const table = material.colour_filter.table();
+        if (table != nullptr) look.table = *table;
     }
     bool over_glows = false;
     for (std::size_t index = 0U; index < look.outer_count; ++index) {
@@ -859,6 +927,15 @@ void prepare_finishes(const SurfaceMaterial& material, const PrimitiveTarget& ta
     }
 }
 
+// The material's image mask layer's fill (E9.6; a valid material has at
+// most one), or null.
+const MaterialFillLayer* image_mask_source(const SurfaceMaterial& material) noexcept {
+    for (const MaterialMaskLayer& layer : material.masks) {
+        if (layer.source.kind == MaterialFillKind::image) return &layer.source;
+    }
+    return nullptr;
+}
+
 // Maps each image fill's lent variant, each procedural fill's lent
 // pattern and an image mask's lent variant onto the destination, after
 // painting the finish fills. Storage that cannot be allocated leaves that
@@ -880,11 +957,12 @@ void prepare_images(const SurfaceMaterial& material, const PrimitiveTarget& targ
         }
         map_image(layer, index, look.box, scale, variant, extent, images.layers[index]);
     }
-    if (!material.mask || (*material.mask).kind != MaterialFillKind::image) return;
+    const MaterialFillLayer* const image_mask = image_mask_source(material);
+    if (image_mask == nullptr) return;
     const std::shared_ptr<const PartRaster>& lent_mask = (*target.variants).layers[mask_layer];
     if (!lent_mask) return;
     MaterialImageLayer& mask = images.layers[mask_layer];
-    map_image(*material.mask, mask_layer, look.box, scale, *lent_mask, extent, mask);
+    map_image(*image_mask, mask_layer, look.box, scale, *lent_mask, extent, mask);
     if (mask.variant == nullptr) return;
     extend_at_box(mask.columns, look.box.x, look.box.right());
     extend_at_box(mask.rows, look.box.y, look.box.bottom());
@@ -1017,22 +1095,98 @@ double spread_position(double t, GradientSpreadMode spread) noexcept {
     return std::clamp(t, 0.0, 1.0);
 }
 
+// The sRGB level, in bytes and fractions of a byte, of `level` on linear
+// light's 16-bit scale (LinearLightLevel's): linear between the decode
+// table's neighbouring entries, so that each byte's own entry gives that
+// byte exactly and the level rises with `level`. It is within 1/40 of a
+// byte of the exact sRGB curve (checked 2026-11-16 against the curve in
+// doubles at every quarter step of the scale; the largest gap is near
+// black, where the table's entries are 20 apart). Integer tables and one
+// division, no libm: the same value on every host.
+double continuous_srgb_of_linear_light(double level) noexcept {
+    const std::array<std::uint16_t, 256>& table = gui_forms::detail::linear_light_decode_table;
+    // !(level > 0.0) takes NaN to black as well.
+    if (!(level > 0.0)) return 0.0;
+    if (level >= static_cast<double>(table[255U])) return 255.0;
+    // The last entry at or below `level`: table[0] is 0, below it, and
+    // table[255] above it, so the entry and the next one exist.
+    const std::uint16_t* const first = table.data();
+    const std::uint16_t* const last = first + table.size();
+    const std::uint16_t* const above = std::upper_bound(first, last, level);
+    const std::size_t byte = static_cast<std::size_t>(above - first) - 1U;
+    const double low = static_cast<double>(table[byte]);
+    const double high = static_cast<double>(table[byte + 1U]);
+    const double fraction = (level - low) / (high - low);
+    const double encoded = static_cast<double>(byte) + fraction;
+    return encoded;
+}
+
+// One colour channel of continuous_linear_light, as linear_light_channel
+// (linear_light.hpp) sums it, with `alpha_sum` (not zero) as a double:
+// the premultiplied linear sum, below 2^41, and alpha_sum, below 2^24, are
+// exact in double, so the level is their quotient rounded once.
+double continuous_light_channel(std::uint8_t from, std::uint8_t from_alpha, std::uint8_t to, std::uint8_t to_alpha,
+                                std::uint64_t keep, std::uint64_t weight, double alpha_sum) noexcept {
+    const std::uint64_t from_linear = gui_forms::detail::linear_light_decode_table[from];
+    const std::uint64_t to_linear = gui_forms::detail::linear_light_decode_table[to];
+    const std::uint64_t from_part = from_linear * from_alpha * keep;
+    const std::uint64_t to_part = to_linear * to_alpha * weight;
+    const std::uint64_t premultiplied = from_part + to_part;
+    const double level = static_cast<double>(premultiplied) / alpha_sum;
+    const double encoded = continuous_srgb_of_linear_light(level);
+    return encoded;
+}
+
+// The colour `weight` of the way from `from` to `to`, interpolated
+// premultiplied in linear light as interpolate_linear_light does, but with
+// its sRGB channels and alpha left between bytes, then premultiplied and
+// scaled by `coverage` (StopEncoding::continuous). The ends and equal
+// colours are the stops' bytes exactly, as there; a zero alpha sum is
+// transparent black.
+Unit continuous_linear_light(Color from, Color to, std::uint32_t weight, double coverage) noexcept {
+    if (weight == 0U) return premultiply(from, coverage);
+    if (weight >= linear_light_weight_one) return premultiply(to, coverage);
+    if (from == to) return premultiply(from, coverage);
+    const std::uint64_t later = weight;
+    const std::uint64_t keep = linear_light_weight_one - weight;
+    const std::uint64_t from_alpha = from.alpha;
+    const std::uint64_t to_alpha = to.alpha;
+    const std::uint64_t alpha_sum = from_alpha * keep + to_alpha * later;
+    if (alpha_sum == 0U) return Unit{};
+    const double total = static_cast<double>(alpha_sum);
+    // alpha_sum is alpha in 1/(255 × 65536).
+    constexpr double alpha_scale = 255.0 * static_cast<double>(linear_light_weight_one);
+    const double alpha = total / alpha_scale * coverage;
+    const double red = continuous_light_channel(from.red, from.alpha, to.red, to.alpha, keep, later, total);
+    const double green = continuous_light_channel(from.green, from.alpha, to.green, to.alpha, keep, later, total);
+    const double blue = continuous_light_channel(from.blue, from.alpha, to.blue, to.alpha, keep, later, total);
+    const Unit unit{red / 255.0 * alpha, green / 255.0 * alpha, blue / 255.0 * alpha, alpha};
+    return unit;
+}
+
 // The gradient's colour at `t` in [0, 1], premultiplied and scaled by
 // `coverage`; the stops are valid (valid_gradient_stops: at least two, from
-// 0 to 1, increasing). The stops are interpolated premultiplied, as CSS
-// gradients and the Skia painter's are: a stop fading to transparent black
-// fades the other stop's colour, never towards grey.
-Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage) noexcept {
+// 0 to 1, increasing). The two neighbouring stops are interpolated
+// premultiplied in linear light (owner, 2026-11-16;
+// gui_forms/types/linear_light/linear_light.hpp), as the Skia painter's
+// gradients are, and a stop fading to transparent fades the other stop's
+// colour, never towards black. By `encoding`, the colour is exact to the
+// sRGB byte, by the engine's integer tables, or kept between bytes for the
+// dither (StopEncoding).
+Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage, StopEncoding encoding) noexcept {
     std::size_t next = 1U;
     while (next + 1U < stops.size() && t > stops[next].offset) next = next + 1U;
     const GradientStop& low = stops[next - 1U];
     const GradientStop& high = stops[next];
     const double span = high.offset - low.offset;
     const double f = std::clamp((t - low.offset) / span, 0.0, 1.0);
-    const Unit a = premultiply(low.color, coverage);
-    const Unit b = premultiply(high.color, coverage);
-    const Unit colour{a.red + (b.red - a.red) * f, a.green + (b.green - a.green) * f,
-                      a.blue + (b.blue - a.blue) * f, a.alpha + (b.alpha - a.alpha) * f};
+    const std::uint32_t weight = linear_light_weight(f);
+    if (encoding == StopEncoding::continuous) {
+        const Unit between = continuous_linear_light(low.color, high.color, weight, coverage);
+        return between;
+    }
+    const Color mixed = interpolate_linear_light(low.color, high.color, weight);
+    const Unit colour = premultiply(mixed, coverage);
     return colour;
 }
 
@@ -1045,14 +1199,25 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
     }
     case MaterialFillKind::linear_gradient: {
         const double t = (centre_x - fill.origin_x) * fill.step_x + (centre_y - fill.origin_y) * fill.step_y;
-        const Unit linear = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
+        const Unit linear = stop_colour(fill.stops, spread_position(t, fill.spread), coverage, fill.stop_encoding);
         return linear;
     }
     case MaterialFillKind::radial_gradient: {
         const double across = (centre_x - fill.origin_x) * fill.inverse_radius_x;
         const double down = (centre_y - fill.origin_y) * fill.inverse_radius_y;
-        const double t = std::sqrt(across * across + down * down);
-        const Unit radial = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
+        double t = std::sqrt(across * across + down * down);
+        if (fill.focused) {
+            // In the unit circle, the offset t whose circle (radius t, centre
+            // f(1 − t)) passes through u: with d = u − f, the positive root
+            // of (1 − |f|²)t² − 2(d·f)t − |d|² = 0.
+            const double from_x = across - fill.focus_x;
+            const double from_y = down - fill.focus_y;
+            const double toward = from_x * fill.focus_x + from_y * fill.focus_y;
+            const double inside = 1.0 / fill.focal_scale;
+            const double reach = toward * toward + inside * (from_x * from_x + from_y * from_y);
+            t = (toward + std::sqrt(reach)) * fill.focal_scale;
+        }
+        const Unit radial = stop_colour(fill.stops, spread_position(t, fill.spread), coverage, fill.stop_encoding);
         return radial;
     }
     case MaterialFillKind::conic_gradient: {
@@ -1063,7 +1228,7 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
         const double turn = angle * inverse_whole_turn - fill.from_turn;
         const double past = turn - std::floor(turn);
         const double t = past * fill.periods_per_turn;
-        const Unit conic = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
+        const Unit conic = stop_colour(fill.stops, spread_position(t, fill.spread), coverage, fill.stop_encoding);
         return conic;
     }
     case MaterialFillKind::image: {
@@ -1221,6 +1386,17 @@ void join_layer(Unit& face, Unit layer, MaterialBlendMode blend) noexcept {
     case MaterialBlendMode::screen:
         blend_screen(face, layer);
         return;
+    case MaterialBlendMode::overlay:
+    case MaterialBlendMode::darken:
+    case MaterialBlendMode::lighten:
+    case MaterialBlendMode::color_dodge:
+    case MaterialBlendMode::color_burn:
+    case MaterialBlendMode::hard_light:
+    case MaterialBlendMode::soft_light:
+    case MaterialBlendMode::difference:
+    case MaterialBlendMode::exclusion:
+        blend_separable(face, layer, blend);
+        return;
     }
     // A mode outside the enumeration is drawn source-over.
     blend_over(face, layer);
@@ -1229,7 +1405,8 @@ void join_layer(Unit& face, Unit layer, MaterialBlendMode blend) noexcept {
 // A finished pixel through the material's colour filter, if it has one.
 Unit finished(const MaterialLook& look, Unit pixel) noexcept {
     if (!look.filtered) return pixel;
-    const Unit filtered = colour_filtered(look.filter, pixel);
+    const MaterialColourTable* const table = look.table ? &*look.table : nullptr;
+    const Unit filtered = colour_staged(look.filter, table, pixel);
     return filtered;
 }
 
@@ -1352,8 +1529,8 @@ struct PartFilters final {
 
 PartFilters part_filters(const SurfaceMaterial& material, double scale) noexcept {
     PartFilters filters{};
-    if (material.drop_shadow) {
-        const MaterialDropShadow& shadow = *material.drop_shadow;
+    if (material.drop_shadow.present()) {
+        const MaterialDropShadow& shadow = (*material.drop_shadow.value());
         filters.shadow = true;
         filters.shadow_half = box_blur_half(shadow.blur_radius, scale);
         filters.shadow_x = static_cast<std::int64_t>(std::floor(shadow.offset.x * scale + 0.5));
@@ -1592,39 +1769,127 @@ void apply_reflection(const MaterialReflection& reflection, const Rect& box, dou
     }
 }
 
-// The mask's alpha at pixel (x, y) (E9.6): its centre moved into the box,
-// so that outside the box the mask extends at its edge value (an image
-// mask's maps are extended so, extend_at_box).
-double mask_alpha(const MaterialLook& look, const MaterialImages& images, std::int64_t x, std::int64_t y) noexcept {
-    const Rect& box = look.box;
-    const double centre_x = std::max(box.x, std::min(static_cast<double>(x) + 0.5, box.right()));
-    const double centre_y = std::max(box.y, std::min(static_cast<double>(y) + 0.5, box.bottom()));
-    const Unit sampled = fill_colour(look.mask, images, static_cast<std::size_t>(x), static_cast<std::size_t>(y),
-                                     centre_x, centre_y, 1.0);
-    return sampled.alpha;
+// The mask's weights are formed a run of columns at a time, so that each
+// layer's mode and composite are chosen once per run, never per pixel.
+constexpr std::size_t mask_run = 64U;
+using MaskRun = std::array<double, mask_run>;
+
+// Luminance of a premultiplied sample (MaterialMaskMode::luminance): the
+// luminance of its colour times its alpha, in [0, 1].
+double sample_luminance(const Unit& sample) noexcept {
+    const double luminance = 0.2126 * sample.red + 0.7152 * sample.green + 0.0722 * sample.blue;
+    return luminance;
 }
 
-// Multiplies every pixel of the finished raster by the mask's alpha (E9.6,
-// owner 2026-10-23): after the part filters, so that the shadows, the drop
-// shadow and the blur fade with the face beside them.
-// An image mask whose variant was not lent leaves the raster unmasked, as
+// `layer`'s weights over columns [first, first + count) of `row` into
+// `weights` (count <= mask_run): each sample at its pixel centre moved
+// into the box, so that outside the box the layer extends at its edge
+// value (an image layer's maps are extended so, extend_at_box), then read
+// by the layer's mode.
+void mask_layer_weights(const MaterialLook& look, const ResolvedMask& layer, const MaterialImages& images,
+                        std::uint32_t row, std::uint32_t first, std::size_t count, MaskRun& weights) noexcept {
+    const Rect& box = look.box;
+    const double centre_y = std::max(box.y, std::min(static_cast<double>(row) + 0.5, box.bottom()));
+    std::array<Unit, mask_run> samples{};
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::size_t column = static_cast<std::size_t>(first) + index;
+        const double centre_x = std::max(box.x, std::min(static_cast<double>(column) + 0.5, box.right()));
+        samples[index] = fill_colour(layer.fill, images, column, row, centre_x, centre_y, 1.0);
+    }
+    switch (layer.mode) {
+    case MaterialMaskMode::alpha:
+        for (std::size_t index = 0U; index < count; ++index) weights[index] = samples[index].alpha;
+        return;
+    case MaterialMaskMode::luminance:
+        for (std::size_t index = 0U; index < count; ++index) weights[index] = sample_luminance(samples[index]);
+        return;
+    case MaterialMaskMode::inverse_alpha:
+        for (std::size_t index = 0U; index < count; ++index) weights[index] = 1.0 - samples[index].alpha;
+        return;
+    case MaterialMaskMode::inverse_luminance:
+        for (std::size_t index = 0U; index < count; ++index) {
+            weights[index] = 1.0 - sample_luminance(samples[index]);
+        }
+        return;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
+    }
+    // A mode outside the enumeration (refused by valid_surface_material)
+    // reads alpha.
+    for (std::size_t index = 0U; index < count; ++index) weights[index] = samples[index].alpha;
+}
+
+// `layer` (an upper layer's weights) joined onto `combined` (the layers
+// beneath) by `composite` (MaterialMaskComposite), over `count` entries.
+void join_mask_weights(MaterialMaskComposite composite, const MaskRun& layer, std::size_t count,
+                       MaskRun& combined) noexcept {
+    switch (composite) {
+    case MaterialMaskComposite::add:
+        for (std::size_t index = 0U; index < count; ++index) {
+            combined[index] = layer[index] + combined[index] * (1.0 - layer[index]);
+        }
+        return;
+    case MaterialMaskComposite::subtract:
+        for (std::size_t index = 0U; index < count; ++index) {
+            combined[index] = layer[index] * (1.0 - combined[index]);
+        }
+        return;
+    case MaterialMaskComposite::intersect:
+        for (std::size_t index = 0U; index < count; ++index) combined[index] = layer[index] * combined[index];
+        return;
+    case MaterialMaskComposite::exclude:
+        for (std::size_t index = 0U; index < count; ++index) {
+            const double above = layer[index] * (1.0 - combined[index]);
+            const double beneath = combined[index] * (1.0 - layer[index]);
+            combined[index] = above + beneath;
+        }
+        return;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
+    }
+    // A composite outside the enumeration (refused by
+    // valid_surface_material) adds.
+    for (std::size_t index = 0U; index < count; ++index) {
+        combined[index] = layer[index] + combined[index] * (1.0 - layer[index]);
+    }
+}
+
+// Multiplies every pixel of the finished raster by the mask's combined
+// weight (E9.6, owner 2026-10-23): after the part filters, so that the
+// shadows, the drop shadow and the blur fade with the face beside them.
+// One alpha layer gives the bytes the single alpha mask always gave. An
+// image layer whose variant was not lent leaves the raster unmasked, as
 // the built-in path draws it.
 void apply_mask(const MaterialLook& look, const MaterialImages& images, const PartRasterView& destination) noexcept {
-    if (!look.masked) return;
-    const bool image = look.mask.kind == MaterialFillKind::image;
-    if (image && images.layers[mask_layer].variant == nullptr) return;
+    if (look.mask_count == 0U) return;
+    for (std::size_t index = 0U; index < look.mask_count; ++index) {
+        const bool image = look.masks[index].fill.kind == MaterialFillKind::image;
+        if (image && images.layers[mask_layer].variant == nullptr) return;
+    }
+    MaskRun combined{};
+    MaskRun layer{};
     for (std::uint32_t row = 0U; row < destination.extent.height; ++row) {
         const std::size_t start = static_cast<std::size_t>(row) * destination.row_bytes;
-        for (std::uint32_t column = 0U; column < destination.extent.width; ++column) {
-            const std::size_t offset = start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel;
-            // The mask's alpha over 255: a byte times it is the masked unit.
-            const double weight = mask_alpha(look, images, static_cast<std::int64_t>(column),
-                                           static_cast<std::int64_t>(row)) / 255.0;
-            const Unit masked{static_cast<double>(destination.pixels[offset + 2U]) * weight,
-                              static_cast<double>(destination.pixels[offset + 1U]) * weight,
-                              static_cast<double>(destination.pixels[offset]) * weight,
-                              static_cast<double>(destination.pixels[offset + 3U]) * weight};
-            store(destination, offset, masked);
+        for (std::uint32_t first = 0U; first < destination.extent.width; first = first + static_cast<std::uint32_t>(mask_run)) {
+            const std::size_t count = std::min<std::size_t>(mask_run, destination.extent.width - first);
+            mask_layer_weights(look, look.masks[0], images, row, first, count, combined);
+            for (std::size_t index = 1U; index < look.mask_count; ++index) {
+                mask_layer_weights(look, look.masks[index], images, row, first, count, layer);
+                join_mask_weights(look.masks[index].composite, layer, count, combined);
+            }
+            for (std::size_t index = 0U; index < count; ++index) {
+                const std::size_t column = static_cast<std::size_t>(first) + index;
+                const std::size_t offset = start + column * part_raster_bytes_per_pixel;
+                // The weight over 255: a byte times it is the masked unit.
+                const double weight = combined[index] / 255.0;
+                const Unit masked{static_cast<double>(destination.pixels[offset + 2U]) * weight,
+                                  static_cast<double>(destination.pixels[offset + 1U]) * weight,
+                                  static_cast<double>(destination.pixels[offset]) * weight,
+                                  static_cast<double>(destination.pixels[offset + 3U]) * weight};
+                store(destination, offset, masked);
+            }
         }
     }
 }
@@ -1774,24 +2039,26 @@ BakeEffort bake_effort_at(const SurfaceMaterial& authored, const PrimitiveTarget
     // raster can hold (maximum_part_raster_side).
     std::uint64_t per_pixel = weights.base;
     for (const MaterialFillLayer& layer : material.fills) per_pixel = per_pixel + fill_weight(layer, weights);
-    // A mask (E9.6) is a fill's evaluation and its pass.
-    if (material.mask) per_pixel = per_pixel + fill_weight(*material.mask, weights) + weights.mask;
+    // Each mask layer (E9.6) is a fill's evaluation and its pass.
+    for (const MaterialMaskLayer& layer : material.masks) {
+        per_pixel = per_pixel + fill_weight(layer.source, weights) + weights.mask;
+    }
     for (const MaterialShadow& shadow : material.shadows) {
         per_pixel = per_pixel + (shadow.inset ? weights.inset_shadow : weights.outer_shadow);
     }
     // A glow is an outer shadow's kernel with an addition for its blend.
     per_pixel = per_pixel + material.glows.size() * std::uint64_t{weights.outer_shadow};
-    if (material.border) per_pixel = per_pixel + weights.border;
-    if (material.border && (*material.border).style != MaterialBorderStyle::solid) {
+    if (material.border.present()) per_pixel = per_pixel + weights.border;
+    if (material.border.present() && (*material.border.value()).style != MaterialBorderStyle::solid) {
         per_pixel = per_pixel + weights.border_pattern;
     }
     const MaterialBorderEdges& edges = material.border_edges;
-    const std::uint64_t edge_count = std::uint64_t{edges.top.has_value()} + std::uint64_t{edges.right.has_value()} +
-                                     std::uint64_t{edges.bottom.has_value()} + std::uint64_t{edges.left.has_value()};
+    const std::uint64_t edge_count = std::uint64_t{edges.top.present()} + std::uint64_t{edges.right.present()} +
+                                     std::uint64_t{edges.bottom.present()} + std::uint64_t{edges.left.present()};
     per_pixel = per_pixel + edge_count * weights.border_edge;
     per_pixel = per_pixel + material.keylines.size() * std::uint64_t{weights.keyline};
     if (material.colour_filter) per_pixel = per_pixel + weights.colour_filter;
-    if (material.drop_shadow) per_pixel = per_pixel + weights.drop_shadow;
+    if (material.drop_shadow.present()) per_pixel = per_pixel + weights.drop_shadow;
     if (material.filter_blur > 0.0) per_pixel = per_pixel + weights.filter_blur;
     if (std::any_of(material.fills.begin(), material.fills.end(), &blends_apart)) {
         per_pixel = per_pixel + weights.fill_blend;
@@ -1801,7 +2068,8 @@ BakeEffort bake_effort_at(const SurfaceMaterial& authored, const PrimitiveTarget
     const std::uint64_t pixels = std::uint64_t{extent.width} * extent.height;
     const std::uint64_t corners = corner_pixels(resolve_look(material, target, outset, shape), extent);
     const std::uint64_t reflected =
-        material.reflection ? reflected_pixels(*material.reflection, target.scale.value, extent) : std::uint64_t{0};
+        material.reflection.present() ? reflected_pixels((*material.reflection.value()), target.scale.value, extent)
+            : std::uint64_t{0};
     const BakeEffort effort{pixels * per_pixel + corners * weights.outer_corner + reflected * weights.reflection};
     return effort;
 }
@@ -1884,14 +2152,17 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     const double radius = std::min(largest, std::min(box.width, box.height) * 0.5);
     AxisReach reach{};
     // A dashed or dotted border changes all the way round.
-    if (material.border && (*material.border).style != MaterialBorderStyle::solid) reach.varies = true;
+    if (material.border.present() &&
+        (*material.border.value()).style != MaterialBorderStyle::solid) reach.varies = true;
     // The box's own edge, and its corners' arcs.
     reach_at_least(reach, radius + 1.0, radius + 1.0, radius * 2.0 + 1.0);
     for (const MaterialFillLayer& layer : material.fills) {
         if (fill_varies(layer, box, scale, across)) reach.varies = true;
     }
-    // A mask (E9.6) varies as a fill does.
-    if (material.mask && fill_varies(*material.mask, box, scale, across)) reach.varies = true;
+    // A mask layer (E9.6) varies as a fill does.
+    for (const MaterialMaskLayer& layer : material.masks) {
+        if (fill_varies(layer.source, box, scale, across)) reach.varies = true;
+    }
     for (const MaterialShadow& shadow : material.shadows) {
         const double spread = shadow.spread * scale;
         const double offset = (across ? shadow.offset.x : shadow.offset.y) * scale;
@@ -1913,8 +2184,8 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
         const double blurred = shadow_reach(glow.blur_radius, scale, radius + spread);
         reach_at_least(reach, blurred - spread + 1.0, blurred - spread + 1.0, 1.0 - spread * 2.0);
     }
-    if (material.border) {
-        const double width = (*material.border).width * scale;
+    if (material.border.present()) {
+        const double width = (*material.border.value()).width * scale;
         const double inner = std::max(radius, width) + 1.0;
         reach_at_least(reach, inner, inner, width * 2.0 + 1.0);
     }
@@ -1922,20 +2193,22 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     // Rounded single edges and keylines are rings, reaching in as a border.
     if (radius > 0.0 && !edges.empty()) {
         double depth = 0.0;
-        if (edges.top) depth = std::max(depth, (*edges.top).width * scale);
-        if (edges.right) depth = std::max(depth, (*edges.right).width * scale);
-        if (edges.bottom) depth = std::max(depth, (*edges.bottom).width * scale);
-        if (edges.left) depth = std::max(depth, (*edges.left).width * scale);
+        if (edges.top.present()) depth = std::max(depth, (*edges.top.value()).width * scale);
+        if (edges.right.present()) depth = std::max(depth, (*edges.right.value()).width * scale);
+        if (edges.bottom.present()) depth = std::max(depth, (*edges.bottom.value()).width * scale);
+        if (edges.left.present()) depth = std::max(depth, (*edges.left.value()).width * scale);
         for (const MaterialKeyline& keyline : material.keylines) {
             depth = std::max(depth, (keyline.inset + keyline.width) * scale);
         }
         const double inner = std::max(radius, depth) + 1.0;
         reach_at_least(reach, inner, inner, depth * 2.0 + 1.0);
     }
-    if (edges.top) band_reach(reach, MaterialEdge::top, 0.0, (*edges.top).width * scale, across);
-    if (edges.right) band_reach(reach, MaterialEdge::right, 0.0, (*edges.right).width * scale, across);
-    if (edges.bottom) band_reach(reach, MaterialEdge::bottom, 0.0, (*edges.bottom).width * scale, across);
-    if (edges.left) band_reach(reach, MaterialEdge::left, 0.0, (*edges.left).width * scale, across);
+    if (edges.top.present()) band_reach(reach, MaterialEdge::top, 0.0, (*edges.top.value()).width * scale, across);
+    if (edges.right.present()) band_reach(reach, MaterialEdge::right, 0.0, (*edges.right.value()).width * scale,
+                                          across);
+    if (edges.bottom.present()) band_reach(reach, MaterialEdge::bottom, 0.0, (*edges.bottom.value()).width * scale,
+                                           across);
+    if (edges.left.present()) band_reach(reach, MaterialEdge::left, 0.0, (*edges.left.value()).width * scale, across);
     for (const MaterialKeyline& keyline : material.keylines) {
         band_reach(reach, keyline.edge, keyline.inset * scale, keyline.width * scale, across);
     }
@@ -1949,11 +2222,11 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     // axis; one about the left or right edge likewise the columns.
     // One of the backplane differs with where the part lies, so it varies
     // along both axes.
-    if (material.reflection && (*material.reflection).source == MaterialReflectionSource::backplane) {
+    if (material.reflection.present() && (*material.reflection.value()).source == MaterialReflectionSource::backplane) {
         reach.varies = true;
     }
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         const bool rows = reflection.edge == MaterialEdge::top || reflection.edge == MaterialEdge::bottom;
         if (rows != across) {
             const double lines = (reflection.gap + reflection.reach) * scale + 1.0;
@@ -2113,12 +2386,12 @@ const PrimitiveDescriptor& MaterialPrimitive::descriptor() const noexcept {
     return material_descriptor;
 }
 
-std::optional<ControlVisualRole> MaterialPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<ControlVisualRole> MaterialPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
                                                                    ControlVisualRole family) const noexcept {
     const double position = parameters.values[material_recipe].number;
-    if (position == family_recipe) return family;
+    if (position == family_recipe) return stxlib::Optional<ControlVisualRole>::of(family);
     const ControlVisualRole role = static_cast<ControlVisualRole>(static_cast<std::uint8_t>(position));
-    return role;
+    return stxlib::Optional<ControlVisualRole>::of(role);
 }
 
 PartShape MaterialPrimitive::shape(const PrimitiveParameterBlock& parameters) const noexcept {
@@ -2147,8 +2420,9 @@ bool MaterialPrimitive::accepts(const PrimitiveParameterBlock& parameters,
         if (layer.kind != MaterialFillKind::image) continue;
         if (target.images == nullptr || !material_image_available(*target.images, layer)) return false;
     }
-    if (material.mask && (*material.mask).kind == MaterialFillKind::image) {
-        if (target.images == nullptr || !material_image_available(*target.images, *material.mask)) return false;
+    const MaterialFillLayer* const image_mask = image_mask_source(material);
+    if (image_mask != nullptr) {
+        if (target.images == nullptr || !material_image_available(*target.images, *image_mask)) return false;
     }
     // A part assembled from slices bakes only its reference. The engine
     // lends a material whose dither it has already lowered to the
@@ -2190,7 +2464,7 @@ std::size_t MaterialPrimitive::image_variants(const PrimitiveParameterBlock&, co
             pattern.layer = index;
             pattern.scale = target.scale;
             pattern.extent = procedural_extent(layer.procedural, box, target.scale.value);
-            pattern.procedural = layer.procedural;
+            pattern.procedural.set(layer.procedural);
             requests[count] = pattern;
             count = count + 1U;
             continue;
@@ -2200,9 +2474,9 @@ std::size_t MaterialPrimitive::image_variants(const PrimitiveParameterBlock&, co
         count = count + 1U;
     }
     // An image mask's variant (E9.6), in its own slot.
-    const bool image_mask = material.mask && (*material.mask).kind == MaterialFillKind::image;
-    if (image_mask && count < requests.size()) {
-        requests[count] = image_variant_request(*material.mask, mask_layer, box, target.scale.value);
+    const MaterialFillLayer* const image_mask = image_mask_source(material);
+    if (image_mask != nullptr && count < requests.size()) {
+        requests[count] = image_variant_request(*image_mask, mask_layer, box, target.scale.value);
         count = count + 1U;
     }
     return count;
@@ -2383,8 +2657,8 @@ void bake_material(const SurfaceMaterial& authored, const PrimitiveTarget& targe
     bake_look(look, images, destination, spans, material_dither(material, look));
     apply_part_filters(material, target, destination);
     apply_mask(look, images, destination);
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         ReflectionSource source{destination.pixels, destination.row_bytes, 0U};
         const bool from_backplane = reflection.source == MaterialReflectionSource::backplane;
         // The backplane image as lent covers the destination grown by its

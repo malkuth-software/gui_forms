@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -67,7 +68,7 @@ inline constexpr std::size_t locale_field_count = 11U;
 // storage.
 [[nodiscard]] GUI_FORMS_API std::string_view locale_field_name(LocaleField field) noexcept;
 // The field a locale XML name names, or nothing.
-[[nodiscard]] GUI_FORMS_API std::optional<LocaleField> find_locale_field(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<LocaleField> find_locale_field(std::string_view name) noexcept;
 
 // The bounds on one file's fields. A value past its field's bound rejects
 // that field (LocaleRefusal::too_long), not the file; more records than
@@ -154,7 +155,7 @@ struct GUI_FORMS_API LocaleRejection final {
 // nothing when the value is acceptable. Display text only: no C0 controls
 // but tab and line feed, balanced bidirectional controls, a well-formed
 // keyword list for `keywords` and one grapheme for `access-key`.
-[[nodiscard]] GUI_FORMS_API std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value,
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value,
                                                               const LocaleLimits& limits = {});
 
 // The records of one layer, sorted by stable ID with each ID once. Owns its
@@ -305,7 +306,7 @@ enum class LocaleLayerKind : std::uint8_t {
 // or program layer, so a page can mark it.
 struct GUI_FORMS_API LocaleResolvedField final {
     std::string text{};
-    std::optional<LocaleLayerKind> origin{};
+    stxlib::Optional<LocaleLayerKind> origin{};
     bool fallback{};
 };
 

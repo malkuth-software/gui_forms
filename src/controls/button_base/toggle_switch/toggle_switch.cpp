@@ -26,17 +26,17 @@ constexpr double thumb_inset = 3.0;
 constexpr double gap = 8.0;
 
 constexpr std::array<PartField<ToggleSwitch::Parts>, 6> toggle_switch_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::track},
-    {.declaration = {.name = "thumb", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "thumb", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::thumb},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::label},
-    {.declaration = {.name = "state", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "state", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::state},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ToggleSwitch::Parts::focus},
 }};
 
@@ -55,6 +55,7 @@ constexpr ControlAnatomy toggle_switch_anatomy{
     .parts = toggle_switch_parts,
     .states = toggle_switch_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The event ToggleSwitch adds to those of ButtonBase.
@@ -179,13 +180,13 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     const AnatomyStateSet states = anatomy_states();
     PartPaint track{.role = PartRole::track, .bounds = placed.track, .states = states,
                     .family = ControlVisualRole::choice};
-    track.corner_radius = track_height * 0.5;
-    track.key = PartKey{"track", {}, {}};
+    track.corner_radius.set(track_height * 0.5);
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
     PartPaint thumb{.role = PartRole::indicator, .bounds = placed.thumb, .states = states,
                     .family = ControlVisualRole::choice};
     thumb.mark = PartMark::toggle_knob;
-    thumb.key = PartKey{"thumb", {}, {}};
+    thumb.key.set(PartKey{"thumb", {}, {}});
     paint_part(painter, *this, thumb);
     const FontSpec spec = label_font();
     // The part borrows the text; the local keeps it alive through the paint.
@@ -206,15 +207,17 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     }
     PartPaint focus{.role = PartRole::focus, .bounds = bounds, .states = states,
                     .family = ControlVisualRole::choice};
-    focus.key = PartKey{"focus", {}, {}};
+    focus.key.set(PartKey{"focus", {}, {}});
     paint_part(painter, *this, focus);
 }
 
 Insets ToggleSwitch::visual_outsets() const noexcept {
     const ControlVisualContext context =
         visual_context({.hovered = hovered_visual(), .pressed = pressed_visual(), .selected = checked.read(), .focused = focus_cue_visible()});
-    const Insets outsets =
-        surface_material_visual_outsets(effective_theme().resolve(ControlVisualRole::choice, context).material);
+    // The control's box encloses the switch's (surface_material_painting.hpp).
+    const Rect arranged = committed_arranged_bounds();
+    const Insets outsets = surface_material_visual_outsets(
+        effective_theme().resolve(ControlVisualRole::choice, context).material, Size{arranged.width, arranged.height});
     return outsets;
 }
 

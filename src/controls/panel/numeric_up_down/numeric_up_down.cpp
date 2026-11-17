@@ -3,6 +3,10 @@
 #include "../up_down/spin_buttons.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/numeric_up_down_effects.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "../panel_anatomy.hpp"
 #include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -12,8 +16,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
-#include <iomanip>
-#include <sstream>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
@@ -24,34 +27,53 @@ namespace {
 std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+            "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
-// Groups the integer digits of a fixed-point decimal in threes with commas:
-// "-1234567.50" becomes "-1,234,567.50". digits is the formatted number.
-std::string group_thousands(const std::string& digits) {
+// A fixed-point decimal written with `locale`'s separators: "-1234567.50"
+// (digits, as the C locale formats it) becomes "-1,234,567.50" grouped in
+// threes in the portable default, "-1.234.567,50" in a locale writing "."
+// between groups and "," before the fraction. Grouping only when `grouped`.
+std::string localized_decimal(const std::string& digits, const HostLocale& locale, bool grouped) {
     const std::size_t sign = !digits.empty() && digits.front() == '-' ? 1U : 0U;
     const std::size_t point = digits.find('.');
     const std::size_t integer_end = point == std::string::npos ? digits.size() : point;
     const std::size_t integer_length = integer_end - sign;
-    std::string grouped;
-    grouped.reserve(digits.size() + integer_length / 3U);
-    grouped.append(digits, 0U, sign);
+    const std::size_t groups = integer_length / 3U;
+    std::string written;
+    written.reserve(digits.size() + groups * locale.group_separator.size() + locale.decimal_separator.size());
+    written.append(digits, 0U, sign);
     for (std::size_t index = 0U; index < integer_length; ++index) {
-        if (index != 0U && (integer_length - index) % 3U == 0U) grouped.push_back(',');
-        grouped.push_back(digits[sign + index]);
+        if (grouped && index != 0U && (integer_length - index) % 3U == 0U) written += locale.group_separator;
+        written.push_back(digits[sign + index]);
     }
-    grouped.append(digits, integer_end, std::string::npos);
-    return grouped;
+    if (point != std::string::npos) {
+        written += locale.decimal_separator;
+        written.append(digits, point + 1U, std::string::npos);
+    }
+    return written;
 }
 
-// The typed text without group commas, for parsing a decimal.
-std::string without_commas(std::string_view text) {
+// Typed text as the C locale reads it: `locale`'s group separators removed
+// (typed groups are accepted whether or not the editor shows them) and its
+// decimal separator written as '.'.
+std::string delocalized_decimal(std::string_view text, const HostLocale& locale) {
+    const std::string_view group = locale.group_separator;
+    const std::string_view decimal = locale.decimal_separator;
     std::string plain;
     plain.reserve(text.size());
-    for (const char character : text) {
-        if (character != ',') plain.push_back(character);
+    for (std::size_t index = 0U; index < text.size();) {
+        const std::string_view rest = text.substr(index);
+        if (!group.empty() && rest.substr(0U, group.size()) == group) {
+            index = index + group.size();
+        } else if (!decimal.empty() && rest.substr(0U, decimal.size()) == decimal) {
+            plain.push_back('.');
+            index = index + decimal.size();
+        } else {
+            plain.push_back(text[index]);
+            index = index + 1U;
+        }
     }
     return plain;
 }
@@ -106,6 +128,8 @@ double NumericUpDownScrub::shown(double value) const noexcept {
 
 void NumericUpDownScrub::preview_scrub(double value) {
     NumericUpDown& numeric = *numeric_;
+    // Past the threshold: the field glows (a no-op after the first preview).
+    numeric.set_scrub_glow_target(true);
     const double next = shown(value);
     if (next != numeric.value.read()) numeric.value = next;
 }
@@ -116,6 +140,7 @@ void NumericUpDownScrub::end_scrub(ScrubEnd end, double value) {
     NumericUpDown& numeric = *numeric_;
     const double next = end == ScrubEnd::committed ? shown(value) : value;
     if (next != numeric.value.read()) numeric.value = next;
+    numeric.set_scrub_glow_target(false);
     numeric.invalidate(Dirty::paint);
 }
 
@@ -246,19 +271,24 @@ void NumericUpDown::written(const decltype(hexadecimal)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+// The digits are written in the C locale's form whatever locale the program
+// sets; a default stream followed the global C++ locale, so its grouping and
+// decimal mark reached localized_decimal, which expects C digits
+// (A-gf-controls-08-F5). The host locale's separators are applied after.
 std::string NumericUpDown::formatted_value() const {
-    std::ostringstream stream;
+    std::string digits;
     if (hexadecimal.read()) {
-        stream << std::uppercase << std::hex << static_cast<std::int64_t>(std::llround(value.read()));
-    } else {
-        stream << std::fixed << std::setprecision(decimal_places.read()) << value.read();
-        if (thousands_separator.read()) return group_thousands(stream.str());
+        number_text::append_hexadecimal_integer(digits, static_cast<std::int64_t>(std::llround(value.read())));
+        return digits;
     }
-    return stream.str();
+    number_text::append_number_text(digits, value.read(), std::chars_format::fixed, decimal_places.read());
+    const std::string written = localized_decimal(digits, effective_locale(), thousands_separator.read());
+    return written;
 }
 
 void NumericUpDown::synchronize_editor() {
     if (!editor_) return;
+    shown_locale_generation_ = effective_locale_generation();
     synchronizing_ = true;
     (*editor_).text = formatted_value();
     synchronizing_ = false;
@@ -266,9 +296,9 @@ void NumericUpDown::synchronize_editor() {
 
 void NumericUpDown::commit_editor_text() {
     if (!editor_ || (*editor_).text.read().empty()) return;
-    // Group commas are accepted whether or not the editor shows them.
+    // Group separators are accepted whether or not the editor shows them.
     const std::string typed = hexadecimal.read() ? std::string((*editor_).text.read())
-                                                 : without_commas((*editor_).text.read());
+                                                 : delocalized_decimal((*editor_).text.read(), effective_locale());
     double parsed{};
     bool understood = false;
     if (hexadecimal.read()) {
@@ -317,15 +347,102 @@ void NumericUpDown::step(int direction) {
 }
 
 void NumericUpDown::on_paint_overlay(Painter& painter, Rect local_damage) {
+    // The glow's timer waits for this paint after each damaging tick.
+    scrub_glow_frames_.note_painted();
     Panel::on_paint_overlay(painter, local_damage);
-    if (!spinner_) return;
-    // spinner_ is the SpinButtons initialize_control_tree made.
-    const SpinPartNames names{"increment_arrow", "decrement_arrow", "increment_glyph", "decrement_glyph"};
-    paint_spin_parts(painter, *this, static_cast<const SpinButtons&>(*spinner_), names);
+    if (spinner_) {
+        // spinner_ is the SpinButtons initialize_control_tree made.
+        const SpinPartNames names{"increment_arrow", "decrement_arrow", "increment_glyph", "decrement_glyph"};
+        paint_spin_parts(painter, *this, static_cast<const SpinButtons&>(*spinner_), names);
+    }
+    // The scrub glow over the field (and its editor), in the theme's accent.
+    if (scrub_glow_ <= 0.0 || field_bounds_.empty()) return;
+    const EffectEntry* const entry = built_in_effect_registry().find(ScrubGlow::declaration.name);
+    if (entry == nullptr) return;
+    if (scrub_glow_effect_.entry() != entry) {
+        scrub_glow_effect_.attach(*entry, effect_default_seed(stable_id().value(), ScrubGlow::declaration.name),
+                                  FrameClock::now());
+    }
+    const Color accent = effective_theme().basic_style().accent;
+    EffectColours colours{};
+    colours.primary = accent;
+    colours.secondary = accent;
+    scrub_glow_effect_.set_colours(colours);
+    scrub_glow_effect_.set_transition(scrub_glow_);
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool still = root == nullptr || (*root).motion_clock().suppressed();
+    const Window* const host = attached_window();
+    const double scale = host != nullptr ? (*host).scale() : 1.0;
+    const EffectView<NumericUpDown> view{};
+    scrub_glow_effect_.paint(painter, field_bounds_, scale, still, view);
+}
+
+// -- the scrub glow --------------------------------------------------------------
+
+void NumericUpDown::set_scrub_glow_target(bool lit) {
+    const double target = lit ? 1.0 : 0.0;
+    if (target == scrub_glow_to_) return;
+    scrub_glow_from_ = scrub_glow_;
+    scrub_glow_to_ = target;
+    invalidate(field_bounds_);
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool suppressed = root == nullptr || (*root).motion_clock().suppressed();
+    if (suppressed) {
+        complete_scrub_glow();
+        return;
+    }
+    AnimationSpec specification{};
+    specification.duration = lit ? scrub_glow_rise : scrub_glow_fall;
+    specification.easing = EasingCurve::ease_out;
+    scrub_glow_timeline_.set_specification(specification);
+    scrub_glow_timeline_.start(FrameClock::now());
+    const std::shared_ptr<NumericUpDown> self = std::static_pointer_cast<NumericUpDown>(shared_from_this());
+    scrub_glow_frames_.start(*this, display_frame_interval, ScrubGlowTick{self});
+}
+
+AnimationTickResult NumericUpDown::ScrubGlowTick::operator()(FrameTime now) const {
+    const std::shared_ptr<NumericUpDown> live = target.lock();
+    const AnimationTickResult result = live ? (*live).on_scrub_glow_tick(now) : AnimationTickResult::unchanged;
+    return result;
+}
+
+AnimationTickResult NumericUpDown::on_scrub_glow_tick(FrameTime now) {
+    // Motion suppressed since the transition began (reduced motion, an
+    // occluded window): the glow jumps to its end.
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool suppressed = root == nullptr || (*root).motion_clock().suppressed();
+    const AnimationSample sample = scrub_glow_timeline_.sample(now);
+    if (suppressed || sample.finished || !scrub_glow_timeline_.running()) {
+        complete_scrub_glow();
+    } else {
+        const double eased = std::clamp(sample.eased_progress, 0.0, 1.0);
+        scrub_glow_ = scrub_glow_from_ + (scrub_glow_to_ - scrub_glow_from_) * eased;
+    }
+    invalidate(field_bounds_);
+    return AnimationTickResult::damaged;
+}
+
+void NumericUpDown::complete_scrub_glow() noexcept {
+    scrub_glow_frames_.stop();
+    scrub_glow_timeline_.stop();
+    scrub_glow_ = scrub_glow_to_;
+    scrub_glow_from_ = scrub_glow_to_;
+}
+
+void NumericUpDown::on_detached_from_window() noexcept {
+    // A scrub cannot outlive the window: the glow ends unlit, with no timer.
+    scrub_glow_to_ = 0.0;
+    complete_scrub_glow();
+    UpDownBase::on_detached_from_window();
 }
 
 void NumericUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
+    // A locale that changed since the editor's text was written (a host's
+    // report after attach, or ApplicationResources::set_locale, which lays
+    // every window out): the text is written again with its separators.
+    // The editor's change asks the layout for a second pass.
+    if (shown_locale_generation_ != effective_locale_generation() && !committing_) synchronize_editor();
     // The field and the spin column sit inside the control's own border
     // (the borderless editor draws none of its own).
     const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
@@ -343,6 +460,7 @@ void NumericUpDown::arrange(Rect final_bounds) {
         field = horizontally_mirrored(field, frame);
         column = horizontally_mirrored(column, frame);
     }
+    field_bounds_ = field;
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
 }
@@ -393,6 +511,8 @@ void NumericUpDown::on_pointer_preview(PointerEvent& event) {
 bool NumericUpDown::begin_keyboard_drag() {
     if (!scrub.read() || !enabled.read() || !scrub_) return false;
     const bool started = (*scrub_).gesture.begin_keyboard();
+    // The keyboard mode scrubs at once: the field glows.
+    if (started && scrubbing()) set_scrub_glow_target(true);
     return started;
 }
 
@@ -406,12 +526,12 @@ SemanticDescriptor NumericUpDown::semantic_descriptor() const {
     descriptor.role = SemanticRole::numeric_field;
     descriptor.name = accessible_name.read();
     descriptor.value = formatted_value();
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
     // The arrow keys and the spin buttons move by the increment; there is no
     // larger step, so none is published (owner decision, stage A gap 7).
-    descriptor.small_step = increment.read();
+    descriptor.small_step.set(increment.read());
     descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
@@ -452,11 +572,11 @@ namespace {
 constexpr std::array<AnatomyState, 2> spin_arrow_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<NumericUpDown::Parts>, 7> numeric_up_down_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &NumericUpDown::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &NumericUpDown::Parts::edge},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &NumericUpDown::Parts::field},
     {.declaration = {.name = "increment_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = spin_arrow_states},
@@ -495,6 +615,7 @@ constexpr ControlAnatomy numeric_up_down_anatomy{
     .parts = numeric_up_down_parts,
     .states = numeric_up_down_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -791,7 +912,7 @@ void NumericUpDown::written(const decltype(thousands_separator)&) {
 
 void NumericUpDown::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (incoming > HorizontalAlignment::far) {
+    if (incoming > HorizontalAlignment::end) {
         throw std::invalid_argument("NumericUpDown text alignment is unknown");
     }
 }

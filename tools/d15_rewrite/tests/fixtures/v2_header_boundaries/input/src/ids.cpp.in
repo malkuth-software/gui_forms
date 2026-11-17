@@ -1,0 +1,22 @@
+#include <gui_forms/ids.hpp>
+
+#include <cstddef>
+#include <map>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+void id_literal_is_not_valid() noexcept {}
+
+std::size_t Registry::entry_count(const std::string_view name) const {
+    const std::map<std::string, int>::const_iterator found = entries_.find(std::string(name));
+    if (found == entries_.end()) return 0U;
+    return static_cast<std::size_t>((*found).second);
+}
+
+void set_title(const std::string_view title) {
+    static_cast<void>(title);
+}
+
+} // namespace gui_forms

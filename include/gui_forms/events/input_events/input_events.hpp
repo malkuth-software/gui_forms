@@ -42,6 +42,25 @@ enum class WheelDeltaUnit : std::uint8_t {
     pixels,
 };
 
+// Where a wheel event stands in a precise device's scroll gesture, for a
+// host that reports it (macOS: the scroll event's phase and momentum phase); none for a
+// detented wheel or a host that reports no gestures. A gesture is the
+// fingers' contact (began, changed..., then ended, or cancelled) followed,
+// when the fingers leave moving, by the system's momentum (momentum...,
+// then momentum_ended). The window keeps every event of one gesture, its
+// momentum included, on the control the gesture began over (scroll
+// latching), so momentum that carries the pointer over a nested scrolling
+// control does not start scrolling it.
+enum class WheelPhase : std::uint8_t {
+    none,
+    began,
+    changed,
+    ended,
+    cancelled,
+    momentum,
+    momentum_ended,
+};
+
 enum class KeyAction : std::uint8_t {
     down,
     up,
@@ -82,8 +101,20 @@ struct GUI_FORMS_API PointerEvent {
     // Host-normalized click cardinality. Move/wheel events report zero or one;
     // a second native press in the platform double-click sequence reports two.
     std::uint32_t click_count{1U};
-    // The unit of wheel_delta (a wheel event's only).
+    // The unit of wheel_delta (a wheel event's only): lines (notches, or
+    // fractions where the host accelerates a detented wheel) or logical
+    // pixels from a precise device, fractions kept.
     WheelDeltaUnit wheel_unit{WheelDeltaUnit::lines};
+    // The event's place in a scroll gesture (a wheel event's only).
+    WheelPhase wheel_phase{WheelPhase::none};
+    // When the host took the event: nanoseconds of FrameClock
+    // (std::chrono::steady_clock), the clock every host and the window's
+    // scheduler use, monotonic, comparable between events and windows of
+    // one process. The host converts its own event time into it
+    // (HostEventClock); an event handed in with zero is stamped with the
+    // time the window dispatches it. Velocity and flings measure between
+    // these, never by when a handler runs.
+    std::uint64_t timestamp_nanoseconds{};
 };
 
 struct GUI_FORMS_API KeyEvent {

@@ -83,8 +83,8 @@ void add_move_remove() {
             "one stale identity refuses the whole move and changes nothing");
 
     const GraphResult reused = graph.add_node(spec_at("Again", 0.0, 0.0));
-    require(reused.node.index == first.node.index && reused.node.generation == first.node.generation + 1U,
-            "a freed slot is reused with the next generation");
+    require(reused.node.index == first.node.index && reused.node.generation > first.node.generation,
+            "a freed slot is reused with a newer generation");
     require(graph.node(first.node) == nullptr && graph.node(reused.node) != nullptr,
             "the old identity stays stale after reuse");
 }

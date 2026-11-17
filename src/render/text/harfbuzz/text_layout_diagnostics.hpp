@@ -7,15 +7,18 @@
 
 namespace gui_forms::render::text {
 
+// Injected failures, each at one append call: the face's shaper fails to
+// open or the run's scratch to grow (std::bad_alloc), STXlib refuses the run
+// (std::runtime_error), or storage fails after a run was shaped.
 enum class TextLayoutFailure {
-    none, empty_font, unbound_font, empty_buffer, after_add, after_shape, no_shaper,
+    none, shaper_open, glyph_storage, shape_refused, after_shape,
 };
 
 // Private diagnostic-only vocabulary. One snapshot belongs to one engine and
 // is accessed only on that engine's executor. No global last-result state.
 enum class TextLayoutPhase : std::size_t {
     store_graphemes, fallback, bidi, intersections, append_total,
-    ft_size, hb_font, buffer_setup, hb_shape, glyph_output, count,
+    shaper_open, buffer_setup, shape, glyph_output, count,
 };
 struct TextLayoutDiagnostics final {
     std::array<std::uint64_t, static_cast<std::size_t>(TextLayoutPhase::count)> nanoseconds{};

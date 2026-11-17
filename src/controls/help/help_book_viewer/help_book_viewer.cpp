@@ -9,10 +9,12 @@
 #include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <utility>
 
 namespace gui_forms {
@@ -42,6 +44,35 @@ private:
     };
 
     std::vector<Row> rows_{};
+};
+
+// The gap between the navigation pane and the book (GAPS H4): a drag
+// resizes the pane. The pointer is the horizontal resize cursor over it; a
+// primary press captures the pointer, each move sets the viewer's
+// navigation width from the press's width plus the distance moved (held
+// between the minimum and the pane's share of the viewer), and the release
+// or a lost capture ends the drag. It paints nothing and takes no focus.
+class HelpNavigationSplitter final : public Control {
+public:
+    HelpNavigationSplitter(StableId stable_id, HelpBookViewer& owner)
+        : Control(std::move(stable_id)), owner_(&owner) {
+        focusable = false;
+        tab_stop = false;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
+    }
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_capture_changed() override;
+
+private:
+    // The viewer owns this splitter as its child and outlives it.
+    HelpBookViewer* owner_;
+    bool dragging_{};
+    double start_x_{};
+    double start_width_{};
 };
 
 } // namespace detail
@@ -106,6 +137,50 @@ void detail::HelpNavigationColumn::arrange(Rect final_bounds) {
         }
         top += height + viewer_gap;
     }
+}
+
+namespace {
+
+// The widest the navigation pane is shown in a viewer `viewer_width` wide.
+[[nodiscard]] double navigation_share(double viewer_width) noexcept {
+    return std::max(0.0, viewer_width * maximum_navigation_share);
+}
+
+} // namespace
+
+void detail::HelpNavigationSplitter::on_mouse_down(MouseEventArgs& arguments) {
+    Control::on_mouse_down(arguments);
+    if (arguments.handled || arguments.button != PointerButton::primary) return;
+    const double viewer_width = (*owner_).client_rectangle().width;
+    dragging_ = true;
+    start_x_ = arguments.window_position.x;
+    start_width_ = std::min((*owner_).navigation_width(), navigation_share(viewer_width));
+    set_pointer_capture(true);
+    arguments.handled = true;
+}
+
+void detail::HelpNavigationSplitter::on_mouse_move(MouseEventArgs& arguments) {
+    Control::on_mouse_move(arguments);
+    if (!dragging_) return;
+    const double viewer_width = (*owner_).client_rectangle().width;
+    const double widest = std::max(minimum_navigation_width, navigation_share(viewer_width));
+    const double wanted = start_width_ + (arguments.window_position.x - start_x_);
+    const double width = std::clamp(wanted, minimum_navigation_width, widest);
+    (*owner_).set_navigation_width(width);
+    arguments.handled = true;
+}
+
+void detail::HelpNavigationSplitter::on_mouse_up(MouseEventArgs& arguments) {
+    Control::on_mouse_up(arguments);
+    if (!dragging_ || arguments.button != PointerButton::primary) return;
+    dragging_ = false;
+    set_pointer_capture(false);
+    arguments.handled = true;
+}
+
+void detail::HelpNavigationSplitter::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!has_pointer_capture()) dragging_ = false;
 }
 
 HelpBookViewer::HelpBookViewer(StableId stable_id) : Control(std::move(stable_id)) {
@@ -185,6 +260,8 @@ void HelpBookViewer::initialize_control_tree() {
     add_child(locate_button_);
     add_child(language_button_);
     add_child(tabs_);
+    navigation_splitter_ = make_control<detail::HelpNavigationSplitter>(StableId(prefix + ".navigation-splitter"), *this);
+    add_child(navigation_splitter_);
     add_child(book_);
 
     on((*hide_button_).clicked(), *this, &HelpBookViewer::on_hide_clicked);
@@ -243,9 +320,9 @@ void HelpBookViewer::set_home(std::string stable_id) {
 std::string HelpBookViewer::home_page() const {
     if (!section_) return {};
     const HelpBookSection& section = *section_;
-    if (!home_.empty() && section.find(home_).has_value()) return home_;
+    if (!home_.empty() && section.find(home_).present()) return home_;
     for (const HelpContentsNode& node : section.contents.nodes) {
-        if (section.find(node.stable_id).has_value()) return node.stable_id;
+        if (section.find(node.stable_id).present()) return node.stable_id;
     }
     if (!section.records.empty()) return section.records.front().stable_id;
     return {};
@@ -253,9 +330,9 @@ std::string HelpBookViewer::home_page() const {
 
 std::string HelpBookViewer::record_title(std::string_view stable_id) const {
     if (!section_) return std::string(stable_id);
-    const std::optional<std::size_t> record = (*section_).find(stable_id);
-    if (!record.has_value()) return std::string(stable_id);
-    const std::string& title = (*section_).records[*record].title;
+    const stxlib::Optional<std::size_t> record = (*section_).find(stable_id);
+    if (record.absent()) return std::string(stable_id);
+    const std::string& title = (*section_).records[(*record.value())].title;
     return title.empty() ? std::string(stable_id) : title;
 }
 
@@ -340,15 +417,15 @@ bool HelpBookViewer::home() {
 void HelpBookViewer::select_tab(HelpNavigationTab tab) {
     require_mutable();
     if (!navigation_visible_) set_navigation_visible(true);
-    (*tabs_).selected_index = std::optional<std::size_t>(static_cast<std::size_t>(tab));
+    (*tabs_).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(tab));
 }
 
 HelpNavigationTab HelpBookViewer::selected_tab() const noexcept {
-    const std::optional<std::size_t> selected = (*tabs_).selected_index.read();
-    if (!selected.has_value() || *selected > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
+    const stxlib::Optional<std::size_t> selected = (*tabs_).selected_index.read();
+    if (selected.absent() || *selected.value() > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
         return HelpNavigationTab::contents;
     }
-    return static_cast<HelpNavigationTab>(*selected);
+    return static_cast<HelpNavigationTab>(*selected.value());
 }
 
 void HelpBookViewer::show_contents() {
@@ -592,19 +669,26 @@ bool HelpBookViewer::add_bookmark() {
     bookmarks_.push_back(page);
     refresh_bookmark_list();
     refresh_buttons();
-    bookmarks_changed_.emit(bookmarks_);
+    publish_bookmarks();
     return true;
 }
 
 bool HelpBookViewer::remove_selected_bookmark() {
     require_mutable();
-    const std::optional<std::size_t> selected = (*bookmarks_list_).selected_index();
-    if (!selected.has_value() || *selected >= bookmarks_.size()) return false;
-    bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected));
+    const stxlib::Optional<std::size_t> selected = (*bookmarks_list_).selected_index();
+    if (selected.absent() || *selected.value() >= bookmarks_.size()) return false;
+    bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected.value()));
     refresh_bookmark_list();
     refresh_buttons();
-    bookmarks_changed_.emit(bookmarks_);
+    publish_bookmarks();
     return true;
+}
+
+void HelpBookViewer::publish_bookmarks() {
+    // A copy (A-gf-abi-02-F7): the C ABI's collection field borrows the
+    // argument for the whole callback, and a handler may change bookmarks_.
+    const std::vector<std::string> published = bookmarks_;
+    bookmarks_changed_.emit(published);
 }
 
 void HelpBookViewer::on_bookmark_activated(std::size_t entry) {
@@ -718,6 +802,7 @@ void HelpBookViewer::set_navigation_visible(bool visible) {
     if (navigation_visible_ == visible) return;
     navigation_visible_ = visible;
     (*tabs_).visible = visible;
+    (*navigation_splitter_).visible = visible;
     refresh_buttons();
     invalidate(Dirty::layout);
 }
@@ -875,9 +960,10 @@ void HelpBookViewer::arrange(Rect final_bounds) {
     const double height = std::max(0.0, final_bounds.height - top - viewer_margin);
     double book_left = viewer_margin;
     if (navigation_visible_) {
-        const double share = std::max(0.0, final_bounds.width * maximum_navigation_share);
-        const double width = std::min(navigation_width_, share);
+        const double width = std::min(navigation_width_, navigation_share(final_bounds.width));
         set_child_layout(tabs_, Rect{viewer_margin, top, width, height});
+        // The gap between the pane and the book is the splitter.
+        set_child_layout(navigation_splitter_, Rect{viewer_margin + width, top, viewer_gap, height});
         book_left = viewer_margin + width + viewer_gap;
     }
     const double book_width = std::max(0.0, final_bounds.width - book_left - viewer_margin);

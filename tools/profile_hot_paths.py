@@ -6,7 +6,7 @@ tree (the toolkit's Release configuration, plus frame pointers and line
 tables so samples resolve to functions), runs each one under `perf record`,
 and turns `perf report` into a hot-path list: every function's share of the
 workload's samples, by itself (self) and with its callees (inclusive), and
-the share of each area (GUI.Forms, Skia, HarfBuzz, FreeType, the C and C++
+the share of each area (GUI.Forms, Skia, STXlib, the C and C++
 runtimes, the kernel).
 
 A share is a fraction of samples, not a time and not a claim that anything
@@ -77,7 +77,7 @@ WORKLOADS: tuple[Workload, ...] = (
              '(benchmarks/paint_profile_workload.cpp)'),
     # 15 passes collected about 800 samples at 999 Hz; 180 collect about ten thousand.
     Workload('text_engine', 'gui_forms_text_engine_benchmark', ('{fonts}', '180'),
-             '100 caption labels through the HarfBuzz/FreeType engine, 180 passes '
+             '100 caption labels through the STXlib text engine, 180 passes '
              '(benchmarks/text_engine_benchmark.cpp)'),
     # One run collected about 80 samples; 100 runs collect about eight thousand.
     Workload('document_view', 'gui_forms_document_view_benchmark', (),
@@ -118,8 +118,8 @@ AREA_SYMBOLS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # A standard container or algorithm instantiated for a GUI.Forms type is
     # GUI.Forms' cost, so the name may appear anywhere in the symbol.
     ('gui_forms', re.compile(r'gui_forms::')),
-    ('harfbuzz', re.compile(r'^(?:[\w:<>, ]*\s)?(?:hb_|OT::|AAT::|CFF::)')),
-    ('freetype', re.compile(r'^(?:FT_|ft_|tt_|TT_|cff_|ps_|af_|psh_|gray_|t1_|pfr_)')),
+    # STXlib: the text engine's shaping, font reading and glyph drawing.
+    ('stxlib', re.compile(r'stxlib::')),
 )
 AREA_OBJECTS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ('kernel', re.compile(r'^\[kernel')),
@@ -337,7 +337,9 @@ def build_workloads(build: Path, jobs: int) -> Path:
     workload: Workload
     for workload in WORKLOADS:
         targets.append(workload.target)
-    run_command(['cmake', '--build', str(tree), '--parallel', str(jobs), '--target', *targets])
+    # Ninja keeps going past a failed command, so one run reports every
+    # compile error (as ci_build.build_logged).
+    run_command(['cmake', '--build', str(tree), '--parallel', str(jobs), '--target', *targets, '--', '-k', '0'])
     return tree
 
 

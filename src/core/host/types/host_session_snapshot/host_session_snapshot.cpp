@@ -1,5 +1,7 @@
 #include "gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp"
 
+#include "../../../json/json_text/json_text.hpp"
+
 #include "gui_forms/host/types/host_types.hpp"
 
 #include <sstream>
@@ -8,6 +10,9 @@ namespace gui_forms {
 
 std::string HostSessionSnapshot::to_json() const {
     std::ostringstream output;
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"capabilities\":" << capabilities.to_json()
            << ",\"phase\":\"" << host_lifecycle_phase_name(phase) << '"'
            << ",\"last_sequence\":" << last_sequence

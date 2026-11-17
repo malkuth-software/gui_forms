@@ -3,12 +3,14 @@
 #include "abi_tables.hpp"
 #include "abi_records.hpp"
 
+#include "../custom/abi_composite.hpp"
 #include "../registry/abi_registry.hpp"
 #include "../schema/abi_schema.hpp"
 
 #include "gui_forms/anatomy.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "../../../core/control_language/composite_definition/composite_definition.hpp"
+
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
@@ -43,6 +45,16 @@ constexpr SlotIdentity effect_at_slot{GF_TABLE_SCHEMA, 18U};
 constexpr SlotIdentity child_property_count_slot{GF_TABLE_SCHEMA, 19U};
 constexpr SlotIdentity child_property_at_slot{GF_TABLE_SCHEMA, 20U};
 constexpr SlotIdentity child_choice_at_slot{GF_TABLE_SCHEMA, 21U};
+// The composite listings (since 1.5, provisional).
+constexpr SlotIdentity composite_count_slot{GF_TABLE_SCHEMA, 22U};
+constexpr SlotIdentity composite_at_slot{GF_TABLE_SCHEMA, 23U};
+constexpr SlotIdentity composite_part_at_slot{GF_TABLE_SCHEMA, 24U};
+constexpr SlotIdentity composite_state_at_slot{GF_TABLE_SCHEMA, 25U};
+constexpr SlotIdentity composite_custom_state_at_slot{GF_TABLE_SCHEMA, 26U};
+constexpr SlotIdentity composite_property_at_slot{GF_TABLE_SCHEMA, 27U};
+constexpr SlotIdentity composite_choice_at_slot{GF_TABLE_SCHEMA, 28U};
+constexpr SlotIdentity composite_event_at_slot{GF_TABLE_SCHEMA, 29U};
+constexpr SlotIdentity composite_command_at_slot{GF_TABLE_SCHEMA, 30U};
 
 // One schema call on the UI thread. A library that had no UI thread binds
 // the calling thread for the call and is unbound again when the call ends,
@@ -66,6 +78,17 @@ public:
         }
         entered_ = true;
         built = &schema();
+        return GF_STATUS_OK;
+    }
+
+    // Enters the UI thread only: the composite listings do not read the
+    // registry's types.
+    [[nodiscard]] gf_status enter_composites(SlotIdentity slot) {
+        const gf_status entered = registry().enter_ui(slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        entered_ = true;
         return GF_STATUS_OK;
     }
 
@@ -144,299 +167,295 @@ gf_status find_primitive(const Schema& built, std::uint64_t primitive, SlotIdent
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL schema_vocabulary_count(gf_schema_vocabulary vocabulary, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(vocabulary_count_slot.table_id, vocabulary_count_slot.slot_index);
-        if (count == nullptr || vocabulary >= vocabulary_list_count) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, vocabulary_count_slot,
-                        "vocabulary_count needs a known vocabulary and an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(vocabulary_count_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = (*built).vocabularies[vocabulary].size();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(vocabulary_count_slot);
+gf_status schema_vocabulary_count_body(gf_schema_vocabulary vocabulary, std::uint64_t* count) {
+    if (count == nullptr || vocabulary >= vocabulary_list_count) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, vocabulary_count_slot,
+                    "vocabulary_count needs a known vocabulary and an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(vocabulary_count_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = (*built).vocabularies[vocabulary].size();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_vocabulary_count(gf_schema_vocabulary vocabulary, std::uint64_t* count) noexcept {
+    return call_slot(vocabulary_count_slot, schema_vocabulary_count_body, vocabulary, count);
+}
+
+gf_status schema_vocabulary_at_body(gf_schema_vocabulary vocabulary, std::uint64_t index,
+                                    gf_utf8_view* name) {
+    if (name == nullptr || vocabulary >= vocabulary_list_count) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, vocabulary_at_slot,
+                    "vocabulary_at needs a known vocabulary and an output");
+    }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(vocabulary_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::vector<std::string>& names = (*built).vocabularies[vocabulary];
+    const gf_status checked = check_index(index, names.size(), vocabulary_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(names[static_cast<std::size_t>(index)]);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_vocabulary_at(gf_schema_vocabulary vocabulary, std::uint64_t index,
                                        gf_utf8_view* name) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(vocabulary_at_slot.table_id, vocabulary_at_slot.slot_index);
-        if (name == nullptr || vocabulary >= vocabulary_list_count) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, vocabulary_at_slot,
-                        "vocabulary_at needs a known vocabulary and an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(vocabulary_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::vector<std::string>& names = (*built).vocabularies[vocabulary];
-        const gf_status checked = check_index(index, names.size(), vocabulary_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        *name = view_of(names[static_cast<std::size_t>(index)]);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(vocabulary_at_slot);
+    return call_slot(vocabulary_at_slot, schema_vocabulary_at_body, vocabulary, index, name);
+}
+
+gf_status schema_type_count_body(std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, type_count_slot, "type_count needs an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(type_count_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = (*built).types.size();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_type_count(std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(type_count_slot.table_id, type_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, type_count_slot, "type_count needs an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(type_count_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = (*built).types.size();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(type_count_slot);
+    return call_slot(type_count_slot, schema_type_count_body, count);
+}
+
+gf_status schema_find_type_body(gf_utf8_view name, std::uint64_t* type) {
+    if (type == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, find_type_slot, "find_type needs an output");
     }
+    std::string_view text;
+    const gf_status read = read_text(name, find_type_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    if (text.empty()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, find_type_slot, "a type name is not empty");
+    }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(find_type_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::size_t found = find_schema_type(text);
+    if (found >= (*built).types.size()) {
+        return fail(GF_STATUS_NOT_FOUND, find_type_slot, "the schema has no type of that name");
+    }
+    *type = found;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_find_type(gf_utf8_view name, std::uint64_t* type) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(find_type_slot.table_id, find_type_slot.slot_index);
-        if (type == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, find_type_slot, "find_type needs an output");
-        }
-        std::string_view text;
-        const gf_status read = read_text(name, find_type_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        if (text.empty()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, find_type_slot, "a type name is not empty");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(find_type_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::size_t found = find_schema_type(text);
-        if (found >= (*built).types.size()) {
-            return fail(GF_STATUS_NOT_FOUND, find_type_slot, "the schema has no type of that name");
-        }
-        *type = found;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(find_type_slot);
+    return call_slot(find_type_slot, schema_find_type_body, name, type);
+}
+
+gf_status schema_type_at_body(std::uint64_t type, gf_schema_type* record) {
+    const gf_status valid = check_record(record, type_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(type_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, type_at_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    gf_schema_type complete{};
+    complete.struct_size = sizeof(gf_schema_type);
+    complete.kind = (*found).kind;
+    complete.id = view_of((*found).id);
+    complete.type_name = view_of((*found).type_name);
+    if ((*found).anatomy != nullptr) {
+        const ControlAnatomy& anatomy = *(*found).anatomy;
+        complete.part_count = anatomy.parts.size();
+        complete.state_count = anatomy.states.size();
+        complete.custom_state_count = anatomy.custom_states.size();
+        complete.item_system_count = anatomy.item_systems.size();
+    }
+    complete.property_count = (*found).properties.size();
+    complete.interaction_count = (*found).interactions.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_type_at(std::uint64_t type, gf_schema_type* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(type_at_slot.table_id, type_at_slot.slot_index);
-        const gf_status valid = check_record(record, type_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(type_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, type_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        gf_schema_type complete{};
-        complete.struct_size = sizeof(gf_schema_type);
-        complete.kind = (*found).kind;
-        complete.id = view_of((*found).id);
-        complete.type_name = view_of((*found).type_name);
-        if ((*found).anatomy != nullptr) {
-            const ControlAnatomy& anatomy = *(*found).anatomy;
-            complete.part_count = anatomy.parts.size();
-            complete.state_count = anatomy.states.size();
-            complete.custom_state_count = anatomy.custom_states.size();
-            complete.item_system_count = anatomy.item_systems.size();
-        }
-        complete.property_count = (*found).properties.size();
-        complete.interaction_count = (*found).interactions.size();
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(type_at_slot);
+    return call_slot(type_at_slot, schema_type_at_body, type, record);
+}
+
+gf_status schema_item_system_at_body(std::uint64_t type, std::uint64_t system,
+                                     gf_schema_item_system* record) {
+    const gf_status valid = check_record(record, item_system_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    if (system == GF_SCHEMA_NONE) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, item_system_at_slot, "item_system_at needs an item system index");
+    }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(item_system_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, item_system_at_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    AnatomyScope scope;
+    const gf_status scoped = find_scope(*found, system, item_system_at_slot, scope);
+    if (scoped != GF_STATUS_OK) {
+        return scoped;
+    }
+    const ItemSystemDeclaration& declaration =
+        (*(*found).anatomy).item_systems[static_cast<std::size_t>(system)];
+    gf_schema_item_system complete{};
+    complete.struct_size = sizeof(gf_schema_item_system);
+    complete.name = view_of(declaration.name);
+    complete.part_count = scope.parts.size();
+    complete.state_count = scope.states.size();
+    complete.custom_state_count = scope.custom_states.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_item_system_at(std::uint64_t type, std::uint64_t system,
                                         gf_schema_item_system* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(item_system_at_slot.table_id, item_system_at_slot.slot_index);
-        const gf_status valid = check_record(record, item_system_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        if (system == GF_SCHEMA_NONE) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, item_system_at_slot, "item_system_at needs an item system index");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(item_system_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, item_system_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        AnatomyScope scope;
-        const gf_status scoped = find_scope(*found, system, item_system_at_slot, scope);
-        if (scoped != GF_STATUS_OK) {
-            return scoped;
-        }
-        const ItemSystemDeclaration& declaration =
-            (*(*found).anatomy).item_systems[static_cast<std::size_t>(system)];
-        gf_schema_item_system complete{};
-        complete.struct_size = sizeof(gf_schema_item_system);
-        complete.name = view_of(declaration.name);
-        complete.part_count = scope.parts.size();
-        complete.state_count = scope.states.size();
-        complete.custom_state_count = scope.custom_states.size();
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(item_system_at_slot);
+    return call_slot(item_system_at_slot, schema_item_system_at_body, type, system, record);
+}
+
+gf_status schema_part_at_body(std::uint64_t type, std::uint64_t system, std::uint64_t part,
+                              gf_schema_part* record) {
+    const gf_status valid = check_record(record, part_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(part_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, part_at_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    AnatomyScope scope;
+    const gf_status scoped = find_scope(*found, system, part_at_slot, scope);
+    if (scoped != GF_STATUS_OK) {
+        return scoped;
+    }
+    const gf_status checked = check_index(part, scope.parts.size(), part_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const PartDeclaration& declaration = scope.parts[static_cast<std::size_t>(part)];
+    gf_schema_part complete{};
+    complete.struct_size = sizeof(gf_schema_part);
+    complete.name = view_of(declaration.name);
+    complete.role = view_of(part_role_name(declaration.role));
+    complete.composed_from = view_of(declaration.composed_from);
+    complete.state_count = declaration.states.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_part_at(std::uint64_t type, std::uint64_t system, std::uint64_t part,
                                  gf_schema_part* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(part_at_slot.table_id, part_at_slot.slot_index);
-        const gf_status valid = check_record(record, part_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(part_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, part_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        AnatomyScope scope;
-        const gf_status scoped = find_scope(*found, system, part_at_slot, scope);
-        if (scoped != GF_STATUS_OK) {
-            return scoped;
-        }
-        const gf_status checked = check_index(part, scope.parts.size(), part_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const PartDeclaration& declaration = scope.parts[static_cast<std::size_t>(part)];
-        gf_schema_part complete{};
-        complete.struct_size = sizeof(gf_schema_part);
-        complete.name = view_of(declaration.name);
-        complete.role = view_of(part_role_name(declaration.role));
-        complete.composed_from = view_of(declaration.composed_from);
-        complete.state_count = declaration.states.size();
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(part_at_slot);
+    return call_slot(part_at_slot, schema_part_at_body, type, system, part, record);
+}
+
+gf_status schema_state_at_body(std::uint64_t type, std::uint64_t system, std::uint64_t part,
+                               std::uint64_t state, gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, state_at_slot, "state_at needs an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(state_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, state_at_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    AnatomyScope scope;
+    const gf_status scoped = find_scope(*found, system, state_at_slot, scope);
+    if (scoped != GF_STATUS_OK) {
+        return scoped;
+    }
+    std::span<const AnatomyState> states = scope.states;
+    if (part != GF_SCHEMA_NONE) {
+        const gf_status part_checked = check_index(part, scope.parts.size(), state_at_slot);
+        if (part_checked != GF_STATUS_OK) {
+            return part_checked;
+        }
+        states = scope.parts[static_cast<std::size_t>(part)].states;
+    }
+    const gf_status checked = check_index(state, states.size(), state_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(anatomy_state_name(states[static_cast<std::size_t>(state)]));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_state_at(std::uint64_t type, std::uint64_t system, std::uint64_t part,
                                   std::uint64_t state, gf_utf8_view* name) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(state_at_slot.table_id, state_at_slot.slot_index);
-        if (name == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, state_at_slot, "state_at needs an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(state_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, state_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        AnatomyScope scope;
-        const gf_status scoped = find_scope(*found, system, state_at_slot, scope);
-        if (scoped != GF_STATUS_OK) {
-            return scoped;
-        }
-        std::span<const AnatomyState> states = scope.states;
-        if (part != GF_SCHEMA_NONE) {
-            const gf_status part_checked = check_index(part, scope.parts.size(), state_at_slot);
-            if (part_checked != GF_STATUS_OK) {
-                return part_checked;
-            }
-            states = scope.parts[static_cast<std::size_t>(part)].states;
-        }
-        const gf_status checked = check_index(state, states.size(), state_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        *name = view_of(anatomy_state_name(states[static_cast<std::size_t>(state)]));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(state_at_slot);
+    return call_slot(state_at_slot, schema_state_at_body, type, system, part, state, name);
+}
+
+gf_status schema_custom_state_at_body(std::uint64_t type, std::uint64_t system, std::uint64_t state,
+                                      gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, custom_state_at_slot, "custom_state_at needs an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(custom_state_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, custom_state_at_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    AnatomyScope scope;
+    const gf_status scoped = find_scope(*found, system, custom_state_at_slot, scope);
+    if (scoped != GF_STATUS_OK) {
+        return scoped;
+    }
+    const gf_status checked = check_index(state, scope.custom_states.size(), custom_state_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(scope.custom_states[static_cast<std::size_t>(state)].name);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_custom_state_at(std::uint64_t type, std::uint64_t system, std::uint64_t state,
                                          gf_utf8_view* name) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(custom_state_at_slot.table_id, custom_state_at_slot.slot_index);
-        if (name == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, custom_state_at_slot, "custom_state_at needs an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(custom_state_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, custom_state_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        AnatomyScope scope;
-        const gf_status scoped = find_scope(*found, system, custom_state_at_slot, scope);
-        if (scoped != GF_STATUS_OK) {
-            return scoped;
-        }
-        const gf_status checked = check_index(state, scope.custom_states.size(), custom_state_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        *name = view_of(scope.custom_states[static_cast<std::size_t>(state)].name);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(custom_state_at_slot);
-    }
+    return call_slot(custom_state_at_slot, schema_custom_state_at_body, type, system, state, name);
 }
 
 // Which of a type's property lists a property or choice call reads.
@@ -455,7 +474,6 @@ const std::vector<SchemaProperty>& properties_of(const SchemaType& type, Propert
 
 gf_status read_property(std::uint64_t type, std::uint64_t property, gf_schema_property* record,
                         PropertyList list, SlotIdentity slot) {
-    const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
     const gf_status valid = check_record(record, slot);
     if (valid != GF_STATUS_OK) {
         return valid;
@@ -492,7 +510,6 @@ gf_status read_property(std::uint64_t type, std::uint64_t property, gf_schema_pr
 
 gf_status read_choice(std::uint64_t type, std::uint64_t property, std::uint64_t choice, gf_schema_choice* record,
                       PropertyList list, SlotIdentity slot) {
-    const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
     const gf_status valid = check_record(record, slot);
     if (valid != GF_STATUS_OK) {
         return valid;
@@ -527,226 +544,221 @@ gf_status read_choice(std::uint64_t type, std::uint64_t property, std::uint64_t 
     return GF_STATUS_OK;
 }
 
+gf_status schema_property_at_body(std::uint64_t type, std::uint64_t property, gf_schema_property* record) {
+    const gf_status status = read_property(type, property, record, PropertyList::own, property_at_slot);
+    return status;
+}
+
 gf_status GF_CALL schema_property_at(std::uint64_t type, std::uint64_t property,
                                      gf_schema_property* record) noexcept {
-    try {
-        const gf_status status = read_property(type, property, record, PropertyList::own, property_at_slot);
-        return status;
-    } catch (...) {
-        return fail_with_current_exception(property_at_slot);
-    }
+    return call_slot(property_at_slot, schema_property_at_body, type, property, record);
+}
+
+gf_status schema_choice_at_body(std::uint64_t type, std::uint64_t property, std::uint64_t choice, gf_schema_choice* record) {
+    const gf_status status = read_choice(type, property, choice, record, PropertyList::own, choice_at_slot);
+    return status;
 }
 
 gf_status GF_CALL schema_choice_at(std::uint64_t type, std::uint64_t property, std::uint64_t choice,
                                    gf_schema_choice* record) noexcept {
-    try {
-        const gf_status status = read_choice(type, property, choice, record, PropertyList::own, choice_at_slot);
-        return status;
-    } catch (...) {
-        return fail_with_current_exception(choice_at_slot);
+    return call_slot(choice_at_slot, schema_choice_at_body, type, property, choice, record);
+}
+
+gf_status schema_child_property_count_body(std::uint64_t type, std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, child_property_count_slot, "child_property_count needs an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(child_property_count_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, child_property_count_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    *count = (*found).child_properties.size();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_child_property_count(std::uint64_t type, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(child_property_count_slot.table_id, child_property_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, child_property_count_slot, "child_property_count needs an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(child_property_count_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, child_property_count_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        *count = (*found).child_properties.size();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(child_property_count_slot);
-    }
+    return call_slot(child_property_count_slot, schema_child_property_count_body, type, count);
+}
+
+gf_status schema_child_property_at_body(std::uint64_t type, std::uint64_t property, gf_schema_property* record) {
+    const gf_status status = read_property(type, property, record, PropertyList::provided_to_children, child_property_at_slot);
+    return status;
 }
 
 gf_status GF_CALL schema_child_property_at(std::uint64_t type, std::uint64_t property,
                                            gf_schema_property* record) noexcept {
-    try {
-        const gf_status status =
-            read_property(type, property, record, PropertyList::provided_to_children, child_property_at_slot);
-        return status;
-    } catch (...) {
-        return fail_with_current_exception(child_property_at_slot);
-    }
+    return call_slot(child_property_at_slot, schema_child_property_at_body, type, property, record);
+}
+
+gf_status schema_child_choice_at_body(std::uint64_t type, std::uint64_t property, std::uint64_t choice, gf_schema_choice* record) {
+    const gf_status status = read_choice(type, property, choice, record, PropertyList::provided_to_children, child_choice_at_slot);
+    return status;
 }
 
 gf_status GF_CALL schema_child_choice_at(std::uint64_t type, std::uint64_t property, std::uint64_t choice,
                                          gf_schema_choice* record) noexcept {
-    try {
-        const gf_status status =
-            read_choice(type, property, choice, record, PropertyList::provided_to_children, child_choice_at_slot);
-        return status;
-    } catch (...) {
-        return fail_with_current_exception(child_choice_at_slot);
+    return call_slot(child_choice_at_slot, schema_child_choice_at_body, type, property, choice, record);
+}
+
+gf_status schema_interaction_at_body(std::uint64_t type, std::uint64_t interaction,
+                                     gf_schema_interaction* record) {
+    const gf_status valid = check_record(record, interaction_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(interaction_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, interaction_at_slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status checked = check_index(interaction, (*found).interactions.size(), interaction_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaInteraction& held = (*found).interactions[static_cast<std::size_t>(interaction)];
+    gf_schema_interaction complete{};
+    complete.struct_size = sizeof(gf_schema_interaction);
+    complete.mutable_payload = held.mutable_payload ? 1U : 0U;
+    complete.name = view_of(held.name);
+    complete.payload = view_of(held.payload);
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_interaction_at(std::uint64_t type, std::uint64_t interaction,
                                         gf_schema_interaction* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(interaction_at_slot.table_id, interaction_at_slot.slot_index);
-        const gf_status valid = check_record(record, interaction_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(interaction_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, interaction_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        const gf_status checked = check_index(interaction, (*found).interactions.size(), interaction_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const SchemaInteraction& held = (*found).interactions[static_cast<std::size_t>(interaction)];
-        gf_schema_interaction complete{};
-        complete.struct_size = sizeof(gf_schema_interaction);
-        complete.mutable_payload = held.mutable_payload ? 1U : 0U;
-        complete.name = view_of(held.name);
-        complete.payload = view_of(held.payload);
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(interaction_at_slot);
+    return call_slot(interaction_at_slot, schema_interaction_at_body, type, interaction, record);
+}
+
+gf_status schema_engine_body(gf_schema_engine* record) {
+    const gf_status valid = check_record(record, engine_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(engine_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    gf_schema_engine complete{};
+    complete.struct_size = sizeof(gf_schema_engine);
+    complete.version_major = current_engine_version.major;
+    complete.version_minor = current_engine_version.minor;
+    complete.operations_per_device_pixel = maximum_operations_per_device_pixel;
+    complete.animated_operations_per_frame = maximum_animated_operations_per_frame;
+    complete.expression_maximum_operations = maximum_expression_operations;
+    complete.expression_maximum_stack = maximum_expression_stack;
+    complete.published_values_maximum = maximum_published_values;
+    complete.transition_maximum_states = maximum_presentation_states;
+    complete.transition_maximum_per_part = maximum_part_transitions;
+    complete.ambient_maximum_frames_per_second = maximum_ambient_frames_per_second;
+    complete.ambient_maximum_window_fraction = maximum_ambient_window_fraction;
+    complete.primitive_count = (*built).primitives.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_engine(gf_schema_engine* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(engine_slot.table_id, engine_slot.slot_index);
-        const gf_status valid = check_record(record, engine_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(engine_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        gf_schema_engine complete{};
-        complete.struct_size = sizeof(gf_schema_engine);
-        complete.version_major = current_engine_version.major;
-        complete.version_minor = current_engine_version.minor;
-        complete.operations_per_device_pixel = maximum_operations_per_device_pixel;
-        complete.animated_operations_per_frame = maximum_animated_operations_per_frame;
-        complete.expression_maximum_operations = maximum_expression_operations;
-        complete.expression_maximum_stack = maximum_expression_stack;
-        complete.published_values_maximum = maximum_published_values;
-        complete.transition_maximum_states = maximum_presentation_states;
-        complete.transition_maximum_per_part = maximum_part_transitions;
-        complete.ambient_maximum_frames_per_second = maximum_ambient_frames_per_second;
-        complete.ambient_maximum_window_fraction = maximum_ambient_window_fraction;
-        complete.primitive_count = (*built).primitives.size();
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(engine_slot);
+    return call_slot(engine_slot, schema_engine_body, record);
+}
+
+gf_status schema_primitive_at_body(std::uint64_t primitive, gf_schema_primitive* record) {
+    const gf_status valid = check_record(record, primitive_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(primitive_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const PrimitiveDescriptor* descriptor = nullptr;
+    const gf_status located = find_primitive(*built, primitive, primitive_at_slot, descriptor);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    gf_schema_primitive complete{};
+    complete.struct_size = sizeof(gf_schema_primitive);
+    complete.introduced_major = (*descriptor).introduced.major;
+    complete.introduced_minor = (*descriptor).introduced.minor;
+    complete.cost_per_device_pixel = (*descriptor).cost.per_device_pixel;
+    complete.cost_fixed = (*descriptor).cost.fixed;
+    complete.cost_preparation_per_device_pixel = (*descriptor).cost.preparation_per_device_pixel;
+    complete.name = view_of((*descriptor).name);
+    complete.outsets.left = (*descriptor).outsets.left;
+    complete.outsets.top = (*descriptor).outsets.top;
+    complete.outsets.right = (*descriptor).outsets.right;
+    complete.outsets.bottom = (*descriptor).outsets.bottom;
+    complete.role_count = (*descriptor).roles.size();
+    complete.state_read_count = (*descriptor).states_read.size();
+    complete.input_read_count = (*descriptor).inputs_read.size();
+    complete.parameter_count = (*descriptor).parameters.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_primitive_at(std::uint64_t primitive, gf_schema_primitive* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(primitive_at_slot.table_id, primitive_at_slot.slot_index);
-        const gf_status valid = check_record(record, primitive_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(primitive_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const PrimitiveDescriptor* descriptor = nullptr;
-        const gf_status located = find_primitive(*built, primitive, primitive_at_slot, descriptor);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        gf_schema_primitive complete{};
-        complete.struct_size = sizeof(gf_schema_primitive);
-        complete.introduced_major = (*descriptor).introduced.major;
-        complete.introduced_minor = (*descriptor).introduced.minor;
-        complete.cost_per_device_pixel = (*descriptor).cost.per_device_pixel;
-        complete.cost_fixed = (*descriptor).cost.fixed;
-        complete.cost_preparation_per_device_pixel = (*descriptor).cost.preparation_per_device_pixel;
-        complete.name = view_of((*descriptor).name);
-        complete.outsets.left = (*descriptor).outsets.left;
-        complete.outsets.top = (*descriptor).outsets.top;
-        complete.outsets.right = (*descriptor).outsets.right;
-        complete.outsets.bottom = (*descriptor).outsets.bottom;
-        complete.role_count = (*descriptor).roles.size();
-        complete.state_read_count = (*descriptor).states_read.size();
-        complete.input_read_count = (*descriptor).inputs_read.size();
-        complete.parameter_count = (*descriptor).parameters.size();
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(primitive_at_slot);
+    return call_slot(primitive_at_slot, schema_primitive_at_body, primitive, record);
+}
+
+gf_status schema_primitive_name_at_body(std::uint64_t primitive, gf_schema_primitive_list list,
+                                        std::uint64_t index, gf_utf8_view* name) {
+    if (name == nullptr || list > GF_SCHEMA_PRIMITIVE_LIST_INPUTS_READ) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, primitive_name_at_slot,
+                    "primitive_name_at needs a known list and an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(primitive_name_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const PrimitiveDescriptor* descriptor = nullptr;
+    const gf_status located = find_primitive(*built, primitive, primitive_name_at_slot, descriptor);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    std::size_t count = 0U;
+    if (list == GF_SCHEMA_PRIMITIVE_LIST_ROLES) {
+        count = (*descriptor).roles.size();
+    } else if (list == GF_SCHEMA_PRIMITIVE_LIST_STATES_READ) {
+        count = (*descriptor).states_read.size();
+    } else {
+        count = (*descriptor).inputs_read.size();
+    }
+    const gf_status checked = check_index(index, count, primitive_name_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const std::size_t position = static_cast<std::size_t>(index);
+    if (list == GF_SCHEMA_PRIMITIVE_LIST_ROLES) {
+        *name = view_of(part_role_name((*descriptor).roles[position]));
+    } else if (list == GF_SCHEMA_PRIMITIVE_LIST_STATES_READ) {
+        *name = view_of(anatomy_state_name((*descriptor).states_read[position]));
+    } else {
+        *name = view_of(engine_input_name((*descriptor).inputs_read[position]));
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_primitive_name_at(std::uint64_t primitive, gf_schema_primitive_list list,
                                            std::uint64_t index, gf_utf8_view* name) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(primitive_name_at_slot.table_id, primitive_name_at_slot.slot_index);
-        if (name == nullptr || list > GF_SCHEMA_PRIMITIVE_LIST_INPUTS_READ) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, primitive_name_at_slot,
-                        "primitive_name_at needs a known list and an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(primitive_name_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const PrimitiveDescriptor* descriptor = nullptr;
-        const gf_status located = find_primitive(*built, primitive, primitive_name_at_slot, descriptor);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        std::size_t count = 0U;
-        if (list == GF_SCHEMA_PRIMITIVE_LIST_ROLES) {
-            count = (*descriptor).roles.size();
-        } else if (list == GF_SCHEMA_PRIMITIVE_LIST_STATES_READ) {
-            count = (*descriptor).states_read.size();
-        } else {
-            count = (*descriptor).inputs_read.size();
-        }
-        const gf_status checked = check_index(index, count, primitive_name_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const std::size_t position = static_cast<std::size_t>(index);
-        if (list == GF_SCHEMA_PRIMITIVE_LIST_ROLES) {
-            *name = view_of(part_role_name((*descriptor).roles[position]));
-        } else if (list == GF_SCHEMA_PRIMITIVE_LIST_STATES_READ) {
-            *name = view_of(anatomy_state_name((*descriptor).states_read[position]));
-        } else {
-            *name = view_of(engine_input_name((*descriptor).inputs_read[position]));
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(primitive_name_at_slot);
-    }
+    return call_slot(primitive_name_at_slot, schema_primitive_name_at_body, primitive, list, index, name);
 }
 
 gf_schema_parameter_kind parameter_kind_of(PrimitiveParameterKind kind) noexcept {
@@ -761,101 +773,100 @@ gf_schema_parameter_kind parameter_kind_of(PrimitiveParameterKind kind) noexcept
     return GF_SCHEMA_PARAMETER_KIND_NUMBER;
 }
 
+gf_status schema_parameter_at_body(std::uint64_t primitive, std::uint64_t parameter,
+                                   gf_schema_parameter* record) {
+    const gf_status valid = check_record(record, parameter_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(parameter_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const PrimitiveDescriptor* descriptor = nullptr;
+    const gf_status located = find_primitive(*built, primitive, parameter_at_slot, descriptor);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status checked = check_index(parameter, (*descriptor).parameters.size(), parameter_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const PrimitiveParameterDeclaration& declaration =
+        (*descriptor).parameters[static_cast<std::size_t>(parameter)];
+    gf_schema_parameter complete{};
+    complete.struct_size = sizeof(gf_schema_parameter);
+    complete.kind = parameter_kind_of(declaration.kind);
+    complete.name = view_of(declaration.name);
+    complete.minimum = declaration.minimum;
+    complete.maximum = declaration.maximum;
+    complete.default_number = declaration.default_number;
+    complete.default_color = packed_color(declaration.default_colour);
+    complete.animated = declaration.animated ? 1U : 0U;
+    complete.choice_count = declaration.choices.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL schema_parameter_at(std::uint64_t primitive, std::uint64_t parameter,
                                       gf_schema_parameter* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(parameter_at_slot.table_id, parameter_at_slot.slot_index);
-        const gf_status valid = check_record(record, parameter_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(parameter_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const PrimitiveDescriptor* descriptor = nullptr;
-        const gf_status located = find_primitive(*built, primitive, parameter_at_slot, descriptor);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        const gf_status checked = check_index(parameter, (*descriptor).parameters.size(), parameter_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const PrimitiveParameterDeclaration& declaration =
-            (*descriptor).parameters[static_cast<std::size_t>(parameter)];
-        gf_schema_parameter complete{};
-        complete.struct_size = sizeof(gf_schema_parameter);
-        complete.kind = parameter_kind_of(declaration.kind);
-        complete.name = view_of(declaration.name);
-        complete.minimum = declaration.minimum;
-        complete.maximum = declaration.maximum;
-        complete.default_number = declaration.default_number;
-        complete.default_color = packed_color(declaration.default_colour);
-        complete.animated = declaration.animated ? 1U : 0U;
-        complete.choice_count = declaration.choices.size();
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(parameter_at_slot);
+    return call_slot(parameter_at_slot, schema_parameter_at_body, primitive, parameter, record);
+}
+
+gf_status schema_parameter_choice_at_body(std::uint64_t primitive, std::uint64_t parameter,
+                                          std::uint64_t choice, gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, parameter_choice_at_slot, "parameter_choice_at needs an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(parameter_choice_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const PrimitiveDescriptor* descriptor = nullptr;
+    const gf_status located = find_primitive(*built, primitive, parameter_choice_at_slot, descriptor);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status parameter_checked =
+        check_index(parameter, (*descriptor).parameters.size(), parameter_choice_at_slot);
+    if (parameter_checked != GF_STATUS_OK) {
+        return parameter_checked;
+    }
+    const PrimitiveParameterDeclaration& declaration =
+        (*descriptor).parameters[static_cast<std::size_t>(parameter)];
+    const gf_status checked = check_index(choice, declaration.choices.size(), parameter_choice_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(declaration.choices[static_cast<std::size_t>(choice)]);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_parameter_choice_at(std::uint64_t primitive, std::uint64_t parameter,
                                              std::uint64_t choice, gf_utf8_view* name) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(parameter_choice_at_slot.table_id, parameter_choice_at_slot.slot_index);
-        if (name == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, parameter_choice_at_slot, "parameter_choice_at needs an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(parameter_choice_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const PrimitiveDescriptor* descriptor = nullptr;
-        const gf_status located = find_primitive(*built, primitive, parameter_choice_at_slot, descriptor);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        const gf_status parameter_checked =
-            check_index(parameter, (*descriptor).parameters.size(), parameter_choice_at_slot);
-        if (parameter_checked != GF_STATUS_OK) {
-            return parameter_checked;
-        }
-        const PrimitiveParameterDeclaration& declaration =
-            (*descriptor).parameters[static_cast<std::size_t>(parameter)];
-        const gf_status checked = check_index(choice, declaration.choices.size(), parameter_choice_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        *name = view_of(declaration.choices[static_cast<std::size_t>(choice)]);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(parameter_choice_at_slot);
+    return call_slot(parameter_choice_at_slot, schema_parameter_choice_at_body, primitive, parameter, choice, name);
+}
+
+gf_status schema_effect_count_body(std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, effect_count_slot, "effect_count needs an output");
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(effect_count_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = built_in_effect_registry().count();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL schema_effect_count(std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(effect_count_slot.table_id, effect_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, effect_count_slot, "effect_count needs an output");
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(effect_count_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = built_in_effect_registry().count();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(effect_count_slot);
-    }
+    return call_slot(effect_count_slot, schema_effect_count_body, count);
 }
 
 gf_schema_effect_time_model effect_time_model_of(EffectTimeModel model) noexcept {
@@ -884,51 +895,342 @@ gf_schema_effect_input effect_input_of(EffectInputKind input) noexcept {
 
 // The registry's entries and their declarations live as long as the
 // process, so the views written here stay valid as the schema's do.
-gf_status GF_CALL schema_effect_at(std::uint64_t effect, gf_schema_effect* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(effect_at_slot.table_id, effect_at_slot.slot_index);
-        const gf_status valid = check_record(record, effect_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(effect_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const EffectRegistry& registry = built_in_effect_registry();
-        const gf_status checked = check_index(effect, registry.count(), effect_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const EffectEntry& entry = registry.at(static_cast<std::size_t>(effect));
-        const EffectDeclaration& declaration = *entry.declaration;
-        gf_schema_effect_flags flags = 0U;
-        if (entry.verified) flags = flags | GF_SCHEMA_EFFECT_FLAGS_VERIFIED;
-        if (declaration.setup_on_geometry) flags = flags | GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY;
-        gf_schema_effect complete{};
-        complete.struct_size = sizeof(gf_schema_effect);
-        complete.time_model = effect_time_model_of(declaration.time_model);
-        complete.name = view_of(declaration.name);
-        complete.parent = view_of(entry.parent);
-        complete.engine_version = declaration.engine_version;
-        complete.input = effect_input_of(declaration.input);
-        complete.cost_fixed = declaration.cost.fixed;
-        complete.cost_per_device_pixel = declaration.cost.per_device_pixel;
-        complete.setup_cost = declaration.setup_cost;
-        complete.flags = flags;
-        complete.state_budget = declaration.state_budget;
-        complete.frames_per_second = declaration.frames_per_second;
-        complete.outsets.left = declaration.outsets.left;
-        complete.outsets.top = declaration.outsets.top;
-        complete.outsets.right = declaration.outsets.right;
-        complete.outsets.bottom = declaration.outsets.bottom;
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(effect_at_slot);
+gf_status schema_effect_at_body(std::uint64_t effect, gf_schema_effect* record) {
+    const gf_status valid = check_record(record, effect_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
     }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(effect_at_slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const EffectRegistry& registry = built_in_effect_registry();
+    const gf_status checked = check_index(effect, registry.count(), effect_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const EffectEntry& entry = registry.at(static_cast<std::size_t>(effect));
+    const EffectDeclaration& declaration = *entry.declaration;
+    gf_schema_effect_flags flags = 0U;
+    if (entry.verified) flags = flags | GF_SCHEMA_EFFECT_FLAGS_VERIFIED;
+    if (declaration.setup_on_geometry) flags = flags | GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY;
+    gf_schema_effect complete{};
+    complete.struct_size = sizeof(gf_schema_effect);
+    complete.time_model = effect_time_model_of(declaration.time_model);
+    complete.name = view_of(declaration.name);
+    complete.parent = view_of(entry.parent);
+    complete.engine_version = declaration.engine_version;
+    complete.input = effect_input_of(declaration.input);
+    complete.cost_fixed = declaration.cost.fixed;
+    complete.cost_per_device_pixel = declaration.cost.per_device_pixel;
+    complete.setup_cost = declaration.setup_cost;
+    complete.flags = flags;
+    complete.state_budget = declaration.state_budget;
+    complete.frames_per_second = declaration.frames_per_second;
+    complete.outsets.left = declaration.outsets.left;
+    complete.outsets.top = declaration.outsets.top;
+    complete.outsets.right = declaration.outsets.right;
+    complete.outsets.bottom = declaration.outsets.bottom;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_effect_at(std::uint64_t effect, gf_schema_effect* record) noexcept {
+    return call_slot(effect_at_slot, schema_effect_at_body, effect, record);
+}
+
+// The listed load of composite, entered on the UI thread by call. A
+// released load gives GF_STATUS_REMOVED and an identity no load had
+// GF_STATUS_INVALID_ARGUMENT (gf_schema_composite).
+gf_status find_composite(SchemaCall& call, std::uint64_t composite, SlotIdentity slot, const LoadedComposite*& found) {
+    const gf_status entered = call.enter_composites(slot);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const LoadedCompositeLookup lookup = find_loaded_composite(composite, found);
+    switch (lookup) {
+    case LoadedCompositeLookup::listed:
+        return GF_STATUS_OK;
+    case LoadedCompositeLookup::released:
+        return fail(GF_STATUS_REMOVED, slot, "the composite's load was released");
+    case LoadedCompositeLookup::unknown:
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "no composite load had that identity");
+    default:
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "no composite load had that identity");
+    }
+}
+
+gf_status schema_composite_count_body(std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_count_slot, "composite_count needs an output");
+    }
+    SchemaCall call;
+    const gf_status entered = call.enter_composites(composite_count_slot);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = loaded_composite_count();
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_count(std::uint64_t* count) noexcept {
+    return call_slot(composite_count_slot, schema_composite_count_body, count);
+}
+
+gf_status schema_composite_at_body(std::uint64_t index, gf_schema_composite* record) {
+    const gf_status valid = check_record(record, composite_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const gf_status entered = call.enter_composites(composite_at_slot);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_status checked = check_index(index, loaded_composite_count(), composite_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const LoadedComposite& listed = loaded_composite_at(static_cast<std::size_t>(index));
+    const CompositeDefinition& definition = *listed.definition;
+    gf_schema_composite complete{};
+    complete.struct_size = sizeof(gf_schema_composite);
+    complete.composite = listed.identity;
+    complete.id = view_of(definition.registered);
+    complete.name = view_of(definition.name);
+    complete.version = view_of(listed.version);
+    complete.slot = view_of(definition.slot);
+    complete.part_count = definition.anatomy.parts.size();
+    complete.state_count = definition.anatomy.states.size();
+    complete.custom_state_count = definition.anatomy.custom_states.size();
+    complete.property_count = listed.properties.size();
+    complete.event_count = definition.events.size();
+    complete.command_count = definition.commands.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_at(std::uint64_t index, gf_schema_composite* record) noexcept {
+    return call_slot(composite_at_slot, schema_composite_at_body, index, record);
+}
+
+gf_status schema_composite_part_at_body(std::uint64_t composite, std::uint64_t part, gf_schema_part* record) {
+    const gf_status valid = check_record(record, composite_part_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_part_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const std::span<const PartDeclaration> parts = (*(*listed).definition).anatomy.parts;
+    const gf_status checked = check_index(part, parts.size(), composite_part_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const PartDeclaration& declaration = parts[static_cast<std::size_t>(part)];
+    gf_schema_part complete{};
+    complete.struct_size = sizeof(gf_schema_part);
+    complete.name = view_of(declaration.name);
+    complete.role = view_of(part_role_name(declaration.role));
+    complete.composed_from = view_of(declaration.composed_from);
+    complete.state_count = declaration.states.size();
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_part_at(std::uint64_t composite, std::uint64_t part,
+                                           gf_schema_part* record) noexcept {
+    return call_slot(composite_part_at_slot, schema_composite_part_at_body, composite, part, record);
+}
+
+gf_status schema_composite_state_at_body(std::uint64_t composite, std::uint64_t part, std::uint64_t state,
+                                         gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_state_at_slot, "composite_state_at needs an output");
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_state_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const ControlAnatomy& anatomy = (*(*listed).definition).anatomy;
+    std::span<const AnatomyState> states = anatomy.states;
+    if (part != GF_SCHEMA_NONE) {
+        const gf_status part_checked = check_index(part, anatomy.parts.size(), composite_state_at_slot);
+        if (part_checked != GF_STATUS_OK) {
+            return part_checked;
+        }
+        states = anatomy.parts[static_cast<std::size_t>(part)].states;
+    }
+    const gf_status checked = check_index(state, states.size(), composite_state_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(anatomy_state_name(states[static_cast<std::size_t>(state)]));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_state_at(std::uint64_t composite, std::uint64_t part, std::uint64_t state,
+                                            gf_utf8_view* name) noexcept {
+    return call_slot(composite_state_at_slot, schema_composite_state_at_body, composite, part, state, name);
+}
+
+gf_status schema_composite_custom_state_at_body(std::uint64_t composite, std::uint64_t state, gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_custom_state_at_slot,
+                    "composite_custom_state_at needs an output");
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_custom_state_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const std::span<const CustomStateDeclaration> custom_states = (*(*listed).definition).anatomy.custom_states;
+    const gf_status checked = check_index(state, custom_states.size(), composite_custom_state_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(custom_states[static_cast<std::size_t>(state)].name);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_custom_state_at(std::uint64_t composite, std::uint64_t state,
+                                                   gf_utf8_view* name) noexcept {
+    return call_slot(composite_custom_state_at_slot, schema_composite_custom_state_at_body, composite, state, name);
+}
+
+gf_status schema_composite_property_at_body(std::uint64_t composite, std::uint64_t property,
+                                            gf_schema_property* record) {
+    const gf_status valid = check_record(record, composite_property_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_property_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status checked = check_index(property, (*listed).properties.size(), composite_property_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaProperty& held = (*listed).properties[static_cast<std::size_t>(property)];
+    gf_schema_property complete{};
+    complete.struct_size = sizeof(gf_schema_property);
+    complete.kind = held.kind;
+    complete.name = view_of(held.name);
+    complete.category = view_of(held.category);
+    complete.enumeration = view_of(held.enumeration);
+    complete.choice_count = held.choices.size();
+    complete.flags = held.flags;
+    complete.serialization = held.serialization;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_property_at(std::uint64_t composite, std::uint64_t property,
+                                               gf_schema_property* record) noexcept {
+    return call_slot(composite_property_at_slot, schema_composite_property_at_body, composite, property, record);
+}
+
+gf_status schema_composite_choice_at_body(std::uint64_t composite, std::uint64_t property, std::uint64_t choice,
+                                          gf_schema_choice* record) {
+    const gf_status valid = check_record(record, composite_choice_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_choice_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const gf_status property_checked =
+        check_index(property, (*listed).properties.size(), composite_choice_at_slot);
+    if (property_checked != GF_STATUS_OK) {
+        return property_checked;
+    }
+    const SchemaProperty& held = (*listed).properties[static_cast<std::size_t>(property)];
+    const gf_status checked = check_index(choice, held.choices.size(), composite_choice_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaChoice& value = held.choices[static_cast<std::size_t>(choice)];
+    gf_schema_choice complete{};
+    complete.struct_size = sizeof(gf_schema_choice);
+    complete.name = view_of(value.name);
+    complete.value = value.value;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_choice_at(std::uint64_t composite, std::uint64_t property, std::uint64_t choice,
+                                             gf_schema_choice* record) noexcept {
+    return call_slot(composite_choice_at_slot, schema_composite_choice_at_body, composite, property, choice, record);
+}
+
+gf_status schema_composite_event_at_body(std::uint64_t composite, std::uint64_t event,
+                                         gf_schema_interaction* record) {
+    const gf_status valid = check_record(record, composite_event_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_event_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const CompositeDefinition& definition = *(*listed).definition;
+    const gf_status checked = check_index(event, definition.events.size(), composite_event_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const std::size_t at = static_cast<std::size_t>(event);
+    gf_schema_interaction complete{};
+    complete.struct_size = sizeof(gf_schema_interaction);
+    complete.mutable_payload = 0U;
+    complete.name = view_of(definition.events[at].name);
+    complete.payload = view_of((*listed).event_payloads[at]);
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_event_at(std::uint64_t composite, std::uint64_t event,
+                                            gf_schema_interaction* record) noexcept {
+    return call_slot(composite_event_at_slot, schema_composite_event_at_body, composite, event, record);
+}
+
+gf_status schema_composite_command_at_body(std::uint64_t composite, std::uint64_t command, gf_utf8_view* name) {
+    if (name == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_command_at_slot, "composite_command_at needs an output");
+    }
+    SchemaCall call;
+    const LoadedComposite* listed = nullptr;
+    const gf_status located = find_composite(call, composite, composite_command_at_slot, listed);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const CompositeDefinition& definition = *(*listed).definition;
+    const gf_status checked = check_index(command, definition.commands.size(), composite_command_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    *name = view_of(definition.commands[static_cast<std::size_t>(command)].name);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL schema_composite_command_at(std::uint64_t composite, std::uint64_t command,
+                                              gf_utf8_view* name) noexcept {
+    return call_slot(composite_command_at_slot, schema_composite_command_at_body, composite, command, name);
 }
 
 constexpr gf_schema_table table{
@@ -956,6 +1258,15 @@ constexpr gf_schema_table table{
     .child_property_count = &schema_child_property_count,
     .child_property_at = &schema_child_property_at,
     .child_choice_at = &schema_child_choice_at,
+    .composite_count = &schema_composite_count,
+    .composite_at = &schema_composite_at,
+    .composite_part_at = &schema_composite_part_at,
+    .composite_state_at = &schema_composite_state_at,
+    .composite_custom_state_at = &schema_composite_custom_state_at,
+    .composite_property_at = &schema_composite_property_at,
+    .composite_choice_at = &schema_composite_choice_at,
+    .composite_event_at = &schema_composite_event_at,
+    .composite_command_at = &schema_composite_command_at,
 };
 
 } // namespace

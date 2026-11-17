@@ -4,7 +4,9 @@
 #include "../unicode/unicode_grapheme.hpp"
 #include "../unicode/unicode_grapheme_data.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <span>
 #include <stdexcept>
@@ -297,7 +299,7 @@ void TextStore::set_text(std::string_view text) {
 }
 
 TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
-                                  std::optional<TextStyleId> inserted_style) {
+                                  stxlib::Optional<TextStyleId> inserted_style) {
   try {
     validate_range(range);
     const Utf8ValidationResult replacement_validation =
@@ -315,7 +317,7 @@ TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
         next_size > maximum_offset_bytes) {
       throw std::length_error("GUI.Forms text edit exceeds its byte limit");
     }
-    if (removed_bytes == 0 && replacement.empty() && !inserted_style) {
+    if (removed_bytes == 0 && replacement.empty() && inserted_style.absent()) {
       return {range, range, 0, 0, revision_, false};
     }
 
@@ -342,6 +344,20 @@ TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
     const bool region_reaches_end = region_old_end == old_size;
     const std::size_t region_new_end =
         region_old_end - removed_bytes + replacement.size();
+
+    // A replacement that views this store's own text (a caller passing
+    // utf8() or a slice of it) is copied first: the reserve below may move
+    // the bytes it views before replace reads them.
+    std::string own_text_copy{};
+    const char* const text_first = text_.data();
+    const char* const text_last = text_first + text_.size();
+    const std::less<const char*> before{};
+    const bool views_own_text = !replacement.empty() && !before(replacement.data(), text_first) &&
+                                before(replacement.data(), text_last);
+    if (views_own_text) {
+      own_text_copy.assign(replacement);
+      replacement = own_text_copy;
+    }
 
     // The edit is made in place within capacity reserved first, so that
     // undoing it on a failure below allocates nothing.
@@ -448,20 +464,20 @@ void TextStore::set_style_spans(std::span<const TextStyleSpan> spans) {
   }
 }
 
-std::optional<TextStyleId> TextStore::style_at(Utf8Offset position) const {
+stxlib::Optional<TextStyleId> TextStore::style_at(Utf8Offset position) const {
   validate_position(position);
   if (position == utf8_size()) {
-    return std::nullopt;
+    return stxlib::Optional<TextStyleId>::none();
   }
   const std::size_t candidate_position = detail::upper_bound_index(
       std::span<const TextStyleSpan>(style_spans_), position,
       Utf8OffsetBeforeStyleSpan{});
   if (candidate_position == 0U) {
-    return std::nullopt;
+    return stxlib::Optional<TextStyleId>::none();
   }
   const TextStyleSpan &candidate = style_spans_[candidate_position - 1U];
-  return position < candidate.range.end ? std::optional(candidate.style)
-                                        : std::nullopt;
+  return position < candidate.range.end ? stxlib::Optional<TextStyleId>::of(candidate.style)
+                                        : stxlib::Optional<TextStyleId>::none();
 }
 
 bool TextStore::is_scalar_boundary(Utf8Offset position) const noexcept {
@@ -717,7 +733,7 @@ TextStore::normalize_style_spans(std::span<const TextStyleSpan> spans,
 
 std::vector<TextStyleSpan>
 TextStore::transform_style_spans(Utf8Range removed, std::size_t inserted_bytes,
-                                 std::optional<TextStyleId> inserted_style,
+                                 stxlib::Optional<TextStyleId> inserted_style,
                                  std::string_view candidate_text) const {
   const std::size_t start = removed.start.value();
   const std::size_t end = removed.end.value();
@@ -727,7 +743,7 @@ TextStore::transform_style_spans(Utf8Range removed, std::size_t inserted_bytes,
       grows ? inserted_bytes - removed_bytes : removed_bytes - inserted_bytes;
   std::vector<TextStyleSpan> result;
   result.reserve(style_spans_.size() +
-                 (inserted_style && inserted_bytes > 0 ? 1U : 0U));
+                 (inserted_style.present() && inserted_bytes > 0 ? 1U : 0U));
   for (const TextStyleSpan &span : style_spans_) {
     if (span.range.end.value() <= start) {
       result.push_back(span);
@@ -749,9 +765,9 @@ TextStore::transform_style_spans(Utf8Range removed, std::size_t inserted_bytes,
       }
     }
   }
-  if (inserted_style && inserted_bytes > 0) {
+  if (inserted_style.present() && inserted_bytes > 0) {
     result.push_back({{Utf8Offset(start), Utf8Offset(start + inserted_bytes)},
-                      *inserted_style});
+                      (*inserted_style.value())});
   }
   return normalize_style_spans(result, candidate_text);
 }

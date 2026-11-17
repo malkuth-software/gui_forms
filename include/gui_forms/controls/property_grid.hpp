@@ -6,6 +6,7 @@
 #include "gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp"
 #include "gui_forms/controls/property_grid_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -32,10 +33,10 @@ public:
         std::string_view property_name) const;
     [[nodiscard]] std::optional<PropertyDescriptor> selected_descriptor(
         std::string_view property_name) const;
-    [[nodiscard]] std::optional<PropertyValueOrigin> selected_origin(
+    [[nodiscard]] stxlib::Optional<PropertyValueOrigin> selected_origin(
         std::string_view property_name) const;
     bool set_property_expanded(std::string_view property_name, bool expanded);
-    [[nodiscard]] std::optional<bool> property_expanded(
+    [[nodiscard]] stxlib::Optional<bool> property_expanded(
         std::string_view property_name) const;
 
     bool try_set_property_value(std::string_view property_name,

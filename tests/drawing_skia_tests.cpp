@@ -1,5 +1,7 @@
 #include "drawing_skia.hpp"
 #include "image/png_test_files.hpp"
+#include "gui_forms/drawing/recorder_raster/recorder_raster.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 #if defined(__APPLE__)
 #include "core_text_font_bytes.hpp"
 #endif
@@ -225,6 +227,55 @@ void texture_brush_tiles_and_mirrors_retained_pixels() {
     }
 }
 
+// A radial gradient brush, plain and with a focus, clamped and repeated.
+void radial_gradient_brush_rasterizes() {
+    SkiaExecutor executor;
+    GraphicsRecorder recorder;
+    RadialGradientBrush plain({16, 16}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    recorder.fill_rectangle(plain, {0, 0, 32, 32});
+    RadialGradientBrush repeated({48, 16}, 8.0, Color::from_name("red"), Color::from_name("blue"), WrapMode::tile);
+    recorder.fill_rectangle(repeated, {32, 0, 32, 32});
+    RadialGradientBrush focal({16, 48}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    focal.set_focus({12, 48});
+    recorder.fill_rectangle(focal, {0, 32, 32, 32});
+    Bitmap target(64, 64);
+    const RasterResult result = executor.execute(recorder, target);
+    CHECK(result);
+    CHECK(result.commands_executed == 3U);
+    // The centre is red; past the circle the clamp holds blue. The centre
+    // pixel lies at t = 0.09, where linear light gives blue about 84.
+    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 100U);
+    CHECK(target.get_pixel(29, 16).blue() > 240U && target.get_pixel(29, 16).red() < 15U);
+    // Repeated, the colours start again past the circle: red-dominant
+    // just beyond the radius, where the clamp gave blue.
+    CHECK(target.get_pixel(57, 16).red() > target.get_pixel(57, 16).blue());
+    // The focus is red, and the colours crowd towards the edge nearer it.
+    CHECK(target.get_pixel(12, 48).red() > 180U && target.get_pixel(12, 48).red() > target.get_pixel(12, 48).blue());
+    CHECK(target.get_pixel(9, 48).blue() > target.get_pixel(15, 48).blue());
+}
+
+// An elliptical radial gradient brush: 16 across and 4 down, so a point 12
+// pixels right of the centre is still inside (t = 0.75) while one 6 pixels
+// below is past the edge and takes the clamped edge colour.
+void elliptical_radial_gradient_brush_rasterizes() {
+    SkiaExecutor executor;
+    GraphicsRecorder recorder;
+    RadialGradientBrush ellipse({16, 16}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    ellipse.set_radii(16.0, 4.0);
+    recorder.fill_rectangle(ellipse, {0, 0, 32, 32});
+    Bitmap target(32, 32);
+    const RasterResult result = executor.execute(recorder, target);
+    CHECK(result);
+    // In linear light: the centre pixel (t = 0.13) has blue about 100, and
+    // t = 0.78 has red about 129 and blue about 229, short of the clamp's 255.
+    CHECK(target.get_pixel(16, 16).red() > 220U && target.get_pixel(16, 16).blue() < 115U);
+    CHECK(target.get_pixel(28, 16).red() > 30U && target.get_pixel(28, 16).blue() < 245U);
+    CHECK(target.get_pixel(16, 22).blue() > 240U && target.get_pixel(16, 22).red() < 15U);
+    // Mirror images across both axes give the same colour: pixel centres
+    // (8.5, 14.5) and (23.5, 17.5) lie 7.5 and 1.5 either side of (16, 16).
+    CHECK(target.get_pixel(8, 14).argb() == target.get_pixel(23, 17).argb());
+}
+
 void transparent_png_channels_are_premultiplied() {
     constexpr std::array<std::uint8_t, 70> encoded{
         0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -281,6 +332,24 @@ void gradients_and_hatches_are_native_raster_commands() {
     const Color center = target.get_pixel(40, 8);
     const Color edge = target.get_pixel(47, 8);
     CHECK(center.red() > edge.red());
+}
+
+// A hatch brush with a translucent colour draws it premultiplied
+// (A-gf-core-09-F3): a transparent white background (System.Drawing's
+// Color.Transparent) leaves black black, and the opaque red line draws.
+void translucent_hatch_colours_are_premultiplied() {
+    SkiaExecutor executor;
+    Bitmap target(8, 8);
+    HatchBrush hatch(HatchStyle::horizontal, Color::from_name("red"), Color::from_argb(0x00FFFFFFU));
+    GraphicsRecorder recorder;
+    recorder.set_quality(SmoothingMode::none, InterpolationMode::nearest,
+                         PixelOffsetMode::none, CompositingMode::source_over,
+                         CompositingQuality::high_speed);
+    recorder.clear(Color::from_name("black"));
+    recorder.fill_rectangle(hatch, {0, 0, 8, 8});
+    CHECK(executor.execute(recorder, target));
+    CHECK(target.get_pixel(1, 0).argb() == Color::from_name("black").argb());
+    CHECK(target.get_pixel(1, 3).argb() == Color::from_name("red").argb());
 }
 
 // A gradient brush whose geometry stx_skia refuses (bounds wider than float can
@@ -510,8 +579,8 @@ std::uint64_t draw_ink(SkiaExecutor& executor, const Font& font, const Matrix& t
     return ink(target);
 }
 
-// ADR-004 phase 5: draw_string and measure_string use the shared HarfBuzz/
-// FreeType engine and compositor, so their pixels are the same on every host.
+// ADR-004 phase 5: draw_string and measure_string use the shared text engine
+// (over STXlib's glyphs) and compositor, so their pixels are the same on every host.
 void text_uses_the_shared_engine() {
     SkiaExecutor executor;
     const std::vector<std::byte> regular = read_file(GUI_DRAWING_TEST_FONT);
@@ -551,7 +620,9 @@ void text_uses_the_shared_engine() {
     CHECK(draw_ink(faced, font, shifted) == plain_ink);
 
     // One scene with every text path, hashed. The hash is the same on every
-    // platform (ADR-004); it was produced on macOS arm64 and Alpine aarch64.
+    // platform (ADR-004). Since text shapes and measures through STXlib
+    // (5de07b996) it was produced on Linux x64 and arm64 (CI at #483
+    // 08db4966c); macOS arm64 is to confirm it.
     Bitmap target(160, 96);
     GraphicsRecorder recorder;
     recorder.clear(Color::from_name("white"));
@@ -579,7 +650,7 @@ void text_uses_the_shared_engine() {
         std::ofstream output(path, std::ios::binary);
         output.write(reinterpret_cast<const char*>(png.data()), static_cast<std::streamsize>(png.size()));
     }
-    if (std::getenv("GUI_DRAWING_TEXT_PRINT") == nullptr) CHECK(scene == UINT64_C(0xc63b693ed7325115));
+    if (std::getenv("GUI_DRAWING_TEXT_PRINT") == nullptr) CHECK(scene == UINT64_C(0x64066c51435b3723));
 }
 
 // Stage F: a registered italic face draws unsheared, and an alias draws
@@ -606,6 +677,12 @@ void italic_faces_and_aliases_draw_registered_faces() {
     const StringFormat format;
     CHECK(faced.measure_string("Hamburgefonstiv", aliased.snapshot(), format.snapshot()).width ==
           faced.measure_string("Hamburgefonstiv", font.snapshot(), format.snapshot()).width);
+    // One registry (cp32): a registry family is one family whatever the case of its name, and
+    // an unknown name falls back to the registry's Portsmouth Rapids.
+    const Font shouted("PORTSMOUTH RAPIDS", 16.0, FontStyle::regular, GraphicsUnit::pixel);
+    const Font unknown("GUI Forms Absent Family", 16.0, FontStyle::regular, GraphicsUnit::pixel);
+    CHECK(draw_ink(faced, shouted, shifted) == draw_ink(faced, font, shifted));
+    CHECK(draw_ink(faced, unknown, shifted) == draw_ink(faced, font, shifted));
 }
 
 #if defined(__APPLE__)
@@ -841,21 +918,300 @@ void opaque_image_draws_as_row_copy() {
     CHECK(checksum(target.snapshot()) == before_checksum);
 }
 
+// The ink's bounding box: the columns and rows holding any non-white pixel,
+// as {x, y, width, height}, or all zero for a blank bitmap.
+RectF ink_box(const Bitmap& bitmap) {
+    std::uint32_t left = bitmap.width();
+    std::uint32_t top = bitmap.height();
+    std::uint32_t right = 0U;
+    std::uint32_t bottom = 0U;
+    for (std::uint32_t y = 0; y < bitmap.height(); ++y) {
+        for (std::uint32_t x = 0; x < bitmap.width(); ++x) {
+            if (bitmap.get_pixel(x, y).red() == 255U) continue;
+            left = std::min(left, x);
+            top = std::min(top, y);
+            right = std::max(right, x + 1U);
+            bottom = std::max(bottom, y + 1U);
+        }
+    }
+    if (right == 0U) return {};
+    const RectF box{static_cast<double>(left), static_cast<double>(top), static_cast<double>(right - left),
+                    static_cast<double>(bottom - top)};
+    return box;
+}
+
+RectF laid_out_ink(SkiaExecutor& executor, const Font& font, std::string_view text, RectF layout,
+                   const StringFormat& format) {
+    Bitmap target(240, 80);
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    recorder.draw_string_in_rect(text, font, SolidBrush(Color::from_name("black")), layout, format);
+    CHECK(executor.execute(recorder, target));
+    return ink_box(target);
+}
+
+// gd_* ABI 0.5 (the flame graph demonstrator's D2): a string laid out in a
+// box is aligned in it, trimmed to it and clipped to it.
+void laid_out_text_aligns_trims_and_clips() {
+    SkiaExecutor executor;
+    CHECK(executor.register_typeface("Portsmouth Rapids", read_file(GUI_DRAWING_TEST_FONT)));
+    const Font font("Portsmouth Rapids", 16.0, FontStyle::regular, GraphicsUnit::pixel);
+    const RectF wide{20, 10, 200, 40};
+    StringFormat near;
+    const RectF at_near = laid_out_ink(executor, font, "Name", wide, near);
+    StringFormat far;
+    far.set_alignment(StringAlignment::end);
+    far.set_line_alignment(StringAlignment::end);
+    const RectF at_far = laid_out_ink(executor, font, "Name", wide, far);
+    CHECK(at_near.width > 0.0 && at_near.x >= 20.0 && at_near.x < 30.0);
+    CHECK(at_far.x + at_far.width <= 220.0 && at_far.x + at_far.width > 205.0);
+    CHECK(at_far.y > at_near.y);
+    CHECK(std::abs(at_far.width - at_near.width) <= 1.0);
+
+    // A narrow box: none clips at the box; the ellipsis trims inside it.
+    const RectF narrow{20, 10, 50, 40};
+    StringFormat clipped;
+    const RectF cut = laid_out_ink(executor, font, "Hamburgefonstiv", narrow, clipped);
+    CHECK(cut.x + cut.width <= 70.0);
+    StringFormat trimmed;
+    trimmed.set_trimming(StringTrimming::ellipsis_character);
+    const RectF elided = laid_out_ink(executor, font, "Hamburgefonstiv", narrow, trimmed);
+    CHECK(elided.width > 0.0 && elided.x + elided.width <= 70.0);
+    // The no-clip flag lets an untrimmed line run past the box.
+    StringFormat open;
+    open.set_flags(UINT32_C(0x4000));
+    const RectF run_on = laid_out_ink(executor, font, "Hamburgefonstiv", narrow, open);
+    CHECK(run_on.x + run_on.width > 70.0);
+}
+
+// A bundled face registered from the embedded font pack (font pack stage 4)
+// draws exactly what the same face read from its file draws; a name the
+// pack does not hold registers nothing.
+void bundled_faces_come_from_the_pack() {
+    SkiaExecutor from_pack;
+    CHECK(from_pack.register_bundled_typeface("Arimo", "Arimo-Regular.ttf"));
+    CHECK(!from_pack.register_bundled_typeface("Arimo", "Wingdings.ttf"));
+    SkiaExecutor from_file;
+    const std::vector<std::byte> font = read_file(GUI_DRAWING_TEST_ARIMO_FONT);
+    CHECK(from_file.register_typeface("Arimo", font));
+    const Font face("Arimo", 14.0, FontStyle::regular);
+    SolidBrush black(Color::from_name("black"));
+    StringFormat format;
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    recorder.draw_string("Arimo Hag", face, black, {2, 4}, format);
+    Bitmap packed(96, 24);
+    Bitmap filed(96, 24);
+    CHECK(from_pack.execute(recorder, packed));
+    CHECK(from_file.execute(recorder, filed));
+    CHECK(checksum(packed.snapshot()) == checksum(filed.snapshot()));
+    const Bitmap blank(96, 24);
+    CHECK(checksum(packed.snapshot()) != checksum(blank.snapshot()));
+}
+
+// Shaded triangles (owner, 2026-11-17; GraphicsRecorder::fill_triangles).
+
+// The recorder's quality with `smoothing` and source-over compositing.
+void set_triangle_smoothing(GraphicsRecorder& recorder, SmoothingMode smoothing) {
+    recorder.set_quality(smoothing, InterpolationMode::default_mode, PixelOffsetMode::default_mode,
+                         CompositingMode::source_over, CompositingQuality::default_mode);
+}
+
+// The linear-light blend interpolate_linear_light gives `weight` of the way
+// from `from` to `to`, as a drawing colour.
+Color linear_light_mix(Color from, Color to, std::uint32_t weight) {
+    const gui_forms::Color first{from.red(), from.green(), from.blue(), from.alpha()};
+    const gui_forms::Color second{to.red(), to.green(), to.blue(), to.alpha()};
+    const gui_forms::Color mixed = gui_forms::interpolate_linear_light(first, second, weight);
+    return Color::from_argb(mixed.alpha, mixed.red, mixed.green, mixed.blue);
+}
+
+// One triangle drawn with hard edges on white, its corners at pixel
+// centres, into a 64 by 64 bitmap.
+std::uint64_t draw_hard_triangle(SkiaExecutor& executor, std::span<const PointF> points,
+                                 std::span<const Color> colors, Bitmap& target) {
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    set_triangle_smoothing(recorder, SmoothingMode::none);
+    CHECK(recorder.fill_triangles(points, colors) == TriangleFillStatus::recorded);
+    const RasterResult drawn = executor.execute(recorder, target);
+    CHECK(drawn && drawn.commands_executed == 3U);
+    return checksum(target.snapshot());
+}
+
+// A corner's pixel is the corner's colour exactly, an edge's midpoint the
+// two corners' linear-light midpoint, whatever order or orientation the
+// corners are given in.
+void shaded_triangle_corners_and_midpoints_are_exact() {
+    SkiaExecutor executor;
+    const Color black = Color::from_argb(0xff000000U);
+    const Color white = Color::from_argb(0xffffffffU);
+    const Color red = Color::from_argb(0xffff0000U);
+    // The top-left corner sits on a top edge and a left edge, so its
+    // sample (the pixel centre) belongs to the triangle.
+    const PointF points[] = {{10.5, 10.5}, {40.5, 10.5}, {10.5, 40.5}};
+    const Color colors[] = {black, white, red};
+    Bitmap first(64, 64);
+    const std::uint64_t drawn = draw_hard_triangle(executor, points, colors, first);
+    CHECK(first.get_pixel(10, 10) == black);
+    const Color top_middle = linear_light_mix(black, white, gui_forms::linear_light_weight_one / 2U);
+    const Color left_middle = linear_light_mix(black, red, gui_forms::linear_light_weight_one / 2U);
+    CHECK(first.get_pixel(25, 10) == top_middle);
+    CHECK(first.get_pixel(10, 25) == left_middle);
+    // Linear light's midpoint of black and white is sRGB 188, not 128.
+    CHECK(top_middle.red() >= 186U && top_middle.red() <= 190U);
+    // Next to the other corners, nearly their colours.
+    const Color near_white = first.get_pixel(38, 11);
+    CHECK(near_white.red() > 220U && near_white.green() > 220U && near_white.blue() > 220U);
+    const Color near_red = first.get_pixel(11, 38);
+    CHECK(near_red.red() > 220U && near_red.green() < 80U && near_red.blue() < 80U);
+
+    // The same triangle rotated in the list, and turned the other way.
+    const PointF rotated[] = {{40.5, 10.5}, {10.5, 40.5}, {10.5, 10.5}};
+    const Color rotated_colors[] = {white, red, black};
+    Bitmap second(64, 64);
+    CHECK(draw_hard_triangle(executor, rotated, rotated_colors, second) == drawn);
+    const PointF reversed[] = {{10.5, 10.5}, {10.5, 40.5}, {40.5, 10.5}};
+    const Color reversed_colors[] = {black, red, white};
+    Bitmap third(64, 64);
+    CHECK(draw_hard_triangle(executor, reversed, reversed_colors, third) == drawn);
+
+    // A triangle whose corners lie on one line draws nothing.
+    const PointF flat[] = {{10.5, 10.5}, {20.5, 20.5}, {30.5, 30.5}};
+    Bitmap fourth(64, 64);
+    draw_hard_triangle(executor, flat, colors, fourth);
+    CHECK(fourth.get_pixel(20, 20) == white);
+}
+
+// A quad of two triangles in one translucent colour fills uniformly: no
+// gap and no double coverage along the shared diagonal, with hard edges and
+// with 16 samples a pixel.
+void shaded_triangles_share_edges_without_seams() {
+    SkiaExecutor executor;
+    const Color tint = Color::from_argb(0x803366ccU);
+    const PointF a{10.3, 10.7};
+    const PointF b{50.2, 10.1};
+    const PointF c{50.6, 39.6};
+    const PointF d{10.1, 40.4};
+    const PointF quad[] = {a, b, c, a, c, d};
+    const std::vector<Color> colors(6U, tint);
+    const SmoothingMode modes[] = {SmoothingMode::none, SmoothingMode::anti_alias};
+    for (const SmoothingMode mode : modes) {
+        Bitmap target(64, 64);
+        GraphicsRecorder recorder;
+        recorder.clear(Color::from_name("white"));
+        set_triangle_smoothing(recorder, mode);
+        CHECK(recorder.fill_triangles(quad, colors) == TriangleFillStatus::recorded);
+        CHECK(executor.execute(recorder, target));
+        // (30, 25) lies on the diagonal from a to c.
+        const Color reference = target.get_pixel(30, 25);
+        CHECK(!(reference == Color::from_argb(0xffffffffU)));
+        CHECK(reference.alpha() == 255U && reference.blue() > reference.red());
+        for (std::uint32_t y = 12U; y <= 38U; ++y) {
+            for (std::uint32_t x = 12U; x <= 48U; ++x) CHECK(target.get_pixel(x, y) == reference);
+        }
+        // Outside the quad the target is as it was.
+        CHECK(target.get_pixel(5, 5) == Color::from_argb(0xffffffffU));
+        CHECK(target.get_pixel(55, 45) == Color::from_argb(0xffffffffU));
+    }
+}
+
+// The clip in force cuts whole pixels and the transform moves the corners.
+void shaded_triangles_follow_clip_and_transform() {
+    SkiaExecutor executor;
+    const Color white = Color::from_argb(0xffffffffU);
+    const Color blue = Color::from_argb(0xff0000ffU);
+    const PointF cover[] = {{-100, -100}, {200, -100}, {-100, 200}};
+    const Color blues[] = {blue, blue, blue};
+    Bitmap clipped(32, 32);
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    recorder.set_clip({8, 8, 10, 10});
+    CHECK(recorder.fill_triangles(cover, blues) == TriangleFillStatus::recorded);
+    CHECK(executor.execute(recorder, clipped));
+    CHECK(clipped.get_pixel(8, 8) == blue && clipped.get_pixel(17, 17) == blue);
+    CHECK(clipped.get_pixel(7, 8) == white && clipped.get_pixel(18, 8) == white);
+    CHECK(clipped.get_pixel(8, 7) == white && clipped.get_pixel(8, 18) == white);
+
+    Bitmap moved(32, 32);
+    GraphicsRecorder translated;
+    translated.clear(Color::from_name("white"));
+    set_triangle_smoothing(translated, SmoothingMode::none);
+    translated.translate(10, 10);
+    const PointF small[] = {{0.5, 0.5}, {10.5, 0.5}, {0.5, 10.5}};
+    CHECK(translated.fill_triangles(small, blues) == TriangleFillStatus::recorded);
+    CHECK(executor.execute(translated, moved));
+    CHECK(moved.get_pixel(10, 10) == blue && moved.get_pixel(12, 12) == blue);
+    CHECK(moved.get_pixel(5, 5) == white && moved.get_pixel(0, 0) == white);
+}
+
+// A recording replays to the same bytes: drawn again, through
+// execute_recorder, and framed at scale 1 into another recorder. A corner
+// beyond the coordinate limit refuses the command and leaves an owned
+// target as it was.
+void shaded_triangles_replay_exactly() {
+    SkiaExecutor executor;
+    const PointF points[] = {{4.2, 3.7}, {58.9, 8.1}, {30.4, 55.3}, {4.2, 3.7}, {30.4, 55.3}, {2.0, 60.5},
+                             {20.0, 20.0}, {44.0, 24.0}, {28.0, 40.0}};
+    const Color colors[] = {Color::from_argb(0xffd04020U), Color::from_argb(0xff20a0d0U),
+                            Color::from_argb(0xc0f0e030U), Color::from_argb(0xffd04020U),
+                            Color::from_argb(0xc0f0e030U), Color::from_argb(0x40102030U),
+                            Color::from_argb(0xff00ff00U), Color::from_argb(0xffff00ffU),
+                            Color::empty()};
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    CHECK(recorder.fill_triangles(points, colors) == TriangleFillStatus::recorded);
+    Bitmap first(64, 64);
+    Bitmap second(64, 64);
+    CHECK(executor.execute(recorder, first));
+    CHECK(executor.execute(recorder, second));
+    const std::uint64_t drawn = checksum(first.snapshot());
+    CHECK(checksum(second.snapshot()) == drawn);
+    Bitmap through_seam(64, 64);
+    const RecorderRasterResult seam = execute_recorder(recorder, through_seam, 0U);
+    CHECK(seam.status == RecorderRasterStatus::executed && seam.commands_executed == 2U);
+    CHECK(checksum(through_seam.snapshot()) == drawn);
+    GraphicsRecorder framed;
+    recorder.frame_into(framed, 1.0, RectF{0, 0, 64, 64});
+    Bitmap from_frame(64, 64);
+    CHECK(executor.execute(framed, from_frame));
+    CHECK(checksum(from_frame.snapshot()) == drawn);
+
+    GraphicsRecorder too_far;
+    too_far.clear(Color::from_name("white"));
+    const PointF beyond[] = {{0, 0}, {1.0e7, 0}, {0, 10}};
+    CHECK(too_far.fill_triangles(beyond, std::span<const Color>(colors, 3U)) == TriangleFillStatus::recorded);
+    Bitmap untouched(64, 64);
+    const std::uint64_t blank = checksum(untouched.snapshot());
+    const RasterResult refused = executor.execute(too_far, untouched);
+    CHECK(refused.error == RasterError::dimension_limit_exceeded && refused.commands_executed == 1U);
+    CHECK(checksum(untouched.snapshot()) == blank);
+}
+
 int main() {
     command_execution_and_png_round_trip();
+    bundled_faces_come_from_the_pack();
     image_attributes_clip_and_snapshot_execution();
     texture_brush_tiles_and_mirrors_retained_pixels();
+    radial_gradient_brush_rasterizes();
+    elliptical_radial_gradient_brush_rasterizes();
     transparent_png_channels_are_premultiplied();
     gradients_and_hatches_are_native_raster_commands();
+    translucent_hatch_colours_are_premultiplied();
     refused_gradient_fails_without_drawing();
     refused_dash_fails_without_drawing();
     state_is_set_only_where_it_changes();
     opaque_image_draws_as_row_copy();
     batched_marks_brushes_grid_and_proportion_rasterize();
+    shaded_triangle_corners_and_midpoints_are_exact();
+    shaded_triangles_share_edges_without_seams();
+    shaded_triangles_follow_clip_and_transform();
+    shaded_triangles_replay_exactly();
     text_over_fill_splits_at_the_fill_edge();
     connected_line_figures_fill_as_one_contour();
     quadratic_bezier_polygon_and_pie_paths_rasterize();
     text_uses_the_shared_engine();
+    laid_out_text_aligns_trims_and_clips();
     italic_faces_and_aliases_draw_registered_faces();
 #if defined(__APPLE__)
     installed_families_are_located_through_core_text();

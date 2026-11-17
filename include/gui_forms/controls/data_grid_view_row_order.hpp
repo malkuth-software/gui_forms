@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // A row's stable identity: not empty, unique among the grid's rows, and kept
@@ -62,7 +64,7 @@ public:
     // the grid keeps within row_count().
     virtual void row_ids(DataGridViewRowPosition first, std::span<DataGridViewRowId> out) const = 0;
     // The position of a row in the current order, or none when it is gone.
-    [[nodiscard]] virtual std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0;
+    [[nodiscard]] virtual stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0;
 };
 
 // How a virtual grid holds its rows' order (owner decision W-5). edit: the
@@ -189,14 +191,15 @@ public:
     void switch_to_window(std::shared_ptr<DataGridViewRowWindowSource> source);
     void clear() noexcept;
 
-    // The ID at a position below count(), by value. In window mode a
-    // position outside the window is asked of the source.
+    // The ID at a position, by value; empty (no row's ID) for a position at
+    // or past count(). In window mode a position outside the window is
+    // asked of the source.
     [[nodiscard]] std::string id_at(std::size_t position) const;
     // The position of an ID now, or none.
-    [[nodiscard]] std::optional<std::size_t> position_of(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> position_of(std::string_view id) const;
     // Window mode: the position an ID had in the window held before the last
     // reported change, or none. Edit mode: position_of.
-    [[nodiscard]] std::optional<std::size_t> held_position(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> held_position(std::string_view id) const;
     // The ID at a position when it is held without asking the source (always
     // in edit mode; inside the window in window mode), or none.
     [[nodiscard]] std::optional<std::string> held_id_at(std::size_t position) const;

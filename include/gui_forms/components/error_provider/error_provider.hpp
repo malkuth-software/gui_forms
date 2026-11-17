@@ -178,7 +178,7 @@ private:
     void written(const decltype(blink_style)& cell);
     void prepare_write(const decltype(right_to_left)& cell, bool& incoming);
     void written(const decltype(right_to_left)& cell);
-    void prepare_write(const decltype(icon)& cell, std::optional<ImageId>& incoming);
+    void prepare_write(const decltype(icon)& cell, stxlib::Optional<ImageId>& incoming);
     void written(const decltype(icon)& cell);
     void write_view(const decltype(data_source)& cell, std::shared_ptr<BindingSource> incoming);
     [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;

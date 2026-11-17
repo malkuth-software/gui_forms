@@ -70,6 +70,8 @@ void OpenFileDialog::reset() {
     filter = std::string{};
     filter_index = std::size_t{0U};
     multiselect = false;
+    check_file_exists = true;
+    check_path_exists = true;
     file_names_.clear();
     status_ = {};
 }
@@ -81,6 +83,8 @@ HostOpenFileDialogRequest OpenFileDialog::request() const {
     built.suggested_name = file_name.read();
     built.filters = filters_;
     built.allow_multiple = multiselect.read();
+    built.check_file_exists = check_file_exists.read();
+    built.check_path_exists = check_path_exists.read();
     built.initial_filter = filter_index.read() < filters_.size() ? filter_index.read() : 0U;
     return built;
 }
@@ -126,7 +130,8 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = (*paths).paths;
-            if ((*paths).chosen_filter) filter_index = *(*paths).chosen_filter;
+            const std::size_t* const chosen_filter = (*paths).chosen_filter.value();
+            if (chosen_filter != nullptr) filter_index = *chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.
@@ -170,6 +175,14 @@ void OpenFileDialog::written(const decltype(filter_index)&) {}
 void OpenFileDialog::prepare_write(const decltype(multiselect)&, bool&) {}
 
 void OpenFileDialog::written(const decltype(multiselect)&) {}
+
+void OpenFileDialog::prepare_write(const decltype(check_file_exists)&, bool&) {}
+
+void OpenFileDialog::written(const decltype(check_file_exists)&) {}
+
+void OpenFileDialog::prepare_write(const decltype(check_path_exists)&, bool&) {}
+
+void OpenFileDialog::written(const decltype(check_path_exists)&) {}
 
 // property_codemod end OpenFileDialog
 

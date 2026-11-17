@@ -4,6 +4,7 @@
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/flex_panel.hpp"

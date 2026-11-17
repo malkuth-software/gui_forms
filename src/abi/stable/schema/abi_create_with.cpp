@@ -34,6 +34,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -203,6 +204,11 @@ gf_status make_as_create(const CreateRequest& request, StableId stable_id, SlotI
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "this type takes no owner");
     }
     made = create_catalog_type(request.type, std::move(stable_id));
+    if (!made && catalog_type_made_from_definition(request.type)) {
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, slot,
+                    "this type is made only from a definition (custom controls: load_composite, "
+                    "create_composite)");
+    }
     if (!made) {
         return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, slot,
                     "objects.create and create_with do not make this type (a binding: bindings.bind)");

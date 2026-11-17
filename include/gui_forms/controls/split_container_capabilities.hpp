@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -149,9 +150,9 @@ struct SplitContainerSecondMinimumCapability {
 // The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.
 template <typename Declaring>
 struct SplitContainerFirstMaximumCapability {
-    PropertyCell<std::optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum{};
+    PropertyCell<stxlib::Optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum{};
 
-    static void assign(SplitContainerFirstMaximumCapability& capability, std::optional<double> incoming) {
+    static void assign(SplitContainerFirstMaximumCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.first_maximum), incoming);
         if (!capability.first_maximum.replace(std::move(incoming))) return;
@@ -162,9 +163,9 @@ struct SplitContainerFirstMaximumCapability {
 // The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.
 template <typename Declaring>
 struct SplitContainerSecondMaximumCapability {
-    PropertyCell<std::optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum{};
+    PropertyCell<stxlib::Optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum{};
 
-    static void assign(SplitContainerSecondMaximumCapability& capability, std::optional<double> incoming) {
+    static void assign(SplitContainerSecondMaximumCapability& capability, stxlib::Optional<double> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.second_maximum), incoming);
         if (!capability.second_maximum.replace(std::move(incoming))) return;

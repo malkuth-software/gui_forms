@@ -78,6 +78,9 @@ private:
     void apply_selection(int index);
     void validate_selection(int index) const;
     void validate_local_selection(int index) const;
+    // validate_local_selection as a result: false when the range or a bound
+    // Value refuses `index` (input paths must not throw).
+    [[nodiscard]] bool local_selection_accepted(int index) const;
     // The bounds of the segment at `index` of `count` in a segmented group
     // of `size`, in local coordinates: shares of the track inside a small
     // inset whose edges are rounded to device pixels at the window's scale

@@ -51,7 +51,7 @@
     {
       "name": "font",
       "capability": "TextBlockFont",
-      "value": "std::optional<FontSpec>",
+      "value": "stxlib::Optional<FontSpec>",
       "initial": null,
       "comment": "The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).",
       "getter": "font",
@@ -85,7 +85,7 @@
       "hand": [
         "prepare validates a present font and records set_font_from_code; the table reads the resolved font"
       ],
-      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+      "sample": "stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false})"
     },
     {
       "name": "text_align",
@@ -123,7 +123,7 @@
     {
       "name": "line_height",
       "capability": "TextBlockLineHeight",
-      "value": "std::optional<double>",
+      "value": "stxlib::Optional<double>",
       "initial": null,
       "comment": "CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).",
       "getter": "line_height",
@@ -149,13 +149,14 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (incoming && (!std::isfinite(*incoming) || *incoming <= 0.0)) throw std::invalid_argument(\"TextBlock line height must be finite and positive\");"
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr && (!std::isfinite(*incoming_value) || *incoming_value <= 0.0)) throw std::invalid_argument(\"TextBlock line height must be finite and positive\");"
       ],
       "thunks": {
         "read": "line_height_property_value",
         "write": "write_line_height_property"
       },
-      "sample": "18.0"
+      "sample": "stxlib::Optional<double>::of(18.0)"
     }
   ],
   "not_properties": [

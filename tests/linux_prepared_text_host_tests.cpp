@@ -1,8 +1,9 @@
 #include "prepared_text_test_support.hpp"
-#include "../src/host/linux/application/linux_host_internal.hpp"
+#include "../src/surface/linux/application/linux_host_internal.hpp"
 #include "../src/core/text/prepared/prepared_storage.hpp"
 #include <X11/Xutil.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 

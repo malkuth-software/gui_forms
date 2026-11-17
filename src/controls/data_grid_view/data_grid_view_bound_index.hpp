@@ -31,12 +31,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::detail {
 
@@ -61,7 +62,7 @@ public:
     // end.
     bool move(std::size_t from, std::size_t to);
 
-    [[nodiscard]] std::optional<std::size_t> find(std::string_view id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> find(std::string_view id) const;
     [[nodiscard]] bool contains(std::string_view id) const;
     // The ID of the row at position (below size()).
     [[nodiscard]] const std::string& id_at(std::size_t position) const;

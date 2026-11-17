@@ -21,6 +21,8 @@ Buttons, links and command rows.
      - Underlined text that the user clicks like a hyperlink.
    * - :cpp:class:`CommandBar <gui_forms::CommandBar>`
      - A toolbar row of command buttons built from a list of items.
+   * - :cpp:class:`WindowCapsule <gui_forms::WindowCapsule>`
+     - A window's controls as one capsule worked by gestures: double click or drag down the left half to maximise or minimise, the question mark for help, drag the right half to move, three clicks to close; the surface window manager's title bar controls and a program's own corner controls.
 
 .. toctree::
    :hidden:
@@ -30,6 +32,7 @@ Buttons, links and command rows.
    generated/gui_forms.DropDownButton
    generated/gui_forms.LinkLabel
    generated/gui_forms.CommandBar
+   generated/gui_forms.WindowCapsule
 
 Related types
 -------------
@@ -102,6 +105,20 @@ Related types
      - How the text and the image are placed against each other (TextImageRelation).
    * - :cpp:class:`TextLineSpacingCapability <gui_forms::TextLineSpacingCapability>`
      - Line height as a multiple of the font's (between 0.75 and 3).
+   * - :cpp:class:`WindowCapsule::Parts <gui_forms::WindowCapsule::Parts>`
+     - The anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`WindowCapsuleColors <gui_forms::WindowCapsuleColors>`
+     - The colours the capsule's fills and glyphs are drawn in, as authored colours over its theme parts.
+   * - :cpp:class:`WindowCapsuleGesture <gui_forms::WindowCapsuleGesture>`
+     -  
+   * - :cpp:class:`WindowCapsuleLook <gui_forms::WindowCapsuleLook>`
+     - What a capsule shows: the gesture's state for its window (window_capsule_look), or the resting look.
+   * - :cpp:class:`WindowCapsuleMeasures <gui_forms::WindowCapsuleMeasures>`
+     - The gesture measures, logical units and milliseconds (from the desk theme, SurfaceFrameTheme).
+   * - :cpp:class:`WindowCapsuleOutcome <gui_forms::WindowCapsuleOutcome>`
+     -  
+   * - :cpp:class:`WindowCapsuleRequest <gui_forms::WindowCapsuleRequest>`
+     - What a WindowCapsule in a program's content asks its program to do (WindowCapsule::requested).
 
 .. cpp:namespace:: gui_forms
 
@@ -245,7 +262,7 @@ Related types
 
       Whether an ampersand in the text marks the access key (UseMnemonic).
 
-   .. cpp:member:: std::optional<bool> expanded_state
+   .. cpp:member:: stxlib::Optional<bool> expanded_state
 
       Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
 
@@ -432,7 +449,7 @@ Related types
 
    .. cpp:member:: std::string accessible_name
 
-   .. cpp:member:: std::optional<KeyGesture> shortcut
+   .. cpp:member:: stxlib::Optional<KeyGesture> shortcut
 
    .. cpp:member:: Command* command
 
@@ -592,9 +609,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ExpandedStateCapability& capability, std::optional<bool> incoming)
+   .. cpp:function:: static void assign(ExpandedStateCapability& capability, stxlib::Optional<bool> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<bool>, ExpandedStateCapability<Declaring>> expanded_state
+   .. cpp:member:: PropertyCell<stxlib::Optional<bool>, ExpandedStateCapability<Declaring>> expanded_state
 
 .. cpp:namespace:: gui_forms
 
@@ -753,6 +770,248 @@ Related types
 
       Default: ``{1.25}``.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCapsule::Parts final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   The anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry face
+
+   .. cpp:member:: PartGeometry left_half
+
+   .. cpp:member:: PartGeometry help
+
+   .. cpp:member:: PartGeometry right_half
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCapsuleColors final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   The colours the capsule's fills and glyphs are drawn in, as authored colours over its theme parts. The defaults (2026-11-15, standing until a theme supplies capsule colours): a dark face, light glyphs, a green invitation (#2EA043) and a red X (#D1242F).
+
+   .. cpp:member:: Color face
+
+      Default: ``{0x3F, 0x3F, 0x46, 0xFF}``.
+
+   .. cpp:member:: Color glyph
+
+      Default: ``{0xF0, 0xF0, 0xF0, 0xFF}``.
+
+   .. cpp:member:: Color ready
+
+      Default: ``{0x2E, 0xA0, 0x43, 0xFF}``.
+
+   .. cpp:member:: Color close
+
+      Default: ``{0xD1, 0x24, 0x2F, 0xFF}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: WindowCapsuleGesture final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const WindowCapsuleMeasures& measures() const noexcept
+
+   .. cpp:function:: void set_measures(const WindowCapsuleMeasures& measures) noexcept
+
+      Non-finite or negative measures fall back to the defaults.
+
+   .. cpp:function:: bool keyboard() const noexcept
+
+   .. cpp:function:: bool animating() const noexcept
+
+   .. cpp:function:: HostWindowId window() const noexcept
+
+      The look. :cpp:func:`window <gui_forms::WindowCapsuleGesture::window>` is the capsule's window while any gesture, hover, focus or animation concerns it.
+
+   .. cpp:function:: WindowCapsuleArm arm() const noexcept
+
+   .. cpp:function:: double intent() const noexcept
+
+      The close intention as shown: 0 idle, 0.5 one half armed (the other half green), 1 the X (red).
+
+   .. cpp:function:: double minimize_offset() const noexcept
+
+      The left half's downward drag as shown, 0 to minimize_distance.
+
+   .. cpp:function:: WindowCapsuleSnap snap() const noexcept
+
+   .. cpp:function:: bool moving() const noexcept
+
+   .. cpp:function:: bool pressing() const noexcept
+
+   .. cpp:function:: WindowCapsuleSection hovered() const noexcept
+
+   .. cpp:function:: WindowCapsuleSection pressed() const noexcept
+
+   .. cpp:function:: WindowCapsuleSection focused_section() const noexcept
+
+   .. cpp:function:: bool title_shown() const noexcept
+
+      Hovering the help section shows the window's title.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: WindowCapsuleOutcome press(HostWindowId window, WindowCapsuleSection section, Point point, std::uint32_t clicks) noexcept
+
+      Pointer input, in one coordinate space for a whole press (the surface's logical units in the window manager). press is called for a primary press on ``section`` of :cpp:func:`window <gui_forms::WindowCapsuleGesture::window>`'s capsule with the press's click count; drag for every move while that press lasts, ``extent`` the surface's size, or an empty size where there are no snap targets (a capsule in a program's content: the program decides where its window goes); release with the section under the pointer (none off the capsule); cancel when the pointer is lost.
+
+   .. cpp:function:: WindowCapsuleOutcome drag(Point point, Size extent) noexcept
+
+   .. cpp:function:: WindowCapsuleOutcome release(WindowCapsuleSection section) noexcept
+
+   .. cpp:function:: WindowCapsuleOutcome cancel() noexcept
+
+   .. cpp:function:: WindowCapsuleOutcome hover(HostWindowId window, WindowCapsuleSection section) noexcept
+
+      The pointer is over ``section`` of :cpp:func:`window <gui_forms::WindowCapsuleGesture::window>`'s capsule, or off every capsule (none). Leaving the capsule without a press disarms it.
+
+   .. cpp:function:: WindowCapsuleOutcome focus(HostWindowId window) noexcept
+
+      Keyboard: focus gives :cpp:func:`window <gui_forms::WindowCapsuleGesture::window>`'s capsule the keyboard at its left half; key is called for each key press while it has it.
+
+   .. cpp:function:: WindowCapsuleOutcome key(std::uint32_t physical_key, Modifier modifiers) noexcept
+
+   .. cpp:function:: bool forget(HostWindowId window) noexcept
+
+      :cpp:func:`window <gui_forms::WindowCapsuleGesture::window>` closed, was minimised or lost the keyboard to another window: a capsule of it forgets every gesture. Returns whether the look changed.
+
+   .. cpp:function:: bool advance(double milliseconds, bool reduced_motion) noexcept
+
+      Moves the animated values toward their targets by ``milliseconds``; with reduced motion they take them at once. Returns whether the look changed.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCapsuleLook final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   What a capsule shows: the gesture's state for its window (window_capsule_look), or the resting look.
+
+   .. cpp:member:: WindowCapsuleArm arm
+
+      Default: ``{WindowCapsuleArm::idle}``.
+
+   .. cpp:member:: double intent
+
+      WindowCapsuleGesture::intent and minimize_offset.
+
+   .. cpp:member:: double minimize_offset
+
+   .. cpp:member:: WindowCapsuleSection hovered
+
+      Default: ``{WindowCapsuleSection::none}``.
+
+   .. cpp:member:: WindowCapsuleSection pressed
+
+      Default: ``{WindowCapsuleSection::none}``.
+
+   .. cpp:member:: WindowCapsuleSection focused
+
+      The section with the keyboard's focus ring, none without it. Default: ``{WindowCapsuleSection::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCapsuleMeasures final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   The gesture measures, logical units and milliseconds (from the desk theme, SurfaceFrameTheme).
+
+   .. cpp:member:: double slop
+
+      Movement within this distance of the press is still a click. Default: ``{4.0}``.
+
+   .. cpp:member:: double minimize_distance
+
+      Default: ``{40.0}``.
+
+   .. cpp:member:: double snap_edge
+
+      Default: ``{16.0}``.
+
+   .. cpp:member:: double snap_release
+
+      Default: ``{48.0}``.
+
+   .. cpp:member:: double animation_milliseconds
+
+      Default: ``{160.0}``.
+
+   .. cpp:member:: double nudge
+
+      Default: ``{16.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCapsuleOutcome final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   .. cpp:member:: WindowCapsuleCommand command
+
+      Default: ``{WindowCapsuleCommand::none}``.
+
+   .. cpp:member:: HostWindowId window
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: Point point
+
+   .. cpp:member:: Point offset
+
+   .. cpp:member:: WindowCapsuleSnap snap
+
+      Default: ``{WindowCapsuleSnap::none}``.
+
+   .. cpp:member:: bool handled
+
+      The input was the capsule's (a key it consumed, a press on it).
+
+   .. cpp:member:: bool redraw
+
+      The capsule's look changed: its strip paints again.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowCapsuleRequest final
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   What a WindowCapsule in a program's content asks its program to do (WindowCapsule::requested). Points are in the capsule's client coordinates; a move's ``point`` stays where the window moves with the pointer, so a program moving its window reads the screen pointer (HostWindowing::pointer_position) and asks for the frame (ApplicationWindowHandle::request_frame), and chooses any snap itself.
+
+   .. cpp:member:: WindowCapsuleCommand command
+
+      Default: ``{WindowCapsuleCommand::none}``.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: Point point
+
+   .. cpp:member:: Point offset
+
+   .. cpp:member:: WindowCapsuleSnap snap
+
+      Default: ``{WindowCapsuleSnap::none}``.
+
 Enumerations
 ------------
 
@@ -842,6 +1101,74 @@ Enumerations
 
    .. cpp:enumerator:: text_above_image
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCapsuleArm
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   .. cpp:enumerator:: idle
+
+   .. cpp:enumerator:: left
+
+   .. cpp:enumerator:: right
+
+   .. cpp:enumerator:: close
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCapsuleCommand
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: toggle_maximize
+
+   .. cpp:enumerator:: minimize
+
+   .. cpp:enumerator:: begin_move
+
+   .. cpp:enumerator:: move
+
+   .. cpp:enumerator:: finish_move
+
+   .. cpp:enumerator:: cancel_move
+
+   .. cpp:enumerator:: tile
+
+   .. cpp:enumerator:: nudge
+
+   .. cpp:enumerator:: open_help
+
+   .. cpp:enumerator:: close
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCapsuleSection
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: left
+
+   .. cpp:enumerator:: help
+
+   .. cpp:enumerator:: right
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCapsuleSnap
+
+   ``#include <gui_forms/controls/window_capsule.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: left_half
+
+   .. cpp:enumerator:: right_half
+
 Functions, constants and aliases
 --------------------------------
 
@@ -864,3 +1191,15 @@ Functions, constants and aliases
 .. cpp:var:: constexpr TypeTag<ContentAlignment> content_alignment
 
 .. cpp:var:: constexpr TypeTag<TextImageRelation> text_image_relation
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/window_capsule.hpp>``
+
+.. cpp:function:: std::string_view window_capsule_help_text() noexcept
+
+   The capsule's own help: how to use it, in plain words.
+
+.. cpp:function:: WindowCapsuleLook window_capsule_look(const WindowCapsuleGesture& gesture, HostWindowId window) noexcept
+
+   The look of ``gesture`` for ``window``: its state while it concerns that window, else the resting look.

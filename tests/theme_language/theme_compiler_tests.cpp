@@ -23,6 +23,7 @@
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -304,7 +305,7 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{4.0, 4.0, 72.0, 28.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         if (hot) part.states.insert(AnatomyState::hot);
         paint_part(painter, *this, part);
     }
@@ -487,9 +488,9 @@ void test_properties() {
         const ThemeRule& first = listed.sheet.rules[0];
         const ThemeRule& third = listed.sheet.rules[2];
         require(first.selector.classes == std::vector<std::string>{"a"} && first.level == CascadeLevel::theme_sheet &&
-                    !first.specificity && first.label == ".a, .b:is(.c, .d)",
+                    first.specificity.absent() && first.label == ".a, .b:is(.c, .d)",
                 "each expanded selector is one rule with the rule's label");
-        require(third.selector.classes == (std::vector<std::string>{"b", "d"}) && !third.specificity &&
+        require(third.selector.classes == (std::vector<std::string>{"b", "d"}) && third.specificity.absent() &&
                     holds_still(third, 0U, opacity_property, 0.5),
                 "each copy holds the rule's declarations");
     }
@@ -499,7 +500,7 @@ void test_properties() {
     if (given.sheet.rules.size() == 2U) {
         const ThemeRule& own = given.sheet.rules[0];
         const ThemeRule& lifted = given.sheet.rules[1];
-        require(!own.specificity && lifted.specificity && (*lifted.specificity).ids == 1U &&
+        require(own.specificity.absent() && lifted.specificity.present() && (*lifted.specificity.value()).ids == 1U &&
                     lifted.level == CascadeLevel::theme_sheet,
                 "an :is() gives its most specific argument's, given only where the selector's own differs");
     }
@@ -521,7 +522,7 @@ void test_refusals() {
         {"@import \"x\"; #a { opacity: 1 }", DiagnosticCode::import_not_installed, "\"x\""},
         {"#a { opacity: 1 } @media print { #a { opacity: 1 } }", DiagnosticCode::value_form_not_admitted, "print"},
         {"@keyframes k { from { color: red } }", DiagnosticCode::value_form_not_admitted, "color"},
-        {"#a { backdrop-filter: blur(2px) }", DiagnosticCode::not_yet_built, "backdrop-filter"},
+        {"window { backdrop-filter: sepia(1) }", DiagnosticCode::value_form_not_admitted, "sepia"},
         {"#a { border-image-slice: 1 }", DiagnosticCode::not_yet_built, "border"},
         {"#a { animation: fade 1s }", DiagnosticCode::keyframes_undefined, "fade"},
         {"#a { font: huge }", DiagnosticCode::keyword_unknown, "huge"},
@@ -544,7 +545,7 @@ void test_refusals() {
         {"#a { translate: 10% }", DiagnosticCode::value_form_not_admitted, "10%"},
         {"#a { translate: 1px 2px 3px }", DiagnosticCode::value_form_not_admitted, "3px"},
         {"#a { translate: 2 }", DiagnosticCode::value_wrong_kind, "2 }"},
-        {"#a { mix-blend-mode: overlay }", DiagnosticCode::value_form_not_admitted, "overlay"},
+        {"#a { mix-blend-mode: luminosity }", DiagnosticCode::value_form_not_admitted, "luminosity"},
         {"#a { mix-blend-mode: sideways }", DiagnosticCode::keyword_unknown, "sideways"},
         {"#a { isolation: sideways }", DiagnosticCode::keyword_unknown, "sideways"},
         {"#a { primitive: 3 }", DiagnosticCode::value_wrong_kind, "3"},
@@ -744,6 +745,24 @@ void test_warnings() {
         }
     }
     require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
+    // `ring-style` (claude/geometry-1): a progress ring's dots or one
+    // continuous arc, on a control; any other keyword refuses the sheet.
+    const Compilation rings = compile("#a { ring-style: arc }\n#b { ring-style: dots }");
+    bool ring_arc = false;
+    bool ring_dots = false;
+    if (rings.outcome == CompileOutcome::compiled && rings.sheet.rules.size() == 2U) {
+        for (const RecipeDeclaration& field : rings.sheet.rules[0].recipe_fields) {
+            if (field.field == RecipeField::ring_style && field.ring_style == RingStyle::arc) ring_arc = true;
+        }
+        for (const RecipeDeclaration& field : rings.sheet.rules[1].recipe_fields) {
+            if (field.field == RecipeField::ring_style && field.ring_style == RingStyle::dots) ring_dots = true;
+        }
+    }
+    require(rings.diagnostics.empty() && ring_arc && ring_dots, "ring-style lowers arc and dots");
+    const Compilation spiral = compile("#a { ring-style: spiral }");
+    require(spiral.outcome == CompileOutcome::refused && spiral.diagnostics.size() == 1U &&
+                spiral.diagnostics[0].code == DiagnosticCode::keyword_unknown,
+            "an unknown ring style refuses its sheet");
     // The node canvas's properties (cp31) are part fields too: admitted on
     // a named part, range-checked, and refused on a control; the texture is
     // one to three baked layers, procedural or a finish, each multiplied at
@@ -801,6 +820,27 @@ void test_warnings() {
                 "a finish layer lowers to its finish, written as a fill writes it");
     }
     require(untextured != nullptr && (*untextured).texture.count == 0U, "none lowers to no layer");
+    // A hatch is a texture kind per style, as in pattern() (owner, 2026-11-16).
+    const Compilation hatched = compile("#a::part(face) { background-texture: procedural(hatch-diagonal-cross, 0, 8px, 1)"
+                                        " multiply 2% }");
+    const RecipeDeclaration* hatch_texture = nullptr;
+    if (hatched.outcome == CompileOutcome::compiled && hatched.sheet.rules.size() == 1U) {
+        for (const RecipeDeclaration& field : hatched.sheet.rules[0].recipe_fields) {
+            if (field.field == RecipeField::texture_layers) hatch_texture = &field;
+        }
+    }
+    require(hatch_texture != nullptr && (*hatch_texture).texture.count == 1U &&
+                (*hatch_texture).texture.items[0].pattern == ProceduralPattern::hatch &&
+                (*hatch_texture).texture.items[0].hatch_style == HatchStyle::diagonal_cross &&
+                (*hatch_texture).texture.items[0].tile == 8.0,
+            "a hatch texture lowers to the hatch pattern in its style");
+    CanvasTextureLayer hatch_layer{};
+    hatch_layer.pattern = ProceduralPattern::hatch;
+    hatch_layer.hatch_style = HatchStyle::cross;
+    hatch_layer.tile = 8.0;
+    const ProceduralFill hatch_fill = canvas_texture_fill(hatch_layer, CanvasTextureBlend::multiply);
+    require(hatch_fill.pattern == ProceduralPattern::hatch && hatch_fill.hatch_style == HatchStyle::cross,
+            "the canvas draws a hatch layer in its style");
     require(dash != nullptr && (*dash).number == 6.0 && gap != nullptr && (*gap).number == 4.0,
             "stroke-dash lowers to its dash and its gap");
     require(halo_width != nullptr && (*halo_width).number == 4.0, "a halo's width is read in either order");

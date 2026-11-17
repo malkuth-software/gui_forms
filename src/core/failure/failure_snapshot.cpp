@@ -2,7 +2,15 @@
 
 #include "failure_snapshot.hpp"
 
+#include "../diagnostics/shadow_frames/shadow_frame_records.hpp"
+#include "../../platform/stxlib_bridge.hpp"
+
+#include <stxlib/shadow.hpp>
+#include <stxlib/text_view.hpp>
+#include <stxlib/view.hpp>
+
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -19,6 +27,20 @@ thread_local FailureSnapshot thread_snapshot;
 // Relaxed: the switch orders nothing else; a call that starts after the
 // switch changes sees the new value.
 std::atomic<bool> reflection_enabled{false};
+
+// parked_frames_dropped (FailureStatistics). Relaxed: a count orders
+// nothing else.
+std::atomic<std::uint64_t> parked_frames_dropped{0U};
+
+// The rethrow mark of mark_parked_frames_lost: armed until the gate record
+// of that sequence is filed on this thread. Trivially destructible, as a
+// thread_local must be (owner rule 2).
+struct FramesLostMark final {
+    bool armed = false;
+    std::uint64_t sequence = 0U;
+};
+
+thread_local FramesLostMark frames_lost_mark;
 
 // The leading bytes of text that fit in capacity and end on a whole UTF-8
 // sequence.
@@ -46,22 +68,72 @@ std::uint32_t copy_text(std::string_view text, std::array<char, Capacity>& field
     return static_cast<std::uint32_t>(size);
 }
 
-} // namespace
-
-void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
-    FailureSnapshot& snapshot = thread_snapshot;
-    // The frames first: nothing below opens a frame, but the copy must see
-    // the unwind mark exactly as the catch left it.
-    ShadowStackState state{};
-    const std::size_t recorded = copy_failure_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
+// Fills everything but the frames and the trace, which the caller has
+// written.
+void fill_snapshot(FailureSnapshot& snapshot, const FailureBoundary& boundary, const std::string_view message,
+                   const std::size_t recorded, const std::uint32_t depth, const std::size_t trace_count,
+                   const std::string_view type) noexcept {
     snapshot.status = boundary.status;
+    // Set by the ErrorRecord filing, after this, for a marked rethrow.
+    snapshot.frames_lost_at_park = false;
     snapshot.interface_id = boundary.interface_id;
     snapshot.function_index = boundary.function_index;
     ++snapshot.sequence;
     snapshot.frame_count = static_cast<std::uint32_t>(std::min<std::size_t>(recorded, shadow_stack_capacity));
-    snapshot.depth = state.depth;
+    snapshot.depth = depth;
     snapshot.site_size = copy_text(boundary.site, snapshot.site);
     snapshot.message_size = copy_text(message, snapshot.message);
+    snapshot.trace_count = static_cast<std::uint32_t>(std::min<std::size_t>(trace_count, failure_trace_capacity));
+    for (std::size_t index = snapshot.trace_count; index < snapshot.trace.size(); ++index) {
+        snapshot.trace[index] = 0U;
+    }
+    snapshot.type_size = copy_text(type, snapshot.type);
+}
+
+} // namespace
+
+void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message,
+                             const stxlib::ErrorRecord& record) noexcept {
+    FailureSnapshot& snapshot = thread_snapshot;
+    const RecordFrames read = copy_record_frames(record.shadow(), std::span<ShadowFrame>(snapshot.frames),
+                                                 std::span<std::uint64_t>(snapshot.trace));
+    // Demangled here, when the failure is filed, never at the capture
+    // (exception_type_for_display: one __cxa_demangle call, which allocates
+    // and frees its result). The view borrows type_storage or record.
+    std::array<char, stxlib::exception_type_display_capacity> type_storage{};
+    const stxlib::MutableView<char> type_output = platform::stxlib_mutable_view(type_storage);
+    const stxlib::TextView type = stxlib::exception_type_for_display(record, type_output);
+    const std::string_view type_text = platform::standard_text(type);
+    fill_snapshot(snapshot, boundary, message, read.recorded, read.depth, read.trace_count, type_text);
+    FramesLostMark& mark = frames_lost_mark;
+    const bool lost_at_park = mark.armed && mark.sequence == record.shadow().sequence;
+    if (lost_at_park) {
+        mark.armed = false;
+    }
+    snapshot.frames_lost_at_park = lost_at_park;
+}
+
+void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
+    const stxlib::ShadowReference parked = stxlib::park_shadow();
+    record_failure_snapshot(boundary, message, parked);
+}
+
+void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message,
+                             const stxlib::ShadowReference parked) noexcept {
+    FailureSnapshot& snapshot = thread_snapshot;
+    // The frames open now, in case parked holds no capture.
+    ShadowStackState state{};
+    std::size_t recorded = copy_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
+    std::uint32_t depth = state.depth;
+    std::size_t trace_count = 0U;
+    if (parked.present()) {
+        const RecordFrames read = copy_record_frames(parked, std::span<ShadowFrame>(snapshot.frames),
+                                                     std::span<std::uint64_t>(snapshot.trace));
+        recorded = read.recorded;
+        depth = read.depth;
+        trace_count = read.trace_count;
+    }
+    fill_snapshot(snapshot, boundary, message, recorded, depth, trace_count, std::string_view{});
 }
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::exception_ptr failure) noexcept {
@@ -97,6 +169,27 @@ void clear_failure_snapshot() noexcept {
     snapshot.message_size = 0U;
     snapshot.site.fill('\0');
     snapshot.message.fill('\0');
+    snapshot.type_size = 0U;
+    snapshot.trace_count = 0U;
+    snapshot.type.fill('\0');
+    snapshot.trace.fill(0U);
+    snapshot.frames_lost_at_park = false;
+}
+
+FailureStatistics failure_statistics() noexcept {
+    FailureStatistics statistics{};
+    statistics.parked_frames_dropped = parked_frames_dropped.load(std::memory_order_relaxed);
+    return statistics;
+}
+
+void count_parked_frames_dropped() noexcept {
+    parked_frames_dropped.fetch_add(1U, std::memory_order_relaxed);
+}
+
+void mark_parked_frames_lost(const stxlib::ShadowReference parked) noexcept {
+    FramesLostMark& mark = frames_lost_mark;
+    mark.armed = true;
+    mark.sequence = parked.sequence;
 }
 
 void set_exception_reflection(const bool enabled) noexcept {

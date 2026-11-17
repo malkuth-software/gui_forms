@@ -1,0 +1,32 @@
+# malkuthsoft.com/paint (cPanel Apache behind nginx; src/host/web/README.md).
+# Shared memory and threads need a cross-origin isolated page: COOP and COEP
+# on every response. Where the front proxy drops them, shell.js falls back to
+# coi-serviceworker.js.
+<IfModule mod_headers.c>
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Cross-Origin-Embedder-Policy "require-corp"
+  Header always set Cross-Origin-Resource-Policy "same-origin"
+  Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
+AddType application/wasm .wasm
+AddType application/javascript .js .mjs
+AddType application/json .json
+AddType application/octet-stream .data
+
+# The shell and its manifest are revalidated on every load; the program, its
+# packs and font groups are requested with ?v=<version> and kept.
+<IfModule mod_headers.c>
+  <FilesMatch "^(index\.html|page\.json|shell\.js|shell\.css|coi-serviceworker\.js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(wasm|data|js)$">
+    Header set Cache-Control "public, max-age=31536000, immutable" "expr=%{QUERY_STRING} =~ /(^|&)v=/"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/wasm application/javascript application/json text/html text/css
+</IfModule>
+
+Options -Indexes

@@ -23,6 +23,13 @@ using namespace input_control_detail;
 
 namespace {
 
+// Whether `held` holds the token `id`.
+bool holds_token(const stxlib::Optional<TokenId>& held, TokenId id) noexcept {
+    const TokenId* const present = held.value();
+    const bool holds = present != nullptr && *present == id;
+    return holds;
+}
+
 // Logical units, before the text scale: the box's inner padding, a token's
 // height, the pitch of its lines, the gap between tokens, the label's
 // leading padding, the close glyph's side and the gap before it, and the
@@ -64,7 +71,7 @@ bool admitted_delimiter(char byte) noexcept {
 
 TokenBox::TokenBox(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
 TokenBox::~TokenBox() {
@@ -115,29 +122,29 @@ TokenId TokenBox::add_token(std::string text) {
     return id;
 }
 
-std::optional<std::size_t> TokenBox::token_index(TokenId id) const noexcept {
+stxlib::Optional<std::size_t> TokenBox::token_index(TokenId id) const noexcept {
     for (std::size_t index = 0U; index < tokens_.size(); ++index) {
-        if (tokens_[index].id == id) return index;
+        if (tokens_[index].id == id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool TokenBox::remove_token(TokenId id) {
     require_mutable();
-    const std::optional<std::size_t> index = token_index(id);
-    if (!index) return false;
-    remove_at(*index);
+    const stxlib::Optional<std::size_t> index = token_index(id);
+    if (index.absent()) return false;
+    remove_at(*index.value());
     return true;
 }
 
 void TokenBox::remove_at(std::size_t index) {
     const Token removed = tokens_[index];
     tokens_.erase(tokens_.begin() + static_cast<std::ptrdiff_t>(index));
-    if (hot_ == removed.id) hot_.reset();
-    if (pressed_close_ == removed.id) pressed_close_.reset();
+    if (holds_token(hot_, removed.id)) hot_.reset();
+    if (holds_token(pressed_close_, removed.id)) pressed_close_.reset();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    if (selected_ == removed.id) {
-        set_selected(std::nullopt);
+    if (holds_token(selected_, removed.id)) {
+        set_selected(stxlib::Optional<TokenId>::none());
         if (!is_alive()) return;
     }
     publish_change(token_removed_, removed);
@@ -148,15 +155,15 @@ void TokenBox::clear_tokens() {
     while (!tokens_.empty() && is_alive()) remove_at(tokens_.size() - 1U);
 }
 
-void TokenBox::select_token(std::optional<TokenId> id) {
+void TokenBox::select_token(stxlib::Optional<TokenId> id) {
     require_mutable();
-    if (id && !token_index(*id)) {
+    if (id.present() && token_index(*id.value()).absent()) {
         throw std::invalid_argument("TokenBox can select only one of its own tokens");
     }
     set_selected(id);
 }
 
-void TokenBox::set_selected(std::optional<TokenId> id) {
+void TokenBox::set_selected(stxlib::Optional<TokenId> id) {
     if (selected_ == id) return;
     selected_ = id;
     invalidate(Dirty::paint | Dirty::semantics);
@@ -260,8 +267,8 @@ void TokenBox::editor_text_changed(const std::string& text) {
     if ((*editor_).accepts_enter.read() != entry) (*editor_).accepts_enter = entry;
     if (synchronizing_) return;
     // Typing goes back to the editor from a selected token.
-    if (selected_) {
-        set_selected(std::nullopt);
+    if (selected_.present()) {
+        set_selected(stxlib::Optional<TokenId>::none());
         if (!is_alive()) return;
     }
     // Any delimiter in the text (none without delimiters) splits it.
@@ -272,7 +279,7 @@ void TokenBox::editor_text_changed(const std::string& text) {
 void TokenBox::editor_focus_changed(bool focused) {
     editor_focused_ = focused;
     // A selected token is a keyboard position in the editor's focus.
-    if (!focused && selected_) set_selected(std::nullopt);
+    if (!focused && selected_.present()) set_selected(stxlib::Optional<TokenId>::none());
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -353,11 +360,11 @@ bool TokenBox::focus_visible() const noexcept {
 AnatomyStateSet TokenBox::token_states(std::size_t index) const {
     AnatomyStateSet states;
     const TokenId id = tokens_[index].id;
-    if (selected_ == id) {
+    if (holds_token(selected_, id)) {
         states.insert(AnatomyState::selected);
         if (focus_visible()) states.insert(AnatomyState::focus_visible);
     }
-    if (hot_ == id) states.insert(AnatomyState::hot);
+    if (holds_token(hot_, id)) states.insert(AnatomyState::hot);
     return states;
 }
 
@@ -391,8 +398,8 @@ void TokenBox::on_paint(Painter& painter, Rect) {
         part.bounds = placement.close;
         part.mark = PartMark::close;
         AnatomyStateSet close_states;
-        if (hot_ == token.id && hot_close_) close_states.insert(AnatomyState::hot);
-        if (pressed_close_ == token.id) close_states.insert(AnatomyState::pressed);
+        if (holds_token(hot_, token.id) && hot_close_) close_states.insert(AnatomyState::hot);
+        if (holds_token(pressed_close_, token.id)) close_states.insert(AnatomyState::pressed);
         part.states = close_states;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -415,7 +422,7 @@ TokenBox::TokenHit TokenBox::hit_token(Point window_point) const {
     const Layout placed = layout();
     for (const TokenPlacement& placement : placed.tokens) {
         if (!placement.face.contains(local)) continue;
-        hit.index = placement.index;
+        hit.index.set(placement.index);
         hit.close = placement.close.contains(local);
         return hit;
     }
@@ -426,8 +433,8 @@ void TokenBox::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const TokenHit hit = hit_token(event.position);
     if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        std::optional<TokenId> hot{};
-        if (event.action == PointerAction::move && hit.index) hot = tokens_[*hit.index].id;
+        stxlib::Optional<TokenId> hot{};
+        if (event.action == PointerAction::move && hit.index.present()) hot.set(tokens_[*hit.index.value()].id);
         const bool close = event.action == PointerAction::move && hit.close;
         if (hot != hot_ || close != hot_close_) {
             hot_ = hot;
@@ -438,27 +445,37 @@ void TokenBox::handle_pointer(PointerEvent& event) {
     }
     if (event.button != PointerButton::primary) return;
     if (event.action == PointerAction::down) {
+        // The focus moves first: the losing control's focus handlers run
+        // inside request_focus and may edit the tokens or drop the box, so
+        // the box is held and the press is hit-tested again afterwards
+        // against the tokens that remain (A-gf-controls-09-F8).
+        const Control::Ptr retained = weak_from_this().lock();
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(editor_));
-        if (hit.index && hit.close) {
+        if (!is_alive() || !eligible_for_input()) {
+            event.handled = true;
+            return;
+        }
+        const TokenHit pressed = hit_token(event.position);
+        if (pressed.index.present() && pressed.close) {
             // The close glyph acts on release over it, as a button does.
-            pressed_close_ = tokens_[*hit.index].id;
+            pressed_close_.set(tokens_[*pressed.index.value()].id);
             set_pointer_capture(true);
             invalidate(Dirty::paint);
-        } else if (hit.index) {
-            set_selected(tokens_[*hit.index].id);
+        } else if (pressed.index.present()) {
+            set_selected(stxlib::Optional<TokenId>::of(tokens_[*pressed.index.value()].id));
         } else {
-            set_selected(std::nullopt);
+            set_selected(stxlib::Optional<TokenId>::none());
         }
         event.handled = true;
         return;
     }
-    if (event.action == PointerAction::up && pressed_close_) {
-        const TokenId pressed = *pressed_close_;
+    if (event.action == PointerAction::up && pressed_close_.present()) {
+        const TokenId pressed = *pressed_close_.value();
         pressed_close_.reset();
         set_pointer_capture(false);
         invalidate(Dirty::paint);
-        if (hit.index && hit.close && tokens_[*hit.index].id == pressed) {
+        if (hit.index.present() && hit.close && tokens_[*hit.index.value()].id == pressed) {
             static_cast<void>(remove_token(pressed));
         }
         event.handled = true;
@@ -513,10 +530,11 @@ void TokenBox::on_key_preview(KeyEvent& event) {
     if ((*editor_).auto_complete_open()) return;
     const std::uint32_t key = event.physical_key;
     if (event.modifiers != Modifier::none) return;
-    if (selected_) {
-        const std::optional<std::size_t> index = token_index(*selected_);
-        if (!index) {
-            set_selected(std::nullopt);
+    if (selected_.present()) {
+        const stxlib::Optional<std::size_t> found = token_index(*selected_.value());
+        const std::size_t* const index = found.value();
+        if (index == nullptr) {
+            set_selected(stxlib::Optional<TokenId>::none());
             return;
         }
         if (key == PhysicalKey::backspace || key == PhysicalKey::delete_forward) {
@@ -524,21 +542,21 @@ void TokenBox::on_key_preview(KeyEvent& event) {
             event.handled = true;
         } else if (key == PhysicalKey::left) {
             const std::size_t previous = *index == 0U ? 0U : *index - 1U;
-            set_selected(tokens_[previous].id);
+            set_selected(stxlib::Optional<TokenId>::of(tokens_[previous].id));
             event.handled = true;
         } else if (key == PhysicalKey::right) {
             // Past the last token the editor has the caret again.
             if (*index + 1U < tokens_.size()) {
-                set_selected(tokens_[*index + 1U].id);
+                set_selected(stxlib::Optional<TokenId>::of(tokens_[*index + 1U].id));
             } else {
-                set_selected(std::nullopt);
+                set_selected(stxlib::Optional<TokenId>::none());
             }
             event.handled = true;
         } else if (key == PhysicalKey::home) {
-            set_selected(tokens_.front().id);
+            set_selected(stxlib::Optional<TokenId>::of(tokens_.front().id));
             event.handled = true;
         } else if (key == PhysicalKey::end || key == PhysicalKey::escape) {
-            set_selected(std::nullopt);
+            set_selected(stxlib::Optional<TokenId>::none());
             event.handled = true;
         }
         return;
@@ -548,7 +566,7 @@ void TokenBox::on_key_preview(KeyEvent& event) {
     if (at_start && !tokens_.empty() && (key == PhysicalKey::backspace || key == PhysicalKey::left)) {
         // Backspace or Left at the start selects the last token; a second
         // Backspace removes it.
-        set_selected(tokens_.back().id);
+        set_selected(stxlib::Optional<TokenId>::of(tokens_.back().id));
         event.handled = true;
     }
 }
@@ -586,13 +604,13 @@ std::vector<SemanticNode> TokenBox::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::list_item;
         node.name = token.text;
-        node.position_in_set = placement.index + 1U;
-        node.set_size = tokens_.size();
+        node.position_in_set.set(placement.index + 1U);
+        node.set_size.set(tokens_.size());
         node.bounds = Rect{absolute.x + placement.face.x, absolute.y + placement.face.y,
                            placement.face.width, placement.face.height};
         node.states = SemanticState::visible;
         if (effectively_enabled()) node.states |= SemanticState::enabled;
-        if (selected_ == token.id) node.states |= SemanticState::selected;
+        if (holds_token(selected_, token.id)) node.states |= SemanticState::selected;
         node.actions = {SemanticAction::select};
         // The close glyph is a button of its own, so a token can be removed
         // without the keyboard.
@@ -626,7 +644,7 @@ bool TokenBox::on_semantic_child_action(std::string_view id, SemanticAction acti
     for (const Token& token : tokens_) {
         const std::string node = token_stable_id(token.id);
         if (id == node && action == SemanticAction::select) {
-            set_selected(token.id);
+            set_selected(stxlib::Optional<TokenId>::of(token.id));
             return true;
         }
         if (id == node + ".remove" && action == SemanticAction::press) {
@@ -645,25 +663,25 @@ namespace {
 constexpr std::array<AnatomyState, 2> close_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<TokenBox::Parts>, 4> token_box_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TokenBox::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &TokenBox::Parts::well},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &TokenBox::Parts::field},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TokenBox::Parts::focus},
 }};
 
 constexpr std::array<PartField<TokenBox::ItemParts>, 4> token_item_part_fields{{
-    {.declaration = {.name = "token_face", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "token_face", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &TokenBox::ItemParts::token_face},
-    {.declaration = {.name = "token_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "token_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TokenBox::ItemParts::token_label},
     {.declaration = {.name = "token_close", .role = PartRole::glyph, .composed_from = {},
                      .states = close_part_states},
      .member = &TokenBox::ItemParts::token_close},
-    {.declaration = {.name = "token_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "token_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TokenBox::ItemParts::token_focus},
 }};
 
@@ -764,14 +782,18 @@ AnatomyStateSet TokenBox::realized_item_anatomy_states(std::size_t item) const {
 
 void TokenBox::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
     const Layout placed = layout();
+    // Checked as the two accessors above are (A-gf-controls-09-F9).
+    if (item >= placed.tokens.size()) {
+        throw std::out_of_range("TokenBox realized token is past the laid-out tokens");
+    }
     const TokenPlacement& placement = placed.tokens[item];
     const Token& token = tokens_[placement.index];
     ItemParts record;
     record.token_face = PartGeometry::from_bounds(placement.face);
     record.token_label = PartGeometry::from_bounds(placement.label);
     record.token_close = PartGeometry::from_bounds(placement.close);
-    if (hot_ == token.id && hot_close_) record.token_close.states.insert(AnatomyState::hot);
-    if (pressed_close_ == token.id) record.token_close.states.insert(AnatomyState::pressed);
+    if (holds_token(hot_, token.id) && hot_close_) record.token_close.states.insert(AnatomyState::hot);
+    if (holds_token(pressed_close_, token.id)) record.token_close.states.insert(AnatomyState::pressed);
     record.token_focus = PartGeometry::from_bounds(placement.face);
     write_item_parts(anatomy().item_systems.front(), token_item_part_fields, record, geometry);
 }
@@ -801,7 +823,7 @@ namespace {
 constexpr std::array<InteractionDeclaration, 3> token_box_interactions{{
     {.name = "token_added", .payload = "Token", .mutable_payload = false},
     {.name = "token_removed", .payload = "Token", .mutable_payload = false},
-    {.name = "selected_token_changed", .payload = "std::optional<TokenId>", .mutable_payload = false},
+    {.name = "selected_token_changed", .payload = "stxlib::Optional<TokenId>", .mutable_payload = false},
 }};
 
 } // namespace

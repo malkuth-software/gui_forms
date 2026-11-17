@@ -75,7 +75,9 @@ std::optional<SemanticTextSelection> published_selection(Window& window, std::st
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* node = find_node(snapshot.roots, stable_id);
     if (node == nullptr) return std::nullopt;
-    const std::optional<SemanticTextSelection> selection = (*node).text_selection;
+    const SemanticTextSelection* const published = (*node).text_selection.value();
+    if (published == nullptr) return std::nullopt;
+    const std::optional<SemanticTextSelection> selection(*published);
     return selection;
 }
 
@@ -327,8 +329,8 @@ void during_paint() {
     const TextSelection before = (*field).selection();
     test_support::TypographyPainter painter{};
     const DamageRegion damage = window.take_damage();
-    const std::optional<PaintReceipt> receipt = window.paint(painter, damage.bounds());
-    require(receipt.has_value() && (*probe).painted, "the probe paints");
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(painter, damage.bounds());
+    require(receipt.present() && (*probe).painted, "the probe paints");
     require((*probe).layout_result == SemanticTextResult::during_paint &&
                 (*probe).selection_result == SemanticTextResult::during_paint &&
                 (*field).selection() == before,

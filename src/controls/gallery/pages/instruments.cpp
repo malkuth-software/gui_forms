@@ -14,6 +14,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <stxlib/optional.hpp>
 
 namespace gui_forms::gallery::pages {
 
@@ -43,23 +44,23 @@ InstrumentsPage::InstrumentsPage(const std::shared_ptr<Surface>& body) {
     LinearGauge& pressure = *document_.gallery_instruments_pressure;
     pressure.set_range(0.0, 200.0);
     pressure.value = 128.0;
-    pressure.high_alarm = std::optional<double>{170.0};
+    pressure.high_alarm = stxlib::Optional<double>::of(170.0);
     LinearGauge& temperature = *document_.gallery_instruments_temperature;
     temperature.set_range(-25.0, 100.0);
     temperature.value = 92.0;
-    temperature.high_alarm = std::optional<double>{85.0};
+    temperature.high_alarm = stxlib::Optional<double>::of(85.0);
     LinearGauge& level = *document_.gallery_instruments_level;
     level.orientation = Orientation::vertical;
     level.value = 18.0;
-    level.low_alarm = std::optional<double>{20.0};
+    level.low_alarm = stxlib::Optional<double>::of(20.0);
     level.show_value = false;
     RadialGauge& speed = *document_.gallery_instruments_speed;
     speed.set_range(0.0, 8000.0);
     speed.value = 3250.0;
-    speed.high_alarm = std::optional<double>{6500.0};
+    speed.high_alarm = stxlib::Optional<double>::of(6500.0);
 
     RadialGauge& linked = *document_.gallery_instruments_dial_gauge;
-    linked.high_alarm = std::optional<double>{80.0};
+    linked.high_alarm = stxlib::Optional<double>::of(80.0);
     Dial& dial = *document_.gallery_instruments_dial;
     dial.value = 35.0;
     on(dial.value_changed(), *this, &InstrumentsPage::on_dial_changed);

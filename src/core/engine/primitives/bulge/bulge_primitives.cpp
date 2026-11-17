@@ -10,7 +10,10 @@
 #include <span>
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -254,12 +257,19 @@ const PrimitiveParameterDeclaration dithered_parameters[] = {
 };
 static_assert(sizeof(dithered_parameters) / sizeof(dithered_parameters[0]) == dithered_parameter_count);
 
-// Per device pixel: the clear, and at most one dot's three fields, its
-// normalization and its quantization. The preparation evaluates at most one
-// dot's three fields per device pixel and keeps three running maxima.
+// Per device pixel: the clear and one write (about 10 operations), and a
+// quarter of one dot's work (its three fields, normalization and
+// quantization, about 270): the lattice has one k x k dot in every
+// 2k x 2k cell (dither_lattice), so at most one dot per four device pixels
+// at any scale, and fewer above scale 1. The declaration was 280, one
+// whole dot per pixel, which put a 142-unit ribbon tab's rise over the
+// animated frame budget at scale 2 (14 904 pixels x 280 > 4 million), so
+// the plan dropped it to the built-in recipe and the menu-item plate
+// covered the selected tab (Plan Paint, owner 2026-11-17). The preparation
+// is bounded per device pixel as before; it runs once per geometry.
 const PrimitiveDescriptor dithered_descriptor{
     "dithered_bulge", EngineVersion{0, 1}, painted_roles, read_states, dithered_parameters,
-    PrimitiveCost{280U, 64U, 250U}, Insets{}, 3U,
+    PrimitiveCost{80U, 64U, 250U}, Insets{}, 3U,
 };
 
 // What the dithered form's preparation derives (reference §3, "Rescaled

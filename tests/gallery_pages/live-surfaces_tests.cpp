@@ -79,7 +79,7 @@ void test_live_surfaces(gui_forms::Window& window) {
 
     // The producer Timer ticks on the UI thread and publishes one band per tick.
     click(window, window.find("gallery.live-surfaces.start"));
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 (*status).text.read().find("Producer running") != std::string::npos,
             "the start Command must arm the page Timer on the window queue");
     const FramePollResult tick = window.poll_frame_schedule(
@@ -89,7 +89,7 @@ void test_live_surfaces(gui_forms::Window& window) {
                 snapshot.published_generation >= 3U,
             "a Timer tick must write and publish one frame through a write lease");
     click(window, window.find("gallery.live-surfaces.stop"));
-    require(!window.next_wake().has_value() &&
+    require(window.next_wake().absent() &&
                 (*status).text.read().find("stopped") != std::string::npos,
             "the stop Command must leave the scheduler quiescent");
 
@@ -110,7 +110,7 @@ void test_live_surfaces(gui_forms::Window& window) {
 
     // Hidden-page suspension: a tick on an invisible presenter stops the Timer.
     click(window, window.find("gallery.live-surfaces.start"));
-    require(window.next_wake().has_value(), "restart must arm the producer again");
+    require(window.next_wake().present(), "restart must arm the producer again");
     // Hide behind a static page: the inspection page schedules its own
     // overlay work and would keep a wake armed.
     select_page(window, "dock-and-anchor");
@@ -119,7 +119,7 @@ void test_live_surfaces(gui_forms::Window& window) {
     // so the only scheduled wake is the producer Timer.
     static_cast<void>(window.dispatch_pointer(
         {PointerAction::move, PointerButton::none, {1000.0, 700.0}}));
-    require(!(*view).effectively_visible() && window.next_wake().has_value(),
+    require(!(*view).effectively_visible() && window.next_wake().present(),
             "the hidden presenter must still have one armed producer deadline");
     const FramePollResult hidden_tick = window.poll_frame_schedule(
         FrameClock::now() + std::chrono::seconds(1));

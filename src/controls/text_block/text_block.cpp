@@ -6,12 +6,15 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -81,14 +84,14 @@ TextBlock::TextBlock(StableId stable_id, std::string initial_text)
 }
 
 FontSpec TextBlock::resolved_font() const noexcept {
-    const std::optional<FontSpec>& own = font.read();
-    if (own) return *own;
+    const FontSpec* own = font.read().value();
+    if (own != nullptr) return *own;
     return effective_theme().structure().typography.field;
 }
 
 Color TextBlock::foreground() const noexcept {
-    const std::optional<Color>& own = fore_color.read();
-    if (own) return *own;
+    const Color* own = fore_color.read().value();
+    if (own != nullptr) return *own;
     return effective_theme().resolve(ControlVisualRole::panel, visual_context()).text;
 }
 
@@ -98,16 +101,16 @@ BindingValue TextBlock::font_property_value() const {
 }
 
 void TextBlock::reset_font() {
-    font = std::nullopt;
+    font = stxlib::Optional<FontSpec>::none();
 }
 
 bool TextBlock::font_serialized() const {
-    const bool own = font.read().has_value();
+    const bool own = font.read().present();
     return own;
 }
 
 PropertyValueOrigin TextBlock::font_property_origin() const noexcept {
-    return font.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return font.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue TextBlock::fore_color_property_value() const {
@@ -116,45 +119,45 @@ BindingValue TextBlock::fore_color_property_value() const {
 }
 
 void TextBlock::write_fore_color_property(const BindingValue& value) {
-    fore_color = std::get<Color>(value);
+    fore_color = stxlib::Optional<Color>::of(std::get<Color>(value));
 }
 
 void TextBlock::reset_fore_color_property() {
-    fore_color = std::nullopt;
+    fore_color = stxlib::Optional<Color>::none();
 }
 
 bool TextBlock::fore_color_serialized() const {
-    const bool own = fore_color.read().has_value();
+    const bool own = fore_color.read().present();
     return own;
 }
 
 PropertyValueOrigin TextBlock::fore_color_property_origin() const noexcept {
-    return fore_color.read().has_value() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
+    return fore_color.read().present() ? PropertyValueOrigin::local : PropertyValueOrigin::inherited;
 }
 
 BindingValue TextBlock::line_height_property_value() const {
-    const std::optional<double>& own = line_height.read();
-    const double value = own ? *own : 0.0;
+    const double value = line_height.read().value_or(0.0);
     return BindingValue{value};
 }
 
 void TextBlock::write_line_height_property(const BindingValue& value) {
     const double requested = std::get<double>(value);
     if (requested == 0.0) {
-        line_height = std::nullopt;
+        line_height = stxlib::Optional<double>::none();
         return;
     }
-    line_height = requested;
+    line_height = stxlib::Optional<double>::of(requested);
 }
 
 // A present font must be valid; writing one records that code chose it,
 // and clearing it lets the theme's typography return.
-void TextBlock::prepare_write(const decltype(font)&, std::optional<FontSpec>& incoming) {
+void TextBlock::prepare_write(const decltype(font)&, stxlib::Optional<FontSpec>& incoming) {
     require_mutable();
-    if (incoming && !valid_font_spec(*incoming)) {
+    const FontSpec* face = incoming.value();
+    if (face != nullptr && !valid_font_spec(*face)) {
         throw std::invalid_argument("TextBlock font is invalid");
     }
-    set_font_from_code(incoming.has_value());
+    set_font_from_code(face != nullptr);
 }
 
 void TextBlock::written(const decltype(font)&) {
@@ -222,9 +225,9 @@ LineBoxMetrics TextBlock::line_metrics(FontSpec face) const {
     // resolves them; a set line height scales with the text, as the font
     // does.
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", face);
-    const std::optional<double>& own_line_height = line_height.read();
-    std::optional<double> used_line_height;
-    if (own_line_height) used_line_height = *own_line_height * effective_text_scale();
+    const double* own_line_height = line_height.read().value();
+    stxlib::Optional<double> used_line_height;
+    if (own_line_height != nullptr) used_line_height.set(*own_line_height * effective_text_scale());
     const LineBoxMetrics metrics = line_box_metrics(primary, used_line_height);
     return metrics;
 }
@@ -284,23 +287,23 @@ Size TextBlock::measure_intrinsic(const LayoutConstraint& constraint) {
     return measured;
 }
 
-std::optional<double> TextBlock::first_baseline(double width) {
+stxlib::Optional<double> TextBlock::first_baseline(double width) {
     // The first line's baseline does not depend on the width; a block with
     // no text has no line box and so no baseline.
     static_cast<void>(width);
-    if (!has_visible_text(text.read())) return std::nullopt;
+    if (!has_visible_text(text.read())) return stxlib::Optional<double>::none();
     const LineBoxMetrics metrics = line_metrics(text_font(resolved_font()));
     const double baseline = padding.read().top + metrics.baseline;
-    return baseline;
+    return stxlib::Optional<double>::of(baseline);
 }
 
-std::optional<double> TextBlock::last_baseline(double width) {
+stxlib::Optional<double> TextBlock::last_baseline(double width) {
     const Insets inset = padding.read();
     const Size content = content_size(std::max(0.0, width - (inset.left + inset.right)), workspace_);
-    if (workspace_.lines.empty()) return std::nullopt;
+    if (workspace_.lines.empty()) return stxlib::Optional<double>::none();
     const LineBoxMetrics metrics = line_metrics(text_font(resolved_font()));
     const double baseline = inset.top + content.height - metrics.height + metrics.baseline;
-    return baseline;
+    return stxlib::Optional<double>::of(baseline);
 }
 
 double TextBlock::line_x(const TextLine& line, double content_width) const noexcept {
@@ -357,9 +360,9 @@ SemanticDescriptor TextBlock::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<TextBlock::Parts>, 2> text_block_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TextBlock::Parts::region},
-    {.declaration = {.name = "text", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "text", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TextBlock::Parts::text},
 }};
 
@@ -378,6 +381,7 @@ constexpr ControlAnatomy text_block_anatomy{
     .parts = text_block_parts,
     .states = text_block_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events TextBlock adds to those of Control, in declaration order.
@@ -588,9 +592,10 @@ void TextBlock::written(const decltype(text_align)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void TextBlock::prepare_write(const decltype(line_height)&, std::optional<double>& incoming) {
+void TextBlock::prepare_write(const decltype(line_height)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming && (!std::isfinite(*incoming) || *incoming <= 0.0)) throw std::invalid_argument("TextBlock line height must be finite and positive");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr && (!std::isfinite(*incoming_value) || *incoming_value <= 0.0)) throw std::invalid_argument("TextBlock line height must be finite and positive");
 }
 
 void TextBlock::written(const decltype(line_height)&) {

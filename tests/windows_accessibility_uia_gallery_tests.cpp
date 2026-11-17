@@ -43,6 +43,9 @@
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -254,6 +257,8 @@ CONTROLTYPEID expected_control_type(SemanticRole role) noexcept {
     case SemanticRole::progress_bar: return UIA_ProgressBarControlTypeId;
     case SemanticRole::image: return UIA_ImageControlTypeId;
     case SemanticRole::figure: return UIA_ImageControlTypeId;
+    case SemanticRole::document: return UIA_DocumentControlTypeId;
+    case SemanticRole::heading: return UIA_TextControlTypeId;
     case SemanticRole::tab_group: return UIA_TabControlTypeId;
     case SemanticRole::tab: return UIA_TabItemControlTypeId;
     case SemanticRole::split_pane: return UIA_PaneControlTypeId;
@@ -342,14 +347,14 @@ ExpectedPatterns expected_patterns(const SemanticNode& node) noexcept {
     for (const SemanticNode& child : node.children) {
         if (expects_selection_item(child)) patterns.selection = true;
     }
-    patterns.range_value = node.numeric_value.has_value();
-    patterns.value = !node.numeric_value.has_value() &&
+    patterns.range_value = node.numeric_value.present();
+    patterns.value = !node.numeric_value.present() &&
                      (has_action(node, SemanticAction::set_value) ||
                       semantic_role_fallback(node.role) == SemanticRole::text_box);
-    patterns.grid = node.row_count.has_value() && node.column_count.has_value();
-    patterns.grid_item = node.row_index.has_value() && node.column_index.has_value();
+    patterns.grid = node.row_count.present() && node.column_count.present();
+    patterns.grid_item = node.row_index.present() && node.column_index.present();
     patterns.text = semantic_role_fallback(node.role) == SemanticRole::text_box &&
-                    node.text_selection.has_value() &&
+                    node.text_selection.present() &&
                     !has_semantic_state(node.states, SemanticState::protected_content);
     patterns.expand_collapse = has_action(node, SemanticAction::expand) ||
                                has_action(node, SemanticAction::collapse) ||
@@ -847,7 +852,7 @@ void compare_text(PageWalk& walk, IUIAutomationTextPattern& text, const Expected
                      matched);
         return;
     }
-    const SemanticTextSelection wanted = *node.text_selection;
+    const SemanticTextSelection wanted = *node.text_selection.value();
     const std::size_t low = std::min(wanted.anchor.value(), wanted.caret.value());
     const std::size_t high = std::max(wanted.anchor.value(), wanted.caret.value());
     const std::string_view value(node.value);
@@ -1262,9 +1267,9 @@ void compare_patterns(PageWalk& walk, IUIAutomationElement& element, const Eleme
         compare_text(walk, *text.get(), expected, matched);
     }
     if (patterns.range_value && offered(reading, Offered::range_value)) {
-        const double wanted = *node.numeric_value;
-        const double wanted_minimum = node.minimum_value ? *node.minimum_value : wanted;
-        const double wanted_maximum = node.maximum_value ? *node.maximum_value : wanted;
+        const double wanted = *node.numeric_value.value();
+        const double wanted_minimum = node.minimum_value.present() ? *node.minimum_value.value() : wanted;
+        const double wanted_maximum = node.maximum_value.present() ? *node.maximum_value.value() : wanted;
         if (reading.range_value != wanted || reading.range_minimum != wanted_minimum ||
             reading.range_maximum != wanted_maximum) {
             add_mismatch(walk, expected, "RangeValue",
@@ -1292,8 +1297,8 @@ void compare_patterns(PageWalk& walk, IUIAutomationElement& element, const Eleme
         }
     }
     if (patterns.grid && offered(reading, Offered::grid)) {
-        const int wanted_rows = static_cast<int>(*node.row_count);
-        const int wanted_columns = static_cast<int>(*node.column_count);
+        const int wanted_rows = static_cast<int>(*node.row_count.value());
+        const int wanted_columns = static_cast<int>(*node.column_count.value());
         if (reading.row_count != wanted_rows || reading.column_count != wanted_columns) {
             add_mismatch(walk, expected, "RowCount/ColumnCount",
                          std::to_string(wanted_rows) + "/" + std::to_string(wanted_columns),
@@ -1302,8 +1307,8 @@ void compare_patterns(PageWalk& walk, IUIAutomationElement& element, const Eleme
     }
     if (patterns.grid_item && offered(reading, Offered::grid_item)) {
         // UI Automation counts from zero; the tree from one.
-        const int wanted_row = static_cast<int>(*node.row_index) - 1;
-        const int wanted_column = static_cast<int>(*node.column_index) - 1;
+        const int wanted_row = static_cast<int>(*node.row_index.value()) - 1;
+        const int wanted_column = static_cast<int>(*node.column_index.value()) - 1;
         if (reading.row != wanted_row || reading.column != wanted_column) {
             add_mismatch(walk, expected, "Row/Column", std::to_string(wanted_row) + "/" + std::to_string(wanted_column),
                          std::to_string(reading.row) + "/" + std::to_string(reading.column), matched);
@@ -1316,7 +1321,7 @@ void compare_patterns(PageWalk& walk, IUIAutomationElement& element, const Eleme
 void compare_vocabulary_properties(PageWalk& walk, const ElementReading& reading, const ExpectedNode& expected,
                                    bool& matched) {
     const SemanticNode& node = expected.node;
-    const int wanted_level = node.level ? static_cast<int>(*node.level) : 0;
+    const int wanted_level = node.level.present() ? static_cast<int>(*node.level.value()) : 0;
     if (reading.level != wanted_level) {
         add_mismatch(walk, expected, "Level", std::to_string(wanted_level), std::to_string(reading.level), matched);
     }
@@ -1517,9 +1522,9 @@ void compare_element(PageWalk& walk, IUIAutomationElement& element, const Expect
         }
         const int position = reading.position_in_set;
         const int size = reading.size_of_set;
-        const bool positioned = node.position_in_set.has_value() && node.set_size.has_value();
-        const int wanted_position = positioned ? static_cast<int>(*node.position_in_set) : 0;
-        const int wanted_size = positioned ? static_cast<int>(*node.set_size) : 0;
+        const bool positioned = node.position_in_set.present() && node.set_size.present();
+        const int wanted_position = positioned ? static_cast<int>(*node.position_in_set.value()) : 0;
+        const int wanted_size = positioned ? static_cast<int>(*node.set_size.value()) : 0;
         // UI Automation reports a missing position as zero or -1.
         const bool position_matches = positioned ? position == wanted_position && size == wanted_size
                                                  : position <= 0 && size <= 0;
@@ -1968,6 +1973,30 @@ ElementReference element_at(IUIAutomationTreeWalker& walker, IUIAutomationElemen
     return current;
 }
 
+// Ends an action's subscriptions on the UI thread on every way out of
+// perform_job: the lost returns and any throw, not only the paths that
+// release them explicitly. Without it the client thread's destruction of
+// ActionState disconnected UI-thread events while the UI thread ran
+// (B-gf-tests-12-F1). Declared after the state it releases. Releasing
+// twice is harmless (the tokens are empty the second time). When the window
+// has closed, its events are gone with it and nothing is left to release.
+struct ReleaseOnUiThread final {
+    const WindowDispatcher* dispatcher{};
+    ActionState* state{};
+    ReleaseOnUiThread(const WindowDispatcher* used, ActionState* released) noexcept
+        : dispatcher(used), state(released) {}
+    ReleaseOnUiThread(const ReleaseOnUiThread&) = delete;
+    ReleaseOnUiThread& operator=(const ReleaseOnUiThread&) = delete;
+    ~ReleaseOnUiThread() {
+        // A destructor must not throw: a closed window reports through
+        // on_ui_thread's exception, and the run already fails for it.
+        try {
+            on_ui_thread(*dispatcher, std::function<void()>(ReleaseSubscriptions{state}));
+        } catch (const std::exception&) {
+        }
+    }
+};
+
 void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationElement& window_element,
                  const ActionJob& job) {
     const ActionCandidate& candidate = *job.candidate;
@@ -1979,6 +2008,7 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
     on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, candidate.page, &shown}));
     if (!shown.shown) throw std::runtime_error("a Gallery page cannot be selected: " + candidate.page);
     ActionState state;
+    const ReleaseOnUiThread release_state(&run.dispatcher, &state);
     on_ui_thread(run.dispatcher, std::function<void()>(BeginAction{run.window, &candidate, &state}));
     if (!state.node) {
         result.outcome = ActionOutcome::lost;
@@ -2258,8 +2288,9 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<TaskDialog>(StableId("off-tree.task-dialog")), Rect{330.0, 130.0, 420.0, 240.0});
     place(*root, make_control<FontDialog>(StableId("off-tree.font-dialog")), Rect{10.0, 390.0, 640.0, 400.0});
     // The visual registry controls no Gallery page attaches: the instruments
-    // and the plot, and the wizard, callout, modal layer and help viewer
-    // controls, each placed bare (a callout and a modal layer not shown).
+    // and the plots, and the wizard, callout, modal layer, help viewer,
+    // business card and window capsule controls, each placed bare (a callout
+    // and a modal layer not shown).
     place(*root, make_control<Sparkline>(StableId("off-tree.sparkline")), Rect{670.0, 390.0, 160.0, 30.0});
     place(*root, make_control<ValueBar>(StableId("off-tree.value-bar")), Rect{850.0, 390.0, 160.0, 24.0});
     place(*root, make_control<PlotView>(StableId("off-tree.plot-view")), Rect{670.0, 430.0, 300.0, 150.0});
@@ -2267,6 +2298,14 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<Callout>(StableId("off-tree.callout")), Rect{670.0, 600.0, 200.0, 80.0});
     place(*root, make_control<ModalLayer>(StableId("off-tree.modal-layer")), Rect{890.0, 600.0, 160.0, 80.0});
     place(*root, make_control<HelpBookViewer>(StableId("off-tree.help-book-viewer")), Rect{1060.0, 600.0, 200.0, 190.0});
+    place(*root, make_control<BusinessCard>(StableId("off-tree.business-card")), Rect{990.0, 60.0, 272.0, 164.0});
+    // The 3D plot, bare, and the window capsule as the surface window
+    // manager's title strip shows it (not interactive), as the headless
+    // semantic test places them.
+    place(*root, make_control<Plot3DView>(StableId("off-tree.plot3d-view")), Rect{990.0, 240.0, 270.0, 170.0});
+    const std::shared_ptr<WindowCapsule> capsule = make_control<WindowCapsule>(StableId("off-tree.window-capsule"));
+    (*capsule).set_interactive(false);
+    place(*root, capsule, Rect{1060.0, 10.0, 80.0, 20.0});
     const Size size{1280.0, 820.0};
     std::unique_ptr<Window> window = std::make_unique<Window>(root, size);
     return window;

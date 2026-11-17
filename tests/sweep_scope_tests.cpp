@@ -13,7 +13,9 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "support/frame_wake.hpp"
 
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -25,6 +27,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 using namespace gui_forms;
@@ -122,6 +126,21 @@ void properties() {
             "a period over 60 s is refused, leaving the period as it was");
     (*scope).sweep_period = std::chrono::seconds(60);
     require((*scope).sweep_period.read() == std::chrono::seconds(60), "60 s is admitted");
+    // A-gf-controls-05-F2: seconds whose tick count overflows the interval are refused before
+    // they are converted, and the period stays as it was.
+    const std::array<double, 3> far_out{1e30, -1e30, 121.0};
+    for (const double seconds : far_out) {
+        refused = false;
+        try {
+            (*scope).set_property_value("sweep_period", BindingValue{seconds});
+        } catch (const std::logic_error&) {
+            refused = true;
+        }
+        require(refused && (*scope).sweep_period.read() == std::chrono::seconds(60),
+                "a table period far outside the range is refused before conversion");
+    }
+    (*scope).set_property_value("sweep_period", BindingValue{0.1});
+    require((*scope).sweep_period.read() == std::chrono::milliseconds(100), "0.1 s through the table is admitted");
 }
 
 void anatomy_and_semantics() {
@@ -148,7 +167,9 @@ void anatomy_and_semantics() {
     require(descriptor.role == SemanticRole::progress_bar, "the scope reads as a meter");
     require(descriptor.name == "LEVEL", "an unnamed scope is named by its caption");
     require(descriptor.value == "LEVEL 42%", "its value is the caption and the percentage");
-    require(descriptor.numeric_value == 42.0 && descriptor.minimum_value == 0.0 && descriptor.maximum_value == 100.0,
+    require(descriptor.numeric_value == stxlib::Optional<double>::of(42.0) &&
+                descriptor.minimum_value == stxlib::Optional<double>::of(0.0) &&
+                descriptor.maximum_value == stxlib::Optional<double>::of(100.0),
             "and its range");
     (*scope).enabled = false;
     require((*scope).states().disabled, "a disabled scope reports it");
@@ -215,14 +236,14 @@ void on_the_motion_clock() {
     RecordingPainter first;
     (*scope).on_paint(first, {0.0, 0.0, 220.0, 120.0});
     require((*scope).effect_instance().entry() == &scope_sweep(), "the drawn scope hosts the sweep");
-    require(clock.control_ambient(*scope) && window.next_wake().has_value(), "the drawn scope is enlisted");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require(clock.control_ambient(*scope) && window.next_wake().present(), "the drawn scope is enlisted");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     RecordingPainter second;
     (*scope).on_paint(second, {0.0, 0.0, 220.0, 120.0});
     require((*scope).effect_instance().counters().ticks > 0U, "a clock frame makes ticks due");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require(!clock.control_ambient(*scope) && !window.next_wake().has_value(),
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require(!clock.control_ambient(*scope) && window.next_wake().absent(),
             "a scope not painted between frames is dropped, and the window rests");
     RecordingPainter again;
     (*scope).on_paint(again, {0.0, 0.0, 220.0, 120.0});

@@ -223,20 +223,26 @@ void occupy(std::span<std::uint8_t> occupied, std::size_t column, std::size_t ro
 }
 
 // Grows the live grid to hold a positioned item, as grow_style allows. The
-// bitmap's cells outside the live grid are free, so growing is a count.
+// bitmap's cells outside the live grid are free, so growing is a count. On
+// false the counts are unchanged: a refused item adds no tracks
+// (A-gf-controls-13-F8).
 bool grow_to_fit(std::size_t& columns, std::size_t& rows, TableLayoutCellPosition position,
                  std::size_t column_span, std::size_t row_span, TableLayoutGrowStyle grow_style) noexcept {
     const std::size_t required_columns = position.column + column_span;
     const std::size_t required_rows = position.row + row_span;
     if (required_columns > maximum_layout_tracks || required_rows > maximum_layout_tracks) return false;
-    if (required_columns > columns) {
+    std::size_t grown_columns = columns;
+    std::size_t grown_rows = rows;
+    if (required_columns > grown_columns) {
         if (grow_style != TableLayoutGrowStyle::add_columns) return false;
-        columns = required_columns;
+        grown_columns = required_columns;
     }
-    if (required_rows > rows) {
+    if (required_rows > grown_rows) {
         if (grow_style != TableLayoutGrowStyle::add_rows) return false;
-        rows = required_rows;
+        grown_rows = required_rows;
     }
+    columns = grown_columns;
+    rows = grown_rows;
     return true;
 }
 
@@ -634,15 +640,18 @@ std::uint32_t TableLayoutPanelCompat::stored_span(const Control& child, TableSpa
     return extent;
 }
 
-std::optional<TableLayoutCellPosition> TableLayoutPanelCompat::cell_position(const Control& child) const {
-    if (child.parent().get() != this || !child.is_alive()) return std::nullopt;
+stxlib::Optional<TableLayoutCellPosition> TableLayoutPanelCompat::cell_position(const Control& child) const {
+    if (child.parent().get() != this || !child.is_alive()) return stxlib::Optional<TableLayoutCellPosition>::none();
     if (attached_window() != nullptr) static_cast<void>(arranged_bounds());
     const ResolvedCellMap::const_iterator resolved = resolved_cells_.find(child.runtime_id().value);
-    if (resolved != resolved_cells_.end()) return (*resolved).second.position;
+    if (resolved != resolved_cells_.end()) {
+        return stxlib::Optional<TableLayoutCellPosition>::of((*resolved).second.position);
+    }
     const CellMap::const_iterator found = cells_.find(child.runtime_id().value);
-    if (found == cells_.end()) return std::nullopt;
+    if (found == cells_.end()) return stxlib::Optional<TableLayoutCellPosition>::none();
     const TableLayoutCellPosition position{(*found).second.column, (*found).second.row};
-    return position;
+    const stxlib::Optional<TableLayoutCellPosition> result = stxlib::Optional<TableLayoutCellPosition>::of(position);
+    return result;
 }
 
 void TableLayoutPanelCompat::child_leaving(const Control& child) noexcept {
@@ -676,11 +685,16 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
         const GridSpan* span = anchored_span((*found).second);
         const std::size_t column_span = span == nullptr ? 1U : (*span).columns;
         const std::size_t row_span = span == nullptr ? 1U : (*span).rows;
-        if (!grow_to_fit(columns, rows, position, column_span, row_span, grow_style.read()) ||
-            !region_free(occupied, columns, rows, position.column, position.row, column_span, row_span)) {
+        // The growth is kept only when the item is placed.
+        std::size_t grown_columns = columns;
+        std::size_t grown_rows = rows;
+        if (!grow_to_fit(grown_columns, grown_rows, position, column_span, row_span, grow_style.read()) ||
+            !region_free(occupied, grown_columns, grown_rows, position.column, position.row, column_span, row_span)) {
             workspace.overflow.push_back(child);
             continue;
         }
+        columns = grown_columns;
+        rows = grown_rows;
         occupy(occupied, position.column, position.row, column_span, row_span);
         workspace.items.push_back(TableItem{child, position, column_span, row_span, Size{}, (*child).margin.read()});
     }
@@ -972,7 +986,7 @@ SemanticDescriptor TableLayoutPanelCompat::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<TableLayoutPanelCompat::Parts>, 1> table_layout_panel_compat_extra_fields{{
-    {.declaration = {.name = "cell_grid", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "cell_grid", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &TableLayoutPanelCompat::Parts::cell_grid},
 }};
 
@@ -985,6 +999,7 @@ constexpr ControlAnatomy table_layout_panel_compat_anatomy{
     .parts = table_layout_panel_compat_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

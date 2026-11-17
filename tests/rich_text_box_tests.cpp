@@ -515,15 +515,15 @@ namespace {
 void occluded_caret_rests() {
     Fixture fixture = make_fixture("Some text");
     Window& window = *fixture.window;
-    require(window.next_wake().has_value(), "a focused box blinks");
+    require(window.next_wake().present(), "a focused box blinks");
     window.set_occluded(true, FrameClock::now());
-    require(!window.next_wake().has_value(), "an occluded box's caret holds no wake");
+    require(window.next_wake().absent(), "an occluded box's caret holds no wake");
     const FramePollResult hidden = window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(5));
     require(hidden.ui_timer_ticks == 0U, "an occluded box's caret does not tick");
     const FrameTime shown = FrameClock::now();
     window.set_occluded(false, shown);
-    const std::optional<FrameTime> resumed = window.next_wake();
-    require(resumed.has_value() && *resumed >= shown, "a shown box's caret blinks again");
+    const stxlib::Optional<FrameTime> resumed = window.next_wake();
+    require(resumed.present() && *resumed.value() >= shown, "a shown box's caret blinks again");
 }
 
 } // namespace

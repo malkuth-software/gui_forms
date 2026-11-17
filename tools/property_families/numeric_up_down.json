@@ -263,7 +263,7 @@
       "capability": "NumericUpDownThousandsSeparator",
       "value": "bool",
       "initial": "false",
-      "comment": "Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.",
+      "comment": "Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.",
       "getter": "thousands_separator",
       "setter": "set_thousands_separator",
       "clear": null,
@@ -296,8 +296,8 @@
       "name": "text_alignment",
       "capability": "NumericUpDownTextAlignment",
       "value": "HorizontalAlignment",
-      "initial": "HorizontalAlignment::near",
-      "comment": "Where the editor's text sits (TextAlign): near, center or far.",
+      "initial": "HorizontalAlignment::start",
+      "comment": "Where the editor's text sits (TextAlign): start, center or end.",
       "getter": "text_alignment",
       "setter": "set_text_alignment",
       "clear": null,
@@ -310,7 +310,7 @@
         "prepare refuses an unknown alignment; written passes it to the editor"
       ],
       "effects": null,
-      "sample": "HorizontalAlignment::far",
+      "sample": "HorizontalAlignment::end",
       "table": {
         "kind": "enumeration",
         "category": "Appearance",

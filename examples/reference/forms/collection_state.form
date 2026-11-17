@@ -1,12 +1,13 @@
-/* Three item-reporting collections. Their items are data, set by the
-   program, as are the choices' and sections' Value bindings. */
-form collections.window {
-  text: "Collection state";
-  client-size: 360 240;
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Three item-reporting collections. Their items are data, set by the
+   program, as are the choices' and sections' Value bindings. -->
+<form xmlns="urn:gui-forms:form:1" id="collections.window"
+    text="Collection state"
+    client-size="360 240">
 
-  panel collections.root {
-    command-bar commands { bounds: 12 12 336 36; }
-    choice-group choices { bounds: 12 60 336 40; }
-    expandable-sections sections { bounds: 12 112 336 116; }
-  }
-}
+  <panel id="collections.root">
+    <command-bar id="commands" bounds="12 12 336 36"/>
+    <choice-group id="choices" bounds="12 60 336 40"/>
+    <expandable-sections id="sections" bounds="12 112 336 116"/>
+  </panel>
+</form>

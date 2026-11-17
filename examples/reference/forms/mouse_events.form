@@ -1,9 +1,10 @@
-/* A panel holding a button; mouse_events.cpp listens to both. */
-form example.window {
-  text: "Mouse events";
-  client-size: 240 120;
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A panel holding a button; mouse_events.cpp listens to both. -->
+<form xmlns="urn:gui-forms:form:1" id="example.window"
+    text="Mouse events"
+    client-size="240 120">
 
-  panel example.surface {
-    button example.ok { text: "OK"; bounds: 10 10 100 30; }
-  }
-}
+  <panel id="example.surface">
+    <button id="example.ok" text="OK" bounds="10 10 100 30"/>
+  </panel>
+</form>

@@ -55,6 +55,15 @@
       "cancelled_by": {"event": "Control.key_down", "field": "suppress_key_press"},
       "dropped_when": ["control disposed", "modal opened", "capture lost"],
       "note": "Space or Enter on a button: the activation follows key_up, with no mouse events"
+    },
+    "relative_pointer": {
+      "steps": [
+        {"event": "Control.relative_pointer", "kind": "repeated"},
+        {"event": "Control.relative_pointer_ended", "kind": "deferred"}
+      ],
+      "cancelled_by": null,
+      "dropped_when": ["Escape", "focus moved outside the owner", "window deactivated", "modal or focus scope opened", "control disposed, detached, hidden or disabled", "until_release press released", "released or superseded"],
+      "note": "one relative_pointer per host sample in the host order, never merged, each with its timestamp; in confined and locked modes buttons and the wheel are samples and click, mouse_click, double_click and the activation do not apply; in free mode the routed mouse events go on beside the samples; relative_pointer_ended once"
     }
   }
 }

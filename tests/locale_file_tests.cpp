@@ -11,6 +11,7 @@
 #include "gui_forms/xml/types/xml_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -89,7 +90,7 @@ void reads_every_field() {
             "an unknown attribute is reported once; skeleton metadata, terms, info and variants are not");
     for (std::size_t index = 0U; index < locale_field_count; ++index) {
         const LocaleField field = static_cast<LocaleField>(index);
-        require(find_locale_field(locale_field_name(field)) == field, "every field's name finds the field");
+        require(find_locale_field(locale_field_name(field)) == stxlib::Optional<gui_forms::LocaleField>::of(field), "every field's name finds the field");
     }
 }
 
@@ -126,13 +127,13 @@ void rejects_fields_one_by_one() {
     require(rejected(read, "a", LocaleField::text, LocaleRefusal::duplicate_record) &&
                 !locale_record_field(*read.records.find("a"), LocaleField::text).has_value(),
             "a repeated record is rejected and the first kept");
-    require(check_locale_value(LocaleField::text, "\xE2\x81\xA6" "isolated\xE2\x81\xA9") == std::nullopt &&
+    require(check_locale_value(LocaleField::text, "\xE2\x81\xA6" "isolated\xE2\x81\xA9").absent() &&
                 check_locale_value(LocaleField::text, "\xE2\x81\xA6" "line\nend\xE2\x81\xA9") ==
-                    LocaleRefusal::unbalanced_bidi &&
-                check_locale_value(LocaleField::text, "\xE2\x81\xA9") == LocaleRefusal::unbalanced_bidi,
+                    stxlib::Optional<gui_forms::LocaleRefusal>::of(LocaleRefusal::unbalanced_bidi) &&
+                check_locale_value(LocaleField::text, "\xE2\x81\xA9") == stxlib::Optional<gui_forms::LocaleRefusal>::of(LocaleRefusal::unbalanced_bidi),
             "an isolate closes within its line, and a lone PDI is unbalanced");
-    require(check_locale_value(LocaleField::access_key, "\xC3\xA9") == std::nullopt &&
-                check_locale_value(LocaleField::access_key, "e\xCC\x81") == std::nullopt,
+    require(check_locale_value(LocaleField::access_key, "\xC3\xA9").absent() &&
+                check_locale_value(LocaleField::access_key, "e\xCC\x81").absent(),
             "one grapheme is an access key, combining marks included");
 }
 
@@ -224,19 +225,19 @@ void catalog_layers() {
     require(static_cast<bool>(catalog.load_user_overrides(french_user_file)), "the French user file loads");
 
     const LocaleResolvedField text = catalog.resolve("main.paste", LocaleField::text);
-    require(text.text == "Coller ici" && text.origin == LocaleLayerKind::user, "the user's file wins");
+    require(text.text == "Coller ici" && text.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::user), "the user's file wins");
     const LocaleResolvedField title = catalog.resolve("main", LocaleField::text);
-    require(title.text == "Croquis" && title.origin == LocaleLayerKind::translation && !title.fallback,
+    require(title.text == "Croquis" && title.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::translation) && !title.fallback,
             "the translation is next");
     const LocaleResolvedField tool_tip = catalog.resolve("main.paste", LocaleField::tool_tip);
-    require(tool_tip.origin == LocaleLayerKind::built_in && tool_tip.fallback,
+    require(tool_tip.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::built_in) && tool_tip.fallback,
             "an untranslated field falls back to the built-in text, marked");
     const LocaleResolvedField line = catalog.resolve("main.paste", LocaleField::help_line);
-    require(line.text == "Mon aide." && line.origin == LocaleLayerKind::user, "help fields layer like the others");
+    require(line.text == "Mon aide." && line.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::user), "help fields layer like the others");
 
     catalog.set_built_in_only(true);
     const LocaleResolvedField rescued = catalog.resolve("main.paste", LocaleField::help_line);
-    require(rescued.text == "Set in code." && rescued.origin == LocaleLayerKind::program && !rescued.fallback,
+    require(rescued.text == "Set in code." && rescued.origin == stxlib::Optional<gui_forms::LocaleLayerKind>::of(LocaleLayerKind::program) && !rescued.fallback,
             "the way back shows the program's own text");
     require(catalog.resolve("main.paste", LocaleField::text).text == "Paste", "and the built-in file's");
     catalog.set_built_in_only(false);

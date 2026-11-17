@@ -102,7 +102,7 @@ inline void paint_emphasized_text(Painter& painter, const Control& control, Poin
         if (next > cursor) {
             run.text = lend_paint_text(text.substr(cursor, next - cursor));
             const Size prefix = painter.measure_text_utf8(run.text, run.font);
-            run.measured_text = prefix;
+            run.measured_text.set(prefix);
             paint_text_part_at(painter, control, run, {x, origin.y}, prefix.width);
             x += prefix.width;
         }
@@ -116,7 +116,7 @@ inline void paint_emphasized_text(Painter& painter, const Control& control, Poin
         highlight.states = run.states;
         highlight.states.insert(AnatomyState::selected);
         paint_part(painter, control, highlight);
-        run.measured_text = emphasized;
+        run.measured_text.set(emphasized);
         paint_text_part_at(painter, control, run, {x, origin.y}, emphasized.width);
         x += emphasized.width;
         cursor = next + length;

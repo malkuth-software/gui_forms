@@ -18,9 +18,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdio>
-#include <optional>
 #include <stdexcept>
 #include <utility>
+#include <stxlib/optional.hpp>
 
 #ifndef GUI_FORMS_VERSION_STRING
 // CMake defines this from project(GUIForms VERSION ...); a bare syntax check
@@ -132,12 +132,12 @@ void invalidate_subtrees(const std::vector<Control::Ptr>& roots)
     }
 }
 
-[[nodiscard]] std::optional<std::size_t> collection_row_index(std::string_view row_id) noexcept
+[[nodiscard]] stxlib::Optional<std::size_t> collection_row_index(std::string_view row_id) noexcept
 {
     for (std::size_t index = 0; index < collection_row_ids.size(); ++index) {
-        if (collection_row_ids[index] == row_id) return index;
+        if (collection_row_ids[index] == row_id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 } // namespace
@@ -170,9 +170,9 @@ void GalleryContext::synchronize(std::string_view cause)
         (*pages.gallery_text_input).text = state.text;
     }
     (*pages.gallery_instrument).set_value(state.instrument_value);
-    const std::optional<std::size_t> row = collection_row_index(state.selected_collection_row);
-    if (row && (*pages.gallery_collection).selected_index() != row) {
-        (*pages.gallery_collection).select_index(*row);
+    const stxlib::Optional<std::size_t> row = collection_row_index(state.selected_collection_row);
+    if (row.present() && (*pages.gallery_collection).selected_index() != row) {
+        (*pages.gallery_collection).select_index(*row.value());
     }
 
     (*gallery.gallery_command_status).text =
@@ -246,7 +246,7 @@ void GalleryContext::invalidation_overlay_clicked(GalleryContext& context, const
     if (context.window == nullptr) return;
     GalleryWindow& gallery = *context.window;
     const bool shown = (*gallery.gallery_diagnostics_invalidation).checked.read();
-    gallery.set_invalidation_overlay(shown);
+    gallery.set_invalidation_overlay(stxlib::Optional<bool>::of(shown));
 }
 
 void GalleryContext::classic_relief_clicked(GalleryContext& context, const RuleFiring&)
@@ -299,9 +299,9 @@ void GalleryContext::collection_selection_changed(GalleryContext& context, const
 {
     // The collection selects one row at a time: its selected row is the
     // one the change made active.
-    const std::optional<std::size_t> selected = (*context.pages.gallery_collection).selected_index();
-    if (!selected || *selected >= collection_row_ids.size()) return;
-    const std::string_view row_id = collection_row_ids[*selected];
+    const stxlib::Optional<std::size_t> selected = (*context.pages.gallery_collection).selected_index();
+    if (selected.absent() || *selected.value() >= collection_row_ids.size()) return;
+    const std::string_view row_id = collection_row_ids[*selected.value()];
     // synchronize() selecting the model's row is no activation.
     if (context.model.state().selected_collection_row == row_id) return;
     context.activate(row_id);
@@ -343,9 +343,9 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     (*pages.gallery_slider).large_change = 10.0;
     (*pages.gallery_text_input).placeholder_text = "Type here";
     (*gallery.gallery_diagnostics_about).text_wrapping = TextWrapping::word;
-    (*gallery.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::near;
+    (*gallery.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::start;
     (*gallery.gallery_diagnostics_font).text_wrapping = TextWrapping::word;
-    (*gallery.gallery_diagnostics_font).vertical_alignment = VerticalAlignment::near;
+    (*gallery.gallery_diagnostics_font).vertical_alignment = VerticalAlignment::start;
     (*gallery.gallery_diagnostics).set_paint_plane(PaintPlane::overlay);
     std::vector<std::string> row_ids;
     row_ids.reserve(collection_row_ids.size());

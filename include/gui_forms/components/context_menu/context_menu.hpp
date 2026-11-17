@@ -18,6 +18,8 @@
 #include <utility>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 enum class MenuItemKind : std::uint8_t {
@@ -89,7 +91,7 @@ struct GUI_FORMS_API MenuItemSpec final {
     // How the item joins another strip's menu when its strip merges
     // (MergeAction), and its position there; none matches by text only.
     MergeAction merge_action{MergeAction::append};
-    std::optional<std::size_t> merge_index{};
+    stxlib::Optional<std::size_t> merge_index{};
 };
 
 struct GUI_FORMS_API MenuItemInvocation final {
@@ -122,6 +124,9 @@ public:
     void set_items(std::vector<MenuItemSpec> items);
 
     // Unknown modes throw invalid_argument without closing an existing overlay.
+    // A menu with no visible items (every command hidden, or only separators)
+    // closes any open overlay and stays closed: is_open() is false afterwards,
+    // which callers that record an open state check.
     void show(const Control::Ptr& owner, const Point window_position,
               const MenuOpenMode mode = MenuOpenMode::keyboard);
     void close() noexcept;

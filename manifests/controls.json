@@ -4,7 +4,8 @@
     "One record per public GUI.Forms control or component type. Validate with `python3 tools/control_registry.py check`; render the docs indexes with `python3 tools/control_registry.py render`.",
     "Coverage rule: every non-template class declared at namespace level in a header under include/gui_forms/ whose base-class chain reaches gui_forms::Control or gui_forms::Component, excluding Control and Component themselves, plus the admitted service type LiveSurface.",
     "Status rule: `stable` when docs/library/manual.json records the type as OBSERVED and it is not a review instrument; `provisional` when the type is newer than the atlas; `lab` for diagnostics review instruments.",
-    "gallery_page names the GUI.Forms Gallery page (demo/gallery_pages.hpp) that instantiates the type; null means no Gallery page demonstrates it yet. `python3 tools/control_registry.py emit-cpp` writes demo/gallery_catalog.inc from these records."
+    "gallery_page names the GUI.Forms Gallery page (demo/gallery_pages.hpp) that instantiates the type; null means no Gallery page demonstrates it yet. `python3 tools/control_registry.py emit-cpp` writes demo/gallery_catalog.inc from these records.",
+    "Construction rule: a record without `construction` is made from a stable id alone (a component: from nothing); `\"construction\": \"definition\"` marks a type made only from a definition (CompositeControl). Every catalog lists it, and none offers it as creatable by id: the C ABI schema reports GF_SCHEMA_KIND_DEFINED_CONTROL and objects.create refuses it, the form compiler adds composites from their .control definitions, and the Gallery shows them on their page."
   ],
   "controls": [
     {
@@ -61,6 +62,17 @@
       "status": "provisional",
       "gallery_page": "commands-and-menus",
       "doc": "api/generated/gui_forms.CommandBar.rst"
+    },
+    {
+      "id": "window_capsule",
+      "type": "WindowCapsule",
+      "header": "gui_forms/controls/window_capsule.hpp",
+      "category": "Commands",
+      "purpose": "A window's controls as one capsule worked by gestures: double click or drag down the left half to maximise or minimise, the question mark for help, drag the right half to move, three clicks to close; the surface window manager's title bar controls and a program's own corner controls.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.WindowCapsule.rst"
     },
     {
       "id": "text_box",
@@ -270,6 +282,17 @@
       "status": "provisional",
       "gallery_page": null,
       "doc": "api/generated/gui_forms.PlotView.rst"
+    },
+    {
+      "id": "plot3d_view",
+      "type": "Plot3DView",
+      "header": "gui_forms/controls/plot3d_view.hpp",
+      "category": "Information display",
+      "purpose": "Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.Plot3DView.rst"
     },
     {
       "id": "plot_axis_item",
@@ -514,6 +537,17 @@
       "doc": "api/generated/gui_forms.DomainUpDown.rst"
     },
     {
+      "id": "color_picker",
+      "type": "ColorPicker",
+      "header": "gui_forms/controls/color_picker.hpp",
+      "category": "Value setting",
+      "purpose": "Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "value-editors",
+      "doc": "api/generated/gui_forms.ColorPicker.rst"
+    },
+    {
       "id": "color_value_editor",
       "type": "ColorValueEditor",
       "header": "gui_forms/controls/color_value_editor.hpp",
@@ -668,6 +702,18 @@
       "doc": "api/generated/gui_forms.UserControl.rst"
     },
     {
+      "id": "composite_control",
+      "type": "CompositeControl",
+      "header": "gui_forms/composites/composite_control/composite_control.hpp",
+      "category": "Grouping",
+      "purpose": "A control described by a .control document, made only from its compiled definition, whose parts, properties, rules, children and events the definition declares.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "composite-controls",
+      "doc": "api/generated/gui_forms.CompositeControl.rst",
+      "construction": "definition"
+    },
+    {
       "id": "tab_control",
       "type": "TabControl",
       "header": "gui_forms/controls/tab_control.hpp",
@@ -811,6 +857,17 @@
       "status": "provisional",
       "gallery_page": "responsive-layouts",
       "doc": "api/generated/gui_forms.ResponsiveTrackPanel.rst"
+    },
+    {
+      "id": "form_layout",
+      "type": "FormLayout",
+      "header": "gui_forms/controls/form_layout.hpp",
+      "category": "Layout",
+      "purpose": "Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "value-editors",
+      "doc": "api/generated/gui_forms.FormLayout.rst"
     },
     {
       "id": "scaled_panel",
@@ -1396,6 +1453,28 @@
       "doc": "api/generated/gui_forms.SubSurfaceHost.rst"
     },
     {
+      "id": "content_surface",
+      "type": "ContentSurface",
+      "header": "gui_forms/controls/content_surface.hpp",
+      "category": "Drawing",
+      "purpose": "Region whose finished frames a consumer renders and publishes from its own execution context; every frame is validated, a missed-frame watchdog marks it stale while the last good frame stays, and the consumer supplies its semantic text.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "live-surfaces",
+      "doc": "api/generated/gui_forms.ContentSurface.rst"
+    },
+    {
+      "id": "content_text_editor",
+      "type": "ContentTextEditor",
+      "header": "gui_forms/controls/content_text_editor.hpp",
+      "category": "Drawing",
+      "purpose": "Editable text a consumer lays out and renders with its own engine and fonts, while GUI.Forms keeps the caret, selection, keys, input methods, undo, clipboard and accessibility; every layout and frame is validated.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "text-and-input",
+      "doc": "api/generated/gui_forms.ContentTextEditor.rst"
+    },
+    {
       "id": "metrics_view",
       "type": "MetricsView",
       "header": "gui_forms/controls/metrics_view.hpp",
@@ -1405,6 +1484,17 @@
       "status": "lab",
       "gallery_page": "states-and-diagnostics",
       "doc": "api/generated/gui_forms.MetricsView.rst"
+    },
+    {
+      "id": "plot_link_group",
+      "type": "PlotLinkGroup",
+      "header": "gui_forms/controls/plot_view_links.hpp",
+      "category": "Components",
+      "purpose": "Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotLinkGroup.rst"
     },
     {
       "id": "timer",
@@ -1603,6 +1693,17 @@
       "status": "provisional",
       "gallery_page": null,
       "doc": "api/generated/gui_forms.UpDownBase.rst"
+    },
+    {
+      "id": "business_card",
+      "type": "BusinessCard",
+      "header": "gui_forms/components/business_card/business_card.hpp",
+      "category": "Dialogs and overlays",
+      "purpose": "The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.BusinessCard.rst"
     }
   ]
 }

@@ -1,6 +1,14 @@
-// Each thread's shadow stack. See shadow_frames.hpp.
+// Each thread's shadow stack, kept by STXlib. See shadow_frames.hpp.
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
+#include "shadow_frame_records.hpp"
+
+#include "../../../platform/stxlib_bridge.hpp"
+
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <array>
@@ -11,170 +19,183 @@
 #include <string_view>
 
 namespace gui_forms {
-namespace {
+namespace detail {
 
-// One thread's stack. It is zero-initialized thread storage, made with the
-// thread, so no push allocates.
-//
-// The unwind mark: unwind_depth is the depth at the first pop of the latest
-// unwinding (the depth the exception was thrown at, as far as frames go).
-// unwind_pushed and unwind_next_depth are pushed and the depth just after
-// that unwinding's latest pop; while both still equal the stack's, no frame
-// has been opened or closed by a return since, so the records up to
-// unwind_depth are intact and belong to that exception.
-struct ShadowStack final {
-    std::array<ShadowFrame, shadow_stack_capacity> frames{};
-    std::uint32_t depth = 0U;
-    std::uint64_t pushed = 0U;
-    std::uint64_t dropped = 0U;
-    std::uint32_t unwind_depth = 0U;
-    std::uint32_t unwind_next_depth = 0U;
-    std::uint64_t unwind_pushed = 0U;
-};
-
-thread_local ShadowStack thread_stack;
-
-// The leading bytes of text that fit in capacity and end on a whole UTF-8
-// sequence.
-std::size_t whole_prefix(std::string_view text, std::size_t capacity) noexcept {
-    if (text.size() <= capacity) {
-        return text.size();
+stxlib::TextView well_formed_text(const std::string_view text) noexcept {
+    if (text.empty()) {
+        const stxlib::TextView none{};
+        return none;
     }
-    std::size_t size = capacity;
-    // Back up over continuation bytes to the lead byte of the cut sequence.
-    while (size > 0U && (static_cast<unsigned char>(text[size]) & 0xC0U) == 0x80U) {
-        --size;
+    const stxlib::OperationResult<stxlib::TextView> whole = platform::validated_text(text);
+    if (whole.succeeded()) {
+        const stxlib::TextView valid = *whole.value();
+        return valid;
     }
-    return size;
+    // The code is the offset of the first ill-formed byte; everything before
+    // it is well-formed. u32_max means the offset did not fit, which a frame
+    // text (a stable id, a name) never reaches; such text records as empty.
+    const stxlib::u32 offset = (*whole.error()).code();
+    if (offset == 0U || offset == stxlib::u32_max || offset > text.size()) {
+        const stxlib::TextView none{};
+        return none;
+    }
+    const stxlib::OperationResult<stxlib::TextView> prefix = platform::validated_text(text.substr(0U, offset));
+    if (!prefix.succeeded()) {
+        const stxlib::TextView none{};
+        return none;
+    }
+    const stxlib::TextView valid = *prefix.value();
+    return valid;
 }
 
-// The frame to record into, or null when the stack is past its capacity.
-// Counts the push either way.
-ShadowFrame* open_frame() noexcept {
-    ShadowStack& stack = thread_stack;
-    ++stack.pushed;
-    const std::uint32_t index = stack.depth;
-    ++stack.depth;
-    if (index >= shadow_stack_capacity) {
-        ++stack.dropped;
-        return nullptr;
+ShadowFrame frame_of_record(const stxlib::ShadowFrameRecord& record) noexcept {
+    ShadowFrame frame{};
+    if (record.kind == stxlib::shadow_frame_kind_gate) {
+        frame.kind = ShadowFrameKind::gate;
+    } else {
+        frame.kind = static_cast<ShadowFrameKind>(record.kind);
     }
-    return &stack.frames[index];
-}
-
-// Opens a frame of kind with subject and name (each cut to its capacity).
-void open_described_frame(const ShadowFrameKind kind, const std::string_view subject, const std::string_view name,
-                          const std::uint64_t sequence) noexcept {
-    ShadowFrame* frame = open_frame();
-    if (frame == nullptr) {
-        return;
-    }
-    const std::size_t subject_size = whole_prefix(subject, shadow_frame_subject_capacity);
-    const std::size_t name_size = whole_prefix(name, shadow_frame_name_capacity);
     std::uint32_t flags = 0U;
-    if (subject_size != subject.size()) {
+    if ((record.flags & stxlib::shadow_subject_truncated) != 0U) {
         flags |= static_cast<std::uint32_t>(ShadowFrameFlags::subject_truncated);
     }
-    if (name_size != name.size()) {
+    if ((record.flags & stxlib::shadow_name_truncated) != 0U) {
         flags |= static_cast<std::uint32_t>(ShadowFrameFlags::name_truncated);
     }
-    (*frame).kind = kind;
-    (*frame).flags = flags;
-    (*frame).interface_id = 0U;
-    (*frame).function_index = 0U;
-    (*frame).sequence = sequence;
-    (*frame).subject_size = static_cast<std::uint32_t>(subject_size);
-    (*frame).name_size = static_cast<std::uint32_t>(name_size);
+    frame.flags = flags;
+    frame.interface_id = static_cast<std::uint32_t>(record.first);
+    frame.function_index = static_cast<std::uint32_t>(record.second);
+    frame.sequence = record.sequence;
+    // STXlib's capacities are the library's (static_asserts below); min()
+    // keeps a record from another layout from overrunning the fields.
+    const std::size_t subject_size = std::min<std::size_t>(record.subject_count, shadow_frame_subject_capacity);
+    const std::size_t name_size = std::min<std::size_t>(record.name_count, shadow_frame_name_capacity);
+    frame.subject_size = static_cast<std::uint32_t>(subject_size);
+    frame.name_size = static_cast<std::uint32_t>(name_size);
     if (subject_size != 0U) {
-        std::memcpy((*frame).subject.data(), subject.data(), subject_size);
+        std::memcpy(frame.subject.data(), record.subject, subject_size);
     }
     if (name_size != 0U) {
-        std::memcpy((*frame).name.data(), name.data(), name_size);
+        std::memcpy(frame.name.data(), record.name, name_size);
     }
+    return frame;
 }
 
-// Pops the innermost frame. An unwinding pop keeps the failure's story: the
-// first such pop of an unwinding marks the depth; later pops of the same
-// unwinding find the mark current (nothing pushed, the depth where the last
-// pop left it) and only move it along.
-void pop_frame(const bool unwinding) noexcept {
-    ShadowStack& stack = thread_stack;
-    if (unwinding) {
-        const bool continuing = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth;
-        if (!continuing) {
-            stack.unwind_depth = stack.depth;
-            stack.unwind_pushed = stack.pushed;
-        }
-        // Scopes nest strictly, so the stack is never empty here.
-        stack.unwind_next_depth = stack.depth - 1U;
+RecordFrames copy_record_frames(const stxlib::ShadowReference reference, const std::span<ShadowFrame> frames,
+                                const std::span<std::uint64_t> trace) noexcept {
+    RecordFrames result{};
+    if (!reference.present()) {
+        return result;
     }
-    --stack.depth;
-}
-
-} // namespace
-
-ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
-                                   const std::string_view name, const std::uint64_t sequence) noexcept {
-    open_described_frame(kind, subject, name, sequence);
-}
-
-ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::uint32_t function_index) noexcept {
-    ShadowFrame* frame = open_frame();
-    if (frame == nullptr) {
-        return;
+    // About 7.8 KiB of stack, on a failure path only.
+    std::array<stxlib::ShadowFrameRecord, shadow_stack_capacity> records{};
+    std::array<stxlib::uptr, stxlib::shadow_trace_capacity> addresses{};
+    const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view = platform::stxlib_mutable_view(records);
+    const stxlib::MutableView<stxlib::uptr> address_view = platform::stxlib_mutable_view(addresses);
+    const stxlib::OperationResult<stxlib::ShadowSummary> read = stxlib::read_shadow(reference, record_view, address_view);
+    if (!read.succeeded()) {
+        return result;
     }
-    (*frame).kind = ShadowFrameKind::library_call;
-    (*frame).flags = 0U;
-    (*frame).interface_id = interface_id;
-    (*frame).function_index = function_index;
-    (*frame).sequence = 0U;
-    (*frame).subject_size = 0U;
-    (*frame).name_size = 0U;
+    const stxlib::ShadowSummary& summary = *read.value();
+    const std::size_t recorded = std::min<std::size_t>(summary.frame_count, records.size());
+    const std::size_t copied = std::min(recorded, frames.size());
+    for (std::size_t index = 0U; index < copied; ++index) {
+        frames[index] = frame_of_record(records[index]);
+    }
+    const std::size_t traced = std::min<std::size_t>(summary.trace_count, addresses.size());
+    const std::size_t trace_copied = std::min(traced, trace.size());
+    for (std::size_t index = 0U; index < trace_copied; ++index) {
+        trace[index] = static_cast<std::uint64_t>(addresses[index]);
+    }
+    result.recorded = recorded;
+    result.depth = static_cast<std::uint32_t>(summary.frame_count + summary.frames_lost);
+    result.trace_count = trace_copied;
+    return result;
 }
 
-void ShadowFrameScope::close_frame(const bool unwinding) noexcept {
-    pop_frame(unwinding);
-}
-
-ShadowFrameCall::ShadowFrameCall(const ShadowFrameKind kind, const std::string_view subject,
-                                 const std::string_view name, const std::uint64_t sequence) noexcept {
-    open_described_frame(kind, subject, name, sequence);
-}
-
-ShadowFrameCall::~ShadowFrameCall() {
-    const bool unwinding = !returned_;
-    pop_frame(unwinding);
-}
+} // namespace detail
 
 namespace {
 
-// Copies the outermost recorded frames below depth and fills state.
-std::size_t copy_frames_below(const ShadowStack& stack, const std::uint32_t depth, const std::span<ShadowFrame> frames,
-                              ShadowStackState& state) noexcept {
-    const std::size_t recorded = std::min<std::size_t>(depth, shadow_stack_capacity);
+static_assert(stxlib::shadow_frame_capacity == shadow_stack_capacity);
+static_assert(stxlib::shadow_subject_capacity == shadow_frame_subject_capacity);
+static_assert(stxlib::shadow_name_capacity == shadow_frame_name_capacity);
+
+// Opens a frame of kind with subject and name on STXlib's stack and
+// returns its mark.
+std::uint32_t enter_frame(const ShadowFrameKind kind, const std::string_view subject, const std::string_view name,
+                          const std::uint64_t first, const std::uint64_t second,
+                          const std::uint64_t sequence) noexcept {
+    const stxlib::ShadowFrameText frame{
+        .kind = static_cast<stxlib::u32>(kind),
+        .subject = detail::well_formed_text(subject),
+        .name = detail::well_formed_text(name),
+        .first = first,
+        .second = second,
+        .sequence = sequence,
+    };
+    const stxlib::ShadowFrameMark mark = stxlib::enter_shadow_frame(frame);
+    return mark.depth;
+}
+
+void leave_frame(const std::uint32_t depth, const bool closed) noexcept {
+    const stxlib::ShadowFrameMark mark{.depth = depth};
+    stxlib::leave_shadow_frame(mark, closed);
+}
+
+// Copies the open frames' records into frames and fills state.
+std::size_t copy_open_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
+    std::array<stxlib::ShadowFrameRecord, shadow_stack_capacity> records{};
+    const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view = platform::stxlib_mutable_view(records);
+    const stxlib::ShadowStackState stack = stxlib::read_shadow_stack(record_view);
+    const std::size_t recorded = std::min<std::size_t>(stack.recorded, records.size());
     const std::size_t copied = std::min(recorded, frames.size());
     for (std::size_t index = 0U; index < copied; ++index) {
-        frames[index] = stack.frames[index];
+        frames[index] = detail::frame_of_record(records[index]);
     }
-    state.depth = depth;
-    state.pushed = stack.pushed;
+    state.depth = static_cast<std::uint32_t>(stack.depth);
+    state.pushed = stack.pushes;
     state.dropped = stack.dropped;
     return recorded;
 }
 
 } // namespace
 
+ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
+                                   const std::string_view name, const std::uint64_t sequence) noexcept
+    : mark_(enter_frame(kind, subject, name, 0U, 0U, sequence)) {}
+
+ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::uint32_t function_index) noexcept
+    : mark_(enter_frame(ShadowFrameKind::library_call, std::string_view{}, std::string_view{}, interface_id,
+                        function_index, 0U)) {}
+
+void ShadowFrameScope::close_frame(const std::uint32_t mark, const bool unwinding) noexcept {
+    leave_frame(mark, !unwinding);
+}
+
+ShadowFrameCall::ShadowFrameCall(const ShadowFrameKind kind, const std::string_view subject,
+                                 const std::string_view name, const std::uint64_t sequence) noexcept
+    : mark_(enter_frame(kind, subject, name, 0U, 0U, sequence)) {}
+
+ShadowFrameCall::~ShadowFrameCall() {
+    leave_frame(mark_, returned_);
+}
+
 std::size_t copy_shadow_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
-    const ShadowStack& stack = thread_stack;
-    return copy_frames_below(stack, stack.depth, frames, state);
+    const std::size_t recorded = copy_open_frames(frames, state);
+    return recorded;
 }
 
 std::size_t copy_failure_shadow_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
-    const ShadowStack& stack = thread_stack;
-    const bool mark_current = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth &&
-        stack.unwind_depth > stack.depth;
-    const std::uint32_t depth = mark_current ? stack.unwind_depth : stack.depth;
-    return copy_frames_below(stack, depth, frames, state);
+    // The thread's counts as the handler finds them.
+    const std::size_t open = copy_open_frames(frames, state);
+    const stxlib::ShadowReference parked = stxlib::park_shadow();
+    if (!parked.present()) {
+        return open;
+    }
+    const detail::RecordFrames read = detail::copy_record_frames(parked, frames, std::span<std::uint64_t>());
+    state.depth = read.depth;
+    return read.recorded;
 }
 
 } // namespace gui_forms

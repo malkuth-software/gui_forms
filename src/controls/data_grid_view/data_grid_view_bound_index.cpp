@@ -100,13 +100,13 @@ bool DataGridViewBoundIndex::move(std::size_t from, std::size_t to) {
     return true;
 }
 
-std::optional<std::size_t> DataGridViewBoundIndex::find(std::string_view id) const {
+stxlib::Optional<std::size_t> DataGridViewBoundIndex::find(std::string_view id) const {
     const SlotIndex::const_iterator mapped = slot_of_.find(id);
     if (mapped == slot_of_.end()) {
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
     const std::size_t position = order_.rank((*mapped).second);
-    return position;
+    return stxlib::Optional<std::size_t>::of(position);
 }
 
 bool DataGridViewBoundIndex::contains(std::string_view id) const {

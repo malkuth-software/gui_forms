@@ -120,7 +120,7 @@ void ToolStrip::construct() {
     focusable = true;
     // Items carry their own tooltips in their semantic nodes.
     set_publishes_item_tool_tips(true);
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     overlay_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
     overlay_invoked_ = (*overlay_).item_invoked().subscribe(
@@ -263,8 +263,9 @@ void ToolStrip::configure_hosted(const ToolStripItemSpec& item, Control& control
 }
 
 Control::Ptr ToolStrip::hosted_control(std::string_view item_id, ToolStripItemKind kind) const {
-    const std::optional<std::size_t> index = index_of(item_id);
-    if (!index || items_[*index].kind != kind || !item_states_[*index].hosted) {
+    const stxlib::Optional<std::size_t> found_index = index_of(item_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr || items_[*index].kind != kind || !item_states_[*index].hosted) {
         throw std::out_of_range("ToolStrip has no hosted item of this kind with this ID");
     }
     return item_states_[*index].hosted;
@@ -286,11 +287,17 @@ void ToolStrip::on_command_state(const CommandState&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-std::optional<std::size_t> ToolStrip::index_of(std::string_view item_id) const {
+stxlib::Optional<std::size_t> ToolStrip::index_of(std::string_view item_id) const {
     for (std::size_t index = 0; index < items_.size(); ++index) {
-        if (items_[index].stable_id == item_id) return index;
+        if (items_[index].stable_id == item_id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
+}
+
+bool ToolStrip::holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept {
+    const std::size_t* const current = held.value();
+    const bool result = current != nullptr && *current == index;
+    return result;
 }
 
 std::string ToolStrip::item_text(const ToolStripItemSpec& item) const {
@@ -317,8 +324,9 @@ bool ToolStrip::item_interactive(std::size_t index) const {
 
 void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
     require_mutable();
-    const std::optional<std::size_t> index = index_of(item_id);
-    if (!index) throw std::out_of_range("ToolStrip has no item with this ID");
+    const stxlib::Optional<std::size_t> found_index = index_of(item_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr) throw std::out_of_range("ToolStrip has no item with this ID");
     if (!validate_utf8(text).valid()) throw std::invalid_argument("ToolStrip item text must be valid UTF-8");
     if (items_[*index].text == text) return;
     items_[*index].text = std::move(text);
@@ -328,8 +336,9 @@ void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
 }
 
 bool ToolStrip::item_checked(std::string_view item_id) const {
-    const std::optional<std::size_t> index = index_of(item_id);
-    if (!index) throw std::out_of_range("ToolStrip has no item with this ID");
+    const stxlib::Optional<std::size_t> found_index = index_of(item_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr) throw std::out_of_range("ToolStrip has no item with this ID");
     const ToolStripItemSpec& item = items_[*index];
     if (item.command) return (*item.command).state().checked;
     return item_states_[*index].checked;
@@ -337,8 +346,9 @@ bool ToolStrip::item_checked(std::string_view item_id) const {
 
 void ToolStrip::set_item_checked(std::string_view item_id, bool checked) {
     require_mutable();
-    const std::optional<std::size_t> index = index_of(item_id);
-    if (!index) throw std::out_of_range("ToolStrip has no item with this ID");
+    const stxlib::Optional<std::size_t> found_index = index_of(item_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr) throw std::out_of_range("ToolStrip has no item with this ID");
     const ToolStripItemSpec& item = items_[*index];
     if (item.command) {
         (*item.command).set_checked(checked);
@@ -637,14 +647,14 @@ AnatomyStateSet ToolStrip::item_states(std::size_t index) const {
     AnatomyStateSet states;
     const ToolStripItemSpec& item = items_[index];
     const bool interactive = item_interactive(index);
-    if (interactive && hot_index_ == index) states.insert(AnatomyState::hot);
-    if (interactive && pressed_index_ == index) states.insert(AnatomyState::pressed);
-    if (open_index_ == index) states.insert(AnatomyState::open);
+    if (interactive && holds(hot_index_, index)) states.insert(AnatomyState::hot);
+    if (interactive && holds(pressed_index_, index)) states.insert(AnatomyState::pressed);
+    if (holds(open_index_, index)) states.insert(AnatomyState::open);
     if (!item_enabled(item)) states.insert(AnatomyState::disabled);
     const bool checked = item.command ? (*item.command).state().checked : item_states_[index].checked;
     if (checked) states.insert(AnatomyState::checked);
     const Window* const host = attached_window();
-    if (focused_ && hot_index_ == index && host != nullptr && (*host).focus_cue_visible()) {
+    if (focused_ && holds(hot_index_, index) && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;
@@ -675,7 +685,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
         rule.role = PartRole::divider;
         rule.bounds = parts.item_separator.bounds;
         rule.family = ControlVisualRole::panel;
-        rule.key = PartKey{"item_separator", item.stable_id, index};
+        rule.key.set(PartKey{"item_separator", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         paint_part(painter, *this, rule);
         return;
     }
@@ -697,14 +707,14 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_face.present) {
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;
-        part.key = PartKey{"item_face", item.stable_id, index};
+        part.key.set(PartKey{"item_face", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.states = face_states;
         paint_part(painter, *this, part);
     }
     if (parts.item_arrow.present) {
         part.role = PartRole::actuator;
         part.bounds = parts.item_arrow.bounds;
-        part.key = PartKey{"item_arrow", item.stable_id, index};
+        part.key.set(PartKey{"item_arrow", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.states = arrow_states;
         paint_part(painter, *this, part);
     }
@@ -712,14 +722,14 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_icon.present) {
         part.role = PartRole::icon;
         part.bounds = parts.item_icon.bounds;
-        part.key = PartKey{"item_icon", item.stable_id, index};
+        part.key.set(PartKey{"item_icon", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.image = item.image;
         paint_part(painter, *this, part);
     }
     if (parts.item_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.item_label.bounds;
-        part.key = PartKey{"item_label", item.stable_id, index};
+        part.key.set(PartKey{"item_label", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         const std::string text = item_text(item);
         part.text = lend_paint_text(text);
         paint_part(painter, *this, part);
@@ -728,7 +738,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_arrow_glyph.present) {
         part.role = PartRole::glyph;
         part.bounds = parts.item_arrow_glyph.bounds;
-        part.key = PartKey{"item_arrow_glyph", item.stable_id, index};
+        part.key.set(PartKey{"item_arrow_glyph", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         part.mark = PartMark::arrow_down;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -736,7 +746,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     if (parts.item_focus.present) {
         part.role = PartRole::focus;
         part.bounds = parts.item_focus.bounds;
-        part.key = PartKey{"item_focus", item.stable_id, index};
+        part.key.set(PartKey{"item_focus", item.stable_id, stxlib::Optional<std::size_t>::of(index)});
         paint_part(painter, *this, part);
     }
 }
@@ -747,12 +757,12 @@ void ToolStrip::on_paint(Painter& painter, Rect) {
     strip.family = ControlVisualRole::panel;
     strip.role = PartRole::face;
     strip.bounds = client_rectangle();
-    strip.key = PartKey{"face", {}, {}};
+    strip.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, strip);
     if (!placed.grip.empty()) {
         strip.role = PartRole::grip;
         strip.bounds = placed.grip;
-        strip.key = PartKey{"grip", {}, {}};
+        strip.key.set(PartKey{"grip", {}, {}});
         paint_part(painter, *this, strip);
     }
     for (std::size_t index = 0; index < items_.size(); ++index) {
@@ -765,37 +775,37 @@ void ToolStrip::on_paint(Painter& painter, Rect) {
         overflow.bounds = placed.overflow_button;
         if (overflow_hot_) overflow.states.insert(AnatomyState::hot);
         if (overflow_open_) overflow.states.insert(AnatomyState::open);
-        overflow.key = PartKey{"overflow_button", {}, {}};
+        overflow.key.set(PartKey{"overflow_button", {}, {}});
         paint_part(painter, *this, overflow);
         overflow.role = PartRole::glyph;
         overflow.bounds = centred_glyph(placed.overflow_button, arrow_glyph_size * effective_text_scale());
         overflow.mark = PartMark::overflow;
-        overflow.key = PartKey{"overflow_glyph", {}, {}};
+        overflow.key.set(PartKey{"overflow_glyph", {}, {}});
         paint_part(painter, *this, overflow);
     }
     if (!placed.sizing_grip.empty()) {
         strip.role = PartRole::grip;
         strip.bounds = placed.sizing_grip;
-        strip.key = PartKey{"sizing_grip", {}, {}};
+        strip.key.set(PartKey{"sizing_grip", {}, {}});
         paint_part(painter, *this, strip);
     }
 }
 
 // -- input -------------------------------------------------------------------
 
-std::optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& zone) const {
+stxlib::Optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& zone) const {
     zone = ItemZone::none;
     const Rect absolute = absolute_bounds();
-    if (!absolute.contains(window_point)) return std::nullopt;
+    if (!absolute.contains(window_point)) return stxlib::Optional<std::size_t>::none();
     const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
     const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (placed.items[index].empty() || !placed.items[index].contains(local)) continue;
         const ItemParts parts = item_parts(index, placed.items[index]);
         zone = parts.item_arrow.present && parts.item_arrow.bounds.contains(local) ? ItemZone::arrow : ItemZone::main;
-        return index;
+        return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool ToolStrip::overflow_at(Point window_point) const {
@@ -806,49 +816,56 @@ bool ToolStrip::overflow_at(Point window_point) const {
     return result;
 }
 
-void ToolStrip::set_hot(std::optional<std::size_t> index, ItemZone zone) {
+void ToolStrip::set_hot(stxlib::Optional<std::size_t> index, ItemZone zone) {
     if (hot_index_ == index && hot_zone_ == zone) return;
     hot_index_ = index;
     hot_zone_ = zone;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ToolStrip::focus_item(std::optional<std::size_t> index) {
+void ToolStrip::focus_item(stxlib::Optional<std::size_t> index) {
     set_hot(index, ItemZone::main);
-    if (!focused_ || !index) return;
-    const ToolStripItemFocus moved{std::string(stable_id().value()), items_[*index].stable_id};
+    const std::size_t* const focused = index.value();
+    if (!focused_ || focused == nullptr) return;
+    const ToolStripItemFocus moved{std::string(stable_id().value()), items_[*focused].stable_id};
     item_focus_changed_.emit(moved);
 }
 
 std::string ToolStrip::item_id_at(Point window_point) const {
     ItemZone zone{ItemZone::none};
-    const std::optional<std::size_t> index = index_at(window_point, zone);
-    if (!index) return {};
+    const stxlib::Optional<std::size_t> found_index = index_at(window_point, zone);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr) return {};
     return items_[*index].stable_id;
 }
 
 std::string ToolStrip::focused_item_id() const {
-    if (!focused_ || !hot_index_ || *hot_index_ >= items_.size()) return {};
-    return items_[*hot_index_].stable_id;
+    const std::size_t* const hot = hot_index_.value();
+    if (!focused_ || hot == nullptr || *hot >= items_.size()) return {};
+    return items_[*hot].stable_id;
 }
 
-std::optional<std::size_t> ToolStrip::next_interactive(std::size_t start, int direction) const {
+stxlib::Optional<std::size_t> ToolStrip::next_interactive(std::size_t start, int direction) const {
     const Layout placed = layout();
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(items_.size());
-    if (count == 0) return std::nullopt;
+    if (count == 0) return stxlib::Optional<std::size_t>::none();
     for (std::ptrdiff_t step = 1; step <= count; ++step) {
         const std::ptrdiff_t raw = static_cast<std::ptrdiff_t>(start) + static_cast<std::ptrdiff_t>(direction) * step;
         const std::size_t index = static_cast<std::size_t>((raw % count + count) % count);
-        if (!placed.items[index].empty() && item_interactive(index)) return index;
+        if (!placed.items[index].empty() && item_interactive(index)) {
+            return stxlib::Optional<std::size_t>::of(index);
+        }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool ToolStrip::flip_checked(std::size_t index) {
-    const ToolStripItemSpec& item = items_[index];
-    if (item.command) {
-        const bool checked = (*item.command).state().checked;
-        (*item.command).set_checked(!checked);
+    // The command is held: set_checked runs its state handlers, which may
+    // replace the items and with them the item's own reference.
+    const std::shared_ptr<Command> command = items_[index].command;
+    if (command) {
+        const bool checked = (*command).state().checked;
+        (*command).set_checked(!checked);
         return false;
     }
     item_states_[index].checked = !item_states_[index].checked;
@@ -892,7 +909,7 @@ void ToolStrip::on_mouse_leave() {
 }
 
 void ToolStrip::strip_pointer_left() {
-    set_hot(std::nullopt, ItemZone::none);
+    set_hot(stxlib::Optional<std::size_t>::none(), ItemZone::none);
     if (overflow_hot_) {
         overflow_hot_ = false;
         invalidate(Dirty::paint);
@@ -902,10 +919,13 @@ void ToolStrip::strip_pointer_left() {
 // The move that enters the strip sets the hot item.
 void ToolStrip::strip_pointer(MouseEventArgs& arguments) {
     ItemZone zone{ItemZone::none};
-    const std::optional<std::size_t> index = index_at(arguments.window_position, zone);
+    const stxlib::Optional<std::size_t> found_index = index_at(arguments.window_position, zone);
+    const std::size_t* const index = found_index.value();
     const bool on_overflow = overflow_at(arguments.window_position);
     if (arguments.action == PointerAction::move) {
-        set_hot(index && item_interactive(*index) ? index : std::nullopt, zone);
+        stxlib::Optional<std::size_t> hot{};
+        if (index != nullptr && item_interactive(*index)) hot.set(*index);
+        set_hot(hot, zone);
         if (overflow_hot_ != on_overflow) {
             overflow_hot_ = on_overflow;
             invalidate(Dirty::paint);
@@ -920,28 +940,29 @@ void ToolStrip::strip_pointer(MouseEventArgs& arguments) {
             arguments.handled = true;
             return;
         }
-        if (!index || !item_interactive(*index)) return;
-        pressed_index_ = index;
+        if (index == nullptr || !item_interactive(*index)) return;
+        pressed_index_.set(*index);
         pressed_zone_ = zone;
         const ToolStripItemSpec& item = items_[*index];
         const bool opens = item.kind == ToolStripItemKind::drop_down_button ||
                            (item.kind == ToolStripItemKind::split_button && zone == ItemZone::arrow);
         if (opens) {
-            if (open_index_ == index) close_drop_down();
+            if (holds(open_index_, *index)) close_drop_down();
             else static_cast<void>(show_drop_down(item.stable_id, MenuOpenMode::pointer));
             pressed_index_.reset();
         }
         invalidate(Dirty::paint | Dirty::semantics);
         arguments.handled = true;
     } else if (arguments.action == PointerAction::up) {
-        const std::optional<std::size_t> pressed = pressed_index_;
+        const stxlib::Optional<std::size_t> released = pressed_index_;
         const ItemZone pressed_zone = pressed_zone_;
         pressed_index_.reset();
         pressed_zone_ = ItemZone::none;
         invalidate(Dirty::paint | Dirty::semantics);
         // A click is a press and release on the same part of the same item.
-        if (pressed && pressed == index && pressed_zone == zone) click(*pressed);
-        arguments.handled = pressed.has_value();
+        const std::size_t* const pressed = released.value();
+        if (pressed != nullptr && index != nullptr && *pressed == *index && pressed_zone == zone) click(*pressed);
+        arguments.handled = pressed != nullptr;
     }
 }
 
@@ -952,9 +973,10 @@ void ToolStrip::on_key_down(KeyEventArgs& arguments) {
 
 void ToolStrip::strip_key_down(KeyEventArgs& arguments) {
     if (!focused_) return;
-    std::optional<std::size_t> current = hot_index_;
-    if (!current) current = next_interactive(items_.size() == 0U ? 0U : items_.size() - 1U, 1);
-    if (!current) return;
+    stxlib::Optional<std::size_t> held = hot_index_;
+    if (held.absent()) held = next_interactive(items_.size() == 0U ? 0U : items_.size() - 1U, 1);
+    const std::size_t* const current = held.value();
+    if (current == nullptr) return;
     const ToolStripItemSpec& item = items_[*current];
     // The arrows along the strip move between items; the arrow away from
     // it (Down, or Right on a vertical strip) opens a menu.
@@ -969,11 +991,11 @@ void ToolStrip::strip_key_down(KeyEventArgs& arguments) {
     }
     const std::uint32_t open_key = along_height ? PhysicalKey::right : PhysicalKey::down;
     if (arguments.physical_key == previous_key || arguments.physical_key == next_key) {
-        const std::optional<std::size_t> next =
+        const stxlib::Optional<std::size_t> next =
             next_interactive(*current, arguments.physical_key == next_key ? 1 : -1);
-        if (next) focus_item(next);
+        if (next.present()) focus_item(next);
     } else if (arguments.physical_key == PhysicalKey::enter || arguments.physical_key == PhysicalKey::space) {
-        set_hot(current, ItemZone::main);
+        set_hot(held, ItemZone::main);
         if (item.kind == ToolStripItemKind::drop_down_button) {
             static_cast<void>(show_drop_down(item.stable_id));
         } else {
@@ -991,12 +1013,13 @@ void ToolStrip::strip_key_down(KeyEventArgs& arguments) {
 
 void ToolStrip::on_focus_changed(bool focused) {
     focused_ = focused;
-    if (focused_ && !hot_index_) {
+    if (focused_ && hot_index_.absent()) {
         hot_index_ = next_interactive(items_.size() == 0U ? 0U : items_.size() - 1U, 1);
     }
     invalidate(Dirty::paint | Dirty::semantics);
-    if (focused_ && hot_index_) {
-        const ToolStripItemFocus moved{std::string(stable_id().value()), items_[*hot_index_].stable_id};
+    const std::size_t* const hot = hot_index_.value();
+    if (focused_ && hot != nullptr) {
+        const ToolStripItemFocus moved{std::string(stable_id().value()), items_[*hot].stable_id};
         item_focus_changed_.emit(moved);
     }
 }
@@ -1008,15 +1031,21 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     if (mode != MenuOpenMode::keyboard && mode != MenuOpenMode::pointer) {
         throw std::invalid_argument("ToolStrip opening mode is invalid");
     }
-    const std::optional<std::size_t> index = index_of(item_id);
-    if (!index || !has_menu(items_[*index].kind) || !item_interactive(*index) || !attached_window()) return false;
+    // A copy: the ID may name an item's own text, and showing the menu runs
+    // handlers that may replace the items.
+    const std::string opened_id(item_id);
+    const stxlib::Optional<std::size_t> found_index = index_of(opened_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr || !has_menu(items_[*index].kind) || !item_interactive(*index) || !attached_window()) {
+        return false;
+    }
     // A merge may have left the menu empty, or holding only empty submenus.
     std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[*index].drop_down);
     if (menu.empty()) return false;
     const Layout placed = layout();
     const Rect bounds = placed.items[*index];
     if (bounds.empty()) return false;
-    if (open_index_ == index && (*overlay_).is_open()) return true;
+    if (holds(open_index_, *index) && (*overlay_).is_open()) return true;
     close_drop_down();
     (*overlay_).set_items(std::move(menu));
     const Rect absolute = absolute_bounds();
@@ -1026,8 +1055,19 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     const double drop_x = right_to_left ? bounds.x + bounds.width : bounds.x;
     Point anchor{absolute.x + drop_x, absolute.y + bounds.y + bounds.height};
     if (vertical()) anchor = {absolute.x + bounds.x + bounds.width, absolute.y + bounds.y};
-    (*overlay_).show(shared_from_this(), anchor, mode);
-    open_index_ = index;
+    // show opens a focus scope, which runs the previous control's focus and
+    // validation handlers before it returns; one may close the menu or
+    // replace the items (A-gf-controls-14-F2). The open item is recorded
+    // only for a menu still open, at the index its ID has now.
+    const Control::Ptr lifetime = shared_from_this();
+    (*overlay_).show(lifetime, anchor, mode);
+    if (!is_alive() || !(*overlay_).is_open()) return false;
+    const stxlib::Optional<std::size_t> shown = index_of(opened_id);
+    if (shown.absent()) {
+        close_drop_down();
+        return false;
+    }
+    open_index_ = shown;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
@@ -1089,7 +1129,11 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
         anchor = {right, absolute.y + placed.overflow_button.y + placed.overflow_button.height};
     }
     if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
-    (*overlay_).show(shared_from_this(), anchor, mode);
+    // As in show_drop_down: the menu is marked open only if the focus
+    // handlers show runs left it open (A-gf-controls-14-F2).
+    const Control::Ptr lifetime = shared_from_this();
+    (*overlay_).show(lifetime, anchor, mode);
+    if (!is_alive() || !(*overlay_).is_open()) return false;
     overflow_open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -1122,20 +1166,30 @@ void ToolStrip::on_overlay_open_changed(bool open) {
 
 void ToolStrip::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     const std::string strip_id(stable_id().value());
-    if (open_index_) {
-        const ToolStripDropDownInvocation chosen{strip_id, items_[*open_index_].stable_id, invocation};
+    const std::size_t* const open = open_index_.value();
+    if (open != nullptr) {
+        if (*open >= items_.size()) return;
+        const ToolStripDropDownInvocation chosen{strip_id, items_[*open].stable_id, invocation};
         drop_down_item_invoked_.emit(chosen);
         return;
     }
     if (!overflow_open_) return;
     // The menu has run the row's command; a button row is that button's click.
-    const std::optional<std::size_t> index = index_of(invocation.item_id);
-    if (index) {
-        const ToolStripItemSpec& item = items_[*index];
+    const stxlib::Optional<std::size_t> found_index = index_of(invocation.item_id);
+    const std::size_t* const index = found_index.value();
+    if (index != nullptr) {
+        // Copied first: flip_checked runs the command's state handlers,
+        // which may replace the items (A-gf-controls-14-F2).
+        const std::string item_id = items_[*index].stable_id;
+        const bool check_on_click = items_[*index].check_on_click;
         // The item is in the overflow menu, not on the strip, so the strip
         // has nothing of it to repaint.
-        if (item.check_on_click) static_cast<void>(flip_checked(*index));
-        const ToolStripItemClick clicked{strip_id, item.stable_id};
+        if (check_on_click) {
+            const Control::Ptr lifetime = shared_from_this();
+            static_cast<void>(flip_checked(*index));
+            if (!is_alive()) return;
+        }
+        const ToolStripItemClick clicked{strip_id, item_id};
         item_clicked_.emit(clicked);
         return;
     }
@@ -1197,7 +1251,7 @@ std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
             if (item.check_on_click || checked) node.states |= SemanticState::checkable;
             if (checked) node.states |= SemanticState::checked;
             if (states.contains(AnatomyState::open)) node.states |= SemanticState::expanded;
-            if (focused_ && hot_index_ == index) node.states |= SemanticState::focused;
+            if (focused_ && holds(hot_index_, index)) node.states |= SemanticState::focused;
             node.actions = {SemanticAction::focus, SemanticAction::press};
             if (has_menu(item.kind)) {
                 node.actions.push_back(SemanticAction::expand);
@@ -1210,18 +1264,19 @@ std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
 }
 
 bool ToolStrip::on_semantic_child_action(std::string_view id, SemanticAction action, std::string_view) {
-    const std::optional<std::size_t> index = index_of(id);
-    if (!index || layout().items[*index].empty() || !item_interactive(*index)) return false;
+    const stxlib::Optional<std::size_t> found_index = index_of(id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr || layout().items[*index].empty() || !item_interactive(*index)) return false;
     const ToolStripItemSpec& item = items_[*index];
     if (action == SemanticAction::collapse) {
-        if (open_index_ != index) return false;
+        if (!holds(open_index_, *index)) return false;
         close_drop_down();
         return true;
     }
     if (action == SemanticAction::focus) {
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
-        focus_item(index);
+        focus_item(found_index);
         return true;
     }
     if (action == SemanticAction::expand) {
@@ -1248,11 +1303,11 @@ constexpr std::array<AnatomyState, 2> overflow_button_states{{AnatomyState::hot,
 constexpr std::array<AnatomyState, 2> arrow_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<ToolStrip::Parts>, 6> tool_strip_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ToolStrip::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ToolStrip::Parts::face},
-    {.declaration = {.name = "grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &ToolStrip::Parts::grip},
     {.declaration = {.name = "overflow_button", .role = PartRole::actuator, .composed_from = "button",
                      .states = overflow_button_states},
@@ -1260,31 +1315,31 @@ constexpr std::array<PartField<ToolStrip::Parts>, 6> tool_strip_part_fields{{
     {.declaration = {.name = "overflow_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = overflow_button_states},
      .member = &ToolStrip::Parts::overflow_glyph},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ToolStrip::Parts::focus},
 }};
 
 constexpr std::array<PartField<ToolStrip::ItemParts>, 10> tool_strip_item_part_fields{{
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ToolStrip::ItemParts::item_face},
-    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &ToolStrip::ItemParts::item_icon},
-    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ToolStrip::ItemParts::item_label},
     {.declaration = {.name = "item_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = arrow_states},
      .member = &ToolStrip::ItemParts::item_arrow},
-    {.declaration = {.name = "item_arrow_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "item_arrow_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &ToolStrip::ItemParts::item_arrow_glyph},
-    {.declaration = {.name = "item_separator", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "item_separator", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ToolStrip::ItemParts::item_separator},
-    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ToolStrip::ItemParts::item_focus},
-    {.declaration = {.name = "item_combo_box", .role = PartRole::well, .composed_from = "combo_box"},
+    {.declaration = {.name = "item_combo_box", .role = PartRole::well, .composed_from = "combo_box", .states = {}},
      .member = &ToolStrip::ItemParts::item_combo_box},
-    {.declaration = {.name = "item_text_box", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "item_text_box", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &ToolStrip::ItemParts::item_text_box},
-    {.declaration = {.name = "item_progress_bar", .role = PartRole::track, .composed_from = "progress_bar"},
+    {.declaration = {.name = "item_progress_bar", .role = PartRole::track, .composed_from = "progress_bar", .states = {}},
      .member = &ToolStrip::ItemParts::item_progress_bar},
 }};
 
@@ -1357,6 +1412,9 @@ ToolStrip::Parts ToolStrip::parts() const {
     return record;
 }
 
+// Every realized-item accessor resolves its item here, so an item past the
+// realized ones is refused instead of answering a past-the-end index they
+// would use (A-gf-controls-14-F5).
 std::size_t ToolStrip::realized_item_index(std::size_t item) const {
     const Layout placed = layout();
     std::size_t seen = 0U;
@@ -1365,7 +1423,7 @@ std::size_t ToolStrip::realized_item_index(std::size_t item) const {
         if (seen == item) return index;
         ++seen;
     }
-    return items_.size();
+    throw std::out_of_range("ToolStrip realized item is past the realized items");
 }
 
 std::size_t ToolStrip::realized_item_count() const {

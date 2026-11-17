@@ -1,0 +1,10 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <string>
+
+namespace gui_forms {
+
+void store(stxlib::TextView text);
+
+} // namespace gui_forms

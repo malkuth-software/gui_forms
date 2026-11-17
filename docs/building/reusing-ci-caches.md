@@ -37,7 +37,7 @@ has the claimed tree (`merge_of_head`).
 |---|---|---|
 | Promotion, `ci_promote.py lookup` | on `main`, before any tool is installed | the same tree passed on this platform: publish those bytes, install nothing, build and test nothing |
 | Exact reuse, `ci_reuse.py lookup` | after tools and identity | same tree, compiler and environment passed: restore that archive, skip build and tests |
-| Actions caches | otherwise | `.ccache` from `gui-objects-v2-<platform>-<compiler>-<tree>`, else the newest for the same compiler, else the same platform; miniaudio from a key over `cmake/Audio.cmake` (the stx checkout, with stx_skia and the text stack, is fetched at configure time from `stx.lock`) |
+| Actions caches | otherwise | `.ccache` from `gui-objects-v2-<platform>-<compiler>-<tree>`, else the newest for the same compiler, else the same platform; the stx package (stx_skia and the text stack, built once) from a key over `stx.lock`, the package recipe, the platform and the compiler; miniaudio from a key over `cmake/Audio.cmake` |
 | Seed, `ci_promote.py seed` | otherwise | objects from the first acceptable one of at most eight recent validated archives, on any branch, with the same compiler identity; every test still runs |
 | Build and test | otherwise | `ci_build.py`, the development text profiles and the native host tests |
 
@@ -219,7 +219,7 @@ revision to `packaging/pinned_cache_revisions.json`.
 ## CI job times
 
 Hosted job durations from the Actions API, excluding queue time, recorded
-in [`docs/notes/CI_TIMING_2026-10-08.md`](https://github.com/malkuth-software/notes/blob/gui_forms/docs-notes/CI_TIMING_2026-10-08.md). A fresh job builds the Release
+in [`docs-notes/CI_TIMING_2026-10-08.md`](https://github.com/malkuth-software/notes/blob/gui_forms/docs-notes/CI_TIMING_2026-10-08.md). A fresh job builds the Release
 toolkit, runs all tests, installs the SDK, builds and tests the installed
 examples and runs the development text profiles. The workflow has gained
 steps since; these are the recorded numbers, not a promise.
@@ -244,7 +244,7 @@ failures seen when the method was varied.
 | LLVM 22.1.8 from the same package source; `CC=clang`, `CXX=clang++`, `OBJCXX=clang++`; `cmake/llvm22.cmake` on both sides | the content check hashes the binary; Windows `cc.exe` is another identity; a CMake cache keeps its old compiler, so use a fresh build tree |
 | `gui_forms/` and `.build/native-<platform>/gui-forms/` under one root | hits rely on equal paths relative to `CCACHE_BASEDIR` |
 | `CCACHE_BASEDIR`, `CCACHE_DIR`, `CCACHE_COMPILERCHECK=content`, no sloppiness beyond the `pch_defines,time_macros` that the precompiled-header test programs carry themselves | anything weaker reuses objects it should not |
-| all three launchers as environment variables | Skia's build scripts read `CMAKE_CXX_COMPILER_LAUNCHER` from the environment |
+| all three launchers as environment variables | CMake takes each launcher from the environment variable of the same name for every language, and `cmake/Stx.cmake` passes the C and C++ launchers on to the stx package's build |
 | the `ci_build.py` configure options | options are part of every hash |
 | reuse only older, successful runs of the same workflow and repository, matching tree, compiler and environment | anything looser can turn an untested or failed result green |
 | macOS SDK version and runtime manifest; Windows `msys64` location | SDK and MSYS2 headers lie outside the base directory; the runtime is checked byte for byte |

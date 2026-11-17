@@ -9,10 +9,14 @@
 #include <cmath>
 #include <fstream>
 #include <iterator>
+#include <limits>
 #include <utility>
 
 // Identical bytes on every host: no fused multiply-add (engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -220,6 +224,13 @@ std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& dow
                                    const LightComposite& settings, LightPlaneRect rect,
                                    const PartRasterView& destination) noexcept {
     if (rect.width <= 0 || rect.height <= 0) return 0U;
+    // The destination is a caller's view (A-gf-core-05-F4): its shape is
+    // checked against its buffer before any write, and a rectangle whose
+    // far edge overflows is refused. With the sums in range, x - rect.x and
+    // y - rect.y below stay in [0, width) and [0, height).
+    if (validate_raster_view(destination) != RasterViewDefect::none) return 0U;
+    if (rect.x > std::numeric_limits<std::int64_t>::max() - rect.width) return 0U;
+    if (rect.y > std::numeric_limits<std::int64_t>::max() - rect.height) return 0U;
     if (!same_shape(up, down) || !complete(up) || !complete(down)) return 0U;
     if (drives.size() < up.lamp_count) return 0U;
     const std::int64_t x0 = std::max<std::int64_t>(rect.x, 0);

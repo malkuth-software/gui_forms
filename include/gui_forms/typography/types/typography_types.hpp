@@ -4,6 +4,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -78,7 +79,7 @@ struct GUI_FORMS_API ResolvedTextLayout final {
     double line_gap{};
     // The preferred primary face's design metrics at this size, when the
     // terminal engine reads them; an estimate has none.
-    std::optional<FontVerticalMetrics> design_metrics;
+    stxlib::Optional<FontVerticalMetrics> design_metrics;
     std::string primary_family;
     std::vector<ResolvedFontRun> runs;
     std::size_t missing_clusters{};
@@ -106,8 +107,8 @@ struct GUI_FORMS_API ResolvedTextLayout final {
 [[nodiscard]] GUI_FORMS_API const char* text_resolution_status_name(
     TextResolutionStatus status) noexcept;
 
-// What a line may do after one byte of UTF-8 text (UAX #14's classes, as
-// libunibreak reports them). A byte that does not end a scalar value is
+// What a line may do after one byte of UTF-8 text (UAX #14's decisions:
+// prohibited, allowed, mandatory). A byte that does not end a scalar value is
 // inside_character; the last byte of a text is always mandatory.
 enum class LineBreakOpportunity : std::uint8_t {
     prohibited,
@@ -136,7 +137,22 @@ struct GUI_FORMS_API TextExtent final {
 // changes.
 class GUI_FORMS_API TextMetricsProvider {
 public:
+    TextMetricsProvider() noexcept;
+    // A copy, or a provider assigned from another, is a new provider for
+    // metrics_identity(): it takes a fresh number.
+    TextMetricsProvider(const TextMetricsProvider& other) noexcept;
+    TextMetricsProvider& operator=(const TextMetricsProvider& other) noexcept;
     virtual ~TextMetricsProvider() = default;
+    // A number naming this provider object, unique in the process and never
+    // reused (an address is: a later provider can be made where an earlier
+    // one was). Never 0.
+    [[nodiscard]] std::uint64_t metrics_identity() const noexcept { return metrics_identity_; }
+    // The identity of what this provider's measurements come from: by
+    // default itself; a provider that measures only through another one
+    // (the recording painter) names that one's. Two calls that answer the
+    // same identity measure the same text and font alike, so a control may
+    // keep measurements across paints keyed on it.
+    [[nodiscard]] virtual std::uint64_t measurement_identity() const noexcept { return metrics_identity_; }
     [[nodiscard]] virtual ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view utf8, FontSpec effective_font) = 0;
     // The extent resolve_text_layout_utf8 reports (TextExtent). The default
@@ -186,6 +202,9 @@ public:
     // one too small, or (the default) a provider without workspaces.
     [[nodiscard]] virtual TextExtent shape_in_workspace_utf8(
         ShapingWorkspace& workspace, std::string_view utf8, FontSpec effective_font);
+
+private:
+    std::uint64_t metrics_identity_{};
 };
 
 // Deterministic renderer-free line breaking: a line may end after a run of
@@ -230,7 +249,7 @@ struct GUI_FORMS_API LineBoxMetrics final {
 // Without design metrics (an estimate) it uses the resolution's ascent,
 // descent and line gap.
 [[nodiscard]] GUI_FORMS_API LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
-                                              std::optional<double> used_line_height) noexcept;
+                                              stxlib::Optional<double> used_line_height) noexcept;
 
 // Baselines are authored in logical coordinates. This helper rounds only the
 // final placement to a device pixel and therefore does not change line

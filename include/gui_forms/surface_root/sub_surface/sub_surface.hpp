@@ -6,6 +6,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/live_surface/pacer/live_surface_pacer.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -14,6 +15,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -223,7 +226,7 @@ struct GUI_FORMS_API SubSurfaceRequest final {
     // For a program request (SurfaceRoot::show_tool_tip or
     // request_tool_tip on the sub-surface): how long it shows (none: the
     // parent's auto-pop delay; zero: until revoked).
-    std::optional<std::chrono::milliseconds> duration{};
+    stxlib::Optional<std::chrono::milliseconds> duration{};
 };
 
 // Where a sub-surface's requests go: called on the parent's thread only,
@@ -475,11 +478,11 @@ public:
     // its own coordinates, as its thread last published it at the end of a
     // turn; none while nothing there has focus (design note section 4: the
     // input method follows it without a synchronous call).
-    [[nodiscard]] std::optional<Rect> text_input_caret() const;
+    [[nodiscard]] stxlib::Optional<Rect> text_input_caret() const;
 
 private:
     std::shared_ptr<detail::SubSurfaceChannel> channel_;
-    std::thread thread_;
+    Thread thread_;
     std::uint64_t last_content_epoch_{};
 };
 

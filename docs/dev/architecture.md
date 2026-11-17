@@ -11,28 +11,45 @@ extension follows. All of it is pre-1.0; see
 
 ## Library layers
 
-The installed CMake package exposes six components. Their link-time use and
-the one linking rule are in [Consume the SDK](../user/consume-the-sdk); this
-is how they stack:
+The installed CMake package exposes six main components (`Threading`,
+`Core`, `Drawing`, `Controls`, `Application` and `Audio`), the C ABI
+(`CAbi`, with `CAbiConformance` for its conformance kit) in a build with a
+native host, and optional components that a build must enable (`TextMasks`,
+`AudioLoopTransport`, `GalleryModel`, `Lab`,
+`DemoControls`). Their link-time use and the one linking rule are in
+[Consume the SDK](../user/consume-the-sdk); this is how the main ones stack:
 
 ```text
-your application
-  └─ GUIForms::Application   shared; one native host per build
+your C++ application         one executable: everything below is linked into it
+  └─ GUIForms::Application   static; one native host per build
        contains the public layers
-         Controls ─┬─ Core ── Threading (shared, shipped beside it)
+         Controls ─┬─ Core ── Threading (static)
                    └─ Drawing
        and, privately,
-         host adapter       src/host/macos | windows | linux
+         host adapter       src/surface/macos | windows | linux
+                            (platform API calls; src/host keeps the
+                            platform-neutral host logic)
          CPU renderer       src/render/skia on every host (Windows presents its
-                            frames from DIB sections, src/host/windows/raster)
-         text engine        HarfBuzz, FreeType, SheenBidi
+                            frames from DIB sections, src/surface/windows/raster)
+         text engine        STXlib: stxlib::glyphs (fonts, shaping, hinting),
+                            stxlib::textlayout (bidi, line breaks, scripts)
 
 renderer-free code (tests, models, automation)
   └─ GUIForms::Controls ── Core, Drawing
 
 audio adapters
   └─ GUIForms::Audio ── Threading
+
+your C or C# program
+  └─ GUIForms::CAbi          the one shared library: gui_forms_abi, self-contained
+       its own copy of Application's engine, the drawing ABI and raster,
+       and on Windows the Win32 compatibility shim's exports
 ```
+
+A program is one module (owner decision, 2026-11-15): it holds one copy of
+any routine. A C++ program links GUI.Forms statically and ships no GUI.Forms
+library; a C or C# program loads the C ABI library and nothing else from
+GUI.Forms, and never also links the C++ engine.
 
 `Drawing` depends on nothing else in the toolkit, `Core` depends only on
 `Threading`, and `Controls` adds the stock controls over `Core` and
@@ -43,10 +60,11 @@ that set.
 
 Some build targets are never installed. The headless host
 (`src/host/headless/`) is the deterministic reference adapter the tests link.
-The experimental drawing C ABI (`src/abi/drawing_*`) is built and tested in
-the source tree; its library is not part of the package. (The experimental
-0.x C ABI, `gui_forms_abi0`, was retired before 1.0; the sealed C ABI,
-`gui_forms_abi1`, is GUI.Forms' one C surface.) The development text services refuse
+The drawing C ABI (`gd_*`, `src/abi/drawing_*`) is built and tested in
+the source tree; its library is not part of the package until the drawing
+ABI is sealed. The sealed C ABI (`gui_forms_abi`, installed as
+`GUIForms::CAbi`) is GUI.Forms' one C surface; the experimental 0.x C ABI
+was retired before it. The development text services refuse
 to install: configuring with them enabled makes `cmake --install` stop.
 
 ### Boundaries the build enforces
@@ -62,13 +80,13 @@ build inspect symbols, imports and sources:
   runtime.
 - `cmake/check_drawing_boundaries.cmake`: no renderer or host dependency in
   the drawing libraries.
-- `cmake/check_core_linkage.cmake`, run by the reference examples: a project
-  that links static `Core` beside `Application` fails at generation time.
 
-One Apple-framework file lives outside `src/host/macos/`:
-`src/render/skia/executor/core_text_font_bytes.cpp`, inside the private
-renderer, recovers a named face's bytes for the drawing C API so the shared
-text engine can load it. Nothing it does crosses the portable contract.
+One Apple-framework file is compiled into the private renderer:
+`src/surface/macos/fonts/core_text_font_bytes.cpp` recovers a named face's
+bytes for the drawing C API so the shared text engine can load it. It lives
+under `src/surface/macos/`, as every file that includes a platform header does
+(`tools/check_platform_headers.py`). Nothing it does crosses the portable
+contract.
 
 ## Extension objects
 
@@ -130,7 +148,7 @@ The details are in [Retained tree](../user/retained-tree),
   prints a rate-limited `gui-forms-telemetry=expectation|...` record. A
   throwing paint callback still restores the previous chunks before the
   exception goes on, a dispatched callback's exception stays on its
-  operation, and the experimental C ABI turns exceptions into error results.
+  operation, and the C ABI turns exceptions into error results.
 
 ## Host-owned appearance
 
@@ -156,20 +174,24 @@ subclassing. Text uses only the bundled faces; see
 ## Compatibility and versioning
 
 The package is version 0.6.0. `find_package(GUIForms 0.6)` accepts any 0.6.x
-installation and rejects other minor versions, and the shared libraries carry
-`SOVERSION 0`. Within that range there is still no binary promise: object
+installation and rejects other minor versions. The C++ libraries are static
+archives; the one shared library, the C ABI library, carries the ABI's major
+version as its `SOVERSION` (`libgui_forms_abi.so.1`). Within that range there is still no binary promise: object
 layouts change between releases, so rebuild your application against each
 new SDK ([Consume the SDK](../user/consume-the-sdk)).
 
 Contracts are versioned separately rather than under one number. The host
 protocol reports its own `protocol_version` in `HostCapabilities`
-([Hosts and capabilities](../user/hosts-and-capabilities)), and the
-experimental C ABIs negotiate their own 0.x versions, which carry no
-compatibility promise.
+([Hosts and capabilities](../user/hosts-and-capabilities)), at version 13.
+The C ABI carries its own version, 1.3: 1.1 is the seal, and each later
+minor version only adds, which a blocking breaking-change audit checks. The
+drawing ABI (`gd_*`, 0.3) stays experimental until it is sealed after the
+demonstrators.
 
 GUI.Forms is Forms-shaped, not a reimplementation of all of Windows Forms.
-ActiveX, browser hosting, printing, MDI, obsolete control families and
-window-handle or message emulation are outside its scope. The decisions
+ActiveX, browser hosting, device printing, obsolete control families and
+window-handle or message emulation are outside its scope. MDI is planned
+with the docking work. The decisions
 behind these boundaries, event order and the lifecycle contract are in
 [Architecture decisions](decisions); what has to be true before 1.0 is on the
 [Roadmap](roadmap).

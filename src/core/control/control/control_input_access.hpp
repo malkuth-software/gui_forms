@@ -29,9 +29,12 @@ public:
     ControlInputAccess() = delete;
 
     // An enter or leave raises on_mouse_enter or on_mouse_leave, which
-    // carry no arguments. A press, release, move or wheel raises its mouse
-    // raiser: location relative to the control's absolute bounds, clicks
-    // the event's click_count for a press or release (zero otherwise).
+    // carry no arguments (a handler's Control::pointer_location reads the
+    // window's last pointer event, not this one: nothing is dispatched). A
+    // press, release, move or wheel raises its mouse raiser with
+    // mouse_event_arguments: location relative to the control's absolute
+    // bounds, clicks the event's click_count for a press or release (zero
+    // otherwise), the target phase.
     static void on_pointer(Control& target, PointerEvent& event) {
         if (event.action == PointerAction::enter) {
             target.on_mouse_enter();
@@ -41,21 +44,10 @@ public:
             target.on_mouse_leave();
             return;
         }
-        const bool press = event.action == PointerAction::down;
-        const bool release = event.action == PointerAction::up;
         const Rect bounds = target.absolute_bounds();
-        MouseEventArgs arguments{};
-        arguments.button = event.button;
-        arguments.clicks = press || release ? event.click_count : 0U;
-        arguments.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
-        arguments.window_position = event.position;
-        arguments.wheel_delta = event.wheel_delta;
-        arguments.modifiers = event.modifiers;
-        arguments.action = event.action;
-        arguments.wheel_unit = event.wheel_unit;
-        arguments.pointer_id = event.pointer_id;
+        const Point origin{bounds.x, bounds.y};
+        MouseEventArgs arguments = mouse_event_arguments(event, origin, event.click_count);
         arguments.phase = EventPhase::target;
-        arguments.handled = event.handled;
         switch (event.action) {
         case PointerAction::down:
             target.on_mouse_down(arguments);
@@ -81,13 +73,7 @@ public:
     // A down raises on_key_down, an up on_key_up. suppress_key_press set
     // by a handler implies handled.
     static void on_key(Control& target, KeyEvent& event) {
-        KeyEventArgs arguments{};
-        arguments.key_code = key_code_from_physical_key(event.physical_key);
-        arguments.physical_key = event.physical_key;
-        arguments.scan_code = event.scan_code;
-        arguments.modifiers = event.modifiers;
-        arguments.repeat = event.repeat;
-        arguments.handled = event.handled;
+        KeyEventArgs arguments = key_event_arguments(event);
         if (event.action == KeyAction::down) {
             target.on_key_down(arguments);
         } else {

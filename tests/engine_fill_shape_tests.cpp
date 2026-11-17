@@ -97,7 +97,7 @@ TestRaster draw(const SurfaceMaterial& material, Size logical, double scale,
     target.logical_size = logical;
     target.scale = DeviceScale{scale};
     target.material = &material;
-    if (own_radius >= 0.0) target.corner_radius = own_radius;
+    if (own_radius >= 0.0) target.corner_radius.set(own_radius);
     const EnginePrimitive& primitive = material_primitive();
     const PrimitiveParameterBlock parameters = shaped(shape);
     PrimitivePreparation preparation{};
@@ -137,7 +137,7 @@ const std::vector<GradientStop> red_to_blue{GradientStop{0.0, red}, GradientStop
 
 // The reference hashes, in the order the tests check them.
 constexpr std::uint64_t expected_hashes[] = {
-    0x1b0f72f013af4685ULL, 0xa01bf0370ea92165ULL, 0xfa172c454612b0d5ULL, 0x33592d40fdca4005ULL,
+    0x2bb201abb05d5755ULL, 0xd549ced876e05b85ULL, 0xc0ffc3ac1839eec1ULL, 0xf4d67193618d8d15ULL,
     0xa6b3b5e2870c76c0ULL, 0x2a4b7ac3d222df1fULL, 0x50838a8da95444b5ULL, 0xc9f335d9b9942970ULL,
     0x9d9e8d053bf20df9ULL, 0xa3df483b164b7900ULL, 0xd10bcec38a004b2fULL,
 };
@@ -188,9 +188,11 @@ void repeating_radial() {
     // The pixel at (43, 28) is 15.5 to the right of the centre (28, 28): t
     // is about 1.55.
     require(pad.channel(43U, 28U, 0U) == 0U, "padded, the last stop holds");
-    require(repeat.channel(43U, 28U, 0U) > 100U && repeat.channel(43U, 28U, 0U) < 125U,
+    // Red in linear light (the gradient interpolates there): 165 to 190 is
+    // the old sRGB window of 100 to 125 decoded, as 187 to 205 is 130 to 150.
+    require(repeat.channel(43U, 28U, 0U) > 165U && repeat.channel(43U, 28U, 0U) < 190U,
             "repeated, the stops begin again");
-    require(reflect.channel(43U, 28U, 0U) > 130U && reflect.channel(43U, 28U, 0U) < 150U,
+    require(reflect.channel(43U, 28U, 0U) > 187U && reflect.channel(43U, 28U, 0U) < 205U,
             "reflected, the stops run back");
     require(repeat.channel(28U, 28U, 0U) > 230U && pad.channel(28U, 28U, 0U) == repeat.channel(28U, 28U, 0U),
             "within the radii every spread is the same");
@@ -207,16 +209,18 @@ void conic() {
             "a conic gradient sweeps one turn");
     const TestRaster swept = draw(filled_with(turn), logical, 1.0);
     // Just right of up from the centre (28, 28) the sweep begins; just left
-    // of it, it ends.
-    require(swept.channel(28U, 10U, 0U) > 250U && swept.channel(28U, 10U, 2U) < 5U, "the sweep begins at up");
-    require(swept.channel(27U, 10U, 0U) < 5U && swept.channel(27U, 10U, 2U) > 250U, "and ends there");
-    // Right of the centre, a quarter of the way round.
-    require(swept.channel(45U, 28U, 0U) > 180U && swept.channel(45U, 28U, 0U) < 200U,
+    // of it, it ends. The pixel centres lie 1.6 degrees from up, t = 0.0045
+    // from either end, which linear light encodes to about 14.
+    require(swept.channel(28U, 10U, 0U) > 250U && swept.channel(28U, 10U, 2U) < 25U, "the sweep begins at up");
+    require(swept.channel(27U, 10U, 0U) < 25U && swept.channel(27U, 10U, 2U) > 250U, "and ends there");
+    // Right of the centre, a quarter of the way round: t = 0.255, red about
+    // 224 in linear light.
+    require(swept.channel(45U, 28U, 0U) > 215U && swept.channel(45U, 28U, 0U) < 235U,
             "a quarter turn is a quarter of the way");
     // From 90 degrees, right of the centre is where it begins.
     const TestRaster turned = draw(filled_with(MaterialFillLayer::conic(Point{0.5, 0.5}, 90.0, red_to_blue)),
                                    logical, 1.0);
-    require(turned.channel(45U, 27U, 0U) < 10U && turned.channel(45U, 28U, 0U) > 245U,
+    require(turned.channel(45U, 27U, 0U) < 25U && turned.channel(45U, 28U, 0U) > 245U,
             "the from-angle turns the sweep");
     // Repeating every 90 degrees: a quarter turn begins again.
     const MaterialFillLayer quarters =
@@ -225,7 +229,8 @@ void conic() {
             "a repeating conic gradient repeats its period");
     const TestRaster repeated = draw(filled_with(quarters), logical, 1.0);
     require(repeated.channel(45U, 28U, 0U) > 240U, "each quarter begins again");
-    require(repeated.channel(44U, 27U, 0U) < 30U, "and ends before the next");
+    // t = 0.981 of its quarter: red about 38 in linear light.
+    require(repeated.channel(44U, 27U, 0U) < 50U, "and ends before the next");
     const bool first = next_matches(swept, "conic_1");
     const bool second = next_matches(draw(filled_with(quarters), logical, 2.0), "repeating_conic_2");
     require(first && second, "the conic gradients match their references");
@@ -245,14 +250,14 @@ SurfaceMaterial layered(double corner_radius) {
     glow.blur_radius = 2.0;
     glow.spread = 1.0;
     material.glows.push_back(glow);
-    material.border = MaterialBorder{ink, 1.0};
+    material.border.set(MaterialBorder{ink, 1.0});
     return material;
 }
 
 void corner_radii() {
     const Size logical{40.0, 20.0};
     SurfaceMaterial corners = layered(0.0);
-    corners.corner_radii = MaterialCornerRadii{10.0, 0.0, 4.0, 0.0};
+    corners.corner_radii.set(MaterialCornerRadii{10.0, 0.0, 4.0, 0.0});
     require(valid_surface_material(corners), "four corners are a valid material");
     const TestRaster drawn = draw(corners, logical, 1.0);
     // The box spans pixels 8 to 47 across and 8 to 27 down.
@@ -263,7 +268,7 @@ void corner_radii() {
 
     // Four equal corners draw as one radius, every layer to the same bytes.
     SurfaceMaterial equal = layered(0.0);
-    equal.corner_radii = MaterialCornerRadii{5.0, 5.0, 5.0, 5.0};
+    equal.corner_radii.set(MaterialCornerRadii{5.0, 5.0, 5.0, 5.0});
     require(raster_hash(draw(equal, logical, 1.0)) == raster_hash(draw(layered(5.0), logical, 1.0)),
             "four equal corners are one radius");
     // A part's own radius overrides the material's corners.
@@ -316,14 +321,14 @@ void patterned_borders() {
     // A clear face, so that only the border draws.
     SurfaceMaterial dashed = filled_with(MaterialFillLayer::solid(Color{0, 0, 0, 0}));
     dashed.corner_radius = 4.0;
-    dashed.border = MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed};
+    dashed.border.set(MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed});
     require(valid_surface_material(dashed), "a dashed border is valid");
     const TestRaster dashes = draw(dashed, logical, 1.0);
     const EdgeCount dash_count = count_top_edge(dashes, 8U, 16U, 59U);
     require(dash_count.drawn > 12U && dash_count.clear > 8U, "dashes and gaps run along the edge");
 
     SurfaceMaterial dotted = dashed;
-    (*dotted.border).style = MaterialBorderStyle::dotted;
+    (*dotted.border.value()).style = MaterialBorderStyle::dotted;
     const TestRaster dots = draw(dotted, logical, 1.0);
     const EdgeCount dot_count = count_top_edge(dots, 9U, 16U, 59U);
     require(dot_count.clear > 8U, "dots leave gaps");
@@ -331,7 +336,7 @@ void patterned_borders() {
 
     // The pattern never draws outside the solid border's ring.
     SurfaceMaterial solid = dashed;
-    (*solid.border).style = MaterialBorderStyle::solid;
+    (*solid.border.value()).style = MaterialBorderStyle::solid;
     const TestRaster ring = draw(solid, logical, 1.0);
     bool within = true;
     for (std::size_t index = 3U; index < ring.bytes.size(); index = index + 4U) {
@@ -361,14 +366,14 @@ void validation() {
     require(!valid_surface_material(material), "a conic fill needs stops");
 
     SurfaceMaterial cornered = filled_with(MaterialFillLayer::solid(red));
-    cornered.corner_radii = MaterialCornerRadii{1.0, -1.0, 0.0, 0.0};
+    cornered.corner_radii.set(MaterialCornerRadii{1.0, -1.0, 0.0, 0.0});
     require(!valid_surface_material(cornered), "a negative corner is refused");
-    cornered.corner_radii = MaterialCornerRadii{1.0, 2.0, 3.0, 4.0};
-    cornered.border_edges.top = MaterialBorder{ink, 1.0};
+    cornered.corner_radii.set(MaterialCornerRadii{1.0, 2.0, 3.0, 4.0});
+    cornered.border_edges.top.set(MaterialBorder{ink, 1.0});
     require(!valid_surface_material(cornered), "single edges are square-cornered");
 
     SurfaceMaterial bordered = filled_with(MaterialFillLayer::solid(red));
-    bordered.border = MaterialBorder{ink, 1.0, static_cast<MaterialBorderStyle>(7U)};
+    bordered.border.set(MaterialBorder{ink, 1.0, static_cast<MaterialBorderStyle>(7U)});
     require(!valid_surface_material(bordered), "a border style outside the enumeration is refused");
 }
 

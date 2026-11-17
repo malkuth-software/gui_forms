@@ -1,0 +1,31 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <optional>
+
+namespace gui_forms {
+
+class Source {
+public:
+    virtual ~Source() noexcept;
+    [[nodiscard]] virtual stxlib::Optional<int> find(int key) const noexcept = 0;
+};
+
+struct Range final {
+    stxlib::Optional<int> low;
+    stxlib::Optional<int> high;
+};
+
+class Holder final {
+public:
+    Holder() noexcept;
+    explicit Holder(int start) noexcept;
+    void set_limit(stxlib::Optional<int> limit = stxlib::Optional<int>::none()) noexcept;
+
+private:
+    stxlib::Optional<int> limit_;
+};
+
+[[nodiscard]] stxlib::Optional<int> pick(bool first) noexcept;
+
+} // namespace gui_forms

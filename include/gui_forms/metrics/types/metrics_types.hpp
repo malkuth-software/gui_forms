@@ -124,6 +124,11 @@ struct GUI_FORMS_API MetricsSnapshot {
     // per frame poll, however many motion values move.
     std::uint64_t motion_clock_ticks{};
     std::uint64_t frame_requests_coalesced{};
+    // The window's own one-shot wakes (the hover wake, the band's flash or
+    // cycle, the tooltip and toast timing) refused because the window
+    // already held maximum_scheduled_frame_requests. Each fails soft and is
+    // retried at the requester's next event (A-gf-core-17-F3).
+    std::uint64_t internal_wakes_refused{};
     // Missed housekeeping expectations (HousekeepingExpectation), one
     // counter each, and the telemetry lines printed for them.
     std::uint64_t wake_expectation_misses{};
@@ -216,6 +221,19 @@ struct GUI_FORMS_API MetricsSnapshot {
     // lowered material, so a face keeps its material and loses only the
     // dither, never falling back to the built-in look for it.
     std::uint64_t engine_dither_degradations{};
+    // Paints at which a part whose rule chose an engine primitive was drawn
+    // by the built-in recipe instead: the primitive refused it
+    // (engine_primitive_refusals, which counts only the start of a keyed
+    // refusal), no raster was made (engine_raster_failures), or the plan
+    // put an animated primitive over the frame budget at the part's device
+    // size (maximum_animated_operations_per_frame). Counted at
+    // every such paint, so a delta across one state change (a hover) names
+    // the parts that changed.
+    std::uint64_t engine_built_in_fallbacks{};
+    // Paints at which a primitive accepted a part but no raster was made
+    // for it (the part table's raster or shared bake, a keyframe, came back
+    // null), so the built-in recipe drew it.
+    std::uint64_t engine_raster_failures{};
     // Materials assembled from a recipe's material and the material fields
     // a theme's rules set (T3 EC1): once per distinct assembly for a keyed
     // part (AssembledPartMaterial), and at every paint of a part without a

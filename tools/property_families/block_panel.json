@@ -37,7 +37,7 @@
     {
       "name": "line_strut",
       "capability": "BlockPanelLineStrut",
-      "value": "std::optional<LineStrut>",
+      "value": "stxlib::Optional<LineStrut>",
       "initial": null,
       "comment": "The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).",
       "getter": "line_strut",
@@ -52,16 +52,17 @@
       "hand": [],
       "effects": "invalidation::bounds",
       "prepare": [
-        "if (incoming && !admitted_strut(*incoming)) {",
+        "const LineStrut* strut = incoming.value();",
+        "if (strut != nullptr && !admitted_strut(*strut)) {",
         "    throw std::invalid_argument(\"BlockPanel line strut values must be finite and nonnegative\");",
         "}"
       ],
-      "sample": "LineStrut{4.0, 2.0, 1.0}"
+      "sample": "stxlib::Optional<LineStrut>::of(LineStrut{4.0, 2.0, 1.0})"
     },
     {
       "name": "font",
       "capability": "BlockPanelFont",
-      "value": "std::optional<FontSpec>",
+      "value": "stxlib::Optional<FontSpec>",
       "initial": null,
       "comment": "The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).",
       "getter": null,
@@ -76,7 +77,7 @@
       "hand": [
         "prepare validates a present font and records set_font_from_code; written invalidates bounds only while no strut is set, since the strut is what the font feeds; font() became resolved_font()"
       ],
-      "sample": "FontSpec{FontRole::content, 14.0, 400, false}"
+      "sample": "stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false})"
     }
   ],
   "not_properties": [],

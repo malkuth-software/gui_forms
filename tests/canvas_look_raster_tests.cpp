@@ -165,6 +165,10 @@ std::array<Point, link_points> flattened_link(const SampleLink& link, CanvasView
 
 // What the sample paints: where world (0, 0) lies and the zoom, whether
 // the flow draws, and whether its frame is still.
+// How far a flow mark reaches past its link's centre line, in logical units
+// at zoom 1 (generous: the link_flow marks are a few units wide).
+constexpr double flow_mark_reach = 8.0;
+
 struct SampleSettings final {
     CanvasView view{};
     bool flow{true};
@@ -180,6 +184,45 @@ public:
 
     SampleSettings settings{};
     EffectInstance flow{};
+
+    // Each change of what the graph shows marks its paint damage, as a
+    // control's own setter does; a capture replays the retained recording
+    // otherwise (captures leave nothing paint-dirty: cp31 capture dirt).
+    void set_view(CanvasView view) {
+        settings.view = view;
+        invalidate(Dirty::paint);
+    }
+    void set_still(bool still) {
+        settings.still = still;
+        invalidate(Dirty::paint);
+    }
+    void set_flow(bool shown) {
+        settings.flow = shown;
+        invalidate(Dirty::paint);
+    }
+    // Advancing the flow is a visible state change (coordinator ruling,
+    // cp32 return 2): it damages the flowing links' bounds, as NodeCanvas's
+    // ambient frame does, grown by the widest mark the flow draws.
+    void advance_flow(FrameTime now) {
+        static_cast<void>(flow.advance(now));
+        const double reach = flow_mark_reach * settings.view.zoom;
+        for (const SampleLink& link : sample_links) {
+            const bool flows = link.state == CanvasLinkState::normal && link.style == CanvasLinkStyle::plain;
+            if (!flows) continue;
+            const std::array<Point, link_points> points = flattened_link(link, settings.view);
+            double left = points[0].x;
+            double top = points[0].y;
+            double right = points[0].x;
+            double bottom = points[0].y;
+            for (const Point& point : points) {
+                left = std::min(left, point.x);
+                top = std::min(top, point.y);
+                right = std::max(right, point.x);
+                bottom = std::max(bottom, point.y);
+            }
+            invalidate(Rect{left - reach, top - reach, right - left + 2.0 * reach, bottom - top + 2.0 * reach});
+        }
+    }
 
     void on_paint(Painter& painter, Rect) override {
         const CanvasLook look = resolve_canvas_look(effective_theme(), *this, visual_context());
@@ -304,8 +347,8 @@ struct CaptureRequest final {
 
 WindowCapture captured(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
     OffscreenCaptureOptions options{};
-    options.colour_scheme = request.scheme;
-    options.high_contrast = request.high_contrast;
+    options.colour_scheme.set(request.scheme);
+    options.high_contrast.set(request.high_contrast);
     options.include_backplane = false;
     const std::optional<WindowCapture> capture = attached.capture_control(sample.graph, options);
     require(capture.has_value() && (*capture).pixel_width == 520U && (*capture).pixel_height == 330U,
@@ -338,19 +381,20 @@ public:
 // painted in the request's scheme and contrast queues them and draws
 // their grounds or nothing (E10, cp31), each idle frame makes some, the
 // frame after it repaints what waited, and the capture then shows them.
-// The window holds the request's presentation throughout: the capture's
-// own scope would restore the window's scheme after its paint, and a
-// scheme change shows another theme, which empties the queues
-// (EnginePartTable::invalidate_rasters). Bounded by maximum_settle_frames;
-// the window's presentation overrides are restored after the capture.
+// The window holds the request's presentation throughout, so that its own
+// paints queue the request's patterns and tiles and the capture needs no
+// scheme switch. (A switch no longer empties the queues, cp32, but each
+// switch repaints the whole window, and an idle frame waits for it.)
+// Bounded by maximum_settle_frames; the window's presentation overrides
+// are restored after the capture.
 WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
     Window& window = *sample.window;
     PresentationOverrides kept{};
     const PresentationOverrides* const current = window.presentation_overrides();
     if (current != nullptr) kept = *current;
     PresentationOverrides held = kept;
-    held.colour_scheme = request.scheme;
-    held.high_contrast = request.high_contrast;
+    held.colour_scheme.set(request.scheme);
+    held.high_contrast.set(request.high_contrast);
     window.set_presentation_overrides(held);
     window.perform_layout();
     const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};
@@ -408,7 +452,7 @@ constexpr std::uint32_t minor_x = 16U;
 void canvas_pixels() {
     const std::unique_ptr<OffscreenRaster> raster = made_raster();
     const SampleWindow sample = made_sample(nullptr);
-    (*sample.graph).settings.flow = false;
+    (*sample.graph).set_flow(false);
     OffscreenAttachment attached(*raster, *sample.window);
     const WindowCapture light = captured(attached, sample, CaptureRequest{});
     const std::array<std::uint8_t, 4> paper = pixel_at(light, empty_x, empty_y);
@@ -434,11 +478,11 @@ void canvas_pixels() {
 void texture_pixels() {
     const std::unique_ptr<OffscreenRaster> raster = made_raster();
     const SampleWindow plain = made_sample(nullptr);
-    (*plain.graph).settings.flow = false;
+    (*plain.graph).set_flow(false);
     std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
     select_texture_theme(*resources, felt_texture);
     const SampleWindow textured = made_sample(resources);
-    (*textured.graph).settings.flow = false;
+    (*textured.graph).set_flow(false);
     const CaptureRequest dark{ColourScheme::dark, false};
     WindowCapture off{};
     WindowCapture on{};
@@ -483,14 +527,14 @@ void flow_pixels() {
     const std::unique_ptr<OffscreenRaster> raster = made_raster();
     const SampleWindow sample = made_sample(nullptr);
     OffscreenAttachment attached(*raster, *sample.window);
-    (*sample.graph).settings.still = true;
+    (*sample.graph).set_still(true);
     const WindowCapture still_first = captured(attached, sample, CaptureRequest{});
-    static_cast<void>((*sample.graph).flow.advance(start + std::chrono::milliseconds(50)));
+    (*sample.graph).advance_flow(start + std::chrono::milliseconds(50));
     const WindowCapture still_second = captured(attached, sample, CaptureRequest{});
     require(still_first.bgra == still_second.bgra, "still frames do not move");
-    (*sample.graph).settings.still = false;
+    (*sample.graph).set_still(false);
     const WindowCapture moving_first = captured(attached, sample, CaptureRequest{});
-    static_cast<void>((*sample.graph).flow.advance(start + std::chrono::milliseconds(100)));
+    (*sample.graph).advance_flow(start + std::chrono::milliseconds(100));
     const WindowCapture moving_second = captured(attached, sample, CaptureRequest{});
     require(!(moving_first.bgra == moving_second.bgra), "the flow moves between frames");
 }
@@ -551,9 +595,9 @@ void write_preview(const std::string& directory) {
     {
         const SampleWindow sample = made_sample(nullptr);
         OffscreenAttachment attached(*raster, *sample.window);
-        (*sample.graph).settings.still = true;
+        (*sample.graph).set_still(true);
         for (const PreviewShot& shot : shots) {
-            (*sample.graph).settings.view = shot.view;
+            (*sample.graph).set_view(shot.view);
             const std::array<std::string_view, 4> variants{"paper", "blue", "green", "grey"};
             for (const std::string_view variant : variants) static_cast<void>((*sample.graph).remove_class(variant));
             if (!shot.variant.empty()) static_cast<void>((*sample.graph).add_class(shot.variant));
@@ -562,16 +606,16 @@ void write_preview(const std::string& directory) {
         for (const std::string_view variant : std::array<std::string_view, 4>{"paper", "blue", "green", "grey"}) {
             static_cast<void>((*sample.graph).remove_class(variant));
         }
-        (*sample.graph).settings.view = CanvasView{Point{-160.5, -60.5}, 2.0};
-        (*sample.graph).settings.still = false;
+        (*sample.graph).set_view(CanvasView{Point{-160.5, -60.5}, 2.0});
+        (*sample.graph).set_still(false);
         const std::array<std::string_view, 4> frames{"flow-0", "flow-1", "flow-2", "flow-3"};
         for (std::size_t frame = 0U; frame < frames.size(); ++frame) {
             const std::chrono::milliseconds elapsed(50 * static_cast<long long>(frame));
-            static_cast<void>((*sample.graph).flow.advance(start + elapsed));
+            (*sample.graph).advance_flow(start + elapsed);
             write_capture(captured(attached, sample, light), directory, frames[frame]);
         }
-        (*sample.graph).settings.view = normal;
-        (*sample.graph).settings.still = true;
+        (*sample.graph).set_view(normal);
+        (*sample.graph).set_still(true);
         write_capture(captured(attached, sample, light), directory, "texture-off");
     }
     // Each texture kind in light and dark, then two layers: one window
@@ -588,8 +632,8 @@ void write_preview(const std::string& directory) {
         std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
         select_texture_theme(*resources, texture.value);
         const SampleWindow textured = made_sample(resources);
-        (*textured.graph).settings.still = true;
-        (*textured.graph).settings.flow = false;
+        (*textured.graph).set_still(true);
+        (*textured.graph).set_flow(false);
         OffscreenAttachment attached(*raster, *textured.window);
         write_capture(settled(attached, textured, light), directory, texture.name);
         if (!texture.dark) continue;
@@ -604,9 +648,9 @@ void write_preview(const std::string& directory) {
         std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
         select_texture_theme(*resources, "finish(cloth-weave, #ffffff, #d8d8d8, 9) multiply 3%");
         const SampleWindow textured = made_sample(resources);
-        (*textured.graph).settings.still = true;
-        (*textured.graph).settings.flow = false;
-        (*textured.graph).settings.view = CanvasView{Point{260.0, 165.0}, 3.0};
+        (*textured.graph).set_still(true);
+        (*textured.graph).set_flow(false);
+        (*textured.graph).set_view(CanvasView{Point{260.0, 165.0}, 3.0});
         OffscreenAttachment attached(*raster, *textured.window);
         write_capture(settled(attached, textured, light), directory, "texture-tile-boundary");
     }

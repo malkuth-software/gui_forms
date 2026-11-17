@@ -7,7 +7,9 @@
   "capabilities_header": "include/gui_forms/controls/progress_ring_capabilities.hpp",
   "base": "Control",
   "shared": [],
-  "includes": [],
+  "includes": [
+    "gui_forms/controls/progress_ring_values.hpp"
+  ],
   "not_properties": [],
   "test": {
     "type": "ProgressRing",
@@ -117,6 +119,38 @@
       "hooks": "hand",
       "hand": [],
       "sample": "true"
+    },
+    {
+      "name": "ring_style",
+      "capability": "ProgressRingStyle",
+      "value": "ProgressRingStyle",
+      "initial": "ProgressRingStyle::theme",
+      "comment": "How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.",
+      "getter": "ring_style",
+      "setter": "set_ring_style",
+      "clear": null,
+      "field": "ring_style_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the ring is drawn: as the theme says, as dots or as one continuous arc.",
+        "default": "BindingValue{PropertyEnumValue{\"progress_ring_style\", \"theme\", 0}}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "progress_ring_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "ProgressRingStyle::arc"
     }
   ]
 }

@@ -1,6 +1,6 @@
 #import <AppKit/AppKit.h>
 #include "gui_forms/platform/macos_host.hpp"
-#include "../src/host/macos/services/appkit_clipboard_image.hpp"
+#include "../src/surface/macos/services/appkit_clipboard_image.hpp"
 
 #include <array>
 #include <iostream>

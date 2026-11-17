@@ -1,0 +1,28 @@
+#pragma once
+
+#include <stxlib/optional.hpp>
+#include <cstddef>
+#include <optional>
+
+namespace gui_forms {
+
+struct Color final {
+    unsigned value{0U};
+    bool operator==(const Color& other) const noexcept { return value == other.value; }
+};
+
+struct Style final {
+    stxlib::Optional<Color> fill;
+    stxlib::Optional<std::size_t> index = stxlib::Optional<std::size_t>::none();
+};
+
+class Box final {
+public:
+    [[nodiscard]] stxlib::Optional<Color> fill() const noexcept;
+    void set_fill(stxlib::Optional<Color> fill) noexcept;
+
+private:
+    stxlib::Optional<Color> fill_;
+};
+
+} // namespace gui_forms

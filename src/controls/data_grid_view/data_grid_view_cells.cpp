@@ -67,6 +67,17 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
     paint_data_grid_view_cell_parts(painter, owner, snapshot, cell, data, true);
 }
 
+void paint_data_grid_view_row_overlay(Painter& painter, const Control& owner, const DataGridViewRowOverlayPart& overlay) {
+    if (overlay.bounds.empty()) return;
+    PartPaint part;
+    part.family = ControlVisualRole::editor;
+    part.role = overlay.role;
+    part.mark = overlay.mark;
+    part.bounds = overlay.bounds;
+    part.authored_background = overlay.background;
+    paint_part(painter, owner, part);
+}
+
 void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell) {
     if (!cell.parts.cell.present) return;
     // The selection plate: transparent at rest in the selection recipe.
@@ -152,11 +163,13 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
         part.role = PartRole::well;
         part.bounds = parts.check_well.bounds;
         paint_part(painter, owner, part);
-        // The indicator is a mark: drawn while checked, absent otherwise.
-        if (cell.states.contains(AnatomyState::checked)) {
+        // The indicator is a mark: the check while checked, the bar while
+        // indeterminate, absent otherwise.
+        const bool checked = cell.states.contains(AnatomyState::checked);
+        if (checked || cell.states.contains(AnatomyState::indeterminate)) {
             part.role = PartRole::indicator;
             part.bounds = parts.check_indicator.bounds;
-            part.mark = PartMark::check;
+            part.mark = checked ? PartMark::check : PartMark::indeterminate;
             paint_part(painter, owner, part);
             part.mark = PartMark::none;
         }
@@ -252,7 +265,7 @@ void DataGridViewCells::on_paint(Painter& painter, Rect) {
     well.bounds = snapshot_.well.bounds;
     well.authored_background = snapshot_.well.authored_background;
     paint_part(painter, *this, well);
-    if (well.authored_background && !snapshot_.cells_extent.empty()) {
+    if (well.authored_background.present() && !snapshot_.cells_extent.empty()) {
         // Under the cells the well keeps the theme's ground: the same well
         // painted again without the authored colour, cut to the cells.
         well.authored_background.reset();
@@ -265,7 +278,22 @@ void DataGridViewCells::on_paint(Painter& painter, Rect) {
     painter.save();
     painter.clip_rect(data);
     for (const DataGridViewCellsCell& cell : snapshot_.cells) {
-        paint_data_grid_view_cell(painter, *this, snapshot_, cell, data);
+        if (cell.pane.empty()) {
+            paint_data_grid_view_cell(painter, *this, snapshot_, cell, data);
+            continue;
+        }
+        // A cell of a grid with frozen rows or columns: cut to its pane, so
+        // that scrolling cells pass under the frozen ones.
+        const Rect cut = Rect::intersection(cell.pane, data);
+        if (cut.empty()) continue;
+        painter.save();
+        painter.clip_rect(cut);
+        paint_data_grid_view_cell(painter, *this, snapshot_, cell, cut);
+        painter.restore();
+    }
+    // The rows' overlay parts, over every cell.
+    for (const DataGridViewRowOverlayPart& overlay : snapshot_.overlays) {
+        paint_data_grid_view_row_overlay(painter, *this, overlay);
     }
     painter.restore();
 }

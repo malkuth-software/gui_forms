@@ -11,6 +11,7 @@
 
 #include "gui_forms/c/gf_abi.h"
 
+#include "../../../src/abi/stable/events/abi_event_fields.hpp"
 #include "../../../src/abi/stable/registry/abi_registry.hpp"
 
 #include "gui_forms/basic_controls.hpp"
@@ -18,21 +19,25 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/tab_control.hpp"
 #include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/window.hpp"
 
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <new>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 // N12's measurement: every allocation of the process is counted, so the
@@ -324,7 +329,7 @@ void collections(const Tables& tables) {
     gf_subscription subscription = 0U;
     require_ok(tables.events.subscribe(list, text_view("selection_changed"), &callback, &subscription),
                "subscribe selection_changed");
-    const ListSelectionChange change{{4U, 7U}, {9U}, std::nullopt};
+    const ListSelectionChange change{{4U, 7U}, {9U}, stxlib::Optional<std::size_t>::none()};
     (*control).selection_changed().emit(change);
     require(probe.invoked == 1, "selection_changed reached the callback");
     require(probe.previous_count == 2U && probe.first_previous == 7U,
@@ -460,6 +465,354 @@ void two_arguments(const Tables& tables) {
     require(probe.flag_names == "layout", "a combination that is itself a choice takes that choice's name");
     require_ok(tables.events.disconnect(subscription), "disconnect initialization_completed");
     require_ok(tables.objects.release(panel), "release the panel");
+}
+
+// The fixed-size array fields (since 1.5): a plot's camera_changed, hovered
+// and picked reach an ABI callback with their std::array members as
+// COLLECTION fields whose elements are lent in place.
+struct ArrayProbe final {
+    const Tables* tables = nullptr;
+    int invoked = 0;
+    std::vector<std::string> names;
+    std::vector<gf_value_kind> kinds;
+    bool payload_null = false;
+    // The first array field the callback looked for, as lent.
+    std::uint64_t array_count = 0U;
+    std::uint64_t array_element_count = 0U;
+    std::vector<double> array_numbers;
+    bool elements_numbers = false;
+    double element_read = 0.0;
+    gf_status element_status = GF_STATUS_INTERNAL;
+    gf_status element_past_end = GF_STATUS_INTERNAL;
+    gf_status write_refused = GF_STATUS_INTERNAL;
+    // The second array field (a hit's surface_parameter).
+    std::uint64_t second_count = 0U;
+    std::vector<double> second_numbers;
+    std::string kind_name;
+    std::uint64_t item = 0U;
+    std::string projection_name;
+    std::string_view array_name;
+};
+
+// Reads a fixed-size array field of numbers as lent: its count, its records
+// in place, and that every record is a NUMBER.
+void read_numbers(const gf_event_field& field, std::uint64_t& count, std::uint64_t& element_count,
+                  std::vector<double>& numbers, bool& all_numbers) {
+    const gf_value& value = *field.value;
+    count = value.unsigned_integer;
+    element_count = value.element_count;
+    numbers.clear();
+    all_numbers = value.elements != nullptr;
+    for (std::uint64_t index = 0U; index < value.element_count && value.elements != nullptr; ++index) {
+        const gf_value& element = value.elements[index];
+        all_numbers = all_numbers && element.kind == GF_VALUE_KIND_NUMBER;
+        numbers.push_back(element.number);
+    }
+}
+
+void GF_CALL array_invoke(void* context, gf_event* event) {
+    ArrayProbe& probe = *static_cast<ArrayProbe*>(context);
+    probe.invoked = probe.invoked + 1;
+    probe.names.clear();
+    probe.kinds.clear();
+    for (std::uint64_t index = 0U; index < (*event).field_count; ++index) {
+        probe.names.emplace_back(view_text((*event).fields[index].name));
+        probe.kinds.push_back((*event).fields[index].kind);
+    }
+    probe.payload_null = (*event).payload == nullptr;
+    std::uint64_t index = 0U;
+    const gf_event_field* array = field_named(*event, probe.array_name, index);
+    if (array != nullptr) {
+        read_numbers(*array, probe.array_count, probe.array_element_count, probe.array_numbers,
+                     probe.elements_numbers);
+        gf_value element = blank_value(GF_VALUE_KIND_NULL);
+        probe.element_status = (*probe.tables).events.field_element(event, index, 1U, &element);
+        probe.element_read = element.number;
+        probe.element_past_end =
+            (*probe.tables).events.field_element(event, index, (*(*array).value).element_count, &element);
+        // Not a mutable payload: the array is not writable.
+        gf_value replacement = blank_value(GF_VALUE_KIND_COLLECTION);
+        probe.write_refused = (*probe.tables).events.write_field(event, index, &replacement);
+    }
+    const gf_event_field* surface = field_named(*event, "surface_parameter", index);
+    if (surface != nullptr) {
+        std::uint64_t element_count = 0U;
+        bool all_numbers = false;
+        read_numbers(*surface, probe.second_count, element_count, probe.second_numbers, all_numbers);
+        probe.elements_numbers = probe.elements_numbers && all_numbers;
+    }
+    const gf_event_field* kind = field_named(*event, "kind", index);
+    if (kind != nullptr) {
+        probe.kind_name = view_text((*(*kind).value).text);
+    }
+    const gf_event_field* item = field_named(*event, "item", index);
+    if (item != nullptr) {
+        probe.item = (*(*item).value).unsigned_integer;
+    }
+    const gf_event_field* projection = field_named(*event, "projection", index);
+    if (projection != nullptr) {
+        probe.projection_name = view_text((*(*projection).value).text);
+    }
+}
+
+gf_subscription subscribe_array(const Tables& tables, gf_object object, std::string_view name, ArrayProbe& probe) {
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &array_invoke;
+    callback.context = &probe;
+    gf_subscription subscription = 0U;
+    require_ok(tables.events.subscribe(object, text_view(name), &callback, &subscription), "subscribe a plot event");
+    return subscription;
+}
+
+void plot_camera(const Tables& tables) {
+    const gf_object plot = create(tables, "plot3d_view", "fields.plot");
+    const std::shared_ptr<Plot3DView> view = control_of<Plot3DView>(plot);
+    ArrayProbe probe;
+    probe.tables = &tables;
+    probe.array_name = "target";
+    const gf_subscription subscription = subscribe_array(tables, plot, "camera_changed", probe);
+    plots::Plot3DCamera camera = (*view).camera();
+    camera.elevation = 12.0;
+    camera.azimuth = -40.0;
+    camera.target = std::array<double, 3>{0.25, -0.5, 0.125};
+    camera.projection = plots::Plot3DProjection::orthographic;
+    require((*view).set_camera(camera), "the plot's camera moves");
+    const plots::Plot3DCamera& moved = (*view).camera();
+    require(probe.invoked == 1, "camera_changed reached the callback once");
+    const std::vector<std::string> expected{"elevation", "azimuth", "roll", "zoom", "target", "projection",
+                                            "focal_length"};
+    require(probe.names == expected, "camera_changed's fields are the camera's members in order");
+    require(probe.kinds.size() == 7U && probe.kinds[0] == GF_VALUE_KIND_NUMBER &&
+                probe.kinds[4] == GF_VALUE_KIND_COLLECTION && probe.kinds[5] == GF_VALUE_KIND_ENUMERATION &&
+                probe.kinds[6] == GF_VALUE_KIND_NUMBER,
+            "the camera's fields have the members' kinds, the target a collection");
+    require(probe.payload_null, "a struct payload is not a single payload value");
+    require(probe.array_count == 3U && probe.array_element_count == 3U && probe.elements_numbers,
+            "the target lends its three NUMBER elements in place, its count in both places");
+    const std::vector<double> target{moved.target[0], moved.target[1], moved.target[2]};
+    require(probe.array_numbers == target, "the lent elements are the camera's target in order");
+    require(probe.element_status == GF_STATUS_OK && probe.element_read == moved.target[1],
+            "field_element reads the same elements");
+    require(probe.element_past_end == GF_STATUS_NOT_FOUND, "an element past the array's count is not found");
+    require(probe.write_refused == GF_STATUS_INVALID_ARGUMENT, "an array of an immutable payload is not writable");
+    require(probe.projection_name == "orthographic", "the camera's projection is named");
+    require_ok(tables.events.disconnect(subscription), "disconnect camera_changed");
+
+    ArrayProbe hovered;
+    hovered.tables = &tables;
+    hovered.array_name = "data_point";
+    ArrayProbe picked;
+    picked.tables = &tables;
+    picked.array_name = "data_point";
+    const gf_subscription hovered_subscription = subscribe_array(tables, plot, "hovered", hovered);
+    const gf_subscription picked_subscription = subscribe_array(tables, plot, "picked", picked);
+    plots::Plot3DHit hit{};
+    hit.kind = plots::Plot3DHitKind::scatter;
+    hit.item = plots::Plot3DItemId{7U};
+    hit.index = 3U;
+    hit.data_point = std::array<double, 3>{1.5, -2.0, 0.5};
+    hit.surface_parameter = std::array<double, 2>{0.25, 0.75};
+    hit.depth = 4.0;
+    (*view).hovered().emit(hit);
+    (*view).picked().emit(hit);
+    const std::vector<std::string> hit_fields{"kind", "item", "index", "data_point", "surface_parameter", "depth"};
+    const std::vector<double> data_point{1.5, -2.0, 0.5};
+    const std::vector<double> surface_parameter{0.25, 0.75};
+    const std::array<ArrayProbe*, 2> probes{&hovered, &picked};
+    for (ArrayProbe* seen : probes) {
+        require((*seen).invoked == 1, "a hit event reached its callback once");
+        require((*seen).names == hit_fields, "a hit's fields are its members in order");
+        require((*seen).kinds.size() == 6U && (*seen).kinds[3] == GF_VALUE_KIND_COLLECTION &&
+                    (*seen).kinds[4] == GF_VALUE_KIND_COLLECTION,
+                "a hit's arrays are collections");
+        require((*seen).array_count == 3U && (*seen).array_numbers == data_point && (*seen).elements_numbers,
+                "a hit's data point lends its three numbers");
+        require((*seen).second_count == 2U && (*seen).second_numbers == surface_parameter,
+                "a hit's surface parameter lends its two numbers");
+        require((*seen).kind_name == "scatter" && (*seen).item == 7U, "a hit's kind and item are fields");
+    }
+    require_ok(tables.events.disconnect(hovered_subscription), "disconnect hovered");
+    require_ok(tables.events.disconnect(picked_subscription), "disconnect picked");
+    require_ok(tables.objects.release(plot), "release the plot");
+}
+
+// A writable fixed-size array (a mutable argument's), on EventFields itself:
+// a write replaces the whole array after every element is checked, the lent
+// records and field_element show it, and read_field returns it to the C++
+// array. No payload declares one yet, so the fields are built directly.
+gf_value number_value(double number) {
+    gf_value value = blank_value(GF_VALUE_KIND_NUMBER);
+    value.number = number;
+    return value;
+}
+
+// A caller's record from a later minor: larger than gf_value, so its
+// array is stepped by its own struct_size.
+struct LargerValue final {
+    gf_value value{};
+    std::uint64_t later = 0U;
+};
+
+void writable_arrays() {
+    const abi1::SlotIdentity slot{GF_TABLE_EVENTS, 0U};
+    abi1::EventFields fields;
+    require(fields.claim(), "fresh fields are claimed");
+    fields.set_writable(true);
+    std::array<double, 3> point{1.0, 2.0, 3.0};
+    std::array<std::int8_t, 2> pair{1, 2};
+    abi1::append_field(fields, "point", point);
+    abi1::append_field(fields, "pair", pair);
+    gf_event event{};
+    fields.publish(event, false);
+    require(event.field_count == 2U && event.fields[0].kind == GF_VALUE_KIND_COLLECTION &&
+                (event.fields[0].flags & GF_EVENT_FIELD_WRITABLE) != 0U,
+            "a mutable argument's array is a writable collection");
+    const gf_value& lent = *event.fields[0].value;
+    require(lent.element_count == 3U && lent.elements != nullptr && lent.elements[2].number == 3.0 &&
+                lent.elements[1].kind == GF_VALUE_KIND_NUMBER,
+            "the array's elements are lent in place");
+    require((*event.fields[1].value).elements[0].kind == GF_VALUE_KIND_SIGNED,
+            "an array of a signed integer lends SIGNED elements");
+
+    std::array<gf_value, 2> two{number_value(4.0), number_value(5.0)};
+    gf_value wrong_count = blank_value(GF_VALUE_KIND_COLLECTION);
+    wrong_count.elements = two.data();
+    wrong_count.element_count = two.size();
+    require(fields.write(0U, &wrong_count, slot) == GF_STATUS_INVALID_ARGUMENT,
+            "an array is written with exactly its count");
+    std::array<gf_value, 3> mixed{number_value(4.0), blank_value(GF_VALUE_KIND_SIGNED), number_value(6.0)};
+    gf_value wrong_kind = blank_value(GF_VALUE_KIND_COLLECTION);
+    wrong_kind.elements = mixed.data();
+    wrong_kind.element_count = mixed.size();
+    require(fields.write(0U, &wrong_kind, slot) == GF_STATUS_INVALID_ARGUMENT,
+            "every element is of the array's element kind");
+    std::array<gf_value, 3> unbounded{number_value(4.0), number_value(5.0),
+                                      number_value(std::numeric_limits<double>::infinity())};
+    gf_value not_finite = blank_value(GF_VALUE_KIND_COLLECTION);
+    not_finite.elements = unbounded.data();
+    not_finite.element_count = unbounded.size();
+    require(fields.write(0U, &not_finite, slot) == GF_STATUS_INVALID_ARGUMENT, "every element is checked");
+    require(lent.elements[0].number == 1.0, "a refused write leaves the array as it was");
+    gf_value large = blank_value(GF_VALUE_KIND_SIGNED);
+    large.signed_integer = 300;
+    std::array<gf_value, 2> out_of_range{blank_value(GF_VALUE_KIND_SIGNED), large};
+    gf_value too_large = blank_value(GF_VALUE_KIND_COLLECTION);
+    too_large.elements = out_of_range.data();
+    too_large.element_count = out_of_range.size();
+    require(fields.write(1U, &too_large, slot) == GF_STATUS_INVALID_ARGUMENT,
+            "an element is admitted by the element type's range");
+
+    std::array<LargerValue, 3> later{};
+    const std::array<double, 3> numbers{4.0, 5.0, 6.0};
+    for (std::size_t index = 0U; index < later.size(); ++index) {
+        later[index].value = number_value(numbers[index]);
+        later[index].value.struct_size = sizeof(LargerValue);
+        later[index].later = 0xFFFFFFFFFFFFFFFFULL;
+    }
+    gf_value replacement = blank_value(GF_VALUE_KIND_COLLECTION);
+    replacement.elements = &later[0].value;
+    replacement.element_count = later.size();
+    require(fields.write(0U, &replacement, slot) == GF_STATUS_OK,
+            "a whole array of the element kind is written, stepped by its records' size");
+    const gf_value& rewritten = *event.fields[0].value;
+    require(rewritten.element_count == 3U && rewritten.elements[1].number == 5.0 &&
+                rewritten.elements[1].struct_size == sizeof(gf_value),
+            "the lent records show the written elements, kept at the library's size");
+    gf_value element = blank_value(GF_VALUE_KIND_NULL);
+    require(fields.element(0U, 2U, &element, slot) == GF_STATUS_OK && element.number == 6.0,
+            "field_element reads the written elements");
+    // The records the field lent, passed back unchanged.
+    gf_value same = blank_value(GF_VALUE_KIND_COLLECTION);
+    same.elements = rewritten.elements;
+    same.element_count = rewritten.element_count;
+    require(fields.write(0U, &same, slot) == GF_STATUS_OK && rewritten.elements[0].number == 4.0,
+            "the lent records may be written back as they are");
+
+    fields.end_publication();
+    abi1::read_field(fields, "point", point);
+    abi1::read_field(fields, "pair", pair);
+    require(point[0] == 4.0 && point[1] == 5.0 && point[2] == 6.0, "the written array reaches the C++ array");
+    require(pair[0] == 1 && pair[1] == 2, "an array the callback did not write keeps its values");
+    fields.release();
+}
+
+// A-gf-abi-02-F8: an object element of a collection is read through a
+// scratch frame; the identity it lends must outlive that scratch and stay
+// valid until the event's frame is released. The control here is unknown to
+// the registry when the element is read, so the read makes its identity.
+void object_element_identity(const Tables& tables) {
+    const abi1::SlotIdentity slot{GF_TABLE_EVENTS, 0U};
+    const gf_object made = create(tables, "button", "fields.element-button");
+    const std::shared_ptr<Button> button = control_of<Button>(made);
+    require_ok(tables.objects.release(made), "release the made handle; the test's pointer keeps the button");
+    const std::vector<const Control*> items{button.get()};
+    abi1::EventFields fields;
+    require(fields.claim(), "fresh fields are claimed");
+    abi1::append_field(fields, "items", items);
+    gf_event event{};
+    fields.publish(event, false);
+    gf_value element = blank_value(GF_VALUE_KIND_NULL);
+    require(fields.element(0U, 0U, &element, slot) == GF_STATUS_OK && element.kind == GF_VALUE_KIND_OBJECT &&
+                element.unsigned_integer != 0U,
+            "an object element reads as an identity");
+    const gf_object lent = static_cast<gf_object>(element.unsigned_integer);
+    require(tables.objects.retain(lent) == GF_STATUS_OK, "the element's identity is live after the read");
+    require_ok(tables.objects.release(lent), "give back the test's reference");
+    fields.end_publication();
+    fields.release();
+    require(tables.objects.retain(lent) == GF_STATUS_STALE_HANDLE, "the frame's release ends the identity");
+}
+
+// A-gf-abi-02-F1: a COLLECTION written to an any-kind field (a Binding's
+// format or parse value, a grid cell's formatted value) is converted when it
+// is written. The caller's elements and their texts live only for the
+// callback, so they are scribbled before read_field runs: the value must
+// come back from the library's own copy, never the caller's records.
+void any_kind_collection_write() {
+    const abi1::SlotIdentity slot{GF_TABLE_EVENTS, 0U};
+    abi1::EventFields fields;
+    require(fields.claim(), "fresh fields are claimed");
+    fields.set_writable(true);
+    const BindingValue initial{std::string{"before"}};
+    abi1::append_field(fields, "value", initial);
+    gf_event event{};
+    fields.publish(event, true);
+    require(event.field_count == 1U && (event.fields[0].flags & GF_EVENT_FIELD_ANY_KIND) != 0U,
+            "a BindingValue argument is an any-kind field");
+
+    std::array<std::string, 2> texts{std::string{"alpha"}, std::string{"beta"}};
+    std::array<gf_value, 2> elements{blank_value(GF_VALUE_KIND_TEXT), blank_value(GF_VALUE_KIND_TEXT)};
+    for (std::size_t index = 0U; index < elements.size(); ++index) {
+        elements[index].text = text_view(texts[index]);
+    }
+    gf_value written = blank_value(GF_VALUE_KIND_COLLECTION);
+    written.elements = elements.data();
+    written.element_count = elements.size();
+    require(fields.write(0U, &written, slot) == GF_STATUS_OK, "a collection is written to an any-kind field");
+    const gf_value& kept = *event.fields[0].value;
+    require(kept.elements == nullptr && kept.element_count == 0U,
+            "the field keeps no pointer to the caller's elements");
+
+    // The callback returns: its elements and their texts are gone.
+    for (std::size_t index = 0U; index < elements.size(); ++index) {
+        std::memset(texts[index].data(), 'X', texts[index].size());
+        std::memset(static_cast<void*>(&elements[index]), 0xA5, sizeof(gf_value));
+    }
+    fields.end_publication();
+    BindingValue value{std::string{"before"}};
+    abi1::read_field(fields, "value", value);
+    const PropertyCollectionValue* collection = std::get_if<PropertyCollectionValue>(&value);
+    require(collection != nullptr && (*collection).data() != nullptr,
+            "the written collection reaches the C++ value");
+    if (collection != nullptr && (*collection).data() != nullptr) {
+        const std::vector<BindingValue>& items = (*(*collection).data()).items;
+        const std::string* first = items.size() == 2U ? std::get_if<std::string>(&items[0]) : nullptr;
+        const std::string* second = items.size() == 2U ? std::get_if<std::string>(&items[1]) : nullptr;
+        require(first != nullptr && second != nullptr && *first == "alpha" && *second == "beta",
+                "the collection's elements are those written, not the caller's storage after the callback");
+    }
+    fields.release();
 }
 
 // The key events (since 1.1): a control's key_down and key_press reach an
@@ -638,7 +991,34 @@ gf_status status_of_thrown(int which) {
     }
 }
 
+// A slot body that throws as status_of_thrown does, or returns its own
+// failure (which 4), for the slot gate (abi1::call_slot).
+gf_status throwing_slot_body(int which) {
+    if (which == 0) throw WrongThreadError("wrong thread");
+    if (which == 1) throw DisposedError("disposed");
+    if (which == 2) throw std::length_error("limit");
+    if (which == 3) throw std::logic_error("state");
+    if (which == 4) return abi1::fail(GF_STATUS_NOT_FOUND, abi1::SlotIdentity{GF_TABLE_OBJECTS, 1U}, "its own");
+    // Longer than an STXlib error record's 200 bytes.
+    throw std::invalid_argument(std::string(300U, 'x'));
+}
+
+gf_status status_through_gate(int which) {
+    const abi1::SlotIdentity slot{GF_TABLE_OBJECTS, 1U};
+    const gf_status status = abi1::call_slot(slot, throwing_slot_body, which);
+    return status;
+}
+
 void failure_statuses() {
+    require(status_through_gate(0) == GF_STATUS_WRONG_THREAD, "the slot gate maps a wrong-thread failure");
+    require(status_through_gate(1) == GF_STATUS_DISPOSED, "the slot gate maps a disposed failure");
+    require(status_through_gate(2) == GF_STATUS_LIMIT_EXCEEDED, "the slot gate maps a limit");
+    require(status_through_gate(3) == GF_STATUS_INVALID_STATE, "the slot gate maps another logic error");
+    require(status_through_gate(4) == GF_STATUS_NOT_FOUND, "a body's own failure passes through the slot gate");
+    require(status_through_gate(5) == GF_STATUS_INVALID_ARGUMENT && abi1::thread_failure().message_size == 300U,
+            "the slot gate keeps a message longer than an error record holds");
+    require(abi1::thread_failure().slot.table_id == GF_TABLE_OBJECTS && abi1::thread_failure().slot.slot_index == 1U,
+            "the slot gate's failure names its slot");
     require(status_of_thrown(0) == GF_STATUS_WRONG_THREAD, "a core wrong-thread failure is GF_STATUS_WRONG_THREAD");
     require(status_of_thrown(1) == GF_STATUS_DISPOSED, "a core disposed failure is GF_STATUS_DISPOSED");
     require(status_of_thrown(2) == GF_STATUS_LIMIT_EXCEEDED, "a core limit is GF_STATUS_LIMIT_EXCEEDED");
@@ -671,6 +1051,10 @@ int main(int argc, char** argv) {
         collections(tables);
         optional_text(tables);
         two_arguments(tables);
+        plot_camera(tables);
+        writable_arrays();
+        any_kind_collection_write();
+        object_element_identity(tables);
         key_events(tables);
         emission_allocations(tables);
         failure_statuses();

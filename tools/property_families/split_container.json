@@ -168,8 +168,8 @@
       "effects": "invalidation::bounds",
       "prepare": [
         "require_finite_nonnegative(incoming, \"first panel minimum must be finite and nonnegative\");",
-        "const std::optional<double>& maximum = first_maximum.read();",
-        "if (maximum && incoming > *maximum) {",
+        "const double* maximum = first_maximum.read().value();",
+        "if (maximum != nullptr && incoming > *maximum) {",
         "    throw std::invalid_argument(\"first panel minimum may not exceed its maximum\");",
         "}"
       ],
@@ -195,8 +195,8 @@
       "effects": "invalidation::bounds",
       "prepare": [
         "require_finite_nonnegative(incoming, \"second panel minimum must be finite and nonnegative\");",
-        "const std::optional<double>& maximum = second_maximum.read();",
-        "if (maximum && incoming > *maximum) {",
+        "const double* maximum = second_maximum.read().value();",
+        "if (maximum != nullptr && incoming > *maximum) {",
         "    throw std::invalid_argument(\"second panel minimum may not exceed its maximum\");",
         "}"
       ],
@@ -205,7 +205,7 @@
     {
       "name": "first_maximum",
       "capability": "SplitContainerFirstMaximum",
-      "value": "std::optional<double>",
+      "value": "stxlib::Optional<double>",
       "initial": null,
       "comment": "The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.",
       "getter": "first_maximum",
@@ -221,19 +221,20 @@
       "hand": [],
       "effects": "invalidation::bounds",
       "prepare": [
-        "if (incoming) {",
-        "    require_finite_nonnegative(*incoming, \"first panel maximum must be finite and nonnegative\");",
-        "    if (*incoming < first_minimum.read()) {",
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr) {",
+        "    require_finite_nonnegative(*incoming_value, \"first panel maximum must be finite and nonnegative\");",
+        "    if (*incoming_value < first_minimum.read()) {",
         "        throw std::invalid_argument(\"first panel maximum may not be below its minimum\");",
         "    }",
         "}"
       ],
-      "sample": "std::optional<double>{400.0}"
+      "sample": "stxlib::Optional<double>::of(400.0)"
     },
     {
       "name": "second_maximum",
       "capability": "SplitContainerSecondMaximum",
-      "value": "std::optional<double>",
+      "value": "stxlib::Optional<double>",
       "initial": null,
       "comment": "The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.",
       "getter": "second_maximum",
@@ -249,14 +250,15 @@
       "hand": [],
       "effects": "invalidation::bounds",
       "prepare": [
-        "if (incoming) {",
-        "    require_finite_nonnegative(*incoming, \"second panel maximum must be finite and nonnegative\");",
-        "    if (*incoming < second_minimum.read()) {",
+        "const double* incoming_value = incoming.value();",
+        "if (incoming_value != nullptr) {",
+        "    require_finite_nonnegative(*incoming_value, \"second panel maximum must be finite and nonnegative\");",
+        "    if (*incoming_value < second_minimum.read()) {",
         "        throw std::invalid_argument(\"second panel maximum may not be below its minimum\");",
         "    }",
         "}"
       ],
-      "sample": "std::optional<double>{400.0}"
+      "sample": "stxlib::Optional<double>::of(400.0)"
     },
     {
       "name": "splitter_fixed",

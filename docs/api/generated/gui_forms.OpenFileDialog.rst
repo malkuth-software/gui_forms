@@ -39,9 +39,9 @@ gui_forms::OpenFileDialog
          as :cpp:member:`title <gui_forms::OpenFileDialog::title>` is.
 
       **filter** : ``std::string``, default empty
-         The filter in Windows Forms' syntax: ``label|patterns`` pairs separated
-         by ``|``, the patterns separated by ``;``, as in
-         ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
+         The filter in Windows Forms' syntax: ``label\|patterns`` pairs separated
+         by ``\|``, the patterns separated by ``;``, as in
+         ``"Text files\|*.txt;*.log\|All files\|*.*"``. A pattern is ``*``, ``*.*``
          (any file) or ``*.extension``; the hosts filter by extension only, so
          other patterns are refused. A write throws ``std::invalid_argument``
          for a string ``parse_file_dialog_filter`` refuses, and keeps the old
@@ -62,6 +62,12 @@ gui_forms::OpenFileDialog
          The first chosen path, or empty. Before the dialog is shown, a name written
          here is the one the dialog suggests; it becomes the one
          chosen path (none for an empty name).
+
+      **check_file_exists** : ``bool``
+         Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+
+      **check_path_exists** : ``bool``
+         Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
 
       **filters** : ``std::span<const HostFileDialogFilter>``, read-only
          The host filters the filter parsed into, in order.
@@ -169,9 +175,9 @@ gui_forms::OpenFileDialog
 
    .. cpp:member:: std::string filter
 
-      The filter in Windows Forms' syntax: ``label|patterns`` pairs separated
-      by ``|``, the patterns separated by ``;``, as in
-      ``"Text files|*.txt;*.log|All files|*.*"``. A pattern is ``*``, ``*.*``
+      The filter in Windows Forms' syntax: ``label\|patterns`` pairs separated
+      by ``\|``, the patterns separated by ``;``, as in
+      ``"Text files\|*.txt;*.log\|All files\|*.*"``. A pattern is ``*``, ``*.*``
       (any file) or ``*.extension``; the hosts filter by extension only, so
       other patterns are refused. A write throws ``std::invalid_argument``
       for a string ``parse_file_dialog_filter`` refuses, and keeps the old
@@ -195,6 +201,14 @@ gui_forms::OpenFileDialog
       The first chosen path, or empty. Before the dialog is shown, a name written
       here is the one the dialog suggests; it becomes the one
       chosen path (none for an empty name).
+
+   .. cpp:member:: bool check_file_exists
+
+      Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+
+   .. cpp:member:: bool check_path_exists
+
+      Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
 
    .. cpp:function:: std::span<const HostFileDialogFilter> filters() const& noexcept
 

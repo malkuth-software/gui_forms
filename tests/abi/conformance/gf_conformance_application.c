@@ -8,6 +8,7 @@
 #include "gf_conformance_internal.h"
 
 #include <stdio.h>
+#include <stddef.h>
 #include <string.h>
 
 static const char application_sheet[] = "button::part(face) { background-color: #3366cc }\n";
@@ -75,6 +76,41 @@ static void read_theme(gf_kit* kit, char* id, uint64_t capacity) {
     id[read == GF_STATUS_OK ? required : 0u] = '\0';
 }
 
+/* The program identity (since 1.5): a valid record is taken, a refused
+ * one (a website that is not https, a short record, reserved set, no
+ * record) changes nothing and fails with invalid argument. */
+static void program_identity(gf_kit* kit) {
+    if ((*kit).application.struct_size < offsetof(gf_application_table, set_program_identity) + sizeof(void*)) {
+        return;
+    }
+    gf_program_identity identity;
+    memset(&identity, 0, sizeof(identity));
+    identity.struct_size = (uint32_t)sizeof(identity);
+    identity.product = gf_kit_text("Conformance Kit");
+    identity.version = gf_kit_text("1.5");
+    identity.vendor = gf_kit_text("Example Vendor");
+    identity.website = gf_kit_text("https://example.test/");
+    identity.copyright = gf_kit_text("(c) 2026");
+    identity.credits = gf_kit_text("Everyone");
+    gf_kit_status(kit, (*kit).application.set_program_identity(&identity), GF_STATUS_OK, "set the program identity");
+    identity.website = gf_kit_text("http://example.test/");
+    gf_kit_status(kit, (*kit).application.set_program_identity(&identity), GF_STATUS_INVALID_ARGUMENT,
+                  "a website that is not https is refused");
+    identity.website = gf_kit_text("");
+    identity.reserved = 1u;
+    gf_kit_status(kit, (*kit).application.set_program_identity(&identity), GF_STATUS_INVALID_ARGUMENT,
+                  "an identity with reserved set is refused");
+    identity.reserved = 0u;
+    identity.struct_size = 8u;
+    gf_kit_status(kit, (*kit).application.set_program_identity(&identity), GF_STATUS_INVALID_ARGUMENT,
+                  "an identity shorter than its 1.5 size is refused");
+    gf_kit_status(kit, (*kit).application.set_program_identity(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "set_program_identity needs a record");
+    identity.struct_size = (uint32_t)sizeof(identity);
+    gf_kit_status(kit, (*kit).application.set_program_identity(&identity), GF_STATUS_OK,
+                  "an identity without a website is taken");
+}
+
 /* Whether any held finding has code. */
 static int has_finding(gf_kit* kit, uint64_t count, const char* code) {
     for (uint64_t index = 0u; index < count; ++index) {
@@ -129,6 +165,7 @@ void gf_kit_application(gf_kit* kit) {
         listed[index] = packages[index].package;
     }
     check_invalid(kit, listed);
+    program_identity(kit);
 
     /* More packages than the maximum: the compile refuses (E601). */
     gf_application_config config = config_of(listed, KIT_PACKAGES);

@@ -71,6 +71,31 @@ public:
         self.assertEqual(len(findings), 1)
         self.assertIn(types[0]["id"], findings[0])
 
+    def test_a_defined_control_is_the_type_made_from_a_definition(self) -> None:
+        schema = cs.load_schema()
+        registry = cr.load_registry()
+        classes = cs.scan_classes()
+
+        def composite_findings_for(types: list[dict]) -> list[str]:
+            findings = cs.validate({"types": types, "vocabulary": schema["vocabulary"], "engine": schema["engine"]},
+                                   registry, classes)
+            return [finding for finding in findings if finding.startswith("composite_control:")]
+
+        types = [dict(record) for record in schema["types"]]
+        self.assertEqual(composite_findings_for(types), [])
+        position = next(index for index, record in enumerate(types) if record["id"] == "composite_control")
+        self.assertEqual(types[position]["kind"], cs.DEFINED_CONTROL_KIND)
+        types[position] = dict(types[position], kind="service")
+        self.assertTrue(any("construction" in finding for finding in composite_findings_for(types)))
+        types[position] = dict(types[position], kind=cs.DEFINED_CONTROL_KIND, properties=[])
+        self.assertTrue(any("lists nothing" in finding for finding in composite_findings_for(types)))
+        panel = next(index for index, record in enumerate(types) if record["id"] == "panel")
+        types[position] = dict(schema["types"][position])
+        types[panel] = dict(types[panel], kind=cs.DEFINED_CONTROL_KIND)
+        findings = cs.validate({"types": types, "vocabulary": schema["vocabulary"], "engine": schema["engine"]},
+                               registry, classes)
+        self.assertTrue(any(finding.startswith("panel:") and "construction" in finding for finding in findings))
+
     def test_the_vocabulary_is_required_and_lists_the_ribbon_atoms(self) -> None:
         schema = cs.load_schema()
         vocabulary = schema["vocabulary"]
@@ -119,7 +144,8 @@ public:
     def test_the_vocabulary_lists_the_specialised_roles(self) -> None:
         # W-4: the switch and search roles, appended after meter.
         vocabulary = cs.load_schema()["vocabulary"]
-        self.assertEqual(vocabulary["semantic_roles"][-4:], ["meter", "toggle_switch", "search_box", "figure"])
+        self.assertEqual(vocabulary["semantic_roles"][-6:],
+                         ["meter", "toggle_switch", "search_box", "figure", "document", "heading"])
 
     def test_the_vocabulary_lists_the_docking_atoms(self) -> None:
         schema = cs.load_schema()
@@ -225,3 +251,31 @@ public:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CompositeTests(unittest.TestCase):
+    _CARD = {"id": "card_with_action", "name": "card-with-action", "version": "1.0", "kind": "composite",
+             "slot": "content", "parts": [{"name": "face", "role": "face", "composed_from": None, "states": []}],
+             "states": [], "custom_states": [],
+             "properties": [{"name": "title", "kind": "text"}],
+             "events": [{"name": "action-invoked", "payload": None}], "commands": []}
+
+    def test_a_valid_composite_has_no_findings(self) -> None:
+        self.assertEqual(cs.composite_findings([self._CARD]), [])
+        self.assertEqual(cs.composite_findings(None), [])
+
+    def test_composite_spelling_is_checked(self) -> None:
+        bad = dict(self._CARD)
+        bad["name"] = "CardWithAction"
+        bad["events"] = [{"name": "action_invoked", "payload": None}]
+        findings = cs.composite_findings([bad, self._CARD])
+        self.assertTrue(any("not kebab-case" in finding and "name" in finding for finding in findings))
+        self.assertTrue(any("event 'action_invoked'" in finding for finding in findings))
+        self.assertTrue(any("repeats" in finding for finding in findings))
+
+    def test_composites_render_with_their_slot_and_events(self) -> None:
+        schema = {"types": [], "composites": [self._CARD]}
+        page = cs.render_page(schema)
+        self.assertIn("## Composite controls", page)
+        self.assertIn("Slot: `content`.", page)
+        self.assertIn("Events: `action-invoked`.", page)

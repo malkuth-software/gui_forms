@@ -147,8 +147,8 @@ public:
         part.role = PartRole::shadow;
         part.family = ControlVisualRole::tool_tip;
         part.bounds = surface;
-        part.corner_radius = 4.0;
-        part.key = PartKey{"shadow", {}, {}};
+        part.corner_radius.set(4.0);
+        part.key.set(PartKey{"shadow", {}, {}});
         paint_part(painter, *this, part);
     }
     Rect surface{20.0, 20.0, 120.0, 40.0};
@@ -286,8 +286,8 @@ public:
         part.role = PartRole::sheen;
         part.family = ControlVisualRole::button;
         part.bounds = face;
-        part.corner_radius = 6.0;
-        part.key = PartKey{"sheen", {}, {}};
+        part.corner_radius.set(6.0);
+        part.key.set(PartKey{"sheen", {}, {}});
         part.granted_overflow = overflow;
         if (hot) part.states.insert(AnatomyState::hot);
         paint_part(painter, *this, part);
@@ -328,7 +328,7 @@ std::unique_ptr<SheenFixture> make_sheen(double scale, bool reduced_motion, doub
     definition.id = "engine-light-sheen";
     ThemeRule rule{};
     rule.label = "sheen";
-    rule.selector.role = PartRole::sheen;
+    rule.selector.role.set(PartRole::sheen);
     rule.declarations.push_back(RuleDeclaration::primitive("sheen"));
     if (hot_scale != 1.0) rule.transitions.push_back(grow(hot_scale));
     definition.rules.rules.push_back(rule);

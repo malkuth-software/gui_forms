@@ -7,6 +7,7 @@
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <span>
@@ -36,9 +37,9 @@ bool text_valid(const std::string_view text) noexcept {
     return validation.valid();
 }
 
-bool progress_valid(const std::optional<double> progress) noexcept {
-    if (!progress.has_value()) return true;
-    const bool valid = std::isfinite(*progress) && *progress >= 0.0 && *progress <= 1.0;
+bool progress_valid(const stxlib::Optional<double> progress) noexcept {
+    if (progress.absent()) return true;
+    const bool valid = std::isfinite((*progress.value())) && (*progress.value()) >= 0.0 && (*progress.value()) <= 1.0;
     return valid;
 }
 
@@ -71,7 +72,7 @@ void paint_splashscreen(Painter& painter, const SplashscreenFrame& frame) {
     const double bar_top = size.height - status_margin - bar_height;
     if (!frame.status.empty()) {
         const FontSpec font{.role = FontRole::control, .size = status_font_size};
-        const double baseline = frame.progress.has_value() ? bar_top - bar_gap : size.height - status_margin;
+        const double baseline = frame.progress.present() ? bar_top - bar_gap : size.height - status_margin;
         painter.save();
         painter.clip_rect(Rect{status_margin, baseline - 16.0, inner_width + 1.0, 21.0});
         painter.draw_text_utf8(Point{status_margin + 1.0, baseline + 1.0}, frame.status, font,
@@ -79,10 +80,10 @@ void paint_splashscreen(Painter& painter, const SplashscreenFrame& frame) {
         painter.draw_text_utf8(Point{status_margin, baseline}, frame.status, font, status_color);
         painter.restore();
     }
-    if (frame.progress.has_value()) {
+    if (frame.progress.present()) {
         const Rect track{status_margin, bar_top, inner_width, bar_height};
         painter.fill_rect(track, track_color);
-        const double filled = track.width * std::clamp(*frame.progress, 0.0, 1.0);
+        const double filled = track.width * std::clamp((*frame.progress.value()), 0.0, 1.0);
         if (filled > 0.0) painter.fill_rect(Rect{track.x, track.y, filled, track.height}, bar_color);
     }
 }
@@ -163,7 +164,7 @@ SplashscreenError Splashscreen::set_status(const std::string_view status) {
     return SplashscreenError::none;
 }
 
-SplashscreenError Splashscreen::set_progress(const std::optional<double> progress) {
+SplashscreenError Splashscreen::set_progress(const stxlib::Optional<double> progress) {
     if (!progress_valid(progress)) return SplashscreenError::invalid_argument;
     options_.progress = progress;
     if (surface_ && !present()) return SplashscreenError::unsupported;

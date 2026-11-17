@@ -38,11 +38,11 @@ SemanticDescriptor DrawingSurface::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<DrawingSurface::Parts>, 3> drawing_surface_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DrawingSurface::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DrawingSurface::Parts::face},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DrawingSurface::Parts::focus},
 }};
 
@@ -64,6 +64,7 @@ constexpr ControlAnatomy drawing_surface_anatomy{
     .parts = drawing_surface_parts,
     .states = drawing_surface_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

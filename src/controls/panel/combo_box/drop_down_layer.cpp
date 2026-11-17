@@ -141,11 +141,11 @@ namespace {
 constexpr std::array<AnatomyState, 1> match_part_states{{AnatomyState::hot}};
 
 constexpr std::array<PartField<DropDownList::ItemParts>, 4> drop_down_item_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DropDownList::ItemParts::row},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DropDownList::ItemParts::label},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DropDownList::ItemParts::row_focus},
     {.declaration = {.name = "match", .role = PartRole::selection, .composed_from = {},
                      .states = match_part_states},

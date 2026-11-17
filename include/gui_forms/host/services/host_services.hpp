@@ -6,7 +6,9 @@
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/window/chrome/window_chrome.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
 #include <optional>
 #include <thread>
@@ -35,6 +37,7 @@ class GUI_FORMS_API HostServices {
 public:
     static constexpr std::size_t maximum_clipboard_text_bytes = 16U * 1024U * 1024U;
     static constexpr std::size_t maximum_dialog_text_bytes = 64U * 1024U;
+    static constexpr std::size_t maximum_url_bytes = 8U * 1024U;
     static constexpr std::size_t maximum_dialog_filters = 64U;
     static constexpr std::size_t maximum_dialog_extensions = 64U;
     static constexpr std::size_t maximum_dialog_paths = 64U;
@@ -68,6 +71,29 @@ public:
         double device_scale, CursorKind fallback = CursorKind::arrow);
     [[nodiscard]] HostServiceStatus set_pointer_capture(
         bool captured, std::uint64_t pointer_id = 1);
+    // Relative pointer mode (capability relative_pointer; the window calls
+    // it from SurfaceRoot::begin_relative_pointer and its ends). An active
+    // request puts the native pointer in `request.mode`; an inactive one
+    // gives the ordinary pointer back (shown, free, absolute moves) and is
+    // accepted whenever the pointer is in the mode. Refused, changing
+    // nothing: unsupported without relative_pointer, or for a confined or
+    // locked mode without pointer_confinement; invalid_argument for a mode
+    // outside the enumeration or a confine rectangle that is not finite and
+    // positive in a confined mode. Shutdown gives the pointer back.
+    [[nodiscard]] HostServiceStatus set_relative_pointer(const HostRelativePointerRequest& request);
+    // Moves the pointer to `position`, window logical units (capability
+    // pointer_warp). invalid_argument for a position that is not finite.
+    [[nodiscard]] HostServiceStatus warp_pointer(Point position);
+    // Hands `url` to the platform, which opens it in the user's browser or
+    // mail program (capability open_url); it returns once the platform has
+    // the address, not when anything opened. Refused, changing nothing:
+    // unsupported without open_url; invalid_argument for an address that
+    // is not valid UTF-8, is longer than maximum_url_bytes, holds a space
+    // or a control character, or does not begin "https://", "http://"
+    // (each with something after it) or "mailto:" (with an address after
+    // it). No other scheme reaches the platform: a file, a program or a
+    // custom handler is never opened this way. UI thread.
+    [[nodiscard]] HostServiceStatus open_url(std::string_view url_utf8);
     [[nodiscard]] HostClipboardTextResult read_clipboard_text();
     [[nodiscard]] HostServiceStatus write_clipboard_text(
         std::string_view text_utf8);
@@ -174,14 +200,33 @@ protected:
         const CursorImagesPtr& images, const CursorImage& image);
     [[nodiscard]] virtual HostServiceStatus set_pointer_capture_impl(
         bool captured, std::uint64_t pointer_id) = 0;
+    // Called with a validated request whose capabilities the host
+    // advertises. An inactive request must give the pointer back even when
+    // it reports a failure. The defaults refuse as unsupported.
+    [[nodiscard]] virtual HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request);
+    [[nodiscard]] virtual HostServiceStatus warp_pointer_impl(Point position);
+    // A high-integrity build (cmake/HighIntegrity.cmake) has none of the
+    // hooks below up to show_dialog_impl, so no adapter compiles them: the
+    // public entries refuse as unsupported (the capabilities are not
+    // reported). Clipboard text stays with its allowance.
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+
+    // Called with an address open_url validated, on a host that advertises
+    // open_url. The default refuses as unsupported.
+    [[nodiscard]] virtual HostServiceStatus open_url_impl(std::string_view url_utf8);
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     [[nodiscard]] virtual HostClipboardTextResult read_clipboard_text_impl() = 0;
     [[nodiscard]] virtual HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) = 0;
+#endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
     [[nodiscard]] virtual HostClipboardImageResult read_clipboard_image_impl();
     [[nodiscard]] virtual HostClipboardFilesResult read_clipboard_files_impl();
     [[nodiscard]] virtual HostAutoCompleteResult query_auto_complete_impl(
         const HostAutoCompleteRequest& request);
     [[nodiscard]] virtual HostServiceStatus write_clipboard_image_impl(HostImageView image);
+#endif
     [[nodiscard]] virtual HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) = 0;
     [[nodiscard]] virtual HostServiceStatus play_sound_cue_impl(
@@ -234,11 +279,11 @@ private:
     double active_cursor_scale_{};
     double failed_cursor_scale_{};
     bool cursor_applied_{};
-    std::thread::id ui_thread_;
+    ThreadId ui_thread_;
     HostServicesSnapshot snapshot_;
     Event<const HostModalTransition&> modal_changed_;
     std::vector<std::uint64_t> modal_stack_;
-    std::optional<HostSoundCue> last_sound_cue_;
+    stxlib::Optional<HostSoundCue> last_sound_cue_;
     std::uint64_t last_sound_timestamp_{};
     // Live tray icon identities, in creation order; identities are never reused.
     std::vector<HostTrayIconId> tray_icons_;

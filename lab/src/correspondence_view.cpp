@@ -151,6 +151,16 @@ bool CorrespondenceView::expanded(std::string_view stable_id) const {
     return expanded_index(*index);
 }
 
+// An expansion delta for `stable_id` read now, raised only while the item
+// is still in the model: an earlier publication's handler may have replaced
+// the items, and expanded() refuses an ID the model no longer holds
+// (B-gf-tests-misc-02-F2).
+void CorrespondenceView::emit_present_expansion_delta(
+    std::string_view stable_id, bool before, CorrespondenceExpansionReason reason) {
+    if (stable_id.empty() || !is_alive() || !item_index(stable_id)) return;
+    emit_expansion_delta(stable_id, before, expanded(stable_id), reason);
+}
+
 void CorrespondenceView::emit_expansion_delta(
     std::string_view stable_id, bool before, bool after,
     CorrespondenceExpansionReason reason) {
@@ -193,12 +203,10 @@ void CorrespondenceView::write_view(const decltype(pinned_id)&, std::string inco
     publish_change(pin_changed_,
                    CorrespondencePinChange{previous, pinned_id_});
     if (!previous.empty()) {
-        emit_expansion_delta(previous, previous_before, expanded(previous),
-                             CorrespondenceExpansionReason::pin);
+        emit_present_expansion_delta(previous, previous_before, CorrespondenceExpansionReason::pin);
     }
     if (!next.empty() && next != previous) {
-        emit_expansion_delta(next, next_before, expanded(next),
-                             CorrespondenceExpansionReason::pin);
+        emit_present_expansion_delta(next, next_before, CorrespondenceExpansionReason::pin);
     }
 }
 
@@ -452,10 +460,10 @@ void CorrespondenceView::focus_index(
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     if (!previous.empty()) {
-        emit_expansion_delta(previous, previous_before, expanded(previous), reason);
+        emit_present_expansion_delta(previous, previous_before, reason);
     }
     if (focused_id_ != previous) {
-        emit_expansion_delta(focused_id_, next_before, expanded(focused_id_), reason);
+        emit_present_expansion_delta(focused_id_, next_before, reason);
     }
 }
 
@@ -486,12 +494,9 @@ void CorrespondenceView::apply_hover_expansion(std::string stable_id) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     if (!previous.empty()) {
-        emit_expansion_delta(previous, previous_before, expanded(previous),
-                             CorrespondenceExpansionReason::hover_intent);
+        emit_present_expansion_delta(previous, previous_before, CorrespondenceExpansionReason::hover_intent);
     }
-    emit_expansion_delta(hover_expanded_id_, next_before,
-                         expanded(hover_expanded_id_),
-                         CorrespondenceExpansionReason::hover_intent);
+    emit_present_expansion_delta(hover_expanded_id_, next_before, CorrespondenceExpansionReason::hover_intent);
 }
 
 void CorrespondenceView::clear_hover_intent(bool clear_expansion) {
@@ -505,8 +510,7 @@ void CorrespondenceView::clear_hover_intent(bool clear_expansion) {
     const ScrollAnchor anchor = capture_anchor(anchor_index);
     hover_expanded_id_.clear();
     restore_anchor(anchor);
-    emit_expansion_delta(previous, before, expanded(previous),
-                         CorrespondenceExpansionReason::hover_intent);
+    emit_present_expansion_delta(previous, before, CorrespondenceExpansionReason::hover_intent);
 }
 
 void CorrespondenceView::set_hovered_index(
@@ -547,29 +551,29 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     PartPaint fill;
     fill.family = ControlVisualRole::editor;
     fill.role = PartRole::fill;
     fill.states = states;
     if (glyph == ObjectGlyph::folder) {
         well.bounds = {b.x + 2.0, b.y + 8.0, b.width - 4.0, b.height - 10.0};
-        well.authored_background = base;
+        well.authored_background.set(base);
         paint_part(painter, *this, well);
         fill.bounds = {b.x + 6.0, b.y + 4.0, b.width * .44, 4.0};
-        fill.content_color = with_alpha(style().highlight, 190);
+        fill.content_color.set(with_alpha(style().highlight, 190));
         paint_part(painter, *this, fill);
         return;
     }
     well.bounds = {b.x + 5.0, b.y + 1.0, b.width - 10.0, b.height - 2.0};
-    well.authored_background = style().paper;
+    well.authored_background.set(style().paper);
     paint_part(painter, *this, well);
     fill.bounds = {b.x + 6.0, b.y + 2.0, b.width - 12.0, 5.0};
-    fill.content_color = base;
+    fill.content_color.set(base);
     paint_part(painter, *this, fill);
     if (glyph == ObjectGlyph::image) {
         fill.bounds = {b.x + 9.0, b.y + 11.0, b.width - 18.0, b.height - 17.0};
-        fill.content_color = with_alpha(base, 120);
+        fill.content_color.set(with_alpha(base, 120));
         paint_part(painter, *this, fill);
     } else {
         fill.bounds = {b.x + 9.0, b.y + 12.5, b.width - 18.0, 1.0};
@@ -700,7 +704,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         card.role = PartRole::face;
         card.bounds = card_bounds;
         card.states = item_states;
-        if (overridden) card.authored_background = style().paper;
+        if (overridden) card.authored_background.set(style().paper);
         paint_part(painter, *this, card);
         if (selected || hovered) {
             PartPaint plate;
@@ -708,17 +712,17 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             plate.role = PartRole::selection;
             plate.bounds = card_bounds;
             plate.states = item_states;
-            if (overridden) plate.authored_background = selected ? style().accent_light : style().face_light;
+            if (overridden) plate.authored_background.set(selected ? style().accent_light : style().face_light);
             paint_part(painter, *this, plate);
         }
         // The status rail is a fill; pinned and stale items take the first
         // and second accent indices and an offline item is unavailable
         // (owner decision, 2026-11-02).
-        std::optional<AccentIndex> status_accent{};
+        stxlib::Optional<AccentIndex> status_accent{};
         if (pinned) {
-            status_accent = AccentIndex{0U};
+            status_accent.set(AccentIndex{0U});
         } else if (item.stale && !item.unavailable) {
-            status_accent = AccentIndex{1U};
+            status_accent.set(AccentIndex{1U});
         }
         AnatomyStateSet status_states = item_states;
         if (item.unavailable) status_states.insert(AnatomyState::unavailable);
@@ -771,7 +775,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             word_label.states = status_states;
             word_label.text = lend_paint_text(layout.state_text);
             word_label.font = word_font;
-            word_label.measured_text = word;
+            word_label.measured_text.set(word);
             paint_text_part_at(painter, *this, word_label, word_origin, word.width);
         }
         if (layout.expanded) {
@@ -902,15 +906,24 @@ void CorrespondenceView::handle_pointer(PointerEvent& event) {
         pressed_index_ = index_at(event.position);
         pressed_button_ = event.button;
         pressed_click_count_ = event.click_count;
-        if (window()) {
-            static_cast<void>((*window()).request_focus(shared_from_this()));
-        }
-        if (pressed_index_) {
-            selected_id = items_[*pressed_index_].stable_id;
-            focus_index(*pressed_index_,
-                        CorrespondenceExpansionReason::keyboard_focus);
-        }
+        // The focus move and the selection raise handlers that may replace
+        // the items (set_items recomputes pressed_index_, clearing it when
+        // the pressed item goes) or drop the view. The view is held and the
+        // pressed item is named by its identity and found again after each
+        // (B-gf-tests-misc-02-F2).
+        const Control::Ptr retained = shared_from_this();
         event.handled = true;
+        if (window()) {
+            static_cast<void>((*window()).request_focus(retained));
+        }
+        if (!is_alive() || !pressed_index_) return;
+        const std::string pressed_id = items_[*pressed_index_].stable_id;
+        selected_id = pressed_id;
+        if (!is_alive()) return;
+        const std::optional<std::size_t> pressed_now = item_index(pressed_id);
+        if (pressed_now) {
+            focus_index(*pressed_now, CorrespondenceExpansionReason::keyboard_focus);
+        }
         return;
     }
     if (event.action == PointerAction::up &&
@@ -1047,9 +1060,15 @@ void CorrespondenceView::handle_key(KeyEvent& event) {
     } else {
         return;
     }
-    focus_index(index, CorrespondenceExpansionReason::keyboard_focus);
-    selected_id = items_[index].stable_id;
+    // focus_index raises expansion changes whose handlers may replace the
+    // items or drop the view: the target is named by its identity first and
+    // selected only while it is still there (B-gf-tests-misc-02-F2).
+    const std::string target_id = items_[index].stable_id;
+    const Control::Ptr retained = shared_from_this();
     event.handled = true;
+    focus_index(index, CorrespondenceExpansionReason::keyboard_focus);
+    if (!is_alive() || !item_index(target_id)) return;
+    selected_id = target_id;
 }
 
 void CorrespondenceView::on_focus_changed(bool focused) {
@@ -1068,8 +1087,7 @@ void CorrespondenceView::on_focus_changed(bool focused) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
     if (!active.empty()) {
-        emit_expansion_delta(active, before, expanded(active),
-                             CorrespondenceExpansionReason::keyboard_focus);
+        emit_present_expansion_delta(active, before, CorrespondenceExpansionReason::keyboard_focus);
     }
 }
 
@@ -1082,9 +1100,9 @@ SemanticDescriptor CorrespondenceView::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.value = selected_id_;
-    descriptor.numeric_value = scroll_offset_;
-    descriptor.minimum_value = 0.0;
-    descriptor.maximum_value = maximum_scroll_offset();
+    descriptor.numeric_value.set(scroll_offset_);
+    descriptor.minimum_value.set(0.0);
+    descriptor.maximum_value.set(maximum_scroll_offset());
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement};
     descriptor.exposed = true;
@@ -1250,28 +1268,28 @@ void CorrespondenceView::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<CorrespondenceView::Parts>, 2> correspondence_view_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::Parts::edge},
 }};
 
 constexpr std::array<PartField<CorrespondenceView::ItemParts>, 8> correspondence_view_item_part_fields{{
-    {.declaration = {.name = "card", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "card", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::card},
-    {.declaration = {.name = "status_rail", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "status_rail", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::status_rail},
-    {.declaration = {.name = "glyph", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "glyph", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::glyph},
-    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::title},
-    {.declaration = {.name = "secondary", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "secondary", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::secondary},
-    {.declaration = {.name = "metric", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "metric", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::metric},
-    {.declaration = {.name = "evidence", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "evidence", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::evidence},
-    {.declaration = {.name = "card_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "card_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &CorrespondenceView::ItemParts::card_focus},
 }};
 
@@ -1343,7 +1361,12 @@ std::size_t CorrespondenceView::realized_item_count() const {
     return range.second - range.first;
 }
 
+// Control's rule for realized items: one past realized_item_count() is
+// refused before it indexes the items.
 std::string CorrespondenceView::realized_item_stable_id(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("CorrespondenceView realized item is past the realized cards");
+    }
     return items_[realized_range().first + item].stable_id;
 }
 
@@ -1375,6 +1398,9 @@ void CorrespondenceView::publish_realized_item_geometry(std::size_t item,
 }
 
 AnatomyStateSet CorrespondenceView::realized_item_anatomy_states(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("CorrespondenceView realized item is past the realized cards");
+    }
     AnatomyStateSet states;
     const std::size_t index = realized_range().first + item;
     const CorrespondenceItem& entry = items_[index];

@@ -47,7 +47,7 @@ void require(const bool condition, const char* message) {
 }
 
 void load_fonts(HarfBuzzFontEngine& engine, const std::filesystem::path& directory) {
-    const std::array<const char*, 4> names{"Carlito-Regular.ttf", "NotoSansArabic-Regular.ttf",
+    const std::array<const char*, 4> names{"Carlito-Regular.ttf", "NotoSansArabic-Minimal.ttf",
         "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     for (std::size_t index = 0; index < names.size(); ++index) {
         const std::filesystem::path path = directory / names[index];
@@ -254,9 +254,8 @@ void test_retained_rows(HarfBuzzFontEngine& engine, BoundedShapeWorkspace& works
 
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
 void test_native_failures(HarfBuzzFontEngine& engine, BoundedShapeWorkspace& workspace) {
-    const std::array<TextLayoutFailure, 6U> failures{TextLayoutFailure::empty_font,
-        TextLayoutFailure::unbound_font, TextLayoutFailure::empty_buffer,
-        TextLayoutFailure::after_add, TextLayoutFailure::after_shape, TextLayoutFailure::no_shaper};
+    const std::array<TextLayoutFailure, 4U> failures{TextLayoutFailure::shaper_open,
+        TextLayoutFailure::glyph_storage, TextLayoutFailure::after_shape, TextLayoutFailure::shape_refused};
     const FontSpec font{FontRole::content, 16, 400, false};
     const std::string_view text = "Latin العربية שלום";
     const std::unique_ptr<BoundedShapedText> control = engine.shape_bounded(text, font, {});

@@ -105,7 +105,15 @@
       "reviewed": "2026-10-28"
     },
     {
-      "path": "src/host/linux/services/linux_services.cpp",
+      "path": "src/surface/linux/services/linux_services.cpp",
+      "rule": "I05",
+      "evidence": "mask.mask_len = static_cast<int>(bits.size());",
+      "decision": "false_shape",
+      "reason": "bits is a std::array of XIMaskLen(XI_LASTEVENT) bytes, a compile-time size of a few bytes",
+      "reviewed": "2026-11-15"
+    },
+    {
+      "path": "src/surface/linux/services/linux_services.cpp",
       "rule": "I05",
       "evidence": "static_cast<int>(targets.size()));",
       "decision": "false_shape",
@@ -113,7 +121,7 @@
       "reviewed": "2026-10-27"
     },
     {
-      "path": "src/host/windows/services/windows_notify_icons.cpp",
+      "path": "src/surface/windows/services/windows_notify_icons.cpp",
       "rule": "I05",
       "evidence": "static_cast<int>(text.size()), nullptr, 0);",
       "decision": "guarded",
@@ -122,21 +130,12 @@
       "reviewed": "2026-10-27"
     },
     {
-      "path": "src/host/windows/services/windows_notify_icons.cpp",
+      "path": "src/surface/windows/services/windows_notify_icons.cpp",
       "rule": "I05",
       "evidence": "MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()), wide.data(), length);",
       "decision": "guarded",
       "guard": "dominating_validation",
       "reason": "NotifyIcon refuses text above HostServices::maximum_tray_tooltip_bytes before it reaches the host (src/controls/notify_icon/notify_icon.cpp:90)",
-      "reviewed": "2026-10-27"
-    },
-    {
-      "path": "src/render/text/harfbuzz/harfbuzz_font_engine.cpp",
-      "rule": "I05",
-      "evidence": "hb_buffer_add_utf8(buffer, utf8.data(), static_cast<int>(utf8.size()),",
-      "decision": "guarded",
-      "guard": "dominating_validation",
-      "reason": "the shaping entry refuses input above limits.input_bytes or INT_MAX (line 863)",
       "reviewed": "2026-10-27"
     },
     {
@@ -255,6 +254,23 @@
       "decision": "false_shape",
       "reason": "TArray::capacity() already returns int; the cast only names the output width",
       "reviewed": "2026-10-28"
+    },
+    {
+      "path": "src/core/engine/engine_math/engine_math.cpp",
+      "rule": "I05",
+      "evidence": "const bool inside = index >= 0 && index < static_cast<int>(limbs.size());",
+      "decision": "false_shape",
+      "reason": "limbs is a ReductionLimbs, a std::array of five limbs: its size is the constant 5, which an int holds",
+      "reviewed": "2026-11-16"
+    },
+    {
+      "path": "src/render/text/glyph_run/glyph_run_raster.cpp",
+      "rule": "I04",
+      "evidence": "impl.piece_pixels_.insert(impl.piece_pixels_.end(), pixels.data(), pixels.data() + pixels.count());",
+      "decision": "guarded",
+      "guard": "dominating_validation",
+      "reason": "the insert sits inside if (pixels.count() != 0U): an empty coverage forms no endpoint",
+      "reviewed": "2026-11-16"
     }
   ]
 }

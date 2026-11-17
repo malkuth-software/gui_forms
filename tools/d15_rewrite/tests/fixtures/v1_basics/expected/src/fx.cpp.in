@@ -1,0 +1,14 @@
+#include <gui_forms/fx.hpp>
+#include <stxlib/optional.hpp>
+
+namespace gui_forms {
+
+stxlib::Optional<Color> Box::fill() const noexcept {
+    return fill_;
+}
+
+void Box::set_fill(const stxlib::Optional<Color> fill) noexcept {
+    fill_ = fill;
+}
+
+} // namespace gui_forms

@@ -3,7 +3,9 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -52,39 +54,40 @@ std::string ColorValueEditor::format_value(Color colour) {
     return result;
 }
 
-std::optional<Color> ColorValueEditor::parse_value(std::string_view text) {
+stxlib::Optional<Color> ColorValueEditor::parse_value(std::string_view text) {
     const std::string_view::size_type first =
         text.find_first_not_of(" \t\r\n");
-    if (first == std::string_view::npos) return {};
+    if (first == std::string_view::npos) return stxlib::Optional<Color>::none();
     const std::string_view::size_type last =
         text.find_last_not_of(" \t\r\n");
     text = text.substr(first, last - first + 1U);
     if ((text.size() != 7U && text.size() != 9U) || text.front() != '#') {
-        return {};
+        return stxlib::Optional<Color>::none();
     }
     std::uint8_t channels[4]{0U, 0U, 0U, 255U};
     const std::size_t count = text.size() == 9U ? 4U : 3U;
     for (std::size_t index = 0U; index < count; ++index) {
-        const std::optional<std::uint8_t> high =
+        const stxlib::Optional<std::uint8_t> high =
             parse_nibble(text[1U + index * 2U]);
-        const std::optional<std::uint8_t> low =
+        const stxlib::Optional<std::uint8_t> low =
             parse_nibble(text[2U + index * 2U]);
-        if (!high || !low) return {};
-        channels[index] = static_cast<std::uint8_t>((*high << 4U) | *low);
+        if (high.absent() || low.absent()) return stxlib::Optional<Color>::none();
+        channels[index] = static_cast<std::uint8_t>(((*high.value()) << 4U) | (*low.value()));
     }
-    return Color::rgba(channels[0], channels[1], channels[2], channels[3]);
+    const Color parsed = Color::rgba(channels[0], channels[1], channels[2], channels[3]);
+    return stxlib::Optional<Color>::of(parsed);
 }
 
-std::optional<std::uint8_t> ColorValueEditor::parse_nibble(
+stxlib::Optional<std::uint8_t> ColorValueEditor::parse_nibble(
     char digit) noexcept {
     if (digit >= '0' && digit <= '9') {
-        return static_cast<std::uint8_t>(digit - '0');
+        return stxlib::Optional<std::uint8_t>::of(static_cast<std::uint8_t>(digit - '0'));
     }
     if (digit >= 'a' && digit <= 'f') {
-        return static_cast<std::uint8_t>(digit - 'a' + 10);
+        return stxlib::Optional<std::uint8_t>::of(static_cast<std::uint8_t>(digit - 'a' + 10));
     }
     if (digit >= 'A' && digit <= 'F') {
-        return static_cast<std::uint8_t>(digit - 'A' + 10);
+        return stxlib::Optional<std::uint8_t>::of(static_cast<std::uint8_t>(digit - 'A' + 10));
     }
     return {};
 }
@@ -124,8 +127,8 @@ void ColorValueEditor::write_view(const decltype(value)&, Color incoming) {
 
 void ColorValueEditor::commit(std::string_view text) {
     if (synchronizing_) return;
-    const std::optional<Color> parsed = parse_value(text);
-    if (!parsed) {
+    const stxlib::Optional<Color> parsed = parse_value(text);
+    if (parsed.absent()) {
         set_visual_status(ControlVisualStatus::invalid);
         if (editor_) (*editor_).set_visual_status(ControlVisualStatus::invalid);
         const PropertyEditorInputError failure{
@@ -133,8 +136,12 @@ void ColorValueEditor::commit(std::string_view text) {
         edit_failed_.emit(failure);
         return;
     }
-    const bool changed = *parsed != value_;
-    value_ = *parsed;
+    accept_colour(*parsed.value());
+}
+
+void ColorValueEditor::accept_colour(Color incoming) {
+    const bool changed = incoming != value_;
+    value_ = incoming;
     set_visual_status(ControlVisualStatus::normal);
     if (editor_) {
         synchronizing_ = true;
@@ -142,8 +149,119 @@ void ColorValueEditor::commit(std::string_view text) {
         (*editor_).set_visual_status(ControlVisualStatus::normal);
         synchronizing_ = false;
     }
+    if (picker_open_ && picker_ && (*picker_).value.read() != value_) {
+        synchronizing_ = true;
+        (*picker_).value = value_;
+        synchronizing_ = false;
+    }
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(value_changed_, value_);
+}
+
+// -- drop-down picker -----------------------------------------------------------
+
+Rect ColorValueEditor::swatch_bounds() const noexcept {
+    const Rect bounds = local_bounds();
+    const double swatch_extent = std::min(swatch_width.read(), bounds.width);
+    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_extent - 5.0), std::max(0.0, bounds.height - 4.0)};
+    return swatch;
+}
+
+bool ColorValueEditor::open_picker() {
+    require_mutable();
+    Window* const window = attached_window();
+    if (picker_open_ || window == nullptr || !effectively_enabled()) return false;
+    const Control::Ptr self = shared_from_this();
+    AnchoredOverlayPlacement placement;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
+    placement.vertical_preference = OverlayVerticalPreference::below;
+    placement.gap = 1.0;
+    placement.preferred_size = Size{220.0, 180.0};
+    if (!picker_) {
+        const std::string prefix(stable_id().value());
+        picker_ = make_control<ColorPicker>(StableId(prefix + ".picker"), value_);
+        layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".picker.layer"), self, placement);
+        (*layer_).set_content(picker_);
+        picker_changed_ = (*picker_).value_changed().subscribe(
+            Delegate<Color>::bind<ColorValueEditor, &ColorValueEditor::on_picker_changed>(*this));
+        layer_dismissed_ = (*layer_).dismiss_requested().subscribe(
+            Delegate<OverlayDismissReason>::bind<ColorValueEditor, &ColorValueEditor::on_layer_dismissed>(*this));
+    }
+    (*layer_).placement = placement;
+    (*picker_).accessible_name = accessible_name.read();
+    synchronizing_ = true;
+    (*picker_).value = value_;
+    synchronizing_ = false;
+    const Size client = (*window).client_size();
+    (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
+    overlay_ = (*window).open_overlay(self, layer_);
+    picker_open_ = true;
+    if (Event<>* closed = overlay_.closed_event()) {
+        overlay_revoked_ =
+            (*closed).subscribe(*this, Delegate<>::bind<ColorValueEditor, &ColorValueEditor::on_overlay_revoked>(*this));
+    }
+    scope_ = (*window).begin_focus_scope(layer_, picker_);
+    invalidate(Dirty::paint | Dirty::semantics);
+    return true;
+}
+
+void ColorValueEditor::close_picker() noexcept {
+    if (!picker_open_) return;
+    picker_open_ = false;
+    Window* const window = attached_window();
+    if (window != nullptr && scope_) {
+        try {
+            static_cast<void>((*window).end_focus_scope(scope_));
+        } catch (...) {
+        }
+    }
+    scope_ = {};
+    overlay_revoked_.disconnect();
+    overlay_.disconnect();
+    if (!is_alive()) return;
+    try {
+        invalidate(Dirty::paint | Dirty::semantics);
+    } catch (...) {
+    }
+}
+
+void ColorValueEditor::on_picker_changed(Color colour) {
+    if (synchronizing_ || !picker_open_) return;
+    accept_colour(colour);
+}
+
+void ColorValueEditor::on_layer_dismissed(OverlayDismissReason) {
+    close_picker();
+}
+
+// The window closed the overlay (it closed, or the editor left it): the
+// lease and scope are gone with it.
+void ColorValueEditor::on_overlay_revoked() {
+    if (!picker_open_) return;
+    picker_open_ = false;
+    scope_ = {};
+    overlay_revoked_.disconnect();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ColorValueEditor::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary && swatch_bounds().contains(arguments.location)) {
+        if (picker_open_) {
+            close_picker();
+        } else {
+            static_cast<void>(open_picker());
+        }
+        arguments.handled = true;
+    }
+    Panel::on_mouse_down(arguments);
+}
+
+void ColorValueEditor::on_key_down(KeyEventArgs& arguments) {
+    Panel::on_key_down(arguments);
+    if (arguments.handled) return;
+    const bool alt_down = arguments.physical_key == PhysicalKey::down && has_modifier(arguments.modifiers, Modifier::alt);
+    if (!alt_down && arguments.physical_key != PhysicalKey::f4) return;
+    if (open_picker()) arguments.handled = true;
 }
 
 void ColorValueEditor::cancel() {
@@ -175,17 +293,14 @@ void ColorValueEditor::arrange(Rect final_bounds) {
 // The checkerboard's squares are content colours too: they are the
 // backdrop the value is judged against, the same in every theme.
 void ColorValueEditor::on_paint(Painter& painter, Rect) {
-    const Rect bounds = local_bounds();
-    const double swatch_extent = std::min(swatch_width.read(), bounds.width);
-    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_extent - 5.0),
-                      std::max(0.0, bounds.height - 4.0)};
+    const Rect swatch = swatch_bounds();
     const AnatomyStateSet states = anatomy_states();
     PartPaint well;
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.states = states;
     well.bounds = swatch;
-    well.corner_radius = 0.0;
+    well.corner_radius.set(0.0);
     paint_part(painter, *this, well);
     const Rect inside{swatch.x + 1.0, swatch.y + 1.0, std::max(0.0, swatch.width - 2.0),
                       std::max(0.0, swatch.height - 2.0)};
@@ -206,11 +321,11 @@ void ColorValueEditor::on_paint(Painter& painter, Rect) {
     fill.states = states;
     for (std::size_t index = 0U; index < squares.size(); ++index) {
         fill.bounds = squares[index];
-        fill.content_color = shades[index];
+        fill.content_color.set(shades[index]);
         paint_part(painter, *this, fill);
     }
     fill.bounds = inside;
-    fill.content_color = value_;
+    fill.content_color.set(value_);
     paint_part(painter, *this, fill);
 }
 
@@ -228,6 +343,11 @@ SemanticDescriptor ColorValueEditor::semantic_descriptor() const {
 }
 
 void ColorValueEditor::on_dispose() noexcept {
+    close_picker();
+    picker_changed_.disconnect();
+    layer_dismissed_.disconnect();
+    picker_.reset();
+    layer_.reset();
     committed_.disconnect();
     cancelled_.disconnect();
     editor_.reset();
@@ -237,9 +357,9 @@ void ColorValueEditor::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<ColorValueEditor::Parts>, 2> color_value_editor_extra_part_fields{{
-    {.declaration = {.name = "swatch", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "swatch", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &ColorValueEditor::Parts::swatch},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &ColorValueEditor::Parts::field},
 }};
 
@@ -266,6 +386,7 @@ constexpr ControlAnatomy color_value_editor_anatomy{
     .parts = color_value_editor_parts,
     .states = color_value_editor_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -276,10 +397,7 @@ const ControlAnatomy& ColorValueEditor::anatomy() const noexcept {
 
 void ColorValueEditor::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
-    const Rect bounds = local_bounds();
-    const double swatch_extent = std::min(swatch_width.read(), bounds.width);
-    const Rect swatch{2.0, 2.0, std::max(0.0, swatch_extent - 5.0),
-                      std::max(0.0, bounds.height - 4.0)};
+    const Rect swatch = swatch_bounds();
     Parts record;
     record.scrollable = scrollable_parts();
     record.swatch = PartGeometry::from_bounds(swatch);

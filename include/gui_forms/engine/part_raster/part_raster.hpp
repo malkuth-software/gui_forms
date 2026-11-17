@@ -12,6 +12,15 @@
 
 namespace gui_forms {
 
+// A rectangle of a part raster's pixels, [left, right) by [top, bottom);
+// empty when right <= left or bottom <= top.
+struct GUI_FORMS_API PartRasterInterior final {
+    std::uint32_t left{};
+    std::uint32_t top{};
+    std::uint32_t right{};
+    std::uint32_t bottom{};
+};
+
 // One part's pixels as the engine keeps them (T2 plan, PartRaster):
 // premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for
 // one display scale. Rows are tight: row_bytes is width * 4.
@@ -34,7 +43,7 @@ public:
 
     // The raster as a destination for a primitive: valid while the raster
     // lives and is not shared read-only. Clears the recorded opacity, since
-    // the pixels may change through the view.
+    // the pixels may change through the view, and the opaque interior.
     [[nodiscard]] PartRasterView view() noexcept;
 
     // Records whether every pixel's alpha is 255. The maker calls it after
@@ -43,6 +52,16 @@ public:
     void record_opacity() noexcept;
     // Whether record_opacity found every pixel opaque since the last view().
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
+    // Records `interior` as the raster's opaque interior when it lies inside
+    // the raster and every pixel in it has alpha 255 (checked here, one pass
+    // that stops at the first row that is not), else records none. The maker
+    // calls it after its last write through view(), with the rectangle its
+    // geometry promises (a material's box less its corners); the composite
+    // then copies those pixels' rows at full opacity instead of blending
+    // them, which writes the same bytes (blend study, 2026-11-16).
+    void record_opaque_interior(PartRasterInterior interior) noexcept;
+    // What record_opaque_interior recorded since the last view(), or empty.
+    [[nodiscard]] PartRasterInterior opaque_interior() const noexcept { return opaque_interior_; }
 
     // Borrowed from the raster: the sanitizer tree reports a use after the
     // raster died (the last shared owner let it go).
@@ -60,6 +79,7 @@ private:
     std::size_t row_bytes_{};
     DeviceScale scale_{};
     bool opaque_{};
+    PartRasterInterior opaque_interior_{};
 };
 
 } // namespace gui_forms

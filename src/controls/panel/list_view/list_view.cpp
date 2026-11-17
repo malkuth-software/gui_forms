@@ -19,6 +19,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -175,6 +176,31 @@ std::string sub_item_identity(std::string_view item_id, std::string_view column_
     return identity;
 }
 
+// The choice sets of the enumerated properties the table publishes, in the
+// enumerations' declaration order (list_view_values.hpp).
+std::shared_ptr<const PropertyEnumDescriptor> list_view_view_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_view_view",
+            {{"details", 0}, {"list", 1}, {"small_icon", 2}, {"large_icon", 3}, {"tile", 4}},
+            false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> list_view_activation_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_view_activation", {{"standard", 0}, {"one_click", 1}, {"two_click", 2}}, false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> list_view_header_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_view_header_style", {{"clickable", 0}, {"nonclickable", 1}, {"none", 2}}, false});
+    return value;
+}
+
 } // namespace
 
 ListViewItemSource::~ListViewItemSource() {}
@@ -221,6 +247,25 @@ void ListView::written(const decltype(view)&) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
+void ListView::prepare_write(const decltype(header_style)&, ListViewHeaderStyle& incoming) {
+    require_mutable();
+    if (incoming != ListViewHeaderStyle::clickable && incoming != ListViewHeaderStyle::nonclickable &&
+        incoming != ListViewHeaderStyle::none) {
+        throw std::invalid_argument("ListView header style is invalid");
+    }
+}
+
+// A new header style drops the pressed and hot column (a header that no
+// longer responds keeps no state) and moves the layout, whose header row
+// appears or goes.
+void ListView::written(const decltype(header_style)&) {
+    pressed_column_.reset();
+    hot_column_.reset();
+    if (has_pointer_capture() && resizing_column_.absent()) set_pointer_capture(false);
+    advance_layout_revision();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 void ListView::set_columns(std::vector<ListViewColumn> columns) {
     require_mutable();
     if (columns.size() > maximum_columns) {
@@ -238,14 +283,14 @@ void ListView::set_columns(std::vector<ListViewColumn> columns) {
             throw std::invalid_argument("ListView column width or alignment is invalid");
         }
     }
-    if (resizing_column_ && has_pointer_capture()) set_pointer_capture(false);
+    if (resizing_column_.present() && has_pointer_capture()) set_pointer_capture(false);
     resizing_column_.reset();
     pressed_column_.reset();
     hot_column_.reset();
     columns_ = std::move(columns);
     advance_layout_revision();
     ++model_revision_;
-    if (sort_column_ && *sort_column_ >= columns_.size()) {
+    if (sort_column_.present() && *sort_column_.value() >= columns_.size()) {
         sort_column_.reset();
         sort_order_ = ListViewSortOrder::none;
     }
@@ -271,11 +316,11 @@ std::size_t ListView::item_count() const noexcept {
     return items_.size();
 }
 
-std::optional<std::size_t> ListView::index_of(std::string_view item_id) const {
-    if (source_) return std::nullopt;
+stxlib::Optional<std::size_t> ListView::index_of(std::string_view item_id) const {
+    if (source_) return stxlib::Optional<std::size_t>::none();
     const ItemIndices::const_iterator found = item_indices_.find(std::string(item_id));
-    if (found == item_indices_.end()) return std::nullopt;
-    return (*found).second;
+    if (found == item_indices_.end()) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of((*found).second);
 }
 
 void ListView::set_items(std::vector<ListViewItem> items) {
@@ -306,15 +351,15 @@ void ListView::set_items(std::vector<ListViewItem> items) {
         if ((*found).second != index) moved = true;
     }
     const bool selection_changed = moved || next_count != selected_count_;
-    std::optional<std::size_t> next_focus{};
-    std::optional<std::size_t> next_anchor{};
-    if (focused_index_) {
-        const ItemIndices::const_iterator found = next_indices.find(items_[*focused_index_].stable_id);
-        if (found != next_indices.end()) next_focus = (*found).second;
+    stxlib::Optional<std::size_t> next_focus{};
+    stxlib::Optional<std::size_t> next_anchor{};
+    if (focused_index_.present()) {
+        const ItemIndices::const_iterator found = next_indices.find(items_[*focused_index_.value()].stable_id);
+        if (found != next_indices.end()) next_focus.set((*found).second);
     }
-    if (anchor_index_) {
-        const ItemIndices::const_iterator found = next_indices.find(items_[*anchor_index_].stable_id);
-        if (found != next_indices.end()) next_anchor = (*found).second;
+    if (anchor_index_.present()) {
+        const ItemIndices::const_iterator found = next_indices.find(items_[*anchor_index_.value()].stable_id);
+        if (found != next_indices.end()) next_anchor.set((*found).second);
     }
     items_.swap(items);
     advance_layout_revision();
@@ -329,7 +374,7 @@ void ListView::set_items(std::vector<ListViewItem> items) {
     insertion_mark_.reset();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // An edit in progress is cancelled once the items have changed.
-    if (label_edit_index_) {
+    if (label_edit_index_.present()) {
         cancel_label_edit();
         if (!is_alive()) return;
     }
@@ -344,15 +389,15 @@ void ListView::reset_after_model_change(std::size_t count) {
     }
     const bool selection_changed = next_count != selected_count_;
     selected_count_ = next_count;
-    if (focused_index_ && *focused_index_ >= count) focused_index_.reset();
-    if (anchor_index_ && *anchor_index_ >= count) anchor_index_.reset();
+    if (focused_index_.present() && *focused_index_.value() >= count) focused_index_.reset();
+    if (anchor_index_.present() && *anchor_index_.value() >= count) anchor_index_.reset();
     hot_index_.reset();
     conceal_cut_off_text();
     ++model_revision_;
     insertion_mark_.reset();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // An edit in progress is cancelled once the items have changed.
-    if (label_edit_index_) {
+    if (label_edit_index_.present()) {
         cancel_label_edit();
         if (!is_alive()) return;
     }
@@ -425,12 +470,12 @@ void ListView::splice_virtual_items(std::size_t first, std::size_t removed, std:
     reset_after_model_change(count);
 }
 
-std::optional<std::size_t> ListViewSpliceRemap::apply(std::optional<std::size_t> index) const noexcept {
-    if (!index) return index;
-    if (*index < first) return index;
-    if (*index < removed_end) return std::nullopt;
-    const std::size_t moved = *index - (removed_end - first) + inserted;
-    return moved;
+stxlib::Optional<std::size_t> ListViewSpliceRemap::apply(stxlib::Optional<std::size_t> index) const noexcept {
+    if (index.absent()) return index;
+    if (*index.value() < first) return index;
+    if (*index.value() < removed_end) return stxlib::Optional<std::size_t>::none();
+    const std::size_t moved = *index.value() - (removed_end - first) + inserted;
+    return stxlib::Optional<std::size_t>::of(moved);
 }
 
 const ListViewItem& ListView::item_at(std::size_t index, ListViewItem& scratch) const {
@@ -499,13 +544,13 @@ void ListView::written(const decltype(multi_select)&) {
         return;
     }
     std::size_t keep = 0U;
-    if (focused_index_ && selected_[*focused_index_] != 0U) {
-        keep = *focused_index_;
+    if (focused_index_.present() && selected_[*focused_index_.value()] != 0U) {
+        keep = *focused_index_.value();
     } else {
         while (keep < selected_.size() && selected_[keep] == 0U) ++keep;
     }
     static_cast<void>(select_only(keep));
-    anchor_index_ = keep;
+    anchor_index_.set(keep);
     publish_selection();
 }
 
@@ -623,7 +668,7 @@ void ListView::set_selected(std::size_t index, bool selected) {
     require_mutable();
     if (index >= item_count()) throw std::out_of_range("ListView item index is past the end");
     if (!assign_selected(index, selected)) return;
-    if (selected) anchor_index_ = index;
+    if (selected) anchor_index_.set(index);
     publish_selection();
 }
 
@@ -648,22 +693,24 @@ void ListView::clear_selection() {
     if (select_none()) publish_selection();
 }
 
-void ListView::set_focused_index(std::optional<std::size_t> index) {
+void ListView::set_focused_index(stxlib::Optional<std::size_t> index) {
     require_mutable();
-    if (index && *index >= item_count()) throw std::out_of_range("ListView item index is past the end");
+    if (index.present() && *index.value() >= item_count()) throw std::out_of_range("ListView item index is past the end");
     if (focused_index_ == index) return;
     focused_index_ = index;
-    if (index) ensure_visible(*index);
+    if (index.present()) ensure_visible(*index.value());
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ListView::move_focus(std::size_t index) {
-    focused_index_ = index;
+    focused_index_.set(index);
     ensure_visible(index);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ListView::choose(std::size_t index, Modifier modifiers, bool move_only) {
+    // An index a handler's change outdated selects nothing.
+    if (index >= item_count()) return;
     const bool control = has_modifier(modifiers, Modifier::control) || has_modifier(modifiers, Modifier::meta);
     const bool shift = has_modifier(modifiers, Modifier::shift);
     if (move_only && multi_select.read()) {
@@ -674,13 +721,13 @@ void ListView::choose(std::size_t index, Modifier modifiers, bool move_only) {
     if (multi_select.read() && shift) {
         const std::size_t anchor = anchor_index_.value_or(focused_index_.value_or(index));
         changed = select_range(anchor, index, control);
-        anchor_index_ = anchor;
+        anchor_index_.set(anchor);
     } else if (multi_select.read() && control) {
         changed = toggle_selected(index);
-        anchor_index_ = index;
+        anchor_index_.set(index);
     } else {
         changed = select_only(index);
-        anchor_index_ = index;
+        anchor_index_.set(index);
     }
     move_focus(index);
     if (changed) publish_selection();
@@ -840,14 +887,14 @@ void ListView::on_horizontal_scroll(double value) {
 
 // -- sorting -----------------------------------------------------------------
 
-void ListView::set_sort_indicator(std::optional<std::size_t> column, ListViewSortOrder order) {
+void ListView::set_sort_indicator(stxlib::Optional<std::size_t> column, ListViewSortOrder order) {
     require_mutable();
-    if (column && *column >= columns_.size()) throw std::out_of_range("ListView sort column is past the end");
+    if (column.present() && *column.value() >= columns_.size()) throw std::out_of_range("ListView sort column is past the end");
     if (order != ListViewSortOrder::none && order != ListViewSortOrder::ascending &&
         order != ListViewSortOrder::descending) {
         throw std::invalid_argument("ListView sort order is invalid");
     }
-    if (!column || order == ListViewSortOrder::none) {
+    if (column.absent() || order == ListViewSortOrder::none) {
         column.reset();
         order = ListViewSortOrder::none;
     }
@@ -861,7 +908,7 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
     require_mutable();
     if (source_) throw std::logic_error("A virtual ListView's source owns the item order");
     if (column >= columns_.size()) throw std::out_of_range("ListView sort column is past the end");
-    set_sort_indicator(column, order);
+    set_sort_indicator(stxlib::Optional<std::size_t>::of(column), order);
     if (order == ListViewSortOrder::none) return;
     // `order_of[new position]` is the item's old position.
     std::vector<std::size_t> order_of(items_.size(), 0U);
@@ -888,15 +935,15 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
     for (std::size_t index = 0; index < items_.size(); ++index) {
         item_indices_.emplace(items_[index].stable_id, index);
     }
-    if (focused_index_) focused_index_ = position_of[*focused_index_];
-    if (anchor_index_) anchor_index_ = position_of[*anchor_index_];
+    if (focused_index_.present()) focused_index_.set(position_of[*focused_index_.value()]);
+    if (anchor_index_.present()) anchor_index_.set(position_of[*anchor_index_.value()]);
     hot_index_.reset();
     conceal_cut_off_text();
     ++model_revision_;
     insertion_mark_.reset();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // An edit in progress is cancelled once the items have changed.
-    if (label_edit_index_) {
+    if (label_edit_index_.present()) {
         cancel_label_edit();
         if (!is_alive()) return;
     }
@@ -1255,7 +1302,9 @@ ListView::Layout ListView::layout_for(Rect client) const {
     placed.columns_width = columns_width;
     // The details view shows nothing without columns, as in Windows Forms.
     placed.shown_count = details && columns_.empty() ? 0U : item_count();
-    const double header_height = details && !columns_.empty() ? row + 2.0 * scale : 0.0;
+    // No header row with header_style none (Windows Forms' ColumnHeaderStyle.None).
+    const bool header_shown = details && !columns_.empty() && header_style.read() != ListViewHeaderStyle::none;
+    const double header_height = header_shown ? row + 2.0 * scale : 0.0;
     if (details) {
         placed.cell = {columns_width, row};
     } else if (view.read() == ListViewView::large_icon) {
@@ -1569,7 +1618,7 @@ ListView::SubItemParts ListView::sub_item_parts(const Layout& placed, std::size_
 // One column header, from the layout ObjectView's headers share. `clip` is
 // the header band when publishing, the column's own cell when painting.
 ListView::ColumnParts ListView::column_parts(const Layout& placed, std::size_t column, Rect clip) const {
-    const bool sorted = sort_column_ == column && sort_order_ != ListViewSortOrder::none;
+    const bool sorted = sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ != ListViewSortOrder::none;
     const details_detail::ColumnHeaderGeometry header =
         details_detail::column_header_geometry(column_cell(placed, column), clip, sorted, placed.scale);
     ColumnParts parts;
@@ -1592,12 +1641,12 @@ constexpr CustomStateIndex sorted_descending_state{1U};
 AnatomyStateSet ListView::item_states(std::size_t index, bool checked) const {
     AnatomyStateSet states;
     if (selected_[index] != 0U) states.insert(AnatomyState::selected);
-    if (hot_index_ == index) states.insert(AnatomyState::hot);
-    if (focused_index_ == index) states.insert(AnatomyState::current);
+    if (hot_index_ == stxlib::Optional<std::size_t>::of(index)) states.insert(AnatomyState::hot);
+    if (focused_index_ == stxlib::Optional<std::size_t>::of(index)) states.insert(AnatomyState::current);
     if (check_boxes.read() && checked) states.insert(AnatomyState::checked);
     if (!effectively_enabled()) states.insert(AnatomyState::disabled);
     const Window* const host = attached_window();
-    if (focused_ && focused_index_ == index && host != nullptr && (*host).focus_cue_visible()) {
+    if (focused_ && focused_index_ == stxlib::Optional<std::size_t>::of(index) && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;
@@ -1605,13 +1654,13 @@ AnatomyStateSet ListView::item_states(std::size_t index, bool checked) const {
 
 AnatomyStateSet ListView::column_states(std::size_t column) const {
     AnatomyStateSet states;
-    if (hot_column_ == column) states.insert(AnatomyState::hot);
-    if (pressed_column_ == column) states.insert(AnatomyState::pressed);
-    if (resizing_column_ == column) states.insert(AnatomyState::captured);
-    if (sort_column_ == column && sort_order_ == ListViewSortOrder::ascending) {
+    if (hot_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::hot);
+    if (pressed_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::pressed);
+    if (resizing_column_ == stxlib::Optional<std::size_t>::of(column)) states.insert(AnatomyState::captured);
+    if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == ListViewSortOrder::ascending) {
         states.insert(sorted_ascending_state);
     }
-    if (sort_column_ == column && sort_order_ == ListViewSortOrder::descending) {
+    if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == ListViewSortOrder::descending) {
         states.insert(sorted_descending_state);
     }
     return states;
@@ -2063,7 +2112,7 @@ ListView::Hit ListView::hit_test(const Layout& placed, Point local) const {
 void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point local) {
     const bool revealing_view = view.read() == ListViewView::details || view.read() == ListViewView::list;
     if (hit.zone != HitZone::item || !revealing_view || draw_mode.read() == ItemDrawMode::owner_draw ||
-        label_edit_index_) {
+        label_edit_index_.present()) {
         conceal_cut_off_text();
         return;
     }
@@ -2076,17 +2125,17 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
     Rect text_cell = parts.text.bounds;
     double row_right = parts.item_face.bounds.x + parts.item_face.bounds.width;
     if (view.read() == ListViewView::details) {
-        std::optional<std::size_t> under{};
-        for (std::size_t candidate = 0; candidate < columns_.size() && !under; ++candidate) {
+        stxlib::Optional<std::size_t> under{};
+        for (std::size_t candidate = 0; candidate < columns_.size() && under.absent(); ++candidate) {
             if (!column_visible(placed, candidate)) continue;
             const Rect header = column_cell(placed, candidate);
-            if (local.x >= header.x && local.x < header.x + header.width) under = candidate;
+            if (local.x >= header.x && local.x < header.x + header.width) under.set(candidate);
         }
-        if (!under) {
+        if (under.absent()) {
             conceal_cut_off_text();
             return;
         }
-        column = *under;
+        column = *under.value();
         const Rect header = column_cell(placed, column);
         row_right = header.x + header.width;
         if (column > 0U) {
@@ -2129,8 +2178,8 @@ void ListView::conceal_cut_off_text() noexcept {
 // a details row or a list-view cell, down the left or right of an icon
 // view's cell, centred on the cell's edge and clipped to the viewport.
 Rect ListView::insertion_mark_bounds(const Layout& placed) const noexcept {
-    if (!insertion_mark_ || (*insertion_mark_).index >= placed.shown_count) return {};
-    const ListViewInsertionMark mark = *insertion_mark_;
+    if (insertion_mark_.absent() || (*insertion_mark_.value()).index >= placed.shown_count) return {};
+    const ListViewInsertionMark mark = *insertion_mark_.value();
     const Rect cell = item_bounds(placed, mark.index);
     const double thickness = insertion_thickness * placed.scale;
     // The details and list views stack items down a line, so their gaps
@@ -2154,21 +2203,21 @@ bool ListView::show_insertion_mark(ListViewInsertionMark mark) {
         clear_insertion_mark();
         return false;
     }
-    if (insertion_mark_ && *insertion_mark_ == mark) return true;
-    insertion_mark_ = mark;
+    if (insertion_mark_.present() && *insertion_mark_.value() == mark) return true;
+    insertion_mark_.set(mark);
     invalidate(Dirty::paint);
     return true;
 }
 
 void ListView::clear_insertion_mark() noexcept {
-    if (!insertion_mark_) return;
+    if (insertion_mark_.absent()) return;
     insertion_mark_.reset();
     invalidate(Dirty::paint);
 }
 
-std::optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_point) const {
+stxlib::Optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_point) const {
     const Layout placed = layout();
-    if (placed.shown_count == 0U || placed.viewport.empty()) return std::nullopt;
+    if (placed.shown_count == 0U || placed.viewport.empty()) return stxlib::Optional<ListViewInsertionMark>::none();
     const Rect absolute = absolute_bounds();
     const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
     const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
@@ -2207,22 +2256,22 @@ std::optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_po
     const bool after = between_rows ? clamped.y >= cell.y + cell.height * 0.5
                                     : clamped.x >= cell.x + cell.width * 0.5;
     const ListViewInsertionMark mark{index, after};
-    return mark;
+    return stxlib::Optional<ListViewInsertionMark>::of(mark);
 }
 
-std::optional<std::size_t> ListView::item_index_at(Point window_point) const {
+stxlib::Optional<std::size_t> ListView::item_index_at(Point window_point) const {
     const Rect absolute = absolute_bounds();
     const Layout placed = layout();
     const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
     const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
     const Hit hit = hit_test(placed, local);
-    if (hit.zone != HitZone::item && hit.zone != HitZone::check) return std::nullopt;
-    return hit.index;
+    if (hit.zone != HitZone::item && hit.zone != HitZone::check) return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(hit.index);
 }
 
 void ListView::finish_column_resize() {
-    if (!resizing_column_) return;
-    const std::size_t column = *resizing_column_;
+    if (resizing_column_.absent()) return;
+    const std::size_t column = *resizing_column_.value();
     resizing_column_.reset();
     if (has_pointer_capture()) set_pointer_capture(false);
     invalidate(Dirty::paint | Dirty::semantics);
@@ -2247,7 +2296,7 @@ void ListView::handle_pointer(PointerEvent& event) {
     const bool mirrored = layout().mirrored;
     const Point local = details_detail::reading_point(drawn, frame, mirrored);
     const Control::Ptr lifetime = shared_from_this();
-    if (resizing_column_) {
+    if (resizing_column_.present()) {
         conceal_cut_off_text();
         // The window may end capture before it delivers the release, and a
         // host or another control may take it away: either ends the drag.
@@ -2256,12 +2305,12 @@ void ListView::handle_pointer(PointerEvent& event) {
             event.handled = event.action == PointerAction::up;
             if (event.handled) return;
         } else {
-            if (event.action == PointerAction::move && *resizing_column_ < columns_.size()) {
+            if (event.action == PointerAction::move && *resizing_column_.value() < columns_.size()) {
                 const double delta = (local.x - resize_start_x_) / effective_text_scale();
                 const double width =
                     std::clamp(resize_start_width_ + delta, minimum_column_width, maximum_column_width);
-                if (columns_[*resizing_column_].width != width) {
-                    columns_[*resizing_column_].width = width;
+                if (columns_[*resizing_column_.value()].width != width) {
+                    columns_[*resizing_column_.value()].width = width;
                     advance_layout_revision();
                     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
                 }
@@ -2270,17 +2319,17 @@ void ListView::handle_pointer(PointerEvent& event) {
             return;
         }
     }
-    if (event.action == PointerAction::down && label_edit_index_) {
+    if (event.action == PointerAction::down && label_edit_index_.present()) {
         // A press in the view commits the edit, then is handled against the
         // view as the commit's handlers left it.
         end_label_edit();
-        if (!is_alive() || label_edit_index_) return;
+        if (!is_alive() || label_edit_index_.present()) return;
         handle_pointer(event);
         return;
     }
     const Layout placed = layout();
     if (event.action == PointerAction::leave) {
-        if (hot_index_ || hot_column_) {
+        if (hot_index_.present() || hot_column_.present()) {
             hot_index_.reset();
             conceal_cut_off_text();
             hot_column_.reset();
@@ -2291,11 +2340,21 @@ void ListView::handle_pointer(PointerEvent& event) {
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
         const bool on_item = hit.zone == HitZone::item || hit.zone == HitZone::check;
-        const bool on_header = hit.zone == HitZone::header;
-        const std::optional<std::size_t> next_hot = on_item ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        const std::optional<std::size_t> next_column =
-            on_header ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        cursor = hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow;
+        // Only clickable headers track the pointer.
+        const bool on_header = hit.zone == HitZone::header && header_style.read() == ListViewHeaderStyle::clickable;
+        const stxlib::Optional<std::size_t> next_hot = on_item ? stxlib::Optional<std::size_t>::of(hit.index) : stxlib::Optional<std::size_t>::none();
+        const stxlib::Optional<std::size_t> next_column =
+            on_header ? stxlib::Optional<std::size_t>::of(hit.index) : stxlib::Optional<std::size_t>::none();
+        // Activation by click shows the hand over items (Windows Forms' hot
+        // tracking for one_click and two_click).
+        const bool clickable_items = activation.read() != ListViewActivation::standard;
+        if (hit.zone == HitZone::divider) {
+            cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
+        } else if (on_item && clickable_items) {
+            cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
+        } else {
+            cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
+        }
         if (next_hot != hot_index_ || next_column != hot_column_) {
             hot_index_ = next_hot;
             hot_column_ = next_column;
@@ -2330,52 +2389,83 @@ void ListView::handle_pointer(PointerEvent& event) {
         cancel_label_click();
         const bool slow_click = label_edit.read() && focused_ && event.button == PointerButton::primary &&
                                 event.click_count == 1U && event.modifiers == Modifier::none &&
-                                hit.zone == HitZone::item && focused_index_ == hit.index &&
+                                hit.zone == HitZone::item && focused_index_ == stxlib::Optional<std::size_t>::of(hit.index) &&
                                 hit.index < selected_.size() && selected_[hit.index] != 0U &&
                                 item_parts(placed, hit.index, placed.viewport).text.bounds.contains(local);
         if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
         if (!is_alive()) return;
         event.handled = true;
+        // The focus request runs handlers (validation, lost and got focus)
+        // that may replace the items or columns: the press is hit again
+        // against the view as they left it, and a slow click needs the same
+        // target (A-gf-controls-08-F1).
+        const Layout settled = layout();
+        const Hit target = hit_test(settled, local);
+        const bool slow_target = slow_click && target.zone == hit.zone && target.index == hit.index;
         if (event.button == PointerButton::secondary) {
             // A secondary press selects the item under it unless it is
             // already selected (context menus are the application's).
-            if (hit.zone == HitZone::item && selected_[hit.index] == 0U) choose(hit.index, Modifier::none, false);
+            const bool unselected =
+                target.zone == HitZone::item && target.index < selected_.size() && selected_[target.index] == 0U;
+            if (unselected) choose(target.index, Modifier::none, false);
             return;
         }
-        if (hit.zone == HitZone::divider) {
-            resizing_column_ = hit.index;
+        primary_press_taken_ = true;
+        if (target.zone == HitZone::divider) {
+            resizing_column_.set(target.index);
             resize_start_x_ = local.x;
-            resize_start_width_ = columns_[hit.index].width;
+            resize_start_width_ = columns_[target.index].width;
             if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
-        } else if (hit.zone == HitZone::header) {
-            pressed_column_ = hit.index;
+        } else if (target.zone == HitZone::header && header_style.read() == ListViewHeaderStyle::clickable) {
+            pressed_column_.set(target.index);
             if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
-        } else if (hit.zone == HitZone::check) {
-            move_focus(hit.index);
-            toggle_check(hit.index);
-        } else if (hit.zone == HitZone::item) {
+        } else if (target.zone == HitZone::check) {
+            move_focus(target.index);
+            toggle_check(target.index);
+        } else if (target.zone == HitZone::item) {
+            const ListViewActivation mode = activation.read();
+            // two_click: a click on the item that was already selected and
+            // focused, read before this press changes them.
+            const bool already_chosen = focused_index_ == stxlib::Optional<std::size_t>::of(target.index) && target.index < selected_.size() &&
+                                        selected_[target.index] != 0U;
             if (event.click_count >= 2U) {
-                activate(hit.index);
+                // one_click activated on the first press of the pair.
+                if (mode != ListViewActivation::one_click) activate(target.index);
             } else {
-                choose(hit.index, event.modifiers, false);
-                if (slow_click && is_alive()) schedule_label_click(hit.index);
+                choose(target.index, event.modifiers, false);
+                if (!is_alive()) return;
+                const bool plain = event.modifiers == Modifier::none;
+                if (plain && mode == ListViewActivation::one_click) {
+                    activate(target.index);
+                } else if (plain && mode == ListViewActivation::two_click && already_chosen) {
+                    activate(target.index);
+                } else if (slow_target) {
+                    schedule_label_click(target.index);
+                }
             }
-        } else if (!placed.viewport.empty() && placed.viewport.contains(local) &&
+        } else if (!settled.viewport.empty() && settled.viewport.contains(local) &&
                    event.modifiers == Modifier::none) {
             if (select_none()) publish_selection();
         }
         return;
     }
-    if (event.action == PointerAction::up && event.button == PointerButton::primary && pressed_column_) {
-        const std::size_t pressed = *pressed_column_;
+    if (event.action == PointerAction::up && event.button == PointerButton::primary && pressed_column_.present()) {
+        const std::size_t pressed = *pressed_column_.value();
         pressed_column_.reset();
         if (has_pointer_capture()) set_pointer_capture(false);
         invalidate(Dirty::paint | Dirty::semantics);
         event.handled = true;
         // A click is a press and release on the same header.
         if (hit.zone == HitZone::header && hit.index == pressed) request_column_click(pressed);
+        return;
+    }
+    if (event.action == PointerAction::up && event.button == PointerButton::primary && primary_press_taken_) {
+        // The release of a press on an item or the viewport: nothing more
+        // happens on it (activation is on the press), but it is handled.
+        primary_press_taken_ = false;
+        event.handled = true;
     }
 }
 
@@ -2421,7 +2511,7 @@ void ListView::on_mouse_leave() {
     Control::on_mouse_leave();
 }
 
-std::optional<std::size_t> ListView::navigation_target(std::uint32_t key, std::size_t from,
+stxlib::Optional<std::size_t> ListView::navigation_target(std::uint32_t key, std::size_t from,
                                                        const Layout& placed) const {
     if (placed.grouped) return grouped_navigation_target(key, from, placed);
     const std::size_t count = placed.shown_count;
@@ -2438,28 +2528,28 @@ std::optional<std::size_t> ListView::navigation_target(std::uint32_t key, std::s
         vertical = per;
         horizontal = 1U;
     }
-    if (key == PhysicalKey::home) return std::size_t{0U};
-    if (key == PhysicalKey::end) return last;
-    if (key == PhysicalKey::up) return from >= vertical ? from - vertical : from;
-    if (key == PhysicalKey::down) return std::min(from + vertical, last);
-    if (key == PhysicalKey::page_up) return from >= page ? from - page : std::size_t{0U};
-    if (key == PhysicalKey::page_down) return std::min(from + page, last);
-    if (horizontal == 0U) return std::nullopt;
-    if (key == PhysicalKey::left) return from >= horizontal ? from - horizontal : from;
-    if (key == PhysicalKey::right) return std::min(from + horizontal, last);
-    return std::nullopt;
+    if (key == PhysicalKey::home) return stxlib::Optional<std::size_t>::of(std::size_t{0U});
+    if (key == PhysicalKey::end) return stxlib::Optional<std::size_t>::of(last);
+    if (key == PhysicalKey::up) return stxlib::Optional<std::size_t>::of(from >= vertical ? from - vertical : from);
+    if (key == PhysicalKey::down) return stxlib::Optional<std::size_t>::of(std::min(from + vertical, last));
+    if (key == PhysicalKey::page_up) return stxlib::Optional<std::size_t>::of(from >= page ? from - page : std::size_t{0U});
+    if (key == PhysicalKey::page_down) return stxlib::Optional<std::size_t>::of(std::min(from + page, last));
+    if (horizontal == 0U) return stxlib::Optional<std::size_t>::none();
+    if (key == PhysicalKey::left) return stxlib::Optional<std::size_t>::of(from >= horizontal ? from - horizontal : from);
+    if (key == PhysicalKey::right) return stxlib::Optional<std::size_t>::of(std::min(from + horizontal, last));
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // The arrows in a grouped view move through the shown order: Up and Down
 // to the item line above or below, across group headers, keeping the place
 // along the line; Left and Right to the previous or next shown item in the
 // icon and tile views.
-std::optional<std::size_t> ListView::grouped_navigation_target(std::uint32_t key, std::size_t from,
+stxlib::Optional<std::size_t> ListView::grouped_navigation_target(std::uint32_t key, std::size_t from,
                                                                const Layout& placed) const {
     const std::size_t last = placed.shown_count - 1U;
     const std::size_t position = position_of(placed, from);
-    if (key == PhysicalKey::home) return index_at(placed, 0U);
-    if (key == PhysicalKey::end) return index_at(placed, last);
+    if (key == PhysicalKey::home) return stxlib::Optional<std::size_t>::of(index_at(placed, 0U));
+    if (key == PhysicalKey::end) return stxlib::Optional<std::size_t>::of(index_at(placed, last));
     const bool up = key == PhysicalKey::up || key == PhysicalKey::page_up;
     const bool down = key == PhysicalKey::down || key == PhysicalKey::page_down;
     if (up || down) {
@@ -2474,19 +2564,19 @@ std::optional<std::size_t> ListView::grouped_navigation_target(std::uint32_t key
             target = next;
         }
         // A page key with no line left goes to the first or last item.
-        if (page && target == line) return index_at(placed, down ? last : 0U);
+        if (page && target == line) return stxlib::Optional<std::size_t>::of(index_at(placed, down ? last : 0U));
         const std::size_t moved = line_first(placed, target) + std::min(along, line_items(placed, target) - 1U);
-        return index_at(placed, moved);
+        return stxlib::Optional<std::size_t>::of(index_at(placed, moved));
     }
-    if (view.read() == ListViewView::details) return std::nullopt;
-    if (key == PhysicalKey::left) return index_at(placed, position > 0U ? position - 1U : position);
-    if (key == PhysicalKey::right) return index_at(placed, std::min(position + 1U, last));
-    return std::nullopt;
+    if (view.read() == ListViewView::details) return stxlib::Optional<std::size_t>::none();
+    if (key == PhysicalKey::left) return stxlib::Optional<std::size_t>::of(index_at(placed, position > 0U ? position - 1U : position));
+    if (key == PhysicalKey::right) return stxlib::Optional<std::size_t>::of(index_at(placed, std::min(position + 1U, last)));
+    return stxlib::Optional<std::size_t>::none();
 }
 
 void ListView::on_key_preview(KeyEvent& event) {
     // Keys for a label edit in progress, before the editor sees them.
-    if (!label_edit_index_ || event.action != KeyAction::down) return;
+    if (label_edit_index_.absent() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape) {
         cancel_label_edit();
         event.handled = true;
@@ -2502,8 +2592,8 @@ void ListView::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     // A key ends a pending slow click.
     cancel_label_click();
-    if (event.physical_key == PhysicalKey::escape && resizing_column_) {
-        columns_[*resizing_column_].width = resize_start_width_;
+    if (event.physical_key == PhysicalKey::escape && resizing_column_.present()) {
+        columns_[*resizing_column_.value()].width = resize_start_width_;
         advance_layout_revision();
         finish_column_resize();
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -2516,8 +2606,8 @@ void ListView::handle_key(KeyEvent& event) {
                          has_modifier(event.modifiers, Modifier::meta);
     const bool shift = has_modifier(event.modifiers, Modifier::shift);
     const std::size_t from = std::min(focused_index_.value_or(0U), placed.shown_count - 1U);
-    if (event.physical_key == PhysicalKey::f2 && label_edit.read() && focused_index_) {
-        static_cast<void>(begin_label_edit(*focused_index_));
+    if (event.physical_key == PhysicalKey::f2 && label_edit.read() && focused_index_.present()) {
+        static_cast<void>(begin_label_edit(*focused_index_.value()));
         event.handled = true;
         return;
     }
@@ -2527,7 +2617,7 @@ void ListView::handle_key(KeyEvent& event) {
         return;
     }
     if (event.physical_key == PhysicalKey::enter) {
-        if (focused_index_) activate(*focused_index_);
+        if (focused_index_.present()) activate(*focused_index_.value());
         event.handled = true;
         return;
     }
@@ -2536,7 +2626,7 @@ void ListView::handle_key(KeyEvent& event) {
             toggle_check(from);
         } else if (control && multi_select.read()) {
             const bool changed = toggle_selected(from);
-            anchor_index_ = from;
+            anchor_index_.set(from);
             move_focus(from);
             if (changed) publish_selection();
         } else {
@@ -2553,8 +2643,8 @@ void ListView::handle_key(KeyEvent& event) {
     } else if (placed.mirrored && key == PhysicalKey::right) {
         key = PhysicalKey::left;
     }
-    const std::optional<std::size_t> target = navigation_target(key, from, placed);
-    if (!target) {
+    const stxlib::Optional<std::size_t> target = navigation_target(key, from, placed);
+    if (target.absent()) {
         // The details view scrolls sideways with Left and Right.
         const bool sideways = key == PhysicalKey::left || key == PhysicalKey::right;
         if (!sideways || view.read() != ListViewView::details) return;
@@ -2565,7 +2655,7 @@ void ListView::handle_key(KeyEvent& event) {
     }
     // Control with an arrow moves the focus without selecting; Shift extends
     // the selection from the anchor (Control and Shift adds the range).
-    choose(*target, event.modifiers, control && !shift);
+    choose(*target.value(), event.modifiers, control && !shift);
     event.handled = true;
 }
 
@@ -2592,7 +2682,7 @@ void ListView::type_select(std::string_view text) {
     // order.
     const Layout placed = layout();
     const bool single = type_prefix_.size() == 1U;
-    const std::size_t focus = focused_index_ ? position_of(placed, *focused_index_) : count - 1U;
+    const std::size_t focus = focused_index_.present() ? position_of(placed, *focused_index_.value()) : count - 1U;
     const std::size_t start = single ? (focus + 1U) % count : focus % count;
     for (std::size_t offset = 0; offset < count; ++offset) {
         const std::size_t index = index_at(placed, (start + offset) % count);
@@ -2620,16 +2710,17 @@ void ListView::on_focus_changed(bool focused) {
     focused_ = focused;
     if (!focused) {
         cancel_label_click();
-        if (resizing_column_) finish_column_resize();
-        if (pressed_column_) {
+        if (resizing_column_.present()) finish_column_resize();
+        if (pressed_column_.present()) {
             pressed_column_.reset();
             if (has_pointer_capture()) set_pointer_capture(false);
         }
+        primary_press_taken_ = false;
     }
-    if (focused_ && !focused_index_ && item_count() != 0U) {
+    if (focused_ && focused_index_.absent() && item_count() != 0U) {
         std::size_t first = 0U;
         while (first < selected_.size() && selected_[first] == 0U) ++first;
-        focused_index_ = first < selected_.size() ? first : top_index();
+        focused_index_.set(first < selected_.size() ? first : top_index());
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -2667,7 +2758,7 @@ void ListView::schedule_label_click(std::size_t index) {
     Window* const host = window();
     if (host == nullptr) return;
     const std::chrono::milliseconds wait((*host).presentation_settings().double_click_milliseconds);
-    label_click_ = PendingLabelClick{index, model_revision_};
+    label_click_.set(PendingLabelClick{index, model_revision_});
     const std::weak_ptr<Control> weak = shared_from_this();
     label_click_timer_ = (*host).schedule_ui_timer(*this, std::chrono::hours(24), FrameClock::now() + wait,
                                                    LabelClickElapsed{weak});
@@ -2682,11 +2773,11 @@ void ListView::cancel_label_click() noexcept {
 // model, the item still focused and selected, the view focused, editing
 // still on, and no edit in progress.
 void ListView::label_click_elapsed() {
-    const std::optional<PendingLabelClick> pending = label_click_;
+    const stxlib::Optional<PendingLabelClick> pending = label_click_;
     cancel_label_click();
-    if (!pending || !label_edit.read() || !focused_ || label_edit_index_) return;
-    const PendingLabelClick& click = *pending;
-    if (click.revision != model_revision_ || focused_index_ != click.index) return;
+    if (pending.absent() || !label_edit.read() || !focused_ || label_edit_index_.present()) return;
+    const PendingLabelClick& click = *pending.value();
+    if (click.revision != model_revision_ || focused_index_ != stxlib::Optional<std::size_t>::of(click.index)) return;
     if (click.index >= selected_.size() || selected_[click.index] == 0U || click.index >= item_count()) return;
     static_cast<void>(begin_label_edit(click.index));
 }
@@ -2695,13 +2786,13 @@ void ListView::label_click_elapsed() {
 // item's view; a scrolled-out item's editor keeps the focus at no size until
 // the item is shown again.
 Rect ListView::label_editor_bounds(const Layout& placed) const {
-    if (!label_edit_index_ || *label_edit_index_ >= placed.shown_count) return {};
-    const ItemParts parts = item_parts(placed, *label_edit_index_, placed.viewport);
+    if (label_edit_index_.absent() || *label_edit_index_.value() >= placed.shown_count) return {};
+    const ItemParts parts = item_parts(placed, *label_edit_index_.value(), placed.viewport);
     return parts.text.bounds;
 }
 
 void ListView::place_label_editor(const Layout& placed) {
-    if (!label_editor_ || !label_edit_index_) return;
+    if (!label_editor_ || label_edit_index_.absent()) return;
     const Rect editor = details_detail::shown_rect(label_editor_bounds(placed), placed.well, placed.mirrored);
     set_child_layout(label_editor_, editor);
 }
@@ -2734,13 +2825,13 @@ bool ListView::begin_label_edit(std::size_t index) {
     cancel_label_click();
     if (index >= item_count()) throw std::out_of_range("ListView item index is past the end");
     if (!label_edit.read()) return false;
-    if (label_edit_index_ && *label_edit_index_ == index) return true;
+    if (label_edit_index_.present() && *label_edit_index_.value() == index) return true;
     const Control::Ptr lifetime = shared_from_this();
-    if (label_edit_index_) {
+    if (label_edit_index_.present()) {
         end_label_edit();
         // The commit's handlers may change or end the view, or begin an edit.
         if (!is_alive() || !label_edit.read() || index >= item_count()) return false;
-        if (label_edit_index_) return *label_edit_index_ == index;
+        if (label_edit_index_.present()) return *label_edit_index_.value() == index;
     }
     if (index >= layout().shown_count) return false;
     ListViewItem scratch;
@@ -2750,7 +2841,7 @@ bool ListView::begin_label_edit(std::size_t index) {
     request.index = index;
     request.item_id = item_id;
     before_label_edit_.emit(request);
-    if (request.cancel || !is_alive() || !label_edit.read() || label_edit_index_) return false;
+    if (request.cancel || !is_alive() || !label_edit.read() || label_edit_index_.present()) return false;
     // A handler may have changed the items: the edit begins only on the item
     // it was asked for, still shown at `index`.
     if (index >= item_count() || index >= layout().shown_count) return false;
@@ -2759,7 +2850,7 @@ bool ListView::begin_label_edit(std::size_t index) {
     std::string text = item.text;
     ensure_visible(index);
     if (!label_editor_) create_label_editor();
-    label_edit_index_ = index;
+    label_edit_index_.set(index);
     label_edit_item_id_ = item_id;
     TextBox& editor = *label_editor_;
     editor.text = std::move(text);
@@ -2769,13 +2860,13 @@ bool ListView::begin_label_edit(std::size_t index) {
     Window* const host = window();
     if (host != nullptr) static_cast<void>((*host).request_focus(label_editor_));
     // Focus handlers may end the edit or the view.
-    if (!is_alive() || !label_edit_index_ || *label_edit_index_ != index) return false;
+    if (!is_alive() || label_edit_index_.absent() || *label_edit_index_.value() != index) return false;
     editor.select_all();
     return true;
 }
 
 void ListView::end_label_edit() {
-    if (!label_edit_index_ || closing_label_editor_) return;
+    if (label_edit_index_.absent() || closing_label_editor_) return;
     const Control::Ptr lifetime = shared_from_this();
     const std::string label((*label_editor_).text.read());
     const std::string item_id = label_edit_item_id_;
@@ -2791,15 +2882,15 @@ void ListView::end_label_edit() {
     }
     // The label goes to the item with the edited ID, wherever a handler has
     // moved it; an item a handler removed takes nothing.
-    const std::optional<std::size_t> at = index_of(item_id);
-    if (!at || items_[*at].text == label) return;
-    items_[*at].text = label;
+    const stxlib::Optional<std::size_t> at = index_of(item_id);
+    if (at.absent() || items_[*at.value()].text == label) return;
+    items_[*at.value()].text = label;
     advance_layout_revision();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void ListView::cancel_label_edit() {
-    if (!label_edit_index_ || closing_label_editor_) return;
+    if (label_edit_index_.absent() || closing_label_editor_) return;
     const Control::Ptr lifetime = shared_from_this();
     ListViewLabelEdit ended = label_edit_event(std::nullopt);
     close_label_editor();
@@ -2820,7 +2911,7 @@ void ListView::close_label_editor() {
 }
 
 void ListView::on_label_editor_focus(bool focused) {
-    if (focused || !label_edit_index_ || closing_label_editor_ || !is_alive()) return;
+    if (focused || label_edit_index_.absent() || closing_label_editor_ || !is_alive()) return;
     // Focus left the editor for another control: the user has moved on, and
     // the edit commits.
     end_label_edit();
@@ -2828,24 +2919,32 @@ void ListView::on_label_editor_focus(bool focused) {
 
 // -- semantics -----------------------------------------------------------------
 
+// The details view is a table (12.13) whose rows hold a cell per column,
+// unless it has at most one column and no header row: a single headerless
+// column reads as a list, as the other views do.
+bool ListView::publishes_table() const noexcept {
+    if (view.read() != ListViewView::details) return false;
+    const bool single_column = columns_.size() <= 1U;
+    const bool headerless = header_style.read() == ListViewHeaderStyle::none;
+    return !(single_column && headerless);
+}
+
 SemanticDescriptor ListView::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
-    // The details view is a table (12.13) whose rows hold a cell per
-    // column, sized by every item and every column, realized or not; the
-    // other views are lists.
-    if (view.read() == ListViewView::details) {
+    // A table is sized by every item and every column, realized or not.
+    if (publishes_table()) {
         descriptor.role = SemanticRole::table;
-        descriptor.row_count = item_count();
-        descriptor.column_count = columns_.size();
+        descriptor.row_count.set(item_count());
+        descriptor.column_count.set(columns_.size());
     } else {
         descriptor.role = SemanticRole::list;
     }
     if (multi_select.read()) descriptor.states |= SemanticState::multiselectable;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    if (selected_count_ == 1U && focused_index_ && selected_[*focused_index_] != 0U) {
+    if (selected_count_ == 1U && focused_index_.present() && selected_[*focused_index_.value()] != 0U) {
         ListViewItem scratch;
-        descriptor.value = item_at(*focused_index_, scratch).text;
+        descriptor.value = item_at(*focused_index_.value(), scratch).text;
     } else if (selected_count_ != 0U) {
         descriptor.value = std::to_string(selected_count_) + " selected";
     }
@@ -2861,9 +2960,10 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
     const std::string list_id(stable_id().value());
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
-    // Column headers first, in reading order; a header's press raises
-    // column_click.
-    for (std::size_t column = 0; column < columns_.size(); ++column) {
+    const bool table = publishes_table();
+    // A table's column headers first, in reading order; a header's press
+    // raises column_click.
+    for (std::size_t column = 0; table && column < columns_.size(); ++column) {
         if (!column_visible(placed, column)) continue;
         const Rect bounds = details_detail::shown_rect(Rect::intersection(column_cell(placed, column), placed.header),
                                                        placed.well, placed.mirrored);
@@ -2871,13 +2971,13 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.stable_id = column_identity(list_id, columns_[column].stable_id);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::column_header;
-        node.column_index = column + 1U;
+        node.column_index.set(column + 1U);
         node.name = columns_[column].text;
-        if (sort_column_ == column && sort_order_ == ListViewSortOrder::ascending) node.value = "ascending";
-        if (sort_column_ == column && sort_order_ == ListViewSortOrder::descending) node.value = "descending";
+        if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == ListViewSortOrder::ascending) node.value = "ascending";
+        if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == ListViewSortOrder::descending) node.value = "descending";
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | enabled_state;
-        node.actions = {SemanticAction::press};
+        if (header_style.read() == ListViewHeaderStyle::clickable) node.actions = {SemanticAction::press};
         nodes.push_back(std::move(node));
     }
     const std::size_t first = first_realized(placed);
@@ -2885,7 +2985,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
     ListViewItem scratch;
     // A grouped view's items are the children of a `group` node per shown
     // group, named by its header.
-    std::optional<std::size_t> open_band{};
+    stxlib::Optional<std::size_t> open_band{};
     SemanticNode group_node{};
     for (std::size_t position = first; position < end; ++position) {
         const std::size_t index = index_at(placed, position);
@@ -2896,17 +2996,26 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.stable_id = item.stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = item.text;
-        if (view.read() == ListViewView::details) {
+        if (table) {
             node.role = SemanticRole::row;
-            node.row_index = position + 1U;
+            node.row_index.set(position + 1U);
             append_row_cells(placed, index, item, node);
         } else {
+            // A list item is n of m: of every item, or of its group's items
+            // in a grouped view, counted in the shown order, realized or not.
             node.role = check_boxes.read() ? SemanticRole::check_list_item : SemanticRole::list_item;
+            node.position_in_set.set(position + 1U);
+            node.set_size.set(item_count());
+            if (placed.grouped) {
+                const GroupBand& record = placed.bands[band_of_position(placed, position)];
+                node.position_in_set.set(position - record.first + 1U);
+                node.set_size.set(record.count);
+            }
         }
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;
         if (selected_[index] != 0U) node.states |= SemanticState::selected;
-        if (focused_ && focused_index_ == index) node.states |= SemanticState::focused;
+        if (focused_ && focused_index_ == stxlib::Optional<std::size_t>::of(index)) node.states |= SemanticState::focused;
         if (check_boxes.read()) {
             node.value = item.checked ? "checked" : "unchecked";
             node.states |= SemanticState::checkable;
@@ -2918,9 +3027,9 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
             continue;
         }
         const std::size_t band = band_of_position(placed, position);
-        if (open_band != band) {
-            if (open_band) nodes.push_back(std::move(group_node));
-            open_band = band;
+        if (open_band != stxlib::Optional<std::size_t>::of(band)) {
+            if (open_band.present()) nodes.push_back(std::move(group_node));
+            open_band.set(band);
             const GroupBand& record = placed.bands[band];
             const std::size_t lines = 1U + ceiling_quotient(record.count, placed.per_line);
             const double top = placed.viewport.y + line_offset(placed, record.first_line) -
@@ -2941,7 +3050,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         }
         group_node.children.push_back(std::move(node));
     }
-    if (open_band) nodes.push_back(std::move(group_node));
+    if (open_band.present()) nodes.push_back(std::move(group_node));
     return nodes;
 }
 
@@ -2966,25 +3075,25 @@ void ListView::append_row_cells(const Layout& placed, std::size_t index, const L
         cell.role = SemanticRole::cell;
         cell.name = columns_[column].text;
         cell.value = std::string(column_text(item, column));
-        cell.row_index = position_of(placed, index) + 1U;
-        cell.column_index = column + 1U;
+        cell.row_index.set(position_of(placed, index) + 1U);
+        cell.column_index.set(column + 1U);
         cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         cell.states = SemanticState::visible | enabled_state;
         row_node.children.push_back(std::move(cell));
     }
 }
 
-std::optional<std::size_t> ListView::realized_index_of(std::string_view item_id) const {
-    const std::optional<std::size_t> known = index_of(item_id);
-    if (known) return known;
+stxlib::Optional<std::size_t> ListView::realized_index_of(std::string_view item_id) const {
+    const stxlib::Optional<std::size_t> known = index_of(item_id);
+    if (known.present()) return known;
     const Layout placed = layout();
     const std::size_t end = end_realized(placed);
     ListViewItem scratch;
     for (std::size_t position = first_realized(placed); position < end; ++position) {
         const std::size_t index = index_at(placed, position);
-        if (item_at(index, scratch).stable_id == item_id) return index;
+        if (item_at(index, scratch).stable_id == item_id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 bool ListView::on_semantic_child_action(std::string_view id, SemanticAction action, std::string_view) {
@@ -2992,28 +3101,32 @@ bool ListView::on_semantic_child_action(std::string_view id, SemanticAction acti
     const std::string list_id(stable_id().value());
     for (std::size_t column = 0; column < columns_.size(); ++column) {
         if (id != column_identity(list_id, columns_[column].stable_id)) continue;
-        if (action != SemanticAction::press) return false;
+        if (action != SemanticAction::press || header_style.read() != ListViewHeaderStyle::clickable) return false;
         request_column_click(column);
         return true;
     }
-    const std::optional<std::size_t> index = realized_index_of(id);
-    if (!index || *index >= item_count()) return false;
+    const stxlib::Optional<std::size_t> index = realized_index_of(id);
+    if (index.absent() || *index.value() >= item_count()) return false;
     if (action != SemanticAction::focus && action != SemanticAction::select && action != SemanticAction::press) {
         return false;
     }
     const Control::Ptr lifetime = shared_from_this();
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return true;
+    // The focus handlers may have replaced the items: the item is looked up
+    // again by its identity (A-gf-controls-08-F1).
+    const stxlib::Optional<std::size_t> current = realized_index_of(id);
+    if (current.absent() || *current.value() >= item_count()) return true;
     if (action == SemanticAction::focus) {
-        move_focus(*index);
+        move_focus(*current.value());
     } else if (action == SemanticAction::select) {
-        choose(*index, Modifier::none, false);
+        choose(*current.value(), Modifier::none, false);
     } else if (check_boxes.read()) {
         // Press toggles a check-list item, as CheckedListBox's do.
-        move_focus(*index);
-        toggle_check(*index);
+        move_focus(*current.value());
+        toggle_check(*current.value());
     } else {
-        activate(*index);
+        activate(*current.value());
     }
     return true;
 }
@@ -3025,44 +3138,44 @@ namespace {
 constexpr std::array<AnatomyState, 1> insertion_mark_states{{AnatomyState::drop_accepted}};
 
 constexpr std::array<PartField<ListView::Parts>, 9> list_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::well},
-    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::header},
     // The child scroll bars, each a whole scroll bar system. A ranged path
     // is the nearest role to a composed scroll bar.
-    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar"},
+    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar", .states = {}},
      .member = &ListView::Parts::vertical_scroll_bar},
     {.declaration = {.name = "horizontal_scroll_bar", .role = PartRole::track,
-                     .composed_from = "h_scroll_bar"},
+                     .composed_from = "h_scroll_bar", .states = {}},
      .member = &ListView::Parts::horizontal_scroll_bar},
-    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "scroll_corner", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::scroll_corner},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ListView::Parts::focus},
     {.declaration = {.name = "insertion_mark", .role = PartRole::drop, .composed_from = {},
                      .states = insertion_mark_states},
      .member = &ListView::Parts::insertion_mark},
-    {.declaration = {.name = "label_editor", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "label_editor", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &ListView::Parts::label_editor},
 }};
 
 constexpr std::array<PartField<ListView::ItemParts>, 7> list_view_item_part_fields{{
-    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::cell},
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::item_face},
-    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::check_well},
-    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::check},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::icon},
-    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::text},
-    {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ListView::ItemParts::cell_focus},
 }};
 
@@ -3076,9 +3189,9 @@ constexpr std::array<StateField<ListView::ItemStates>, 6> list_view_item_state_f
 }};
 
 constexpr std::array<PartField<ListView::SubItemParts>, 2> list_view_sub_item_part_fields{{
-    {.declaration = {.name = "sub_item_cell", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "sub_item_cell", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::SubItemParts::sub_item_cell},
-    {.declaration = {.name = "sub_item_text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "sub_item_text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &ListView::SubItemParts::sub_item_text},
 }};
 
@@ -3088,15 +3201,15 @@ constexpr std::array<StateField<ListView::SubItemStates>, 2> list_view_sub_item_
 }};
 
 constexpr std::array<PartField<ListView::ColumnParts>, 5> list_view_column_part_fields{{
-    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_header},
-    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_label},
-    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::sort_glyph},
-    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_divider},
-    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "column_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &ListView::ColumnParts::column_grip},
 }};
 
@@ -3112,11 +3225,11 @@ constexpr std::array<CustomStateDeclaration, 2> list_view_column_custom_states{{
 }};
 
 constexpr std::array<PartField<ListView::GroupParts>, 3> list_view_group_part_fields{{
-    {.declaration = {.name = "group_band", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "group_band", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ListView::GroupParts::group_band},
-    {.declaration = {.name = "group_caption", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "group_caption", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &ListView::GroupParts::group_caption},
-    {.declaration = {.name = "group_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "group_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &ListView::GroupParts::group_divider},
 }};
 
@@ -3247,9 +3360,14 @@ ListView::RealizedSlot ListView::realized_slot(const Layout& placed, std::size_t
         slot.column = visible_column(placed, item - rows - sub_items);
         return slot;
     }
-    // A group's slot names its band.
+    // A group's slot names its band; an item past the realized group
+    // headers (realized_group_band answers bands.size() for it) is refused
+    // before it indexes the bands (A-gf-controls-08-F7).
     slot.system = group_system;
     slot.index = realized_group_band(placed, item - rows - sub_items - columns);
+    if (slot.index >= placed.bands.size()) {
+        throw std::out_of_range("ListView realized item is past the realized items");
+    }
     return slot;
 }
 
@@ -3424,6 +3542,347 @@ void ListView::append_interactions(std::vector<InteractionDeclaration>& interact
 
 // property_codemod begin ListView (tools/property_families/list_view.json; generated, do not edit)
 
+namespace {
+
+PropertyDescriptor list_view_view_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "view";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the items are arranged: details, list, small_icon, large_icon or tile.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_view_view", "details", 0}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_view_view_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_view() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_view_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_check_boxes_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "check_boxes";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether each item shows a check box.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_check_boxes() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_check_boxes_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_multi_select_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "multi_select";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether several items can be selected.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_multi_select() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_multi_select_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_full_row_select_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "full_row_select";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether the selection highlight spans the whole details row.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_full_row_select() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_full_row_select_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_font_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "font";
+    descriptor.kind = BindingValueKind::font;
+    descriptor.category = "Appearance";
+    descriptor.description = "The font of the items, headers and label editor.";
+    descriptor.default_value = BindingValue{FontSpec{FontRole::content, 10.5, 400, false}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_font() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_font_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_tile_size_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "tile_size";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "The tile view's tile in logical units; empty for the default.";
+    descriptor.default_value = BindingValue{Size{}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_tile_size() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_tile_size_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_show_groups_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "show_groups";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the items are shown in their groups.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_show_groups() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_show_groups_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_default_group_header_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "default_group_header";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The default group's header.";
+    descriptor.default_value = BindingValue{std::string{"Default"}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_default_group_header() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_default_group_header_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_label_edit_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "label_edit";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the user can edit an item's text in place.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_label_edit() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_label_edit_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_activation_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "activation";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "How the user activates an item: standard (double click), one_click or two_click.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_view_activation", "standard", 0}};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_view_activation_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_activation() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_activation_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_header_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "header_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "The details view's column headers: clickable, nonclickable or none.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_view_header_style", "clickable", 0}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_view_header_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_header_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_header_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ListViewView>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_view_view_enum()};
+}
+
+BindingValue PropertyValueTraits<ListViewView>::to_binding(ListViewView value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_view_view_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListViewView PropertyValueTraits<ListViewView>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListViewView>(choice.value);
+}
+
+PropertyType PropertyValueTraits<ListViewActivation>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_view_activation_enum()};
+}
+
+BindingValue PropertyValueTraits<ListViewActivation>::to_binding(ListViewActivation value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_view_activation_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListViewActivation PropertyValueTraits<ListViewActivation>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListViewActivation>(choice.value);
+}
+
+PropertyType PropertyValueTraits<ListViewHeaderStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_view_header_style_enum()};
+}
+
+BindingValue PropertyValueTraits<ListViewHeaderStyle>::to_binding(ListViewHeaderStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_view_header_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListViewHeaderStyle PropertyValueTraits<ListViewHeaderStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListViewHeaderStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, ListView::list_view_property_count>& ListView::list_view_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 11U> own{{
+        {"view", &describe_list_view_view,
+         &read_cell_entry<ListView, decltype(&ListView::view), &ListView::view>,
+         &write_cell_entry<ListView, decltype(&ListView::view), &ListView::view>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"check_boxes", &describe_list_view_check_boxes,
+         &read_cell_entry<ListView, decltype(&ListView::check_boxes), &ListView::check_boxes>,
+         &write_cell_entry<ListView, decltype(&ListView::check_boxes), &ListView::check_boxes>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"multi_select", &describe_list_view_multi_select,
+         &read_cell_entry<ListView, decltype(&ListView::multi_select), &ListView::multi_select>,
+         &write_cell_entry<ListView, decltype(&ListView::multi_select), &ListView::multi_select>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"full_row_select", &describe_list_view_full_row_select,
+         &read_cell_entry<ListView, decltype(&ListView::full_row_select), &ListView::full_row_select>,
+         &write_cell_entry<ListView, decltype(&ListView::full_row_select), &ListView::full_row_select>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"font", &describe_list_view_font,
+         &read_cell_entry<ListView, decltype(&ListView::font), &ListView::font>,
+         &write_cell_entry<ListView, decltype(&ListView::font), &ListView::font>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"tile_size", &describe_list_view_tile_size,
+         &read_cell_entry<ListView, decltype(&ListView::tile_size), &ListView::tile_size>,
+         &write_cell_entry<ListView, decltype(&ListView::tile_size), &ListView::tile_size>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"show_groups", &describe_list_view_show_groups,
+         &read_cell_entry<ListView, decltype(&ListView::show_groups), &ListView::show_groups>,
+         &write_cell_entry<ListView, decltype(&ListView::show_groups), &ListView::show_groups>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"default_group_header", &describe_list_view_default_group_header,
+         &read_cell_entry<ListView, decltype(&ListView::default_group_header), &ListView::default_group_header>,
+         &write_cell_entry<ListView, decltype(&ListView::default_group_header), &ListView::default_group_header>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"label_edit", &describe_list_view_label_edit,
+         &read_cell_entry<ListView, decltype(&ListView::label_edit), &ListView::label_edit>,
+         &write_cell_entry<ListView, decltype(&ListView::label_edit), &ListView::label_edit>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"activation", &describe_list_view_activation,
+         &read_cell_entry<ListView, decltype(&ListView::activation), &ListView::activation>,
+         &write_cell_entry<ListView, decltype(&ListView::activation), &ListView::activation>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"header_style", &describe_list_view_header_style,
+         &read_cell_entry<ListView, decltype(&ListView::header_style), &ListView::header_style>,
+         &write_cell_entry<ListView, decltype(&ListView::header_style), &ListView::header_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ListView's property table names a property twice");
+    static const std::array<PropertyEntry, list_view_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ListView::property_table() const noexcept {
+    const std::array<PropertyEntry, list_view_property_count>& entries = list_view_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
 void ListView::prepare_write(const decltype(check_boxes)&, bool&) {
     require_mutable();
 }
@@ -3460,6 +3919,18 @@ void ListView::prepare_write(const decltype(default_group_header)&, std::string&
 
 void ListView::written(const decltype(default_group_header)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ListView::prepare_write(const decltype(activation)&, ListViewActivation& incoming) {
+    require_mutable();
+    if (incoming != ListViewActivation::standard && incoming != ListViewActivation::one_click &&
+        incoming != ListViewActivation::two_click) {
+        throw std::invalid_argument("ListView activation is invalid");
+    }
+}
+
+void ListView::written(const decltype(activation)&) {
+    invalidate(Dirty::paint);
 }
 
 // property_codemod end ListView

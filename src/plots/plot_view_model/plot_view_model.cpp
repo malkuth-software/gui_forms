@@ -1,5 +1,6 @@
 #include "gui_forms/plots/plot_view_model/plot_view_model.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 
@@ -62,14 +63,14 @@ bool PlotViewModel::x_following(std::size_t index) const noexcept {
     return x_following_[index];
 }
 
-std::optional<Rect> PlotViewModel::drag_box() const noexcept {
-    if (gesture_ != PlotGesture::box_zoom && gesture_ != PlotGesture::query) return std::nullopt;
+stxlib::Optional<Rect> PlotViewModel::drag_box() const noexcept {
+    if (gesture_ != PlotGesture::box_zoom && gesture_ != PlotGesture::query) return stxlib::Optional<Rect>::none();
     const double left = std::min(gesture_start_.x, gesture_last_.x);
     const double top = std::min(gesture_start_.y, gesture_last_.y);
     const Rect box{left, top, std::fabs(gesture_last_.x - gesture_start_.x),
                    std::fabs(gesture_last_.y - gesture_start_.y)};
     const Rect clipped = Rect::intersection(box, plot_);
-    return clipped;
+    return stxlib::Optional<Rect>::of(clipped);
 }
 
 bool PlotViewModel::set_x_range(std::size_t index, PlotRange range) noexcept {
@@ -167,14 +168,16 @@ PlotRange PlotViewModel::data_interval(const Axis& axis, double low, double high
 PlotViewChange PlotViewModel::pan_all(Point delta, PlotZone zone) noexcept {
     PlotViewChange change{};
     const bool all = zone.kind == PlotZoneKind::plot;
-    for (std::size_t index = 0U; index < x_count_; ++index) {
+    const std::size_t x_limit = x_admitted() ? x_count_ : 0U;
+    const std::size_t y_limit = y_admitted() ? y_count_ : 0U;
+    for (std::size_t index = 0U; index < x_limit; ++index) {
         if (!all && !(zone.kind == PlotZoneKind::x_axis && zone.axis == index)) continue;
         if (pan_axis(x_axes_[index], delta.x, plot_.width, true)) {
             change.view = true;
             x_following_[index] = false;
         }
     }
-    for (std::size_t index = 0U; index < y_count_; ++index) {
+    for (std::size_t index = 0U; index < y_limit; ++index) {
         if (!all && !(zone.kind == PlotZoneKind::y_axis && zone.axis == index)) continue;
         if (pan_axis(y_axes_[index], delta.y, plot_.height, false)) change.view = true;
     }
@@ -184,7 +187,9 @@ PlotViewChange PlotViewModel::pan_all(Point delta, PlotZone zone) noexcept {
 PlotViewChange PlotViewModel::zoom_all(double factor, Point anchor, PlotZone zone) noexcept {
     PlotViewChange change{};
     const bool all = zone.kind == PlotZoneKind::plot;
-    for (std::size_t index = 0U; index < x_count_; ++index) {
+    const std::size_t x_limit = x_admitted() ? x_count_ : 0U;
+    const std::size_t y_limit = y_admitted() ? y_count_ : 0U;
+    for (std::size_t index = 0U; index < x_limit; ++index) {
         if (!all && !(zone.kind == PlotZoneKind::x_axis && zone.axis == index)) continue;
         const double fraction = fraction_at(x_axes_[index], anchor.x, true);
         if (zoom_axis(x_axes_[index], factor, fraction)) {
@@ -192,7 +197,7 @@ PlotViewChange PlotViewModel::zoom_all(double factor, Point anchor, PlotZone zon
             x_following_[index] = false;
         }
     }
-    for (std::size_t index = 0U; index < y_count_; ++index) {
+    for (std::size_t index = 0U; index < y_limit; ++index) {
         if (!all && !(zone.kind == PlotZoneKind::y_axis && zone.axis == index)) continue;
         const double fraction = fraction_at(y_axes_[index], anchor.y, false);
         if (zoom_axis(y_axes_[index], factor, fraction)) change.view = true;
@@ -202,26 +207,28 @@ PlotViewChange PlotViewModel::zoom_all(double factor, Point anchor, PlotZone zon
 
 PlotViewChange PlotViewModel::apply_box() noexcept {
     PlotViewChange change{};
-    const std::optional<Rect> box = drag_box();
-    if (!box || (*box).empty()) return change;
-    const Rect area = *box;
+    const stxlib::Optional<Rect> box = drag_box();
+    if (box.absent() || ((*box.value())).empty()) return change;
+    const Rect area = (*box.value());
     if (gesture_ == PlotGesture::query) {
         if (x_count_ == 0U || y_count_ == 0U) return change;
         PlotSelection selection{};
         selection.x = data_interval(x_axes_[0], area.left(), area.right(), true);
         selection.y = data_interval(y_axes_[0], area.top(), area.bottom(), false);
-        selection_ = selection;
+        selection_.set(selection);
         change.selection = true;
         return change;
     }
-    for (std::size_t index = 0U; index < x_count_; ++index) {
+    const std::size_t x_limit = x_admitted() ? x_count_ : 0U;
+    const std::size_t y_limit = y_admitted() ? y_count_ : 0U;
+    for (std::size_t index = 0U; index < x_limit; ++index) {
         const PlotRange range = data_interval(x_axes_[index], area.left(), area.right(), true);
         if (set_checked(x_axes_[index], range)) {
             change.view = true;
             x_following_[index] = false;
         }
     }
-    for (std::size_t index = 0U; index < y_count_; ++index) {
+    for (std::size_t index = 0U; index < y_limit; ++index) {
         const PlotRange range = data_interval(y_axes_[index], area.top(), area.bottom(), false);
         if (set_checked(y_axes_[index], range)) change.view = true;
     }
@@ -381,13 +388,31 @@ PlotViewChange PlotViewModel::key(PlotKey pressed, PlotModifiers modifiers, cons
     return change;
 }
 
+void PlotViewModel::set_gesture_axes(PlotGestureAxes axes) noexcept {
+    switch (axes) {
+    case PlotGestureAxes::x_only:
+    case PlotGestureAxes::y_only:
+        gesture_axes_ = axes;
+        break;
+    case PlotGestureAxes::both:
+        gesture_axes_ = PlotGestureAxes::both;
+        break;
+    default:
+        // A value outside the enumeration falls back to both axes, the default.
+        gesture_axes_ = PlotGestureAxes::both;
+        break;
+    }
+}
+
 PlotViewChange PlotViewModel::fit(const PlotDataBounds& bounds) noexcept {
     PlotViewChange change{};
-    for (std::size_t index = 0U; index < x_count_; ++index) {
+    const std::size_t x_limit = x_admitted() ? x_count_ : 0U;
+    const std::size_t y_limit = y_admitted() ? y_count_ : 0U;
+    for (std::size_t index = 0U; index < x_limit; ++index) {
         if (fit_axis(x_axes_[index], bounds.x[index])) change.view = true;
         x_following_[index] = x_axes_[index].follow.tail;
     }
-    for (std::size_t index = 0U; index < y_count_; ++index) {
+    for (std::size_t index = 0U; index < y_limit; ++index) {
         if (fit_axis(y_axes_[index], bounds.y[index])) change.view = true;
     }
     return change;

@@ -80,7 +80,7 @@ gui_forms::DateTimePicker
          not in a window or is in up-down mode; in a window, opening it while the
          picker is hidden or disabled throws ``std::logic_error``.
 
-      **drop_down_alignment** : ``DateTimeDropDownAlignment``, default ``DateTimeDropDownAlignment::left``
+      **drop_down_alignment** : ``DateTimeDropDownAlignment``, default ``DateTimeDropDownAlignment::start``
          Whether the calendar lines up with the left or the right edge of the
          field. Another value throws ``std::invalid_argument``.
 
@@ -94,6 +94,11 @@ gui_forms::DateTimePicker
 
       **formatted_value** : ``std::string``, read-only
          The value as the field shows it, in the current format.
+
+      **effective_format_provider** : ``DateTimeFormatProvider``, read-only
+         The provider the picker shows its value with: its window's locale's (Control::effective_locale, DateTimeFormatProvider::from_locale) while it follows the host locale, else format_provider (exhibit gap E11). It follows from construction until format_provider is written with a change; follow_host_locale() returns to following. The reference stays valid until the next call on the picker.
+
+      **follows_host_locale** : ``bool``, read-only
 
       **parts** : ``Parts``, read-only
 
@@ -128,6 +133,8 @@ gui_forms::DateTimePicker
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`follow_host_locale <gui_forms::DateTimePicker::follow_host_locale>`
+        -  
       * - :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`
         - Sets :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` together.
 
@@ -332,6 +339,12 @@ gui_forms::DateTimePicker
 
       The value as the field shows it, in the current format.
 
+   .. cpp:function:: const DateTimeFormatProvider& effective_format_provider() const
+
+      The provider the picker shows its value with: its window's locale's (Control::effective_locale, DateTimeFormatProvider::from_locale) while it follows the host locale, else format_provider (exhibit gap E11). It follows from construction until format_provider is written with a change; follow_host_locale() returns to following. The reference stays valid until the next call on the picker.
+
+   .. cpp:function:: bool follows_host_locale() const noexcept
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -357,6 +370,8 @@ gui_forms::DateTimePicker
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: void follow_host_locale()
 
    .. cpp:function:: void set_range(DateTimeValue earliest, DateTimeValue latest)
 
@@ -407,23 +422,23 @@ gui_forms::DateTimePicker
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_value_changed()
+   .. cpp:function:: void on_value_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
-   .. cpp:function:: virtual void on_format_changed()
+   .. cpp:function:: void on_format_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6 supported, 0 deferred, 1 excluded, 46 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 47 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -628,6 +643,14 @@ Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6
      - unclassified (unmatched)
    * - property
      - GUI.Forms-only
+     - ``effective_format_provider``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``follows_host_locale``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``formatted_value``
      - supported
    * - event
@@ -637,6 +660,10 @@ Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6
    * - event
      - GUI.Forms-only
      - ``drop_down_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``follow_host_locale``
      - supported
    * - method
      - ``Control.OnFontChanged``

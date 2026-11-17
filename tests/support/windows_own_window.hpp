@@ -5,7 +5,7 @@
 // when two copies of a test run at once (other workspaces run the same
 // tests, sometimes under a sanitizer) one process can take the other's
 // window. No public GUI.Forms seam hands out the HWND (Win32 types stay
-// inside src/host/windows/), so the test asks for the top-level windows of
+// inside src/surface/windows/), so the test asks for the top-level windows of
 // the calling thread only: call these from the window's UI thread (a
 // host_ready or window-ready callback). Windows only.
 

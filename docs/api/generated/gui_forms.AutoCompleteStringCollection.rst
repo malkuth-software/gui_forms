@@ -143,7 +143,7 @@ gui_forms::AutoCompleteStringCollection
 
       Whether a string equal to the given one is held.
 
-   .. cpp:function:: std::optional<std::size_t> index_of(std::string_view value) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> index_of(std::string_view value) const noexcept
 
       The first index holding the given string, or none.
 

@@ -70,12 +70,21 @@ template <typename Entry> void reserve_more(std::vector<Entry>& list, std::size_
     list.reserve(grown);
 }
 
-// The next generation of a freed slot; zero is skipped so that a
+// The generation after `generation`; zero is skipped so that a
 // zero-initialised identity is never live.
 std::uint32_t next_generation(std::uint32_t generation) noexcept {
     std::uint32_t next = generation + 1U;
     if (next == 0U) next = 1U;
     return next;
+}
+
+// The generation a new record takes: the one after the newest the graph
+// ever issued (`issued`, which it then becomes), so a generation an undone
+// record had is never handed out again (A-gf-controls-07-F1).
+std::uint32_t issue_generation(std::uint32_t& issued) noexcept {
+    const std::uint32_t generation = next_generation(issued);
+    issued = generation;
+    return generation;
 }
 
 // The undo log's byte estimate for one node record kept in it.
@@ -717,12 +726,12 @@ GraphResult NodeGraph::add_node(const NodeSpec& spec) {
     if (reuses) {
         index = free_nodes_.back();
         generation_before = nodes_[index].generation;
-        record.generation = next_generation(generation_before);
+        record.generation = issue_generation(node_generation_issued_);
         nodes_[index] = std::move(record);
         free_nodes_.pop_back();
     } else {
         index = static_cast<std::uint32_t>(nodes_.size());
-        record.generation = 1U;
+        record.generation = issue_generation(node_generation_issued_);
         nodes_.push_back(std::move(record));
         move_marks_.push_back(0U);
     }
@@ -1126,12 +1135,12 @@ GraphResult NodeGraph::install_link(PortRef from, PortRef to, std::string& key) 
     if (reuses) {
         index = free_links_.back();
         generation_before = links_[index].generation;
-        record.generation = next_generation(generation_before);
+        record.generation = issue_generation(link_generation_issued_);
         links_[index] = std::move(record);
         free_links_.pop_back();
     } else {
         index = static_cast<std::uint32_t>(links_.size());
-        record.generation = 1U;
+        record.generation = issue_generation(link_generation_issued_);
         require_room(links_, 1U, "node_graph.connect");
         links_.push_back(std::move(record));
     }

@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -51,20 +52,20 @@ void Panel::on_attached_to_window() {
     plane_derived_ = true;
 }
 
-std::optional<Color> Panel::face_colour() const noexcept {
-    if (background_override_) return background_override_;
-    const std::optional<Color> own = back_color.read();
-    if (!own) return std::nullopt;
+stxlib::Optional<Color> Panel::face_colour() const noexcept {
+    if (background_override_.present()) return background_override_;
+    const stxlib::Optional<Color> own = back_color.read();
+    if (own.absent()) return own;
     const Window* const attached = window();
     const bool high_contrast = attached != nullptr && (*attached).presentation_settings().high_contrast;
-    if (high_contrast) return std::nullopt;
+    if (high_contrast) return stxlib::Optional<Color>::none();
     return own;
 }
 
 void Panel::set_background(Color color) {
     require_mutable();
-    if (background_override_ && *background_override_ == color) return;
-    background_override_ = color;
+    if (background_override_ == stxlib::Optional<Color>::of(color)) return;
+    background_override_.set(color);
     invalidate(Dirty::paint);
 }
 
@@ -100,8 +101,8 @@ Color material_ground(const SurfaceMaterial& material) noexcept {
 } // namespace
 
 Color Panel::background() const {
-    const std::optional<Color> face = face_colour();
-    if (face) return *face;
+    const stxlib::Optional<Color> face = face_colour();
+    if (face.present()) return *face.value();
     SurfaceMaterial assembled{};
     if (rule_face_material(assembled)) return material_ground(assembled);
     const ControlVisualRecipe& recipe = effective_theme().resolve(
@@ -114,7 +115,7 @@ PartPaint Panel::face_part(Rect bounds) const noexcept {
     face.family = visual_role.read();
     face.role = PartRole::face;
     face.bounds = bounds;
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     if (border_style.read() == BorderStyle::sunken) {
         face.family = ControlVisualRole::editor;
         face.role = PartRole::well;
@@ -144,25 +145,25 @@ bool Panel::rule_face_material(SurfaceMaterial& material) const {
 
 void Panel::clear_background() {
     require_mutable();
-    if (!background_override_) return;
+    if (background_override_.absent()) return;
     background_override_.reset();
     invalidate(Dirty::paint);
 }
 
 void Panel::set_style(BasicControlStyle style) {
     require_mutable();
-    if (style_override_ && *style_override_ == style) return;
-    style_override_ = std::move(style);
+    if (style_override_.present() && (*style_override_.value()) == style) return;
+    style_override_.set(std::move(style));
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 const BasicControlStyle& Panel::style() const noexcept {
-    return style_override_ ? *style_override_ : effective_theme().basic_style();
+    return style_override_.present() ? (*style_override_.value()) : effective_theme().basic_style();
 }
 
 void Panel::clear_style() {
     require_mutable();
-    if (!style_override_) return;
+    if (style_override_.absent()) return;
     style_override_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -180,9 +181,9 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
     PartPaint face = face_part(bounds);
     // The panel's own colour (face_colour) or a style override supplies the
     // face's ground.
-    const std::optional<Color> face_ground = face_colour();
-    if (face_ground) face.authored_background = *face_ground;
-    if (!face_ground && style_override_) face.authored_background = background();
+    const stxlib::Optional<Color> face_ground = face_colour();
+    if (face_ground.present()) face.authored_background = face_ground;
+    if (face_ground.absent() && style_override_.present()) face.authored_background.set(background());
     paint_part(painter, *this, face);
     if (border_style.read() != BorderStyle::line) return;
     PartPaint rule;
@@ -204,7 +205,7 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
 
 bool Panel::paint_depends_on_size() const noexcept {
     if (border_style.read() != BorderStyle::none || hscroll() || vscroll()) return true;
-    if (background_override_ || style_override_) return false;
+    if (background_override_.present() || style_override_.present()) return false;
     // A rule's material may read the face's box (relative corners).
     if (face_selected_by_rule()) return true;
     const bool invariant = surface_material_size_invariant(
@@ -217,10 +218,12 @@ bool Panel::paint_depends_on_size() const noexcept {
 // a rule's fields select the face (G3). Assembling it allocates; a failure
 // to allocate here ends the program, as under any noexcept.
 Insets Panel::visual_outsets() const noexcept {
+    const Rect arranged = committed_arranged_bounds();
+    const Size box{arranged.width, arranged.height};
     SurfaceMaterial assembled{};
-    if (rule_face_material(assembled)) return surface_material_visual_outsets(assembled);
+    if (rule_face_material(assembled)) return surface_material_visual_outsets(assembled, box);
     return surface_material_visual_outsets(
-        effective_theme().resolve(visual_role.read(), visual_context()).material);
+        effective_theme().resolve(visual_role.read(), visual_context()).material, box);
 }
 
 void Panel::on_paint(Painter& painter, Rect) {
@@ -230,7 +233,7 @@ void Panel::on_paint(Painter& painter, Rect) {
     // opaque material without outsets. The border draws over it.
     // A face a rule selects is opaque only as the rule's own material is;
     // a rule's other primitive reports nothing (G3).
-    const bool overridden = face_colour() || style_override_;
+    const bool overridden = face_colour().present() || style_override_.present();
     bool opaque = false;
     SurfaceMaterial assembled{};
     if (overridden) {
@@ -264,6 +267,7 @@ constexpr ControlAnatomy panel_anatomy{
     .parts = panel_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

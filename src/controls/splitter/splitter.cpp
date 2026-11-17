@@ -5,6 +5,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../basic/number_text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -219,11 +220,11 @@ double Splitter::clamped(double extent, const Control& target) const {
     return result;
 }
 
-std::optional<double> Splitter::split_position() const {
+stxlib::Optional<double> Splitter::split_position() const {
     const Control::Ptr resized = target();
-    if (!resized) return std::nullopt;
-    const double extent = extent_of(*resized);
-    return extent;
+    if (!resized) return stxlib::Optional<double>::none();
+    const stxlib::Optional<double> result = stxlib::Optional<double>::of(extent_of(*resized));
+    return result;
 }
 
 void Splitter::apply(Control& resized, double extent) {
@@ -254,7 +255,7 @@ Size Splitter::measure(Size) {
 // and no hot face.
 void Splitter::set_hot_from_pointer(bool inside) {
     const bool hot = inside && enabled.read() && target() != nullptr;
-    if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
+    if (hot) cursor = stxlib::Optional<CursorKind>::of(horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical);
     if (hot_ != hot) {
         hot_ = hot;
         invalidate(Dirty::paint);
@@ -275,7 +276,7 @@ void Splitter::on_mouse_down(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary && enabled.read() && prepare_drag()) {
         // No threshold: the press starts the drag, as before the engine.
         DragStart start{};
-        start.source = absolute_bounds();
+        start.source.set(absolute_bounds());
         start.threshold = 0.0;
         const PointerEvent press = pointer_event_of(arguments);
         const DragStartResult result = drag_.press(press, start);
@@ -348,16 +349,20 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
     descriptor.role = SemanticRole::separator;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.orientation = horizontal_axis() ? SemanticOrientation::vertical : SemanticOrientation::horizontal;
+    descriptor.orientation.set(horizontal_axis() ? SemanticOrientation::vertical : SemanticOrientation::horizontal);
     const Control::Ptr resized = target();
     if (resized) {
         const double extent = extent_of(*resized);
         const SplitLimits bounds = limits(*resized);
-        descriptor.value = std::to_string(extent);
-        descriptor.numeric_value = extent;
-        descriptor.minimum_value = bounds.minimum;
-        descriptor.maximum_value = bounds.maximum;
-        descriptor.small_step = semantic_step;
+        // "%f" in the C locale's form, which the value action parses back
+        // (A-gf-controls-13-F9).
+        std::string extent_text;
+        number_text::append_number_text(extent_text, extent, std::chars_format::fixed, 6);
+        descriptor.value = extent_text;
+        descriptor.numeric_value.set(extent);
+        descriptor.minimum_value.set(bounds.minimum);
+        descriptor.maximum_value.set(bounds.maximum);
+        descriptor.small_step.set(semantic_step);
         descriptor.actions = {SemanticAction::decrement, SemanticAction::increment, SemanticAction::set_value};
     }
     descriptor.exposed = true;
@@ -365,14 +370,14 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
 }
 
 bool Splitter::on_semantic_action(SemanticAction action, std::string_view value) {
-    const std::optional<double> current = split_position();
-    if (!current || !enabled.read()) return false;
+    const stxlib::Optional<double> current = split_position();
+    if (current.absent() || !enabled.read()) return false;
     if (action == SemanticAction::increment) {
-        set_split_position(*current + semantic_step);
+        set_split_position(*current.value() + semantic_step);
         return true;
     }
     if (action == SemanticAction::decrement) {
-        set_split_position(*current - semantic_step);
+        set_split_position(*current.value() - semantic_step);
         return true;
     }
     if (action != SemanticAction::set_value) return false;
@@ -390,9 +395,9 @@ bool Splitter::on_semantic_action(SemanticAction action, std::string_view value)
 namespace {
 
 constexpr std::array<PartField<Splitter::Parts>, 2> splitter_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Splitter::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Splitter::Parts::face},
 }};
 
@@ -413,6 +418,7 @@ constexpr ControlAnatomy splitter_anatomy{
     .parts = splitter_parts,
     .states = splitter_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events Splitter adds to those of Control, in declaration order.

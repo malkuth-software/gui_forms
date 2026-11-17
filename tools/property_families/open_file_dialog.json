@@ -130,6 +130,42 @@
       ],
       "effects": null,
       "storage": "view"
+    },
+    {
+      "name": "check_file_exists",
+      "capability": "OpenFileDialogCheckFileExists",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.",
+      "getter": "check_file_exists",
+      "setter": "set_check_file_exists",
+      "clear": null,
+      "field": "check_file_exists_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    },
+    {
+      "name": "check_path_exists",
+      "capability": "OpenFileDialogCheckPathExists",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.",
+      "getter": "check_path_exists",
+      "setter": "set_check_path_exists",
+      "clear": null,
+      "field": "check_path_exists_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
     }
   ],
   "not_properties": [

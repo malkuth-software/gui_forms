@@ -1,7 +1,11 @@
 # Controls
 
 GUI.Forms ships its controls as stock C++ types under
-`include/gui_forms/controls/`. Each has a stable identity, retained state,
+`include/gui_forms/controls/`, one header per control
+(`<gui_forms/controls/button.hpp>`). The grouped headers in
+`include/gui_forms/` (`basic_controls.hpp`, `collection_controls.hpp` and the
+rest) are compatibility umbrellas that include several of them; new code
+includes the control's own header. Each has a stable identity, retained state,
 properties written synchronously, typed change events, a default semantic adapter for
 accessibility, and a page in this section. The set is organised the way
 Forms developers already think about it: by what the control is *for*.
@@ -101,3 +105,91 @@ multiline text boxes) scroll the same way:
 
 The `scroll` event fires when the input arrives, with the target position as
 its new value; the position read during a glide is the one being shown.
+
+## Large row sets
+
+`VirtualRowsView` (`<gui_forms/controls/virtual_rows_view.hpp>`) shows a
+very large number of owner-drawn rows of varying height, up to a billion.
+Rows are not controls and the view keeps no row records: it keeps the row
+count and each row's height in an internal height index (a sequence
+B-tree), and asks the application to measure, draw and describe only the
+rows it shows.
+
+- **Callbacks.** `set_row_callbacks` takes a `VirtualRowsCallbacks` of three
+  `Delegate`s: `measure` (a row's height at the content width), `paint` (one
+  row, with its states, so it can draw theme parts) and `describe` (the
+  row's accessible name and value). The view borrows the bound objects; they
+  must outlive it or be replaced first. A callback may not change the view's
+  rows or scroll.
+- **Rows.** `reset_rows(count)`, `insert_rows(at, count)` and
+  `erase_rows(at, count)` change the count; `refresh_rows` and
+  `invalidate_rows` forget chosen heights. Rows start at
+  `estimated_row_height` and are measured once, when they first come near
+  the viewport. Heights are kept in 1/64 logical units, and every offset is
+  the exact sum of the heights above it.
+- **Scrolling.** The view anchors the first visible row, so rows that change
+  height or are inserted above it do not move the content on screen.
+  `set_follow_tail(true)` keeps a view at the end as rows are appended.
+  `scroll_to_row` takes a `VirtualRowAlignment`.
+- **Selection.** `set_selection_mode` takes ListBox's modes; the extended
+  mode keeps sorted ranges (`selected_ranges`). `selection_changed`,
+  `row_activated` and `scrolled` report changes.
+- **Accessibility.** The list publishes only the realized rows, with the
+  full row count as its size, and a live region that announces appended
+  rows once per settle ("<n> new rows, <total> in all").
+- **Bounded work.** A settle measures at most
+  `maximum_measured_per_settle` rows, and a paint draws only the rows that
+  meet the viewport. `set_measured_row_budget` bounds the index's memory by
+  coarsening rows far from the viewport. `statistics()` reports the
+  measured rows, the index size and the repaints.
+
+`TreeListView` keeps its row heights in the same index.
+
+## Node graphs
+
+`NodeGraph` (`<gui_forms/controls/node_graph.hpp>`) is the model of a node
+editor: nodes, their ports and the links between ports, held as records,
+never as child controls. Identities (`NodeId`, `LinkId`) carry a
+generation, so an identity kept past its record's removal is refused with
+`GraphStatus::stale_identity`. Every change goes through a named operation
+(`add_node`, `move_nodes`, `connect`, `disconnect` and the rest) that
+validates its arguments before changing anything, so a refused operation
+leaves the graph as it was.
+
+Each document operation is one undo step, or one step together with the
+operations between `begin_undo_group` and `end_undo_group`.
+`rollback_undo_group` cancels an open group and leaves no step. `undo` and
+`redo` restore the exact state, and the log is bounded by `UndoLimits`.
+`save` writes a versioned text document into caller storage, and `load`
+validates the whole document before changing anything and names the line
+and column of the first error. Port lamps (`set_port_lamp`) are evaluation
+state: they are neither recorded for undo nor saved.
+
+`NodeCanvas` (`<gui_forms/controls/node_canvas.hpp>`) shows and edits a
+graph it borrows through `set_graph`. It pans and zooms, draws through the
+theme, connects ports with magnetic link drags, selects, moves with grid
+snap and has a full keyboard path. Each gesture is one `DragTracker`
+session and one undo group, which Escape rolls back.
+
+## Indicator lamps and danger buttons
+
+`IndicatorLamp` (`<gui_forms/controls/indicator_lamp.hpp>`) is a round lens
+in a bezel that shows `state`: `IndicatorLampState::off`, `on` or `error`,
+with an optional legend in `text`. It takes no focus and passes the pointer
+through. To assistive technology it is static text whose value is the state
+("off", "on" or "error"), so the state never rests on colour alone. Themes
+style it through `indicator-lamp::part(lens):state(on)`. `light_planes`
+names a baked light-plane set from the window's resources, and
+`lamp_color` sets the colour the bake is lit in.
+
+A `Button` that marks a dangerous or irreversible action sets `danger`:
+
+```cpp
+(*delete_button).danger = true;
+```
+
+Its parts then take the custom state `danger`, a warning mark leads its
+content, and a theme that styles the state (the default theme's
+`button::part(face):state(danger)`) lights the face from inside with a slow
+pulse. The pulse holds steady under reduced motion, while disabled and
+outside a window.

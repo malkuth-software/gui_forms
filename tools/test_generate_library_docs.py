@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import api_docs_parse  # noqa: E402
 import api_docstrings  # noqa: E402
 import generate_library_docs as generator  # noqa: E402
 
@@ -111,6 +112,36 @@ class BuildModeBranchTests(unittest.TestCase):
         self.assertNotIn(".. cpp:type:: BorrowedText =", page)
         appearance = (generator.API / "library.geometry-and-appearance.rst").read_text(encoding="utf-8")
         self.assertEqual(appearance.count("lend_paint_text(std::string_view text)"), 1)
+
+
+class InitializerTests(unittest.TestCase):
+    """A brace initializer continued on later lines stays one declaration."""
+
+    def test_a_multi_line_initializer_is_read_whole(self) -> None:
+        body = (
+            "    std::string name{\"und\"};\n"
+            "    std::array<std::string, 3> names{\"One\", \"Two\",\n"
+            "                                     \"Three\"};\n"
+            "    std::array<Pair, 2> pairs{{\n"
+            "        {1, 2},\n"
+            "        {3, 4},\n"
+            "    }};\n"
+            "    int after{7};\n")
+        _, declarations = api_docs_parse.declared_members(body, "struct")
+        texts = [re.sub(r"\s+", " ", item.text) for item in declarations]
+        self.assertEqual(len(texts), 4, texts)
+        self.assertTrue(texts[1].endswith('{"One", "Two", "Three"}'), texts[1])
+        self.assertTrue(texts[2].startswith("std::array<Pair, 2> pairs{{"), texts[2])
+        self.assertTrue(texts[3].startswith("int after"), texts[3])
+        directive, default = generator.rst.member_directive(declarations[1])
+        self.assertEqual(directive, ".. cpp:member:: std::array<std::string, 3> names")
+        self.assertEqual(default, '{"One", "Two", "Three"}')
+
+    def test_the_committed_reference_has_no_unterminated_initializer(self) -> None:
+        unterminated = re.compile(r"^\s*\.\. cpp:(?:member|var):: .*[{,]$")
+        for page in (ROOT / "docs" / "api").glob("*.rst"):
+            for number, line in enumerate(page.read_text(encoding="utf-8").splitlines(), 1):
+                self.assertIsNone(unterminated.match(line), f"{page.name}:{number}: {line}")
 
 
 class DocstringTests(unittest.TestCase):

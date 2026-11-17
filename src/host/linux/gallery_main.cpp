@@ -1,8 +1,10 @@
 #include "gallery.hpp"
+#include "gallery_headless_capture.hpp"
 #include "gallery_staging.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include "program_options.hpp"
 
+#include <clocale>
 #include <cstdio>
 #include <memory>
 #include <optional>
@@ -10,6 +12,8 @@
 #include <utility>
 
 int main(int argc, char** argv) {
+    // std-rules: allow(locale-change) the program, not the library, chooses its locale: the environment's character type, for X input methods and compose
+    std::setlocale(LC_CTYPE, "");
     const std::optional<gui_forms::demo::ProgramOptions> program =
         gui_forms::demo::parse_program_options(argc, argv);
     if (!program) return 2;
@@ -31,6 +35,7 @@ int main(int argc, char** argv) {
     // no WM_COPYDATA-style automation channel, so the flag has no effect here.
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
     if (!gui_forms::gallery::apply_gallery_staging(*program, *window)) return 2;
+    if ((*program).headless) return gui_forms::gallery::run_headless_gallery_capture(*program, *window);
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
     return gui_forms::demo::smoke_test_result(

@@ -8,6 +8,8 @@
 #include <optional>
 #include <string>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // DataGridView's value types (its kinds, modes, styles and cell style),
@@ -16,7 +18,14 @@ namespace gui_forms {
 // The kind of cell a column shows (Windows Forms' DataGridViewTextBoxColumn,
 // DataGridViewCheckBoxColumn, DataGridViewComboBoxColumn,
 // DataGridViewButtonColumn, DataGridViewImageColumn and
-// DataGridViewLinkColumn).
+// DataGridViewLinkColumn), and a sparkline column (GUI.Forms only; the D3
+// demonstrator's I5): its cell value is a collection of numbers
+// (make_property_collection, item kind number), oldest first, drawn as
+// paint_sparkline draws them, newest at the right, scaled to the cell's own
+// finite extent. A non-numeric item or NaN is a gap. A sparkline cell is
+// read-only and not sorted automatically; its text, which assistive
+// technology reads, is the newest finite value. The C ABI does not take
+// this kind yet.
 enum class DataGridViewColumnKind : std::uint8_t {
     text,
     check_box,
@@ -24,6 +33,7 @@ enum class DataGridViewColumnKind : std::uint8_t {
     button,
     image,
     link,
+    sparkline,
 };
 
 // How an image cell places its image (Windows Forms'
@@ -31,6 +41,12 @@ enum class DataGridViewColumnKind : std::uint8_t {
 // cell's edges; stretched to the cell; or as large as fits with its shape
 // kept, centred.
 enum class DataGridViewImageLayout : std::uint8_t { normal, stretch, zoom };
+
+// How a combo box cell shows its choice (Windows Forms'
+// DataGridViewComboBoxDisplayStyle): with its drop-down button (combo_box
+// and drop_down_button draw alike, the button beside the text), or as text
+// alone (nothing), opened by a double click or F4.
+enum class DataGridViewComboBoxDisplayStyle : std::uint8_t { combo_box, drop_down_button, nothing };
 
 // Where a cell's content sits in the cell (Windows Forms'
 // DataGridViewContentAlignment): at the top, middle or bottom, and at the
@@ -99,17 +115,17 @@ enum class DataGridViewHeaderBorderStyle : std::uint8_t { single, raised, sunken
 // colours stand in for both while the cell is selected; an unset selection
 // colour leaves the theme's selection look. A disabled grid stays greyed.
 struct GUI_FORMS_API DataGridViewCellStyle final {
-    std::optional<FontSpec> font{};
-    std::optional<DataGridViewContentAlignment> alignment{};
-    std::optional<Insets> padding{};
-    std::optional<bool> wrap_mode{};
+    stxlib::Optional<FontSpec> font{};
+    stxlib::Optional<DataGridViewContentAlignment> alignment{};
+    stxlib::Optional<Insets> padding{};
+    stxlib::Optional<bool> wrap_mode{};
     std::optional<std::string> format{};
     std::optional<BindingValue> null_value{};
     std::optional<BindingValue> data_source_null_value{};
-    std::optional<Color> back_color{};
-    std::optional<Color> fore_color{};
-    std::optional<Color> selection_back_color{};
-    std::optional<Color> selection_fore_color{};
+    stxlib::Optional<Color> back_color{};
+    stxlib::Optional<Color> fore_color{};
+    stxlib::Optional<Color> selection_back_color{};
+    stxlib::Optional<Color> selection_fore_color{};
 
     friend bool operator==(const DataGridViewCellStyle& left, const DataGridViewCellStyle& right) noexcept {
         return left.font == right.font && left.alignment == right.alignment && left.padding == right.padding &&
@@ -152,6 +168,16 @@ enum class DataGridViewAutoSizeColumnMode : std::uint8_t {
     displayed_cells,
     column_header,
     fill,
+};
+
+// How the column header band's height is set (Windows Forms'
+// DataGridViewColumnHeadersHeightSizeMode): by column_headers_height and the
+// user's drag of the band's bottom edge, by column_headers_height alone, or
+// from the shown headers' preferred height at each layout.
+enum class DataGridViewColumnHeadersHeightSizeMode : std::uint8_t {
+    enable_resizing,
+    disable_resizing,
+    auto_size,
 };
 
 // The grid's default for columns whose mode is not_set (Windows Forms'
@@ -197,8 +223,21 @@ enum class DataGridViewClipboardCopyMode : std::uint8_t {
     enable_always_include_header_text,
 };
 
-// Whether a click or arrow key selects one cell or the whole row.
-enum class DataGridViewSelectionMode : std::uint8_t { cell_select, full_row_select };
+// What a click or arrow key selects (Windows Forms' DataGridViewSelectionMode):
+// - cell_select: cells; a row header click selects its row's cells;
+// - full_row_select: whole rows;
+// - full_column_select: whole columns; a column header click selects its
+//   column instead of sorting;
+// - row_header_select: as cell_select, named as Windows Forms names it;
+// - column_header_select: cells; a column header click selects its column
+//   instead of sorting.
+enum class DataGridViewSelectionMode : std::uint8_t {
+    cell_select,
+    full_row_select,
+    full_column_select,
+    row_header_select,
+    column_header_select,
+};
 
 // Where the rows come from. Unbound rows are records the grid owns; virtual
 // rows are counted by the grid and their values asked of a provider as they

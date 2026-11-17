@@ -194,19 +194,18 @@ const gf::GridCell at = (*table).cell[*ok].read();                 // the anchor
   any line that is not automatic makes the area and cell placement
   automatic, and writing `area` or `cell` makes the lines automatic.
 
-In a form document, spans are `span` blocks inside the grid, before its
+In a form document, spans are `span` elements inside the grid, before its
 children, and the placement is the child's `area` or `cell`:
 
-```text
-grid-panel app.layout {
-  style: "grid-template-columns: 1fr 1fr auto; grid-template-rows: auto 1fr auto";
-  span footer { anchor: 2 0; columns: 3; }   /* named */
-  span { anchor: 0 2; rows: 2; }             /* anonymous: placed by its anchor */
-  label app.title { cell: 0 0; text: "Title"; }
-  list-box app.items { cell: 0 2; }          /* the anonymous span */
-  button app.ok { area: "footer"; text: "OK"; }
-  text-box app.note { }                      /* auto-placed */
-}
+```xml
+<grid-panel id="app.layout" style="grid-template-columns: 1fr 1fr auto; grid-template-rows: auto 1fr auto">
+  <span name="footer" anchor="2 0" columns="3"/>   <!-- named -->
+  <span anchor="0 2" rows="2"/>                    <!-- anonymous: placed by its anchor -->
+  <label id="app.title" cell="0 0" text="Title"/>
+  <list-box id="app.items" cell="0 2"/>            <!-- the anonymous span -->
+  <button id="app.ok" area="footer" text="OK"/>
+  <text-box id="app.note"/>                        <!-- auto-placed -->
+</grid-panel>
 ```
 
 A span's name belongs to its grid, not to the document's stable IDs. Spans
@@ -259,6 +258,15 @@ At 10,000 children:
 : Absolute placement by `requested_bounds`, plus Dock and Anchor.
   - Dock consumes children in reverse z-order, backmost first, so that the
     topmost child receives the remaining fill area.
+  - The order in which children were added differs from Windows Forms
+    (exhibit gap E6): `add_child` places the new child on top of its
+    siblings, where Windows Forms' `Controls.Add` places it at the back. Both
+    dock backmost first, so in add order GUI.Forms docks the first child
+    added first and Windows Forms the last. Code ported from a Windows Forms
+    designer file, which adds its controls in that reversed order, keeps its
+    docking when it adds them in the opposite order, inserts each with
+    `insert_child(child, child_count())` (at the back), or calls
+    `send_to_back()` after each add.
   - Paint stays back-to-front, and hit testing front-to-back.
   - Both inherit retained scrolling from `ScrollableControl`.
 
@@ -268,7 +276,8 @@ At 10,000 children:
   - It orders visible children left to right, right to left, top down or
     bottom up.
   - It honours child margins, container padding, optional wrapping and
-    per-child flow breaks (`set_flow_break`).
+    per-child flow breaks (the child property `flow_break`:
+    `(*flow).flow_break[*child] = true;`).
   - Hidden children leave no gap.
   - It is Windows Forms' flow, not flexbox.
 
@@ -302,7 +311,7 @@ At 10,000 children:
 
 `right_to_left` is Windows Forms' RightToLeft, a registered property:
 `inherit` (the default), `no` or `yes`. The window's root is left to right
-(No). A form document (`right-to-left: yes;`) or the property grid sets it,
+(No). A form document (`right-to-left="yes"`) or the property grid sets it,
 and every control whose resolved value changes raises
 `right_to_left_changed`. In C++ it is stored as `layout_direction`
 (`LayoutDirection::inherit`, `left_to_right`, `right_to_left`); that name is
@@ -431,9 +440,11 @@ is in `tests/layout_corpus/`.
   - units other than `px` and `fr` (an imported `em` is resolved to px).
 
   Reading a style refuses each of these by name, with a diagnostic.
-- **Virtualizing containers.** A container lays out every child. Data
-  collections of 100,000 items or more realize only their visible window,
-  through item systems such as `ObjectView`.
+- **Virtualizing containers.** A container lays out every child. Large data
+  sets are not children: collection controls realize only their visible
+  rows, through item systems such as `ObjectView` and `TreeListView`, and
+  `VirtualRowsView` draws owner-drawn rows of varying height from a row
+  count alone ([Working with controls](controls.md#large-row-sets)).
 - **Per-monitor DPI policy inside the core.** The scale is a host fact the
   window is told.
 - **Window resizes and the measure cache.** Resizing the window still

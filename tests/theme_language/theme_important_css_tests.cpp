@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <iostream>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -92,9 +93,9 @@ bool has_primitive(const ThemeRule& rule, std::string_view name) {
 
 std::size_t amplitude_index() {
     const EnginePrimitive* const bulge = builtin_primitive_registry().find("bulge");
-    const std::optional<std::size_t> found =
-        bulge == nullptr ? std::optional<std::size_t>{} : find_parameter((*bulge).descriptor(), "amplitude");
-    return found ? *found : 0U;
+    const stxlib::Optional<std::size_t> found =
+        bulge == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*bulge).descriptor(), "amplitude");
+    return found.present() ? (*found.value()) : 0U;
 }
 
 // The face of the control with the stable ID `a` (and the class `loud`).
@@ -208,7 +209,7 @@ void test_split() {
 
     const Compilation media = compile("@media (prefers-color-scheme: dark) { #a { opacity: 0.5 !important } }");
     require(compiled_clean(media) && media.sheet.rules.size() == 1U &&
-                media.sheet.rules[0].media.dark_scheme == std::optional<bool>(true),
+                media.sheet.rules[0].media.dark_scheme == stxlib::Optional<bool>::of(true),
             "a sibling keeps the rule's media condition");
 }
 

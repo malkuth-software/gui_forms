@@ -1,0 +1,14 @@
+#include <gui_forms/finder.hpp>
+
+#include <optional>
+
+namespace gui_forms {
+
+int count_found(const int key) noexcept {
+    int found = 0;
+    if (const std::optional<int> match = find_value(key)) found += *match;
+    if (auto again = find_value(key + 1)) found += *again;
+    return found;
+}
+
+} // namespace gui_forms

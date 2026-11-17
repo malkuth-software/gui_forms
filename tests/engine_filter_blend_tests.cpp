@@ -15,6 +15,7 @@
 #include "gui_forms/theme.hpp"
 #include "support/rgba_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -237,11 +238,86 @@ void colour_filters() {
     require(first && second, "the colour filters match their references");
 }
 
+// The colour stages (owner 2026-11-16): fill and the duotone matrix as
+// matrices, duotone() and tritone() as the luminance matrix and a table
+// mixed in linear light, and the table's transfer functions, each checked
+// to the byte.
+void colour_stages() {
+    const Size logical{24.0, 16.0};
+    SurfaceMaterial filled = filled_with(brick);
+    filled.colour_filter = MaterialColourMatrix::fill(Color{10, 20, 30, 255});
+    require(draw(filled, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{10U, 20U, 30U, 255U}),
+            "fill recolours the face and keeps its alpha");
+    // L = 128 / 255 on grey: 20 + 200 L = 120.39, 40 + 200 L = 140.39,
+    // 60 + 195 L = 157.88.
+    SurfaceMaterial toned = filled_with(grey);
+    toned.colour_filter = MaterialColourMatrix::duotone(Color{20, 40, 60, 255}, Color{220, 240, 255, 255});
+    require(draw(toned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{120U, 140U, 158U, 255U}),
+            "the duotone matrix maps luminance between its colours");
+    // duotone() as the theme language lowers it: grey's luminance is level
+    // 128, 32897/65536 of the way from dark to light in linear light.
+    SurfaceMaterial duotoned = filled_with(grey);
+    duotoned.colour_filter = MaterialColourFilter(
+        MaterialColourMatrix::luminance(),
+        MaterialColourTable::duotone(Color{20, 40, 60, 255}, Color{220, 240, 255, 255}));
+    require(draw(duotoned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{162U, 178U, 192U, 255U}),
+            "duotone's table maps luminance between its colours in linear light");
+    // Grey's luminance is level 128, 257/65536 past the midtone, mixed in
+    // linear light: red rises to 13 (linear 257 of 65535), green stays 255
+    // (65278 still encodes to 255), blue stays 0.
+    SurfaceMaterial tritoned = filled_with(grey);
+    tritoned.colour_filter =
+        MaterialColourFilter(MaterialColourMatrix::luminance(),
+                             MaterialColourTable::tritone(Color{0, 0, 255, 255}, Color{0, 255, 0, 255},
+                                                          Color{255, 0, 0, 255}));
+    require(draw(tritoned, logical, 1.0).pixel(20U, 16U) == (std::array<std::uint8_t, 4>{13U, 255U, 0U, 255U}),
+            "tritone maps luminance through its three colours");
+
+    MaterialTransferFunction peak{};
+    peak.kind = MaterialTransferKind::table;
+    peak.values = {0.0, 1.0, 0.0};
+    MaterialTransferFunction steps{};
+    steps.kind = MaterialTransferKind::discrete;
+    steps.values = {0.2, 0.8};
+    MaterialTransferFunction line{};
+    line.kind = MaterialTransferKind::linear;
+    line.slope = 0.5;
+    line.intercept = 0.25;
+    MaterialTransferFunction square{};
+    square.kind = MaterialTransferKind::gamma;
+    square.exponent = 2.0;
+    const MaterialColourTable table = MaterialColourTable::transfer(peak, steps, line, square);
+    const std::size_t levels = MaterialColourTable::levels;
+    require(table.entries[0] == 0U && table.entries[64] == 128U && table.entries[255] == 0U,
+            "a table interpolates between its values");
+    require(table.entries[levels + 127U] == 51U && table.entries[levels + 128U] == 204U,
+            "discrete steps at its intervals");
+    require(table.entries[2U * levels] == 64U && table.entries[2U * levels + 255U] == 191U,
+            "linear is slope C + intercept");
+    require(table.entries[3U * levels + 128U] == 64U, "gamma is amplitude C^exponent + offset");
+    require(MaterialColourTable{}.then(table) == table && table.then(MaterialColourTable{}) == table,
+            "the identity table composes to the other");
+    require(MaterialColourTable{}.then_matrix(MaterialColourMatrix::brightness(0.5)).entries[255] == 128U,
+            "a per-channel matrix folds into a table");
+    require(!MaterialColourMatrix::saturate(2.0).per_channel() && MaterialColourMatrix::opacity(0.5).per_channel(),
+            "only a matrix reading each channel alone folds");
+    MaterialTransferFunction flat{};
+    flat.kind = MaterialTransferKind::table;
+    flat.values = {0.5};
+    bool refused = false;
+    try {
+        static_cast<void>(MaterialColourTable::transfer(flat, flat, flat, flat));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !valid_transfer_function(flat), "a table of one value is refused");
+}
+
 void drop_shadows() {
     const Size logical{24.0, 16.0};
     SurfaceMaterial lifted = filled_with(brick);
     lifted.corner_radius = 3.0;
-    lifted.drop_shadow = MaterialDropShadow{Point{3.0, 3.0}, 2.0, Color{0, 0, 0, 128}};
+    lifted.drop_shadow.set(MaterialDropShadow{Point{3.0, 3.0}, 2.0, Color{0, 0, 0, 128}});
     const TestRaster drawn = draw(lifted, logical, 1.0);
     // The part's box is (8, 8) to (32, 24); its shadow lies 3 right and 3
     // down, under it.
@@ -253,7 +329,7 @@ void drop_shadows() {
     // A negative offset moves the shadow above and left of the part, and none
     // of it is left below and right.
     SurfaceMaterial raised = lifted;
-    raised.drop_shadow = MaterialDropShadow{Point{-3.0, -3.0}, 2.0, Color{0, 0, 0, 128}};
+    raised.drop_shadow.set(MaterialDropShadow{Point{-3.0, -3.0}, 2.0, Color{0, 0, 0, 128}});
     const TestRaster up = draw(raised, logical, 1.0);
     require(up.pixel(6U, 6U)[3] > 0U && up.pixel(6U, 6U)[0] == 0U,
             "a negative offset shows the shadow above and left of the part");
@@ -299,25 +375,64 @@ void fill_blends() {
     require(next_matches(draw(screened, logical, 1.25), "screen_face_1_25"), "the blended face matches");
 }
 
+struct ExpectedFillBlend final {
+    MaterialBlendMode mode{};
+    std::array<double, 3> colour{};
+    const char* label{};
+};
+
+// The other separable modes (capability review, owner 2026-11-16): grey
+// over brick, both opaque, so each channel is B(brick, grey) × 255, worked
+// from Compositing and Blending's functions (within a byte: the kernel
+// rounds once at the end).
+void more_fill_blends() {
+    const Size logical{24.0, 16.0};
+    const std::array<ExpectedFillBlend, 9> expected{{
+        {MaterialBlendMode::overlay, {200.22, 100.39, 50.2}, "overlay"},
+        {MaterialBlendMode::darken, {128.0, 100.0, 50.0}, "darken keeps the lower"},
+        {MaterialBlendMode::lighten, {200.0, 128.0, 128.0}, "lighten keeps the higher"},
+        {MaterialBlendMode::color_dodge, {255.0, 200.79, 100.39}, "color-dodge"},
+        {MaterialBlendMode::color_burn, {145.43, 0.0, 0.0}, "color-burn"},
+        {MaterialBlendMode::hard_light, {200.22, 100.61, 50.8}, "hard-light"},
+        {MaterialBlendMode::soft_light, {200.1, 100.23, 50.25}, "soft-light"},
+        {MaterialBlendMode::difference, {72.0, 28.0, 78.0}, "difference"},
+        {MaterialBlendMode::exclusion, {127.22, 127.61, 127.8}, "exclusion"},
+    }};
+    for (const ExpectedFillBlend& row : expected) {
+        SurfaceMaterial blended = filled_with(brick);
+        blended.fills.push_back(MaterialFillLayer::solid(grey));
+        blended.fills[1].blend = row.mode;
+        require(valid_surface_material(blended), "a separable fill blend is valid");
+        const std::array<std::uint8_t, 4> pixel = draw(blended, logical, 1.0).pixel(20U, 16U);
+        require(near_byte(pixel[0], row.colour[0]) && near_byte(pixel[1], row.colour[1]) &&
+                    near_byte(pixel[2], row.colour[2]) && pixel[3] == 255U,
+                row.label);
+    }
+    SurfaceMaterial unknown = filled_with(brick);
+    unknown.fills.push_back(MaterialFillLayer::solid(grey));
+    unknown.fills[1].blend = static_cast<MaterialBlendMode>(static_cast<std::uint8_t>(material_blend_mode_last) + 1U);
+    require(!valid_surface_material(unknown), "a mode past the last is refused");
+}
+
 // -- glass's recipe colour filter ---------------------------------------------------
 
 void glass_recipe() {
     const EnginePrimitive& glass = primitive_named("glass");
     const PrimitiveDescriptor& descriptor = glass.descriptor();
     PrimitiveParameterBlock parameters = default_parameters(descriptor);
-    require(!glass.theme_material(parameters, ControlVisualRole::button).has_value(), "by default glass reads no recipe");
+    require(glass.theme_material(parameters, ControlVisualRole::button).absent(), "by default glass reads no recipe");
     require(set_choice_parameter(parameters, descriptor, "recipe", "button") == ParameterAssignment::assigned,
             "a recipe is a choice");
-    const std::optional<ControlVisualRole> role = glass.theme_material(parameters, ControlVisualRole::button);
-    require(role.has_value() && *role == ControlVisualRole::button, "the choice names the recipe's role");
+    const stxlib::Optional<ControlVisualRole> role = glass.theme_material(parameters, ControlVisualRole::button);
+    require(role.present() && (*role.value()) == ControlVisualRole::button, "the choice names the recipe's role");
     parameters.values[1].colour = Color::rgba(0, 0, 0, 0);
 
     // A uniform backplane, inverted: the blur keeps it uniform, the filter
     // inverts it, and with no tint that is the glass.
     const Size logical{20.0, 10.0};
-    const std::optional<std::uint32_t> margin = glass.backplane_margin(parameters, DeviceScale{1.0});
-    require(margin.has_value(), "glass samples the backplane");
-    const DeviceExtent grown{20U + *margin * 2U, 10U + *margin * 2U};
+    const stxlib::Optional<std::uint32_t> margin = glass.backplane_margin(parameters, DeviceScale{1.0});
+    require(margin.present(), "glass samples the backplane");
+    const DeviceExtent grown{20U + (*margin.value()) * 2U, 10U + (*margin.value()) * 2U};
     std::shared_ptr<PartRaster> backplane = PartRaster::create(grown, DeviceScale{1.0});
     require(backplane != nullptr, "the backplane is made");
     const PartRasterView plane = (*backplane).view();
@@ -334,7 +449,7 @@ void glass_recipe() {
     target.logical_size = logical;
     target.scale = DeviceScale{1.0};
     target.backplane = backplane.get();
-    target.backplane_margin = *margin;
+    target.backplane_margin = (*margin.value());
     target.material = &recipe;
     TestRaster drawn{};
     drawn.extent = DeviceExtent{20U, 10U};
@@ -397,8 +512,21 @@ void rule_blend() {
     other.part = "glyph";
     require(screened.resolve(other).blend == PartBlend::normal, "a part no rule matches is normal");
 
+    // The other separable modes take their CSS names, and each draws
+    // through its paint group composite.
+    sheet.rules.push_back(blend_rule("dodged", RuleDeclaration::choice_value(blend_property, "color-dodge")));
+    const CompiledThemeRules dodged = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(dodged.diagnostics().empty() && dodged.resolve(face_facts()).blend == PartBlend::color_dodge,
+            "color-dodge is a part blend");
+    require(part_blend_composite(PartBlend::normal) == PaintGroupComposite::source_over &&
+                part_blend_composite(PartBlend::multiply) == PaintGroupComposite::multiply &&
+                part_blend_composite(PartBlend::color_dodge) == PaintGroupComposite::color_dodge &&
+                part_blend_composite(PartBlend::soft_light) == PaintGroupComposite::soft_light &&
+                part_blend_composite(PartBlend::exclusion) == PaintGroupComposite::exclusion,
+            "each part blend draws through its composite");
+
     ThemeRuleSheet faulty{};
-    faulty.rules.push_back(blend_rule("unknown", RuleDeclaration::choice_value(blend_property, "overlay")));
+    faulty.rules.push_back(blend_rule("unknown", RuleDeclaration::choice_value(blend_property, "hue")));
     faulty.rules.push_back(blend_rule("number", RuleDeclaration::number_value(blend_property, 1.0)));
     ThemeRule twice = blend_rule("twice", RuleDeclaration::choice_value(blend_property, "screen"));
     twice.declarations.push_back(RuleDeclaration::choice_value(blend_property, "multiply"));
@@ -417,7 +545,7 @@ void rule_blend() {
 void validation() {
     SurfaceMaterial material = filled_with(red);
     material.colour_filter = MaterialColourMatrix::sepia(1.0);
-    material.drop_shadow = MaterialDropShadow{Point{2.0, -2.0}, 2.0, Color{0, 0, 0, 96}};
+    material.drop_shadow.set(MaterialDropShadow{Point{2.0, -2.0}, 2.0, Color{0, 0, 0, 96}});
     material.filter_blur = 2.0;
     require(valid_surface_material(material), "filters within the reach are valid");
     MaterialColourMatrix wild{};
@@ -430,10 +558,11 @@ void validation() {
     material.filter_blur = -1.0;
     require(!valid_surface_material(material), "a negative blur is refused");
     material.filter_blur = 0.0;
-    material.drop_shadow = MaterialDropShadow{Point{0.0, 0.0}, std::numeric_limits<double>::infinity(), red};
+    material.drop_shadow.set(MaterialDropShadow{Point{0.0, 0.0}, std::numeric_limits<double>::infinity(), red});
     require(!valid_surface_material(material), "a non-finite shadow is refused");
     material.drop_shadow.reset();
-    material.fills[0].blend = static_cast<MaterialBlendMode>(9U);
+    // One past the last mode (exclusion, the twelfth).
+    material.fills[0].blend = static_cast<MaterialBlendMode>(12U);
     require(!valid_surface_material(material), "a blend outside the enumeration is refused");
 }
 
@@ -442,9 +571,11 @@ void validation() {
 int main() {
     colour_matrices();
     colour_filters();
+    colour_stages();
     drop_shadows();
     blurs();
     fill_blends();
+    more_fill_blends();
     glass_recipe();
     rule_blend();
     validation();

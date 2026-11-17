@@ -154,7 +154,7 @@ SurfaceMaterial plate(PlateColours colours, double radius) {
     } else {
         result.fills = {MaterialFillLayer::linear({0.0, 0.0}, {0.0, 1.0}, {{0.0, colours.top}, {1.0, colours.bottom}})};
     }
-    result.border = MaterialBorder{colours.border, 1.0};
+    result.border.set(MaterialBorder{colours.border, 1.0});
     result.corner_radius = radius;
     return result;
 }
@@ -560,6 +560,7 @@ void print_difference(ControlVisualRole role, std::size_t state, bool selected, 
     if (evaluated.fill_text != expected.fill_text) std::cerr << " fill_text";
     if (evaluated.stroke_width != expected.stroke_width) std::cerr << " stroke_width";
     if (evaluated.needle_shape != expected.needle_shape) std::cerr << " needle_shape";
+    if (evaluated.ring_style != expected.ring_style) std::cerr << " ring_style";
     if (evaluated.scrim != expected.scrim) std::cerr << " scrim";
     if (!(evaluated.canvas == expected.canvas)) {
         std::cerr << " canvas";
@@ -741,6 +742,7 @@ constexpr ControlAnatomy probe_anatomy{
     .parts = {},
     .states = {},
     .custom_states = {},
+    .item_systems = {},
 };
 
 class Probe final : public Control {
@@ -824,7 +826,7 @@ void sheet_darkened() {
             part.family = static_cast<ControlVisualRole>(family);
             part.role = static_cast<PartRole>(role);
             part.bounds = Rect{0.0, 0.0, 80.0, 24.0};
-            part.key = PartKey{part_role_name(part.role), {}, {}};
+            part.key.set(PartKey{part_role_name(part.role), {}, {}});
             set_scheme(window, ColourScheme::light);
             const ThemeEngine::PartPlan light = engine.plan(*probe, part);
             if (light.drawing != ThemeEngine::PartDrawing::primitive || light.resolution.primitive == nullptr) {

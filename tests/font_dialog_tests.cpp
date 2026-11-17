@@ -7,6 +7,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
@@ -45,6 +46,12 @@ struct RecordApply final {
     void operator()(const FontSpec& font) const { (*seen).push_back(font); }
 };
 
+// Counts the presses that reach a button.
+struct CountClicks final {
+    int* count{};
+    void operator()(ButtonBase&) const { ++(*count); }
+};
+
 struct Fixture final {
     std::shared_ptr<Panel> root;
     std::shared_ptr<Button> owner;
@@ -76,13 +83,13 @@ void faces_and_styles() {
             "the default is 9-unit Carlito, with four styles");
     dialog.font = FontSpec{FontRole::monospace, 14.0, 600, true};
     require(dialog.selection() == FontSpec{FontRole::monospace, 14.0, 700, true} &&
-                (*dialog.face_list()).selected_index() == 2U && (*dialog.style_list()).selected_index() == 3U &&
+                (*dialog.face_list()).selected_index() == stxlib::Optional<std::size_t>::of(2U) && (*dialog.style_list()).selected_index() == stxlib::Optional<std::size_t>::of(3U) &&
                 (*dialog.size_box()).value.read() == 14.0,
             "a font is shown at the nearest weight the faces have");
     (*dialog.face_list()).select_index(0U);
     require(dialog.selection().role == FontRole::control && !dialog.selection().italic &&
                 dialog.selection().weight == 700U && (*dialog.style_list()).items.read().size() == 2U &&
-                (*dialog.style_list()).selected_index() == 1U,
+                (*dialog.style_list()).selected_index() == stxlib::Optional<std::size_t>::of(1U),
             "Portsmouth Rapids has no italics: the style list shrinks and italic is dropped");
     (*dialog.style_list()).select_index(0U);
     (*dialog.size_box()).value = 20.0;
@@ -116,10 +123,15 @@ void overlay_ok_cancel_apply() {
             "show opens the dialog over the window and holds the focus in it");
     const Rect bounds = dialog.absolute_bounds();
     require(bounds.x == 170.0 && bounds.y == 134.0, "the dialog is centred in the window");
-    require(!window.dispatch_pointer({PointerAction::down, PointerButton::primary, {50.0, 25.0}}) ||
-                dialog.is_open(),
-            "a press outside the dialog does not reach the page or close it");
+    // The point is inside the owner button beneath the dialog: the press
+    // and release must not click it or close the dialog.
+    int owner_clicks = 0;
+    SubscriptionToken owner_clicked = (*fixture.owner).clicked().subscribe(CountClicks{&owner_clicks});
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, {50.0, 25.0}}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {50.0, 25.0}}));
+    require(owner_clicks == 0 && dialog.is_open(),
+            "a press outside the dialog does not reach the page or close it");
+    owner_clicked.disconnect();
 
     (*dialog.size_box()).value = 12.0;
     require((*dialog.apply_button()).perform_click() && applied.size() == 1U && applied[0].size == 12.0 &&

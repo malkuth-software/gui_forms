@@ -7,6 +7,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -187,6 +188,29 @@ bool DockWorkspace::register_panel(DockPanelRegistration registration) {
     return true;
 }
 
+DockPanelsAdded DockWorkspace::add_panels(std::vector<DockPanelRegistration> panels) {
+    DockPanelsAdded result{};
+    for (std::size_t index = 0U; index < panels.size(); ++index) {
+        const DockPanelId& panel = panels[index].descriptor.id;
+        if (panel.value.empty() || find_entry(panel) != nullptr) return result;
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (panels[earlier].descriptor.id == panel) return result;
+        }
+    }
+    std::vector<DockPanelId> identities;
+    identities.reserve(panels.size());
+    for (std::size_t index = 0U; index < panels.size(); ++index) {
+        identities.push_back(panels[index].descriptor.id);
+        // Checked above, so the layout takes it.
+        if (register_panel(std::move(panels[index]))) result.registered = result.registered + 1U;
+    }
+    for (std::size_t index = 0U; index < identities.size(); ++index) {
+        const DockTransactionResult shown = show_panel(identities[index], DockEditOrigin::program);
+        if (shown.applied) result.shown = result.shown + 1U;
+    }
+    return result;
+}
+
 const DockPanelRegistration* DockWorkspace::find_registration(const DockPanelId& panel) const noexcept {
     const PanelEntry* const entry = find_entry(panel);
     if (entry == nullptr) return nullptr;
@@ -236,16 +260,16 @@ void DockWorkspace::set_floats_shown_while_inactive(bool shown) {
     }
 }
 
-void DockWorkspace::set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown) {
+void DockWorkspace::set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown) {
     std::size_t index = 0U;
     while (index < floating_visibility_.size() && !(floating_visibility_[index].site == site)) ++index;
-    if (shown) {
+    if (shown.present()) {
         if (index == floating_visibility_.size()) {
             FloatingVisibility entry{};
             entry.site = site;
             floating_visibility_.push_back(entry);
         }
-        floating_visibility_[index].shown = *shown;
+        floating_visibility_[index].shown = (*shown.value());
     } else if (index < floating_visibility_.size()) {
         floating_visibility_.erase(floating_visibility_.begin() + static_cast<std::ptrdiff_t>(index));
     }
@@ -274,7 +298,7 @@ void DockWorkspace::set_document_tabs_shown(bool shown) {
 
 void DockWorkspace::set_auto_hide_opens_on_hover(bool opens) { auto_hide_opens_on_hover_ = opens; }
 
-void DockWorkspace::set_area_background(std::optional<Color> colour) {
+void DockWorkspace::set_area_background(stxlib::Optional<Color> colour) {
     if (area_background_ == colour) return;
     area_background_ = colour;
     const std::vector<DockSite*> sites = bound_sites();
@@ -793,18 +817,28 @@ void DockWorkspace::realize_on_sites(const DockLayoutChange& change) {
 
 // -- sites ---------------------------------------------------------------------
 
+// A site that a new one replaces is unbound, so that every site is either in
+// the workspace's lists (and released with it) or holds no workspace pointer
+// (A-gf-controls-04-F1). The new site is stored first; the replaced site is
+// told afterwards, when the workspace's lists are already whole.
 void DockWorkspace::attach_site(DockSite& site) {
+    DockSite* replaced = nullptr;
     if (!site.floating()) {
+        replaced = site_;
         site_ = &site;
-        return;
-    }
-    for (DockSite*& bound_site : floating_sites_) {
-        if ((*bound_site).floating_site() == site.floating_site()) {
-            bound_site = &site;
-            return;
+    } else {
+        bool stored = false;
+        for (DockSite*& bound_site : floating_sites_) {
+            if ((*bound_site).floating_site() == site.floating_site()) {
+                replaced = bound_site;
+                bound_site = &site;
+                stored = true;
+                break;
+            }
         }
+        if (!stored) floating_sites_.push_back(&site);
     }
-    floating_sites_.push_back(&site);
+    if (replaced != nullptr && replaced != &site) (*replaced).release_workspace();
 }
 
 void DockWorkspace::detach_site(DockSite& site) noexcept {
@@ -1248,8 +1282,8 @@ std::optional<DockEdit> DockWorkspace::dock_back_edit(const DockSubject& subject
     std::vector<DockEdit> candidates{};
     candidates.reserve(3U);
     const DockPanelRecord* const record = find_record(layout_, panel);
-    if (record != nullptr && (*record).docked) {
-        const DockDockedMemory& memory = *(*record).docked;
+    if (record != nullptr && (*record).docked.present()) {
+        const DockDockedMemory& memory = (*(*record).docked.value());
         const DockNode* const stack = layout_.find_node(memory.stack);
         const bool a_stack = stack != nullptr && ((*stack).kind == DockNodeKind::tool_stack ||
                                                   (*stack).kind == DockNodeKind::document_stack);
@@ -1312,21 +1346,21 @@ ApplicationWindowHandle DockWorkspace::window_of(const DockSite& site) const {
     return handle;
 }
 
-std::optional<Point> DockWorkspace::desktop_origin(const DockSite& site) const {
+stxlib::Optional<Point> DockWorkspace::desktop_origin(const DockSite& site) const {
     const ApplicationWindowHandle handle = window_of(site);
-    if (!handle.active()) return std::nullopt;
+    if (!handle.active()) return stxlib::Optional<Point>::none();
     const HostWindowFrameResult frame = handle.frame();
-    if (!frame.status.accepted()) return std::nullopt;
+    if (!frame.status.accepted()) return stxlib::Optional<Point>::none();
     const Rect absolute = site.absolute_bounds();
     const Point origin{frame.frame.content.x + absolute.x, frame.frame.content.y + absolute.y};
-    return origin;
+    return stxlib::Optional<Point>::of(origin);
 }
 
 bool DockWorkspace::site_contains(const DockSite& site, Point desktop) const {
-    const std::optional<Point> origin = desktop_origin(site);
-    if (!origin) return false;
+    const stxlib::Optional<Point> origin = desktop_origin(site);
+    if (origin.absent()) return false;
     const Rect client = site.client_rectangle();
-    const Rect bounds{(*origin).x, (*origin).y, client.width, client.height};
+    const Rect bounds{((*origin.value())).x, ((*origin.value())).y, client.width, client.height};
     const bool inside = bounds.contains(desktop);
     return inside;
 }

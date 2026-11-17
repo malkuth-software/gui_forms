@@ -4,9 +4,11 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -58,6 +60,22 @@ enum class VisualPaintOperation : std::uint8_t {
     fill_grid_pattern,
     fill_rounded_rect_corners,
     stroke_rounded_rect_corners,
+    // Curved paths: `element_count` gives the path's point slots.
+    fill_path,
+    stroke_path,
+    // A path clip: `rect` the path's bounds, `element_count` its point
+    // slots.
+    clip_path,
+    // A radial gradient with its spread in `gradient_spread`.
+    fill_radial_gradient_spread,
+    // A hatch over `rect`.
+    fill_hatch,
+    // A focal radial gradient: the focus in `scalar` and
+    // `secondary_scalar`.
+    fill_focal_radial_gradient,
+    // A transform group: `rect` its bounds in content coordinates.
+    begin_transform,
+    end_transform,
 };
 
 [[nodiscard]] GUI_FORMS_API const char* visual_paint_operation_name(
@@ -93,10 +111,15 @@ struct GUI_FORMS_API VisualPaintOperationSnapshot final {
     std::string text;
     // The reading direction of a draw_text operation.
     TextOrientation text_orientation{TextOrientation::horizontal};
+    // A rotated run's turn in degrees (Painter::draw_rotated_text_utf8), or 0.
+    double text_degrees{};
     // A batched mark's length: its points, rectangles, segments or markers
     // (a band counts its upper points); 0 for every other operation, whose
     // JSON leaves the field out.
     std::size_t element_count{};
+    // A begin_group's effect (PaintGroup::effect), shared with the
+    // recording; null otherwise, and the JSON leaves the field out.
+    std::shared_ptr<const PaintGroupEffect> group_effect{};
 };
 
 struct GUI_FORMS_API VisualControlStateSnapshot final {
@@ -143,7 +166,7 @@ struct GUI_FORMS_API VisualControlLayoutSnapshot final {
 struct GUI_FORMS_API VisualControlInspection final {
     RuntimeId runtime_id{};
     std::string stable_id;
-    std::optional<RuntimeId> parent_runtime_id;
+    stxlib::Optional<RuntimeId> parent_runtime_id;
     std::string parent_stable_id;
     std::size_t depth{};
     bool overlay_tree{};
@@ -155,7 +178,7 @@ struct GUI_FORMS_API VisualControlInspection final {
     std::string theme_id;
     bool theme_override{};
     std::optional<SurfaceMaterial> authored_material;
-    std::optional<DisplayChunkInfo> display_chunk;
+    stxlib::Optional<DisplayChunkInfo> display_chunk;
     bool display_chunk_current{};
     std::size_t total_display_operations{};
     bool display_operations_truncated{};

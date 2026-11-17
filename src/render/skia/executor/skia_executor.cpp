@@ -1,4 +1,5 @@
 #include "skia_executor.hpp"
+#include "shaded_triangle_raster.hpp"
 
 #include "include/core/SkBlendMode.h"
 #include "include/core/SkCanvas.h"
@@ -21,14 +22,26 @@
 
 #include "../../../core/image/png_pixels.hpp"
 #include "../../../core/types/paint_marks/grid_lines.hpp"
+#include "../../../core/drawing/drawing_replay/drawing_paint_path.hpp"
+#include "../raster/skia_paint_path.hpp"
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
+#include "gui_forms/types/linear_light/linear_light_stops.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
+#include "../../../core/resources/fonts/bundled_font_set.hpp"
+#if defined(_WIN32)
+#include "../../../surface/windows/fonts/sealed_pages_windows.hpp"
+#else
+#include "../../../surface/posix/fonts/sealed_pages_posix.hpp"
+#endif
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_TRUETYPE_TABLES_H
+#include <stxlib/font_file.hpp>
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <array>
@@ -37,6 +50,7 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -74,6 +88,20 @@ namespace {
         SkColorSetARGB(color.alpha(), color.red(), color.green(), color.blue());
 }
 
+// The colour as a gradient stop's, an empty colour as transparent (as
+// to_sk_color draws it).
+[[nodiscard]] gui_forms::Color forms_color_of(Color color) noexcept {
+    if (color.is_empty()) return gui_forms::Color{0U, 0U, 0U, 0U};
+    const gui_forms::Color forms{color.red(), color.green(), color.blue(), color.alpha()};
+    return forms;
+}
+
+// A linear-light expanded stop's colour (gui_forms::Color, plain channels;
+// forms_color_of above already turned an empty colour transparent).
+[[nodiscard]] SkColor to_sk_color(gui_forms::Color color) noexcept {
+    return SkColorSetARGB(color.alpha, color.red, color.green, color.blue);
+}
+
 [[nodiscard]] std::uint8_t premultiply(std::uint8_t channel,
                                        std::uint8_t alpha) noexcept {
     return static_cast<std::uint8_t>(
@@ -92,8 +120,8 @@ void assign_raster_error(RasterError* output, RasterError value) noexcept {
 }
 
 template <std::size_t Count>
-void mark_hatch_pixel(std::array<SkColor, Count>& pixels,
-                      int extent, int x, int y, SkColor color) noexcept {
+void mark_hatch_pixel(std::array<SkPMColor, Count>& pixels,
+                      int extent, int x, int y, SkPMColor color) noexcept {
     pixels[static_cast<std::size_t>(y * extent + x)] = color;
 }
 
@@ -222,16 +250,15 @@ void mark_hatch_pixel(std::array<SkColor, Count>& pixels,
                           static_cast<SkScalar>(element.sweep_angle),
                           !has_current_point);
             {
-                constexpr double degrees_to_radians =
-                    0.01745329251994329576923690768489;
-                const double angle =
-                    (element.start_angle + element.sweep_angle) *
-                    degrees_to_radians;
+                // The engine's deterministic sine and cosine.
+                const gui_forms::EngineSineCosine turn =
+                    gui_forms::engine_sine_cosine_degrees(
+                        element.start_angle + element.sweep_angle);
                 current_point = {
                     element.rect.x + element.rect.width * 0.5 +
-                        element.rect.width * 0.5 * std::cos(angle),
+                        element.rect.width * 0.5 * turn.cosine,
                     element.rect.y + element.rect.height * 0.5 +
-                        element.rect.height * 0.5 * std::sin(angle),
+                        element.rect.height * 0.5 * turn.sine,
                 };
             }
             has_current_point = true;
@@ -249,8 +276,8 @@ void mark_hatch_pixel(std::array<SkColor, Count>& pixels,
 
 void apply_image_attributes(SkPaint& paint,
                             const ImageAttributesSnapshot& attributes) {
-    if (!attributes.color_matrix.has_value()) return;
-    const std::array<double, 25>& colors = *attributes.color_matrix;
+    if (attributes.color_matrix.absent()) return;
+    const std::array<double, 25>& colors = (*attributes.color_matrix.value());
     float matrix[20]{};
     for (std::size_t output = 0; output < 4U; ++output) {
         for (std::size_t input = 0; input < 4U; ++input) {
@@ -339,6 +366,29 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     return true;
 }
 
+// Whether `pen` keeps only part of the figures it draws (Pen::set_trim).
+[[nodiscard]] bool pen_trims(const PenSnapshot& pen) noexcept {
+    const gui_forms::StrokeTrim trim{pen.trim_start, pen.trim_end, pen.trim_offset};
+    return !gui_forms::stroke_trim_keeps_whole(trim);
+}
+
+// The part of a drawn path or ellipse a trimming pen keeps, cut in the core
+// (trim_paint_path at stroke_trim_tolerance, as a Painter replay of the
+// same command cuts it) and built as a Skia path. `figure` is the command's
+// figure as a Painter path (drawing_paint_path.hpp); `kept` is the caller's
+// scratch. Empty when nothing is kept or the figure is refused.
+[[nodiscard]] std::optional<SkPath> trimmed_figure(const PenSnapshot& pen, const gui_forms::PaintPath& figure,
+                                                   gui_forms::PaintPath& kept) {
+    const gui_forms::StrokeTrim trim{pen.trim_start, pen.trim_end, pen.trim_offset};
+    const gui_forms::PaintPathView view = figure.view();
+    if (view.verbs.empty()) return std::nullopt;
+    const gui_forms::PaintPathTrimResult result =
+        gui_forms::trim_paint_path(view, trim, gui_forms::stroke_trim_tolerance, kept);
+    if (result != gui_forms::PaintPathTrimResult::trimmed) return std::nullopt;
+    SkPath built = gui_forms::skia_paint_path::built_path(kept.view(), SkPathFillType::kWinding);
+    return built;
+}
+
 [[nodiscard]] SkTileMode tile_mode(WrapMode mode) noexcept {
     switch (mode) {
     case WrapMode::tile: return SkTileMode::kRepeat;
@@ -375,9 +425,12 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     }
     if (brush.kind == BrushKind::hatch) {
         constexpr int extent = 8;
-        std::array<SkColor, extent * extent> pixels;
-        pixels.fill(to_sk_color(brush.secondary));
-        const SkColor hatch_color = to_sk_color(brush.primary);
+        // Premultiplied, as the image info below declares (and as the
+        // checker brush makes its cells): a translucent colour's channels
+        // are scaled by its alpha (A-gf-core-09-F3).
+        std::array<SkPMColor, extent * extent> pixels;
+        pixels.fill(SkPreMultiplyColor(to_sk_color(brush.secondary)));
+        const SkPMColor hatch_color = SkPreMultiplyColor(to_sk_color(brush.primary));
         for (int coordinate = 0; coordinate < extent; ++coordinate) {
             switch (brush.hatch_style) {
             case HatchStyle::horizontal:
@@ -412,7 +465,7 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         const SkImageInfo info = SkImageInfo::MakeN32Premul(extent, extent);
         sk_sp<SkData> data = SkData::MakeWithCopy(pixels.data(), sizeof(pixels));
         sk_sp<SkImage> image = SkImages::RasterFromData(
-            info, std::move(data), extent * sizeof(SkColor));
+            info, std::move(data), extent * sizeof(SkPMColor));
         if (image) {
             paint.setShader((*image).makeShader(
                 SkTileMode::kRepeat, SkTileMode::kRepeat,
@@ -459,25 +512,40 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         return true;
     }
 
-    std::vector<SkColor4f> colors;
-    std::vector<float> positions;
-    colors.reserve(brush.colors.size());
-    positions.reserve(brush.positions.size());
-    for (const Color color : brush.colors) {
-        colors.push_back(SkColor4f::FromColor(to_sk_color(color)));
-    }
-    for (const double position : brush.positions) {
-        positions.push_back(static_cast<SkScalar>(position));
-    }
-    if (colors.size() < 2U || colors.size() != positions.size()) {
+    if (brush.colors.size() < 2U || brush.colors.size() != brush.positions.size()) {
         paint.setColor(to_sk_color(brush.primary));
         return true;
+    }
+    // Gradients interpolate in linear light (owner, 2026-11-16;
+    // gui_forms/types/linear_light/linear_light.hpp), as SkiaRaster's do:
+    // the stops are expanded with the linear-light colours between them,
+    // which Skia then interpolates premultiplied in sRGB. Room for the
+    // brush's own stops and for those the expansion adds.
+    std::vector<gui_forms::GradientStop> stops;
+    stops.reserve(brush.colors.size());
+    for (std::size_t index = 0U; index < brush.colors.size(); ++index) {
+        stops.push_back(gui_forms::GradientStop{brush.positions[index], forms_color_of(brush.colors[index])});
+    }
+    std::vector<gui_forms::GradientStop> expanded(stops.size() + gui_forms::maximum_linear_light_stops);
+    const stxlib::View<gui_forms::GradientStop> stop_view(stops.data(), stops.size());
+    const stxlib::MutableView<gui_forms::GradientStop> expanded_view(expanded.data(), expanded.size());
+    const std::size_t count = gui_forms::expand_linear_light_stops(stop_view, expanded_view);
+    std::vector<SkColor4f> colors;
+    std::vector<float> positions;
+    colors.reserve(count);
+    positions.reserve(count);
+    for (std::size_t index = 0U; index < count; ++index) {
+        colors.push_back(SkColor4f::FromColor(to_sk_color(expanded[index].color)));
+        positions.push_back(static_cast<SkScalar>(expanded[index].offset));
     }
     const SkGradient::Colors gradient_colors(
         SkSpan<const SkColor4f>(colors.data(), colors.size()),
         SkSpan<const float>(positions.data(), positions.size()),
         tile_mode(brush.wrap_mode), SkColorSpace::MakeSRGB());
-    const SkGradient gradient(gradient_colors, SkGradient::Interpolation{});
+    SkGradient::Interpolation interpolation;
+    interpolation.fInPremul = SkGradient::Interpolation::InPremul::kYes;
+    interpolation.fColorSpace = SkGradient::Interpolation::ColorSpace::kSRGB;
+    const SkGradient gradient(gradient_colors, interpolation);
     if (brush.kind == BrushKind::conic_gradient) {
         // One full turn clockwise (y down) from the start angle.
         const double start = std::fmod(brush.angle, 360.0);
@@ -489,27 +557,58 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         return true;
     }
     if (brush.kind == BrushKind::linear_gradient) {
-        constexpr double degrees_to_radians = 0.017453292519943295769;
-        const double radians = brush.angle * degrees_to_radians;
-        const double half_length = std::abs(std::cos(radians)) * brush.bounds.width / 2.0 +
-            std::abs(std::sin(radians)) * brush.bounds.height / 2.0;
+        // The engine's deterministic sine and cosine, exact at quarter turns
+        // (drawing replay draws the same line).
+        const gui_forms::EngineSineCosine along = gui_forms::engine_sine_cosine_degrees(brush.angle);
+        const double half_length = std::abs(along.cosine) * brush.bounds.width / 2.0 +
+            std::abs(along.sine) * brush.bounds.height / 2.0;
         const PointF center{brush.bounds.x + brush.bounds.width / 2.0,
                             brush.bounds.y + brush.bounds.height / 2.0};
         const SkPoint points[] = {
-            {static_cast<SkScalar>(center.x - std::cos(radians) * half_length),
-             static_cast<SkScalar>(center.y - std::sin(radians) * half_length)},
-            {static_cast<SkScalar>(center.x + std::cos(radians) * half_length),
-             static_cast<SkScalar>(center.y + std::sin(radians) * half_length)},
+            {static_cast<SkScalar>(center.x - along.cosine * half_length),
+             static_cast<SkScalar>(center.y - along.sine * half_length)},
+            {static_cast<SkScalar>(center.x + along.cosine * half_length),
+             static_cast<SkScalar>(center.y + along.sine * half_length)},
         };
         SkGradientShaderResult made = SkShaders::LinearGradient(points, gradient);
         if (made.rejection != SkGradientRejection::kNone) return false;
         paint.setShader(std::move(made.shader));
         return true;
     }
+    if (brush.kind == BrushKind::radial_gradient) {
+        if (!(brush.radius > 0.0) || !(brush.radius_y > 0.0)) return false;
+        const SkPoint center{static_cast<SkScalar>(brush.center.x), static_cast<SkScalar>(brush.center.y)};
+        const SkScalar radius = static_cast<SkScalar>(brush.radius);
+        if (brush.radius_y != brush.radius) {
+            // An ellipse: the gradient in the unit circle, mapped onto the
+            // ellipse by its local matrix (centre, then the two radii).
+            const SkMatrix ellipse = SkMatrix::Translate(center.x(), center.y()) *
+                                     SkMatrix::Scale(radius, static_cast<SkScalar>(brush.radius_y));
+            const SkPoint focus{static_cast<SkScalar>((brush.focus.x - brush.center.x) / brush.radius),
+                                static_cast<SkScalar>((brush.focus.y - brush.center.y) / brush.radius_y)};
+            SkGradientShaderResult made = brush.focus == brush.center
+                ? SkShaders::RadialGradient(SkPoint::Make(0.0F, 0.0F), 1.0F, gradient, &ellipse)
+                : SkShaders::TwoPointConicalGradient(focus, 0.0F, SkPoint::Make(0.0F, 0.0F), 1.0F, gradient,
+                                                     &ellipse);
+            if (made.rejection != SkGradientRejection::kNone) return false;
+            paint.setShader(std::move(made.shader));
+            return true;
+        }
+        // Position 0 at the focus: the circles grow from it to the edge
+        // circle, their centres moving from the focus to the centre.
+        SkGradientShaderResult made = brush.focus == brush.center
+            ? SkShaders::RadialGradient(center, radius, gradient)
+            : SkShaders::TwoPointConicalGradient(
+                  {static_cast<SkScalar>(brush.focus.x), static_cast<SkScalar>(brush.focus.y)}, 0.0F, center,
+                  radius, gradient);
+        if (made.rejection != SkGradientRejection::kNone) return false;
+        paint.setShader(std::move(made.shader));
+        return true;
+    }
     double radius{};
     for (const PointF point : brush.points) {
-        radius = std::max(radius, std::hypot(point.x - brush.center.x,
-                                             point.y - brush.center.y));
+        radius = std::max(radius, gui_forms::engine_hypotenuse(point.x - brush.center.x,
+                                                               point.y - brush.center.y));
     }
     if (radius <= 0.0) {
         paint.setColor(to_sk_color(brush.primary));
@@ -727,7 +826,7 @@ struct ImageRowCopy final {
 // (see ImageRowCopy). Reads the source rectangle's alpha bytes once.
 [[nodiscard]] std::optional<ImageRowCopy> image_row_copy(const DrawingCommand& command) {
     const ImageAttributesSnapshot& attributes = command.image_attributes;
-    if (attributes.color_matrix.has_value() || !attributes.remap_table.empty()) return std::nullopt;
+    if (attributes.color_matrix.present() || !attributes.remap_table.empty()) return std::nullopt;
     const Matrix& transform = command.state.transform;
     if (transform.m11() != 1.0 || transform.m12() != 0.0 || transform.m21() != 0.0 || transform.m22() != 1.0) {
         return std::nullopt;
@@ -758,8 +857,8 @@ struct ImageRowCopy final {
     // * row_bytes and needs row_end bytes (row_bytes >= row_end > 0).
     if (row_bytes < row_end || pixels.size() < row_end) return std::nullopt;
     if (last_row > (pixels.size() - row_end) / row_bytes) return std::nullopt;
-    if (command.state.clip) {
-        const RectF& clip = *command.state.clip;
+    if (command.state.clip.present()) {
+        const RectF& clip = (*command.state.clip.value());
         if (!exact_whole(clip.x) || !exact_whole(clip.y) || !exact_whole(clip.width) || !exact_whole(clip.height) ||
             clip.width < 0.0 || clip.height < 0.0) {
             return std::nullopt;
@@ -858,6 +957,8 @@ void copy_image_rows(const ImageRowCopy& copy, const ImageSnapshot& image, const
         const bool drawable = path.has_value() && configure_brush(paint, command.brush, command.state);
         return drawable ? RasterError::none : RasterError::invalid_argument;
     }
+    case CommandKind::fill_triangles:
+        return shaded_triangles_refusal(command);
     case CommandKind::draw_image: {
         if (!command.image.has_pixels()) return RasterError::missing_image_pixels;
         const SkImageInfo source_info = image_info(command.image.width, command.image.height);
@@ -867,6 +968,7 @@ void copy_image_rows(const ImageRowCopy& copy, const ImageSnapshot& image, const
         return fits ? RasterError::none : RasterError::missing_image_pixels;
     }
     default:
+        // Not a CommandKind: refused below.
         break;
     }
     // Not a CommandKind: the list cannot be replayed.
@@ -879,27 +981,34 @@ namespace text = gui_forms::render::text;
 
 namespace {
 
-// Vertical metrics per em, unrounded, from the face's tables as FreeType
-// reads them (hhea, falling back to OS/2).
+// Vertical metrics per em, unrounded, from the face's tables as STXlib's
+// font reader gives them by FreeType 2.14.2's rule (hhea, falling back to
+// OS/2).
 struct FaceMetrics final {
     double ascent{};
     double descent{};
     double line_gap{};
 };
 
-// One encoded face of a family: the shared bytes, the collection index and
-// its metrics.
+// One encoded face of a family: its bytes and their owner (the font
+// family registry's sealed face for a bundled face, so every executor draws
+// the registry's typeface of it; a private copy for a face registered by
+// its bytes), the collection index and its metrics.
 struct FaceRecord final {
-    std::shared_ptr<const std::vector<std::byte>> bytes;
+    std::span<const std::byte> bytes{};
+    std::shared_ptr<const void> owner{};
     std::uint32_t index{};
     FaceMetrics metrics{};
 };
 
 // A family's faces, indexed by the bold (1) and italic (2) bits of a font
-// style, with a private HarfBuzz engine that shapes them and a rasterizer
+// style, with a private text engine that shapes them (HarfBuzzFontEngine,
+// over STXlib's shaper) and a rasterizer
 // over the same bytes (ADR-004). Declared in that order so the rasterizer is
 // destroyed before the engine it borrows.
 struct TextFamily final {
+    // The registry family these faces are, or zero for a family outside the registry.
+    gui_forms::FontFamilyId id{};
     std::array<std::optional<FaceRecord>, 4> faces;
     std::unique_ptr<text::HarfBuzzFontEngine> engine;
     std::unique_ptr<text::GlyphRunRasterizer> rasterizer;
@@ -910,7 +1019,7 @@ constexpr std::size_t italic_slot_bit = 2U;
 
 // The faces tried for each requested slot, nearest first: the same slant
 // with the other weight before the other slant. A face of another weight or
-// slant is emboldened or sheared toward the request.
+// slant is thickened (synthesized bold) or sheared toward the request.
 constexpr std::array<std::array<std::size_t, 4>, 4> nearest_slots{{
     {0U, 1U, 2U, 3U},
     {1U, 0U, 3U, 2U},
@@ -931,54 +1040,38 @@ struct ResolvedFont final {
     FaceMetrics metrics{};
 };
 
-class FreeTypeLibrary final {
-public:
-    FreeTypeLibrary() {
-        if (FT_Init_FreeType(&library_) != 0) throw std::runtime_error("FreeType initialization failed");
-    }
-    ~FreeTypeLibrary() { FT_Done_FreeType(library_); }
-    FreeTypeLibrary(const FreeTypeLibrary&) = delete;
-    FreeTypeLibrary& operator=(const FreeTypeLibrary&) = delete;
-    [[nodiscard]] FT_Library get() const noexcept { return library_; }
-
-private:
-    FT_Library library_{};
-};
-
-class FreeTypeFace final {
-public:
-    FreeTypeFace(FT_Library library, std::span<const std::byte> bytes, FT_Long index) {
-        status_ = FT_New_Memory_Face(library, reinterpret_cast<const FT_Byte*>(bytes.data()),
-                                     static_cast<FT_Long>(bytes.size()), index, &face_);
-    }
-    ~FreeTypeFace() {
-        if (status_ == 0) FT_Done_Face(face_);
-    }
-    FreeTypeFace(const FreeTypeFace&) = delete;
-    FreeTypeFace& operator=(const FreeTypeFace&) = delete;
-    // Nullptr when the bytes are not a font or the index is out of range.
-    [[nodiscard]] FT_Face get() const noexcept { return status_ == 0 ? face_ : nullptr; }
-
-private:
-    FT_Face face_{};
-    FT_Error status_{};
-};
-
-[[nodiscard]] int face_weight(FT_Face face) {
-    const TT_OS2* const os2 = static_cast<const TT_OS2*>(FT_Get_Sfnt_Table(face, FT_SFNT_OS2));
-    if (os2 != nullptr && (*os2).usWeightClass != 0U) return static_cast<int>((*os2).usWeightClass);
-    const int weight = ((*face).style_flags & FT_STYLE_FLAG_BOLD) != 0 ? bold_weight : regular_weight;
+// A face's weight: OS/2's usWeightClass, or, when the face has no OS/2 (or
+// gives 0), bold or regular by fsSelection's bold bit (FreeType's style flag
+// read from OS/2; a face with no OS/2 counts as regular).
+[[nodiscard]] int face_weight(const stxlib::glyphs::Font& font) noexcept {
+    const bool has_os2 = font.os2_version != 0xFFFFU;
+    if (has_os2 && font.weight_class != 0U) return static_cast<int>(font.weight_class);
+    const bool bold = has_os2 && (font.selection & 0x20U) != 0U;
+    const int weight = bold ? bold_weight : regular_weight;
     return weight;
 }
 
-[[nodiscard]] FaceMetrics face_metrics(FT_Face face) noexcept {
+[[nodiscard]] FaceMetrics face_metrics(const stxlib::glyphs::Font& font) noexcept {
     FaceMetrics result{};
-    const double units = (*face).units_per_EM == 0U ? 1000.0 : static_cast<double>((*face).units_per_EM);
-    result.ascent = static_cast<double>((*face).ascender) / units;
-    result.descent = -static_cast<double>((*face).descender) / units;
-    const double height = static_cast<double>((*face).height) / units;
+    const double units = font.units_per_em == 0U ? 1000.0 : static_cast<double>(font.units_per_em);
+    result.ascent = static_cast<double>(font.ascender) / units;
+    result.descent = -static_cast<double>(font.descender) / units;
+    const double height = static_cast<double>(font.height) / units;
     result.line_gap = std::max(0.0, height - result.ascent - result.descent);
     return result;
+}
+
+// The face's family name by FreeType 2.14.2's rule (stxlib::glyphs::family_name),
+// lower-cased for comparison; empty when it has none.
+[[nodiscard]] std::string lower_family_name(const stxlib::glyphs::Font& font) {
+    stxlib::Vector<char> text{};
+    const stxlib::OperationStatus read = stxlib::glyphs::family_name(font, text);
+    if (read.failed()) throw std::bad_alloc();
+    std::string name{};
+    name.reserve(static_cast<std::size_t>(text.count()));
+    for (stxlib::usize index = 0; index < text.count(); ++index) name.push_back(text[index]);
+    const std::string lowered = ascii_lower(name);
+    return lowered;
 }
 
 // Device clip for text: the command clip snapped to whole pixels as Skia's
@@ -986,8 +1079,8 @@ private:
 [[nodiscard]] gui_forms::Rect text_clip_rect(const GraphicsState& state, const std::uint32_t width,
                                              const std::uint32_t height) noexcept {
     gui_forms::Rect result{0.0, 0.0, static_cast<double>(width), static_cast<double>(height)};
-    if (!state.clip) return result;
-    const RectF clip = *state.clip;
+    if (state.clip.absent()) return result;
+    const RectF clip = (*state.clip.value());
     // Within the target: a clip may reach far beyond it (draw_string_over_fill's
     // bands reach 2^30 units when no clip is in force), past the text
     // compositor's coordinate range, and nothing outside the target is drawn.
@@ -999,39 +1092,100 @@ private:
     return result;
 }
 
+// GDI+'s StringFormatFlags.NoClip: a laid-out string is not clipped to its box.
+constexpr std::uint32_t no_clip_flag = UINT32_C(0x4000);
+
+// `clip` narrowed to the box's bounds under `matrix`, snapped to whole
+// pixels as text_clip_rect snaps the command clip.
+[[nodiscard]] gui_forms::Rect layout_clip_rect(gui_forms::Rect clip, const Matrix& matrix, RectF box) {
+    const RectF device = matrix.transform_bounds(box);
+    const double left = std::max(clip.x, std::floor(device.x + 0.5));
+    const double top = std::max(clip.y, std::floor(device.y + 0.5));
+    const double right = std::min(clip.x + clip.width, std::floor(device.x + device.width + 0.5));
+    const double bottom = std::min(clip.y + clip.height, std::floor(device.y + device.height + 0.5));
+    const gui_forms::Rect result{left, top, std::max(0.0, right - left), std::max(0.0, bottom - top)};
+    return result;
+}
+
 } // namespace
 
 class SkiaExecutor::Impl final {
 public:
-    FreeTypeLibrary library;
-    // Keyed by ASCII-lowercased family name.
-    std::unordered_map<std::string, std::unique_ptr<TextFamily>> families;
+    // The families of the font family registry
+    // (gui_forms/typography/font_families/font_families.hpp), one slot per
+    // registry entry in its order, so a registry family has one identity
+    // here as in interface text. Empty until its faces are registered.
+    std::array<std::unique_ptr<TextFamily>, gui_forms::bundled_font_families.size()> registry_families;
+    // Families outside the registry, keyed by ASCII-lowercased name: host
+    // faces under their own names (decision 10). The substitution table's
+    // Arimo, Tinos, Portsmouth Mono and Selawik Semibold have registry slots
+    // since font pack stage 4.
+    std::unordered_map<std::string, std::unique_ptr<TextFamily>> named_families;
     // Requested family to the registered family drawn for it, both
     // ASCII-lowercased (stage F substitution).
     std::unordered_map<std::string, std::string> aliases;
+    // The process's shared set over the embedded font pack, held from the
+    // first register_bundled_typeface; null until then.
+    std::shared_ptr<gui_forms::detail::BundledFontSet> bundled_fonts;
+
+    // The registry family called `name`, as its position in the registry, or none.
+    [[nodiscard]] static std::optional<std::size_t> registry_position(std::string_view name) noexcept {
+        std::optional<std::size_t> result{};
+        const gui_forms::FontFamilyRecord* const record = gui_forms::font_family_named(name);
+        if (record == nullptr) return result;
+        result = static_cast<std::size_t>(record - gui_forms::bundled_font_families.data());
+        return result;
+    }
+
+    // The storage for the family called `name`: its registry slot, else its named entry, made
+    // empty when absent.
+    [[nodiscard]] std::unique_ptr<TextFamily>& family_entry(std::string_view name) {
+        const std::optional<std::size_t> position = registry_position(name);
+        if (position) return registry_families[*position];
+        std::unique_ptr<TextFamily>& entry = named_families[ascii_lower(name)];
+        return entry;
+    }
+
+    // The family registered under `name` itself, without following an alias; null when none.
+    [[nodiscard]] TextFamily* direct(std::string_view name) {
+        const std::optional<std::size_t> position = registry_position(name);
+        if (position) return registry_families[*position].get();
+        using FamilyMap = std::unordered_map<std::string, std::unique_ptr<TextFamily>>;
+        const FamilyMap::iterator found = named_families.find(ascii_lower(name));
+        TextFamily* const result = found == named_families.end() ? nullptr : (*found).second.get();
+        return result;
+    }
+
+    // Drops the faces registered under `name` itself.
+    void forget(std::string_view name) {
+        const std::optional<std::size_t> position = registry_position(name);
+        if (position) {
+            registry_families[*position].reset();
+            return;
+        }
+        named_families.erase(ascii_lower(name));
+    }
 
     // Chooses the collection face best matching family and weight, scanning
     // at most 64 faces. Nullopt when the bytes hold no usable face.
-    [[nodiscard]] std::optional<FaceRecord> select_face(std::string_view family,
-                                                        std::shared_ptr<const std::vector<std::byte>> bytes,
+    [[nodiscard]] std::optional<FaceRecord> select_face(std::string_view family, const std::span<const std::byte> bytes,
+                                                        const std::shared_ptr<const void>& owner,
                                                         const int requested_weight) const {
         const std::string requested_family = ascii_lower(family);
         std::optional<FaceRecord> best;
         int best_score = std::numeric_limits<int>::min();
-        const FreeTypeFace collection(library.get(), *bytes, -1);
-        if (collection.get() == nullptr) return best;
-        const FT_Long count = std::min<FT_Long>((*collection.get()).num_faces, 64);
-        for (FT_Long index = 0; index < count; ++index) {
-            const FreeTypeFace candidate(library.get(), *bytes, index);
-            const FT_Face face = candidate.get();
-            if (face == nullptr || !FT_IS_SCALABLE(face)) continue;
-            const bool exact_family = (*face).family_name != nullptr &&
-                ascii_lower((*face).family_name) == requested_family;
-            const int weight_distance = std::abs(face_weight(face) - requested_weight);
+        const stxlib::View<stxlib::u8> encoded(reinterpret_cast<const stxlib::u8*>(bytes.data()), bytes.size());
+        const stxlib::u32 count = std::min<stxlib::u32>(stxlib::glyphs::face_count(encoded), 64U);
+        for (stxlib::u32 index = 0; index < count; ++index) {
+            stxlib::glyphs::Font font{};
+            const stxlib::OperationStatus opened = stxlib::glyphs::open_font(encoded, index, font);
+            if (opened.failed() || font.outlines == stxlib::glyphs::OutlineKind::none) continue;
+            const bool exact_family = lower_family_name(font) == requested_family;
+            const int weight_distance = std::abs(face_weight(font) - requested_weight);
             const int score = (exact_family ? 100000 : 0) - weight_distance;
             if (score > best_score) {
                 best_score = score;
-                best = FaceRecord{bytes, static_cast<std::uint32_t>(index), face_metrics(face)};
+                best = FaceRecord{bytes, owner, static_cast<std::uint32_t>(index), face_metrics(font)};
             }
             if (exact_family && weight_distance == 0) break;
         }
@@ -1040,10 +1194,12 @@ public:
 
     // Stores a face in one of a family's four slots and rebuilds the
     // family's engine from its records, so a replaced face takes effect.
-    void install(const std::string& key, const std::size_t slot, FaceRecord record) {
-        std::unique_ptr<TextFamily>& entry = families[key];
+    void install(std::string_view name, const std::size_t slot, FaceRecord record) {
+        std::unique_ptr<TextFamily>& entry = family_entry(name);
         if (!entry) entry = std::make_unique<TextFamily>();
         TextFamily& family = *entry;
+        const gui_forms::FontFamilyRecord* const registered = gui_forms::font_family_named(name);
+        if (registered != nullptr) family.id = (*registered).id;
         family.faces[slot] = std::move(record);
         family.rasterizer.reset();
         family.engine = std::make_unique<text::HarfBuzzFontEngine>();
@@ -1052,34 +1208,52 @@ public:
             if (!face) continue;
             const std::uint16_t weight = (index & bold_slot_bit) != 0U ? bold_weight : regular_weight;
             const bool italic = (index & italic_slot_bit) != 0U;
-            if (!(*family.engine).register_shared_typeface(gui_forms::FontRole::control, weight, italic,
-                                                          (*face).bytes, (*face).index)) {
+            if (!(*family.engine).register_owned_typeface(gui_forms::FontRole::control, weight, italic,
+                                                         (*face).bytes, (*face).owner, (*face).index)) {
                 throw std::runtime_error("font registration failed");
             }
         }
         family.rasterizer = std::make_unique<text::GlyphRunRasterizer>(*family.engine);
     }
 
+    // Chooses the face of `bytes` (owned by `owner`) best matching `family` and style's weight
+    // and installs it in style's slot under `family`. False when the bytes hold no usable face.
+    [[nodiscard]] bool install_face(std::string_view family, const std::span<const std::byte> bytes,
+                                    const std::shared_ptr<const void>& owner, const std::uint32_t style) {
+        const std::size_t slot = static_cast<std::size_t>(style & 3U);
+        const bool bold = (slot & bold_slot_bit) != 0U;
+        // Collections (TTC/OTC) hold several faces; choose the requested
+        // family and weight instead of silently using face zero.
+        std::optional<FaceRecord> record = select_face(family, bytes, owner, bold ? bold_weight : regular_weight);
+        if (!record) return false;
+        const std::string key = ascii_lower(family);
+        // A face registered under its own name replaces an alias of it.
+        aliases.erase(key);
+        install(family, slot, std::move(*record));
+        return true;
+    }
+
     // The family registered under a name, following its alias if it has one.
     [[nodiscard]] TextFamily* registered(std::string_view family) {
-        using FamilyMap =
-            std::unordered_map<std::string, std::unique_ptr<TextFamily>>;
         using AliasMap = std::unordered_map<std::string, std::string>;
         std::string key = ascii_lower(family);
         const AliasMap::const_iterator alias = aliases.find(key);
         if (alias != aliases.end()) key = (*alias).second;
-        const FamilyMap::iterator found = families.find(key);
-        TextFamily* const result = found == families.end() ? nullptr : (*found).second.get();
+        TextFamily* const result = direct(key);
         return result;
     }
 
-    // The registered family, else Portsmouth Rapids. The requested slot's
-    // face draws as it is; otherwise the nearest registered face is
-    // emboldened or sheared toward the request.
+    // The registered family, else the registry's Portsmouth Rapids. The
+    // requested slot's face draws as it is; otherwise the nearest registered
+    // face is thickened (synthesized bold) or sheared toward the request.
     [[nodiscard]] std::optional<ResolvedFont> resolve(const FontSnapshot& spec) {
         const std::size_t requested = static_cast<std::size_t>(spec.style & 3U);
         TextFamily* family = registered(spec.family);
-        if (family == nullptr) family = registered("Portsmouth Rapids");
+        if (family == nullptr) {
+            const gui_forms::FontFamilyRecord& rapids =
+                *gui_forms::font_family_record(gui_forms::portsmouth_rapids_font_family);
+            family = direct(rapids.name);
+        }
         std::optional<ResolvedFont> result;
         if (family == nullptr) return result;
         std::size_t slot = requested;
@@ -1097,7 +1271,12 @@ public:
         resolved.family = family;
         resolved.spec = gui_forms::FontSpec{gui_forms::FontRole::control, size,
                                             face_bold ? bold_weight : regular_weight, face_italic};
-        resolved.synthesis.embolden = (requested & bold_slot_bit) != 0U && !face_bold;
+        resolved.spec.family = (*family).id;
+        // OPEN (owner, 2026-11-13; queue entry claude/cp32-font-family): GUI.Drawing still
+        // synthesizes bold and oblique here for GDI+ compatibility, unlike interface text,
+        // which draws the nearest face and never synthesizes (stage F decision 7). Whether
+        // GUI.Drawing stops synthesizing is the owner's decision; keep this as it is until then.
+        resolved.synthesis.thicken = (requested & bold_slot_bit) != 0U && !face_bold;
         resolved.synthesis.oblique = (requested & italic_slot_bit) != 0U && !face_italic;
         resolved.metrics = (*(*family).faces[slot]).metrics;
         result = resolved;
@@ -1105,10 +1284,49 @@ public:
     }
 
     void draw_text(const DrawingCommand& command, const gui_forms::detail::TextCompositeTarget& target);
+    // A laid-out line trimmed to `width` by `trimming`: a view of `line`, or
+    // of trimmed_text when an ellipsis is added (valid until the next call).
+    [[nodiscard]] std::string_view trimmed_line(std::string_view line, const ResolvedFont& font,
+                                                StringTrimming trimming, double width);
+    [[nodiscard]] std::size_t fitted_prefix(std::string_view line, const ResolvedFont& font, double width);
+
+    // trimmed_line's storage for a cut line and its ellipsis, reused.
+    std::string trimmed_text;
 };
 
+namespace {
+
+// The pixels a text clip can show, relative to a run's origin pixel, so the
+// rasterizer renders only the glyphs that can show (A-gf-core-10-F1). The
+// rectangle is widened to whole pixels; a non-finite one shows everything.
+text::GlyphRunWindow clip_window(const gui_forms::Rect& clip, const std::int64_t pixel_x, const std::int64_t pixel_y) {
+    text::GlyphRunWindow window{};
+    const double limit = static_cast<double>(text::glyph_run_maximum_extent) * 1024.0;
+    const double left = std::floor(clip.x);
+    const double top = std::floor(clip.y);
+    const double right = std::ceil(clip.x + clip.width);
+    const double bottom = std::ceil(clip.y + clip.height);
+    const bool usable = std::isfinite(left) && std::isfinite(top) && std::isfinite(right) && std::isfinite(bottom) &&
+        std::abs(left) < limit && std::abs(top) < limit && std::abs(right) < limit && std::abs(bottom) < limit;
+    if (!usable) {
+        window.left = -static_cast<std::int64_t>(limit);
+        window.top = -static_cast<std::int64_t>(limit);
+        window.right = static_cast<std::int64_t>(limit);
+        window.bottom = static_cast<std::int64_t>(limit);
+        return window;
+    }
+    window.left = static_cast<std::int64_t>(left) - pixel_x;
+    window.top = static_cast<std::int64_t>(top) - pixel_y;
+    window.right = static_cast<std::int64_t>(right) - pixel_x;
+    window.bottom = static_cast<std::int64_t>(bottom) - pixel_y;
+    return window;
+}
+
+} // namespace
+
 // Shapes and draws one draw_string command through the shared text engine
-// and compositor (ADR-004).
+// and compositor (ADR-004). A laid-out command (draw_string_in_rect) places
+// its lines in the box, trims those wider than it, and is clipped to it.
 void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
                                    const gui_forms::detail::TextCompositeTarget& target) {
     const bool source = command.state.compositing == CompositingMode::source_copy;
@@ -1121,13 +1339,25 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
     TextFamily& family = *font.family;
     const double size = font.spec.size;
     const double overhang = (command.format.flags & UINT32_C(0x0004)) == 0U ? size / 6.0 : 0.0;
-    const double first_baseline = command.first.y + font.metrics.ascent * size + overhang;
     const double line_height = std::max(0.0, (font.metrics.ascent + font.metrics.descent + font.metrics.line_gap) * size +
                                                  overhang);
     const Matrix& matrix = command.state.transform;
     const bool uniform = matrix.m12() == 0.0 && matrix.m21() == 0.0 && matrix.m11() == matrix.m22() &&
         std::isfinite(matrix.m11()) && matrix.m11() > 0.0;
-    const gui_forms::detail::TextCompositeClip clip{text_clip_rect(command.state, target.width, target.height)};
+    gui_forms::Rect clip_rect = text_clip_rect(command.state, target.width, target.height);
+    const bool laid_out = command.laid_out;
+    const RectF box = command.rect;
+    double top = command.first.y;
+    if (laid_out) {
+        if ((command.format.flags & no_clip_flag) == 0U) clip_rect = layout_clip_rect(clip_rect, matrix, box);
+        const std::size_t lines = static_cast<std::size_t>(std::count(command.text.begin(), command.text.end(), '\n')) + 1U;
+        const double block = line_height * static_cast<double>(lines);
+        top = box.y;
+        if (command.format.line_alignment == StringAlignment::center) top = box.y + (box.height - block) / 2.0;
+        if (command.format.line_alignment == StringAlignment::end) top = box.y + box.height - block;
+    }
+    const double first_baseline = top + font.metrics.ascent * size + overhang;
+    const gui_forms::detail::TextCompositeClip clip{clip_rect};
     gui_forms::Color text_colour = gui_forms::Color::rgba(0, 0, 0, 0);
     if (!colour.is_empty()) text_colour = gui_forms::Color::rgba(colour.red(), colour.green(), colour.blue(), alpha);
     const gui_forms::detail::TextCompositeMode mode =
@@ -1138,11 +1368,17 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
         const std::size_t newline = remaining.find('\n');
         std::string_view line = remaining.substr(0U, newline);
         if (!line.empty() && line.back() == '\r') line.remove_suffix(1U);
+        if (laid_out && !line.empty()) line = trimmed_line(line, font, command.format.trimming, box.width - overhang * 2.0);
         if (!line.empty()) {
             const text::ShapedText shaped = (*family.engine).shape(line, font.spec);
             double x = command.first.x + overhang;
-            if (command.format.alignment == StringAlignment::center) x -= shaped.width / 2.0;
-            if (command.format.alignment == StringAlignment::far) x -= shaped.width;
+            if (laid_out) {
+                if (command.format.alignment == StringAlignment::center) x = box.x + (box.width - shaped.width) / 2.0;
+                if (command.format.alignment == StringAlignment::end) x = box.x + box.width - overhang - shaped.width;
+            } else {
+                if (command.format.alignment == StringAlignment::center) x -= shaped.width / 2.0;
+                if (command.format.alignment == StringAlignment::end) x -= shaped.width;
+            }
             const double y = first_baseline + line_height * static_cast<double>(line_index);
             const double device_x = matrix.m11() * x + matrix.m21() * y + matrix.dx();
             const double device_y = matrix.m12() * x + matrix.m22() * y + matrix.dy();
@@ -1150,11 +1386,16 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
             text::GlyphRunCoverage coverage{};
             if (uniform) {
                 origin = text::glyph_run_origin(device_x, device_y);
-                coverage = (*family.rasterizer).rasterize(shaped, font.spec, matrix.m11(), origin.phase_x, font.synthesis);
+                const text::GlyphRunWindow window = clip_window(clip_rect, origin.pixel_x, origin.pixel_y);
+                coverage = (*family.rasterizer).rasterize(shaped, font.spec, matrix.m11(), origin.phase_x, font.synthesis,
+                                                          window);
             } else {
                 const text::GlyphRunTransform linear{matrix.m11(), matrix.m21(), matrix.m12(), matrix.m22()};
+                const text::GlyphRunWindow window =
+                    clip_window(clip_rect, static_cast<std::int64_t>(std::floor(device_x)),
+                                static_cast<std::int64_t>(std::floor(device_y)));
                 coverage = (*family.rasterizer).rasterize_transformed(shaped, font.spec, linear, device_x, device_y,
-                                                                     font.synthesis, origin);
+                                                                     font.synthesis, origin, window);
             }
             const gui_forms::detail::TextCoverage placed{coverage.pixels, coverage.width, coverage.height,
                                                          origin.pixel_x + coverage.left, origin.pixel_y + coverage.top};
@@ -1169,10 +1410,90 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
     }
 }
 
+// The longest prefix of `line` ending on a code point boundary whose shaped
+// width is at most `width`: a binary search over byte lengths, each probe
+// moved back to a boundary, so at most about log2(bytes) shapes.
+std::size_t SkiaExecutor::Impl::fitted_prefix(std::string_view line, const ResolvedFont& font, double width) {
+    std::size_t low = 0U;
+    std::size_t high = line.size();
+    while (low < high) {
+        std::size_t middle = low + (high - low + 1U) / 2U;
+        while (middle > low && middle < line.size() &&
+               (static_cast<unsigned char>(line[middle]) & 0xC0U) == 0x80U) {
+            --middle;
+        }
+        if (middle == low) break;
+        const double measured = (*(*font.family).engine).shape(line.substr(0U, middle), font.spec).width;
+        if (measured <= width) {
+            low = middle;
+        } else {
+            high = middle - 1U;
+            while (high > low && high < line.size() &&
+                   (static_cast<unsigned char>(line[high]) & 0xC0U) == 0x80U) {
+                --high;
+            }
+        }
+    }
+    return low;
+}
+
+std::string_view SkiaExecutor::Impl::trimmed_line(std::string_view line, const ResolvedFont& font,
+                                                  StringTrimming trimming, double width) {
+    if (trimming == StringTrimming::none) return line;
+    const double available = std::max(0.0, width);
+    const double whole = (*(*font.family).engine).shape(line, font.spec).width;
+    if (whole <= available) return line;
+    const bool ellipsis = trimming == StringTrimming::ellipsis_character || trimming == StringTrimming::ellipsis_word ||
+                          trimming == StringTrimming::ellipsis_path;
+    const bool by_word = trimming == StringTrimming::word || trimming == StringTrimming::ellipsis_word;
+    constexpr std::string_view ellipsis_text{"\xE2\x80\xA6"};
+    const double ellipsis_width = ellipsis ? (*(*font.family).engine).shape(ellipsis_text, font.spec).width : 0.0;
+    std::size_t kept = fitted_prefix(line, font, std::max(0.0, available - ellipsis_width));
+    if (by_word) {
+        const std::size_t space = line.substr(0U, kept).find_last_of(" \t");
+        if (space != std::string_view::npos && space > 0U) kept = space;
+    }
+    while (kept > 0U && (line[kept - 1U] == ' ' || line[kept - 1U] == '\t')) --kept;
+    if (!ellipsis) return line.substr(0U, kept);
+    trimmed_text.assign(line.substr(0U, kept));
+    trimmed_text.append(ellipsis_text);
+    return trimmed_text;
+}
 
 SkiaExecutor::SkiaExecutor()
     : impl_(std::make_unique<Impl>()), owner_thread_(std::this_thread::get_id()) {}
 SkiaExecutor::~SkiaExecutor() = default;
+
+bool SkiaExecutor::register_bundled_typeface(std::string_view family,
+                                             std::string_view file_name,
+                                             std::uint32_t style) {
+    if (!owner_thread() || file_name.empty()) return false;
+    try {
+        if (!(*impl_).bundled_fonts) {
+#if defined(_WIN32)
+            const gui_forms::detail::SealedPageFunctions pages = gui_forms::host::windows_sealed_pages();
+#else
+            const gui_forms::detail::SealedPageFunctions pages = gui_forms::host::posix_sealed_pages();
+#endif
+            gui_forms::detail::BundledFontLocation embedded{};
+            embedded.source = gui_forms::BundledFontSource::embedded_pack;
+            (*impl_).bundled_fonts = gui_forms::detail::shared_bundled_font_set(embedded, pages);
+        }
+        if (!(*impl_).bundled_fonts) return false;
+        const gui_forms::detail::FontFaceLoad load = (*(*impl_).bundled_fonts).face(file_name);
+        const std::shared_ptr<const gui_forms::detail::SealedFontFace>* face = load.face();
+        if (face == nullptr) return false;
+        // The sealed face's own bytes, with the face as their owner: the executor draws the
+        // registry's typeface of them (program_typefaces.hpp), the one every window and executor
+        // shares, and holds no copy.
+        const std::span<const std::byte> bytes = (*(*face)).bytes();
+        const std::shared_ptr<const void> owner = *face;
+        const bool registered = (*impl_).install_face(family, bytes, owner, style);
+        return registered;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
 
 bool SkiaExecutor::register_typeface(std::string_view family,
                                      std::span<const std::byte> encoded,
@@ -1182,22 +1503,16 @@ bool SkiaExecutor::register_typeface(std::string_view family,
         return false;
     }
     try {
-        const std::shared_ptr<const std::vector<std::byte>> bytes =
+        // A private copy, which the executor's faces share.
+        const std::shared_ptr<const std::vector<std::byte>> copy =
             std::make_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
-        const std::size_t slot = static_cast<std::size_t>(style & 3U);
-        const bool bold = (slot & bold_slot_bit) != 0U;
-        // Collections (TTC/OTC) hold several faces; choose the requested
-        // family and weight instead of silently using face zero.
-        std::optional<FaceRecord> record = (*impl_).select_face(family, bytes, bold ? bold_weight : regular_weight);
-        if (!record) return false;
-        const std::string key = ascii_lower(family);
-        // A face registered under its own name replaces an alias of it.
-        (*impl_).aliases.erase(key);
-        (*impl_).install(key, slot, std::move(*record));
+        const std::span<const std::byte> bytes(*copy);
+        const std::shared_ptr<const void> owner = copy;
+        const bool installed = (*impl_).install_face(family, bytes, owner, style);
+        return installed;
     } catch (const std::exception&) {
         return false;
     }
-    return true;
 }
 
 bool SkiaExecutor::alias_family(std::string_view requested, std::string_view family) {
@@ -1207,11 +1522,11 @@ bool SkiaExecutor::alias_family(std::string_view requested, std::string_view fam
     }
     try {
         const std::string target = ascii_lower(family);
-        if ((*impl_).families.find(target) == (*impl_).families.end()) return false;
+        if ((*impl_).direct(target) == nullptr) return false;
         const std::string key = ascii_lower(requested);
         if (key == target) return true;
         // The alias replaces faces registered under the requested name.
-        (*impl_).families.erase(key);
+        (*impl_).forget(key);
         (*impl_).aliases.insert_or_assign(key, target);
     } catch (const std::exception&) {
         return false;
@@ -1371,6 +1686,15 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
         // the canvas as it is. fill_proportion's own clip ends it.
         const GraphicsState* applied = nullptr;
         std::size_t executed{};
+        // A trimming pen's figure and its kept part (Pen::set_trim), reused
+        // by every trimmed command of this execution.
+        gui_forms::PaintPath trim_figure;
+        gui_forms::PaintPath trim_kept;
+        // The shaded triangles' device triangles and sample owners, reused
+        // by every fill_triangles command of this execution.
+        ShadedTriangleScratch triangle_scratch;
+        const ShadedTriangleTarget triangle_target{target_lock.writable_data, target_lock.row_bytes,
+                                                   target_lock.width, target_lock.height};
         for (const DrawingCommand& command : commands.subspan(first_command)) {
             // A command draws inside a save of its own: restoreAll undoes
             // only what lies above the base level, so the state's clip and a
@@ -1384,8 +1708,8 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 (*canvas).restoreAll();
                 (*canvas).save();
                 (*canvas).resetMatrix();
-                if (command.state.clip) {
-                    (*canvas).clipRect(to_sk_rect(*command.state.clip),
+                if (command.state.clip.present()) {
+                    (*canvas).clipRect(to_sk_rect((*command.state.clip.value())),
                                      SkClipOp::kIntersect, false);
                 }
                 (*canvas).setMatrix(to_sk_matrix(command.state.transform));
@@ -1437,6 +1761,16 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 if (!configure_pen(paint, command.pen, command.state)) {
                     return {RasterError::invalid_argument, executed};
                 }
+                if (pen_trims(command.pen)) {
+                    // A trimmed ellipse: the kept part of the figure drawing
+                    // replay builds for it (a full-turn arc from its
+                    // rightmost point); nothing kept draws nothing.
+                    trim_figure.clear();
+                    gui_forms::append_drawing_ellipse(command.rect, trim_figure);
+                    const std::optional<SkPath> kept = trimmed_figure(command.pen, trim_figure, trim_kept);
+                    if (kept) (*canvas).drawPath(*kept, paint);
+                    break;
+                }
                 (*canvas).drawOval(to_sk_rect(command.rect), paint);
                 break;
             case CommandKind::fill_ellipse:
@@ -1465,6 +1799,14 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 const std::optional<SkPath> path = to_sk_path(command.path);
                 if (!path || !configure_pen(paint, command.pen, command.state)) {
                     return {RasterError::invalid_argument, executed};
+                }
+                if (pen_trims(command.pen)) {
+                    if (!gui_forms::write_drawing_paint_path(command.path, trim_figure)) {
+                        return {RasterError::invalid_argument, executed};
+                    }
+                    const std::optional<SkPath> kept = trimmed_figure(command.pen, trim_figure, trim_kept);
+                    if (kept) (*canvas).drawPath(*kept, paint);
+                    break;
                 }
                 (*canvas).drawPath(*path, paint);
                 break;
@@ -1535,6 +1877,13 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 applied = nullptr;
                 (*canvas).clipRRect(track_shape(command.rect, command.radii), SkClipOp::kIntersect, true);
                 (*canvas).drawRect(to_sk_rect(part), paint);
+                break;
+            }
+            case CommandKind::fill_triangles: {
+                // Written straight into the pixels, as text is: the canvas
+                // draws immediately, so command order holds.
+                const RasterError shaded = draw_shaded_triangles(command, triangle_target, triangle_scratch);
+                if (shaded != RasterError::none) return {shaded, executed};
                 break;
             }
             default:

@@ -1,8 +1,11 @@
 #include "gui_forms/typography.hpp"
 #include "gui_forms/text.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstdint>
 
 namespace gui_forms {
 
@@ -91,6 +94,29 @@ TextExtent text_extent_of(const ResolvedTextLayout& layout) noexcept {
     return extent;
 }
 
+namespace {
+
+// The next TextMetricsProvider::metrics_identity. 64 bits counted from 1 do
+// not wrap in a process's life; 0 is never handed out.
+std::atomic<std::uint64_t> next_metrics_identity{1U};
+
+std::uint64_t take_metrics_identity() noexcept {
+    const std::uint64_t taken = next_metrics_identity.fetch_add(1U, std::memory_order_relaxed);
+    return taken;
+}
+
+} // namespace
+
+TextMetricsProvider::TextMetricsProvider() noexcept : metrics_identity_(take_metrics_identity()) {}
+
+TextMetricsProvider::TextMetricsProvider(const TextMetricsProvider&) noexcept
+    : metrics_identity_(take_metrics_identity()) {}
+
+TextMetricsProvider& TextMetricsProvider::operator=(const TextMetricsProvider&) noexcept {
+    metrics_identity_ = take_metrics_identity();
+    return *this;
+}
+
 TextExtent TextMetricsProvider::measure_text_extent_utf8(
     std::string_view utf8, FontSpec effective_font) {
     const ResolvedTextLayout layout = resolve_text_layout_utf8(utf8, effective_font);
@@ -156,14 +182,14 @@ TextResolutionStatus estimate_cluster_advances_utf8(
 }
 
 LineBoxMetrics line_box_metrics(const ResolvedTextLayout& primary,
-                                std::optional<double> used_line_height) noexcept {
+                                stxlib::Optional<double> used_line_height) noexcept {
     FontVerticalMetrics design{primary.ascent, primary.descent, primary.line_gap, 0.0};
-    if (primary.design_metrics) design = *primary.design_metrics;
+    if (primary.design_metrics.present()) design = (*primary.design_metrics.value());
     const double ascent = std::round(design.ascent);
     const double descent = std::round(design.descent);
     const double gap = std::round(design.line_gap);
     LineBoxMetrics metrics{};
-    metrics.height = used_line_height ? *used_line_height : ascent + descent + gap;
+    metrics.height = used_line_height.present() ? (*used_line_height.value()) : ascent + descent + gap;
     const double leading = metrics.height - (ascent + descent);
     metrics.baseline = ascent + std::floor(leading * 0.5);
     metrics.x_height = design.x_height;

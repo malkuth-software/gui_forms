@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -229,7 +228,7 @@ std::vector<std::string> label_lines(
             std::size_t cursor{};
             while (cursor < paragraph.size()) {
                 while (cursor < paragraph.size() &&
-                       std::isspace(static_cast<unsigned char>(paragraph[cursor])) != 0) {
+                       is_wrap_space(paragraph[cursor])) {
                     ++cursor;
                 }
                 if (cursor >= paragraph.size()) {
@@ -237,7 +236,7 @@ std::vector<std::string> label_lines(
                 }
                 std::size_t word_end = cursor;
                 while (word_end < paragraph.size() &&
-                       std::isspace(static_cast<unsigned char>(paragraph[word_end])) == 0) {
+                       !is_wrap_space(paragraph[word_end])) {
                     ++word_end;
                 }
                 const std::string_view word = paragraph.substr(cursor, word_end - cursor);

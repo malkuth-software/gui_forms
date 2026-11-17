@@ -80,8 +80,22 @@ Types
      - PhysicalKey preserves host-independent scan position, extended-key state, and location for shortcut and compatibility logic.
    * - :cpp:class:`PointerEvent <gui_forms::PointerEvent>`
      - PointerEvent is the mutable routed pointer record: device phase, window/local coordinates, buttons, modifiers, wheel deltas, click count, capture request, and handled state.
+   * - :cpp:class:`PointerLocation <gui_forms::PointerLocation>`
+     - Where the pointer is, as a window last saw it: the position of the last pointer event the window dispatched, which is the event being dispatched while its raisers run.
    * - :cpp:class:`PreviewKeyDownEventArgs <gui_forms::PreviewKeyDownEventArgs>`
      - Windows Forms' PreviewKeyDownEventArgs: raised on the focused control before anything else sees a key down.
+   * - :cpp:class:`RelativePointerEnded <gui_forms::RelativePointerEnded>`
+     - The owner's relative_pointer_ended record.
+   * - :cpp:class:`RelativePointerEventArgs <gui_forms::RelativePointerEventArgs>`
+     - One sample, raised on the owner (Control::relative_pointer).
+   * - :cpp:class:`RelativePointerGrant <gui_forms::RelativePointerGrant>`
+     - What a request got.
+   * - :cpp:class:`RelativePointerRequest <gui_forms::RelativePointerRequest>`
+     - What a request asks for.
+   * - :cpp:class:`RelativePointerSnapshot <gui_forms::RelativePointerSnapshot>`
+     - The window's relative pointer state and counters (AGENTS.md: structured instrumentation).
+   * - :cpp:class:`RelativePointerSupport <gui_forms::RelativePointerSupport>`
+     - What the window's host can do (from its HostCapabilities; a window with no host derives deltas from the positions it is handed and can do nothing else).
    * - :cpp:class:`SemanticDescriptor <gui_forms::SemanticDescriptor>`
      - SemanticDescriptor is a control-authored accessibility recipe: role, labels, optional numeric range, state bits, actions, exposure, and descendant policy.
    * - :cpp:class:`SemanticNode <gui_forms::SemanticNode>`
@@ -361,7 +375,7 @@ Types
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The plan callback's record: the tracker fills the inputs, the owner the rest. Only the terms of ``kind`` are read (placement, value or reorder); the others keep their initial values. key, press, source, mode, epoch: the drag (inputs). press is where the pointer was pressed, or the subject's centre for the keyboard; source the subject's rectangle; both move with the content when an auto-scroll step plans again. epoch is 1 at the first plan and one more at each later one. travel: the pointer's travel from the press when the plan is made (input; zero for the keyboard). auto_scroll: read for pointer sessions; replanned each step. container: borrowed for the call; the rules' drop_candidate condition names it while a session runs (null: none). settles: asks for a settling phase after the end (the owner animates and calls finish_settling). refused: the owner has nothing to drag now; the session ends rejected.
+   The plan callback's record: the tracker fills the inputs, the owner the rest. Only the terms of ``kind`` are read (placement, value or reorder); the others keep their initial values. key, press, source, mode, epoch: the drag (inputs). press is where the pointer was pressed, or the subject's centre for the keyboard; source the subject's rectangle; both move with the content when an auto-scroll step plans again. epoch is 1 at the first plan and one more at each later one. travel: the pointer's travel from the press when the plan is made (input; zero for the keyboard). auto_scroll: read for pointer sessions; replanned each step. container: borrowed for the call; the rules' drop_candidate condition names it while a session runs (null: none). updates: on_release or live (DragUpdates); read at every plan, so a replan keeps it only if the owner sets it again. settles: asks for a settling phase after the end (the owner animates and calls finish_settling). refused: the owner has nothing to drag now; the session ends rejected.
 
    .. cpp:member:: std::uint64_t key
 
@@ -390,6 +404,10 @@ Types
    .. cpp:member:: DragAutoScroll auto_scroll
 
    .. cpp:member:: Control* container
+
+   .. cpp:member:: DragUpdates updates
+
+      Default: ``{DragUpdates::on_release}``.
 
    .. cpp:member:: bool settles
 
@@ -423,7 +441,7 @@ Types
 
    .. cpp:member:: std::uint64_t key
 
-   .. cpp:member:: std::optional<Rect> source
+   .. cpp:member:: stxlib::Optional<Rect> source
 
    .. cpp:member:: double threshold
 
@@ -522,11 +540,13 @@ Types
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The named callbacks. plan and finished are required; the rest are optional (auto-scroll is off without scroll). Each is read when it is called, so a change takes effect at the next call.
+   The named callbacks. plan and finished are required; the rest are optional (auto-scroll is off without scroll; a live plan without update changes nothing live). Each is read when it is called, so a change takes effect at the next call. update follows the move's preview, under the same reentrancy rules (it may cancel or withdraw a target).
 
    .. cpp:member:: Delegate<DragPlan&> plan
 
    .. cpp:member:: Delegate<const DragTrackerFrame&> preview
+
+   .. cpp:member:: Delegate<const DragTrackerFrame&> update
 
    .. cpp:member:: Delegate<const DragTrackerFrame&> finished
 
@@ -540,7 +560,7 @@ Types
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   One frame of a session, for preview and finished. key, epoch, mode, pointer, modifiers: the drag now (pointer is where a pointer would be in a keyboard session). hit: what the plan selects. target: the target's id (target) or the slot's index (slot). landing: the target's bounds or the slot's landing rectangle. point: the placement's top-left. value: the value. end: none while running; how it ended in finished. animate: finished only; the session settles until finish_settling.
+   One frame of a session, for preview and finished. key, epoch, mode, pointer, modifiers: the drag now (pointer is where a pointer would be in a keyboard session). hit: what the plan selects. target: the target's id (target) or the slot's index (slot). landing: the target's bounds or the slot's landing rectangle. point: the placement's top-left. value: the value. end: none while running; how it ended in finished. animate: finished only; the session settles until finish_settling. live: the session's plan is live (DragUpdates::live): update applies this frame, and finished's restores what the updates changed.
 
    .. cpp:member:: DragPhase phase
 
@@ -578,13 +598,15 @@ Types
 
    .. cpp:member:: bool animate
 
+   .. cpp:member:: bool live
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DragTrackerStatistics final
 
    ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
 
-   The tracker's counters (AGENTS.md: structured instrumentation). withdrawn: targets withdrawn while dragging; deferred_replans: those whose replan waited for the next event (withdrawn inside a callback). scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled; scroll_stops: frames that applied nothing (the content's end).
+   The tracker's counters (AGENTS.md: structured instrumentation). withdrawn: targets withdrawn while dragging; deferred_replans: those whose replan waited for the next event (withdrawn inside a callback). scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled; scroll_stops: frames that applied nothing (the content's end). live_updates: update calls (live sessions only).
 
    .. cpp:member:: std::uint64_t sessions
 
@@ -611,6 +633,8 @@ Types
    .. cpp:member:: std::uint64_t scroll_steps
 
    .. cpp:member:: std::uint64_t scroll_stops
+
+   .. cpp:member:: std::uint64_t live_updates
 
 .. cpp:namespace:: gui_forms
 
@@ -842,7 +866,7 @@ Types
 
    ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
 
-   One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields. The WinForms members: the button (Button; none for a move or wheel without one), the click count the host reported for the press (Clicks: 1, 2 for the second press of a double-click, and so on; a release carries its press's count; 0 for a move or wheel), the position in the control's own coordinates (Location) and in the window's, the wheel delta (Delta; logical pixels or lines, positive away from the user and to the right) and the modifiers held. handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the pointer event's route at its target, so no ancestor's bubble handler sees it (the subscribers still run when the raiser calls its base); it suppresses nothing else. suppress_click, set by a MouseUp raiser or its override, cancels the release's Click and MouseClick (DoubleClick and MouseDoubleClick on a double-click's second press) and the activation (the owner's input order, rule 3); elsewhere it is ignored. The rest have no WinForms counterpart: what the pointer did (action; enter and leave reach no MouseEventArgs), the host's pointer identity (pointer_id; one for the mouse), the route phase the raiser runs in (phase; target for the raisers) and what wheel_delta counts (wheel_unit). The hosts report no touch or pen data yet, so the record carries none.
+   One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields. The WinForms members: the button (Button; none for a move or wheel without one), the click count the host reported for the press (Clicks: 1, 2 for the second press of a double-click, and so on; a release carries its press's count; 0 for a move or wheel), the position in the control's own coordinates (Location) and in the window's, the wheel delta (Delta; logical pixels or lines, positive away from the user and to the right) and the modifiers held. handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the pointer event's route at its target, so no ancestor's bubble handler sees it (the subscribers still run when the raiser calls its base); it suppresses nothing else. suppress_click, set by a MouseUp raiser or its override, cancels the release's Click and MouseClick (DoubleClick and MouseDoubleClick on a double-click's second press) and the activation (the owner's input order, rule 3); elsewhere it is ignored. The rest have no WinForms counterpart: what the pointer did (action; enter and leave reach no MouseEventArgs), the host's pointer identity (pointer_id; one for the mouse), the route phase the raiser runs in (phase; target for the raisers), what wheel_delta counts (wheel_unit) and the event's place in a scroll gesture (wheel_phase). timestamp_nanoseconds is when the host took the event (PointerEvent: FrameClock nanoseconds, monotonic, the same clock on every host), so a fling's speed is measured between events and not by when a handler runs. The hosts report no touch or pen data yet, so the record carries none.
 
    .. cpp:member:: PointerButton button
 
@@ -877,6 +901,12 @@ Types
    .. cpp:member:: bool handled
 
    .. cpp:member:: bool suppress_click
+
+   .. cpp:member:: WheelPhase wheel_phase
+
+      Default: ``{WheelPhase::none}``.
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
 
 .. cpp:namespace:: gui_forms
 
@@ -1192,7 +1222,29 @@ Types
 
    .. cpp:member:: WheelDeltaUnit wheel_unit
 
-      The unit of wheel_delta (a wheel event's only). Default: ``{WheelDeltaUnit::lines}``.
+      The unit of wheel_delta (a wheel event's only): lines (notches, or fractions where the host accelerates a detented wheel) or logical pixels from a precise device, fractions kept. Default: ``{WheelDeltaUnit::lines}``.
+
+   .. cpp:member:: WheelPhase wheel_phase
+
+      The event's place in a scroll gesture (a wheel event's only). Default: ``{WheelPhase::none}``.
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+      When the host took the event: nanoseconds of FrameClock (std::chrono::steady_clock), the clock every host and the window's scheduler use, monotonic, comparable between events and windows of one process. The host converts its own event time into it (HostEventClock); an event handed in with zero is stamped with the time the window dispatches it. Velocity and flings measure between these, never by when a handler runs.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PointerLocation final
+
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+
+   Where the pointer is, as a window last saw it: the position of the last pointer event the window dispatched, which is the event being dispatched while its raisers run. MouseEnter and MouseLeave carry no arguments (Windows Forms' EventArgs), so their handlers read the crossing here: on_mouse_leave and on_mouse_enter run during the move that crossed (the leave first, then the enter, both at that move's position), and the window's own leave raises on_mouse_leave at the position the host reported for it. location is in the asking control's coordinates (the window's when the window is asked), window_position in the window's; inside is false once the pointer has left the window, and before the window has seen a pointer event (all zero then). A detached control reports all zero.
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: Point window_position
+
+   .. cpp:member:: bool inside
 
 .. cpp:namespace:: gui_forms
 
@@ -1216,6 +1268,165 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RelativePointerEnded final
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   The owner's relative_pointer_ended record. reason: the trigger that ended the mode (only the first is reported).
+
+   .. cpp:member:: RelativePointerEnd reason
+
+      Default: ``{RelativePointerEnd::released}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RelativePointerEventArgs final
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   One sample, raised on the owner (Control::relative_pointer). delta: the motion in logical units (unaccelerated counts scaled to logical units when ``unaccelerated``), sub-unit precision kept; zero for a button or wheel sample. position: the pointer in the owner's coordinates (a locked pointer's virtual position). button: a button sample's button. wheel_delta and wheel_unit: a wheel sample's, as PointerEvent carries them. timestamp_nanoseconds: the host's time for the sample (PointerEvent::timestamp_nanoseconds). handled: set by a handler; it ends nothing, and is read by the C ABI's caller.
+
+   .. cpp:member:: RelativePointerSampleKind kind
+
+      Default: ``{RelativePointerSampleKind::motion}``.
+
+   .. cpp:member:: Point delta
+
+   .. cpp:member:: Point position
+
+   .. cpp:member:: PointerButton button
+
+      Default: ``{PointerButton::none}``.
+
+   .. cpp:member:: Point wheel_delta
+
+   .. cpp:member:: WheelDeltaUnit wheel_unit
+
+      Default: ``{WheelDeltaUnit::lines}``.
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: RelativePointerMode mode
+
+      Default: ``{RelativePointerMode::free}``.
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+   .. cpp:member:: bool unaccelerated
+
+   .. cpp:member:: bool handled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RelativePointerGrant final
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   What a request got. mode: the mode in force. raw: deltas are unaccelerated. cursor_hidden: the pointer is hidden. host_relative: the host delivers deltas itself; false when the window derives them from positions (so they stop at the screen's edge, and are accelerated).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool accepted() const noexcept
+
+   .. cpp:member:: RelativePointerResult result
+
+      Default: ``{RelativePointerResult::detached}``.
+
+   .. cpp:member:: RelativePointerMode mode
+
+      Default: ``{RelativePointerMode::free}``.
+
+   .. cpp:member:: bool raw
+
+   .. cpp:member:: bool cursor_hidden
+
+   .. cpp:member:: bool host_relative
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RelativePointerRequest final
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   What a request asks for. mode: see above (confined unless asked: confinement before a hard lock). hide_cursor: hides the pointer in confined mode (locked always hides it; free never does). raw_motion: unaccelerated deltas where the host has them (the grant says whether it does). until_release: accepted only while a button is held on the owner, and ended by that button's release, so the mode never outlasts the user's own press.
+
+   .. cpp:member:: RelativePointerMode mode
+
+      Default: ``{RelativePointerMode::confined}``.
+
+   .. cpp:member:: bool hide_cursor
+
+   .. cpp:member:: bool raw_motion
+
+   .. cpp:member:: bool until_release
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RelativePointerSnapshot final
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   The window's relative pointer state and counters (AGENTS.md: structured instrumentation). samples counts every sample raised; suspensions the times a release region suspended the mode.
+
+   .. cpp:member:: bool active
+
+   .. cpp:member:: bool suspended
+
+   .. cpp:member:: RelativePointerMode mode
+
+      Default: ``{RelativePointerMode::free}``.
+
+   .. cpp:member:: bool raw
+
+   .. cpp:member:: bool host_relative
+
+   .. cpp:member:: std::uint64_t grants
+
+   .. cpp:member:: std::uint64_t samples
+
+   .. cpp:member:: std::uint64_t suspensions
+
+   .. cpp:member:: std::uint64_t resumptions
+
+   .. cpp:member:: std::uint64_t ends
+
+   .. cpp:member:: RelativePointerEnd last_end
+
+      Default: ``{RelativePointerEnd::released}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RelativePointerSupport final
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   What the window's host can do (from its HostCapabilities; a window with no host derives deltas from the positions it is handed and can do nothing else).
+
+   .. cpp:member:: bool relative_motion
+
+      The host delivers motion deltas (HostRelativeMotionEvent).
+
+   .. cpp:member:: bool raw_motion
+
+      ...unaccelerated where asked.
+
+   .. cpp:member:: bool lock
+
+      It can hide the pointer and hold it still.
+
+   .. cpp:member:: bool confine
+
+      It can keep the pointer inside a rectangle.
+
+   .. cpp:member:: bool warp
+
+      It can move the pointer (warp_pointer).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SemanticDescriptor final
 
    ``#include <gui_forms/semantics/types/semantic_types.hpp>``
@@ -1232,41 +1443,41 @@ Types
 
    .. cpp:member:: std::string description
 
-   .. cpp:member:: std::optional<double> numeric_value
+   .. cpp:member:: stxlib::Optional<double> numeric_value
 
-   .. cpp:member:: std::optional<double> minimum_value
+   .. cpp:member:: stxlib::Optional<double> minimum_value
 
-   .. cpp:member:: std::optional<double> maximum_value
+   .. cpp:member:: stxlib::Optional<double> maximum_value
 
-   .. cpp:member:: std::optional<std::size_t> position_in_set
+   .. cpp:member:: stxlib::Optional<std::size_t> position_in_set
 
-   .. cpp:member:: std::optional<std::size_t> set_size
+   .. cpp:member:: stxlib::Optional<std::size_t> set_size
 
    .. cpp:member:: bool has_popup
 
    .. cpp:member:: std::string controlled_panel
 
-   .. cpp:member:: std::optional<SemanticOrientation> orientation
+   .. cpp:member:: stxlib::Optional<SemanticOrientation> orientation
 
-   .. cpp:member:: std::optional<std::size_t> level
+   .. cpp:member:: stxlib::Optional<std::size_t> level
 
    .. cpp:member:: bool modal
 
-   .. cpp:member:: std::optional<std::size_t> row_index
+   .. cpp:member:: stxlib::Optional<std::size_t> row_index
 
-   .. cpp:member:: std::optional<std::size_t> column_index
+   .. cpp:member:: stxlib::Optional<std::size_t> column_index
 
-   .. cpp:member:: std::optional<std::size_t> row_count
+   .. cpp:member:: stxlib::Optional<std::size_t> row_count
 
-   .. cpp:member:: std::optional<std::size_t> column_count
+   .. cpp:member:: stxlib::Optional<std::size_t> column_count
 
    .. cpp:member:: std::string access_key
 
-   .. cpp:member:: std::optional<double> small_step
+   .. cpp:member:: stxlib::Optional<double> small_step
 
-   .. cpp:member:: std::optional<double> large_step
+   .. cpp:member:: stxlib::Optional<double> large_step
 
-   .. cpp:member:: std::optional<SemanticTextSelection> text_selection
+   .. cpp:member:: stxlib::Optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
 
@@ -1306,41 +1517,41 @@ Types
 
    .. cpp:member:: std::string description
 
-   .. cpp:member:: std::optional<double> numeric_value
+   .. cpp:member:: stxlib::Optional<double> numeric_value
 
-   .. cpp:member:: std::optional<double> minimum_value
+   .. cpp:member:: stxlib::Optional<double> minimum_value
 
-   .. cpp:member:: std::optional<double> maximum_value
+   .. cpp:member:: stxlib::Optional<double> maximum_value
 
-   .. cpp:member:: std::optional<std::size_t> position_in_set
+   .. cpp:member:: stxlib::Optional<std::size_t> position_in_set
 
-   .. cpp:member:: std::optional<std::size_t> set_size
+   .. cpp:member:: stxlib::Optional<std::size_t> set_size
 
    .. cpp:member:: bool has_popup
 
    .. cpp:member:: std::string controlled_panel
 
-   .. cpp:member:: std::optional<SemanticOrientation> orientation
+   .. cpp:member:: stxlib::Optional<SemanticOrientation> orientation
 
-   .. cpp:member:: std::optional<std::size_t> level
+   .. cpp:member:: stxlib::Optional<std::size_t> level
 
    .. cpp:member:: bool modal
 
-   .. cpp:member:: std::optional<std::size_t> row_index
+   .. cpp:member:: stxlib::Optional<std::size_t> row_index
 
-   .. cpp:member:: std::optional<std::size_t> column_index
+   .. cpp:member:: stxlib::Optional<std::size_t> column_index
 
-   .. cpp:member:: std::optional<std::size_t> row_count
+   .. cpp:member:: stxlib::Optional<std::size_t> row_count
 
-   .. cpp:member:: std::optional<std::size_t> column_count
+   .. cpp:member:: stxlib::Optional<std::size_t> column_count
 
    .. cpp:member:: std::string access_key
 
-   .. cpp:member:: std::optional<double> small_step
+   .. cpp:member:: stxlib::Optional<double> small_step
 
-   .. cpp:member:: std::optional<double> large_step
+   .. cpp:member:: stxlib::Optional<double> large_step
 
-   .. cpp:member:: std::optional<SemanticTextSelection> text_selection
+   .. cpp:member:: stxlib::Optional<SemanticTextSelection> text_selection
 
    .. cpp:member:: bool multiline
 
@@ -1647,6 +1858,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DragUpdates
+
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+
+   .. cpp:enumerator:: on_release
+
+   .. cpp:enumerator:: live
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: EventPhase
 
    ``#include <gui_forms/events/input_events/input_events.hpp>``
@@ -1754,6 +1975,72 @@ Enumerations
    .. cpp:enumerator:: secondary
 
    .. cpp:enumerator:: middle
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RelativePointerEnd
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   .. cpp:enumerator:: released
+
+   .. cpp:enumerator:: escape
+
+   .. cpp:enumerator:: focus_lost
+
+   .. cpp:enumerator:: deactivated
+
+   .. cpp:enumerator:: modal
+
+   .. cpp:enumerator:: detached
+
+   .. cpp:enumerator:: press_released
+
+   .. cpp:enumerator:: superseded
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RelativePointerMode
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   .. cpp:enumerator:: free
+
+   .. cpp:enumerator:: confined
+
+   .. cpp:enumerator:: locked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RelativePointerResult
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   .. cpp:enumerator:: granted
+
+   .. cpp:enumerator:: degraded
+
+   .. cpp:enumerator:: detached
+
+   .. cpp:enumerator:: not_active
+
+   .. cpp:enumerator:: no_press
+
+   .. cpp:enumerator:: invalid_request
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RelativePointerSampleKind
+
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+   .. cpp:enumerator:: motion
+
+   .. cpp:enumerator:: button_down
+
+   .. cpp:enumerator:: button_up
+
+   .. cpp:enumerator:: wheel
 
 .. cpp:namespace:: gui_forms
 
@@ -1905,6 +2192,10 @@ Enumerations
 
    .. cpp:enumerator:: figure
 
+   .. cpp:enumerator:: document
+
+   .. cpp:enumerator:: heading
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -1987,6 +2278,26 @@ Enumerations
 
    .. cpp:enumerator:: pixels
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WheelPhase
+
+   ``#include <gui_forms/events/input_events/input_events.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: began
+
+   .. cpp:enumerator:: changed
+
+   .. cpp:enumerator:: ended
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: momentum
+
+   .. cpp:enumerator:: momentum_ended
+
 Functions, constants and aliases
 --------------------------------
 
@@ -2056,13 +2367,17 @@ Functions, constants and aliases
 
 ``#include <gui_forms/events/key_events/key_events.hpp>``
 
-.. cpp:function:: inline KeyEvent key_event_of(const KeyEventArgs& arguments, KeyAction action) noexcept
-
-   The routed key event a KeyEventArgs carries, for code that takes the routed form (an editing engine, a key command table): action is the raiser's (down for on_key_down, up for on_key_up); the phase is target. The caller copies handled back.
-
 .. cpp:function:: std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept
 
    The Windows Forms Keys code of a physical key (a USB HID usage): the key's code on a US layout, the same on every host. The modifier keys give the side-less codes Windows Forms reports in KeyDown (ShiftKey 0x10, ControlKey 0x11, Menu 0x12; the Windows keys 0x5B and 0x5C). Zero for a usage with no Keys code.
+
+.. cpp:function:: inline KeyEventArgs key_event_arguments(const KeyEvent& event) noexcept
+
+   The KeyEventArgs a routed key event carries: the record the window hands on_key_down and on_key_up, for a handler that takes the routed form (on_key_preview, on_key_bubble) and reads the raisers' fields. key_code comes from key_code_from_physical_key; physical_key, scan_code, modifiers, repeat and handled are the event's. released_by_deactivation and suppress_key_press are false: a deactivation release reaches only the raisers and the window's key_up, never a route. The window builds its raisers' arguments with this, so the two forms cannot drift apart; the caller copies handled (and suppress_key_press, which implies it) back.
+
+.. cpp:function:: inline KeyEvent key_event_of(const KeyEventArgs& arguments, KeyAction action) noexcept
+
+   The routed key event a KeyEventArgs carries, for code that takes the routed form (an editing engine, a key command table): action is the raiser's (down for on_key_down, up for on_key_up); the phase is target. The caller copies handled back.
 
 .. cpp:function:: std::uint32_t single_key_char(const std::string& text) noexcept
 
@@ -2076,13 +2391,25 @@ Functions, constants and aliases
 
    The routed pointer event a MouseEventArgs carries, for code that takes the routed form (a gesture engine, ScrollableControl's bar and wheel handling): the window position, the action, the button and the rest, with click_count from clicks. The caller copies handled back.
 
+.. cpp:function:: inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, Point control_origin, std::uint32_t press_clicks) noexcept
+
+   The MouseEventArgs a routed pointer event carries on a control whose absolute bounds start at ``control_origin`` (window coordinates): the record the window hands the mouse raisers. location is the event's position less control_origin, window_position the event's position; clicks is ``press_clicks`` for a press or release (the window passes the count the host reported for the press, which a release carries) and zero otherwise; the button, wheel delta, modifiers, action, wheel unit, wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click is false. The window builds its raisers' arguments with this, so the routed and raiser forms cannot drift apart; Control:: mouse_event_arguments fills the origin and click count for a handler of the routed form. The caller copies handled (and a release's suppress_click) back.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_pointer_release_regions
+
+   The most release regions a window declares (the shell's capsule and a few more); more are refused, never truncated. Value: ``8U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/semantics/types/semantic_types.hpp>``
 
 .. cpp:function:: constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept
 
-   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box, image for figure. Every other role is its own fallback.
+   The role ``role`` specialises, which a host without a mapping for ``role`` publishes, and whose behaviour (patterns, interfaces, checked value and text) ``role`` shares: check_box for toggle_switch, text_box for search_box, image for figure, pane for document (a read-only page of text, such as a help page) and static_text for heading (a heading in a document, with its level in SemanticNode::level). Every other role is its own fallback.
 
 .. cpp:function:: constexpr bool has_semantic_state(SemanticState states, SemanticState requested) noexcept
 
@@ -2126,7 +2453,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr SemanticState semantic_states[]
 
-   Every semantic state, in bit order, for tables and the schema export.
+   Every semantic state, in bit order, for tables and the schema export. Value: ``{SemanticState::enabled, SemanticState::visible, SemanticState::focusable, SemanticState::focused, SemanticState::selected, SemanticState::checked, SemanticState::mixed, SemanticState::read_only, SemanticState::expanded, SemanticState::busy, SemanticState::protected_content, SemanticState::invalid, SemanticState::checkable, SemanticState::multiselectable}``.
 
 .. cpp:var:: constexpr std::size_t semantic_action_count
 

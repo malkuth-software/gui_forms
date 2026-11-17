@@ -3,6 +3,7 @@
 #include "gui_forms/application/splashscreen/splashscreen.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include <stxlib/optional.hpp>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -17,7 +18,7 @@ namespace detail {
 struct SplashscreenFrame final {
     Size size{};
     std::string_view status{};
-    std::optional<double> progress{};
+    stxlib::Optional<double> progress{};
     const ImageRegistry* images{};
     ImageId artwork{};
 };

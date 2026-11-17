@@ -6,16 +6,18 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/tree_view_capabilities.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -60,6 +62,20 @@ public:
     std::string_view active_id() const&& = delete;
     [[nodiscard]] bool expanded(std::string_view stable_id) const;
     void set_expanded(std::string_view stable_id, bool expanded);
+    // Bulk expansion (the D3 demonstrator's I8). Each changes every item it
+    // names, rebuilds the visible rows once, then raises expansion_changed
+    // once per changed item in model order; a handler that disposes the
+    // view stops the rest. Nothing changed raises nothing.
+    // Expands every expandable item.
+    void expand_all();
+    // Collapses every expanded item. A selection hidden by the collapse
+    // moves to its nearest visible ancestor after the events, as with
+    // set_expanded.
+    void collapse_all();
+    // Expands each ancestor of `stable_id` and scrolls its row into view.
+    // Throws std::out_of_range, changing nothing, when the ID is not in
+    // the model.
+    void expand_to(std::string_view stable_id);
     [[nodiscard]] std::size_t top_row() const noexcept { return top_row_; }
     void set_top_row(std::size_t row);
 
@@ -134,11 +150,17 @@ protected:
                                         std::span<PartGeometry> geometry) const override;
 
 private:
+    // Throws std::out_of_range for an item past realized_item_count().
+    void require_realized_item(std::size_t item) const;
     void on_image_list_changed(const ImageListChange& change);
     void rebuild_visible();
-    [[nodiscard]] std::optional<std::size_t> item_index(
+    // Sets `expanded` on the items at `indices` (ascending, each expandable
+    // and currently the other way), then rebuilds, invalidates and raises
+    // the events as the bulk calls describe.
+    void apply_expansion(std::span<const std::size_t> indices, bool expanded);
+    [[nodiscard]] stxlib::Optional<std::size_t> item_index(
         std::string_view stable_id) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> visible_row_at(
+    [[nodiscard]] stxlib::Optional<std::size_t> visible_row_at(
         Point absolute) const noexcept;
     [[nodiscard]] std::size_t visible_row_count() const noexcept;
     void ensure_visible(std::size_t visible_row);
@@ -156,16 +178,16 @@ private:
     std::vector<std::size_t> visible_;
     std::string selected_id_;
     std::string active_id_;
-    std::optional<std::size_t> hovered_row_;
+    stxlib::Optional<std::size_t> hovered_row_;
     // The in-place reveal of the hovered node's cut-off text; owned,
     // created with the view.
     std::unique_ptr<detail::CutOffTextRevealer> reveal_;
-    std::optional<std::size_t> pressed_row_;
+    stxlib::Optional<std::size_t> pressed_row_;
     std::uint32_t pressed_click_count_{1U};
     bool pressed_expander_{};
     std::size_t top_row_{};
     std::string type_prefix_;
-    std::chrono::steady_clock::time_point last_type_time_{};
+    IntervalPoint last_type_time_{};
     bool focused_{};
     SubscriptionToken image_list_changed_;
     Event<const TreeSelectionChange&> selection_changed_;
@@ -174,9 +196,10 @@ private:
     // property_codemod begin TreeView (tools/property_families/tree_view.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_font_changed();
 
 private:
     // The routed form of a key the raisers left unhandled.

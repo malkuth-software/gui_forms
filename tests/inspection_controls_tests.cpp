@@ -6,6 +6,7 @@
 #include "support/typography_painter.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
@@ -14,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -158,12 +160,12 @@ private:
     }
 
     void set_level_property(const BindingValue& value) {
-        const std::optional<double> converted = binding_value_to_number(value);
-        if (!converted || *converted < 0.0 || *converted > 1.0) {
+        const stxlib::Optional<double> converted = binding_value_to_number(value);
+        if (converted.absent() || (*converted.value()) < 0.0 || (*converted.value()) > 1.0) {
             throw std::invalid_argument("Level must be within 0..1");
         }
-        if (level_ == *converted) return;
-        level_ = *converted;
+        if (level_ == (*converted.value())) return;
+        level_ = (*converted.value());
         level_changed_.emit(level_);
         invalidate(Dirty::paint | Dirty::semantics);
     }
@@ -237,7 +239,7 @@ private:
         member.name = "Threshold";
         member.description = "Nested percentage threshold.";
         member.value = BindingValue{0.5};
-        member.declared_kind = BindingValueKind::number;
+        member.declared_kind.set(BindingValueKind::number);
         member.converter_name = "percent";
         return make_property_object("OptionalSettings", {std::move(member)});
     }
@@ -360,24 +362,24 @@ private:
 
 std::string format_percent_or_invalid(const BindingValue& value,
                                       const PropertyDescriptor&) {
-    const std::optional<double> number = binding_value_to_number(value);
-    return number ? std::to_string(*number * 100.0) + "%"
+    const stxlib::Optional<double> number = binding_value_to_number(value);
+    return number.present() ? std::to_string((*number.value()) * 100.0) + "%"
                   : std::string("<invalid>");
 }
 
 std::string format_percent_or_empty(const BindingValue& value,
                                     const PropertyDescriptor&) {
-    const std::optional<double> number = binding_value_to_number(value);
-    return number ? std::to_string(*number * 100.0) + "%" : std::string{};
+    const stxlib::Optional<double> number = binding_value_to_number(value);
+    return number.present() ? std::to_string((*number.value()) * 100.0) + "%" : std::string{};
 }
 
 std::optional<BindingValue> parse_bounded_percent(
     std::string_view text, const BindingValue&, const PropertyDescriptor&) {
     if (text.empty() || text.back() != '%') return {};
-    const std::optional<double> number = binding_value_to_number(
+    const stxlib::Optional<double> number = binding_value_to_number(
         BindingValue{std::string(text.substr(0U, text.size() - 1U))});
-    return number && *number >= 0.0 && *number <= 100.0
-        ? std::optional<BindingValue>{BindingValue{*number / 100.0}}
+    return number.present() && (*number.value()) >= 0.0 && (*number.value()) <= 100.0
+        ? std::optional<BindingValue>{BindingValue{(*number.value()) / 100.0}}
         : std::optional<BindingValue>{};
 }
 
@@ -385,10 +387,10 @@ std::optional<BindingValue> parse_converted_percent(
     std::string_view text, const BindingValue&,
     const PropertyDescriptor& descriptor) {
     if (text.empty() || text.back() != '%') return {};
-    const std::optional<double> number = binding_value_to_number(BindingValue{
+    const stxlib::Optional<double> number = binding_value_to_number(BindingValue{
         std::string(text.substr(0U, text.size() - 1U))});
-    return number
-        ? convert_property_value(BindingValue{*number / 100.0}, descriptor)
+    return number.present()
+        ? convert_property_value(BindingValue{(*number.value()) / 100.0}, descriptor)
         : std::optional<BindingValue>{};
 }
 
@@ -401,10 +403,10 @@ public:
 
     void operator()(const BindingValue& value) const {
         const std::shared_ptr<NumericUpDown> retained = editor_.lock();
-        const std::optional<double> converted = binding_value_to_number(value);
-        if (!retained || !converted) return;
+        const stxlib::Optional<double> converted = binding_value_to_number(value);
+        if (!retained || converted.absent()) return;
         *synchronizing_ = true;
-        (*retained).value = *converted;
+        (*retained).value = (*converted.value());
         *synchronizing_ = false;
     }
 
@@ -452,14 +454,14 @@ private:
 
 std::optional<PropertyEditorBinding> create_percent_stepper(
     const PropertyEditorRequest& request) {
-    const std::optional<double> number = binding_value_to_number(request.value);
-    if (!number) return {};
+    const stxlib::Optional<double> number = binding_value_to_number(request.value);
+    if (number.absent()) return {};
     std::shared_ptr<NumericUpDown> editor = make_control<NumericUpDown>(
         StableId(request.stable_id));
     (*editor).set_range(0.0, 1.0);
     (*editor).increment = 0.05;
     (*editor).decimal_places = 2U;
-    (*editor).value = *number;
+    (*editor).value = (*number.value());
     std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
@@ -498,7 +500,7 @@ void test_grouped_editors_commit_cancel_validation_and_semantics() {
                 (*properties).value("inspection.name") == "Facade Final.png",
             "Escape must restore the last committed text property value");
 
-    (*handler).selected_index = 1U;
+    (*handler).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require((*properties).value("inspection.handler") == "Image Laboratory" &&
                 commit_trace.ends_with(
                     "inspection.handler=Image Laboratory;"),
@@ -553,6 +555,13 @@ void test_scrolling_responsive_layout_and_validation_bounds() {
     require((*properties).header_content() == preview &&
                 (*properties).header_height.read() == 72.0,
             "preview/header content must participate in the PropertyList scroll owner");
+    (*properties).set_header_content(preview, 64.0);
+    window.perform_layout();
+    require((*preview).is_alive() && (*preview).parent().get() == properties.get() &&
+                (*properties).header_content() == preview && (*properties).header_height.read() == 64.0,
+            "the same header at another height keeps its control (A-gf-controls-09-F7)");
+    (*properties).set_header_content(preview, 72.0);
+    window.perform_layout();
     (*properties).scroll_offset = 10000.0;
     require((*properties).scroll_offset.read() > 0.0 &&
                 (*properties).scroll_offset.read() <=
@@ -610,7 +619,7 @@ void test_property_row_hierarchy_pointer_and_reset_contract() {
     require(child_editor && !(*child_editor).visible.read() && reset && (*reset).enabled.read() &&
                 window.dispatch_pointer({PointerAction::down,
                     PointerButton::primary, {10.0, 31.0}}) &&
-                (*properties).row_expanded(parent.stable_id) == true &&
+                (*properties).row_expanded(parent.stable_id) == stxlib::Optional<bool>::of(true) &&
                 (*child_editor).visible.read(),
             "row disclosure hit testing must expand the same retained hierarchy used by layout");
     require((*reset).perform_click() && reset_requested,
@@ -633,9 +642,9 @@ void test_property_origins_and_metadata_driven_property_grid() {
 
     require((*grid).selected_object() == target && (*grid).property_list() &&
                 (*(*grid).property_list()).groups().size() >= 4U &&
-                (*grid).selected_origin("Text") == PropertyValueOrigin::local &&
+                (*grid).selected_origin("Text") == stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::local) &&
                 (*grid).selected_origin("Checked") ==
-                    PropertyValueOrigin::defaulted,
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted),
             "PropertyGrid must project categorized descriptors and exact local/default origins");
     std::shared_ptr<gui_forms::TextBox> text = std::dynamic_pointer_cast<TextBox>((*grid).editor("Text"));
     std::shared_ptr<gui_forms::CheckBox> checked = std::dynamic_pointer_cast<CheckBox>((*grid).editor("Checked"));
@@ -661,9 +670,14 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 changes.back().origin == PropertyValueOrigin::local,
             "committing a PropertyGrid text editor must use the target's registered setter and event");
 
+    // The commit publishes the committed property first, then the
+    // properties its setter moved (A-gf-controls-09-F2): CheckBox's checked
+    // writes check_state, which follows.
+    const std::size_t checked_mark = changes.size();
     (*checked).checked = true;
-    require((*target).checked.read() && changes.back().property_name == "checked" &&
-                std::get<bool>(changes.back().current_value),
+    require((*target).checked.read() && changes.size() > checked_mark &&
+                changes[checked_mark].property_name == "checked" &&
+                std::get<bool>(changes[checked_mark].current_value),
             "Boolean PropertyGrid edits must use a retained CheckBox and commit immediately");
 
     (*target).text = "Programmatic update";
@@ -680,24 +694,27 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 failures.back().property_name == "tab_index",
             "invalid scalar edits must preserve the target and publish inline diagnostic state");
 
+    const std::size_t reset_mark = changes.size();
     require((*grid).reset_property("Text") && (*target).text.read().empty() &&
                 (*grid).selected_origin("Text") ==
-                    PropertyValueOrigin::defaulted &&
-                changes.back().reset,
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted) &&
+                changes.size() > reset_mark && changes[reset_mark].reset,
             "PropertyGrid reset must use the registered reset/default path and refresh origin state");
 
     const std::shared_ptr<gui_forms::NumericUpDown> bounds_x = std::dynamic_pointer_cast<NumericUpDown>(
         (*grid).editor("Bounds.X"));
-    require(bounds_x && (*grid).property_expanded("Bounds") == false &&
+    require(bounds_x && (*grid).property_expanded("Bounds") == stxlib::Optional<bool>::of(false) &&
                 !(*bounds_x).visible.read() &&
                 (*grid).set_property_expanded("Bounds", true) &&
                 (*bounds_x).visible.read(),
             "compound properties must retain stable hidden field editors and reveal them through an explicit expansion state");
+    const std::size_t bounds_mark = changes.size();
     require((*grid).try_set_property_value(
                 "Bounds.X", BindingValue{std::string("31.5")}) &&
                 (*target).requested_bounds().x == 31.5 &&
-                changes.back().property_name == "bounds.x" &&
-                std::get<double>(changes.back().current_value) == 31.5 &&
+                changes.size() > bounds_mark &&
+                changes[bounds_mark].property_name == "bounds.x" &&
+                std::get<double>(changes[bounds_mark].current_value) == 31.5 &&
                 (*(*grid).selected_descriptor("Bounds.X")).kind ==
                     BindingValueKind::number,
             "editing a compound field path must rebuild and validate the owning typed value through its real setter");
@@ -734,7 +751,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
             "expanded compound rows must publish their state and collapse action through the semantic tree");
     require(window.perform_semantic_action(
                 "inspection.grid.property.bounds", SemanticAction::collapse) &&
-                (*grid).property_expanded("Bounds") == false &&
+                (*grid).property_expanded("Bounds") == stxlib::Optional<bool>::of(false) &&
                 !(*bounds_x).visible.read() &&
                 window.perform_semantic_action(
                     "inspection.grid.property.bounds", SemanticAction::expand) &&
@@ -760,7 +777,7 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 (*inherited).property_value_origin("ForeColor") ==
                     PropertyValueOrigin::inherited,
             "effective Label appearance must identify inherited rather than fabricated default authorship");
-    (*inherited).font = FontSpec{FontRole::content, 14.0, 600, false};
+    (*inherited).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 600, false});
     require((*inherited).property_value_origin("Font") ==
                 PropertyValueOrigin::local &&
                 (*inherited).reset_property("Font") &&
@@ -872,8 +889,22 @@ void test_nullable_standard_values_culture_and_nested_services() {
     const std::optional<BindingValue> localized_parse = (*converters).parse(
         "1.234,5", BindingValue{0.0}, numeric);
     require(localized == "1.234,5" && localized_parse &&
-                binding_value_to_number(*localized_parse) == 1234.5,
+                binding_value_to_number(*localized_parse) == stxlib::Optional<double>::of(1234.5),
             "numeric conversion context must localize and parse per registry without mutating process locale");
+    // Thirteen or more integer digits put a group separator "." past the
+    // point's old index; it must not become the decimal separator
+    // (A-gf-controls-05-F1).
+    PropertyDescriptor count;
+    count.name = "Bytes";
+    count.kind = BindingValueKind::signed_integer;
+    require((*converters).format(BindingValue{std::int64_t{1234567890123}}, count) == "1.234.567.890.123",
+            "a thirteen-digit integer is grouped with no decimal separator");
+    require((*converters).format(BindingValue{1234567890123.5}, numeric) == "1.234.567.890.123,5",
+            "a thirteen-digit number keeps its one decimal separator after the groups");
+    const std::optional<BindingValue> count_parse = (*converters).parse(
+        "1.234.567.890.123", BindingValue{std::int64_t{0}}, count);
+    require(count_parse && *count_parse == BindingValue{std::int64_t{1234567890123}},
+            "the grouped integer text reads back unchanged");
 
     PropertyValueConverter percent;
     percent.format = format_percent_or_empty;
@@ -908,7 +939,7 @@ void test_nullable_standard_values_culture_and_nested_services() {
                     "inspection.nullable.grid.property.settings.threshold") ==
                     "50.000000%",
             "PropertyGrid must retain payload schema for null values and project member-specific converter identities");
-    (*choice).selected_index = 1U;
+    (*choice).selected_index = stxlib::Optional<std::size_t>::of(1U);
     require((*target).ratio() == BindingValue{1.5} &&
                 (*grid).try_set_property_value(
                     "Ratio", BindingValue{std::monostate{}}) &&
@@ -1075,8 +1106,8 @@ void test_recursive_object_and_collection_projection_and_mutation() {
     require((*grid).insert_collection_item(
                 "Settings.Modes", 1U, BindingValue{std::string("USB")}) &&
                 (*grid).editor("Settings.Modes[3]") != nullptr &&
-                (*grid).property_expanded("Settings") == true &&
-                (*grid).property_expanded("Settings.Modes") == true &&
+                (*grid).property_expanded("Settings") == stxlib::Optional<bool>::of(true) &&
+                (*grid).property_expanded("Settings.Modes") == stxlib::Optional<bool>::of(true) &&
                 (*grid).move_collection_item("Settings.Modes", 3U, 0U) &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*grid).editor("Settings.Modes[0]"))).text.read() == "WFM" &&
@@ -1086,13 +1117,13 @@ void test_recursive_object_and_collection_projection_and_mutation() {
             "collection insert, move, and remove must atomically rebuild homogeneous snapshots, preserve disclosure, and reject invalid indices");
 
     require((*grid).reset_property("Settings") &&
-                (*grid).property_expanded("Settings.Endpoint") == true &&
+                (*grid).property_expanded("Settings.Endpoint") == stxlib::Optional<bool>::of(true) &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*grid).editor("Settings.Endpoint.Host"))).text.read() == "localhost" &&
                 (*std::dynamic_pointer_cast<TextBox>(
                     (*grid).editor("Settings.Modes[1]"))).text.read() == "FM" &&
                 (*grid).selected_origin("Settings.Modes[1]") ==
-                    PropertyValueOrigin::defaulted,
+                    stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted),
             "resetting a nested owner must restore its structurally equal default while retaining independent view expansion state");
     static_cast<void>(changed);
 }
@@ -1279,6 +1310,108 @@ void test_group_expansion() {
             "expanding restores the editors and the content height and publishes again");
 }
 
+// An edit_failed handler that refreshes the grid, once, as one that restores
+// the shown value does; the refresh rebuilds the grid's row maps.
+struct RefreshOnFailure final {
+    PropertyGrid* grid{};
+    int* failures{};
+    void operator()(const PropertyGridEditError&) const {
+        ++*failures;
+        if (*failures == 1) (*grid).refresh_properties();
+    }
+};
+
+// A custom editor factory that always fails.
+std::optional<PropertyEditorBinding> create_failing_editor(const PropertyEditorRequest&) {
+    throw std::runtime_error("the factory cannot make this editor");
+}
+
+// A-gf-controls-09-F1: an edit_failed handler that rebuilds the grid, raised
+// by a row commit whose text does not convert and by a failing custom editor
+// factory, leaves the grid working; nothing reads the maps it cleared.
+// A setter that moves another notifying property: raising a NumericUpDown's
+// minimum above its value clamps the value inside the commit, and the value's
+// row and event must follow after the committed property
+// (A-gf-controls-09-F2).
+void test_commit_refreshes_properties_its_setter_moved() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("inspection.clamp.root"));
+    std::shared_ptr<gui_forms::NumericUpDown> target =
+        make_control<NumericUpDown>(StableId("inspection.clamp.target"));
+    (*target).value = 5.0;
+    std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(StableId("inspection.clamp.grid"));
+    (*grid).set_requested_bounds({0.0, 0.0, 420.0, 400.0});
+    (*root).add_child(target);
+    (*root).add_child(grid);
+    (*grid).set_selected_object(target);
+    Window window(root, {420.0, 420.0});
+    window.perform_layout();
+    std::vector<PropertyGridValueChange> changes;
+    SubscriptionToken changed = (*grid).property_value_changed().subscribe(
+        callbacks::PushBack<std::vector<PropertyGridValueChange>,
+                            const PropertyGridValueChange&>(changes));
+    const std::optional<std::string> value_before =
+        (*(*grid).property_list()).value("inspection.clamp.grid.property.value");
+    require(value_before.has_value(), "the value has a row");
+    require((*grid).try_set_property_value("minimum", BindingValue{10.0}) &&
+                (*target).value.read() == 10.0,
+            "the minimum commits and its setter clamps the value");
+    const std::optional<std::string> value_after =
+        (*(*grid).property_list()).value("inspection.clamp.grid.property.value");
+    require(value_after.has_value() && *value_after != *value_before,
+            "the clamped value's row shows the new value");
+    bool value_reported = false;
+    for (const PropertyGridValueChange& change : changes) {
+        if (change.property_name == "value" && std::get<double>(change.current_value) == 10.0) value_reported = true;
+    }
+    require(changes.size() >= 2U && changes.front().property_name == "minimum" && value_reported,
+            "the committed property is reported first, then the value its setter moved");
+}
+
+void test_edit_failed_handler_rebuilds_the_grid() {
+    {
+        std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("inspection.rebuild.root"));
+        std::shared_ptr<gui_forms::CheckBox> target = make_control<CheckBox>(
+            StableId("inspection.rebuild.target"), "Inspectable");
+        std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(StableId("inspection.rebuild.grid"));
+        (*grid).set_requested_bounds({0.0, 0.0, 380.0, 380.0});
+        (*root).add_child(target);
+        (*root).add_child(grid);
+        (*grid).set_selected_object(target);
+        Window window(root, {420.0, 420.0});
+        window.perform_layout();
+        int failures = 0;
+        SubscriptionToken failed = (*grid).edit_failed().subscribe(RefreshOnFailure{grid.get(), &failures});
+        PropertyValueChange change;
+        change.row_id = "inspection.rebuild.grid.property.tab-index";
+        change.previous_value = "0";
+        change.current_value = "not a number";
+        change.committed = true;
+        (*(*grid).property_list()).value_committed().emit(change);
+        require(failures == 1 && (*grid).editor("TabIndex") && (*grid).editor("Text"),
+                "a row commit's failure handler may rebuild the grid, which keeps its editors");
+    }
+    {
+        std::shared_ptr<PropertyEditorRegistry> editors = PropertyEditorRegistry::create_default();
+        require((*editors).register_factory("percent-stepper", create_failing_editor),
+                "the failing factory registers");
+        std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("inspection.failing.root"));
+        std::shared_ptr<PercentPropertyProbe> target =
+            make_control<PercentPropertyProbe>(StableId("inspection.failing.target"));
+        std::shared_ptr<gui_forms::PropertyGrid> grid = make_control<PropertyGrid>(StableId("inspection.failing.grid"));
+        (*grid).set_requested_bounds({0.0, 0.0, 420.0, 180.0});
+        (*grid).editor_registry = editors;
+        int failures = 0;
+        SubscriptionToken failed = (*grid).edit_failed().subscribe(RefreshOnFailure{grid.get(), &failures});
+        (*root).add_child(target);
+        (*root).add_child(grid);
+        (*grid).set_selected_object(target);
+        Window window(root, {420.0, 180.0});
+        window.perform_layout();
+        require(failures >= 2 && (*grid).selected_descriptor("Level").has_value(),
+                "a failing factory's errors are raised after its loop, and a handler's rebuild is safe");
+    }
+}
+
 int main() {
     try {
         test_grouped_editors_commit_cancel_validation_and_semantics();
@@ -1293,6 +1426,8 @@ int main() {
         test_property_typography_preserves_editors_and_updates_geometry();
         test_flags_editor_form_properties();
         test_group_expansion();
+        test_edit_failed_handler_rebuilds_the_grid();
+        test_commit_refreshes_properties_its_setter_moved();
         std::cout << "gui_forms_inspection_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

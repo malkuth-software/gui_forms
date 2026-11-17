@@ -5,9 +5,9 @@
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -60,9 +60,9 @@ struct DataGridViewRowsCapability {
 
 protected:
     // CollectionDirty::take, for the declaring class's flush.
-    [[nodiscard]] static std::optional<std::size_t> take_dirty(DataGridViewRowsCapability& capability,
+    [[nodiscard]] static stxlib::Optional<std::size_t> take_dirty(DataGridViewRowsCapability& capability,
                                                                std::vector<std::uint32_t>& replaced) {
-        const std::optional<std::size_t> structural_from = capability.rows.take_dirty(replaced);
+        const stxlib::Optional<std::size_t> structural_from = capability.rows.take_dirty(replaced);
         return structural_from;
     }
     // The owner operations (CollectionCell): in-place field writes, marked

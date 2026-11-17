@@ -5,10 +5,12 @@
  * disabled inside it loses focus for good, as in Windows Forms. A composite
  * field (a combo box with an edit field, a numeric up-down) gives the caret
  * to its edit part and is still the window's focused control; focusable is
- * a schema property. */
+ * a schema property. The controls table's relative pointer slots (since
+ * 1.5) are checked here too, on a window that has not run. */
 
 #include "gf_conformance_internal.h"
 
+#include <math.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -143,6 +145,56 @@ static void composite_focus(gf_kit* kit) {
 }
 
 /* Focus on a window that has not run: it is recorded, not yet the keyboard's. */
+/* A-gf-abi-03-F3: a focused_control_changed callback that disposes the
+ * window (one that has not run, so the dispose destroys it). controls.focus
+ * must not read the window it held before the focus change; it refuses
+ * with INVALID_STATE and leaves its output. */
+typedef struct focus_disposer {
+    gf_kit* kit;
+    gf_object window;
+    uint32_t invoked;
+    gf_status disposed;
+} focus_disposer;
+
+static void GF_CALL dispose_on_focus(void* context, gf_event* event) {
+    focus_disposer* disposer = (focus_disposer*)context;
+    (void)event;
+    ++(*disposer).invoked;
+    if ((*disposer).invoked == 1u) {
+        (*disposer).disposed = (*(*disposer).kit).objects.dispose((*disposer).window);
+    }
+}
+
+static void focus_disposes_window(gf_kit* kit) {
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.focus.disposed");
+    const gf_object field = gf_kit_create(kit, "Button", "kit.focus.disposed.field");
+    gf_kit_status(kit, (*kit).objects.insert_child(root, field, 0u), GF_STATUS_OK, "put the field in the root");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window a focus callback disposes");
+    focus_disposer disposer;
+    memset(&disposer, 0, sizeof(disposer));
+    disposer.kit = kit;
+    disposer.window = window;
+    disposer.disposed = GF_STATUS_INTERNAL;
+    const gf_callback callback = gf_kit_callback(&dispose_on_focus, NULL, &disposer);
+    gf_subscription subscription = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(window, gf_kit_text("focused_control_changed"), &callback,
+                                               &subscription),
+                  GF_STATUS_OK, "subscribe a callback that disposes the window");
+    uint32_t focused = 9u;
+    const gf_status status = (*kit).controls.focus(field, &focused);
+    if (disposer.invoked > 0u) {
+        gf_kit_status(kit, disposer.disposed, GF_STATUS_OK, "the focus callback disposed the window");
+        gf_kit_status(kit, status, GF_STATUS_INVALID_STATE, "focus whose callback disposed the window is refused");
+        gf_kit_check(kit, focused == 9u, "the refused focus leaves its output");
+    } else {
+        gf_kit_status(kit, status, GF_STATUS_OK, "focus without a focus callback");
+    }
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the disposed window");
+    gf_kit_status(kit, (*kit).objects.release(field), GF_STATUS_OK, "release the field");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the disposed window's root");
+}
+
 void gf_kit_focus_refusals(gf_kit* kit) {
     gf_kit_check(kit, tables_have_focus(kit), "the controls and windows tables have the focus slots");
     if (!tables_have_focus(kit)) {
@@ -212,11 +264,27 @@ void gf_kit_focus_refusals(gf_kit* kit) {
     gf_kit_check(kit, has_focused_control(kit, window, "focused_control after the field's enable") == 0,
                  "an enabled control does not take focus back by itself");
 
+    /* The business card in the hand (since 1.5): over the window once, over
+     * a control in it not again, and refused for a control in no window.
+     * Releasing the window closes its layer. */
+    if ((*kit).windows.struct_size >= offsetof(gf_windows_table, show_business_card) + sizeof(void*)) {
+        uint32_t shown = 9u;
+        gf_kit_status(kit, (*kit).windows.show_business_card(window, &shown), GF_STATUS_OK,
+                      "show the business card over the window");
+        gf_kit_check(kit, shown == 1u, "the card comes out");
+        gf_kit_status(kit, (*kit).windows.show_business_card(field, &shown), GF_STATUS_OK,
+                      "show the business card over a control's window");
+        gf_kit_check(kit, shown == 0u, "a window shows one card at a time");
+        gf_kit_status(kit, (*kit).windows.show_business_card(loose, &shown), GF_STATUS_INVALID_STATE,
+                      "show_business_card of a control not in a window");
+    }
+
     gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the focus window");
     gf_kit_status(kit, (*kit).objects.release(field), GF_STATUS_OK, "release the field");
     gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the focus window's root");
     gf_kit_status(kit, (*kit).objects.release(loose), GF_STATUS_OK, "release the loose button");
     composite_focus(kit);
+    focus_disposes_window(kit);
 }
 
 /* The window part: what the ready callback saw. */
@@ -278,4 +346,230 @@ void gf_kit_focus(gf_kit* kit) {
     gf_kit_status(kit, run.close, GF_STATUS_OK, "close the focus window");
     gf_kit_status(kit, (*kit).objects.release(run.field), GF_STATUS_OK, "release the run's field");
     gf_kit_status(kit, (*kit).objects.release(run.root), GF_STATUS_OK, "release the run's root");
+}
+
+/* The controls table's relative pointer slots (since 1.5), on a control
+ * outside a window and on a window that has not run. A window that has not
+ * run is normally inactive, so the request is refused as NOT_ACTIVE; a host
+ * that reports it active grants it, and then the mode is released. */
+static int controls_have_relative_pointer(const gf_kit* kit) {
+    const int present =
+        (*kit).controls.struct_size >= offsetof(gf_controls_table, set_pointer_release_regions) + sizeof(void*) &&
+        (*kit).controls.request_relative_pointer != NULL && (*kit).controls.release_relative_pointer != NULL &&
+        (*kit).controls.relative_pointer_state != NULL && (*kit).controls.warp_pointer != NULL &&
+        (*kit).controls.set_pointer_release_regions != NULL;
+    return present;
+}
+
+static gf_relative_pointer_request relative_request(gf_relative_pointer_mode mode) {
+    gf_relative_pointer_request request;
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.mode = mode;
+    return request;
+}
+
+void gf_kit_relative_pointer(gf_kit* kit) {
+    if (!controls_have_relative_pointer(kit)) {
+        return;
+    }
+    gf_relative_pointer_grant grant;
+    memset(&grant, 0, sizeof(grant));
+    grant.struct_size = (uint32_t)sizeof(grant);
+    gf_relative_pointer_state state;
+    memset(&state, 0, sizeof(state));
+    state.struct_size = (uint32_t)sizeof(state);
+    uint32_t released = 9u;
+    uint32_t warped = 9u;
+    gf_logical_point position;
+    position.x = 4.0;
+    position.y = 4.0;
+
+    /* A control outside a window. */
+    const gf_object loose = gf_kit_create(kit, "Button", "kit.relative.loose");
+    gf_relative_pointer_request request = relative_request(GF_RELATIVE_POINTER_MODE_LOCKED);
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, &grant), GF_STATUS_OK,
+                  "request a relative pointer outside a window");
+    gf_kit_check(kit, grant.result == GF_RELATIVE_POINTER_RESULT_DETACHED,
+                 "a control outside a window is refused as detached");
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, NULL, &grant), GF_STATUS_INVALID_ARGUMENT,
+                  "a null request is refused");
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "a null grant is refused");
+    request.raw_motion = 2u;
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, &grant), GF_STATUS_INVALID_ARGUMENT,
+                  "a request flag that is not 0 or 1 is refused");
+    request = relative_request(3u);
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(loose, &request, &grant), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown mode is refused");
+    state.owned = 9u;
+    gf_kit_status(kit, (*kit).controls.relative_pointer_state(loose, &state), GF_STATUS_OK,
+                  "relative_pointer_state outside a window");
+    gf_kit_check(kit, state.owned == 0u && state.active == 0u && state.grants == 0u,
+                 "a control outside a window reports no relative pointer");
+    gf_kit_status(kit, (*kit).controls.relative_pointer_state(loose, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "relative_pointer_state needs an output");
+    gf_kit_status(kit, (*kit).controls.release_relative_pointer(loose, &released), GF_STATUS_OK,
+                  "release_relative_pointer without a mode");
+    gf_kit_check(kit, released == 0u, "a control without a mode releases nothing");
+    gf_kit_status(kit, (*kit).controls.warp_pointer(loose, position, &warped), GF_STATUS_OK,
+                  "warp_pointer without a mode");
+    gf_kit_check(kit, warped == 0u, "a control without a mode does not warp");
+    gf_logical_point nowhere = position;
+    nowhere.x = NAN;
+    warped = 9u;
+    gf_kit_status(kit, (*kit).controls.warp_pointer(loose, nowhere, &warped), GF_STATUS_INVALID_ARGUMENT,
+                  "a position that is not finite is refused");
+    gf_kit_check(kit, warped == 9u, "a refused warp leaves its output");
+    gf_logical_rect region;
+    region.x = 0.0;
+    region.y = 0.0;
+    region.width = 20.0;
+    region.height = 10.0;
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(loose, &region, 1u), GF_STATUS_INVALID_STATE,
+                  "release regions need a window");
+
+    /* A control in a window that has not run. */
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.relative");
+    const gf_object view = gf_kit_create(kit, "Button", "kit.relative.view");
+    gf_kit_status(kit, (*kit).objects.insert_child(root, view, 0u), GF_STATUS_OK, "put the view in the root");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window for the relative pointer");
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, &region, 1u), GF_STATUS_OK,
+                  "set one release region");
+    gf_logical_rect regions[9];
+    for (uint32_t index = 0u; index < 9u; ++index) {
+        regions[index] = region;
+    }
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, regions, 9u), GF_STATUS_INVALID_ARGUMENT,
+                  "more than 8 release regions are refused");
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, NULL, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "release regions need an array");
+    gf_logical_rect broken = region;
+    broken.width = NAN;
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, &broken, 1u), GF_STATUS_INVALID_ARGUMENT,
+                  "a release region that is not finite is refused");
+    gf_kit_status(kit, (*kit).controls.set_pointer_release_regions(view, NULL, 0u), GF_STATUS_OK,
+                  "count 0 clears the release regions");
+
+    request = relative_request(GF_RELATIVE_POINTER_MODE_FREE);
+    memset(&grant, 0, sizeof(grant));
+    grant.struct_size = (uint32_t)sizeof(grant);
+    gf_kit_status(kit, (*kit).controls.request_relative_pointer(view, &request, &grant), GF_STATUS_OK,
+                  "request a free relative pointer in a window");
+    const int granted =
+        grant.result == GF_RELATIVE_POINTER_RESULT_GRANTED || grant.result == GF_RELATIVE_POINTER_RESULT_DEGRADED;
+    gf_kit_check(kit, granted || grant.result == GF_RELATIVE_POINTER_RESULT_NOT_ACTIVE,
+                 "a window that has not run refuses as not active, or grants");
+    gf_kit_status(kit, (*kit).controls.relative_pointer_state(view, &state), GF_STATUS_OK,
+                  "relative_pointer_state in a window");
+    gf_kit_check(kit, state.owned == (granted ? 1u : 0u) && state.active == (granted ? 1u : 0u),
+                 "the state reports whether the view holds the mode");
+    gf_kit_check(kit, state.grants == (granted ? 1u : 0u), "the state counts the grant");
+    released = 9u;
+    gf_kit_status(kit, (*kit).controls.release_relative_pointer(view, &released), GF_STATUS_OK,
+                  "release the view's relative pointer");
+    gf_kit_check(kit, released == (granted ? 1u : 0u), "release reports whether a mode ended");
+    gf_kit_status(kit, (*kit).controls.release_relative_pointer(view, NULL), GF_STATUS_OK,
+                  "release_relative_pointer takes a null output");
+    gf_kit_status(kit, (*kit).controls.warp_pointer(view, position, NULL), GF_STATUS_OK,
+                  "warp_pointer takes a null output");
+
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the relative pointer window");
+    gf_kit_status(kit, (*kit).objects.release(view), GF_STATUS_OK, "release the view");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the relative pointer root");
+    gf_kit_status(kit, (*kit).objects.release(loose), GF_STATUS_OK, "release the loose control");
+}
+
+/* The controls table's content effect slot (since 1.5): a valid effect
+ * with a matrix, a table, a blur and two mask layers is set and cleared;
+ * each malformed effect is refused as INVALID_ARGUMENT before the control
+ * changes. */
+static int controls_have_content_effect(const gf_kit* kit) {
+    const int present = (*kit).controls.struct_size >= offsetof(gf_controls_table, set_content_effect) + sizeof(void*) &&
+                        (*kit).controls.set_content_effect != NULL;
+    return present;
+}
+
+static gf_effect_mask_layer effect_mask_layer(void) {
+    gf_effect_mask_layer layer;
+    memset(&layer, 0, sizeof(layer));
+    layer.struct_size = (uint32_t)sizeof(layer);
+    layer.mode = GF_EFFECT_MASK_MODE_ALPHA;
+    layer.composite = GF_EFFECT_MASK_COMPOSITE_ADD;
+    layer.start_rgba = 0x000000FFu;
+    layer.end_rgba = 0x00000000u;
+    layer.end.x = 1.0;
+    return layer;
+}
+
+void gf_kit_content_effect(gf_kit* kit) {
+    if (!controls_have_content_effect(kit)) {
+        return;
+    }
+    const gf_object control = gf_kit_create(kit, "Button", "kit.content-effect");
+    gf_effect_mask_layer layers[2];
+    layers[0] = effect_mask_layer();
+    layers[1] = effect_mask_layer();
+    layers[1].mode = GF_EFFECT_MASK_MODE_INVERSE_LUMINANCE;
+    layers[1].composite = GF_EFFECT_MASK_COMPOSITE_INTERSECT;
+    layers[1].end = layers[1].start;
+    gf_content_effect effect;
+    memset(&effect, 0, sizeof(effect));
+    effect.struct_size = (uint32_t)sizeof(effect);
+    effect.has_colour_matrix = 1u;
+    effect.has_colour_table = 1u;
+    /* Grayscale rows, alpha kept. */
+    for (uint32_t row = 0u; row < 3u; ++row) {
+        effect.colour_matrix[row * 5u + 0u] = 0.2126;
+        effect.colour_matrix[row * 5u + 1u] = 0.7152;
+        effect.colour_matrix[row * 5u + 2u] = 0.0722;
+    }
+    effect.colour_matrix[18] = 1.0;
+    for (uint32_t index = 0u; index < 1024u; ++index) effect.colour_table[index] = (uint8_t)(255u - index % 256u);
+    effect.blur = 2.0;
+    effect.mask_count = 2u;
+    effect.masks = layers;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_OK, "set a content effect");
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, NULL), GF_STATUS_OK, "clear the content effect");
+
+    gf_content_effect bad = effect;
+    bad.struct_size = 8u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "an effect smaller than its size is refused");
+    bad = effect;
+    bad.has_colour_table = 2u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "a flag that is not 0 or 1 is refused");
+    bad = effect;
+    bad.blur = GF_CONTENT_EFFECT_MAXIMUM_BLUR + 1.0;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "a blur past the limit is refused");
+    bad = effect;
+    bad.colour_matrix[4] = NAN;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "a matrix value that is not finite is refused");
+    bad = effect;
+    bad.mask_count = GF_CONTENT_EFFECT_MAXIMUM_MASKS + 1u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "more than 4 mask layers are refused");
+    bad = effect;
+    bad.masks = NULL;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "mask layers need their array");
+    layers[1].mode = 4u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown mask mode is refused");
+    layers[1].mode = GF_EFFECT_MASK_MODE_ALPHA;
+    layers[1].reserved = 1u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_INVALID_ARGUMENT,
+                  "a nonzero reserved is refused");
+    layers[1].reserved = 0u;
+    layers[1].struct_size = (uint32_t)sizeof(layers[1]) + 8u;
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_INVALID_ARGUMENT,
+                  "layers whose strides differ are refused");
+    layers[1].struct_size = (uint32_t)sizeof(layers[1]);
+    gf_kit_status(kit, (*kit).controls.set_content_effect(control, &effect), GF_STATUS_OK,
+                  "the repaired effect is set");
+    gf_kit_status(kit, (*kit).objects.release(control), GF_STATUS_OK, "release the content effect control");
 }

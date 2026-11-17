@@ -4,6 +4,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/timer.hpp"
+#include "../src/core/thread_records/thread_records_end.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,7 @@
 #include <span>
 #include <stop_token>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -186,10 +188,19 @@ public:
     }
 
     void on_paint(Painter& painter, Rect) override {
+        // The fallback wake path's queued paint is being served: clearing
+        // paint_queued_ before drawing lets a producer wake during or after
+        // this paint post the next one. Until now nothing cleared it, so the
+        // waterfall froze on its first frame (B-gf-tests-misc-01-F1).
+        paint_queued_.store(false, std::memory_order_release);
         const Rect bounds = client_rectangle();
         const Rect image = bounds;
         if (surface_ && !image.empty()) {
             painter.draw_live_surface(surface_, image, 1.0);
+            // The sample: the newest generation a renderer has read.
+            const LiveSurfaceSnapshot sampled = (*surface_).snapshot();
+            last_painted_generation_.store(sampled.last_read_generation, std::memory_order_release);
+            paint_samples_.fetch_add(1U, std::memory_order_relaxed);
         }
     }
 
@@ -253,8 +264,8 @@ private:
                 Window* owner = (*target).window();
                 if (owner) (*(*owner).root()).invalidate(invalidation::paint_only);
             }
-            // paint_queued_ remains set until on_paint samples a generation.
-            // The producer therefore cannot create a UI callback flood.
+            // paint_queued_ remains set until on_paint serves this request,
+            // so the producer cannot create a UI callback flood.
         }
     };
 
@@ -522,6 +533,8 @@ private:
     // one frame per display frame, no sleep loop; a stalled presenter wakes
     // it at the deadline instead of stopping it.
     void producer_loop() noexcept {
+        // Closes last: the thread's records are released here, on the thread.
+        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
         const std::stop_token stop = stop_.get_token();
         SurfaceSize size;
         size.width = surface_width;
@@ -874,12 +887,12 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*header).set_background(Color::rgba(29, 47, 65));
     std::shared_ptr<Label> title = label("vsync.title", "GUI.Forms · live surface / input contention lab",
                        {22.0, 8.0, 760.0, 34.0}, TextStyleRole::title);
-    (*title).fore_color = Color::rgba(244, 249, 252);
+    (*title).fore_color = stxlib::Optional<Color>::of(Color::rgba(244, 249, 252));
     std::shared_ptr<Label> subtitle = label(
         "vsync.subtitle",
         "display-paced producer · newest coherent frame · one outstanding UI paint · compositor-paced presentation",
         {24.0, 42.0, 920.0, 22.0}, TextStyleRole::caption);
-    (*subtitle).fore_color = Color::rgba(169, 205, 228);
+    (*subtitle).fore_color = stxlib::Optional<Color>::of(Color::rgba(169, 205, 228));
     (*header).add_child(title);
     (*header).add_child(subtitle);
 

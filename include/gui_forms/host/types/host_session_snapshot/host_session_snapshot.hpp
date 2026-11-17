@@ -21,6 +21,8 @@ struct GUI_FORMS_API HostSessionSnapshot final {
     std::uint64_t monitor_count{};
     std::uint64_t modal_transitions{};
     std::uint64_t modal_input_suppressions{};
+    // HostRelativeMotionEvent samples delivered to the window.
+    std::uint64_t relative_motion_events{};
     std::uint64_t drag_events{};
     std::uint64_t drag_drops{};
     std::uint32_t modal_depth{};

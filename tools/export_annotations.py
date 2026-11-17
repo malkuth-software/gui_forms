@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """Export annotations of the public headers (CP29 handoff section 2.2).
 
-A shipped shared library exports only the declarations that carry its export
-macro (coordinator, 2026-11-12: controlled at the link, not by compile-time
+The marks record the public C++ surface. Since the one-module decision
+(owner, 2026-11-15) the Application and Threading libraries are static
+archives linked into each program's one module, and no shipped library
+exports these marks: the C ABI library exports only its gf_* and gd_*
+entry points. The lists below stay in step with the marks for a consumer
+that builds its own shared library from the archives, and the shared test
+runtime, which exports everything, is the only first-party shared library
+that holds the archives. What follows describes the marks as written
+(coordinator, 2026-11-12: controlled at the link, not by compile-time
 visibility):
 
 - GUI_FORMS_API (gui_forms/export/application_export.hpp): the Application
@@ -11,8 +18,7 @@ visibility):
   Threading library, whose one header (threading.hpp) is annotated by hand.
 
 On Windows the macro is dllexport. On ELF and Mach-O the archives are
-compiled with default visibility (the shared test runtime holds the same
-archives and exports everything to the tests), and each library links with
+compiled with default visibility, and each library links with
 an export list generated here from the marks: cmake/exports/<library>.map
 (a version script) and cmake/exports/<library>.exports (an
 -exported_symbols_list). The macro stays the one source of what is exported.
@@ -37,7 +43,7 @@ include/gui_forms/ that belongs to those archives, and writes the lists:
         library's export patterns.
 
 The lists also cover the private headers under src/ that mark a declaration
-GUI_FORMS_API (what the C ABI library, gui_drawing_raster0 and the ABI tests
+GUI_FORMS_API (what the C ABI library and the ABI tests
 call); `check` does not require marks there. What a mark exports, as
 mangled-name globs, is described at patterns_of.
 
@@ -56,9 +62,9 @@ What it marks, outside templates:
 A class's mark covers its members, static data members, vtable and typeinfo,
 which classes thrown, caught or dynamic_cast across the boundary need.
 
-Not annotated: include/gui_forms/c/ and drawing_c_api.h (the C interfaces
-carry their own macros and allowlists), include/gui_forms/audio/ (a static
-library outside the Application archives), threading.hpp (its own library),
+Not annotated: include/gui_forms/c/ and drawing_c_api.h (the C
+interfaces carry their own macros and allowlists), include/gui_forms/audio/ (a static library outside the
+Application archives), threading.hpp (its own library),
 the export headers themselves, and class templates (their members are
 instantiated in each consumer; none is explicitly instantiated in a library).
 """
@@ -681,8 +687,8 @@ class ExportLibrary:
 
 def application_headers():
     """The public headers, and the private headers under src/ that mark a
-    declaration GUI_FORMS_API (what the C ABI library, gui_drawing_raster0
-    and the ABI tests call in the Application library)."""
+    declaration GUI_FORMS_API (what the C ABI library and the ABI tests call
+    in the Application archive)."""
     selected = headers([])
     for path in sorted(SOURCE.rglob('*')):
         if path.suffix in ('.hpp', '.h') and path.is_file() and MACRO in path.read_text():

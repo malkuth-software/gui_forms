@@ -26,6 +26,7 @@ void InteractionState::note_pointer(const PointerEvent& event) noexcept {
     modifiers_ = event.modifiers;
     pointer_position_ = event.position;
     pointer_inside_ = event.action != PointerAction::leave;
+    pointer_seen_ = true;
     const bool down = event.action == PointerAction::down;
     const bool up = event.action == PointerAction::up;
     // Only a press or release changes button state; one naming no button

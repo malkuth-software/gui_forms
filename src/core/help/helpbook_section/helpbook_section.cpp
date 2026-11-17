@@ -2,9 +2,13 @@
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "../../text/unicode/unicode_search_fold_data.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <utility>
 
@@ -403,7 +407,7 @@ std::string_view helpbook_read_error_name(HelpBookReadError error) noexcept {
     return {};
 }
 
-std::optional<std::size_t> HelpBookSection::find(std::string_view stable_id) const noexcept {
+stxlib::Optional<std::size_t> HelpBookSection::find(std::string_view stable_id) const noexcept {
     std::size_t low = 0U;
     std::size_t high = records.size();
     while (low < high) {
@@ -414,8 +418,8 @@ std::optional<std::size_t> HelpBookSection::find(std::string_view stable_id) con
             high = middle;
         }
     }
-    if (low < records.size() && records[low].stable_id == stable_id) return low;
-    return std::nullopt;
+    if (low < records.size() && records[low].stable_id == stable_id) return stxlib::Optional<std::size_t>::of(low);
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::size_t HelpBookSection::keyword_position(std::string_view folded_prefix) const noexcept {
@@ -432,10 +436,87 @@ std::size_t HelpBookSection::keyword_position(std::string_view folded_prefix) co
     return low;
 }
 
+namespace {
+
+// One decoded UTF-8 sequence at the start of `text`: its code point and
+// byte length, or length 0 when the bytes there are not a well-formed
+// sequence (an overlong form, a surrogate, past U+10FFFF, or cut short).
+struct DecodedPoint final {
+    std::uint32_t code_point{};
+    std::size_t length{};
+};
+
+[[nodiscard]] DecodedPoint decode_point(std::string_view text) noexcept {
+    DecodedPoint result{};
+    const unsigned char lead = static_cast<unsigned char>(text[0]);
+    std::size_t length = 0U;
+    std::uint32_t point = 0U;
+    std::uint32_t minimum = 0U;
+    if (lead >= 0xC2U && lead <= 0xDFU) {
+        length = 2U;
+        point = lead & 0x1FU;
+        minimum = 0x80U;
+    } else if (lead >= 0xE0U && lead <= 0xEFU) {
+        length = 3U;
+        point = lead & 0x0FU;
+        minimum = 0x800U;
+    } else if (lead >= 0xF0U && lead <= 0xF4U) {
+        length = 4U;
+        point = lead & 0x07U;
+        minimum = 0x10000U;
+    } else {
+        return result;
+    }
+    if (text.size() < length) return result;
+    for (std::size_t index = 1U; index < length; ++index) {
+        const unsigned char next = static_cast<unsigned char>(text[index]);
+        if ((next & 0xC0U) != 0x80U) return result;
+        point = (point << 6U) | (next & 0x3FU);
+    }
+    const bool surrogate = point >= 0xD800U && point <= 0xDFFFU;
+    if (point < minimum || point > 0x10FFFFU || surrogate) return result;
+    result.code_point = point;
+    result.length = length;
+    return result;
+}
+
+[[nodiscard]] bool fold_record_before(const unicode_data::SearchFoldRecord& record, std::uint32_t point) noexcept {
+    return record.code_point < point;
+}
+
+} // namespace
+
 void fold_help_text(std::string_view text, std::string& folded) {
-    folded.assign(text);
-    for (char& character : folded) {
-        if (character >= 'A' && character <= 'Z') character = static_cast<char>(character - 'A' + 'a');
+    folded.clear();
+    folded.reserve(text.size());
+    std::size_t index = 0U;
+    while (index < text.size()) {
+        const char character = text[index];
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (byte < 0x80U) {
+            const bool upper = character >= 'A' && character <= 'Z';
+            folded.push_back(upper ? static_cast<char>(character - 'A' + 'a') : character);
+            ++index;
+            continue;
+        }
+        const DecodedPoint decoded = decode_point(text.substr(index));
+        if (decoded.length == 0U) {
+            // Fallback: a byte that starts no well-formed sequence is kept.
+            folded.push_back(character);
+            ++index;
+            continue;
+        }
+        const unicode_data::SearchFoldRecord* const first = unicode_data::search_fold_records.data();
+        const unicode_data::SearchFoldRecord* const last = first + unicode_data::search_fold_records.size();
+        const unicode_data::SearchFoldRecord* const found =
+            std::lower_bound(first, last, decoded.code_point, fold_record_before);
+        if (found != last && (*found).code_point == decoded.code_point) {
+            const char* const pool = reinterpret_cast<const char*>(unicode_data::search_fold_pool.data());
+            folded.append(pool + (*found).offset, (*found).length);
+        } else {
+            folded.append(text.substr(index, decoded.length));
+        }
+        index += decoded.length;
     }
 }
 
@@ -537,8 +618,8 @@ HelpBookCompileResult compile_helpbook_section(const HelpCatalog& catalog, std::
 
     build_help_contents(skeleton, topics, effective, section.contents);
     for (std::size_t node = 0U; node < section.contents.nodes.size(); ++node) {
-        const std::optional<std::size_t> record = section.find(section.contents.nodes[node].stable_id);
-        if (record.has_value()) section.records[*record].contents_node = static_cast<std::uint32_t>(node);
+        const stxlib::Optional<std::size_t> record = section.find(section.contents.nodes[node].stable_id);
+        if (record.present()) section.records[(*record.value())].contents_node = static_cast<std::uint32_t>(node);
     }
 
     for (std::size_t index = 0U; index < section.records.size(); ++index) {
@@ -670,6 +751,16 @@ HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes, const
     bool has_header = false;
     bool has_records = false;
     bool has_contents = false;
+    // Each known sub-section may appear once: the keyword, term and link
+    // indices are checked against the records as read so far, and a second
+    // records (or contents) sub-section would replace what they were
+    // checked against (A-gf-core-07-F1).
+    bool seen_header = false;
+    bool seen_records = false;
+    bool seen_contents = false;
+    bool seen_keywords = false;
+    bool seen_terms = false;
+    bool seen_links = false;
     bool malformed = false;
     while (!reader.done() && !malformed) {
         std::uint32_t tag = 0U;
@@ -685,6 +776,20 @@ HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes, const
         // A later version of a known sub-section is skipped like an unknown
         // one; the required ones are then missing and the section is refused.
         if (version != sub_section_version) continue;
+        bool* seen = nullptr;
+        if (tag == tag_header) seen = &seen_header;
+        else if (tag == tag_records) seen = &seen_records;
+        else if (tag == tag_contents) seen = &seen_contents;
+        else if (tag == tag_keywords) seen = &seen_keywords;
+        else if (tag == tag_terms) seen = &seen_terms;
+        else if (tag == tag_links) seen = &seen_links;
+        if (seen != nullptr) {
+            if (*seen) {
+                malformed = true;
+                break;
+            }
+            *seen = true;
+        }
         bool read = true;
         if (tag == tag_header) {
             read = read_header(part, section);

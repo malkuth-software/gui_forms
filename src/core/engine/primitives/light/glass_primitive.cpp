@@ -11,6 +11,7 @@
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -23,7 +24,10 @@
 #include <vector>
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -179,19 +183,19 @@ PartShape GlassPrimitive::shape(const PrimitiveParameterBlock& parameters) const
 }
 
 // Glass names its recipe or none; it never reads the part's family.
-std::optional<ControlVisualRole> GlassPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<ControlVisualRole> GlassPrimitive::theme_material(const PrimitiveParameterBlock& parameters,
                                                                 ControlVisualRole) const noexcept {
     const double position = parameters.values[glass_recipe].number;
-    if (!(position >= 1.0)) return std::nullopt;
+    if (!(position >= 1.0)) return stxlib::Optional<ControlVisualRole>::none();
     const ControlVisualRole role = static_cast<ControlVisualRole>(static_cast<std::uint8_t>(position - 1.0));
-    return role;
+    return stxlib::Optional<ControlVisualRole>::of(role);
 }
 
-std::optional<std::uint32_t> GlassPrimitive::backplane_margin(const PrimitiveParameterBlock& parameters,
+stxlib::Optional<std::uint32_t> GlassPrimitive::backplane_margin(const PrimitiveParameterBlock& parameters,
                                                               DeviceScale scale) const noexcept {
     const std::uint32_t half = glass_box_half(parameters.values[glass_blur].number, scale.value);
     const std::uint32_t margin = half * 3U;
-    return margin;
+    return stxlib::Optional<std::uint32_t>::of(margin);
 }
 
 // With the material layers, the recipe's material must be lent and valid,
@@ -206,7 +210,9 @@ bool GlassPrimitive::accepts(const PrimitiveParameterBlock& parameters, const Pr
     for (const MaterialFillLayer& layer : material.fills) {
         if (lent_only_to_materials(layer)) return false;
     }
-    if (material.mask && lent_only_to_materials(*material.mask)) return false;
+    for (const MaterialMaskLayer& mask : material.masks) {
+        if (lent_only_to_materials(mask.source)) return false;
+    }
     // The authored material bounds the layers drawn, which are fewer.
     const BakeEffort effort = material_bake_effort(material, target, 0.0);
     const bool within = effort <= maximum_material_bake_effort;
@@ -229,7 +235,7 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
     // With the material's layers the backdrop takes the material's corner,
     // as its fills do.
     if (material_layers) shape.corner_radius = (*lent).corner_radius;
-    if (target.corner_radius) shape.corner_radius = std::max(0.0, *target.corner_radius);
+    if (target.corner_radius.present()) shape.corner_radius = std::max(0.0, *target.corner_radius.value());
     const Rect box{0.0, 0.0, target.logical_size.width, target.logical_size.height};
 
     // The blurred backplane, when one is lent at the margin this blur reads.
@@ -283,6 +289,7 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
     // The backdrop's colour filter, from the recipe's material (E9.6).
     const bool filtered = lent != nullptr && (*lent).colour_filter.has_value();
     const MaterialColourMatrix filter = filtered ? *(*lent).colour_filter : MaterialColourMatrix{};
+    const MaterialColourTable* const table = filtered ? (*lent).colour_filter.table() : nullptr;
     const Unit over = premultiply(tint, 1.0);
     for (std::size_t row = 0U; row < height; ++row) {
         const std::size_t start = row * destination.row_bytes;
@@ -292,11 +299,11 @@ void GlassPrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
                 const std::size_t at = row * blurred.stride + column * lanes;
                 pixel = Unit{unit_lane(blurred.pixels[at + 2U]), unit_lane(blurred.pixels[at + 1U]),
                              unit_lane(blurred.pixels[at]), unit_lane(blurred.pixels[at + 3U])};
-                if (filtered) pixel = colour_filtered(filter, pixel);
+                if (filtered) pixel = colour_staged(filter, table, pixel);
             }
             if (flattened_over_backplane) {
                 pixel = backplane_pixel(*target.backplane, margin, column, row);
-                if (filtered) pixel = colour_filtered(filter, pixel);
+                if (filtered) pixel = colour_staged(filter, table, pixel);
             }
             if (!material_layers) blend_over(pixel, over);
             if (flattened) pixel = opaque_of(pixel);

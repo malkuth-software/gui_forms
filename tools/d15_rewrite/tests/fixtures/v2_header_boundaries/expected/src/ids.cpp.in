@@ -1,0 +1,24 @@
+#include <gui_forms/ids.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <map>
+#include <string>
+#include <string_view>
+#include "platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+void id_literal_is_not_valid() noexcept {}
+
+std::size_t Registry::entry_count(const stxlib::TextView name) const {
+    const std::map<std::string, int>::const_iterator found = entries_.find(gui_forms::platform::standard_text_copy(name));
+    if (found == entries_.end()) return 0U;
+    return static_cast<std::size_t>((*found).second);
+}
+
+void set_title(const stxlib::TextView title) {
+    static_cast<void>(title);
+}
+
+} // namespace gui_forms

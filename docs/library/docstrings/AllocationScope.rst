@@ -32,7 +32,7 @@ lists of display chunks and of the recording painter (`display_chunks`),
 damage rectangles and pending paint marks (`damage_lists`), and the paragraph
 layout's scratch (`text_layout`, once that code counts). GUI.Forms does not
 replace or hook the global `operator new`, so the program's allocations,
-other containers inside GUI.Forms, Skia, FreeType, HarfBuzz and the host
+other containers inside GUI.Forms, Skia, STXlib's own allocator and the host
 toolkits are not counted. The figures are never the process total.
 
 Bytes are the bytes asked of `operator new`, without allocator overhead. A

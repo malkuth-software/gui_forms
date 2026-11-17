@@ -5,7 +5,9 @@
 // their order, the host's click count deciding Click or DoubleClick under
 // ControlStyles, Button's lack of DoubleClick, MouseHover from the window's
 // timer or the host's report, MouseCaptureChanged, context-menu requests,
-// and the window's input state and pointer settings.
+// the window's input state and pointer settings, where MouseEnter and
+// MouseLeave read the crossing (pointer_location), and the routed form's
+// MouseEventArgs (mouse_event_arguments).
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -14,7 +16,9 @@
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -24,6 +28,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -302,6 +307,43 @@ void test_hover_timer() {
     require(log == Log{"leave", "enter"}, "a move out of the hover rectangle restarts the rest");
     static_cast<void>(window.poll_frame_schedule(again + std::chrono::milliseconds(300) + hover));
     require(log == Log{"leave", "enter", "hover"}, "and MouseHover follows the new rest");
+}
+
+// A UI timer's tick that does nothing.
+struct IgnoredTick final {
+    void operator()(FrameTime) const {}
+};
+
+// A-gf-core-17-F3: with the window's schedule full of the application's
+// frame requests, the hover wake fails soft (counted) instead of throwing
+// from pointer dispatch, and is armed again at the next move once there is
+// room.
+void test_hover_wake_fails_soft_at_the_request_limit() {
+    Fixture fixture;
+    Log log;
+    const Subscriptions subscriptions(*fixture.probe, log, "probe");
+    Window& window = *fixture.window;
+    std::vector<FrameRequestToken> timers;
+    timers.reserve(maximum_scheduled_frame_requests);
+    const FrameTime far = fixture.clock.time + std::chrono::hours(1);
+    for (std::size_t index = 0U; index < maximum_scheduled_frame_requests; ++index) {
+        timers.push_back(window.schedule_ui_timer(*fixture.root, std::chrono::hours(1), far, IgnoredTick{}));
+    }
+    bool thrown = false;
+    try {
+        fixture.pointer(PointerAction::move, PointerButton::none, {20.0, 20.0});
+    } catch (const std::exception&) {
+        thrown = true;
+    }
+    require(!thrown && log == Log{"enter"} && window.metrics_snapshot().internal_wakes_refused == 1U,
+            "a full schedule refuses the hover wake softly and counts it");
+    timers.pop_back();
+    fixture.clock.advance(std::chrono::milliseconds(10));
+    const FrameTime moved = fixture.clock.time;
+    fixture.pointer(PointerAction::move, PointerButton::none, {21.0, 20.0});
+    const FrameInterval hover = std::chrono::milliseconds(default_hover_milliseconds);
+    static_cast<void>(window.poll_frame_schedule(moved + hover + hover));
+    require(log == Log{"enter", "hover"}, "the next move arms the hover wake again once there is room");
 }
 
 void test_native_hover() {
@@ -585,6 +627,165 @@ void test_pointer_settings() {
     require(refused, "a zero hover time is refused");
 }
 
+// Notes each crossing raiser and the pointer location it reads.
+class CrossingProbe final : public Control {
+public:
+    explicit CrossingProbe(StableId stable_id) : Control(std::move(stable_id)) {}
+    void on_mouse_enter() override {
+        note("enter");
+        Control::on_mouse_enter();
+    }
+    void on_mouse_leave() override {
+        note("leave");
+        Control::on_mouse_leave();
+    }
+    const char* name{};
+    Log* log{};
+    std::vector<PointerLocation>* seen{};
+
+private:
+    void note(const char* what) {
+        (*log).push_back(std::string(name) + ":" + what);
+        (*seen).push_back(pointer_location());
+    }
+};
+
+PointerLocation located(Point location, Point window_position, bool inside) {
+    PointerLocation expected{};
+    expected.location = location;
+    expected.window_position = window_position;
+    expected.inside = inside;
+    return expected;
+}
+
+// on_mouse_enter and on_mouse_leave read where the crossing happened
+// (pointer_location): the old control's leave, then the new one's enter,
+// both at the crossing move's position; the window's own leave at the
+// position the host reported for it.
+void test_crossing_position() {
+    Log log;
+    std::vector<PointerLocation> seen;
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("crossing.root"));
+    const std::shared_ptr<CrossingProbe> left = make_control<CrossingProbe>(StableId("crossing.left"));
+    const std::shared_ptr<CrossingProbe> right = make_control<CrossingProbe>(StableId("crossing.right"));
+    (*left).name = "left";
+    (*left).log = &log;
+    (*left).seen = &seen;
+    (*right).name = "right";
+    (*right).log = &log;
+    (*right).seen = &seen;
+    (*left).set_requested_bounds({10.0, 10.0, 100.0, 40.0});
+    (*right).set_requested_bounds({120.0, 10.0, 60.0, 40.0});
+    require((*left).pointer_location() == PointerLocation{}, "a detached control reports no pointer");
+    (*root).add_child(left);
+    (*root).add_child(right);
+    Window window(root, Size{200.0, 100.0});
+    require(window.pointer_location() == PointerLocation{} && (*left).pointer_location() == PointerLocation{},
+            "a window that has seen no pointer event reports zero, outside");
+
+    PointerEvent move{};
+    move.action = PointerAction::move;
+    move.pointer_id = 1U;
+    move.position = {20.0, 20.0};
+    window.dispatch_pointer(move);
+    require(log == Log{"left:enter"} && seen.size() == 1U &&
+                seen[0] == located({10.0, 10.0}, {20.0, 20.0}, true),
+            "MouseEnter reads the entering move's position");
+
+    move.position = {130.0, 30.0};
+    window.dispatch_pointer(move);
+    require(log == Log{"left:enter", "left:leave", "right:enter"} && seen.size() == 3U &&
+                seen[1] == located({120.0, 20.0}, {130.0, 30.0}, true) &&
+                seen[2] == located({10.0, 20.0}, {130.0, 30.0}, true),
+            "the old control's MouseLeave, then the new one's MouseEnter, at the crossing move");
+    require(window.pointer_location() == located({130.0, 30.0}, {130.0, 30.0}, true),
+            "the window reports the last pointer event in its own coordinates");
+
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    leave.pointer_id = 1U;
+    leave.position = {199.0, 30.0};
+    window.dispatch_pointer(leave);
+    require(log.size() == 4U && log[3] == "right:leave" && seen.size() == 4U &&
+                seen[3] == located({79.0, 20.0}, {199.0, 30.0}, false),
+            "the window's leave raises MouseLeave at the host's position, outside");
+}
+
+// A panel that keeps the MouseEventArgs of each press and release bubbling
+// past it, read with mouse_event_arguments.
+class PointerBubbleWatcher final : public Panel {
+public:
+    explicit PointerBubbleWatcher(StableId stable_id) : Panel(std::move(stable_id)) {}
+    void on_pointer_bubble(PointerEvent& event) override {
+        if (event.action == PointerAction::down || event.action == PointerAction::up) {
+            seen.push_back(mouse_event_arguments(event));
+        }
+        Panel::on_pointer_bubble(event);
+    }
+    std::vector<MouseEventArgs> seen{};
+};
+
+// Keeps the arguments of its own MouseDown and handles nothing.
+class PressProbe final : public Control {
+public:
+    explicit PressProbe(StableId stable_id) : Control(std::move(stable_id)) {}
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        pressed.push_back(arguments);
+        Control::on_mouse_down(arguments);
+    }
+    std::vector<MouseEventArgs> pressed{};
+};
+
+// mouse_event_arguments gives a bubbled pointer event the record the
+// raisers got, in the asking control's coordinates, with the click count
+// the window keeps for a release.
+void test_routed_mouse_arguments() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("routed.root"));
+    const std::shared_ptr<PointerBubbleWatcher> container =
+        make_control<PointerBubbleWatcher>(StableId("routed.container"));
+    const std::shared_ptr<PressProbe> probe = make_control<PressProbe>(StableId("routed.probe"));
+    (*container).set_requested_bounds({5.0, 5.0, 150.0, 80.0});
+    (*probe).set_requested_bounds({10.0, 10.0, 50.0, 30.0});
+    (*container).add_child(probe);
+    (*root).add_child(container);
+    Window window(root, Size{200.0, 100.0});
+
+    PointerEvent press{};
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = {25.0, 30.0};
+    press.modifiers = Modifier::shift;
+    press.pointer_id = 1U;
+    press.click_count = 1U;
+    window.dispatch_pointer(press);
+    require((*probe).pressed.size() == 1U && (*container).seen.size() == 1U,
+            "the press reaches the raiser and bubbles to the container");
+    const MouseEventArgs at_raiser = (*probe).pressed.front();
+    const MouseEventArgs bubbled = (*container).seen.front();
+    require(at_raiser.location == Point{10.0, 15.0} && bubbled.location == Point{20.0, 25.0},
+            "each reads the position in its own coordinates");
+    require(bubbled.window_position == at_raiser.window_position && bubbled.button == at_raiser.button &&
+                bubbled.clicks == 1U && at_raiser.clicks == 1U && bubbled.modifiers == at_raiser.modifiers &&
+                bubbled.action == PointerAction::down && bubbled.pointer_id == at_raiser.pointer_id &&
+                bubbled.phase == EventPhase::bubble && at_raiser.phase == EventPhase::target &&
+                !bubbled.handled && !bubbled.suppress_click,
+            "a bubbled press reads the raisers' fields");
+
+    PointerEvent release = press;
+    release.action = PointerAction::up;
+    release.click_count = 0U;
+    window.dispatch_pointer(release);
+    require((*container).seen.size() == 2U && (*container).seen[1].clicks == 1U,
+            "a bubbled release carries its press's click count, as the raisers' does");
+
+    const std::shared_ptr<PressProbe> detached = make_control<PressProbe>(StableId("routed.detached"));
+    PointerEvent loose = press;
+    loose.click_count = 2U;
+    const MouseEventArgs alone = (*detached).mouse_event_arguments(loose);
+    require(alone.clicks == 2U && alone.window_position == loose.position && alone.location == loose.position,
+            "a detached control takes the event's own click count");
+}
+
 } // namespace
 
 int main() {
@@ -594,6 +795,7 @@ int main() {
         test_button_has_no_double_click();
         test_enter_leave_wheel_and_capture();
         test_hover_timer();
+        test_hover_wake_fails_soft_at_the_request_limit();
         test_native_hover();
         test_context_requests();
         test_window_destroyed_by_click();
@@ -603,6 +805,8 @@ int main() {
         test_broken_sequence_drops_derived_events();
         test_input_state();
         test_pointer_settings();
+        test_crossing_position();
+        test_routed_mouse_arguments();
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

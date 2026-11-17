@@ -1,4 +1,7 @@
 #include "gui_forms/visual_inspection.hpp"
+#include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
+
+#include "../../json/json_text/json_text.hpp"
 
 #include <iomanip>
 #include <sstream>
@@ -7,40 +10,24 @@
 namespace gui_forms {
 namespace {
 
-void append_json_string(std::ostringstream& output, std::string_view value) {
-    output << '"';
-    for (const unsigned char character : value) {
-        switch (character) {
-        case '"': output << "\\\""; break;
-        case '\\': output << "\\\\"; break;
-        case '\n': output << "\\n"; break;
-        case '\r': output << "\\r"; break;
-        case '\t': output << "\\t"; break;
-        default:
-            if (character < 0x20U) output << '?';
-            else output << static_cast<char>(character);
-            break;
-        }
-    }
-    output << '"';
-}
+using detail::append_json_string;
 
 void append_point(std::ostringstream& output, Point value) {
-    output << '[' << value.x << ',' << value.y << ']';
+    output << '[' << detail::JsonNumber{value.x} << ',' << detail::JsonNumber{value.y} << ']';
 }
 
 void append_size(std::ostringstream& output, Size value) {
-    output << '[' << value.width << ',' << value.height << ']';
+    output << '[' << detail::JsonNumber{value.width} << ',' << detail::JsonNumber{value.height} << ']';
 }
 
 void append_rect(std::ostringstream& output, Rect value) {
-    output << '[' << value.x << ',' << value.y << ',' << value.width << ','
-           << value.height << ']';
+    output << '[' << detail::JsonNumber{value.x} << ',' << detail::JsonNumber{value.y} << ',' << detail::JsonNumber{value.width} << ','
+           << detail::JsonNumber{value.height} << ']';
 }
 
 void append_insets(std::ostringstream& output, Insets value) {
-    output << '[' << value.left << ',' << value.top << ',' << value.right << ','
-           << value.bottom << ']';
+    output << '[' << detail::JsonNumber{value.left} << ',' << detail::JsonNumber{value.top} << ',' << detail::JsonNumber{value.right} << ','
+           << detail::JsonNumber{value.bottom} << ']';
 }
 
 void append_color(std::ostringstream& output, Color value) {
@@ -53,9 +40,9 @@ void append_color(std::ostringstream& output, Color value) {
 void append_font(std::ostringstream& output, FontSpec value) {
     output << "{\"role\":";
     append_json_string(output, font_role_name(value.role));
-    output << ",\"size\":" << value.size << ",\"weight\":" << value.weight
+    output << ",\"size\":" << detail::JsonNumber{value.size} << ",\"weight\":" << value.weight
            << ",\"italic\":" << (value.italic ? "true" : "false")
-           << ",\"letter_spacing\":" << value.letter_spacing << '}';
+           << ",\"letter_spacing\":" << detail::JsonNumber{value.letter_spacing} << '}';
 }
 
 void append_resolved_text(
@@ -125,6 +112,7 @@ const char* procedural_pattern_name(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::brushed_metal: return "brushed_metal";
     case ProceduralPattern::fresco: return "fresco";
     case ProceduralPattern::checker: return "checker";
+    case ProceduralPattern::hatch: return "hatch";
     }
     return "unknown";
 }
@@ -174,6 +162,8 @@ const char* image_mode_name(MaterialImageMode value) noexcept {
     case MaterialImageMode::tile: return "tile";
     case MaterialImageMode::nine_patch: return "nine_patch";
     case MaterialImageMode::single: return "single";
+    case MaterialImageMode::mirror: return "mirror";
+    case MaterialImageMode::extend: return "extend";
     }
     return "unknown";
 }
@@ -181,6 +171,8 @@ const char* image_mode_name(MaterialImageMode value) noexcept {
 const char* image_pattern_wrap_name(ImagePatternWrap value) noexcept {
     switch (value) {
     case ImagePatternWrap::tile: return "tile";
+    case ImagePatternWrap::mirror: return "mirror";
+    case ImagePatternWrap::clamp: return "clamp";
     }
     return "unknown";
 }
@@ -212,6 +204,26 @@ const char* material_edge_name(MaterialEdge edge) noexcept {
     return "unknown";
 }
 
+const char* material_mask_mode_name(MaterialMaskMode mode) noexcept {
+    switch (mode) {
+    case MaterialMaskMode::alpha: return "alpha";
+    case MaterialMaskMode::luminance: return "luminance";
+    case MaterialMaskMode::inverse_alpha: return "inverse_alpha";
+    case MaterialMaskMode::inverse_luminance: return "inverse_luminance";
+    }
+    return "unknown";
+}
+
+const char* material_mask_composite_name(MaterialMaskComposite composite) noexcept {
+    switch (composite) {
+    case MaterialMaskComposite::add: return "add";
+    case MaterialMaskComposite::subtract: return "subtract";
+    case MaterialMaskComposite::intersect: return "intersect";
+    case MaterialMaskComposite::exclude: return "exclude";
+    }
+    return "unknown";
+}
+
 const char* border_style_name(MaterialBorderStyle value) noexcept {
     switch (value) {
     case MaterialBorderStyle::solid: return "solid";
@@ -222,8 +234,9 @@ const char* border_style_name(MaterialBorderStyle value) noexcept {
 }
 
 void append_border(std::ostringstream& output,
-                   const std::optional<MaterialBorder>& border) {
-    if (!border) {
+                   const stxlib::Optional<MaterialBorder>& optional_border) {
+    const MaterialBorder* const border = optional_border.value();
+    if (border == nullptr) {
         output << "null";
         return;
     }
@@ -235,8 +248,9 @@ void append_border(std::ostringstream& output,
 }
 
 void append_corner_radii(std::ostringstream& output,
-                         const std::optional<MaterialCornerRadii>& radii) {
-    if (!radii) {
+                         const stxlib::Optional<MaterialCornerRadii>& optional_radii) {
+    const MaterialCornerRadii* const radii = optional_radii.value();
+    if (radii == nullptr) {
         output << "null";
         return;
     }
@@ -251,6 +265,15 @@ const char* blend_mode_name(MaterialBlendMode value) noexcept {
     case MaterialBlendMode::normal: return "normal";
     case MaterialBlendMode::multiply: return "multiply";
     case MaterialBlendMode::screen: return "screen";
+    case MaterialBlendMode::overlay: return "overlay";
+    case MaterialBlendMode::darken: return "darken";
+    case MaterialBlendMode::lighten: return "lighten";
+    case MaterialBlendMode::color_dodge: return "color-dodge";
+    case MaterialBlendMode::color_burn: return "color-burn";
+    case MaterialBlendMode::hard_light: return "hard-light";
+    case MaterialBlendMode::soft_light: return "soft-light";
+    case MaterialBlendMode::difference: return "difference";
+    case MaterialBlendMode::exclusion: return "exclusion";
     }
     return "unknown";
 }
@@ -266,14 +289,15 @@ void append_colour_filter(std::ostringstream& output,
     output << '[';
     for (std::size_t index = 0U; index < matrix.values.size(); ++index) {
         if (index != 0U) output << ',';
-        output << matrix.values[index];
+        output << detail::JsonNumber{matrix.values[index]};
     }
     output << ']';
 }
 
 void append_drop_shadow(std::ostringstream& output,
-                        const std::optional<MaterialDropShadow>& shadow) {
-    if (!shadow) {
+                        const stxlib::Optional<MaterialDropShadow>& optional_shadow) {
+    const MaterialDropShadow* const shadow = optional_shadow.value();
+    if (shadow == nullptr) {
         output << "null";
         return;
     }
@@ -417,19 +441,47 @@ void append_material(std::ostringstream& output,
     }
     output << "],\"colour_filter\":";
     append_colour_filter(output, material.colour_filter);
+    // The colour filter's table stage, only when set, so that other
+    // materials' snapshots are unchanged: 1024 levels, red's first.
+    const MaterialColourTable* const colour_table = material.colour_filter.table();
+    if (colour_table != nullptr) {
+        output << ",\"colour_table\":[";
+        for (std::size_t index = 0U; index < (*colour_table).entries.size(); ++index) {
+            if (index != 0U) output << ',';
+            output << static_cast<unsigned int>((*colour_table).entries[index]);
+        }
+        output << ']';
+    }
     output << ",\"drop_shadow\":";
     append_drop_shadow(output, material.drop_shadow);
     output << ",\"filter_blur\":" << material.filter_blur;
     // A finish and a mask (E9.6), only when set, so that other materials'
     // snapshots are unchanged.
     if (material.finish != 0.0) output << ",\"finish\":" << material.finish;
-    if (material.mask) {
+    // One alpha layer keeps the single "mask" it always had; several
+    // layers, or another mode, are listed bottom first under "masks".
+    const bool lone_alpha_mask = material.masks.size() == 1U && material.masks.front().mode == MaterialMaskMode::alpha;
+    if (lone_alpha_mask) {
         output << ",\"mask\":";
-        append_fill(output, *material.mask);
+        append_fill(output, material.masks.front().source);
+    } else if (!material.masks.empty()) {
+        output << ",\"masks\":[";
+        for (std::size_t index = 0U; index < material.masks.size(); ++index) {
+            const MaterialMaskLayer& layer = material.masks[index];
+            if (index != 0U) output << ',';
+            output << "{\"source\":";
+            append_fill(output, layer.source);
+            output << ",\"mode\":";
+            append_json_string(output, material_mask_mode_name(layer.mode));
+            output << ",\"composite\":";
+            append_json_string(output, material_mask_composite_name(layer.composite));
+            output << '}';
+        }
+        output << ']';
     }
     // A reflection (T5 C7), likewise only when set.
-    if (material.reflection) {
-        const MaterialReflection& reflection = *material.reflection;
+    if (material.reflection.present()) {
+        const MaterialReflection& reflection = (*material.reflection.value());
         output << ",\"reflection\":{\"edge\":";
         append_json_string(output, material_edge_name(reflection.edge));
         output << ",\"gap\":" << reflection.gap << ",\"reach\":" << reflection.reach
@@ -464,9 +516,9 @@ void append_operation(std::ostringstream& output,
     output << ",\"resolved_text\":";
     append_resolved_text(output, operation.resolved_text);
     output << ",\"image_id\":" << operation.image.value
-           << ",\"scalar\":" << operation.scalar
-           << ",\"secondary_scalar\":" << operation.secondary_scalar
-           << ",\"tertiary_scalar\":" << operation.tertiary_scalar
+           << ",\"scalar\":" << detail::JsonNumber{operation.scalar}
+           << ",\"secondary_scalar\":" << detail::JsonNumber{operation.secondary_scalar}
+           << ",\"tertiary_scalar\":" << detail::JsonNumber{operation.tertiary_scalar}
            << ",\"gradient_stops\":";
     append_gradient_stops(output, operation.gradient_stops);
     output << ",\"gradient_spread\":";
@@ -481,7 +533,17 @@ void append_operation(std::ostringstream& output,
     append_json_string(output, operation.text);
     output << ",\"text_orientation\":";
     append_json_string(output, text_orientation_name(operation.text_orientation));
+    // Written only for a rotated run, so other snapshots keep their bytes.
+    if (operation.text_degrees != 0.0) output << ",\"text_degrees\":" << detail::JsonNumber{operation.text_degrees};
     if (operation.element_count != 0U) output << ",\"element_count\":" << operation.element_count;
+    // Written only for a group with an effect, so other snapshots keep
+    // their bytes.
+    if (operation.group_effect) {
+        const PaintGroupEffect& effect = *operation.group_effect;
+        output << ",\"group_effect\":{\"colour_filter\":" << (effect.colour_filter ? "true" : "false")
+               << ",\"colour_table\":" << (effect.colour_filter.table() != nullptr ? "true" : "false")
+               << ",\"blur\":" << effect.blur << ",\"masks\":" << effect.masks.size() << '}';
+    }
     output << '}';
 }
 
@@ -491,7 +553,7 @@ void append_control(std::ostringstream& output,
            << ",\"stable_id\":";
     append_json_string(output, control.stable_id);
     output << ",\"parent_runtime_id\":";
-    if (control.parent_runtime_id) output << (*control.parent_runtime_id).value;
+    if (control.parent_runtime_id.present()) output << ((*control.parent_runtime_id.value())).value;
     else output << "null";
     output << ",\"parent_stable_id\":";
     append_json_string(output, control.parent_stable_id);
@@ -579,14 +641,14 @@ void append_control(std::ostringstream& output,
     if (control.authored_material) append_material(output, *control.authored_material);
     else output << "null";
     output << ",\"display_chunk\":";
-    if (control.display_chunk) {
-        output << "{\"generation\":" << (*control.display_chunk).generation
+    if (control.display_chunk.present()) {
+        output << "{\"generation\":" << ((*control.display_chunk.value())).generation
                << ",\"plane\":";
-        append_json_string(output, paint_plane_name((*control.display_chunk).plane));
+        append_json_string(output, paint_plane_name(((*control.display_chunk.value())).plane));
         output << ",\"logical_bounds\":";
-        append_rect(output, (*control.display_chunk).logical_bounds);
+        append_rect(output, ((*control.display_chunk.value())).logical_bounds);
         output << ",\"command_count\":"
-               << (*control.display_chunk).command_count << '}';
+               << ((*control.display_chunk.value())).command_count << '}';
     } else {
         output << "null";
     }
@@ -647,6 +709,14 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::fill_grid_pattern: return "fill_grid_pattern";
     case VisualPaintOperation::fill_rounded_rect_corners: return "fill_rounded_rect_corners";
     case VisualPaintOperation::stroke_rounded_rect_corners: return "stroke_rounded_rect_corners";
+    case VisualPaintOperation::fill_path: return "fill_path";
+    case VisualPaintOperation::stroke_path: return "stroke_path";
+    case VisualPaintOperation::clip_path: return "clip_path";
+    case VisualPaintOperation::fill_radial_gradient_spread: return "fill_radial_gradient_spread";
+    case VisualPaintOperation::fill_hatch: return "fill_hatch";
+    case VisualPaintOperation::fill_focal_radial_gradient: return "fill_focal_radial_gradient";
+    case VisualPaintOperation::begin_transform: return "begin_transform";
+    case VisualPaintOperation::end_transform: return "end_transform";
     }
     return "unknown";
 }
@@ -700,13 +770,17 @@ const VisualControlInspection* VisualInspectionSnapshot::find(
 
 std::string VisualInspectionSnapshot::to_json() const {
     std::ostringstream output;
-    output << std::setprecision(17)
-           << "{\"content_revision\":" << content_revision
+    // Numbers in the classic locale whatever the program's global one
+    // (A-gf-core-16-F2). The geometry, font, scale, operation scalar and
+    // colour matrix numbers are written as JsonNumber (round-trip, or null
+    // when not finite); any other double keeps 17 digits.
+    detail::prepare_json_stream(output);
+    output << std::setprecision(17) << "{\"content_revision\":" << content_revision
            << ",\"display_generation\":" << display_generation
            << ",\"client_size\":";
     append_size(output, client_size);
-    output << ",\"device_scale\":" << device_scale
-           << ",\"text_scale\":" << text_scale
+    output << ",\"device_scale\":" << detail::JsonNumber{device_scale}
+           << ",\"text_scale\":" << detail::JsonNumber{text_scale}
            << ",\"high_contrast\":" << (high_contrast ? "true" : "false")
            << ",\"reduced_motion\":" << (reduced_motion ? "true" : "false")
            << ",\"sound_enabled\":" << (sound_enabled ? "true" : "false")

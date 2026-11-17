@@ -478,16 +478,16 @@ constexpr std::array<double, 4> reference_scales{1.0, 1.25, 1.5, 2.0};
 
 // Expected hashes, [case][scale].
 constexpr std::array<std::array<std::uint64_t, 4>, 13> expected_hashes{{
-    {0x258500cfc89da7a2ULL, 0x17d9cc7df0883991ULL, 0x79b691953dfed5ccULL, 0x58bf89cd66628ff1ULL}, // pill_plate rest
-    {0x7e3d04ad18b099beULL, 0x249bc460b03df223ULL, 0xbb7fd82ab3efd195ULL, 0xd29c3e459bebf8b3ULL}, // pill_plate hot
-    {0x863c3615365a07d1ULL, 0xb577d5b9a8101395ULL, 0xc999b48d8f9ecff1ULL, 0x9ca36f6fa6839441ULL}, // pill_plate pressed
-    {0xc5cccde599f725a5ULL, 0xff0fb80ce78c4909ULL, 0x7d69ed5805533dbdULL, 0x9a5fc42435c202a1ULL}, // pill_plate disabled
-    {0xac424f12c2d26c44ULL, 0x58d8c0146b1eb943ULL, 0x906cc123b70c9155ULL, 0xcd7912709586b19aULL}, // pill_plate default
-    {0x650c827725a3bcf1ULL, 0xc6ea396130a59a93ULL, 0x3ce1745ac757fd72ULL, 0xffecbf3779798151ULL}, // pill_plate pill
-    {0x79a3c38a97024ffaULL, 0x79d98aacb1a01b86ULL, 0x276a2bb917f4ccc5ULL, 0x49e9d5e7667d799cULL}, // pill_plate cap_start
-    {0xc12eac1b58916074ULL, 0xd3d4d014ff00f12eULL, 0x68352353c13ac0a9ULL, 0xf238123d1546fedcULL}, // gold_plate rest
-    {0x6c3c7c3fc4d94761ULL, 0xa75336f05f1cd51aULL, 0x59a3c8c8071dc425ULL, 0x57d2ce1b2f34d6ddULL}, // gold_plate pressed
-    {0x9a6615853ead2ba1ULL, 0xb581e2d8370c6eadULL, 0x58ce5a91ca6d7b15ULL, 0x1a9ac0ff1e69b74dULL}, // inset_well rest
+    {0x89ea233324a46100ULL, 0x845f3c58bd3cebb0ULL, 0x63f2531d36000608ULL, 0x5611f4870fa2c707ULL}, // pill_plate rest
+    {0xac6be6c9f6c13cb0ULL, 0xb30776d5a071ad9eULL, 0xbd4e9e0b1454d596ULL, 0x893fcfddb183bdc1ULL}, // pill_plate hot
+    {0x78ec504cc4ed200eULL, 0x76b990c489b56521ULL, 0x1d765d7382940200ULL, 0x782a9103f919e6afULL}, // pill_plate pressed
+    {0x5853a815b21c2035ULL, 0xe99f5cae0fa53de9ULL, 0xd750acc0c14560cdULL, 0x14afc7269801ba91ULL}, // pill_plate disabled
+    {0x5e9947310cd2ec20ULL, 0xb9a3916205889dd5ULL, 0x9e8ccb22ba79c181ULL, 0xde368ef18fcaadc6ULL}, // pill_plate default
+    {0x686979f051ff966dULL, 0xfcef4845ad2263fcULL, 0xff291b1293f646d7ULL, 0xeaac70a3173d75adULL}, // pill_plate pill
+    {0xe25c99f224424c6cULL, 0x022a88a529c73846ULL, 0xa39c7b2bd455dfc8ULL, 0x74f34669b1765b45ULL}, // pill_plate cap_start
+    {0x699d345e287e12d5ULL, 0x99547a5d87a4c626ULL, 0xdd03d72f7f9e132dULL, 0x56bcb3c67fd25831ULL}, // gold_plate rest
+    {0xc0641cb227cd3168ULL, 0xa62d8643a0c9cee9ULL, 0x07eb169ee39f6cfeULL, 0x0fc677d9f64d35a1ULL}, // gold_plate pressed
+    {0x9a6615853ead2ba1ULL, 0xb581e2d8370c6eadULL, 0x1bfca36fba6b7295ULL, 0x1a9ac0ff1e69b74dULL}, // inset_well rest
     {0xe189d41b5cadee81ULL, 0x402ece9e1d982cfdULL, 0x52342a87b3ba3e56ULL, 0xcd6f587a8671a1b1ULL}, // etched_divider upright
     {0x434c6a1ef2042725ULL, 0xcf11602d22a1b7dcULL, 0x36a123200c60b3b5ULL, 0x5ac2eaf6f900aba5ULL}, // seam_line upright
     {0x497dbcdf94b71735ULL, 0x6be895a1b7da1a21ULL, 0x0f701f3ed2142381ULL, 0xe11213dc61445e65ULL}, // grip rest

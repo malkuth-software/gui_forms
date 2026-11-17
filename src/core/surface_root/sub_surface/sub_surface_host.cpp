@@ -340,11 +340,11 @@ void SubSurfaceHost::on_paint(Painter& painter, Rect) {
 namespace {
 
 constexpr std::array<PartField<SubSurfaceHost::Parts>, 3> sub_surface_host_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &SubSurfaceHost::Parts::region},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &SubSurfaceHost::Parts::content},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &SubSurfaceHost::Parts::focus},
 }};
 
@@ -364,6 +364,7 @@ constexpr ControlAnatomy sub_surface_host_anatomy{
     .parts = sub_surface_host_parts,
     .states = sub_surface_host_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -602,9 +603,9 @@ void SubSurfaceHost::hold_capture_for(const PointerEvent& event) {
     took_capture_ = false;
 }
 
-std::optional<Rect> SubSurfaceHost::text_input_caret() const {
-    if (!thread_) return std::nullopt;
-    const std::optional<Rect> caret = (*thread_).text_input_caret();
+stxlib::Optional<Rect> SubSurfaceHost::text_input_caret() const {
+    if (!thread_) return stxlib::Optional<Rect>::none();
+    const stxlib::Optional<Rect> caret = (*thread_).text_input_caret();
     return caret;
 }
 
@@ -953,18 +954,21 @@ void SubSurfaceHost::configure_region() {
 
 void SubSurfaceHost::stop_thread() noexcept {
     if (!thread_) return;
+    // A start that threw part-way (an allocation, or a dispatcher refused
+    // by a set_* call, after thread_ was assigned) leaves the later helpers
+    // null, so each is tested before it is revoked (A-gf-core-12-F3).
     // Keys already posted back find the target revoked.
-    (*key_return_).revoke();
+    if (key_return_) (*key_return_).revoke();
     key_return_.reset();
     // Requests already posted find the target revoked; the open ones go
     // (a tooltip showing one closes with the host's overlay or at the next
     // items change).
-    (*request_target_).revoke();
+    if (request_target_) (*request_target_).revoke();
     request_target_.reset();
     requests_.clear();
     // Alerts still waiting are withdrawn; one showing closes into the
     // revoked relay, unanswered.
-    (*alert_relay_).revoke();
+    if (alert_relay_) (*alert_relay_).revoke();
     alert_relay_.reset();
     SurfaceRoot* const root = attached_surface_root();
     for (const RaisedAlert& alert : alerts_) {

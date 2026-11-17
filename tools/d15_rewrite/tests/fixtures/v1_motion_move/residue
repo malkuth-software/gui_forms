@@ -1,0 +1,2 @@
+the value type's copy can throw (or is deleted)
+the value type's move or destruction can throw

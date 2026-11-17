@@ -2,6 +2,7 @@
 
 #include "../../../image/resource_pixels.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -11,7 +12,10 @@
 #include <span>
 
 // Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
-#if defined(__clang__)
+// Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
+// 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
+// "Floating-point contraction").
+#if defined(__clang__) && defined(GUI_FORMS_REFERENCE_ARITHMETIC)
 #pragma clang fp contract(off)
 #endif
 
@@ -19,12 +23,12 @@ namespace gui_forms::engine_primitives {
 namespace {
 
 // The image's view when it is in the registry at `width` × `height` pixels.
-std::optional<ImageResourceView> matching_view(const ImageRegistry& registry, ImageId image, std::uint32_t width,
+stxlib::Optional<ImageResourceView> matching_view(const ImageRegistry& registry, ImageId image, std::uint32_t width,
                                                std::uint32_t height) noexcept {
-    const std::optional<ImageResourceView> view = registry.find(image);
-    if (!view) return std::nullopt;
-    if ((*view).metadata.width != width || (*view).metadata.height != height) return std::nullopt;
-    if (width == 0U || height == 0U) return std::nullopt;
+    const stxlib::Optional<ImageResourceView> view = registry.find(image);
+    if (view.absent()) return stxlib::Optional<ImageResourceView>::none();
+    if (((*view.value())).metadata.width != width || ((*view.value())).metadata.height != height) return stxlib::Optional<ImageResourceView>::none();
+    if (width == 0U || height == 0U) return stxlib::Optional<ImageResourceView>::none();
     return view;
 }
 
@@ -113,7 +117,7 @@ ImageAxisPlacement placement_along(const MaterialFillLayer& fill, double box_sta
 bool material_image_available(const ImageRegistry& registry, const MaterialFillLayer& fill) noexcept {
     const std::uint32_t width = pixel_count(fill.image_pixel_size.width);
     const std::uint32_t height = pixel_count(fill.image_pixel_size.height);
-    const bool available = matching_view(registry, fill.image, width, height).has_value();
+    const bool available = matching_view(registry, fill.image, width, height).present();
     return available;
 }
 
@@ -122,9 +126,9 @@ bool read_material_image(const ImageRegistry& registry, const ImageId image, con
     pixels.bytes.clear();
     pixels.width = 0U;
     pixels.height = 0U;
-    const std::optional<ImageResourceView> found = matching_view(registry, image, width, height);
-    if (!found) return false;
-    const ImageResourceView& view = *found;
+    const stxlib::Optional<ImageResourceView> found = matching_view(registry, image, width, height);
+    if (found.absent()) return false;
+    const ImageResourceView& view = (*found.value());
     const std::size_t row_bytes = static_cast<std::size_t>(width) * 4U;
     // The registry bounds an image's sides (4096 by default) and pixels, so
     // the product fits; checked anyway, as the decoder's storage is sized
@@ -188,7 +192,8 @@ ImageVariantRequest image_variant_request(const MaterialFillLayer& fill, const s
     request.scale = DeviceScale{scale};
     const ImageAxisPlacement across = image_placement_across(fill, box.x, box.width, scale, fill.image_pixel_size.width);
     const ImageAxisPlacement down = image_placement_down(fill, box.y, box.height, scale, fill.image_pixel_size.height);
-    if (fill.image_mode == MaterialImageMode::tile || fill.image_mode == MaterialImageMode::single) {
+    if (fill.image_mode == MaterialImageMode::tile || fill.image_mode == MaterialImageMode::single ||
+        fill.image_mode == MaterialImageMode::mirror || fill.image_mode == MaterialImageMode::extend) {
         request.extent = DeviceExtent{variant_length(across.tile_length), variant_length(down.tile_length)};
         return request;
     }
@@ -217,6 +222,35 @@ void map_image_variant(const ImageAxisPlacement& placement, const std::uint32_t 
             const double along = static_cast<double>(output) + 0.5 - placement.tile_origin;
             const double within = along - tile * std::floor(along / tile);
             const double index = std::clamp(std::floor(within * pixels / tile), 0.0, pixels - 1.0);
+            map[output] = static_cast<std::uint32_t>(index);
+        }
+        return;
+    }
+    if (placement.mode == MaterialImageMode::mirror) {
+        // Each centre's pixel within a pair of tiles, the second reflected:
+        // with m in [0, 2n), m itself in the first, 2n - 1 - m in the
+        // second (ImagePatternWrap::mirror).
+        const double tile = placement.tile_length;
+        if (!(tile > 0.0)) return;
+        const double pair = tile * 2.0;
+        const double last = pixels * 2.0 - 1.0;
+        for (std::uint32_t output = 0U; output < outputs; ++output) {
+            const double along = static_cast<double>(output) + 0.5 - placement.tile_origin;
+            const double within = along - pair * std::floor(along / pair);
+            double index = std::clamp(std::floor(within * pixels / tile), 0.0, last);
+            if (index >= pixels) index = last - index;
+            map[output] = static_cast<std::uint32_t>(index);
+        }
+        return;
+    }
+    if (placement.mode == MaterialImageMode::extend) {
+        // The one tile, its first pixel before it and its last after it
+        // (ImagePatternWrap::clamp).
+        const double tile = placement.tile_length;
+        if (!(tile > 0.0)) return;
+        for (std::uint32_t output = 0U; output < outputs; ++output) {
+            const double along = static_cast<double>(output) + 0.5 - placement.tile_origin;
+            const double index = std::clamp(std::floor(along * pixels / tile), 0.0, pixels - 1.0);
             map[output] = static_cast<std::uint32_t>(index);
         }
         return;

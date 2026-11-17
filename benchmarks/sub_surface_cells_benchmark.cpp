@@ -212,9 +212,10 @@ public:
     void paint() {
         const DamageRegion damage = window_.take_damage();
         if (damage.empty() || !(*framebuffer_).begin(window_.image_resources(), damage.bounds())) return;
-        const std::optional<PaintReceipt> receipt = window_.paint((*framebuffer_).painter(), damage.rectangles());
+        const stxlib::Optional<PaintReceipt> receipt = window_.paint((*framebuffer_).painter(), damage.rectangles());
         (*framebuffer_).end();
-        if (receipt) static_cast<void>(window_.notify_presented(*receipt));
+        const PaintReceipt* const painted = receipt.value();
+        if (painted != nullptr) static_cast<void>(window_.notify_presented(*painted));
     }
     // One present tick phased to `vblank`: the presentations it showed.
     std::size_t present(FrameTime vblank) {
@@ -283,7 +284,7 @@ private:
         rows.push_back(std::move(added));
     }
     (*grid).rows = std::move(rows);
-    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).allow_user_to_add_rows = false;
     return grid;
 }
 

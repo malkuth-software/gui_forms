@@ -437,15 +437,20 @@ void append_element_points(const PathElement& element, std::vector<PointF>& resu
                 ? std::min(half_pi, finish - start)
                 : std::max(-half_pi, finish - start);
             const double end = start + delta;
-            const double alpha = 4.0 / 3.0 * std::tan(delta / 4.0);
+            const double alpha =
+                4.0 / 3.0 * gui_forms::engine_tangent(delta / 4.0);
             const PointF first = ellipse_point(
                 center_x, center_y, radius_x, radius_y, start);
             const PointF last = ellipse_point(
                 center_x, center_y, radius_x, radius_y, end);
-            result.push_back({first.x - alpha * radius_x * std::sin(start),
-                              first.y + alpha * radius_y * std::cos(start)});
-            result.push_back({last.x + alpha * radius_x * std::sin(end),
-                              last.y - alpha * radius_y * std::cos(end)});
+            const gui_forms::EngineSineCosine from =
+                gui_forms::engine_sine_cosine(start);
+            const gui_forms::EngineSineCosine to =
+                gui_forms::engine_sine_cosine(end);
+            result.push_back({first.x - alpha * radius_x * from.sine,
+                              first.y + alpha * radius_y * from.cosine});
+            result.push_back({last.x + alpha * radius_x * to.sine,
+                              last.y - alpha * radius_y * to.cosine});
             result.push_back(last);
             start = end;
         }
@@ -498,6 +503,298 @@ void GraphicsPath::append(PathElement element) {
         throw std::length_error("GUI.Drawing path element limit exceeded");
     }
     elements_.push_back(std::move(element));
+}
+
+
+namespace {
+
+constexpr double flatten_degrees_to_radians = 0.01745329251994329576923690768489;
+constexpr double flatten_quarter_turn = 1.5707963267948966192313216916398;
+
+// Where a flattening goes: its counts always, and its points and figures
+// only on the writing pass (`writing`), whose arrays the caller sized from
+// the counting pass. Both passes run the same code, so they count alike.
+class FlattenSink final {
+public:
+    FlattenSink(std::span<PointF> points, std::span<FlattenedFigure> figures, bool writing) noexcept
+        : points_(points), figures_(figures), writing_(writing) {}
+
+    [[nodiscard]] bool exceeded() const noexcept { return exceeded_; }
+    [[nodiscard]] bool has_current() const noexcept { return has_current_; }
+    [[nodiscard]] PointF current() const noexcept { return current_; }
+    [[nodiscard]] std::size_t point_count() const noexcept { return point_count_; }
+    [[nodiscard]] std::size_t figure_count() const noexcept { return figure_count_; }
+
+    // Whether `count` more points fit under maximum_flattened_points; when
+    // not, the flattening is refused from here on.
+    bool room_for(std::size_t count) noexcept {
+        if (exceeded_) return false;
+        if (count > GraphicsPath::maximum_flattened_points - point_count_) {
+            exceeded_ = true;
+            return false;
+        }
+        return true;
+    }
+
+    // Refuses the flattening from here on (an element needs more chords
+    // than the limit allows).
+    void refuse() noexcept { exceeded_ = true; }
+
+    // Ends any open figure (open) and starts one at `first`.
+    void begin_figure(PointF first) noexcept {
+        end_figure(false);
+        if (!room_for(1U)) return;
+        has_current_ = true;
+        put(first);
+    }
+
+    // Appends `point` to the open figure. The caller asked room_for first.
+    void add(PointF point) noexcept { put(point); }
+
+    // Ends the open figure, repeating its first point when `closed`; a
+    // figure of fewer than two points is dropped.
+    void end_figure(bool closed) noexcept {
+        if (!has_current_) return;
+        has_current_ = false;
+        if (closed && point_count_ - figure_start_ >= 2U && room_for(1U)) put(figure_first_);
+        if (exceeded_) return;
+        if (point_count_ - figure_start_ < 2U) {
+            point_count_ = figure_start_;
+            return;
+        }
+        if (writing_) {
+            figures_[figure_count_].end = point_count_;
+            figures_[figure_count_].closed = closed;
+        }
+        figure_count_ = figure_count_ + 1U;
+        figure_start_ = point_count_;
+    }
+
+private:
+    void put(PointF point) noexcept {
+        if (point_count_ == figure_start_) figure_first_ = point;
+        if (writing_) points_[point_count_] = point;
+        point_count_ = point_count_ + 1U;
+        current_ = point;
+    }
+
+    std::span<PointF> points_;
+    std::span<FlattenedFigure> figures_;
+    bool writing_{};
+    bool exceeded_{};
+    bool has_current_{};
+    PointF current_{};
+    PointF figure_first_{};
+    std::size_t figure_start_{};
+    std::size_t point_count_{};
+    std::size_t figure_count_{};
+};
+
+double flatten_length(double x, double y) noexcept {
+    const double length = std::sqrt(x * x + y * y);
+    return length;
+}
+
+// Chords for a Bezier curve of `degree` whose largest second difference
+// has length `second_difference`. The curve's second derivative is at most
+// degree (degree - 1) times that, and a chord over a parameter step h lies
+// within h^2 / 8 of the second derivative's bound from the curve (Wang's
+// formula). Zero when more than `limit` chords would be needed.
+std::size_t bezier_chord_count(double degree, double second_difference, double tolerance,
+                               std::size_t limit) noexcept {
+    const double factor = degree * (degree - 1.0) / 8.0;
+    const double wanted = std::ceil(std::sqrt(factor * second_difference / tolerance));
+    if (!(wanted >= 1.0)) return 1U;
+    if (!(wanted <= static_cast<double>(limit))) return 0U;
+    return static_cast<std::size_t>(wanted);
+}
+
+// Chords for `sweep` radians of an ellipse whose larger radius is
+// `radius`: on the circle, a chord over a step h lies within
+// radius (1 - cos(h / 2)) of its arc, and the ellipse is the circle under
+// a map that stretches no distance by more than the larger radius over
+// the circle's. At most a quarter turn per chord. Zero when more than
+// `limit` chords would be needed.
+std::size_t arc_chord_count(double radius, double sweep, double tolerance, std::size_t limit) noexcept {
+    const double magnitude = std::fabs(sweep);
+    if (!(magnitude > 0.0)) return 1U;
+    double step = flatten_quarter_turn;
+    if (tolerance < radius) step = std::min(step, 2.0 * std::acos(1.0 - tolerance / radius));
+    const double wanted = std::ceil(magnitude / step);
+    if (!(wanted >= 1.0)) return 1U;
+    if (!(wanted <= static_cast<double>(limit))) return 0U;
+    return static_cast<std::size_t>(wanted);
+}
+
+// The chords of `element` (a quadratic or a cubic) after its start point,
+// which the figure already holds.
+void flatten_curve(const PathElement& element, double tolerance, FlattenSink& sink) {
+    const bool cubic = element.verb == PathVerb::bezier;
+    double second_difference = flatten_length(element.first.x - 2.0 * element.second.x + element.third.x,
+                                              element.first.y - 2.0 * element.second.y + element.third.y);
+    if (cubic) {
+        const double later = flatten_length(element.second.x - 2.0 * element.third.x + element.fourth.x,
+                                            element.second.y - 2.0 * element.third.y + element.fourth.y);
+        second_difference = std::max(second_difference, later);
+    }
+    const double degree = cubic ? 3.0 : 2.0;
+    const std::size_t chords = bezier_chord_count(degree, second_difference, tolerance,
+                                                  GraphicsPath::maximum_flattened_points);
+    if (chords == 0U || !sink.room_for(chords)) {
+        sink.refuse();
+        return;
+    }
+    const PointF end = cubic ? element.fourth : element.third;
+    const double step = 1.0 / static_cast<double>(chords);
+    for (std::size_t index = 1U; index < chords; ++index) {
+        const double t = static_cast<double>(index) * step;
+        const double u = 1.0 - t;
+        PointF point{};
+        if (cubic) {
+            const double a = u * u * u;
+            const double b = 3.0 * u * u * t;
+            const double c = 3.0 * u * t * t;
+            const double d = t * t * t;
+            point = PointF{a * element.first.x + b * element.second.x + c * element.third.x + d * element.fourth.x,
+                           a * element.first.y + b * element.second.y + c * element.third.y + d * element.fourth.y};
+        } else {
+            const double a = u * u;
+            const double b = 2.0 * u * t;
+            const double c = t * t;
+            point = PointF{a * element.first.x + b * element.second.x + c * element.third.x,
+                           a * element.first.y + b * element.second.y + c * element.third.y};
+        }
+        sink.add(point);
+    }
+    sink.add(end);
+}
+
+// The points of `sweep_degrees` of the ellipse in `bounds` from
+// `start_degrees`, after the start point, which the figure already holds.
+// The last point is the arc's end computed directly, not by accumulated
+// steps; for a closed ellipse (`closes`) it is left to the close, which
+// repeats the start exactly.
+void flatten_ellipse_arc(RectF bounds, double start_degrees, double sweep_degrees, bool closes,
+                         double tolerance, FlattenSink& sink) {
+    const double radius = std::max(std::fabs(bounds.width), std::fabs(bounds.height)) * 0.5;
+    const double sweep = sweep_degrees * flatten_degrees_to_radians;
+    const std::size_t chords = arc_chord_count(radius, sweep, tolerance, GraphicsPath::maximum_flattened_points);
+    if (chords == 0U || !sink.room_for(chords)) {
+        sink.refuse();
+        return;
+    }
+    const double step = sweep_degrees / static_cast<double>(chords);
+    for (std::size_t index = 1U; index < chords; ++index) {
+        const double degrees = start_degrees + static_cast<double>(index) * step;
+        sink.add(point_on_ellipse(bounds, degrees));
+    }
+    if (!closes) sink.add(point_on_ellipse(bounds, start_degrees + sweep_degrees));
+}
+
+// One element's part of the flattening (the figure rules of
+// GraphicsPath::flatten, which follow the raster's path conversion).
+void flatten_element(const PathElement& element, double tolerance, FlattenSink& sink) {
+    switch (element.verb) {
+    case PathVerb::start_figure:
+        sink.end_figure(false);
+        return;
+    case PathVerb::line:
+        if (!sink.has_current() || sink.current() != element.first) sink.begin_figure(element.first);
+        if (sink.room_for(1U)) sink.add(element.second);
+        return;
+    case PathVerb::quadratic:
+    case PathVerb::bezier:
+        if (!sink.has_current() || sink.current() != element.first) sink.begin_figure(element.first);
+        flatten_curve(element, tolerance, sink);
+        return;
+    case PathVerb::rectangle: {
+        sink.begin_figure(PointF{element.rect.left(), element.rect.top()});
+        if (!sink.room_for(3U)) return;
+        sink.add(PointF{element.rect.right(), element.rect.top()});
+        sink.add(PointF{element.rect.right(), element.rect.bottom()});
+        sink.add(PointF{element.rect.left(), element.rect.bottom()});
+        sink.end_figure(true);
+        return;
+    }
+    case PathVerb::ellipse: {
+        // The parameter-angle start of the ellipse at 0 degrees, the right
+        // middle point; the chords run clockwise on screen (y down) and the
+        // close repeats the start exactly.
+        sink.begin_figure(point_on_ellipse(element.rect, 0.0));
+        flatten_ellipse_arc(element.rect, 0.0, 360.0, true, tolerance, sink);
+        sink.end_figure(true);
+        return;
+    }
+    case PathVerb::arc: {
+        const double sweep = std::clamp(element.sweep_angle, -360.0, 360.0);
+        const PointF start = point_on_ellipse(element.rect, element.start_angle);
+        if (!sink.has_current()) {
+            sink.begin_figure(start);
+        } else if (sink.current() != start && sink.room_for(1U)) {
+            sink.add(start);
+        }
+        flatten_ellipse_arc(element.rect, element.start_angle, sweep, false, tolerance, sink);
+        return;
+    }
+    case PathVerb::close_figure:
+        sink.end_figure(true);
+        return;
+    }
+    // A verb outside the enumeration ends the figure, as the raster refuses
+    // the path there.
+    sink.end_figure(false);
+    return;
+}
+
+void require_flattening_tolerance(double tolerance) {
+    if (!std::isfinite(tolerance) || !(tolerance > 0.0)) {
+        throw std::invalid_argument("path flattening tolerance must be positive and finite");
+    }
+}
+
+// One pass over `elements` into `sink`, and its counts.
+PathFlattening run_flattening(const std::vector<PathElement>& elements, double tolerance, FlattenSink& sink) {
+    for (const PathElement& element : elements) {
+        if (sink.exceeded()) break;
+        flatten_element(element, tolerance, sink);
+    }
+    sink.end_figure(false);
+    PathFlattening result{};
+    if (sink.exceeded()) {
+        result.status = PathFlatteningStatus::limit_exceeded;
+        return result;
+    }
+    result.point_count = sink.point_count();
+    result.figure_count = sink.figure_count();
+    return result;
+}
+
+} // namespace
+
+PathFlattening GraphicsPath::flattened_size(double tolerance) const {
+    require_alive();
+    require_flattening_tolerance(tolerance);
+    FlattenSink counter(std::span<PointF>{}, std::span<FlattenedFigure>{}, false);
+    const PathFlattening counted = run_flattening(elements_, tolerance, counter);
+    return counted;
+}
+
+PathFlattening GraphicsPath::flatten(double tolerance, std::span<PointF> points,
+                                     std::span<FlattenedFigure> figures) const {
+    require_alive();
+    require_flattening_tolerance(tolerance);
+    // Counted first, so storage that is too small is reported before any
+    // of it is written.
+    FlattenSink counter(std::span<PointF>{}, std::span<FlattenedFigure>{}, false);
+    PathFlattening needed = run_flattening(elements_, tolerance, counter);
+    if (needed.status != PathFlatteningStatus::complete) return needed;
+    if (needed.point_count > points.size() || needed.figure_count > figures.size()) {
+        needed.status = PathFlatteningStatus::storage_too_small;
+        return needed;
+    }
+    FlattenSink writer(points, figures, true);
+    const PathFlattening written = run_flattening(elements_, tolerance, writer);
+    return written;
 }
 
 

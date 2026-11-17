@@ -4,6 +4,7 @@
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms_demo/easing_preview.hpp"
+#include "support/frame_wake.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -13,6 +14,8 @@
 #include <span>
 #include <stdexcept>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -203,7 +206,7 @@ void test_progress_animation_damages_what_moves() {
         (*progress).on_paint(painter, {0.0, 0.0, 240.0, 20.0});
         static_cast<void>(window.take_damage());
         const std::uint64_t before = (*progress).effect_instance().counters().ticks;
-        static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+        static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
         const DamageRegion damage = window.take_damage();
         const Rect bounds = damage.bounds();
         // The stripes are an effect program on the motion clock: its frame
@@ -214,7 +217,7 @@ void test_progress_animation_damages_what_moves() {
         require((*progress).effect_instance().counters().ticks > before && !bounds.empty() &&
                     bounds.x >= 1.0 && bounds.x + bounds.width <= 121.0 &&
                     bounds.y >= 1.0 && bounds.y + bounds.height <= 19.0 &&
-                    window.next_wake().has_value(),
+                    window.next_wake().present(),
                 "a painted marching-stripe bar must damage only its fill on each tick");
     }
 }
@@ -269,54 +272,54 @@ void test_animation_timer_is_paint_gated() {
     // number of display intervals, so that timers of different speeds share
     // frame polls.
     (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
-    const FrameInterval near_one = *window.next_wake() - FrameClock::now();
-    require((*window.next_wake()).time_since_epoch() % display_frame_interval == FrameInterval{} &&
+    const FrameInterval near_one = armed_wake(window) - FrameClock::now();
+    require(armed_wake(window).time_since_epoch() % display_frame_interval == FrameInterval{} &&
                 near_one <= display_frame_interval && (*probe).timer.interval() == 20ms,
             "a 20 ms timer must tick at one display interval and report its given interval");
     (*probe).timer.start(*probe, 25ms, TimerProbe::Tick{probe.get()});
-    require((*window.next_wake()).time_since_epoch() % (display_frame_interval * 2) == FrameInterval{},
+    require(armed_wake(window).time_since_epoch() % (display_frame_interval * 2) == FrameInterval{},
             "a 25 ms timer must tick at two display intervals");
     (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
-    require((*probe).timer.ticking() && window.next_wake().has_value() &&
-                (*window.next_wake()).time_since_epoch() % 32ms == FrameInterval{},
+    require((*probe).timer.ticking() && window.next_wake().present() &&
+                armed_wake(window).time_since_epoch() % 32ms == FrameInterval{},
             "a started timer's first tick must fall on a multiple of its interval");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*probe).ticks == 1 && (*probe).timer.ticking(),
             "the first tick counts the paint its start requested");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*probe).ticks == 1 && !(*probe).timer.ticking() &&
-                (*probe).timer.started() && !window.next_wake().has_value(),
+                (*probe).timer.started() && window.next_wake().absent(),
             "a tick after an unpainted damaging tick must stop the timer and hold no wake");
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
-    require((*probe).timer.ticking() && window.next_wake().has_value(),
+    require((*probe).timer.ticking() && window.next_wake().present(),
             "the owner's next paint must start a waiting timer");
 
     // A late poll is one tick, and the cadence keeps its phase.
-    const FrameTime due = *window.next_wake();
+    const FrameTime due = armed_wake(window);
     const FramePollResult late = window.poll_frame_schedule(due + 105ms);
     require(late.ui_timer_ticks == 1U && (*probe).ticks == 2 &&
-                *window.next_wake() == due + 128ms,
+                armed_wake(window) == due + 128ms,
             "a late tick must be one tick, the next one the first deadline of its cadence");
 
     // A tick that changes nothing expects no paint and stays scheduled.
     (*probe).damaging = false;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*probe).ticks == 4 && (*probe).timer.ticking(),
             "unchanged ticks must keep the timer running without paints");
 
     // Hidden: the timer waits for a paint instead of holding a wake.
     (*probe).visible = false;
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require((*probe).ticks == 4 && !window.next_wake().has_value() &&
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require((*probe).ticks == 4 && window.next_wake().absent() &&
                 (*probe).timer.started(),
             "a hidden owner's timer must stop at its next tick without ticking");
     (*probe).visible = true;
     (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
     (*probe).visible = false;
     (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
-    require(!(*probe).timer.ticking() && !window.next_wake().has_value(),
+    require(!(*probe).timer.ticking() && window.next_wake().absent(),
             "starting for a hidden owner must wait for its paint");
     (*probe).visible = true;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
@@ -324,10 +327,10 @@ void test_animation_timer_is_paint_gated() {
 
     // A tick may stop its own timer; a stopped timer is not restarted by paint.
     (*probe).stop_in_tick = true;
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
     require((*probe).ticks == 5 && !(*probe).timer.started() &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "a timer stopped by its tick must stay stopped through paints");
 
     // The window's cancel_frame_requests stops a ticking timer, and the
@@ -339,7 +342,7 @@ void test_animation_timer_is_paint_gated() {
             "cancelling the window's frame requests must stop a ticking timer");
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
     require(!(*probe).timer.ticking() && !(*probe).timer.started() &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "a paint must not start a timer its window cancelled");
 
     // A timer waiting for a paint holds no request, and is stopped as well
@@ -355,7 +358,7 @@ void test_animation_timer_is_paint_gated() {
     (*probe).visible = true;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
     require(!(*probe).timer.ticking() && !(*probe).timer.started() &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "a paint must not start a waiting timer its window cancelled");
 
     // Another window's cancellation leaves the timer waiting; start after a
@@ -367,7 +370,7 @@ void test_animation_timer_is_paint_gated() {
     other.cancel_frame_requests();
     (*probe).visible = true;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
-    require((*probe).timer.started() && (*probe).timer.ticking() && window.next_wake().has_value(),
+    require((*probe).timer.started() && (*probe).timer.ticking() && window.next_wake().present(),
             "another window's cancellation must not stop the timer, and start must run it again");
 }
 
@@ -379,7 +382,7 @@ void test_progress_animation_and_hidden_suspension() {
     (*progress).animation_period = 1000ms;
     (*root).add_child(progress);
     Window window(root, {240.0, 20.0});
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "animated progress style must register a retained frame source");
 
     const FrameTime origin = FrameClock::now();
@@ -394,17 +397,17 @@ void test_progress_animation_and_hidden_suspension() {
     // starts it again.
     (*progress).visible = false;
     const double hidden_phase = (*progress).animation_phase();
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
-    require(!window.next_wake().has_value() &&
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
+    require(window.next_wake().absent() &&
                 close_to((*progress).animation_phase(), hidden_phase),
             "a hidden progress bar must stop its timer at its next tick, without advancing");
     (*progress).visible = true;
     StripePainter shown_painter;
     (*progress).on_paint(shown_painter, {0.0, 0.0, 240.0, 20.0});
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "a reshown progress bar must start its timer again when painted");
     (*progress).visual_style = ProgressBarVisualStyle::continuous;
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "static progress style must revoke its retained frame source");
 
     (*progress).overlay_style = ProgressBarOverlayStyle::moving_stripes;
@@ -412,18 +415,18 @@ void test_progress_animation_and_hidden_suspension() {
     // window's motion clock.
     StripePainter striped_painter;
     (*progress).on_paint(striped_painter, {0.0, 0.0, 240.0, 20.0});
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "moving stripes must animate a determinate progress style");
     (*progress).animation_enabled = false;
-    require(!window.next_wake().has_value() && (*progress).animation_phase() == 0.0,
+    require(window.next_wake().absent() && (*progress).animation_phase() == 0.0,
             "disabled stripe motion must paint statically without an idle wake");
     (*progress).animation_enabled = true;
     (*progress).motion_policy = MotionPolicy{true, true, false};
-    require(!window.next_wake().has_value(), "paused stripes must leave the motion clock");
+    require(window.next_wake().absent(), "paused stripes must leave the motion clock");
     (*progress).motion_policy = MotionPolicy{true, false, false};
     StripePainter resumed_painter;
     (*progress).on_paint(resumed_painter, {0.0, 0.0, 240.0, 20.0});
-    require(window.next_wake().has_value(), "resumed stripes must enlist on the motion clock again when painted");
+    require(window.next_wake().present(), "resumed stripes must enlist on the motion clock again when painted");
     // The stripes are an effect program on the window's motion clock
     // (effect_program_tests); the bar's own timer lease (ADR-016) now drives
     // the marquee alone, which the rest of this test follows.
@@ -432,14 +435,14 @@ void test_progress_animation_and_hidden_suspension() {
     (*progress).advance_animation(FrameClock::now() + 325ms);
     const double retained_phase = (*progress).animation_phase();
     (*progress).motion_policy = MotionPolicy{true, true, false};
-    require(!window.next_wake().has_value() &&
+    require(window.next_wake().absent() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "paused progress motion must revoke its lease without destroying phase");
     (*progress).motion_policy = MotionPolicy{true, false, false};
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "resumed progress motion must retain phase before its next frame");
-    (*progress).advance_animation(*window.next_wake());
+    (*progress).advance_animation(armed_wake(window));
     require((*progress).animation_phase() > retained_phase,
             "the first resumed frame must advance from the retained phase");
     const double pre_reduced_phase = (*progress).animation_phase();
@@ -447,13 +450,13 @@ void test_progress_animation_and_hidden_suspension() {
     (*progress).motion_policy = MotionPolicy{true, false, true};
     const FrameTime after_reduced = FrameClock::now();
     (*progress).value = 73.0;
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 close_to((*progress).animation_phase(), pre_reduced_phase) &&
                 close_to((*progress).value.read(), 73.0) &&
                 has_semantic_state((*progress).semantic_descriptor().states,
                                    SemanticState::busy),
             "reduced motion must retain animation and state updates without resetting phase");
-    const FrameTime reduced_wake = *window.next_wake();
+    const FrameTime reduced_wake = armed_wake(window);
     (*progress).advance_animation(reduced_wake);
     const double reduced_phase = (*progress).animation_phase();
     // Reduced motion scales the speed by 0.35 (and paces the timer at its
@@ -466,30 +469,30 @@ void test_progress_animation_and_hidden_suspension() {
                 reduced_step >= 0.35 * shortest - 1e-9,
             "reduced progress motion must advance visibly at its calmer speed");
     (*progress).motion_policy = MotionPolicy{true, false, false};
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 close_to((*progress).animation_phase(), reduced_phase),
             "leaving reduced motion must retain the reduced timeline position");
     const std::uint64_t requests_before_batch =
         window.metrics_snapshot().scheduled_frame_requests;
     (*progress).motion_policy = MotionPolicy{true, true, true};
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "batched pause plus reduced motion must quiesce without a transient lease");
     (*progress).motion_policy = MotionPolicy{true, false, false};
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 window.metrics_snapshot().scheduled_frame_requests ==
                     requests_before_batch + 1U,
             "batched live policy must publish exactly one replacement lease");
 
     const double phase_before_master_gate = (*progress).animation_phase();
     (*progress).motion_policy = MotionPolicy{false, false, false};
-    require(!window.next_wake().has_value() &&
+    require(window.next_wake().absent() &&
                 (*progress).motion_policy.read() == MotionPolicy{false, false, false} &&
                 close_to((*progress).animation_phase(), phase_before_master_gate) &&
                 !has_semantic_state((*progress).semantic_descriptor().states,
                                     SemanticState::busy),
             "a disabled application motion policy must revoke its lease without mutating phase");
     (*progress).motion_policy = MotionPolicy{true, false, false};
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 close_to((*progress).animation_phase(), phase_before_master_gate) &&
                 has_semantic_state((*progress).semantic_descriptor().states,
                                    SemanticState::busy),
@@ -498,23 +501,23 @@ void test_progress_animation_and_hidden_suspension() {
     for (std::size_t cycle = 0U; cycle < 16U; ++cycle) {
         (*progress).motion_policy = MotionPolicy{true, true, true};
         const double compound_phase = (*progress).animation_phase();
-        require(!window.next_wake().has_value() && (*progress).motion_policy.read().paused &&
+        require(window.next_wake().absent() && (*progress).motion_policy.read().paused &&
                     (*progress).motion_policy.read().reduced &&
                     !has_semantic_state((*progress).semantic_descriptor().states,
                                         SemanticState::busy),
                 "compound pause plus reduced motion must remain a single quiescent policy");
         (*progress).motion_policy = MotionPolicy{true, false, true};
-        require(window.next_wake().has_value() &&
+        require(window.next_wake().present() &&
                     close_to((*progress).animation_phase(), compound_phase) &&
                     has_semantic_state((*progress).semantic_descriptor().states,
                                        SemanticState::busy),
                 "resuming while reduced must arm one calm animation lease");
         (*progress).motion_policy = MotionPolicy{true, true, false};
-        require(!window.next_wake().has_value() &&
+        require(window.next_wake().absent() &&
                     close_to((*progress).animation_phase(), compound_phase),
                 "leaving reduced motion while paused must retain the suspended phase");
         (*progress).motion_policy = MotionPolicy{true, false, false};
-        require(window.next_wake().has_value() &&
+        require(window.next_wake().present() &&
                     close_to((*progress).animation_phase(), compound_phase),
                 "full motion must restore its frame lease from the retained phase");
     }
@@ -524,15 +527,15 @@ void test_progress_animation_and_hidden_suspension() {
     window.set_presentation_settings(calm);
     require(!(*progress).motion_policy.read().reduced &&
                 (*progress).effective_motion_policy().reduced &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "window reduced-motion preference must calm progress without overwriting local policy or stopping it");
     calm.reduced_motion = false;
     window.set_presentation_settings(calm);
     require(!(*progress).effective_motion_policy().reduced &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "clearing the window preference must restore full motion in one transition");
     (*progress).visual_style = ProgressBarVisualStyle::continuous;
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "removing the last animated progress feature must revoke its frame source");
 }
 
@@ -650,7 +653,7 @@ void test_progress_animation_style_family() {
     (*progress).advance_animation(origin + 250ms);
     ProgressEffectsPainter pulse;
     (*progress).on_paint(pulse, {0.0, 0.0, 240.0, 24.0});
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 pulse.five_stop_linear_gradients == 1 &&
                 pulse.five_stop_spread_gradients == 0 &&
                 std::find(pulse.clips.begin(), pulse.clips.end(),
@@ -707,7 +710,7 @@ void test_progress_animation_style_family() {
             "invalid progress effect geometry must not partially mutate appearance");
 
     (*progress).visual_style = ProgressBarVisualStyle::continuous;
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "returning to a static progress style must revoke the frame lease");
 }
 
@@ -735,7 +738,7 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
     (*preview).marker_size = 18.0;
     Window window(preview, {500.0, 340.0});
     require((*preview).tracks().size() == 8U && (*preview).marker_size.read() == 18.0 &&
-                window.next_wake().has_value() &&
+                window.next_wake().present() &&
                 has_semantic_state((*preview).semantic_descriptor().states,
                                    SemanticState::busy),
             "EasingPreview must own all public curves, one frame lease, and busy semantics");
@@ -744,22 +747,22 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
     calm.reduced_motion = true;
     window.set_presentation_settings(calm);
     require((*preview).effective_motion_policy().reduced &&
-                !(*preview).motion_policy.read().reduced && window.next_wake().has_value(),
+                !(*preview).motion_policy.read().reduced && window.next_wake().present(),
             "window reduced-motion preference must calm EasingPreview without replacing its authored policy");
     calm.reduced_motion = false;
     window.set_presentation_settings(calm);
 
     const double before = (*preview).phase();
     (*preview).motion_policy = {true, false, true};
-    require(window.next_wake().has_value() && (*preview).phase() == before,
+    require(window.next_wake().present() && (*preview).phase() == before,
             "reduced EasingPreview motion must retain phase and remain scheduled");
     (*preview).advance_animation(FrameClock::now() + 300ms);
     require((*preview).phase() > before &&
-                (*preview).semantic_descriptor().numeric_value.has_value(),
+                (*preview).semantic_descriptor().numeric_value.present(),
             "public EasingPreview frames must advance reusable timeline state");
 
     (*preview).motion_policy = {true, true, true};
-    require(!window.next_wake().has_value() &&
+    require(window.next_wake().absent() &&
                 !has_semantic_state((*preview).semantic_descriptor().states,
                                     SemanticState::busy),
             "paused EasingPreview motion must revoke its lease and busy state");

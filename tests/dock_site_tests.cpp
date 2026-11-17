@@ -50,6 +50,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -58,6 +59,20 @@
 
 namespace {
 using namespace gui_forms;
+
+// D15 Q3: set_area_background keeps its deprecated std::optional form for
+// one stage; a plain colour or {} must not reach it silently. Each plain
+// call below is refused (a deleted overload or an ambiguity), and the
+// stxlib form is accepted.
+template <typename Workspace>
+concept takes_plain_area = requires(Workspace& workspace) { workspace.set_area_background(Color{}); };
+template <typename Workspace>
+concept takes_empty_area = requires(Workspace& workspace) { workspace.set_area_background({}); };
+template <typename Workspace>
+concept takes_optional_area =
+    requires(Workspace& workspace) { workspace.set_area_background(stxlib::Optional<Color>::none()); };
+static_assert(!takes_plain_area<DockWorkspace> && !takes_empty_area<DockWorkspace>);
+static_assert(takes_optional_area<DockWorkspace>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -141,6 +156,11 @@ public:
 
     void create(DockPanelCreation& creation) {
         made.push_back(creation.panel.value);
+        // A factory that edits the layout while it builds (a document that
+        // opens or closes a companion panel).
+        if (edits != nullptr && creation.panel.value == trigger) {
+            static_cast<void>((*edits).hide_panel(DockPanelId(hides)));
+        }
         const std::string id = "content." + creation.panel.value;
         std::shared_ptr<Panel> panel = make_control<Panel>(StableId(id));
         std::shared_ptr<TextBox> edit = make_control<TextBox>(StableId(id + ".edit"));
@@ -161,6 +181,10 @@ public:
     }
 
     std::vector<std::string> made;
+    // When set, creating `trigger`'s content hides `hides` through `edits`.
+    DockWorkspace* edits{};
+    std::string trigger;
+    std::string hides;
 
 private:
     SaveJournal* journal_{};
@@ -224,7 +248,7 @@ void register_panels(DockWorkspace& workspace, PanelFactory& factory) {
     require(!workspace.register_panel(document(factory, "doc.first", "Again")), "a repeated identity is refused");
 }
 
-std::unique_ptr<Fixture> make_fixture(Size client = {800.0, 500.0}) {
+std::unique_ptr<Fixture> make_fixture(Size client = {800.0, 500.0}, std::string_view hides_when_classes_made = {}) {
     std::unique_ptr<Fixture> fixture = std::make_unique<Fixture>();
     (*fixture).workspace = std::make_unique<DockWorkspace>("workspace");
     DockWorkspace& workspace = *(*fixture).workspace;
@@ -238,6 +262,11 @@ std::unique_ptr<Fixture> make_fixture(Size client = {800.0, 500.0}) {
     apply(workspace, DockEdit::show(DockPanelId("properties")));
     apply(workspace, DockEdit::show(DockPanelId("output")));
     require(factory.made.empty(), "registering and placing panels creates nothing");
+    if (!hides_when_classes_made.empty()) {
+        factory.edits = &workspace;
+        factory.trigger = "classes";
+        factory.hides = std::string(hides_when_classes_made);
+    }
     (*fixture).site = make_control<DockSite>(StableId("site"), workspace);
     (*fixture).window = std::make_unique<Window>((*fixture).site, client);
     (*(*fixture).window).perform_layout();
@@ -398,6 +427,56 @@ void lazy_creation() {
             "after a restore the factories run only for the selected panel of each shown stack");
 }
 
+// A factory that edits the layout during the layout pass that creates its
+// content (A-gf-controls-03-F2): hiding Output removes a stack, so the
+// site realizes again and replaces its stacks. The pass walks the stacks'
+// node IDs and finds each slot again after the factory, so nothing reads
+// the replaced slots; Classes still gets its content and Output is gone.
+void factory_edits_the_layout() {
+    std::unique_ptr<Fixture> fixture = make_fixture({800.0, 500.0}, "output");
+    DockWorkspace& workspace = *(*fixture).workspace;
+    (*(*fixture).window).perform_layout();
+    const std::vector<std::string>& made = (*fixture).factory.made;
+    require(!made.empty() && made.front() == "classes", "the classes factory ran first");
+    require(workspace.panel_content(DockPanelId("classes")) != nullptr, "Classes has its content");
+    require(workspace.layout().locate(DockPanelId("output")).placement == DockPlacementKind::hidden,
+            "the factory's edit hid Output");
+    require((*(*fixture).site).realized_stacks().size() == 3U, "the site shows the three stacks left");
+}
+
+// Hides a panel when another becomes active, as a program closing a
+// transient tool panel might.
+struct HideOnActivation final {
+    DockWorkspace* workspace{};
+    std::string when;
+    std::string hides;
+    void operator()(const DockActivationChange& change) const {
+        if (!change.new_panel || (*change.new_panel).value != when) return;
+        static_cast<void>((*workspace).hide_panel(DockPanelId(hides)));
+    }
+};
+
+// An activation_changed handler that hides a panel while focus enters
+// another (A-gf-controls-03-F3): the site holds the stack's view and finds
+// the slot again after the handler, so the focus move is remembered from
+// the view it started with, not a moved slot.
+void activation_handler_edits_the_layout() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    Window& window = *(*fixture).window;
+    const SubscriptionToken token =
+        workspace.activation_changed().subscribe(HideOnActivation{&workspace, "classes", "output"});
+    const Control::Ptr edit = content_edit(window, "classes");
+    require(edit != nullptr, "Classes' content is made");
+    require(window.request_focus(edit), "focus enters Classes' content");
+    const std::optional<DockPanelId>& active = workspace.active_panel();
+    require(active && (*active).value == "classes", "Classes is active");
+    require(workspace.layout().locate(DockPanelId("output")).placement == DockPlacementKind::hidden,
+            "the handler hid Output");
+    window.perform_layout();
+    require((*(*fixture).site).realized_stacks().size() == 3U, "the site shows the three stacks left");
+}
+
 // -- seams --------------------------------------------------------------------
 
 void seam_keyboard_and_pointer() {
@@ -417,7 +496,7 @@ void seam_keyboard_and_pointer() {
             "the left stack's seam is found");
     const std::shared_ptr<PageView> left = site.stack_view(stack_of(workspace, "classes"));
     const double width = (*left).client_rectangle().width;
-    require(site.focus_seam(left_seam) && site.focused_seam() == left_seam, "the seam takes the keyboard");
+    require(site.focus_seam(left_seam) && site.focused_seam() == stxlib::Optional<std::size_t>::of(left_seam), "the seam takes the keyboard");
     require(key(window, PhysicalKey::right), "Right moves the seam");
     window.perform_layout();
     require(near((*left).client_rectangle().width, width + 8.0), "the seam moved 8 units right");
@@ -435,11 +514,11 @@ void seam_keyboard_and_pointer() {
     seams = site.realized_seams();
     std::size_t expected = left_seam;
     while (expected + 1U < seams.size()) {
-        require(key(window, PhysicalKey::tab) && site.focused_seam() == expected + 1U, "Tab steps to the next seam");
+        require(key(window, PhysicalKey::tab) && site.focused_seam() == stxlib::Optional<std::size_t>::of(expected + 1U), "Tab steps to the next seam");
         ++expected;
     }
     static_cast<void>(key(window, PhysicalKey::tab));
-    require(!site.focused_seam().has_value(), "Tab past the last seam leaves the site's seams");
+    require(site.focused_seam().absent(), "Tab past the last seam leaves the site's seams");
 
     // The pointer drags the seam; the solver keeps the right side's minimum.
     window.perform_layout();
@@ -477,8 +556,8 @@ void seam_keyboard_and_pointer() {
     // The semantic seam: a split pane with its value and actions.
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* node = find_node(snapshot.roots, seams[left_seam].stable_id);
-    require(node != nullptr && (*node).role == SemanticRole::split_pane && (*node).numeric_value &&
-                near(*(*node).minimum_value, 120.0),
+    require(node != nullptr && (*node).role == SemanticRole::split_pane && (*node).numeric_value.present() &&
+                near(*(*node).minimum_value.value(), 120.0),
             "the seam publishes a split pane with its value and minimum");
     require(window.perform_semantic_action(seams[left_seam].stable_id, SemanticAction::set_value, "200"),
             "set_value moves the seam");
@@ -942,6 +1021,22 @@ void lifetime_and_refusals() {
         require(second.site() == transient.get(), "the second site binds");
     }
     require(second.site() == nullptr, "a destroyed site unbinds itself");
+    // A second main site replaces the first, which is unbound rather than
+    // left pointing at a workspace that no longer lists it; destroying the
+    // second then leaves the first's (absent) binding alone
+    // (A-gf-controls-04-F1).
+    {
+        std::unique_ptr<DockWorkspace> shared = std::make_unique<DockWorkspace>("shared");
+        std::shared_ptr<DockSite> first = make_control<DockSite>(StableId("first"), *shared);
+        std::shared_ptr<DockSite> replacement = make_control<DockSite>(StableId("replacement"), *shared);
+        require((*shared).site() == replacement.get() && (*first).workspace() == nullptr &&
+                    (*first).realized_stacks().empty(),
+                "a replaced site is unbound and empties");
+        replacement.reset();
+        require((*shared).site() == nullptr, "the replacement unbinds itself when destroyed");
+        shared.reset();
+        require((*first).workspace() == nullptr, "the replaced site never sees the destroyed workspace");
+    }
     // The navigator on its own.
     std::shared_ptr<DockNavigator> navigator = make_control<DockNavigator>(StableId("navigator"));
     bool threw = false;
@@ -950,7 +1045,7 @@ void lifetime_and_refusals() {
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && !(*navigator).current_index(), "an entry without an identity is refused");
+    require(threw && (*navigator).current_index().absent(), "an entry without an identity is refused");
     (*navigator).set_entries({}, {}, DockNavigatorList::documents);
     require(!(*navigator).choose() && !(*navigator).step(1) && !(*navigator).switch_list(),
             "an empty navigator chooses nothing");
@@ -964,7 +1059,7 @@ void lifetime_and_refusals() {
     (*navigator).set_entries({DockNavigatorEntry{DockPanelId("a"), "A"}},
                              {DockNavigatorEntry{DockPanelId("b"), "B"}, DockNavigatorEntry{DockPanelId("c"), "C"}},
                              DockNavigatorList::tools);
-    require((*navigator).current_list() == DockNavigatorList::tools && (*navigator).current_index() == 0U &&
+    require((*navigator).current_list() == DockNavigatorList::tools && (*navigator).current_index() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*navigator).switch_list() && (*navigator).current_list() == DockNavigatorList::documents &&
                 !(*navigator).select(DockNavigatorList::documents, 5U),
             "the navigator selects within its lists");
@@ -1346,9 +1441,43 @@ void load_ends_a_waiting_close() {
 
 } // namespace
 
+void add_panels_docked_only() {
+    SaveJournal journal;
+    PanelFactory factory{journal};
+    DockWorkspace workspace("simple");
+    std::vector<DockPanelRegistration> panels;
+    panels.push_back(tool(factory, "files", "Files", DockSide::left, 0, {100.0, 80.0}));
+    panels.push_back(tool(factory, "log", "Log", DockSide::bottom, 0, {100.0, 60.0}));
+    panels.push_back(document(factory, "page", "Page"));
+    std::vector<DockPanelRegistration> repeated;
+    repeated.push_back(tool(factory, "files", "Files", DockSide::left, 0, {100.0, 80.0}));
+    repeated.push_back(tool(factory, "files", "Again", DockSide::right, 0, {100.0, 80.0}));
+    const DockPanelsAdded refused = workspace.add_panels(std::move(repeated));
+    require(refused.registered == 0U && refused.shown == 0U && workspace.find_registration(DockPanelId("files")) == nullptr,
+            "a list repeating an identity is refused whole");
+    const DockPanelsAdded added = workspace.add_panels(std::move(panels));
+    require(added.registered == 3U && added.shown == 3U, "every panel registers and is placed");
+    require(workspace.layout().locate(DockPanelId("files")).placement == DockPlacementKind::docked &&
+                workspace.layout().locate(DockPanelId("log")).placement == DockPlacementKind::docked,
+            "the tool panels dock at their default edges");
+    require(workspace.active_document().has_value() && (*workspace.active_document()).value == "page",
+            "the document is in the document area and active");
+    std::vector<DockPanelRegistration> again;
+    again.push_back(document(factory, "page", "Page"));
+    require(workspace.add_panels(std::move(again)).registered == 0U, "an identity already registered is refused");
+    // No attach_windows: a site in a headless window realizes the layout.
+    std::shared_ptr<DockSite> site = make_control<DockSite>(StableId("simple.site"), workspace);
+    Window window(site, {640.0, 400.0});
+    window.perform_layout();
+    require(workspace.created_panel_count() == 3U, "the docked-only site creates every shown panel's content");
+}
+
 int main() {
     anatomy_and_parts();
+    add_panels_docked_only();
     lazy_creation();
+    factory_edits_the_layout();
+    activation_handler_edits_the_layout();
     seam_keyboard_and_pointer();
     collapse_by_priority();
     activation_and_commands();

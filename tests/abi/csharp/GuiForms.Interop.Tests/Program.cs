@@ -1,7 +1,7 @@
 // The C# interop against the built library: the generated layout against the
 // manifest, negotiation, an object handle's life, a refusal as an exception,
 // the callback thunks, and a native exception reflected as a NativeException
-// with its frames (C ABI 1.2). A handler that throws is caught by its thunk under
+// with its frames (C ABI 1.2), composite controls (C ABI 1.5). A handler that throws is caught by its thunk under
 // the library's frames, which it snapshots, and the thread's depth is as it
 // was once the call returns (the C kit checks the same balance for C
 // callbacks; tests/shadow_frames_tests.cpp for C++ unwinding).
@@ -96,6 +96,9 @@ internal static unsafe class Program
                        refused.status == Constants.GF_STATUS_INVALID_ARGUMENT,
                    "the refusal carries its status (" + refused.status + ")");
             expect(refused.Message.Length > 0, "the refusal carries the error detail");
+            // A refusal that was no exception has no native type or trace.
+            expect(refused.native_detail == null && !refused.Data.Contains("native_exception_type"),
+                   "a plain refusal carries no native detail");
         }
     }
 
@@ -323,6 +326,22 @@ internal static unsafe class Program
         expect(trace.Contains("NativeFrames.posted_callback") && trace.Contains("NativeFrames.library_call"),
                "the stack trace reads the library's frames as named thunks");
         expect(native.Data["shadow_frames"] is string, "the exception's data carries the frames as text");
+        // S4 (C ABI 1.5): a development build of the library keeps the C++
+        // type and the trace at the throw; a release build keeps neither.
+        FailureDetail? detail = native.native_detail;
+        if (detail != null)
+        {
+            expect(detail.exception_type.Contains("runtime_error") &&
+                       (string?)native.Data["native_exception_type"] == detail.exception_type,
+                   "the native detail names the C++ type (" + detail.exception_type + ")");
+            expect(detail.trace.Length <= (int)Constants.GF_FAILURE_TRACE_CAPACITY,
+                   "the native trace fits its capacity");
+            expect(detail.trace.Length == 0 || native.Data["native_trace"] is string,
+                   "the exception's data carries the trace as text");
+            // Filed directly, never parked: no frames were lost at a park.
+            expect(!detail.frames_lost_at_park && !native.Data.Contains("native_frames_lost_at_park"),
+                   "an unparked failure is not marked as having lost frames at a park");
+        }
         expect(CallbackFailure.take_pending().Length == 0, "a caught native exception leaves no callback failure");
         expect(ShadowStack.depth() == 0u, "no frame is left open after the reflected failure");
     }
@@ -373,6 +392,110 @@ internal static unsafe class Program
         ulong alive = 99u;
         Abi.check(table.close(&alive));
         expect(alive == 0u, "closing with no application counts no window");
+    }
+
+    // A composite control's document: a boolean a command toggles and a
+    // label child bound to a text property.
+    private const string card_document =
+        "<control xmlns=\"urn:gui-forms:control:1\" name=\"csharp-card\" version=\"1.0\" base=\"user-control\" family=\"card\">\n" +
+        "  <property name=\"title\" kind=\"text\" default=\"\" category=\"Appearance\"/>\n" +
+        "  <property name=\"checked\" kind=\"boolean\" default=\"false\" category=\"Behavior\"/>\n" +
+        "  <command name=\"toggle\" enabled=\"enabled(self)\" run=\"toggle(checked)\"/>\n" +
+        "  <part name=\"face\" role=\"face\" box=\"inset(region, 0)\"/>\n" +
+        "  <children>\n" +
+        "    <flex-panel id=\"@header\" dock=\"top\">\n" +
+        "      <label id=\"@title\" text=\"bind(self.title, one_way)\"/>\n" +
+        "    </flex-panel>\n" +
+        "  </children>\n" +
+        "  <focus target=\"none\"/>\n" +
+        "  <semantics role=\"group\" name=\"property(title)\" actions=\"press(toggle)\" children=\"exposed\"/>\n" +
+        "</control>\n";
+
+    // Composite controls (C ABI 1.5): a refused document throws with its
+    // diagnostics, a loaded one makes a control whose command runs and
+    // whose child is found, and the schema table lists it while it is held
+    // and refuses its identity once released; the definition goes before
+    // the control.
+    private static void composites()
+    {
+        bool refused = false;
+        try
+        {
+            using CompositeDefinition wrong = CompositeDefinition.load("csharp-card.control", card_document, "label");
+        }
+        catch (GuiFormsException error)
+        {
+            refused = error.status == Constants.GF_STATUS_INVALID_ARGUMENT;
+        }
+        expect(refused, "a document naming a type not listed is refused");
+        ObjectHandle card;
+        ulong listing = 0;
+        using (CompositeDefinition definition =
+                   CompositeDefinition.load("csharp-card.control", card_document, "flex_panel", "label"))
+        {
+            card = definition.create("csharp.composite.card");
+            // The schema table lists the held definition (provisional 1.5).
+            CompositeSchemaEntry? listed = null;
+            foreach (CompositeSchemaEntry entry in CompositeSchema.list())
+            {
+                if (entry.name == "csharp-card") listed = entry;
+            }
+            expect(listed != null, "the schema lists the loaded composite");
+            if (listed != null)
+            {
+                listing = listed.identity;
+                expect(listed.id == "csharp_card" && listed.version == "1.0" && listed.slot == "",
+                       "the listing carries the registered name, version and no slot");
+                expect(listed.properties.Length == 2 && listed.properties[0].name == "title" &&
+                       listed.properties[1].name == "checked" &&
+                       listed.properties[1].kind == Constants.GF_VALUE_KIND_BOOLEAN,
+                       "the listing carries the declared properties");
+                expect(listed.commands.Length == 1 && listed.commands[0] == "toggle", "the listing carries the command");
+                expect(listed.events.Length == 0, "the document declares no event");
+                bool face = false;
+                foreach (CompositeSchemaPart part in listed.parts)
+                {
+                    if (part.name == "face" && part.role == "face") face = true;
+                }
+                expect(face, "the listing carries the declared part");
+            }
+        }
+        bool removed = false;
+        try
+        {
+            CompositeSchema.find(listing);
+        }
+        catch (GuiFormsException error)
+        {
+            removed = error.status == Constants.GF_STATUS_REMOVED;
+        }
+        expect(removed, "a released definition's listing is refused as removed");
+        using (card)
+        {
+            expect(Composite.perform(card, "toggle"), "the composite's command runs");
+            gf_value got = default;
+            got.struct_size = (uint)sizeof(gf_value);
+            byte* text = stackalloc byte[64];
+            ulong required = 0;
+            fixed (byte* property = "checked"u8)
+            {
+                Abi.check(Abi.properties.get(card.value, Utf8.view(property, 7), &got, text, 64, &required));
+            }
+            expect(got.kind == Constants.GF_VALUE_KIND_BOOLEAN && got.boolean == 1u, "the command toggled the property");
+            using ObjectHandle? title = Composite.child(card, "title");
+            expect(title != null, "the title child is found");
+            expect(Composite.child(card, "nothing") == null, "an unknown local id is not found");
+            bool undeclared = false;
+            try
+            {
+                Composite.perform(card, "explode");
+            }
+            catch (GuiFormsException error)
+            {
+                undeclared = error.status == Constants.GF_STATUS_NOT_FOUND;
+            }
+            expect(undeclared, "an undeclared command throws not found");
+        }
     }
 
     private static int unhandled_raised;
@@ -738,6 +861,339 @@ internal static unsafe class Program
         Abi.check(table.detach(system.value, window.value));
     }
 
+    // GF_TABLE_FONTS through FontFamilies: a name resolves once to a bundled
+    // family's id (a Windows Forms name through the substitution table), the
+    // id reads its name back (Font.FontFamily.Name), and a font carries the
+    // id in its reserved word's low half beside its stack.
+    private static void font_families()
+    {
+        uint selawik = FontFamilies.resolve("Selawik");
+        expect(selawik != 0, "a bundled family has an id");
+        expect(FontFamilies.name(selawik) == "Selawik", "the id reads its name back");
+        expect(FontFamilies.resolve("Segoe UI") == selawik, "a Windows Forms name resolves through the substitutions");
+        uint carlito = FontFamilies.resolve("carlito");
+        expect(carlito != 0 && carlito != selawik && FontFamilies.name(carlito) == "Carlito",
+               "a role's family has its own id and name");
+        uint arimo = FontFamilies.resolve("Arimo");
+        expect(arimo != 0 && FontFamilies.resolve("Arial") == arimo,
+               "a metric match the substitutions name resolves to its bundled family");
+        uint semibold = FontFamilies.resolve("Segoe UI Semibold");
+        expect(semibold != 0 && semibold != selawik && FontFamilies.name(semibold) == "Selawik Semibold",
+               "a substitution finds its family by name before the face it shares");
+        expect(FontFamilies.resolve("Wingdings") == 0, "a name without a bundled family is unmapped");
+        expect(FontFamilies.name(0) == null && FontFamilies.name(200) == null, "no name for zero or an unknown id");
+        gf_font font = default;
+        font.reserved = 0x00050000u;
+        gf_font familied = FontFamilies.with_family(font, selawik);
+        expect(FontFamilies.family_of(familied) == selawik && (familied.reserved >> 16) == 5u,
+               "a font carries its family beside its stack");
+    }
+
+    // A minimal TrueType face that passes the library's load checks: one
+    // empty glyph, a format 4 cmap with only the closing segment, and the
+    // required tables in tag order at 4-byte aligned offsets (as the C
+    // conformance kit's minimal_app_font).
+    private static byte[] minimal_app_font()
+    {
+        string[] tags = { "cmap", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post" };
+        int[] lengths = { 36, 0, 54, 36, 4, 4, 6, 6, 32 };
+        int offset = 12 + 16 * tags.Length;
+        int[] placed = new int[tags.Length];
+        for (int index = 0; index < tags.Length; index++)
+        {
+            placed[index] = offset;
+            offset += (lengths[index] + 3) & ~3;
+        }
+        byte[] font = new byte[offset];
+        void put16(int at, uint value)
+        {
+            font[at] = (byte)(value >> 8);
+            font[at + 1] = (byte)value;
+        }
+        void put32(int at, uint value)
+        {
+            put16(at, value >> 16);
+            put16(at + 2, value & 0xFFFFu);
+        }
+        put32(0, 0x00010000u);
+        put16(4, (uint)tags.Length);
+        for (int index = 0; index < tags.Length; index++)
+        {
+            int record = 12 + 16 * index;
+            for (int character = 0; character < 4; character++)
+            {
+                font[record + character] = (byte)tags[index][character];
+            }
+            put32(record + 8, (uint)placed[index]);
+            put32(record + 12, (uint)lengths[index]);
+        }
+        int cmap = placed[0];
+        put16(cmap + 2, 1u);
+        put16(cmap + 4, 3u);
+        put16(cmap + 6, 1u);
+        put32(cmap + 8, 12u);
+        put16(cmap + 12, 4u);
+        put16(cmap + 14, 24u);
+        put16(cmap + 18, 2u);
+        put16(cmap + 20, 2u);
+        put16(cmap + 26, 0xFFFFu);
+        put16(cmap + 30, 0xFFFFu);
+        put16(cmap + 32, 1u);
+        int head = placed[2];
+        put32(head, 0x00010000u);
+        put32(head + 12, 0x5F0F3CF5u);
+        put16(head + 18, 1000u);
+        int hhea = placed[3];
+        put32(hhea, 0x00010000u);
+        put16(hhea + 4, 800u);
+        put16(hhea + 6, 0xFF38u);
+        put16(hhea + 34, 1u);
+        put16(placed[4], 500u);
+        put32(placed[6], 0x00005000u);
+        put16(placed[6] + 4, 1u);
+        put16(placed[7] + 4, 6u);
+        put32(placed[8], 0x00030000u);
+        return font;
+    }
+
+    // AppFontFamily (C ABI 1.5, provisional): the program's own bytes load as
+    // a family with an id above the bundled ones, a font carries it like a
+    // bundled family, refusals throw with their reason, and disposing the
+    // handle unloads it so the name is free again.
+    private static void app_font_families()
+    {
+        byte[] bytes = minimal_app_font();
+        AppFontFace[] faces = { new AppFontFace(bytes) };
+        uint first;
+        using (AppFontFamily family = AppFontFamily.load("CSharp Application Face", faces))
+        {
+            first = family.id;
+            expect(first >= 256u, "an application family's id is above the bundled ids");
+            gf_font font = FontFamilies.with_family(default, family.id);
+            expect(FontFamilies.family_of(font) == family.id, "a font carries the application family");
+            try
+            {
+                AppFontFamily.load("csharp application face", faces).Dispose();
+                expect(false, "a loaded family's name is taken");
+            }
+            catch (GuiFormsException refused)
+            {
+                expect(refused.status == Constants.GF_STATUS_INVALID_ARGUMENT && refused.Message.Length > 0,
+                       "a taken name is refused with its reason");
+            }
+            try
+            {
+                AppFontFamily.load("CSharp Broken Face", new[] { new AppFontFace(new byte[] { 1, 2, 3, 4 }) }).Dispose();
+                expect(false, "bytes that are not a font are refused");
+            }
+            catch (GuiFormsException refused)
+            {
+                expect(refused.status == Constants.GF_STATUS_INVALID_ARGUMENT, "a face that fails the checks is refused");
+            }
+        }
+        using AppFontFamily again = AppFontFamily.load("CSharp Application Face", faces);
+        expect(again.id != 0u && again.id != first, "a disposed family's name is free and its id is not reused");
+        again.unload();
+        expect(again.id == 0u && !again.unload(), "an unloaded handle holds nothing");
+    }
+
+    // The content table (C ABI 1.4): a content surface's channel from the
+    // caller's own code, a refusal as a result rather than a failed call,
+    // and a content text editor's text.
+    private static void content()
+    {
+        ref readonly gf_content_table table = ref Abi.content;
+        using ObjectHandle surface = ObjectHandle.create("content_surface"u8, "csharp.content.surface"u8);
+        gf_content_sink sink = 0;
+        Abi.check(table.open_content(surface.value, 1u, &sink));
+        expect(sink != 0, "open_content gives a sink");
+        byte[] pixels = new byte[2 * 2 * 4];
+        gf_content_publish_result result = Constants.GF_CONTENT_PUBLISH_REVOKED;
+        fixed (byte* data = pixels)
+        {
+            gf_content_frame frame = default;
+            frame.struct_size = (uint)sizeof(gf_content_frame);
+            frame.pixel_format = Constants.GF_CONTENT_PIXEL_FORMAT_BGRA32_PREMULTIPLIED_SRGB;
+            frame.width = 2u;
+            frame.height = 2u;
+            frame.row_bytes = 8u;
+            frame.opaque = 1u;
+            frame.damage.width = 2u;
+            frame.damage.height = 2u;
+            frame.pixels.data = data;
+            frame.pixels.size = (ulong)pixels.Length;
+            Abi.check(table.sink_publish(sink, &frame, &result));
+            expect(result == Constants.GF_CONTENT_PUBLISH_PUBLISHED, "a valid frame is published");
+            frame.height = 0u;
+            Abi.check(table.sink_publish(sink, &frame, &result));
+            expect(result == Constants.GF_CONTENT_PUBLISH_REFUSED_EMPTY, "an empty frame is a refusal");
+        }
+        gf_content_statistics statistics = default;
+        statistics.struct_size = (uint)sizeof(gf_content_statistics);
+        Abi.check(table.statistics(surface.value, &statistics));
+        expect(statistics.frames_published == 1 && statistics.frames_refused == 1,
+               "the statistics count the frame and the refusal");
+        Abi.check(table.sink_release(sink));
+        expect(table.sink_release(sink) == Constants.GF_STATUS_STALE_HANDLE, "a released sink is stale");
+        Abi.check(table.close_content(surface.value));
+
+        using ObjectHandle editor = ObjectHandle.create("content_text_editor"u8, "csharp.content.editor"u8);
+        byte[] text = Encoding.UTF8.GetBytes("caf\u00e9");
+        fixed (byte* data = text)
+        {
+            Abi.check(table.editor_set_text(editor.value, Utf8.view(data, text.Length)));
+        }
+        byte[] read = new byte[16];
+        ulong required = 0;
+        fixed (byte* buffer = read)
+        {
+            Abi.check(table.editor_text(editor.value, buffer, (ulong)read.Length, &required));
+        }
+        expect(Encoding.UTF8.GetString(read, 0, checked((int)required)) == "caf\u00e9", "the editor's text reads back");
+        expect(table.open_content(editor.value, 0u, &sink) == Constants.GF_STATUS_WRONG_HANDLE_KIND,
+               "an editor is not a content surface");
+
+        // The provisional editor slots: Tab, an edit at the selection and
+        // the composition (none open).
+        Abi.check(table.editor_set_accepts_tab(editor.value, 1u));
+        uint applied = 0u;
+        fixed (byte* bang = "!"u8)
+        {
+            Abi.check(table.editor_replace_selection(editor.value, Utf8.view(bang, 1), &applied));
+        }
+        expect(applied == 1u, "replace_selection inserts at the caret");
+        uint composing = 9u;
+        ulong marked_start = 0;
+        ulong marked_end = 0;
+        Abi.check(table.editor_composition_range(editor.value, &composing, &marked_start, &marked_end));
+        expect(composing == 0u, "no composition is open");
+        Abi.check(table.editor_delete_selection(editor.value, &applied));
+        expect(applied == 0u, "an empty selection deletes nothing");
+    }
+
+    // GF_TABLE_LIST_VIEW (since 1.5) from C#: one column and two items
+    // through the table, read back, and the header style as a property.
+    private static void list_view_items()
+    {
+        Abi.check(Exports.get_list_view_table(out gf_list_view_table table));
+        expect(table.struct_size >= (uint)sizeof(gf_list_view_table), "the list view table is served whole");
+        using ObjectHandle view = ObjectHandle.create("list_view"u8, "csharp.list"u8);
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(view.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+
+        fixed (byte* column_id = "name"u8)
+        fixed (byte* column_text = "Name"u8)
+        fixed (byte* first_id = "first"u8)
+        fixed (byte* first_text = "First"u8)
+        fixed (byte* second_id = "second"u8)
+        fixed (byte* second_text = "Second"u8)
+        {
+            gf_list_view_column column = default;
+            column.struct_size = (uint)sizeof(gf_list_view_column);
+            column.stable_id = Utf8.view(column_id, 4);
+            column.text = Utf8.view(column_text, 4);
+            Abi.check(table.set_columns(view.value, &column, 1u));
+            gf_list_view_item* items = stackalloc gf_list_view_item[2];
+            items[0] = default;
+            items[0].struct_size = (uint)sizeof(gf_list_view_item);
+            items[0].stable_id = Utf8.view(first_id, 5);
+            items[0].text = Utf8.view(first_text, 5);
+            items[1] = items[0];
+            items[1].stable_id = Utf8.view(second_id, 6);
+            items[1].text = Utf8.view(second_text, 6);
+            items[1].@checked = 1u;
+            Abi.check(table.set_items(view.value, items, 2u));
+        }
+        ulong count = 0;
+        Abi.check(table.item_count(view.value, &count));
+        expect(count == 2u, "two items were set from C#");
+        byte[] text = new byte[64];
+        gf_list_view_item read = default;
+        read.struct_size = (uint)sizeof(gf_list_view_item);
+        ulong required = 0;
+        fixed (byte* text_data = text)
+        {
+            Abi.check(table.item_at(view.value, 1u, &read, text_data, (ulong)text.Length, &required));
+        }
+        expect(read.@checked == 1u && read.text.size == 6u && required == 12u, "the second item reads back checked");
+
+        gf_value style = default;
+        style.struct_size = (uint)sizeof(gf_value);
+        style.kind = Constants.GF_VALUE_KIND_ENUMERATION;
+        style.signed_integer = 2;
+        fixed (byte* property = "header_style"u8)
+        {
+            Abi.check(Abi.properties.set(view.value, Utf8.view(property, 12), &style));
+        }
+        Abi.check(table.set_selected(view.value, 0u, 1u));
+        ulong* selected = stackalloc ulong[2];
+        Abi.check(table.selected_items(view.value, selected, 2u, &count));
+        expect(count == 1u && selected[0] == 0u, "the first item is selected from C#");
+    }
+
+    // A fixed-size array field (gf_abi.h, "Event fields", since 1.5) as the
+    // library lends one, a plot's camera target: COLLECTION, three NUMBER
+    // records in place. EventFields reads it by name; a wrong count, a wrong
+    // element kind and an ordinary collection (no elements in place) are
+    // refused with the output untouched.
+    private static void event_field_arrays()
+    {
+        gf_value* elements = stackalloc gf_value[3];
+        for (int index = 0; index < 3; ++index)
+        {
+            elements[index] = default;
+            elements[index].struct_size = (uint)sizeof(gf_value);
+            elements[index].kind = Constants.GF_VALUE_KIND_NUMBER;
+            elements[index].number = 0.25 * (index + 1);
+        }
+        gf_value target = default;
+        target.struct_size = (uint)sizeof(gf_value);
+        target.kind = Constants.GF_VALUE_KIND_COLLECTION;
+        target.unsigned_integer = 3u;
+        target.elements = elements;
+        target.element_count = 3u;
+        gf_value ordinary = default;
+        ordinary.struct_size = (uint)sizeof(gf_value);
+        ordinary.kind = Constants.GF_VALUE_KIND_COLLECTION;
+        ordinary.unsigned_integer = 2u;
+        gf_event_field* fields = stackalloc gf_event_field[2];
+        fixed (byte* target_name = "target"u8)
+        fixed (byte* previous_name = "previous"u8)
+        {
+            fields[0] = default;
+            fields[0].name = Utf8.view(target_name, 6);
+            fields[0].kind = Constants.GF_VALUE_KIND_COLLECTION;
+            fields[0].value = &target;
+            fields[1] = default;
+            fields[1].name = Utf8.view(previous_name, 8);
+            fields[1].kind = Constants.GF_VALUE_KIND_COLLECTION;
+            fields[1].value = &ordinary;
+            gf_event native = default;
+            native.struct_size = (uint)sizeof(gf_event);
+            native.field_count = 2u;
+            native.fields = fields;
+
+            gf_event_field* found = EventFields.named(&native, "target"u8);
+            expect(found == &fields[0], "a field is found by its name");
+            expect(EventFields.named(&native, "targe"u8) == null, "a prefix of a name is not the field");
+            expect(EventFields.fixed_count(found) == 3, "a fixed-size array field lends its count in place");
+            Span<double> read = stackalloc double[3];
+            expect(EventFields.read_numbers(found, read) && read[0] == 0.25 && read[1] == 0.5 && read[2] == 0.75,
+                   "a fixed-size array's numbers are read in order");
+            Span<double> short_read = stackalloc double[2] { -1.0, -1.0 };
+            expect(!EventFields.read_numbers(found, short_read) && short_read[0] == -1.0,
+                   "a fixed-size array is read only with its own count");
+            gf_event_field* previous = EventFields.named(&native, "previous"u8);
+            expect(EventFields.fixed_count(previous) == -1,
+                   "an ordinary collection lends no elements in place (events.field_element reads them)");
+            elements[1].kind = Constants.GF_VALUE_KIND_SIGNED;
+            Span<double> untouched = stackalloc double[3] { -1.0, -1.0, -1.0 };
+            expect(!EventFields.read_numbers(found, untouched) && untouched[0] == -1.0,
+                   "an element of another kind refuses the read and leaves the output untouched");
+        }
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -756,6 +1212,12 @@ internal static unsafe class Program
         binding_list();
         binding_moves_and_filters();
         help_language_files();
+        font_families();
+        app_font_families();
+        content();
+        list_view_items();
+        event_field_arrays();
+        composites();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

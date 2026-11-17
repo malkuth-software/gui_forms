@@ -2,7 +2,7 @@
 
 // Stage F's metrics differential (notes:planning/stages/F-font-substitution). It
 // measures a reference face and a candidate substitute with the bundled
-// HarfBuzz/FreeType engine and compares the two under the tolerance of the
+// text engine (STXlib's font reader and shaper) and compares the two under the tolerance of the
 // mapping's class (owner decisions 8 and 9 of 2026-10-23). GDI's measurements
 // of the same faces are optional information for stages R and S, never part
 // of the gate. Reference fonts are oracles: the tool reads them by path and
@@ -212,7 +212,7 @@ inline constexpr double compatible_line_height_tolerance_px = 1.0;
 [[nodiscard]] Corpus parse_corpus(std::string_view bytes);
 
 // Validates the sfnt table directory and the tables the measurement reads,
-// before any FreeType call. Throws InputRejected.
+// before the font reader opens the face. Throws InputRejected.
 void validate_face_bytes(std::span<const std::byte> encoded);
 
 // Lowercase hexadecimal SHA-256 of bytes.

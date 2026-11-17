@@ -3,7 +3,7 @@
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <string.h>
 
 /* The run's state, shared by its callbacks. order records them in turn:

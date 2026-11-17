@@ -1,0 +1,160 @@
+{
+  "family": "FormLayout",
+  "step": "cp32",
+  "declaring": "FormLayout",
+  "header": "include/gui_forms/controls/form_layout.hpp",
+  "source": "src/controls/panel/form_layout/form_layout.cpp",
+  "capabilities_header": "include/gui_forms/controls/form_layout_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/label_values.hpp"
+  ],
+  "properties": [
+    {
+      "name": "caption_width",
+      "capability": "FormLayoutCaptionWidth",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).",
+      "getter": "caption_width",
+      "setter": "set_caption_width",
+      "clear": null,
+      "field": "caption_width_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The caption column's width in logical units, or 0 for the widest caption's.",
+        "default": "BindingValue{0.0}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 4096.0) {",
+        "    throw std::invalid_argument(\"FormLayout caption width must be within [0, 4096]\");",
+        "}"
+      ],
+      "sample": "120.0"
+    },
+    {
+      "name": "caption_alignment",
+      "capability": "FormLayoutCaptionAlignment",
+      "value": "HorizontalAlignment",
+      "initial": "HorizontalAlignment::start",
+      "comment": "Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).",
+      "getter": "caption_alignment",
+      "setter": "set_caption_alignment",
+      "clear": null,
+      "field": "caption_alignment_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Layout",
+        "description": "Where each caption sits in the caption column: start, center or end.",
+        "default": "BindingValue{PropertyEnumValue{\"horizontal_alignment\", \"start\", 0}}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "label_detail::horizontal_alignment_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written aligns every caption and repaints"
+      ],
+      "sample": "HorizontalAlignment::end"
+    },
+    {
+      "name": "row_spacing",
+      "capability": "FormLayoutRowSpacing",
+      "value": "double",
+      "initial": "6.0",
+      "comment": "The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).",
+      "getter": "row_spacing",
+      "setter": "set_row_spacing",
+      "clear": null,
+      "field": "row_spacing_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The space between rows in logical units.",
+        "default": "BindingValue{6.0}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) {",
+        "    throw std::invalid_argument(\"FormLayout row spacing must be within [0, 256]\");",
+        "}"
+      ],
+      "sample": "10.0"
+    },
+    {
+      "name": "column_spacing",
+      "capability": "FormLayoutColumnSpacing",
+      "value": "double",
+      "initial": "8.0",
+      "comment": "The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).",
+      "getter": "column_spacing",
+      "setter": "set_column_spacing",
+      "clear": null,
+      "field": "column_spacing_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Layout",
+        "description": "The space between the caption column and the controls in logical units.",
+        "default": "BindingValue{8.0}",
+        "effects": "invalidation::bounds",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) {",
+        "    throw std::invalid_argument(\"FormLayout column spacing must be within [0, 256]\");",
+        "}"
+      ],
+      "sample": "12.0"
+    }
+  ],
+  "test": {
+    "type": "FormLayout",
+    "include": "gui_forms/controls/form_layout.hpp"
+  }
+}

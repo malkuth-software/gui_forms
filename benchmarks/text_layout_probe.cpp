@@ -40,7 +40,7 @@ std::vector<std::byte> read_font(const std::filesystem::path& path) {
 
 std::size_t register_fonts(HarfBuzzFontEngine& engine, const std::filesystem::path& root) {
     const std::array<const char*, 4> names{
-        "Carlito-Regular.ttf", "NotoSansArabic-Regular.ttf",
+        "Carlito-Regular.ttf", "NotoSansArabic-Minimal.ttf",
         "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     std::size_t encoded_capacity = 0;
     for (std::size_t index = 0; index < names.size(); ++index) {
@@ -119,7 +119,7 @@ double elapsed_ms(Clock::time_point start, Clock::time_point end) {
 // native object representations. Hex floats preserve finite values and -0.
 void write_font_manifest(const std::filesystem::path& root) {
     constexpr std::array<const char*, 4> names{
-        "Carlito-Regular.ttf", "NotoSansArabic-Regular.ttf",
+        "Carlito-Regular.ttf", "NotoSansArabic-Minimal.ttf",
         "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     constexpr char digits[] = "0123456789abcdef";
     const std::size_t face_count = names.size();
@@ -239,9 +239,9 @@ void measure(const std::filesystem::path& fonts, std::string_view name, const st
     std::cout.flush();
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
     const double sample_divisor = static_cast<double>(samples);
-    const std::array<const char*, 10> phase_names{
+    const std::array<const char*, 9> phase_names{
         "store_graphemes", "fallback", "bidi", "intersections", "append_total",
-        "ft_size", "hb_font", "buffer_setup", "hb_shape", "glyph_output"};
+        "shaper_open", "buffer_setup", "shape", "glyph_output"};
     static_assert(phase_names.size() == static_cast<std::size_t>(TextLayoutPhase::count));
     for (std::size_t phase = 0; phase < phase_count; ++phase) {
         const double nanoseconds = static_cast<double>(phase_totals.nanoseconds[phase]);

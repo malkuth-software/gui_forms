@@ -2,6 +2,9 @@
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
+#include "../support/frame_wake.hpp"
+
+using gui_forms::test_support::armed_wake;
 
 namespace gallery_pages_tests {
 
@@ -29,10 +32,10 @@ void test_animation_laboratory(gui_forms::Window& window) {
     // themselves (ADR-016).
     require(retained_progress_phase > 0.0,
             "gallery progress must advance its retained phase");
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "visible animation page must publish a retained frame deadline");
     click(window, window.find("gallery.animation.reduced"));
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 (*animated_progress).animation_phase() == retained_progress_phase &&
                 has_semantic_state((*animated_progress).semantic_descriptor().states,
                                    SemanticState::busy),
@@ -55,7 +58,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
     // Focus moving to the pause button scrolls the page to reveal it, a
     // glide on the window's motion clock; let it finish first.
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + std::chrono::seconds(1)));
-    require(!window.next_wake().has_value() &&
+    require(window.next_wake().absent() &&
                 (*pause_button).text.read() == "Resume motion",
             "pausing under reduced motion must quiesce its frame lease");
     const std::vector<Rect> paused_reduced_geometry = paint_fill_trace(easing);
@@ -64,25 +67,25 @@ void test_animation_laboratory(gui_forms::Window& window) {
     require(paint_fill_trace(easing) == paused_reduced_geometry,
             "paused reduced motion must retain stable geometry without wakeups");
     click(window, window.find("gallery.animation.pause"));
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 paint_fill_trace(easing) == paused_reduced_geometry &&
                 (*animated_progress).animation_phase() == reduced_progress_phase &&
                 (*pause_button).text.read() == "Pause motion",
             "one resume action under reduced motion must restore calm animation");
     click(window, window.find("gallery.animation.reduced"));
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 (*animated_progress).animation_phase() == reduced_progress_phase,
             "leaving reduced motion must preserve phase while restoring full cadence");
     click(window, window.find("gallery.status.live"));
-    require(!window.next_wake().has_value() && !(*pause_button).enabled.read() &&
+    require(window.next_wake().absent() && !(*pause_button).enabled.read() &&
                 (*pause_button).text.read() == "Motion disabled",
             "global live-off must quiesce motion and disable the page command");
     click(window, window.find("gallery.animation.reduced"));
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "changing substitution while globally stopped must not restart motion");
     const std::vector<Rect> disabled_reduced_geometry = paint_fill_trace(easing);
     click(window, window.find("gallery.status.live"));
-    require(window.next_wake().has_value() && (*pause_button).enabled.read() &&
+    require(window.next_wake().present() && (*pause_button).enabled.read() &&
                 (*pause_button).text.read() == "Pause motion" &&
                 paint_fill_trace(easing) == disabled_reduced_geometry,
             "one global live-on action must restore the retained reduced animation policy");
@@ -91,40 +94,40 @@ void test_animation_laboratory(gui_forms::Window& window) {
     // replace the animation timer, poll its first deadline, and require
     // the rendered marker geometry to advance each time.
     click(window, window.find("gallery.animation.reduced"));
-    require(window.next_wake().has_value(),
+    require(window.next_wake().present(),
             "leaving the reduced policy must arm exactly one continuous lease");
     for (std::size_t cycle = 0U; cycle < 8U; ++cycle) {
         click(window, window.find("gallery.animation.pause"));
-        require(!window.next_wake().has_value() &&
+        require(window.next_wake().absent() &&
                     (*pause_button).text.read() == "Resume motion",
                 "every pause cycle must quiesce and publish one coherent command");
         const std::vector<Rect> before = paint_fill_trace(easing);
         click(window, window.find("gallery.animation.pause"));
-        require(window.next_wake().has_value() &&
+        require(window.next_wake().present() &&
                     (*pause_button).text.read() == "Pause motion",
                 "every resume cycle must replace the lease and publish one command");
-        const FrameTime due = *window.next_wake();
+        const FrameTime due = armed_wake(window);
         const FramePollResult frame = window.poll_frame_schedule(due);
         const std::vector<Rect> after = paint_fill_trace(easing);
         require(frame.ui_timer_ticks >= 1U && before != after,
                 "a resumed deadline must advance visible easing geometry");
     }
     click(window, window.find("gallery.animation.pause"));
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "the repeated-toggle fixture must reach a quiescent paused state");
     click(window, window.find("gallery.status.live"));
     require(!(*pause_button).enabled.read() && (*pause_button).text.read() == "Motion disabled",
             "the master gate must replace a paused command with one disabled state");
     click(window, window.find("gallery.status.live"));
-    require(!window.next_wake().has_value() && (*pause_button).enabled.read() &&
+    require(window.next_wake().absent() && (*pause_button).enabled.read() &&
                 (*pause_button).text.read() == "Resume motion",
             "the master gate must preserve the orthogonal page-local pause latch");
     click(window, window.find("gallery.animation.pause"));
-    require(window.next_wake().has_value() &&
+    require(window.next_wake().present() &&
                 (*pause_button).text.read() == "Pause motion",
             "one explicit resume after a master-gate cycle must restore motion");
     click(window, window.find("gallery.animation.pause"));
-    require(!window.next_wake().has_value(),
+    require(window.next_wake().absent(),
             "the repeated-toggle fixture must end in a quiescent paused state");
 }
 

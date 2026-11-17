@@ -12,9 +12,11 @@
 
 #include "gui_forms/instrument_controls.hpp"
 #include "gui_forms/plot_controls.hpp"
+#include "gui_forms/plots/colormap/colormap.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "support/frame_wake.hpp"
 
 #include <array>
 #include <chrono>
@@ -32,9 +34,12 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
 #ifdef _WIN32
 #include <malloc.h>
 #endif
+
+using gui_forms::test_support::armed_wake;
 
 // Counts allocation attempts and bytes on this thread while enabled (the
 // PageStrip probe's pattern, tests/page_strip_tests.cpp). Replacement
@@ -207,6 +212,14 @@ public:
     void draw_markers(std::span<const Point> centers, const MarkerStyle&) override {
         markers = markers + centers.size();
     }
+    void fill_rects(std::span<const Rect> rects, Color) override {
+        rect_batches = rect_batches + 1;
+        rects_drawn = rects_drawn + rects.size();
+    }
+    void fill_rects_each(std::span<const Rect> rects, std::span<const Color>) override {
+        rect_batches = rect_batches + 1;
+        rects_drawn = rects_drawn + rects.size();
+    }
 
     int saves{};
     int restores{};
@@ -214,6 +227,8 @@ public:
     std::size_t polyline_points{};
     int bands{};
     std::size_t markers{};
+    int rect_batches{};
+    std::size_t rects_drawn{};
 };
 
 // Records the plot's events.
@@ -357,9 +372,9 @@ void test_series_item() {
     } catch (const std::invalid_argument&) {
         threw = true;
     }
-    require(threw && !(*series).signal().has_value(), "a source that does not parse is refused");
+    require(threw && (*series).signal().absent(), "a source that does not parse is refused");
     (*series).source = std::string("signal(sine, frequency 2Hz)");
-    require((*series).signal().has_value(), "a parsed source sets the signal program");
+    require((*series).signal().present(), "a parsed source sets the signal program");
     const std::array<double, 2> unequal{1.0, 2.0};
     threw = false;
     try {
@@ -379,6 +394,18 @@ void test_layout_and_auto_fit() {
     require((*fixed.plot).x_range(0U) == (plots::PlotRange{0.0, 10.0}) &&
                 (*fixed.plot).y_range(0U) == (plots::PlotRange{-1.0, 1.0}),
             "the view is the axis items' ranges");
+    // A-gf-controls-10-F7: an axis item replaced by a new one with as many writes is still a
+    // change, though the new item may be allocated where the old one was.
+    const RuntimeId old_x = (*fixed.x_axis).runtime_id();
+    static_cast<void>((*fixed.plot).remove_child(old_x));
+    fixed.x_axis.reset();
+    std::shared_ptr<PlotAxisItem> replacement = make_control<PlotAxisItem>(StableId("plot.fixed.x2"));
+    (*replacement).minimum = 0.0;
+    (*replacement).maximum = 20.0;
+    (*replacement).auto_fit = false;
+    (*fixed.plot).insert_child(replacement, 2U);
+    window.perform_layout();
+    require((*fixed.plot).x_range(0U) == (plots::PlotRange{0.0, 20.0}), "a replaced axis item's range is taken");
 
     Fixture fitted = make_plot("plot.fitted", true);
     Window fitted_window(fitted.plot, {400.0, 300.0});
@@ -474,9 +501,30 @@ void test_keyboard_cursor() {
     home.physical_key = PhysicalKey::home;
     static_cast<void>(window.dispatch_key(home));
     require(recorder.views == 2, "Home fits and raises view_changed");
-    const std::optional<PlotPointPick> at = (*fixture.plot).cursor();
-    require(at.has_value() && (*at).element == 10U && near((*at).y, 1.0), "the cursor names its point");
+    const stxlib::Optional<PlotPointPick> at_found = (*fixture.plot).cursor();
+    const PlotPointPick* const at = at_found.value();
+    require(at != nullptr && (*at).element == 10U && near((*at).y, 1.0), "the cursor names its point");
     require((*fixture.plot).semantic_descriptor().value == "10, 1", "the figure's value is the cursor's point");
+
+    // A-gf-controls-10-F2: a cursor on a series that was removed is dropped
+    // at the next arrow, which places it afresh on the first point.
+    std::shared_ptr<PlotSeriesItem> second = make_control<PlotSeriesItem>(StableId("plot.keys.second"));
+    std::array<double, 3> second_xs{1.0, 2.0, 3.0};
+    std::array<double, 3> second_ys{0.1, 0.2, 0.3};
+    (*second).set_points(second_xs, second_ys);
+    (*fixture.plot).add_child(second);
+    window.perform_layout();
+    KeyEvent down{};
+    down.physical_key = PhysicalKey::down;
+    static_cast<void>(window.dispatch_key(down));
+    require(recorder.last_pick.series == 1U, "Down moves the cursor to the second series");
+    const Control::Ptr removed = (*fixture.plot).remove_child((*second).runtime_id());
+    window.perform_layout();
+    const int picks_before = recorder.picks;
+    require(window.dispatch_key(right) && recorder.picks == picks_before + 1 && recorder.last_pick.series == 0U &&
+                recorder.last_pick.element == 0U,
+            "after its series is removed, an arrow places the cursor afresh on the first point");
+    static_cast<void>(removed);
 }
 
 void test_ranges_and_legend() {
@@ -642,14 +690,14 @@ void test_signal_runs_on_motion_clock() {
     MotionClock& clock = window.motion_clock();
     RecordingPainter first;
     (*fixture.plot).on_paint(first, Rect{0.0, 0.0, 400.0, 300.0});
-    require(clock.control_ambient(*fixture.plot) && window.next_wake().has_value(),
+    require(clock.control_ambient(*fixture.plot) && window.next_wake().present(),
             "a plot with a signal is enlisted on the motion clock");
     const std::uint64_t before = (*fixture.series).revision();
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     RecordingPainter second;
     (*fixture.plot).on_paint(second, Rect{0.0, 0.0, 400.0, 300.0});
-    require(window.next_wake().has_value(), "the plot stays enlisted while drawn");
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake() + std::chrono::milliseconds(50)));
+    require(window.next_wake().present(), "the plot stays enlisted while drawn");
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window) + std::chrono::milliseconds(50)));
     require((*fixture.plot).frames_run() >= 1U, "the plot runs frames");
     require((*fixture.series).revision() > before, "the signal writes samples into the series");
     (*fixture.series).source = std::string();
@@ -658,12 +706,194 @@ void test_signal_runs_on_motion_clock() {
     require(!clock.control_ambient(*fixture.plot), "without a producer the plot leaves the clock");
 }
 
+// A plot that is not painted between two frames leaves the motion clock;
+// a paint enlists it again (hidden tabs stop the clock).
+void test_unpainted_plot_leaves_motion_clock() {
+    Fixture fixture = make_plot("plot.hidden", false);
+    (*fixture.series).source = std::string("signal(sine, frequency 2Hz)");
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    RecordingPainter first;
+    (*fixture.plot).on_paint(first, Rect{0.0, 0.0, 400.0, 300.0});
+    require(clock.control_ambient(*fixture.plot), "a painted plot with a signal is enlisted");
+    // No paint from here: after at most one frame the clock finds the plot
+    // unshown and drops it (a few wakes allow for other scheduled work).
+    for (std::size_t wake_index = 0U; wake_index < 4U && clock.control_ambient(*fixture.plot); ++wake_index) {
+        const stxlib::Optional<FrameTime> wake = window.next_wake();
+        if (wake.absent()) break;
+        static_cast<void>(window.poll_frame_schedule(*wake.value() + std::chrono::milliseconds(50)));
+    }
+    const std::uint64_t frames = (*fixture.plot).frames_run();
+    require(frames <= 1U, "an unpainted plot runs at most the frame after its paint");
+    require(!clock.control_ambient(*fixture.plot), "an unpainted plot leaves the clock");
+    RecordingPainter again;
+    (*fixture.plot).on_paint(again, Rect{0.0, 0.0, 400.0, 300.0});
+    require(clock.control_ambient(*fixture.plot), "a paint enlists the plot again");
+}
+
+// A PlotLinkGroup shares first-axis ranges: a member's change reaches the
+// others once, and the echoes are ignored.
+void test_link_group() {
+    Fixture first = make_plot("plot.link-a", false);
+    Fixture second = make_plot("plot.link-b", false);
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("plot.links"));
+    (*first.plot).set_requested_bounds(Rect{0.0, 0.0, 400.0, 150.0});
+    (*second.plot).set_requested_bounds(Rect{0.0, 150.0, 400.0, 150.0});
+    (*root).add_child(first.plot);
+    (*root).add_child(second.plot);
+    Window window(root, {400.0, 300.0});
+    window.perform_layout();
+    Recorder recorder{};
+    std::vector<SubscriptionToken> tokens;
+    subscribe(*second.plot, recorder, tokens);
+    PlotLinkGroup group(PlotLinkAxes::x, plots::PlotRange{0.0, 10.0}, plots::PlotRange{-1.0, 1.0});
+    group.add(first.plot);
+    group.add(second.plot);
+    require(group.member_count() == 2U, "both plots joined");
+    bool threw = false;
+    try {
+        group.add(first.plot);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && group.member_count() == 2U, "a plot joins once");
+    const std::uint64_t views_before = static_cast<std::uint64_t>(recorder.views);
+    require((*first.plot).set_x_range(0U, plots::PlotRange{2.0, 5.0}), "the first plot moves");
+    require((*second.plot).x_range(0U) == (plots::PlotRange{2.0, 5.0}), "the linked x range reaches the other plot");
+    require(group.x_link().range() == (plots::PlotRange{2.0, 5.0}), "the link holds the range");
+    require(static_cast<std::uint64_t>(recorder.views) == views_before + 1U && group.echoes() >= 1U,
+            "the other plot raises view_changed once, which the group ignores");
+    require((*second.plot).y_range(0U) == (plots::PlotRange{-1.0, 1.0}), "y is not linked");
+    require((*second.plot).set_y_range(0U, plots::PlotRange{0.0, 0.5}) &&
+                (*first.plot).y_range(0U) == (plots::PlotRange{-1.0, 1.0}),
+            "an unlinked axis stays apart");
+    group.set_axes(PlotLinkAxes::both);
+    require((*first.plot).y_range(0U) == group.y_link().range() &&
+                (*second.plot).y_range(0U) == group.y_link().range(),
+            "linking y gives every member the y link's range");
+
+    // A-gf-controls-10-F5: a member disposed while still held is skipped, so
+    // a pan on another member neither throws nor leaves the group stuck in
+    // its propagating state.
+    Fixture third = make_plot("plot.link-c", false);
+    group.add(third.plot);
+    (*third.plot).dispose();
+    bool propagation_threw = false;
+    try {
+        static_cast<void>((*first.plot).set_x_range(0U, plots::PlotRange{1.0, 4.0}));
+    } catch (const std::exception&) {
+        propagation_threw = true;
+    }
+    require(!propagation_threw && (*second.plot).x_range(0U) == (plots::PlotRange{1.0, 4.0}),
+            "a disposed member is skipped and the others still follow");
+    require((*second.plot).set_x_range(0U, plots::PlotRange{3.0, 6.0}) &&
+                (*first.plot).x_range(0U) == (plots::PlotRange{3.0, 6.0}),
+            "the group keeps linking after skipping a disposed member");
+    Fixture fourth = make_plot("plot.link-d", false);
+    (*fourth.plot).dispose();
+    bool disposed_refused = false;
+    try {
+        group.add(fourth.plot);
+    } catch (const std::invalid_argument&) {
+        disposed_refused = true;
+    }
+    require(disposed_refused && group.member_count() == 3U, "a disposed plot cannot join a group");
+}
+
+// resolve_plot_palette and plot_series_color give a custom kind PlotView's
+// colours.
+void test_plot_palette() {
+    Fixture fixture = make_plot("plot.palette", false);
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    const PlotPalette palette = resolve_plot_palette(*fixture.plot);
+    require(palette.grid_major.alpha == 96U && palette.grid_minor.alpha == 40U, "the grid takes reduced alphas");
+    require(palette.grid_major.red == palette.axis.red && palette.grid_major.green == palette.axis.green &&
+                palette.grid_major.blue == palette.axis.blue,
+            "grid and axis share the rule colour");
+    require(palette.selection_edge.red == palette.selection_fill.red && palette.selection_fill.alpha == 48U,
+            "the selection fill is its edge at low alpha");
+    const Color first_series = plot_series_color(*fixture.plot, 0U);
+    require(first_series.alpha == 255U && !(first_series == plot_series_color(*fixture.plot, 1U)),
+            "series colours are opaque and differ by position");
+    require(resolve_plot_palette(*fixture.plot) == palette, "resolving reads only");
+    // The flame graph demonstrator's F7: a category's accent is the series
+    // colour at its position, the same for the same name.
+    const std::uint64_t key = plots::category_key("parse_header");
+    require(plot_category_color(*fixture.plot, key) ==
+                plot_series_color(*fixture.plot, plots::category_position(key, 256U)),
+            "a category takes the series colour at its position");
+    require(plot_category_color(*fixture.plot, key) == plot_category_color(*fixture.plot, plots::category_key("parse_header")),
+            "equal names share a colour");
+}
+
+// A custom kind gets PlotView's frame: it fits, paints through the plot's
+// mark painter and picks; the stock heatmap and histogram are custom kinds.
+void test_custom_series() {
+    Fixture fixture = make_plot("plot.custom", true);
+    const std::shared_ptr<PlotHistogramSeries> histogram = std::make_shared<PlotHistogramSeries>();
+    const std::array<double, 7> samples{0.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0};
+    (*histogram).set_samples(samples, 4U);
+    require((*histogram).counts().size() == 4U && (*histogram).counts()[0] == 1U && (*histogram).counts()[1] == 2U &&
+                (*histogram).counts()[2] == 3U && (*histogram).counts()[3] == 1U,
+            "the histogram bins its samples over their extent");
+    (*fixture.series).set_custom(histogram);
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    (*fixture.plot).fit_view();
+    require((*fixture.plot).x_range(0U).minimum <= 0.0 && (*fixture.plot).x_range(0U).maximum >= 4.0,
+            "the plot fits to the custom extent");
+    RecordingPainter painter;
+    (*fixture.plot).on_paint(painter, Rect{0.0, 0.0, 400.0, 300.0});
+    require(painter.rect_batches >= 1 && painter.polylines == 0, "the histogram draws bars, not the item's line");
+    require(painter.saves == painter.restores, "saves balance");
+
+    const std::shared_ptr<PlotHeatmapSeries> heatmap = std::make_shared<PlotHeatmapSeries>();
+    const std::array<double, 6> cells{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    (*heatmap).set_grid(cells, 2U, 3U, plots::PlotRange{0.0, 3.0}, plots::PlotRange{0.0, 2.0});
+    require((*heatmap).domain() == (plots::PlotRange{1.0, 6.0}), "the domain follows the values");
+    bool threw = false;
+    try {
+        (*heatmap).set_grid(cells, 4U, 2U, plots::PlotRange{0.0, 3.0}, plots::PlotRange{0.0, 2.0});
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && (*heatmap).rows() == 2U, "a mismatched grid is refused, changing nothing");
+    (*fixture.series).set_custom(heatmap);
+    (*fixture.plot).reset_view();
+    window.perform_layout();
+    (*fixture.plot).fit_view();
+    RecordingPainter heat;
+    (*fixture.plot).on_paint(heat, Rect{0.0, 0.0, 400.0, 300.0});
+    require(heat.rects_drawn >= 6U, "the heatmap draws a rectangle per cell");
+    // A pick names the cell under the pointer: row 0 is at the top.
+    plots::Axis x_axis{};
+    x_axis.range = plots::PlotRange{0.0, 3.0};
+    plots::Axis y_axis{};
+    y_axis.range = plots::PlotRange{0.0, 2.0};
+    y_axis.side = plots::AxisSide::left;
+    const plots::PlotTransformResult made = plots::PlotTransform::make(x_axis, y_axis, Rect{0.0, 0.0, 30.0, 20.0}, 1.0);
+    require(made.check == plots::PlotTransformCheck::valid, "the test transform is valid");
+    const plots::PickResult top_left = (*heatmap).pick(Point{5.0, 5.0}, made.transform);
+    require(top_left.found && top_left.element == plots::ElementIndex{0U} && near(top_left.y, 1.0),
+            "the top-left cell is element 0");
+    const plots::PickResult bottom_right = (*heatmap).pick(Point{25.0, 15.0}, made.transform);
+    require(bottom_right.found && bottom_right.element == plots::ElementIndex{5U} && near(bottom_right.y, 6.0),
+            "the bottom-right cell is the last element");
+    (*fixture.series).set_custom(nullptr);
+    RecordingPainter plain;
+    (*fixture.plot).on_paint(plain, Rect{0.0, 0.0, 400.0, 300.0});
+    require(plain.polylines >= 1, "without a custom kind the item's line draws again");
+}
+
 void test_sparkline() {
     std::shared_ptr<Sparkline> line = make_control<Sparkline>(StableId("spark"));
-    require((*line).capacity.read() == 120U && !(*line).latest().has_value(), "a sparkline starts empty");
+    require((*line).capacity.read() == 120U && (*line).latest().absent(), "a sparkline starts empty");
     const std::array<double, 5> values{3.0, 1.0, std::nan(""), 4.0, 2.0};
     (*line).push_values(values);
-    require((*line).latest().has_value() && near(*(*line).latest(), 2.0), "latest is the newest finite value");
+    const stxlib::Optional<double> newest = (*line).latest();
+    require(newest.present() && near(*newest.value(), 2.0), "latest is the newest finite value");
     require((*line).extent() == (plots::PlotRange{1.0, 4.0}), "the extent ignores gaps");
     bool threw = false;
     try {
@@ -691,7 +921,124 @@ void test_sparkline() {
             "the sparkline draws its band, its line and the newest dot");
     const SemanticDescriptor descriptor = (*line).semantic_descriptor();
     require(descriptor.role == SemanticRole::figure && descriptor.value == "2", "the value is the newest one");
+    // A-gf-controls-05-F5: the description is written in the C locale's "%.6g" form.
+    require(descriptor.description == "Trend of 2 values from 2 to 4", "the description names the count and range");
     require(!(*line).hit_test_local(Point{1.0, 1.0}), "a sparkline takes no input");
+}
+
+// Records the handle events.
+struct HandleRecorder final {
+    int moves{};
+    int commits{};
+    PlotHandleMove last_move{};
+    PlotHandleMove last_commit{};
+    void moved(const PlotHandleMove& move) {
+        moves = moves + 1;
+        last_move = move;
+    }
+    void committed(const PlotHandleMove& move) {
+        commits = commits + 1;
+        last_commit = move;
+    }
+};
+
+void drag_pointer(Window& window, Point from, Point to) {
+    PointerEvent down{};
+    down.action = PointerAction::down;
+    down.button = PointerButton::primary;
+    down.position = from;
+    static_cast<void>(window.dispatch_pointer(down));
+    PointerEvent move = down;
+    move.action = PointerAction::move;
+    move.button = PointerButton::none;
+    move.position = Point{(from.x + to.x) * 0.5, (from.y + to.y) * 0.5};
+    static_cast<void>(window.dispatch_pointer(move));
+    move.position = to;
+    static_cast<void>(window.dispatch_pointer(move));
+    PointerEvent up = move;
+    up.action = PointerAction::up;
+    up.button = PointerButton::primary;
+    static_cast<void>(window.dispatch_pointer(up));
+}
+
+void test_handles_drag_on_the_drag_engine() {
+    Fixture fixture = make_plot("plot.handles", false);
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    const plots::PlotRange x = (*fixture.plot).x_range(0U);
+    const plots::PlotRange y = (*fixture.plot).y_range(0U);
+    const double middle_x = x.minimum + x.extent() * 0.5;
+    const double middle_y = y.minimum + y.extent() * 0.5;
+    std::vector<PlotHandle> handles;
+    handles.push_back(PlotHandle{1U, PlotHandleKind::point, middle_x, middle_y, true});
+    handles.push_back(PlotHandle{2U, PlotHandleKind::vertical_line, x.minimum + x.extent() * 0.25, 0.0, true});
+    std::vector<PlotHandle> repeated = handles;
+    repeated.push_back(PlotHandle{1U, PlotHandleKind::point, 0.0, 0.0, true});
+    bool refused = false;
+    try {
+        (*fixture.plot).set_handles(repeated);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*fixture.plot).handles().empty(), "a repeated handle id is refused, changing nothing");
+    (*fixture.plot).set_handles(handles);
+    HandleRecorder recorder{};
+    SubscriptionToken moved = (*fixture.plot).handle_moved().subscribe(
+        Delegate<const PlotHandleMove&>::bind<HandleRecorder, &HandleRecorder::moved>(recorder));
+    SubscriptionToken committed = (*fixture.plot).handle_committed().subscribe(
+        Delegate<const PlotHandleMove&>::bind<HandleRecorder, &HandleRecorder::committed>(recorder));
+    const stxlib::Optional<Point> point_found = (*fixture.plot).handle_point(1U);
+    const Point* const point = point_found.value();
+    require(point != nullptr, "a laid-out plot places its handles");
+    const plots::PlotRange before = (*fixture.plot).x_range(0U);
+    drag_pointer(window, *point, Point{(*point).x + 40.0, (*point).y - 30.0});
+    require(recorder.moves >= 1 && recorder.commits == 1 && recorder.last_commit.id == 1U,
+            "dragging a point raises handle_moved, then handle_committed once");
+    require((*fixture.plot).handles()[0].x > middle_x && (*fixture.plot).handles()[0].y > middle_y,
+            "the point follows the pointer right and up");
+    require((*fixture.plot).x_range(0U) == before, "a handle drag does not pan the plot");
+    const stxlib::Optional<Point> line_found = (*fixture.plot).handle_point(2U);
+    const Point* const line = line_found.value();
+    require(line != nullptr, "the line has a grab point");
+    const double line_y = (*fixture.plot).handles()[1].y;
+    drag_pointer(window, *line, Point{(*line).x + 30.0, (*line).y + 50.0});
+    require(recorder.commits == 2 && (*fixture.plot).handles()[1].x > x.minimum + x.extent() * 0.25 &&
+                (*fixture.plot).handles()[1].y == line_y,
+            "a vertical line moves across x only");
+    require((*fixture.plot).dragged_handle().absent(), "no handle is dragged after the release");
+    moved.disconnect();
+    committed.disconnect();
+}
+
+void test_paint_sparkline_without_control() {
+    const std::array<double, 4> values{1.0, std::nan(""), 3.0, 2.0};
+    plots::SeriesSpans<double> spans{};
+    spans.first = values;
+    SparklineStyle style{};
+    style.line = Color{10U, 20U, 30U, 255U};
+    SparklineWorkspace workspace{};
+    RecordingPainter painter;
+    paint_sparkline(painter, Rect{0.0, 0.0, 60.0, 16.0}, spans, 8U, 1.0, style, workspace);
+    require(painter.polylines >= 1 && painter.bands == 0 && painter.markers == 1U,
+            "paint_sparkline draws the line and the newest dot, no band unless asked");
+    require(painter.saves == painter.restores && workspace.reserved_columns > 0U,
+            "paint_sparkline restores the painter and reserves its workspace");
+    const std::size_t reserved = workspace.reserved_columns;
+    style.fill = true;
+    style.newest_marker_size = 0.0;
+    RecordingPainter filled;
+    paint_sparkline(filled, Rect{0.0, 0.0, 60.0, 16.0}, spans, 8U, 1.0, style, workspace);
+    require(filled.bands == 1 && filled.markers == 0U && workspace.reserved_columns == reserved,
+            "fill shades the band, a zero dot size draws no dot, and the workspace is reused");
+    RecordingPainter refused;
+    paint_sparkline(refused, Rect{0.0, 0.0, 60.0, 16.0}, spans, 3U, 1.0, style, workspace);
+    const std::array<double, 2> gaps{std::nan(""), std::nan("")};
+    plots::SeriesSpans<double> empty{};
+    empty.first = gaps;
+    paint_sparkline(refused, Rect{0.0, 0.0, 60.0, 16.0}, empty, 8U, 1.0, style, workspace);
+    paint_sparkline(refused, Rect{0.0, 0.0, 0.0, 16.0}, spans, 8U, 1.0, style, workspace);
+    require(refused.polylines == 0 && refused.bands == 0 && refused.markers == 0U && refused.saves == 0,
+            "too few slots, no finite value or an empty plot draws nothing");
 }
 
 } // namespace
@@ -708,7 +1055,13 @@ int main() {
     test_live_host();
     test_live_repaint_copies_only_changed_columns();
     test_signal_runs_on_motion_clock();
+    test_unpainted_plot_leaves_motion_clock();
+    test_link_group();
+    test_plot_palette();
+    test_custom_series();
     test_sparkline();
+    test_paint_sparkline_without_control();
+    test_handles_drag_on_the_drag_engine();
     std::cout << "gui_forms_plot_view_tests passed\n";
     return 0;
 }

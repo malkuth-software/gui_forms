@@ -21,15 +21,20 @@
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -38,6 +43,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <memory>
@@ -64,11 +70,99 @@ void require(bool condition, std::string_view message) {
 // Records solid fills, gradients, lines and text runs with their colours and
 // fonts, in paint order. A face a rule's primitive draws arrives as an
 // engine part raster: its centre pixel stands for the fill.
+// A part raster as drawn: where (logical, after the painter's translations),
+// its device extent, and how flat it is. `covered` is the share of its
+// pixels with any alpha; `dominant` the share of the covered pixels in the
+// commonest colour; `rim` the share of the outermost ring's pixels in the
+// ring's commonest colour, when that colour is covered and differs from
+// the commonest one (0 otherwise). A flat fill with an outline has all
+// three near 1; a dithered rise covers a fraction of its pixels.
+struct RasterFace final {
+    Rect bounds{};
+    DeviceExtent extent{};
+    double covered{};
+    double dominant{};
+    double rim{};
+};
+
+std::uint32_t pixel_word(std::span<const std::uint8_t> pixels, std::size_t offset) {
+    const std::uint32_t word = static_cast<std::uint32_t>(pixels[offset]) |
+                               (static_cast<std::uint32_t>(pixels[offset + 1U]) << 8U) |
+                               (static_cast<std::uint32_t>(pixels[offset + 2U]) << 16U) |
+                               (static_cast<std::uint32_t>(pixels[offset + 3U]) << 24U);
+    return word;
+}
+
+// The commonest word in `words` and its count; `words` is sorted here.
+struct Commonest final {
+    std::uint32_t word{};
+    std::size_t count{};
+};
+
+Commonest commonest(std::vector<std::uint32_t>& words) {
+    std::sort(words.begin(), words.end());
+    Commonest best{};
+    std::size_t run = 0U;
+    for (std::size_t index = 0U; index < words.size(); ++index) {
+        run = index > 0U && words[index] == words[index - 1U] ? run + 1U : 1U;
+        if (run > best.count) {
+            best.word = words[index];
+            best.count = run;
+        }
+    }
+    return best;
+}
+
+RasterFace raster_face(const PartRaster& raster, Rect bounds) {
+    RasterFace face{};
+    face.bounds = bounds;
+    face.extent = raster.extent();
+    const std::span<const std::uint8_t> pixels = raster.pixels();
+    const std::size_t row_bytes = raster.row_bytes();
+    std::vector<std::uint32_t> inside;
+    std::vector<std::uint32_t> ring;
+    std::size_t total = 0U;
+    for (std::uint32_t row = 0U; row < face.extent.height; ++row) {
+        for (std::uint32_t column = 0U; column < face.extent.width; ++column) {
+            const std::size_t offset = static_cast<std::size_t>(row) * row_bytes + static_cast<std::size_t>(column) * 4U;
+            const std::uint32_t word = pixel_word(pixels, offset);
+            const bool edge = row == 0U || column == 0U || row + 1U == face.extent.height ||
+                              column + 1U == face.extent.width;
+            ++total;
+            if (edge) {
+                ring.push_back(word);
+            } else if ((word >> 24U) != 0U) {
+                inside.push_back(word);
+            }
+        }
+    }
+    const std::size_t ring_size = ring.size();
+    std::size_t ring_covered = 0U;
+    for (const std::uint32_t word : ring) {
+        if ((word >> 24U) != 0U) ++ring_covered;
+    }
+    const std::size_t inside_covered = inside.size();
+    const Commonest body = commonest(inside);
+    const Commonest edge = commonest(ring);
+    if (total > 0U) face.covered = static_cast<double>(inside_covered + ring_covered) / static_cast<double>(total);
+    if (inside_covered > 0U) face.dominant = static_cast<double>(body.count) / static_cast<double>(inside_covered);
+    const bool outlined = ring_size > 0U && (edge.word >> 24U) != 0U && edge.word != body.word;
+    if (outlined) face.rim = static_cast<double>(edge.count) / static_cast<double>(ring_size);
+    return face;
+}
+
 class LookPainter final : public Painter {
 public:
-    void save() override {}
-    void restore() override {}
-    void translate(Point) override {}
+    void save() override { saved.push_back(offset); }
+    void restore() override {
+        if (saved.empty()) return;
+        offset = saved.back();
+        saved.pop_back();
+    }
+    void translate(Point by) override {
+        offset.x += by.x;
+        offset.y += by.y;
+    }
     void clip_rect(Rect) override {}
     void fill_rect(Rect, Color color) override { fills.push_back(color); }
     void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
@@ -84,17 +178,29 @@ public:
         text_fonts.push_back(font);
     }
     void draw_image(ImageId, Rect, double) override {}
-    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point, double) override {
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double) override {
         if (!raster) return;
         const DeviceExtent extent = (*raster).extent();
         if (extent.width == 0U || extent.height == 0U) return;
-        const std::size_t offset = static_cast<std::size_t>(extent.height / 2U) * (*raster).row_bytes() +
+        const std::size_t middle = static_cast<std::size_t>(extent.height / 2U) * (*raster).row_bytes() +
                                    static_cast<std::size_t>(extent.width / 2U) * 4U;
         const std::span<const std::uint8_t> pixels = (*raster).pixels();
-        fills.push_back(Color::rgba(pixels[offset + 2U], pixels[offset + 1U], pixels[offset], pixels[offset + 3U]));
+        fills.push_back(Color::rgba(pixels[middle + 2U], pixels[middle + 1U], pixels[middle], pixels[middle + 3U]));
+        const double scale = (*raster).scale().value;
+        const Rect bounds{origin.x + offset.x, origin.y + offset.y,
+                          static_cast<double>(extent.width) / scale, static_cast<double>(extent.height) / scale};
+        if (record_faces) faces.push_back(raster_face(*raster, bounds));
     }
-    void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect, double opacity) override {
+    void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect bounds, double opacity) override {
+        if (!raster) return;
+        const DeviceExtent extent = (*raster).extent();
+        if (extent.width == 0U || extent.height == 0U) return;
+        const bool recording = record_faces;
+        record_faces = false;
         draw_part_raster(raster, Point{}, opacity);
+        record_faces = recording;
+        const Rect placed{bounds.x + offset.x, bounds.y + offset.y, bounds.width, bounds.height};
+        if (record_faces) faces.push_back(raster_face(*raster, placed));
     }
 
     [[nodiscard]] bool filled(Color color) const {
@@ -132,6 +238,10 @@ public:
 
     std::vector<Color> fills{};
     std::vector<Color> lines{};
+    std::vector<RasterFace> faces{};
+    bool record_faces{true};
+    Point offset{};
+    std::vector<Point> saved{};
     std::size_t gradients{};
     std::vector<std::string> texts{};
     std::vector<Color> text_colours{};
@@ -265,7 +375,7 @@ void test_theme_metrics() {
         "ribbon::part(tab-label):state(selected) { font-weight: bold; font-size: 1.5em; }\n",
         "the metrics sheet compiles cleanly");
     std::vector<RibbonTabSpec> tabs = two_tabs();
-    tabs[1].width = 63.0;
+    tabs[1].width.set(63.0);
     std::shared_ptr<Ribbon> ribbon = ribbon_with(std::move(tabs));
     (*ribbon).set_theme_override(theme);
     Window window(ribbon, {700.0, 200.0});
@@ -298,7 +408,7 @@ void test_theme_metrics() {
             "the selected tab's label takes its state's larger, bolder font");
     // Selecting the other tab moves neither tab sideways: widths hold the
     // wider of the two fonts.
-    (*ribbon).selected_tab = std::size_t{1U};
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     window.perform_layout();
     const std::vector<Ribbon::Tab> after = (*ribbon).realized_tabs();
     require(after.size() == 2U && near(after[0].parts.tab.bounds.x, home.x) &&
@@ -342,17 +452,17 @@ void test_disabled_tab() {
     const Point view = centre(realized[1].parts.tab.bounds);
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, view}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, view}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U}, "a click on a disabled tab selects nothing");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U), "a click on a disabled tab selects nothing");
     require(!(*ribbon).on_semantic_child_action("ribbon.tab.view", SemanticAction::select, {}) &&
-                (*ribbon).selected_tab.read() == std::size_t{0U},
+                (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U),
             "accessibility cannot select a disabled tab");
     bool refused = false;
     try {
-        (*ribbon).selected_tab = std::size_t{1U};
+        (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(1U);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*ribbon).selected_tab.read() == std::size_t{0U},
+    require(refused && (*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U),
             "the application cannot select a disabled tab");
     const std::vector<SemanticNode> nodes = (*ribbon).semantic_virtual_children();
     require(nodes.size() >= 2U && nodes[1].children.size() == 2U &&
@@ -363,7 +473,7 @@ void test_disabled_tab() {
     std::vector<RibbonTabSpec> first_disabled = two_tabs();
     first_disabled[0].enabled = false;
     std::shared_ptr<Ribbon> other = ribbon_with(std::move(first_disabled));
-    require((*other).selected_tab.read() == std::size_t{1U}, "the selection falls back past a disabled first tab");
+    require((*other).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "the selection falls back past a disabled first tab");
 }
 
 // Defect 7: selection on release, as an option; on the press by default.
@@ -378,25 +488,25 @@ void test_release_activation() {
     const Point view = centre(realized[1].parts.tab.bounds);
     require(!(*ribbon).tabs_activate_on_release.read(), "tabs select on the press by default");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, view}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "by default the press selects");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "by default the press selects");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, view}));
     (*ribbon).tabs_activate_on_release = true;
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, home}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "on release, the press alone selects nothing");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "on release, the press alone selects nothing");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, home}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U}, "the release over the pressed tab selects it");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U), "the release over the pressed tab selects it");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, view}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, home}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U} && !(*ribbon).minimized.read(),
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U) && !(*ribbon).minimized.read(),
             "a release over another tab selects nothing");
 }
 
 // An authored width outside (0, maximum_tab_width] is refused.
 void test_width_refusals() {
     std::vector<RibbonTabSpec> zero = two_tabs();
-    zero[0].width = 0.0;
+    zero[0].width.set(0.0);
     std::vector<RibbonTabSpec> wide = two_tabs();
-    wide[0].width = Ribbon::maximum_tab_width + 1.0;
+    wide[0].width.set(Ribbon::maximum_tab_width + 1.0);
     std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
     bool zero_refused = false;
     try {
@@ -465,8 +575,8 @@ void test_plan_paint_package() {
         "}\n",
         "Plan Paint's package compiles cleanly with the tab capabilities");
     std::vector<RibbonTabSpec> tabs = two_tabs();
-    tabs[0].width = 63.0;
-    tabs[1].width = 100.0;
+    tabs[0].width.set(63.0);
+    tabs[1].width.set(100.0);
     std::shared_ptr<Ribbon> ribbon = ribbon_with(std::move(tabs));
     (*ribbon).set_theme_override(theme);
     Window window(ribbon, {700.0, 200.0});
@@ -507,6 +617,230 @@ void test_default_theme_row() {
             "every tab's shadow falls off beyond its tapered edge");
 }
 
+// Plan Paint's tool tab (finding 2 on its 7c9c931 build): a tab in one
+// application mode with an authored width of 142, relabelled through
+// set_tabs and selected through the selected_tab property, with no class
+// and no variant, is a selected ribbon tab like any other. The theme gives
+// it the folder taper in the selected state, and it paints as the selected
+// folder (its keyline, its label in the selected ink), never under the
+// menu-item family's selection plate (#CFE2FA): its hover layer takes only
+// the states a hover reads, so the plate cannot arrive through the layer's
+// built-in fallback. In the default theme and in Plan Paint's sheet
+// (the tab row of themes/plan-paint/plan-paint.theme.css at f517790).
+constexpr Color selection_plate = Color::rgba(0xcf, 0xe2, 0xfa);
+
+std::vector<RibbonTabSpec> tool_tabs(std::string_view tool_label) {
+    std::vector<RibbonTabSpec> tabs = two_tabs();
+    tabs[0].width.set(61.0);
+    tabs[1].width.set(63.0);
+    RibbonTabSpec tool{.stable_id = "tool-tab", .text = std::string(tool_label)};
+    tool.modes = 1U;
+    tool.width.set(142.0);
+    RibbonGroupSpec settings{.stable_id = "tool-settings", .caption = "Tool settings"};
+    settings.commands.push_back(
+        {.stable_id = "tool-size", .command = std::make_shared<Command>("tool-size", "Size")});
+    tool.groups.push_back(std::move(settings));
+    tabs.push_back(std::move(tool));
+    return tabs;
+}
+
+void check_selected_tool_tab(const std::shared_ptr<const Theme>& theme, std::string_view where) {
+    const std::string name(where);
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(tool_tabs("Tool"));
+    (*ribbon).set_theme_override(theme);
+    (*ribbon).application_modes = 1U;
+    Window window(ribbon, {700.0, 200.0});
+    window.perform_layout();
+    (*ribbon).set_tabs(tool_tabs("Pencil"));
+    (*ribbon).selected_tab = stxlib::Optional<std::size_t>::of(2U);
+    window.perform_layout();
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(2U), name + ": the tool tab is selected");
+    AnatomyStateSet selected;
+    selected.insert(AnatomyState::selected);
+    const ResolvedControlRecipe resolved = (*ribbon).effective_theme().resolve(
+        *ribbon, ControlVisualRole::menu_item, part_visual_context(*ribbon, selected), selected, "tab");
+    require(resolved.recipe().part_metrics.taper > 0.0, name + ": the selected tool tab takes the folder taper");
+    const std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
+    require(realized.size() == 3U && near(realized[2].parts.tab.bounds.width, 142.0),
+            name + ": the tool tab keeps its authored width");
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
+    const std::optional<std::size_t> label = painter.text_index("Pencil");
+    require(label && painter.text_colours[*label] == selected_ink, name + ": the relabelled tab's label is selected");
+    require(painter.lines_in(keyline) >= 3U, name + ": every tab, the selected tool tab too, draws its folder edge");
+    require(!painter.filled_rgb(selection_plate), name + ": no selection plate covers the selected tool tab");
+}
+
+// The owner's steps for the Pencil tab (2026-11-17, on Plan Paint ce06a7a
+// over SDK 31b48906e): select the Pencil tab, then hover that same
+// selected tab. The tab shows flat with a rectangular outline over it,
+// while hovering another selected tab looks right. A probe of those steps
+// in Plan Paint's sheet: the hovered selected tool tab (authored width 142)
+// must paint as the hovered selected Home tab does: never under the
+// menu-item family's hot plate (white to #D5E9FA in #488BC4, the built-in
+// recipe of the tab's hover layer wherever the engine draws no rise) or
+// its selection plate, and with no primitive refused. Unverified: run
+// without a build, so whether it fails before a fix is not known.
+constexpr Color menu_item_hot_plate = Color::rgba(0xd5, 0xe9, 0xfa);
+
+// The test's frame clock: the hover's rise (ribbon_rise, 75 ms) runs on
+// it, so the check can step past it and paint the settled face.
+class ManualTime final : public MotionTimeSource {
+public:
+    [[nodiscard]] FrameTime now() const noexcept override { return time; }
+    FrameTime time{std::chrono::seconds(1000)};
+};
+
+// Whether a drawn raster lies within `tab` (logical, one unit of slack for
+// outsets and taper) and is a flat fill with an outline: nearly every pixel
+// covered, the commonest colour over most of the inside, and a ring of
+// another colour. The owner saw that on the hovered selected Pencil tab at
+// display scale 2 (2026-11-17); the dithered rise covers a fraction of its
+// dots and has no ring.
+bool flat_outlined_face_over(const LookPainter& painter, Rect tab) {
+    for (const RasterFace& face : painter.faces) {
+        const bool within = face.bounds.x >= tab.x - 12.0 && face.bounds.y >= tab.y - 12.0 &&
+                            face.bounds.x + face.bounds.width <= tab.x + tab.width + 12.0 &&
+                            face.bounds.y + face.bounds.height <= tab.y + tab.height + 12.0;
+        const bool large = face.bounds.width >= tab.width * 0.5 && face.bounds.height >= tab.height * 0.5;
+        if (!within || !large) continue;
+        const bool flat = face.covered >= 0.9 && face.dominant >= 0.6 && face.rim >= 0.8;
+        if (flat) {
+            std::cerr << "  flat face " << face.extent.width << "x" << face.extent.height << " covered "
+                      << face.covered << " dominant " << face.dominant << " rim " << face.rim << '\n';
+            return true;
+        }
+    }
+    return false;
+}
+
+// Plan Paint's selected tool tab, clicked and then hovered as the owner
+// does (2026-11-17), at display `scale`, painted once the hover's rise has
+// settled: no menu-item hot plate, no selection plate, no refused
+// primitive or built-in fallback, and no flat outlined face over the tab.
+void check_hovered_selected_tab(const std::shared_ptr<const Theme>& theme, std::size_t tab, double scale,
+                                std::string_view where) {
+    const std::string name = std::string(where) + " at scale " + std::to_string(scale);
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(tool_tabs("Tool"));
+    (*ribbon).set_theme_override(theme);
+    (*ribbon).application_modes = 1U;
+    Window window(ribbon, {700.0, 200.0});
+    ManualTime time{};
+    window.motion_clock().set_time_source(&time);
+    window.set_scale(scale);
+    window.perform_layout();
+    (*ribbon).set_tabs(tool_tabs("Pencil"));
+    window.perform_layout();
+    const std::vector<Ribbon::Tab> before = (*ribbon).realized_tabs();
+    require(before.size() == 3U, name + ": three tabs are realized");
+    if (before.size() != 3U) return;
+    // Select it with a click, as the owner does, then hover it.
+    const Point press = centre(before[tab].parts.tab.bounds);
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, press}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, press}));
+    window.perform_layout();
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(tab), name + ": the click selects the tab");
+    const Rect hovered = (*ribbon).realized_tabs()[tab].parts.tab.bounds;
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, centre(hovered)}));
+    window.perform_layout();
+    // Run 16 ms frames well past the rise, painting what each damages.
+    LookPainter frames;
+    frames.record_faces = false;
+    for (int frame = 0; frame < 40; ++frame) {
+        time.time += std::chrono::milliseconds(16);
+        static_cast<void>(window.poll_frame_schedule(time.time));
+        window.perform_layout();
+        const DamageRegion damage = window.take_damage();
+        if (!damage.empty()) static_cast<void>(window.paint(frames, damage.bounds()));
+    }
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
+    require(!painter.filled_rgb(menu_item_hot_plate), name + ": no menu-item hot plate covers the hovered selected tab");
+    require(!painter.filled_rgb(selection_plate), name + ": no selection plate covers the hovered selected tab");
+    require(!flat_outlined_face_over(painter, hovered), name + ": no flat outlined face covers the hovered selected tab");
+    const MetricsSnapshot metrics = window.metrics_snapshot();
+    require(metrics.engine_primitive_refusals == 0U, name + ": no primitive is refused while the selected tab is hovered");
+    require(metrics.engine_built_in_fallbacks == 0U && metrics.engine_raster_failures == 0U,
+            name + ": every part bakes through its rule, none falls back to the built-in recipe");
+}
+
+void test_selected_tool_tab() {
+    check_selected_tool_tab(gui_forms_theme(), "default theme");
+    const std::shared_ptr<const Theme> plan_paint = theme_from_sheet(
+        "ribbon::part(tab-rail) { background-color: #9bb5d8; height: 27px; }\n"
+        "ribbon::part(tab) {\n"
+        "  background-color: #9bb6da;\n"
+        "  background-image: linear-gradient(to bottom, rgba(34, 70, 116, 0.15) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  border: 0 solid transparent;\n"
+        "  border-top-left-radius: 4px;\n"
+        "  border-top-right-radius: 4px;\n"
+        "  border-bottom-left-radius: 0;\n"
+        "  border-bottom-right-radius: 0;\n"
+        "  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.49);\n"
+        "  gap: -4px;\n"
+        "  margin-top: 3px;\n"
+        "  taper: 4px #496c9f;\n"
+        "  edge-shadow: 9px rgba(24, 56, 97, 0.45);\n"
+        "}\n"
+        "ribbon::part(tab):hover { background-color: #acc6e7; }\n"
+        "ribbon::part(tab):state(selected) {\n"
+        "  background-color: #e8f2ff;\n"
+        "  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.57) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  box-shadow: inset 0 1px 0 #ffffff;\n"
+        "  margin-top: 0;\n"
+        "  margin-bottom: -2px;\n"
+        "}\n"
+        "ribbon::part(tab):disabled { background-color: #b9c4d2; }\n"
+        "ribbon::part(tab-label):state(selected) { color: #173f79; font-weight: bold; font-size: 1.08em; }\n"
+        "ribbon::part(command-plane) { height: 88px; }\n",
+        "Plan Paint's current tab row compiles cleanly");
+    check_selected_tool_tab(plan_paint, "Plan Paint's sheet");
+    // Plan Paint's interface hue (Settings, theme hue) tints the sheet's
+    // colours; the owner's capture was mint. Hand-tinted to about hue 160:
+    // the fault is in the plan's budget, not the colours, so any tint fails
+    // or passes with the blue sheet.
+    const std::shared_ptr<const Theme> plan_paint_mint = theme_from_sheet(
+        "ribbon::part(tab-rail) { background-color: #9bd8c4; height: 27px; }\n"
+        "ribbon::part(tab) {\n"
+        "  background-color: #9bdac6;\n"
+        "  background-image: linear-gradient(to bottom, rgba(34, 116, 92, 0.15) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  border: 0 solid transparent;\n"
+        "  border-top-left-radius: 4px;\n"
+        "  border-top-right-radius: 4px;\n"
+        "  border-bottom-left-radius: 0;\n"
+        "  border-bottom-right-radius: 0;\n"
+        "  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.49);\n"
+        "  gap: -4px;\n"
+        "  margin-top: 3px;\n"
+        "  taper: 4px #49a083;\n"
+        "  edge-shadow: 9px rgba(24, 97, 74, 0.45);\n"
+        "}\n"
+        "ribbon::part(tab):hover { background-color: #ace7d3; }\n"
+        "ribbon::part(tab):state(selected) {\n"
+        "  background-color: #e8fff6;\n"
+        "  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.57) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  box-shadow: inset 0 1px 0 #ffffff;\n"
+        "  margin-top: 0;\n"
+        "  margin-bottom: -2px;\n"
+        "}\n"
+        "ribbon::part(tab):disabled { background-color: #b9d2c9; }\n"
+        "ribbon::part(tab-label):state(selected) { color: #177954; font-weight: bold; font-size: 1.08em; }\n"
+        "ribbon::part(command-plane) { height: 88px; }\n",
+        "Plan Paint's tab row in a mint interface hue compiles cleanly");
+    const double scales[] = {1.0, 2.0};
+    for (const double scale : scales) {
+        check_hovered_selected_tab(plan_paint_mint, 0U, scale, "Plan Paint's mint sheet, the selected Home tab hovered");
+        check_hovered_selected_tab(plan_paint_mint, 1U, scale, "Plan Paint's mint sheet, the selected View tab hovered");
+        check_hovered_selected_tab(plan_paint_mint, 2U, scale, "Plan Paint's mint sheet, the selected Pencil tab hovered");
+    }
+    check_hovered_selected_tab(plan_paint, 1U, 1.0, "Plan Paint's sheet, the selected View tab hovered");
+    check_hovered_selected_tab(plan_paint, 1U, 2.0, "Plan Paint's sheet, the selected View tab hovered");
+    check_hovered_selected_tab(plan_paint, 0U, 1.0, "Plan Paint's sheet, the selected Home tab hovered");
+    check_hovered_selected_tab(plan_paint, 2U, 1.0, "Plan Paint's sheet, the selected Pencil tab hovered");
+    check_hovered_selected_tab(plan_paint, 0U, 2.0, "Plan Paint's sheet, the selected Home tab hovered");
+    check_hovered_selected_tab(plan_paint, 2U, 2.0, "Plan Paint's sheet, the selected Pencil tab hovered");
+}
+
 // The folders stack (owner, 2026-11-09): in the default theme each tab
 // overlaps the next by its five-unit taper, never File; the selected tab
 // lies over both neighbours and takes the pointer there, and otherwise the
@@ -528,10 +862,10 @@ void test_overlapping_tabs() {
     const Point shared{view.x + 2.0, view.y + view.height * 0.5};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(view)}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(view)}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "the second tab is selected");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "the second tab is selected");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, shared}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, shared}));
-    require((*ribbon).selected_tab.read() == std::size_t{1U}, "the selected tab lies over its left neighbour");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(1U), "the selected tab lies over its left neighbour");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(home)}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, centre(home)}));
     window.perform_layout();
@@ -539,7 +873,7 @@ void test_overlapping_tabs() {
     const Point overlap{raised.x + 2.0, raised.y + raised.height * 0.5};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, overlap}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, overlap}));
-    require((*ribbon).selected_tab.read() == std::size_t{0U}, "otherwise the left tab is on top where they overlap");
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(0U), "otherwise the left tab is on top where they overlap");
     LookPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
     require(painter.filled_rgb(shadow_ink) && painter.gradients > 0U, "the upper tab casts its shadow onto the next");
@@ -600,11 +934,11 @@ void test_contextual_tint() {
     (*ribbon).set_tab_set_availability("picture", RibbonTabSetAvailability::available);
     Window window(ribbon, {700.0, 160.0});
     window.perform_layout();
-    const std::optional<AccentIndex> accent = (*ribbon).tab_set_accent("picture");
-    require(accent.has_value(), "the shown set has an accent");
+    const stxlib::Optional<AccentIndex> accent = (*ribbon).tab_set_accent("picture");
+    require(accent.present(), "the shown set has an accent");
     LookPainter painter;
     static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 160.0}));
-    require(accent && painter.filled((*gui_forms_theme()).accent(*accent)),
+    require(accent.present() && painter.filled((*gui_forms_theme()).accent(*accent.value())),
             "the contextual tab's themed face carries its set's tint");
 }
 
@@ -616,7 +950,7 @@ void test_dark_tab_ink() {
     (*ribbon).set_theme_override(gui_forms_theme());
     Window window(ribbon, {700.0, 160.0});
     PresentationOverrides dark{};
-    dark.colour_scheme = ColourScheme::dark;
+    dark.colour_scheme.set(ColourScheme::dark);
     window.set_presentation_overrides(dark);
     window.perform_layout();
     LookPainter painter;
@@ -647,6 +981,7 @@ int main() {
     test_contextual_tint();
     test_dark_tab_ink();
     test_default_theme_row();
+    test_selected_tool_tab();
     test_overlapping_tabs();
     test_backstage_column();
     if (failures != 0) {

@@ -69,9 +69,10 @@ public:
     // Consumer side, once per frame: copies the samples published since the
     // last call into `columns` (one ring column per stream, in stream order;
     // push_overwrite), through `scratch`, reserved by the caller at
-    // capacity() * stream_count() doubles. Returns the samples taken. A
-    // block a column refuses (a monotone column going back) is counted as
-    // overrun. Never allocates.
+    // capacity() * stream_count() doubles. Returns the samples taken. Every
+    // column is checked before any changes: a block one column refuses (a
+    // monotone column going back) enters none of them and is counted as
+    // overrun, so the columns stay paired. Never allocates.
     std::size_t consume(std::span<SeriesColumn<double>* const> columns, std::span<double> scratch);
 
     // The sequence the producer has published, for an idle check: equal to

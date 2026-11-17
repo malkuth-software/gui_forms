@@ -38,6 +38,10 @@ lists, trees, tabs, splitters, menus, layout panels, bindings and timers),
 native hosts for macOS, Windows and Linux, one text engine with identical
 output on every platform, and an installed CMake SDK.
 
+How much code that is, by component, language and origin, is counted from
+the repository by ``tools/code_statistics.py`` and reported on every push to
+``main``: see :doc:`user/code-statistics`.
+
 .. grid:: 1 1 2 2
     :gutter: 2 3 4 4
 

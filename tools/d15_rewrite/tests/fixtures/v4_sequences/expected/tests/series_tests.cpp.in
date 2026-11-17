@@ -1,0 +1,10 @@
+#include <gui_forms/series.hpp>
+#include <stxlib/fail_fast.hpp>
+
+int main() {
+    gui_forms::Series series;
+    stxlib::check_or_fail_fast(series.samples.push(1.0));
+    stxlib::check_or_fail_fast(series.samples.reserve(4U));
+    const double sum = gui_forms::total(series.samples.view());
+    return series.samples.count() == 1U && sum > 0.0 ? 0 : 1;
+}

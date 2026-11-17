@@ -39,6 +39,9 @@ MANIFEST_PATH: Path = ROOT / "packaging/programs.json"
 LICENSES_PATH: Path = ROOT / "packaging/licenses.json"
 PLATFORMS: tuple[str, ...] = ("macos-arm64", "windows-x64", "linux-x64", "linux-arm64")
 FONT_MODES: tuple[str, ...] = ("bundle-resources", "sibling")
+# Font face files, which no package carries: every program reads its faces from
+# the font pack compiled into GUI.Forms.
+FACE_SUFFIXES: tuple[str, ...] = (".ttf", ".otf", ".ttc")
 IDENTIFIER_PATTERN: str = r"[a-z][a-z0-9-]*"
 MACOS_MINIMUM: str = "14.0"
 RECEIPT_SCHEMA: int = 1
@@ -59,14 +62,100 @@ WINDOWS_SYSTEM_DLLS: frozenset[str] = frozenset({
 WINDOWS_FORBIDDEN_RUNTIME_DLL: re.Pattern[str] = re.compile(
     r"(libgcc_s_[a-z0-9_]+-\d+|libstdc\+\+-\d+|libgomp-\d+|libatomic-\d+|libssp-\d+|libquadmath-\d+"
     r"|libc\+\+|libc\+\+abi|libunwind|libwinpthread-\d+)\.dll", re.IGNORECASE)
-# The credit the FreeType License requires in the documentation of a binary
-# that uses FreeType (FTL section 3); THIRD_PARTY_NOTICES.md carries it.
-FREETYPE_CREDIT: str = ("Portions of this software are copyright \u00a9 2026 The FreeType Project "
-                        "(www.freetype.org). All rights reserved.")
 NOTICES_NAME: str = "THIRD_PARTY_NOTICES.md"
 # The title every GNU GPL, LGPL and AGPL text begins with; a package carries
 # none of them.
 GPL_TITLE: re.Pattern[str] = re.compile(r"GNU (LESSER |LIBRARY |AFFERO )?GENERAL PUBLIC LICENSE")
+# The LLVM runtime shared libraries a Linux program must not need. Linux links
+# libc++ 22, libc++abi and LLVM's libunwind statically (cmake/llvm22.cmake),
+# as Windows links its runtimes: a shipped program depends on no C++ runtime
+# library (owner, 2026-11-15), so a package whose binaries name one of these
+# is refused rather than bundling it.
+LINUX_LLVM_RUNTIME: re.Pattern[str] = re.compile(r"(libc\+\+|libc\+\+abi|libunwind)\.so\.\d+")
+# A runtime library's name where ldd or readelf -d prints one:
+# "\tlibc++.so.1 => /usr/lib/llvm-22/lib/libc++.so.1 (0x...)",
+# "\tlibunwind.so.1 => not found" or
+# " 0x0000000000000001 (NEEDED)  Shared library: [libc++abi.so.1]".
+LINUX_LLVM_RUNTIME_MENTION: re.Pattern[str] = re.compile(
+    r"(?<![\w+.-])(lib(?:c\+\+abi|c\+\+|unwind)\.so\.\d+)(?![\w+.-])")
+
+
+# A needed library's name where readelf -d prints one:
+# " 0x0000000000000001 (NEEDED)  Shared library: [libc.so.6]".
+LINUX_NEEDED_ENTRY: re.Pattern[str] = re.compile(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]")
+
+
+def linux_needed_libraries(listing: str) -> list[str]:
+    """Every library readelf -d lists as NEEDED, in order, once each."""
+    names: list[str] = []
+    match: re.Match[str]
+    for match in LINUX_NEEDED_ENTRY.finditer(listing):
+        name: str = match.group(1)
+        if name not in names:
+            names.append(name)
+    return names
+
+
+def linux_runtime_dependencies(listing: str) -> list[str]:
+    """The LLVM runtime libraries named in ldd or readelf -d output, in order.
+
+    Each name is listed once, whether ldd resolved it or not; every other
+    library is left out. An empty list means the binary carries its C++
+    runtime statically.
+    """
+    names: list[str] = []
+    match: re.Match[str]
+    for match in LINUX_LLVM_RUNTIME_MENTION.finditer(listing):
+        name: str = match.group(1)
+        if LINUX_LLVM_RUNTIME.fullmatch(name) is not None and name not in names:
+            names.append(name)
+    return names
+
+
+# One module (owner decision, 2026-11-15): a shipped program is one image that
+# holds every GUI.Forms library, STXlib (its state included), the text stack
+# and the renderer, and imports only the operating system's libraries. A
+# package whose binary names a first-party or bundled third-party library is
+# refused, never completed by copying the library beside it.
+FIRST_PARTY_LIBRARY: re.Pattern[str] = re.compile(
+    r"(?:lib)?(?:gui_forms_|gui_drawing_|stxlib_|stx_|freetype|harfbuzz)[^/\\]*",
+    re.IGNORECASE)
+# The LLVM runtime dylibs a macOS program may still name while the pinned
+# runtime tree has no static libc++ archives (cmake/llvm22.cmake sets
+# GUI_FORMS_STATIC_CXX_RUNTIME when it has them; template_harness builds the
+# tree). They are bundled into Contents/Frameworks until then; nothing else
+# outside /System and /usr/lib is.
+MACOS_BUNDLED_RUNTIME: re.Pattern[str] = re.compile(r"lib(?:c\+\+|c\+\+abi|unwind)(?:\.\d+)?\.dylib")
+
+
+def refused_dependency(name: str) -> str | None:
+    """Why a shipped binary may not depend on the library `name`, or None.
+
+    `name` is a dependency's file name as otool -L, objdump -p or readelf -d
+    prints it (a path is reduced to its last component). A first-party or
+    bundled third-party library is refused (FIRST_PARTY_LIBRARY), and so is a
+    compiler runtime: the LLVM runtime on Linux (LINUX_LLVM_RUNTIME) and any
+    GCC, LLVM or winpthreads DLL on Windows (WINDOWS_FORBIDDEN_RUNTIME_DLL).
+    Every other name is left to the platform's own check of system libraries.
+    """
+    base: str = re.split(r"[/\\]", name)[-1]
+    if FIRST_PARTY_LIBRARY.fullmatch(base) is not None:
+        return (f"{base} is a GUI.Forms, STXlib or bundled library; a program is one module "
+                "and links it statically")
+    if LINUX_LLVM_RUNTIME.fullmatch(base) is not None:
+        return f"{base} is the LLVM runtime, which Linux programs link statically (cmake/llvm22.cmake)"
+    if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(base) is not None:
+        return (f"{base} is a compiler runtime; Windows binaries link the LLVM runtimes and "
+                "winpthreads statically and never a GCC runtime")
+    return None
+
+
+def windows_system_import(name: str) -> bool:
+    """Whether a Windows DLL import is the operating system's own."""
+    key: str = name.lower()
+    return key in WINDOWS_SYSTEM_DLLS or key.startswith(("api-ms-win-", "ext-ms-win-"))
+
+
 LINUX_FALLBACK_DEPENDS: str = "libc6, libx11-6, libxcursor1, libxfixes3, libxrender1, libatk1.0-0t64 | libatk1.0-0, libatk-bridge2.0-0t64 | libatk-bridge2.0-0"
 
 
@@ -80,8 +169,6 @@ def check_package_notices(root: Path, platform: str, licenses: dict[str, Any], f
     if not notices_path.is_file():
         raise RuntimeError(f"the package lacks licenses/{NOTICES_NAME}")
     notices = notices_path.read_text(encoding="utf-8")
-    if FREETYPE_CREDIT not in notices:
-        raise RuntimeError(f"licenses/{NOTICES_NAME} lacks the FreeType credit")
     licence_files: list[str] = []
     licences = root / "licenses"
     for path in sorted(licences.rglob("*")):
@@ -141,9 +228,10 @@ class Program:
     automation_flag: str | None
     smoke: dict[str, Any]
     platforms: dict[str, PlatformEntry]
-    # Whether the package carries the Noto fallback faces and their licences
-    # (fonts.fallback_files / fallback_notices): each program chooses. The
-    # runtime works without them, falling back as for any missing face.
+    # Whether the package carries the Noto licences (fonts.fallback_notices):
+    # true when the build's font pack holds the Noto fallback faces
+    # (GUI_FORMS_INSTALL_FALLBACK_FONTS). The runtime works without them,
+    # falling back as for any missing face.
     fallback_fonts: bool
 
 
@@ -159,19 +247,14 @@ class Manifest:
                 return program
         raise KeyError(identifier)
 
-    def font_files(self, program: Program) -> list[str]:
-        """The faces `program`'s package carries."""
-        fallback = self.fonts["fallback_files"] if program.fallback_fonts else []
-        return self.fonts["files"] + fallback
-
     def font_notices(self, program: Program) -> list[str]:
         """The font notices `program`'s package carries."""
         fallback = self.fonts["fallback_notices"] if program.fallback_fonts else []
         return self.fonts["notices"] + fallback
 
     def fallback_font_names(self) -> list[str]:
-        """Every fallback face and notice, which a package without them must not hold."""
-        return self.fonts["fallback_files"] + self.fonts["fallback_notices"]
+        """Every fallback notice, which a package without the fallback faces must not hold."""
+        return list(self.fonts["fallback_notices"])
 
 
 @dataclass(frozen=True)
@@ -211,13 +294,17 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
     fonts = data.get("fonts")
     _require(isinstance(fonts, dict), "manifest: 'fonts' must be an object")
     _string(fonts, "source", "fonts")
-    for key in ("files", "notices", "fallback_files", "fallback_notices"):
+    for key in ("files", "fallback_files"):
+        _require(key not in fonts,
+                 f"fonts: '{key}' is not packaged; programs read their faces from the embedded font pack")
+    for key in ("notices", "fallback_notices"):
         files = fonts.get(key)
         _require(isinstance(files, list) and files and all(isinstance(name, str) and name for name in files),
                  f"fonts: '{key}' must be a non-empty list of file names")
-    primary = set(fonts["files"]) | set(fonts["notices"])
-    _require(not primary & (set(fonts["fallback_files"]) | set(fonts["fallback_notices"])),
-             "fonts: a fallback face or notice is also listed as a primary one")
+        _require(not any(Path(name).suffix.lower() in FACE_SUFFIXES for name in files),
+                 f"fonts: '{key}' names a face file; programs read their faces from the embedded font pack")
+    _require(not set(fonts["notices"]) & set(fonts["fallback_notices"]),
+             "fonts: a fallback notice is also listed as a primary one")
     programs_data = data.get("programs")
     _require(isinstance(programs_data, list) and programs_data, "manifest: 'programs' must be a non-empty list")
     programs: list[Program] = []
@@ -282,8 +369,7 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
         programs.append(Program(identifier, display, description, bool(record["enabled"]), status,
                                 tuple(required), automation, dict(smoke), entries, bool(record["fallback_fonts"])))
     return Manifest({key: str(value) for key, value in vendor.items()},
-                    {"source": [fonts["source"]], "files": list(fonts["files"]), "notices": list(fonts["notices"]),
-                     "fallback_files": list(fonts["fallback_files"]),
+                    {"source": [fonts["source"]], "notices": list(fonts["notices"]),
                      "fallback_notices": list(fonts["fallback_notices"])},
                     tuple(programs))
 
@@ -380,43 +466,46 @@ STX_LOCK_PATH: Path = ROOT / "stx.lock"
 STX_OVERRIDE_VARIABLE: str = "FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX"
 
 
-# stx_btree's notices ($STX_AUXLIB/btree/...) come from the stx_auxlib source the
-# build took its headers from (stx_auxlib.lock; cmake/StxAuxlib.cmake).
-STX_AUXLIB_PREFIX: str = "$STX_AUXLIB"
-STX_AUXLIB_SOURCE_VARIABLES: tuple[str, ...] = ("FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB", "GUI_FORMS_STX_AUXLIB_SOURCE_DIR")
+# STXlib's notices ($STXLIB/...: STXlib, stx_btree, stx_minmallocpp, tzdata,
+# STXlib's Unicode licence) come from the
+# licence directory the stx package installed beside its packages
+# (<package>/stx/share/licenses/stxlib; stx's cmake/Stxlib.cmake), since STXlib is
+# fetched inside the package build and no stx checkout holds it.
+STXLIB_PREFIX: str = "$STXLIB"
+STXLIB_LICENSE_PARTS: tuple[str, ...] = ("stx", "share", "licenses", "stxlib")
 
 
-def _is_stx_auxlib_source(directory: Path) -> bool:
-    marker: Path = directory / "btree" / "include" / "stx_btree" / "row_height_index.hpp"
+def _is_stxlib_licenses(directory: Path) -> bool:
+    marker: Path = directory / "stx_btree-LICENSE"
     return marker.is_file()
 
 
-def stx_auxlib_source_directory(build_dir: Path | None) -> Path | None:
-    """The stx_auxlib source whose stx_btree notices a package ships, or None.
+def stxlib_license_directory(build_dir: Path | None) -> Path | None:
+    """The STXlib licence directory whose notices a package ships, or None.
 
-    In order: the GUI_FORMS_STX_AUXLIB_SOURCE_DIR environment variable, then
-    for the build directory and its toolkit/ subdirectory the local checkout
-    the build was configured with, the source cmake/StxAuxlib.cmake recorded
-    and the fetched source (_deps/gui_forms_stx_auxlib-src). A named
-    directory without the stx_btree headers raises.
+    In order: the GUI_FORMS_STXLIB_LICENSES environment variable, then for
+    the build directory and its toolkit/ subdirectory the stx package the
+    build linked (GUI_FORMS_STX_PREFIX or GUI_FORMS_STX_PACKAGE_DIR), whose
+    stx/share/licenses/stxlib holds them. A named directory without them
+    raises.
     """
-    if os.environ.get("GUI_FORMS_STX_AUXLIB_SOURCE_DIR"):
-        named: Path = Path(os.environ["GUI_FORMS_STX_AUXLIB_SOURCE_DIR"])
-        if not _is_stx_auxlib_source(named):
-            raise RuntimeError(f"{named} is not an stx_auxlib source (no btree/include/stx_btree/row_height_index.hpp)")
+    if os.environ.get("GUI_FORMS_STXLIB_LICENSES"):
+        named: Path = Path(os.environ["GUI_FORMS_STXLIB_LICENSES"])
+        if not _is_stxlib_licenses(named):
+            raise RuntimeError(f"{named} is not STXlib's licence directory (no stx_btree-LICENSE)")
         return named
     if build_dir is None:
         return None
     build: Path
     for build in (build_dir, build_dir / "toolkit"):
         variable: str
-        for variable in STX_AUXLIB_SOURCE_VARIABLES:
+        for variable in STX_PACKAGE_VARIABLES:
             value: str = _cached_value(build, variable)
-            if value and _is_stx_auxlib_source(Path(value)):
-                return Path(value)
-        fetched: Path = build / "_deps" / "gui_forms_stx_auxlib-src"
-        if _is_stx_auxlib_source(fetched):
-            return fetched
+            if not value:
+                continue
+            licenses: Path = Path(value).joinpath(*STXLIB_LICENSE_PARTS)
+            if _is_stxlib_licenses(licenses):
+                return licenses
     return None
 
 
@@ -554,29 +643,29 @@ class Packager:
         return self.out / "stage"
 
     def copy_fonts(self, destination: Path, program: Program) -> None:
-        """Stage `program`'s faces and notices in `destination`.
+        """Stage `program`'s font notices in `destination`, and no face file.
 
-        A program packaged without the fallback faces also loses any copy of
-        them the build put there (a macOS bundle's resources, the Windows
-        post-build fonts/), so the package holds exactly its choice.
+        The program reads its faces from the font pack compiled into
+        GUI.Forms, so any face file already in `destination` (a stale build
+        copy) is removed, as are the fallback notices of a program packaged
+        without the fallback faces: the package holds exactly its licences.
         """
         source = ROOT / self.manifest.fonts["source"][0]
         destination.mkdir(parents=True, exist_ok=True)
-        files = self.manifest.font_files(program)
-        for name in files + self.manifest.font_notices(program):
-            if (destination / name).is_file():
-                continue
+        notices = self.manifest.font_notices(program)
+        for name in notices:
             origin = source / name
             if not origin.is_file():
-                raise FileNotFoundError(f"font resource {name} missing from {source}")
+                raise FileNotFoundError(f"font notice {name} missing from {source}")
             shutil.copy2(origin, destination / name)
+        for path in sorted(destination.iterdir()):
+            if path.is_file() and path.suffix.lower() in FACE_SUFFIXES:
+                path.unlink()
+                self.log(f"  removed face file {path.name} (faces come from the embedded font pack)")
         if not program.fallback_fonts:
             for name in self.manifest.fallback_font_names():
                 (destination / name).unlink(missing_ok=True)
-            self.log("  fallback faces left out (fallback_fonts: false)")
-        missing = [name for name in files if not (destination / name).is_file()]
-        if missing:
-            raise RuntimeError("fonts missing after staging: " + ", ".join(missing))
+            self.log("  fallback notices left out (fallback_fonts: false)")
 
     def copy_notices(self, destination: Path) -> None:
         destination.mkdir(parents=True, exist_ok=True)
@@ -585,7 +674,7 @@ class Packager:
             "$GUI_FORMS_LLVM_RUNTIME": self.runtime,
             "$MSYS_PREFIX": (self.runtime_dir.parent if self.runtime_dir else None),
             STX_PREFIX: stx_source_directory(self.build_dir, self.stx_source),
-            STX_AUXLIB_PREFIX: stx_auxlib_source_directory(self.build_dir),
+            STXLIB_PREFIX: stxlib_license_directory(self.build_dir),
         }
         for notice in data["notices"]:
             platforms = notice.get("platforms")
@@ -594,7 +683,7 @@ class Packager:
             source_text: str = notice["source"]
             source: Path | None = ROOT / source_text
             for prefix, base in prefix_env.items():
-                # The separator keeps $STX from matching $STX_AUXLIB paths.
+                # The separator keeps $STX from matching $STXLIB paths.
                 if source_text.startswith(prefix + "/"):
                     source = (base / source_text[len(prefix) + 1:]) if base else None
             if source is None or not source.is_file():
@@ -610,8 +699,7 @@ class Packager:
         """Fail unless the package at `root` is covered by THIRD_PARTY_NOTICES.md.
 
         `root` holds licenses/ and fonts/ (a bundle, or a macOS app's
-        Resources). The notices file must be in licenses/ and carry the
-        FreeType credit; every licence file under licenses/ and every font
+        Resources). The notices file must be in licenses/; every licence file under licenses/ and every font
         licence in fonts/ must be named in it; every packaging/licenses.json
         component that applies to this platform must have a row in its
         table; and no file in the package may carry a GPL text or a name
@@ -619,13 +707,13 @@ class Packager:
         """
         check_package_notices(root, self.platform, json.loads(LICENSES_PATH.read_text(encoding="utf-8")),
                               self.manifest.font_notices(program))
-        self.log(f"  notices checked: {NOTICES_NAME}, FreeType credit, licence files named, no GPL text")
+        self.log(f"  notices checked: {NOTICES_NAME}, licence files named, no GPL text")
 
     def write_readme(self, destination: Path, program: Program, launch: str) -> None:
         (destination / "README.txt").write_text(
             f"{program.display_name} {self.version}\n\n{program.description}\n\n"
             f"Launch: {launch}\n"
-            "Fonts ship beside the program; no host fonts are read.\n"
+            "Fonts are compiled into the program; no host fonts are read. fonts/ holds their licences.\n"
             f"Source and release notes: https://github.com/{self.manifest.vendor['repository']}\n"
             "Third-party notices: licenses/THIRD_PARTY_NOTICES.md, licenses/ and the fonts' licence files.\n",
             encoding="utf-8")
@@ -653,7 +741,11 @@ class Packager:
         return lines[0].strip() if lines else None
 
     def bundle_macos_dependencies(self, app: Path, executable: Path, original_executable: Path) -> set[Path]:
-        """Copy the non-system dylib closure into Contents/Frameworks and point every image at it."""
+        """Copy the LLVM runtime dylibs, if the program names them, into Contents/Frameworks.
+
+        A program is one module: any other dependency outside /System and
+        /usr/lib (refused_dependency, MACOS_BUNDLED_RUNTIME) fails the package.
+        """
         frameworks = app / "Contents/Frameworks"
         frameworks.mkdir(exist_ok=True)
 
@@ -687,9 +779,15 @@ class Packager:
             for dependency in self.otool_dependencies(original):
                 if dependency == own_id or dependency.startswith(("/System/", "/usr/lib/")):
                     continue
+                name = Path(dependency).name
+                refusal = refused_dependency(name)
+                if refusal is not None:
+                    raise RuntimeError(f"{original.name} depends on {dependency}: {refusal}")
+                if MACOS_BUNDLED_RUNTIME.fullmatch(name) is None:
+                    raise RuntimeError(f"{original.name} depends on {dependency}, which is not a system library; "
+                                       "a program is one module")
                 needs_rpath = needs_rpath or dependency.startswith("@rpath/")
                 source = resolve(dependency, original)
-                name = Path(dependency).name
                 destination = frameworks / name
                 digest = sha256_file(source)
                 if origins.get(name, digest) != digest:
@@ -737,7 +835,7 @@ class Packager:
         self.log(f"  stage {plan.built} -> {app}")
         if self.dry_run:
             for step in ("copy bundle", "bundle dylib closure into Contents/Frameworks (otool/install_name_tool)",
-                         "verify Contents/Resources/fonts, add licenses/, README.txt, package-manifest.json",
+                         "font licences in Contents/Resources/fonts (no face files), add licenses/, README.txt, package-manifest.json",
                          f"Info.plist: version {self.version}, LSMinimumSystemVersion {MACOS_MINIMUM}, display name",
                          "codesign --force --sign - each Mach-O, then --deep on the app; codesign --verify --deep --strict",
                          f"ditto -c -k --keepParent -> {names['archive']}",
@@ -815,45 +913,27 @@ class Packager:
         return shutil.which("makensis") or "makensis"
 
     def windows_closure(self, bundle: Path, executable: Path) -> None:
-        """Copy the program's non-system DLL imports from the build into the bundle.
+        """Check that the program imports only system DLLs.
 
-        Every binary is inspected with objdump; a compiler runtime import
-        (WINDOWS_FORBIDDEN_RUNTIME_DLL) fails the package.
+        A program is one module: every GUI.Forms library, STXlib and the
+        compiler runtimes are linked into the executable, so an import that is
+        not the system's (windows_system_import) fails the package, with the
+        reason refused_dependency gives where it has one. Nothing is copied
+        beside the executable; `bundle` is where it was staged.
         """
         objdump = self.tool("objdump") or self.tool("llvm-objdump")
         if objdump is None:
             raise RuntimeError("objdump (or llvm-objdump) is needed to check a Windows package's imports")
-        candidates: dict[str, Path] = {}
-        for directory in [self.build_dir, self.build_dir / "toolkit"]:
-            if directory.is_dir():
-                for path in directory.glob("*.dll"):
-                    candidates.setdefault(path.name.lower(), path)
-        pending = [executable]
-        inspected: set[str] = set()
-        while pending:
-            binary = pending.pop()
-            if binary.name.lower() in inspected:
+        imports = self.run([objdump, "-p", str(executable)])
+        names = re.findall(r"DLL Name:\s*(\S+)", imports)
+        self.log(f"  imports of {executable.name} in {bundle.name}: {len(names)} system DLLs")
+        for name in names:
+            if windows_system_import(name):
                 continue
-            inspected.add(binary.name.lower())
-            imports = self.run([objdump, "-p", str(binary)])
-            names = re.findall(r"DLL Name:\s*(\S+)", imports)
-            own = [name for name in names
-                   if name.lower() not in WINDOWS_SYSTEM_DLLS and not name.lower().startswith(("api-ms-win-", "ext-ms-win-"))]
-            self.log(f"  imports of {binary.name}: {len(names) - len(own)} system DLLs"
-                     + (", and " + ", ".join(own) if own else "; no other DLL"))
-            for name in names:
-                key = name.lower()
-                if key in WINDOWS_SYSTEM_DLLS or key.startswith(("api-ms-win-", "ext-ms-win-")):
-                    continue
-                if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name):
-                    raise RuntimeError(f"{binary.name} imports the compiler runtime {name}; Windows binaries link "
-                                       "the LLVM runtimes and winpthreads statically and never a GCC runtime")
-                if key not in candidates:
-                    raise RuntimeError(f"missing runtime import {name} for {binary.name}")
-                target = bundle / name
-                if not target.exists():
-                    shutil.copy2(candidates[key], target)
-                pending.append(target)
+            refusal = refused_dependency(name)
+            if refusal is not None:
+                raise RuntimeError(f"{executable.name} imports {name}: {refusal}")
+            raise RuntimeError(f"{executable.name} imports {name}, which is not a system DLL; a program is one module")
 
     def write_nsis_script(self, bundle: Path, program: Program, entry: PlatformEntry, installer: Path, script: Path) -> None:
         template = (ROOT / "packaging/windows_installer.nsi.in").read_text(encoding="utf-8")
@@ -895,10 +975,10 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; copy non-system DLL imports (objdump) from the build dir; "
-                         "a compiler runtime import (GCC, libc++, libunwind, winpthreads) fails",
+            for step in ("copy executable; check it imports only system DLLs (objdump): a first-party, "
+                         "bundled or compiler runtime import (GCC, libc++, libunwind, winpthreads) fails",
                          "strip --strip-unneeded when available",
-                         "fonts/ from the build's post-build copy or assets/fonts; licenses/, README.txt, package-manifest.json",
+                         "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"zip with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"makensis packaging/windows_installer.nsi.in -> {names['installer']} "
                          f"(installs to {self.manifest.vendor['windows_install_root']}\\{program.id}, HKCU uninstall key)"):
@@ -915,9 +995,6 @@ class Packager:
             for binary in bundle.iterdir():
                 if binary.suffix.lower() in (".exe", ".dll"):
                     self.run([strip, "--strip-unneeded", str(binary)])
-        built_fonts = plan.built.parent / "fonts"
-        if built_fonts.is_dir():
-            shutil.copytree(built_fonts, bundle / "fonts", dirs_exist_ok=True)
         self.copy_fonts(bundle / "fonts", program)
         self.copy_notices(bundle / "licenses")
         self.write_readme(bundle, program, entry.executable)
@@ -942,30 +1019,42 @@ class Packager:
     # -- Linux -----------------------------------------------------------------
 
     def linux_closure(self, bundle: Path, executable: Path) -> list[Path]:
-        patchelf = self.tool("patchelf")
+        """Check that the program needs only the system's shared libraries; strip it.
+
+        A program is one module: a needed library that refused_dependency
+        refuses (a GUI.Forms, STXlib or bundled library, or the LLVM runtime,
+        which every binary carries statically), by patchelf's, readelf's or
+        ldd's account, fails the package. Nothing is copied beside it, so the
+        build-tree rpath is removed rather than pointed at $ORIGIN.
+        """
         binaries = [executable]
+        patchelf = self.tool("patchelf")
         if patchelf is None:
-            self.log("  shared-library closure not checked: patchelf is not on PATH")
-            return binaries
-        pending = [executable]
-        while pending:
-            binary = pending.pop()
-            for name in self.run([patchelf, "--print-needed", str(binary)]).splitlines():
-                if name.startswith("libgui_forms_") and not (bundle / name).exists():
-                    source = next(iter(sorted(self.build_dir.rglob(name))), None)
-                    if source is None:
-                        raise RuntimeError(f"{binary.name} needs {name}, which the build directory lacks")
-                    shutil.copy2(source, bundle / name)
-                    binaries.append(bundle / name)
-                    pending.append(bundle / name)
-        for binary in binaries:
-            self.run([patchelf, "--set-rpath", "$ORIGIN", str(binary)])
+            self.log("  needed libraries not checked by patchelf: it is not on PATH")
+        else:
+            for name in self.run([patchelf, "--print-needed", str(executable)]).splitlines():
+                refusal = refused_dependency(name.strip())
+                if refusal is not None:
+                    raise RuntimeError(f"{executable.name} needs {name.strip()}: {refusal}")
+            self.run([patchelf, "--remove-rpath", str(executable)])
         strip = self.tool("strip")
-        for binary in binaries:
-            if strip:
-                self.run([strip, "--strip-unneeded", str(binary)])
-            if self.tool("ldd") and "not found" in self.run(["ldd", str(binary)]):
-                raise RuntimeError(f"{binary.name} has unresolved shared libraries")
+        if strip:
+            self.run([strip, "--strip-unneeded", str(executable)])
+        readelf = self.tool("readelf")
+        if readelf:
+            listing = self.run([readelf, "-d", str(executable)])
+            for name in linux_needed_libraries(listing):
+                refusal = refused_dependency(name)
+                if refusal is not None:
+                    raise RuntimeError(f"{executable.name} needs {name} (readelf -d): {refusal}")
+        if self.tool("ldd"):
+            resolved = self.run(["ldd", str(executable)])
+            needed = linux_runtime_dependencies(resolved)
+            if needed:
+                raise RuntimeError(f"{executable.name} loads {', '.join(needed)} (ldd); Linux programs "
+                                   "link the LLVM runtime statically (cmake/llvm22.cmake)")
+            if "not found" in resolved:
+                raise RuntimeError(f"{executable.name} has unresolved shared libraries")
         return binaries
 
     def package_linux(self, plan: Plan) -> dict[str, str]:
@@ -979,8 +1068,8 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; follow libgui_forms_*.so imports (patchelf), rpath $ORIGIN, strip, ldd check",
-                         "fonts/ from assets/fonts; licenses/, README.txt, package-manifest.json",
+            for step in ("copy executable; check it needs only system libraries (patchelf, readelf -d, ldd): a first-party, bundled or LLVM runtime library fails; remove the rpath, strip",
+                         "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"tar.gz with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"deb {deb_name} ({arch}) installing to {install_dir}, launcher /usr/bin/{deb_name}, .desktop entry, icon placeholder -> {names['installer']}"):
                 self.log("  would: " + step)

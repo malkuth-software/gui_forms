@@ -4,6 +4,7 @@
 #include "gui_forms/resources/types/image_resource_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -40,7 +41,7 @@ struct GUI_FORMS_API SplashscreenOptions final {
     // UTF-8, at most maximum_text_bytes.
     std::string status{};
     // In [0, 1]; none shows no bar.
-    std::optional<double> progress{};
+    stxlib::Optional<double> progress{};
 };
 
 // What Splashscreen::show and the setters refuse.
@@ -85,7 +86,7 @@ public:
     // invalid_argument for text that is not UTF-8 or too long, or a
     // progress outside [0, 1], changing nothing.
     SplashscreenError set_status(std::string_view status);
-    SplashscreenError set_progress(std::optional<double> progress);
+    SplashscreenError set_progress(stxlib::Optional<double> progress);
     void close() noexcept;
 
     [[nodiscard]] bool shown() const noexcept { return surface_ != nullptr; }

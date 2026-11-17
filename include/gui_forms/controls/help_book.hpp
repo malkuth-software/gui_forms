@@ -9,11 +9,12 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -102,7 +103,7 @@ public:
 
     // The link or topic bar keyboard focus is on, as an index into the
     // book's focus stops (links in reading order, bars among them), or none.
-    [[nodiscard]] std::optional<std::size_t> focused_stop() const noexcept { return focused_stop_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> focused_stop() const noexcept { return focused_stop_; }
     // Moves keyboard focus to the next (or previous) stop; false past the end.
     bool move_focus(bool forward);
     // Follows link `link` (an index into page().links) as a click would.
@@ -115,12 +116,12 @@ public:
     // The page's content height when laid out at the current width.
     [[nodiscard]] double content_height() const noexcept { return layout_.height; }
     // The block's top in content coordinates, or none when it is hidden.
-    [[nodiscard]] std::optional<double> block_top(std::size_t block) const noexcept;
+    [[nodiscard]] stxlib::Optional<double> block_top(std::size_t block) const noexcept;
     // The link's box in local coordinates (scroll applied), or none when it
     // is not laid out.
-    [[nodiscard]] std::optional<Rect> link_bounds(std::size_t link) const noexcept;
+    [[nodiscard]] stxlib::Optional<Rect> link_bounds(std::size_t link) const noexcept;
     // The topic bar of section `section` in local coordinates, or none.
-    [[nodiscard]] std::optional<Rect> topic_bar_bounds(std::size_t section) const noexcept;
+    [[nodiscard]] stxlib::Optional<Rect> topic_bar_bounds(std::size_t section) const noexcept;
 
     // Printing (help system study, section 8). Lays the page out at `width`
     // with every section open, no close and no paper ground, links followed
@@ -212,7 +213,7 @@ private:
         Rect bar{};
         Rect expander{};
         Rect image{};
-        std::optional<std::size_t> section{};
+        stxlib::Optional<std::size_t> section{};
         std::size_t first_piece{};
         std::size_t piece_count{};
     };
@@ -262,8 +263,10 @@ private:
     [[nodiscard]] std::string_view piece_text(const LaidOut& laid, std::size_t piece) const noexcept;
     void paint_laid(Painter& painter, const LaidOut& laid, Point offset, LayoutMode mode) const;
     void relayout();
-    [[nodiscard]] std::optional<std::size_t> link_at(Point local) const noexcept;
-    [[nodiscard]] std::optional<std::size_t> section_bar_at(Point local) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> link_at(Point local) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> section_bar_at(Point local) const noexcept;
+    // Whether `held` (a hovered, pressed or focused index) holds `index`.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept;
     [[nodiscard]] Point content_offset() const noexcept;
     void toggle_section(std::size_t section);
     void activate_stop(const FocusStop& stop);
@@ -280,11 +283,11 @@ private:
     LaidOut layout_{};
     // The print layout (layout_for_print).
     LaidOut print_layout_{};
-    std::optional<std::size_t> hovered_link_{};
-    std::optional<std::size_t> hovered_section_{};
-    std::optional<std::size_t> pressed_link_{};
-    std::optional<std::size_t> pressed_section_{};
-    std::optional<std::size_t> focused_stop_{};
+    stxlib::Optional<std::size_t> hovered_link_{};
+    stxlib::Optional<std::size_t> hovered_section_{};
+    stxlib::Optional<std::size_t> pressed_link_{};
+    stxlib::Optional<std::size_t> pressed_section_{};
+    stxlib::Optional<std::size_t> focused_stop_{};
     bool close_visible_{};
     bool close_hovered_{};
     bool focused_{};

@@ -73,7 +73,7 @@ gui_forms::ButtonBase
          Whether ``&`` in :cpp:member:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
          and Alt shortcuts are ignored.
 
-      **expanded_state** : ``std::optional<bool>``, default ``std::nullopt``
+      **expanded_state** : ``stxlib::Optional<bool>``, default ``std::nullopt``
          Optional disclosure state for a button that opens or shows something. A
          value adds expanded or collapsed state and an expand or collapse action
          to the accessibility tree. Setting a different value raises
@@ -98,7 +98,7 @@ gui_forms::ButtonBase
 
       **visual_recipes_override** : ``std::optional<ControlStateRecipes>``, read-only
 
-      **connection_topology** : ``std::optional<ConnectedControlTopology>``, default ``std::nullopt``
+      **connection_topology** : ``stxlib::Optional<ConnectedControlTopology>``, default ``std::nullopt``
          Places the button in a joined row or column of buttons, as segment
          ``index`` of ``count``, so adjoining segments share edges. The count must be
          at least 2 and the index below it, or the setter throws
@@ -136,7 +136,7 @@ gui_forms::ButtonBase
 
    :Events:
 
-      **expanded_changed** : ``Event<std::optional<bool>>``
+      **expanded_changed** : ``Event<stxlib::Optional<bool>>``
          Raised after :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
 
       **clicked** : ``Event<ButtonBase&>``
@@ -319,7 +319,7 @@ gui_forms::ButtonBase
       Whether ``&`` in :cpp:member:`text <gui_forms::ButtonBase::text>` marks a mnemonic. When false the ampersand is drawn
       and Alt shortcuts are ignored.
 
-   .. cpp:member:: std::optional<bool> expanded_state
+   .. cpp:member:: stxlib::Optional<bool> expanded_state
 
       Optional disclosure state for a button that opens or shows something. A
       value adds expanded or collapsed state and an expand or collapse action
@@ -351,12 +351,16 @@ gui_forms::ButtonBase
 
    .. cpp:function:: const std::optional<ControlStateRecipes>& visual_recipes_override() const noexcept
 
-   .. cpp:function:: const std::optional<ConnectedControlTopology>& connection_topology() const noexcept
+   .. cpp:function:: const stxlib::Optional<ConnectedControlTopology>& connection_topology() const noexcept
 
       Places the button in a joined row or column of buttons, as segment
       ``index`` of ``count``, so adjoining segments share edges. The count must be
       at least 2 and the index below it, or the setter throws
       ``std::invalid_argument``.
+
+   .. cpp:function:: void set_connection_topology(stxlib::Optional<ConnectedControlTopology> topology)
+
+      Sets :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`; see the property's description above.
 
    .. cpp:function:: void set_connection_topology(std::optional<ConnectedControlTopology> topology)
 
@@ -407,7 +411,7 @@ gui_forms::ButtonBase
 
    .. rubric:: Events
 
-   .. cpp:function:: Event<std::optional<bool>>& expanded_changed() noexcept
+   .. cpp:function:: Event<stxlib::Optional<bool>>& expanded_changed() noexcept
 
       Raised after :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>` changes. It carries the new state.
 
@@ -591,7 +595,7 @@ gui_forms::ButtonBase
 
       *Protected.*
 
-   .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, std::optional<AuthoredButtonColours> authored = {}) const
+   .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, stxlib::Optional<AuthoredButtonColours> authored = {}) const
 
       *Protected.*
 

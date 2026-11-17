@@ -6,6 +6,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/dock_navigator_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -64,7 +65,7 @@ public:
     [[nodiscard]] DockNavigatorList current_list() const noexcept { return list_; }
     // The current row's index in the current list, or none when both lists
     // are empty.
-    [[nodiscard]] std::optional<std::size_t> current_index() const noexcept { return current_; }
+    [[nodiscard]] stxlib::Optional<std::size_t> current_index() const noexcept { return current_; }
     // The current row's panel, or none.
     [[nodiscard]] std::optional<DockPanelId> current_panel() const;
     // Makes a row current. False, changing nothing, for an index past the
@@ -162,19 +163,19 @@ private:
     [[nodiscard]] Rect row_bounds(const Layout& placed, DockNavigatorList list, std::size_t index) const;
     // A row's label: the row less the label inset at each end.
     [[nodiscard]] Rect entry_label_bounds(Rect row) const;
-    [[nodiscard]] std::optional<Row> row_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<Row> row_at(Point local) const;
     [[nodiscard]] Row realized_row(std::size_t item) const;
     [[nodiscard]] AnatomyStateSet row_states(DockNavigatorList list, std::size_t index) const;
     [[nodiscard]] const std::vector<DockNavigatorEntry>& list_entries(DockNavigatorList list) const noexcept;
     [[nodiscard]] FontSpec row_font() const;
     [[nodiscard]] FontSpec heading_font() const;
-    void set_hot(std::optional<Row> row);
+    void set_hot(stxlib::Optional<Row> row);
 
     std::vector<DockNavigatorEntry> tools_{};
     std::vector<DockNavigatorEntry> documents_{};
     DockNavigatorList list_{DockNavigatorList::documents};
-    std::optional<std::size_t> current_{};
-    std::optional<Row> hot_{};
+    stxlib::Optional<std::size_t> current_{};
+    stxlib::Optional<Row> hot_{};
     Event<const DockNavigatorChoice&> chosen_{};
     Event<> cancelled_{};
     // property_codemod begin DockNavigator (tools/property_families/dock_navigator.json; generated, do not edit)

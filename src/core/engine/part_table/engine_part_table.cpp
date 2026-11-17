@@ -8,6 +8,7 @@
 #include "../primitives/procedural/procedural_pattern.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
+#include "gui_forms/threading.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <algorithm>
@@ -15,7 +16,10 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <exception>
 #include <new>
+#include <span>
+#include <thread>
 #include <utility>
 
 namespace gui_forms {
@@ -77,8 +81,10 @@ bool material_reads_images(const SurfaceMaterial& material) noexcept {
     for (const MaterialFillLayer& layer : material.fills) {
         if (layer.kind == MaterialFillKind::image) return true;
     }
-    const bool image_mask = material.mask && (*material.mask).kind == MaterialFillKind::image;
-    return image_mask;
+    for (const MaterialMaskLayer& layer : material.masks) {
+        if (layer.source.kind == MaterialFillKind::image) return true;
+    }
+    return false;
 }
 
 // Whether a material primitive's lent material, and the images it reads,
@@ -173,8 +179,78 @@ void PartMotion::on_step(const MotionStep& step) {
     detail::SurfaceEngineAccess::part_moved(*window_, record_, step.settled);
 }
 
+namespace detail {
+
+// One finish tile of an idle frame's batch: its key, its raster (made on
+// the window's thread), the view the bake writes through, its scratch rows,
+// and the pixels the bake wrote (set by the bake, read after the batch).
+struct FinishTileBake final {
+    FinishTileKey key{};
+    std::shared_ptr<PartRaster> raster{};
+    PartRasterView view{};
+    engine_primitives::FinishScratch* scratch{nullptr};
+    std::size_t written{};
+};
+
+} // namespace detail
+
+struct EnginePartTable::FinishBakeBatch final {
+    // Null until a batch of two or more first needs it, and while the
+    // table bakes serially; tried records that it was attempted.
+    std::unique_ptr<AtomicThreadPool> pool{};
+    bool tried{};
+    // The frame's tiles in queue order, cleared each frame; the scratch
+    // rows, one per tile, grown to the largest batch and kept; the tasks.
+    std::vector<detail::FinishTileBake> bakes{};
+    std::vector<engine_primitives::FinishScratch> scratches{};
+    std::vector<AtomicTask> tasks{};
+};
+
+namespace {
+
+// A pool task: paints one finish tile into its own raster with its own
+// scratch. Reads only its bake's key; writes only its raster, scratch and
+// count.
+void paint_finish_tile_bake(void* context) noexcept {
+    detail::FinishTileBake& bake = *static_cast<detail::FinishTileBake*>(context);
+    const std::int64_t side = static_cast<std::int64_t>(finish_tile_side);
+    bake.written = engine_primitives::paint_world_finish(bake.key.finish, bake.key.scale, bake.key.column * side,
+                                                         bake.key.row * side, bake.view, *bake.scratch);
+}
+
+// The pool's threads for `requested` (set_finish_bake_threads): 0 when the
+// table bakes on the window's thread.
+std::uint32_t finish_bake_pool_threads(const std::uint32_t requested) noexcept {
+#if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
+    static_cast<void>(requested);
+    return 0U;
+#else
+    std::uint32_t threads = requested;
+    if (threads == 0U) {
+        const unsigned int hardware = std::thread::hardware_concurrency();
+        threads = hardware > 1U ? static_cast<std::uint32_t>(hardware - 1U) : 0U;
+    }
+    threads = std::min(threads, maximum_finish_bake_threads);
+    const std::uint32_t pooled = threads < 2U ? 0U : threads;
+    return pooled;
+#endif
+}
+
+} // namespace
+
 EnginePartTable::EnginePartTable(const std::size_t item_record_cap) noexcept
     : item_record_cap_(item_record_cap == 0U ? 1U : item_record_cap) {}
+
+EnginePartTable::~EnginePartTable() = default;
+
+void EnginePartTable::set_finish_bake_threads(const std::uint32_t threads) {
+    if (threads == finish_bake_threads_) return;
+    finish_bake_threads_ = threads;
+    if (!finish_batch_) return;
+    // Joins the old pool's idle threads; the next batch makes another.
+    (*finish_batch_).pool.reset();
+    (*finish_batch_).tried = false;
+}
 
 void EnginePartTable::link_newest(const std::uint32_t slot) noexcept {
     RecordSlot& linked = slots_[slot];
@@ -314,7 +390,7 @@ void EnginePartTable::write_lookup_text(std::string& text, std::string_view cont
     // keeps its record wherever it moves.
     if (key.index_fallback()) {
         text += '#';
-        text += std::to_string(*key.item_index);
+        text += std::to_string(*key.item_index.value());
     }
 }
 
@@ -372,7 +448,7 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
     target.lookup = std::move(owned_lookup);
     link_control(slot, control_id);
     live_ = live_ + 1U;
-    const bool item = !key.item.empty() || key.item_index.has_value();
+    const bool item = !key.item.empty() || key.item_index.present();
     std::size_t evicted = 0U;
     if (item) {
         target.item = true;
@@ -384,14 +460,15 @@ PartRecordAcquisition EnginePartTable::acquire(std::string_view control_id, cons
     return acquired;
 }
 
-std::optional<PartRecordHandle> EnginePartTable::find(std::string_view control_id, const PartKey& key) const {
+stxlib::Optional<PartRecordHandle> EnginePartTable::find(std::string_view control_id, const PartKey& key) const {
     std::string lookup;
     write_lookup_text(lookup, control_id, key);
     const std::unordered_map<std::string, std::uint32_t>::const_iterator found = index_.find(lookup);
-    if (found == index_.end()) return std::nullopt;
+    if (found == index_.end()) return stxlib::Optional<PartRecordHandle>::none();
     const std::uint32_t slot = (*found).second;
     const PartRecordHandle handle{slot, slots_[slot].generation};
-    return handle;
+    const stxlib::Optional<PartRecordHandle> result = stxlib::Optional<PartRecordHandle>::of(handle);
+    return result;
 }
 
 EnginePartRecord* EnginePartTable::record(PartRecordHandle handle) noexcept {
@@ -494,7 +571,7 @@ void EnginePartTable::clear_image_variants() noexcept {
     // allocates.
     std::size_t kept = 0U;
     for (std::size_t index = 0U; index < image_variants_.size(); ++index) {
-        if (!image_variants_[index].request.procedural) {
+        if (image_variants_[index].request.procedural.absent()) {
             forget_variant(image_variants_[index]);
             continue;
         }
@@ -506,7 +583,7 @@ void EnginePartTable::clear_image_variants() noexcept {
 
 void EnginePartTable::forget_variant(const HeldImageVariant& held) noexcept {
     statistics_.shared_bytes = statistics_.shared_bytes - (*held.raster).pixels().size();
-    if (held.request.procedural) {
+    if (held.request.procedural.present()) {
         statistics_.procedural_patterns = statistics_.procedural_patterns - 1U;
     } else {
         statistics_.image_variants = statistics_.image_variants - 1U;
@@ -610,17 +687,17 @@ void EnginePartTable::bake_backplane_material(const SurfaceMaterial& material, c
     request.target.material = &material;
     request.target.images = images;
     LentImageVariants lent{};
-    const std::optional<std::uint64_t> awaited = lend_image_variants(request, paint_sequence, lent);
-    if (awaited) unrecorded_awaited_ = true;
+    const stxlib::Optional<std::uint64_t> awaited = lend_image_variants(request, paint_sequence, lent);
+    if (awaited.present()) unrecorded_awaited_ = true;
     request.target.variants = &lent;
     engine_primitives::bake_material_region(material, request.target, region.origin, image);
     count_image_mask_fallback(request, lent);
 }
 
-std::optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRasterRequest& request,
+stxlib::Optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRasterRequest& request,
                                                                   const std::uint64_t paint_sequence,
                                                                   LentImageVariants& lent) {
-    std::optional<std::uint64_t> awaited{};
+    stxlib::Optional<std::uint64_t> awaited{};
     std::array<ImageVariantRequest, maximum_image_variants> wanted{};
     const std::size_t asked_count = (*request.primitive).image_variants(request.parameters, request.target, wanted);
     const std::size_t count = std::min(asked_count, wanted.size());
@@ -628,15 +705,16 @@ std::optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRast
     const ImageRegistry* const images = request.target.images;
     if (images != nullptr) {
         const std::uint64_t revision = (*images).snapshot().revision;
-        if (!image_variant_revision_ || *image_variant_revision_ != revision) {
+        const std::uint64_t* const held_revision = image_variant_revision_.value();
+        if (held_revision == nullptr || *held_revision != revision) {
             clear_image_variants();
-            image_variant_revision_ = revision;
+            image_variant_revision_.set(revision);
         }
     }
     for (std::size_t index = 0U; index < count; ++index) {
         const ImageVariantRequest& asked = wanted[index];
         if (asked.layer >= lent.layers.size()) continue;
-        const bool pattern = asked.procedural.has_value();
+        const bool pattern = asked.procedural.present();
         std::size_t found = image_variants_.size();
         for (std::size_t held = 0U; held < image_variants_.size(); ++held) {
             if (same_variant(image_variants_[held].request, asked)) found = held;
@@ -656,7 +734,7 @@ std::optional<std::uint64_t> EnginePartTable::lend_image_variants(const PartRast
             // frame, and the fill draws its ground meanwhile.
             queue_pattern(asked);
             statistics_.procedural_placeholders = statistics_.procedural_placeholders + 1U;
-            awaited = pattern_generation_;
+            awaited.set(pattern_generation_);
             continue;
         }
         if (images == nullptr) continue;
@@ -691,7 +769,7 @@ void EnginePartTable::hold_variant(const ImageVariantRequest& asked, const std::
     // Commit: nothing below allocates.
     make_shared_room(bytes);
     image_variants_.push_back(HeldImageVariant{asked, made, paint_sequence});
-    if (asked.procedural) {
+    if (asked.procedural.present()) {
         statistics_.procedural_patterns = statistics_.procedural_patterns + 1U;
     } else {
         statistics_.image_variants = statistics_.image_variants + 1U;
@@ -719,7 +797,7 @@ PatternGeneration EnginePartTable::generate_pattern(const std::uint64_t paint_se
         }
         if (held) continue;
         const std::shared_ptr<PartRaster> made =
-            engine_primitives::make_procedural_pattern(*asked.procedural, asked.scale.value, asked.extent);
+            engine_primitives::make_procedural_pattern((*asked.procedural.value()), asked.scale.value, asked.extent);
         if (!made) continue;
         hold_variant(asked, made, paint_sequence);
         statistics_.procedural_generations = statistics_.procedural_generations + 1U;
@@ -727,7 +805,7 @@ PatternGeneration EnginePartTable::generate_pattern(const std::uint64_t paint_se
         // The shared bakes that drew a ground are no longer current.
         std::size_t index = 0U;
         while (index < shared_bakes_.size()) {
-            if (!shared_bakes_[index].cached.awaited_patterns) {
+            if (shared_bakes_[index].cached.awaited_patterns.absent()) {
                 index = index + 1U;
                 continue;
             }
@@ -751,8 +829,9 @@ bool EnginePartTable::patterns_waiting() const noexcept {
 }
 
 bool EnginePartTable::awaits_pattern(const CachedPartRaster& cached) const noexcept {
-    if (!cached.awaited_patterns) return false;
-    const bool stale = *cached.awaited_patterns != pattern_generation_;
+    const std::uint64_t* const awaited = cached.awaited_patterns.value();
+    if (awaited == nullptr) return false;
+    const bool stale = *awaited != pattern_generation_;
     return stale;
 }
 
@@ -811,15 +890,18 @@ bool EnginePartTable::generate_finish_tiles(const std::uint64_t paint_sequence) 
     const DeviceExtent extent{finish_tile_side, finish_tile_side};
     const std::size_t bytes = static_cast<std::size_t>(finish_tile_side) * finish_tile_side * part_raster_bytes_per_pixel;
     const std::uint64_t pixels = static_cast<std::uint64_t>(finish_tile_side) * finish_tile_side;
-    // The scratch rows, made once for this idle frame's tiles.
-    engine_primitives::FinishScratch scratch{};
-    engine_primitives::reserve_finish_scratch(scratch, finish_tile_side);
+    if (!finish_batch_) finish_batch_ = std::make_unique<FinishBakeBatch>();
+    FinishBakeBatch& batch = *finish_batch_;
+    batch.bakes.clear();
+    // 1. Choose the frame's tiles, oldest first, on this thread: room
+    // first, so that a tile that would not be held is not painted. Room is
+    // found for every tile chosen before it as well, all of which are held
+    // unless their bake writes nothing.
     std::uint64_t spent = 0U;
-    bool painted = false;
     while (!finish_tile_queue_.empty()) {
         const FinishTileKey key = finish_tile_queue_.front();
         const std::uint64_t effort = engine_primitives::finish_effort_weight(key.finish.kind) * pixels;
-        if (painted && spent + effort > finish_tile_idle_effort) break;
+        if (!batch.bakes.empty() && spent + effort > finish_tile_idle_effort) break;
         finish_tile_queue_.pop_front();
         statistics_.finish_tiles_queued = finish_tile_queue_.size();
         bool held = false;
@@ -827,28 +909,72 @@ bool EnginePartTable::generate_finish_tiles(const std::uint64_t paint_sequence) 
             if (tile.key == key) held = true;
         }
         if (held) continue;
-        // Room first, so that a tile that would not be held is not painted.
-        if (!make_finish_tile_room(bytes, paint_sequence)) {
+        const std::size_t incoming = bytes * (batch.bakes.size() + 1U);
+        if (!make_finish_tile_room(incoming, paint_sequence)) {
             statistics_.finish_tile_refusals = statistics_.finish_tile_refusals + 1U;
             continue;
         }
-        const std::shared_ptr<PartRaster> made = PartRaster::create(extent, DeviceScale{key.display_scale});
+        std::shared_ptr<PartRaster> made = PartRaster::create(extent, DeviceScale{key.display_scale});
         if (!made) continue;
-        const PartRasterView view = (*made).view();
-        const std::size_t written = engine_primitives::paint_world_finish(
-            key.finish, key.scale, key.column * finish_tile_side, key.row * finish_tile_side, view, scratch);
-        painted = true;
+        detail::FinishTileBake bake{};
+        bake.key = key;
+        bake.view = (*made).view();
+        bake.raster = std::move(made);
+        batch.bakes.push_back(std::move(bake));
         spent = spent + effort;
-        if (written == 0U) continue;
-        (*made).record_opacity();
-        finish_tiles_.reserve(finish_tiles_.size() + 1U);
+    }
+    const std::size_t count = batch.bakes.size();
+    // 2. Each tile's own scratch rows (kept from earlier frames), then the
+    // bakes: on the pool when two or more are chosen, else here.
+    if (batch.scratches.size() < count) batch.scratches.resize(count);
+    for (std::size_t index = 0U; index < count; ++index) {
+        engine_primitives::FinishScratch& scratch = batch.scratches[index];
+        const bool sized = scratch.upper.size() > finish_tile_side && scratch.lower.size() > finish_tile_side;
+        if (!sized) engine_primitives::reserve_finish_scratch(scratch, finish_tile_side);
+        batch.bakes[index].scratch = &scratch;
+    }
+    const std::uint32_t threads = finish_bake_pool_threads(finish_bake_threads_);
+    if (count >= 2U && threads != 0U && !batch.tried) {
+        batch.tried = true;
+        try {
+            batch.pool = std::make_unique<AtomicThreadPool>(threads);
+        } catch (const std::exception&) {
+            // The pool stays null: the frames bake here.
+        }
+    }
+    bool pooled = false;
+    if (count >= 2U && batch.pool) {
+        batch.tasks.resize(count);
+        for (std::size_t index = 0U; index < count; ++index) {
+            batch.tasks[index].entry = &paint_finish_tile_bake;
+            batch.tasks[index].context = &batch.bakes[index];
+        }
+        try {
+            (*batch.pool).run(std::span<const AtomicTask>(batch.tasks.data(), count));
+            pooled = true;
+        } catch (const std::exception&) {
+            // run started nothing or returned after every task: the bakes
+            // are painted again here, which writes the same pixels.
+        }
+    }
+    if (pooled) {
+        statistics_.finish_tile_parallel_batches = statistics_.finish_tile_parallel_batches + 1U;
+    } else {
+        for (detail::FinishTileBake& bake : batch.bakes) paint_finish_tile_bake(&bake);
+    }
+    // 3. Hold them in queue order.
+    finish_tiles_.reserve(finish_tiles_.size() + count);
+    for (detail::FinishTileBake& bake : batch.bakes) {
+        if (bake.written == 0U) continue;
+        (*bake.raster).record_opacity();
         // Commit: nothing below allocates.
-        finish_tiles_.push_back(HeldFinishTile{key, made, paint_sequence});
+        finish_tiles_.push_back(HeldFinishTile{bake.key, std::move(bake.raster), paint_sequence});
         statistics_.finish_tiles = statistics_.finish_tiles + 1U;
         statistics_.finish_tile_bytes = statistics_.finish_tile_bytes + bytes;
         statistics_.finish_tile_bakes = statistics_.finish_tile_bakes + 1U;
         finish_tile_made_ = true;
     }
+    batch.bakes.clear();
     const bool drained = finish_tile_queue_.empty() && finish_tile_made_;
     if (drained) finish_tile_made_ = false;
     return drained;
@@ -866,7 +992,7 @@ void EnginePartTable::take_finish_tile_waiters(std::vector<PartRecordHandle>& wa
 
 std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest& request,
                                                          const std::uint64_t paint_sequence, const bool refresh,
-                                                         const SharedUse use, std::optional<std::uint64_t>& awaited) {
+                                                         const SharedUse use, stxlib::Optional<std::uint64_t>& awaited) {
     awaited.reset();
     std::size_t found = shared_bakes_.size();
     for (std::size_t index = 0U; index < shared_bakes_.size(); ++index) {
@@ -890,7 +1016,7 @@ std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest
     if (!baked) return nullptr;
     // The image variants, lent for the bake.
     LentImageVariants lent{};
-    const std::optional<std::uint64_t> drew_ground = lend_image_variants(request, paint_sequence, lent);
+    const stxlib::Optional<std::uint64_t> drew_ground = lend_image_variants(request, paint_sequence, lent);
     PrimitiveTarget target = request.target;
     target.variants = &lent;
     PrimitivePreparation preparation{};
@@ -916,6 +1042,15 @@ std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest
         if (request.target.images != nullptr) image_revision = (*request.target.images).snapshot().revision;
     }
     const std::size_t bytes = (*baked).pixels().size();
+    // lend_image_variants may have held an image variant, and making room
+    // for it evicts shared bakes by moving the last into the hole, so the
+    // index found before the bake may name another bake or none
+    // (A-gf-core-06-F2). The stale bake is looked up again; when it was
+    // evicted, the new bake is kept as a new one below.
+    found = shared_bakes_.size();
+    for (std::size_t index = 0U; index < shared_bakes_.size(); ++index) {
+        if (answers(shared_bakes_[index].cached, request)) found = index;
+    }
     if (found != shared_bakes_.size()) {
         // Baked again in place of the stale one.
         SharedBake& replaced = shared_bakes_[found];
@@ -986,7 +1121,7 @@ bool EnginePartTable::bake_idle_keyframe(const ImageRegistry* images, const std:
             if (answers(bake.cached, request)) held = true;
         }
         if (held) continue;
-        std::optional<std::uint64_t> awaited{};
+        stxlib::Optional<std::uint64_t> awaited{};
         static_cast<void>(shared_bake(request, paint_sequence, false, SharedUse::idle_keyframe, awaited));
         break;
     }
@@ -1001,7 +1136,7 @@ bool EnginePartTable::idle_keyframes_waiting() const noexcept {
 
 RasterOutcome EnginePartTable::draw(const PartRasterRequest& request, PrimitivePreparation& preparation,
                                     const PartRasterView& destination, const std::uint64_t paint_sequence,
-                                    const bool refresh, std::optional<std::uint64_t>& awaited) {
+                                    const bool refresh, stxlib::Optional<std::uint64_t>& awaited) {
     awaited.reset();
     const EnginePrimitive& primitive = *request.primitive;
     const PrimitiveSlicePlan plan = primitive.slice_plan(request.parameters, request.target, request.extent);
@@ -1050,13 +1185,13 @@ PartRasterResult EnginePartTable::raster_without_record(const PartRasterRequest&
     std::shared_ptr<PartRaster> storage = PartRaster::create(request.extent, request.target.scale);
     if (!storage) return PartRasterResult{nullptr, PartRasterStatus::refused};
     PrimitivePreparation preparation{};
-    std::optional<std::uint64_t> awaited{};
+    stxlib::Optional<std::uint64_t> awaited{};
     const RasterOutcome outcome = draw(request, preparation, (*storage).view(), paint_sequence, false, awaited);
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
     }
     (*storage).record_opacity();
-    if (awaited) unrecorded_awaited_ = true;
+    if (awaited.present()) unrecorded_awaited_ = true;
     statistics_.uncached = statistics_.uncached + 1U;
     return PartRasterResult{storage, PartRasterStatus::uncached};
 }
@@ -1089,7 +1224,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
             shared_material = *request.target.material;
             if (request.target.images != nullptr) shared_revision = (*request.target.images).snapshot().revision;
         }
-        std::optional<std::uint64_t> awaited{};
+        stxlib::Optional<std::uint64_t> awaited{};
         const std::shared_ptr<PartRaster> held =
             shared_bake(request, paint_sequence, refresh, SharedUse::keyframe, awaited);
         if (!held) return PartRasterResult{nullptr, PartRasterStatus::refused};
@@ -1129,7 +1264,7 @@ PartRasterResult EnginePartTable::raster_for(const PartRecordHandle handle, cons
 
     // Draw, preparing again when the record's preparation is stale.
     const PartRasterView destination = (*storage).view();
-    std::optional<std::uint64_t> awaited{};
+    stxlib::Optional<std::uint64_t> awaited{};
     const RasterOutcome outcome = draw(request, part.preparation, destination, paint_sequence, refresh, awaited);
     if (outcome != RasterOutcome::painted && outcome != RasterOutcome::empty) {
         return PartRasterResult{nullptr, PartRasterStatus::refused};
@@ -1213,13 +1348,15 @@ void EnginePartTable::invalidate_rasters() noexcept {
     clear_shared_bakes();
     idle_keyframes_.clear();
     statistics_.idle_keyframes_queued = 0U;
-    // The new theme's paints queue the patterns they need.
-    pattern_queue_.clear();
-    statistics_.procedural_queued = 0U;
-    // Finish tiles depend on their keys alone and are kept, as patterns
-    // are; the new theme's paints queue the tiles they need.
-    finish_tile_queue_.clear();
-    statistics_.finish_tiles_queued = 0U;
+    // Procedural patterns and finish tiles depend on their keys alone, so
+    // the held ones are kept and so are the queues: a queued pattern or
+    // tile is as valid under the new theme as under the old, and the new
+    // theme's paints add the ones they need. Emptying the queues here lost
+    // the work a paint under a passing scheme had asked for: an offscreen
+    // capture in another scheme switches the theme for its paint and back
+    // afterwards, and its patterns were then never made (cp31 follow-up).
+    // Both queues stay bounded (maximum_queued_patterns,
+    // maximum_queued_finish_tiles).
 }
 
 } // namespace gui_forms

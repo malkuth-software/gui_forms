@@ -292,7 +292,7 @@ void example() {
     std::shared_ptr<gf::BlockPanel> row =
         gf::make_control<gf::BlockPanel>(gf::StableId("row"));
     (*row).text_align = gf::TextAlignment::center;
-    (*row).line_strut = gf::LineStrut{};   // lines as tall as their items
+    (*row).line_strut = stxlib::Optional<gf::LineStrut>::of(gf::LineStrut{});   // lines as tall as their items
     gf::BlockFlowItemLayout atomic{};
     atomic.level = gf::BlockFlowLevel::inline_level;
     atomic.width = gf::SizeValue{gf::SizeKind::length_percentage,
@@ -608,7 +608,7 @@ namespace doc_example_ColorCommand_1 {
 void example() {
     std::shared_ptr<gf::Command> colour = std::make_shared<gf::Command>("doc.colour", "Font colour");
     std::shared_ptr<gf::ColorCommand> command = std::make_shared<gf::ColorCommand>(colour);
-    (*command).commit(gf::Color::rgba(192, 0, 0), "doc.picker");   // dark red, now the first recent colour
+    (*command).commit(stxlib::Optional<gf::Color>::of(gf::Color::rgba(192, 0, 0)), "doc.picker");   // dark red, now the first recent colour
 }
 }  // namespace doc_example_ColorCommand_1
 
@@ -632,9 +632,9 @@ namespace doc_example_ColorValueEditor_1 {
 void example() {
     std::shared_ptr<gf::ColorValueEditor> tint =
         gf::make_control<gf::ColorValueEditor>(gf::StableId("lamp.tint"));
-    std::optional<gf::Color> parsed =
+    const stxlib::Optional<gf::Color> parsed =
         gf::ColorValueEditor::parse_value(" #2a6fb4 ");   // opaque 42, 111, 180
-    if (parsed) (*tint).value = *parsed;              // no event is raised
+    if (parsed.present()) (*tint).value = *parsed.value();   // no event is raised
     std::shared_ptr<gf::Label> caption = gf::make_control<gf::Label>(
         gf::StableId("lamp.caption"),
         gf::ColorValueEditor::format_value((*tint).value.read()));   // "#2A6FB4FF"
@@ -679,7 +679,7 @@ void example() {
         gf::make_control<gf::ComboBox>(gf::StableId("view.density"));
     (*density).items = {"Compact", "Comfortable", "Spacious"};
     (*density).placeholder_text = "Choose a density";
-    (*density).selected_index = 1U;
+    (*density).selected_index = stxlib::Optional<std::size_t>::of(1U);
     // (*density).selected_text() is now "Comfortable"
 }
 }  // namespace doc_example_ComboBox_1
@@ -694,15 +694,15 @@ struct DensityField final : gf::Component {
         (*combo).items = {"Compact", "Comfortable", "Spacious"};
         gf::on((*combo).selected_index_changed(), *this, &DensityField::on_density);
     }
-    void on_density(std::optional<std::size_t> index) {
-        density = index ? std::string((*combo).selected_text()) : std::string();
+    void on_density(stxlib::Optional<std::size_t> index) {
+        density = index.present() ? std::string((*combo).selected_text()) : std::string();
     }
 };
 
 void example() {
     DensityField field;
-    (*field.combo).selected_index = 2U;                 // field.density is "Spacious"
-    (*field.combo).items = {"Compact", "Comfortable"};  // and now ""
+    (*field.combo).selected_index = stxlib::Optional<std::size_t>::of(2U);   // field.density is "Spacious"
+    (*field.combo).items = {"Compact", "Comfortable"};   // and now ""
 }
 }  // namespace doc_example_ComboBox_2
 
@@ -811,7 +811,7 @@ void example() {
     gf::Window window(bar, gf::Size{240.0, 32.0});
     (*bar).set_items({{.id = 1,
                        .label = "Save",
-                       .shortcut = gf::KeyGesture{gf::PhysicalKey::s, gf::Modifier::control},
+                       .shortcut = stxlib::Optional<gf::KeyGesture>::of(gf::KeyGesture{gf::PhysicalKey::s, gf::Modifier::control}),
                        .command = &save}});
     window.dispatch_key(gf::KeyEvent{gf::KeyAction::down, gf::PhysicalKey::s,
                                      gf::Modifier::control});   // executes save
@@ -835,8 +835,8 @@ void example() {
     (*shelf).add_child(arrange);
     (*shelf).add_child(more);
     (*shelf).group_gap = 4.0;
-    (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
-    (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
+    (*shelf).group_spec[*selection] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(std::uint16_t{2})});
+    (*shelf).group_spec[*arrange] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, stxlib::Optional<std::uint16_t>::of(std::uint16_t{1})});
     (*shelf).set_overflow_actuator(*more);
 
     gf::Window window(shelf, {600.0, 66.0});
@@ -926,6 +926,37 @@ void example() {
     static_cast<void>(valid);
 }
 }  // namespace doc_example_ContainerControl_2
+
+namespace doc_example_ContentSurface_1 {
+void example() {
+    std::shared_ptr<gf::ContentSurface> surface =
+        gf::make_control<gf::ContentSurface>(gf::StableId("scene"));
+    gf::ContentFrameSink sink = (*surface).open_content(true);
+    std::vector<std::byte> pixels(64U * 32U * 4U, std::byte{255});
+    gf::ContentFrame frame;
+    frame.width = 64U;
+    frame.height = 32U;
+    frame.row_bytes = 64U * 4U;
+    frame.opaque = true;
+    frame.pixels = std::span<const std::byte>(pixels.data(), pixels.size());
+    const gf::ContentPublishResult result = sink.publish(frame);
+    if (result != gf::ContentPublishResult::published) return;   // refused or dropped: the last frame stays
+}
+}  // namespace doc_example_ContentSurface_1
+
+namespace doc_example_ContentTextEditor_1 {
+void example() {
+    std::shared_ptr<gf::ContentTextEditor> editor =
+        gf::make_control<gf::ContentTextEditor>(gf::StableId("notes"), "hi");
+    gf::ContentTextLayout layout;
+    layout.text_revision = (*editor).text_revision();
+    layout.lines.push_back({.range = {gf::Utf8Offset(0U), gf::Utf8Offset(2U)}, .bounds = {0.0, 0.0, 20.0, 16.0}});
+    layout.clusters.push_back({.range = {gf::Utf8Offset(0U), gf::Utf8Offset(1U)}, .line = 0U, .bounds = {0.0, 0.0, 10.0, 16.0}});
+    layout.clusters.push_back({.range = {gf::Utf8Offset(1U), gf::Utf8Offset(2U)}, .line = 0U, .bounds = {10.0, 0.0, 10.0, 16.0}});
+    const gf::ContentLayoutResult result = (*editor).submit_layout(layout);
+    if (result != gf::ContentLayoutResult::accepted) return;   // refused: the editor keeps no layout
+}
+}  // namespace doc_example_ContentTextEditor_1
 
 namespace doc_example_ContextMenu_1 {
 struct Notes final : gf::Component {
@@ -1051,7 +1082,8 @@ void example() {
         gf::make_control<gf::DataGridView>(gf::StableId("radio.virtual"));
     (*grid).set_columns({{.name = "name", .header_text = "Station", .width = 160.0}});
     (*grid).set_virtual_rows(std::make_shared<Stations>(), {{"a"}, {"b"}, {"c"}});
-    (*grid).set_current_cell(gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U});
+    (*grid).set_current_cell(stxlib::Optional<gf::DataGridViewCellAddress>::of(
+        gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U}));
     (*grid).set_virtual_row_order({{"c"}, {"d"}, {"b"}, {"a"}});   // the application sorted and added
     // current_row_id() is still {"b"}, now at position 2
 }
@@ -1293,7 +1325,7 @@ void example() {
         gf::make_control<gf::DomainUpDown>(gf::StableId("radio.mode"));
     (*mode).items = {"AM", "FM", "USB", "LSB"};
     (*mode).wrap = true;
-    (*mode).selected_index = std::optional<std::size_t>{3U};   // the field shows "LSB"
+    (*mode).selected_index = stxlib::Optional<std::size_t>::of(3U);   // the field shows "LSB"
     (*mode).down_button();            // wraps: the field shows "AM"
 }
 }  // namespace doc_example_DomainUpDown_1
@@ -2123,7 +2155,7 @@ void example() {
     banner.fills = {gf::MaterialFillLayer::linear(
         {0.0, 0.0}, {0.0, 1.0},
         {{0.0, gf::Color::rgba(250, 252, 255)}, {1.0, gf::Color::rgba(222, 230, 240)}})};
-    banner.border = gf::MaterialBorder{gf::Color::rgba(120, 140, 160), 1.0};
+    banner.border.set(gf::MaterialBorder{gf::Color::rgba(120, 140, 160), 1.0});
     banner.shadows.push_back(gf::MaterialShadow{});
     banner.corner_radius = 8.0;
 
@@ -2657,7 +2689,7 @@ void example() {
     FileSheet file;
     std::shared_ptr<gf::ComboBox> opens =
         std::dynamic_pointer_cast<gf::ComboBox>((*file.sheet).editor("file.opens"));
-    if (opens) (*opens).selected_index = std::size_t{1U};   // opens_with is "Image Laboratory"
+    if (opens) (*opens).selected_index = stxlib::Optional<std::size_t>::of(1U);   // opens_with is "Image Laboratory"
 }
 }  // namespace doc_example_PropertyList_2
 
@@ -2833,7 +2865,7 @@ void example() {
     inspector_track.minimum = 120.0;
     inspector_track.preferred = 120.0;
     inspector_track.maximum = 120.0;
-    inspector_track.collapse_priority = std::uint16_t{10};
+    inspector_track.collapse_priority = stxlib::Optional<std::uint16_t>::of(std::uint16_t{10});
     std::vector<gf::ResponsiveTrackSpec> tracks;
     tracks.push_back(content_track);
     tracks.push_back(inspector_track);
@@ -2847,8 +2879,8 @@ void example() {
     (*inspector).dock = gf::DockStyle::fill;
     (*shell).add_child(content);
     (*shell).add_child(inspector);
-    (*shell).child_track[*content] = 0U;
-    (*shell).child_track[*inspector] = 1U;
+    (*shell).child_track[*content] = stxlib::Optional<std::uint32_t>::of(0U);
+    (*shell).child_track[*inspector] = stxlib::Optional<std::uint32_t>::of(1U);
 
     gf::Window window(shell, {240.0, 100.0});
     window.perform_layout();      // both tracks fit side by side
@@ -2866,7 +2898,7 @@ void example() {
     std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("main.ribbon"));
     gf::RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard", .dialog_launcher = true};
     clipboard.commands.push_back({.stable_id = "paste", .command = paste});
-    clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::small, .command = paste});
+    clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::compact, .command = paste});
     clipboard.layouts = {{.size = gf::RibbonGroupSize::large}, {.size = gf::RibbonGroupSize::collapsed}};
     gf::RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
     home.groups.push_back(std::move(clipboard));
@@ -2956,7 +2988,8 @@ void example() {
     const gf::RtfConversionResult imported = gf::import_rtf(rtf, markdown);   // "**Bold** text\n"
     std::string summary;
     if (imported.succeeded()) {
-        const gf::MarkdownLossReport losses = *imported.losses();
+        const stxlib::Optional<gf::MarkdownLossReport> reported = imported.losses();
+        const gf::MarkdownLossReport losses = *reported.value();
         for (std::size_t kind = 0; kind < gf::markdown_loss_kind_count; ++kind) {
             const gf::MarkdownLoss loss = static_cast<gf::MarkdownLoss>(kind);
             summary += gf::describe_loss(loss, losses.count(loss));
@@ -3298,8 +3331,8 @@ struct Settings final : gf::Component {
         gf::on((*tabs).selected_index_changed(), *this, &Settings::on_page);
     }
     void on_page(const gf::TabSelectionChange& change) {
-        if (change.new_index) {
-            shown = *change.new_index;
+        if (change.new_index.present()) {
+            shown = *change.new_index.value();
         }
     }
 };
@@ -3425,7 +3458,7 @@ void example() {
     (*column).flex_direction = gf::FlexDirection::column;
     std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
         gf::StableId("article.heading"), "Export settings");
-    (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
+    (*heading).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0});
     std::shared_ptr<gf::TextBlock> body = gf::make_control<gf::TextBlock>(
         gf::StableId("article.body"),
         "Exported files keep their names; existing files are never overwritten.");
@@ -3447,7 +3480,7 @@ void example() {
         gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
     std::shared_ptr<gf::TextBlock> value =
         gf::make_control<gf::TextBlock>(gf::StableId("rate.value"), "42 MB/s");
-    (*value).font = gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0};
+    (*value).font = stxlib::Optional<gf::FontSpec>::of(gf::FontSpec{gf::FontRole::content, 26.0, 400, false, 0.0});
     (*row).add_child(caption);
     (*row).add_child(value);
 
@@ -3762,7 +3795,7 @@ void example() {
         {.stable_id = "main", .text = "main.cpp", .cells = {"4 KB"}, .depth = 1U},
         {.stable_id = "app", .text = "app.cpp", .cells = {"9 KB"}, .depth = 1U},
     });
-    (*tree).set_sort(std::size_t{0U}, gf::TreeListSortOrder::ascending);
+    (*tree).set_sort(stxlib::Optional<std::size_t>::of(std::size_t{0U}), gf::TreeListSortOrder::ascending);
     // The rows are now src, app.cpp, main.cpp; the nodes keep their order.
 }
 }  // namespace doc_example_TreeListView_1
@@ -4155,6 +4188,8 @@ int main() {
     failures += run("Component example 2", &doc_example_Component_2::example);
     failures += run("ContainerControl example 1", &doc_example_ContainerControl_1::example);
     failures += run("ContainerControl example 2", &doc_example_ContainerControl_2::example);
+    failures += run("ContentSurface example 1", &doc_example_ContentSurface_1::example);
+    failures += run("ContentTextEditor example 1", &doc_example_ContentTextEditor_1::example);
     failures += run("ContextMenu example 1", &doc_example_ContextMenu_1::example);
     failures += run("Control example 1", &doc_example_Control_1::example);
     failures += run("Control example 2", &doc_example_Control_2::example);

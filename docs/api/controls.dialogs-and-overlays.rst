@@ -35,6 +35,8 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
      - A provider of enhanced tooltips: a title, a description, a shortcut, an image, why a command is unavailable, and an F1 help topic.
    * - :cpp:class:`SaveFileDialog <gui_forms::SaveFileDialog>`
      - The host's dialog for choosing where to save a file.
+   * - :cpp:class:`BusinessCard <gui_forms::BusinessCard>`
+     - The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay.
 
 .. toctree::
    :hidden:
@@ -51,6 +53,7 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    generated/gui_forms.ToolTip
    generated/gui_forms.RibbonToolTip
    generated/gui_forms.SaveFileDialog
+   generated/gui_forms.BusinessCard
 
 Related types
 -------------
@@ -75,6 +78,12 @@ Related types
      - AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped.
    * - :cpp:class:`BundledFontFace <gui_forms::BundledFontFace>`
      - One face GUI.Forms bundles for a FontRole, as every host registers it: its family name, what the role is for, and whether it has italic faces.
+   * - :cpp:class:`BusinessCard::Parts <gui_forms::BusinessCard::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`BusinessCardRemarkSource <gui_forms::BusinessCardRemarkSource>`
+     - The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks, the ones made when such cards are compared) names a function that writes one remark into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary; text that is not UTF-8 is dropped).
+   * - :cpp:class:`BusinessCardRequest <gui_forms::BusinessCardRequest>`
+     - The argument of BusinessCard::open_requested and website_requested: a handler that answers the request itself sets handled.
    * - :cpp:class:`Callout::Parts <gui_forms::Callout::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`CalloutActionTextCapability <gui_forms::CalloutActionTextCapability>`
@@ -137,6 +146,8 @@ Related types
      - Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
    * - :cpp:class:`ModalLayerClosingEvent <gui_forms::ModalLayerClosingEvent>`
      - The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
+   * - :cpp:class:`ProgramIdentity <gui_forms::ProgramIdentity>`
+     - The program's identity, as the business card shows it.
    * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
      - How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves.
    * - :cpp:class:`RibbonToolTipCapabilities <gui_forms::RibbonToolTipCapabilities>`
@@ -155,6 +166,12 @@ Related types
      - Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
    * - :cpp:class:`SaveFileDialogCapabilities <gui_forms::SaveFileDialogCapabilities>`
      - Every SaveFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`SaveFileDialogCheckFileExistsCapability <gui_forms::SaveFileDialogCheckFileExistsCapability>`
+     - Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+   * - :cpp:class:`SaveFileDialogCheckPathExistsCapability <gui_forms::SaveFileDialogCheckPathExistsCapability>`
+     - Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default).
+   * - :cpp:class:`SaveFileDialogCreatePromptCapability <gui_forms::SaveFileDialogCreatePromptCapability>`
+     - Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
    * - :cpp:class:`SaveFileDialogDefaultExtCapability <gui_forms::SaveFileDialogDefaultExtCapability>`
      - The extension a chosen name without one is given, without its dot (Windows Forms' DefaultExt; a leading dot is removed when set).
    * - :cpp:class:`SaveFileDialogFileNameCapability <gui_forms::SaveFileDialogFileNameCapability>`
@@ -314,7 +331,11 @@ Related types
 
    .. cpp:member:: OverlayHorizontalAlignment horizontal_alignment
 
+      Default: ``{OverlayHorizontalAlignment::start}``.
+
    .. cpp:member:: OverlayVerticalPreference vertical_preference
+
+      Default: ``{OverlayVerticalPreference::below}``.
 
    .. cpp:member:: double gap
 
@@ -359,6 +380,62 @@ Related types
    .. cpp:member:: std::string_view use
 
    .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BusinessCard::Parts final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry shadow
+
+   .. cpp:member:: PartGeometry stock
+
+   .. cpp:member:: PartGeometry vendor_name
+
+   .. cpp:member:: PartGeometry rule
+
+   .. cpp:member:: PartGeometry product
+
+   .. cpp:member:: PartGeometry website
+
+   .. cpp:member:: PartGeometry copyright
+
+   .. cpp:member:: PartGeometry remark
+
+   .. cpp:member:: PartGeometry close_mark
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BusinessCardRemarkSource final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks, the ones made when such cards are compared) names a function that writes one remark into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary; text that is not UTF-8 is dropped). While the pointer is over the card in the hand, the card asks for a remark a moment after the pointer arrives and then every one to two and a half seconds, and shows each around the card (the remark part, clear of the card and of the others), rising and fading over two and a half to nine seconds, at most maximum_business_card_remarks at once. It is called on the UI thread; ``context`` is passed back and must stay valid until the source is replaced or cleared. An empty source gives no remarks, and the card shows its copyright line alone.
+
+   .. cpp:member:: void* context
+
+      Default: ``{nullptr}``.
+
+   .. cpp:member:: void (*write_remark)(void* context, std::string& remark){nullptr}
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BusinessCardRequest final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   The argument of BusinessCard::open_requested and website_requested: a handler that answers the request itself sets handled.
+
+   .. cpp:member:: bool handled
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -912,6 +989,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ProgramIdentity final
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   The program's identity, as the business card shows it. ``vendor`` is the display name printed large on the card (package names carry no vendor; this is display text only) and ``website`` the address the card's link names (https only; empty for no link). Every field is UTF-8 text; empty fields are left off the card.
+
+   .. cpp:member:: std::string product
+
+   .. cpp:member:: std::string version
+
+   .. cpp:member:: std::string vendor
+
+   .. cpp:member:: std::string website
+
+   .. cpp:member:: std::string copyright
+
+   .. cpp:member:: std::string credits
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> RibbonToolTipAutoPopDelayCapability
 
    ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
@@ -1059,7 +1156,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>, public SaveFileDialogInitialDirectoryCapability<Declaring>, public SaveFileDialogFilterCapability<Declaring>, public SaveFileDialogFilterIndexCapability<Declaring>, public SaveFileDialogDefaultExtCapability<Declaring>, public SaveFileDialogAddExtensionCapability<Declaring>, public SaveFileDialogOverwritePromptCapability<Declaring>, public SaveFileDialogFileNameCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>, public SaveFileDialogInitialDirectoryCapability<Declaring>, public SaveFileDialogFilterCapability<Declaring>, public SaveFileDialogFilterIndexCapability<Declaring>, public SaveFileDialogDefaultExtCapability<Declaring>, public SaveFileDialogAddExtensionCapability<Declaring>, public SaveFileDialogOverwritePromptCapability<Declaring>, public SaveFileDialogFileNameCapability<Declaring>, public SaveFileDialogCheckFileExistsCapability<Declaring>, public SaveFileDialogCheckPathExistsCapability<Declaring>, public SaveFileDialogCreatePromptCapability<Declaring>
 
    ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
 
@@ -1078,7 +1175,7 @@ Related types
 
    .. cpp:member:: std::string filter
 
-      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
    .. cpp:member:: std::size_t filter_index
 
@@ -1099,6 +1196,69 @@ Related types
    .. cpp:member:: std::string file_name
 
       The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: bool check_file_exists
+
+      Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+
+   .. cpp:member:: bool check_path_exists
+
+      Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+
+   .. cpp:member:: bool create_prompt
+
+      Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCheckFileExistsCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogCheckFileExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogCheckFileExistsCapability<Declaring>> check_file_exists
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCheckPathExistsCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogCheckPathExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogCheckPathExistsCapability<Declaring>> check_path_exists
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SaveFileDialogCreatePromptCapability
+
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+
+   Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SaveFileDialogCreatePromptCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SaveFileDialogCreatePromptCapability<Declaring>> create_prompt
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1138,7 +1298,7 @@ Related types
 
    ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
 
-   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
 
    .. rubric:: Methods
@@ -1227,13 +1387,9 @@ Related types
 
    .. cpp:member:: PartGeometry caption
 
-   .. cpp:member:: PartGeometry icon_plate
-
    .. cpp:member:: PartGeometry icon_image
 
-   .. cpp:member:: PartGeometry icon_glyph
-
-   .. cpp:member:: PartGeometry icon_label
+      The page's icon: its custom image, else its standard stock icon.
 
    .. cpp:member:: PartGeometry heading
 
@@ -1259,11 +1415,7 @@ Related types
 
    .. cpp:member:: PartGeometry footnote_band
 
-   .. cpp:member:: PartGeometry footnote_plate
-
-   .. cpp:member:: PartGeometry footnote_glyph
-
-   .. cpp:member:: PartGeometry footnote_label
+   .. cpp:member:: PartGeometry footnote_icon
 
    .. cpp:member:: PartGeometry footnote
 
@@ -1275,7 +1427,7 @@ Related types
 
    ``#include <gui_forms/controls/task_dialog.hpp>``
 
-   One command button. ``stable_id`` names the button in results and events and is unique within the page; a standard button with an empty ID takes its standard name ("ok", "cancel", "try_again", ...), and a standard button with empty text shows its standard text. A button whose ``allow_close`` is false raises button_clicked and leaves the dialog open.
+   One command button. ``stable_id`` names the button in results and events and is unique within the page; a standard button with an empty ID takes its standard name ("ok", "cancel", "try_again", ...), and a standard button with empty text shows its standard text. Any other ID is a stable-ID segment ([a-z0-9] runs joined by '-' or '.'), since it names the button's control; the standard "try_again" names a control segment "try-again". A button whose ``allow_close`` is false raises button_clicked and leaves the dialog open.
 
    .. cpp:member:: std::string stable_id
 
@@ -1401,7 +1553,7 @@ Related types
 
       Default: ``{TaskDialogIcon::none}``.
 
-   .. cpp:member:: std::optional<TaskDialogProgressBar> progress_bar
+   .. cpp:member:: stxlib::Optional<TaskDialogProgressBar> progress_bar
 
    .. cpp:member:: bool allow_cancel
 
@@ -1429,7 +1581,7 @@ Related types
 
    ``#include <gui_forms/controls/task_dialog.hpp>``
 
-   One radio button; at most one of a page's radio buttons is checked.
+   One radio button; at most one of a page's radio buttons is checked. Its ``stable_id`` is a stable-ID segment, as a custom button's is.
 
    .. cpp:member:: std::string stable_id
 
@@ -1651,6 +1803,32 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BusinessCardLinkOutcome
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: handled
+
+   .. cpp:enumerator:: opened
+
+   .. cpp:enumerator:: unavailable
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BusinessCardPresentation
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   .. cpp:enumerator:: page
+
+   .. cpp:enumerator:: hand
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CalloutCloseReason
 
    ``#include <gui_forms/controls/callout.hpp>``
@@ -1727,11 +1905,11 @@ Enumerations
 
    ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_forms
 
@@ -1794,11 +1972,63 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/components/business_card/business_card.hpp>``
+
+.. cpp:function:: void set_program_identity(const ProgramIdentity& identity)
+
+   Sets the process's identity, read by every card when it lays out and paints. Validated whole before it replaces the previous identity: text that is not valid UTF-8, or a website that is neither empty nor an https:// address, throws std::invalid_argument and leaves the identity as it was. A program sets it before it shows a card; a card already shown shows the new identity when it next paints. UI thread.
+
+.. cpp:function:: const ProgramIdentity& program_identity() noexcept
+
+   The identity last set; every field empty before the first set. The reference stays valid until the next set_program_identity. UI thread.
+
+.. cpp:function:: void set_business_card_remark_source(BusinessCardRemarkSource source) noexcept
+
+   UI thread.
+
+.. cpp:function:: BusinessCardRemarkSource business_card_remark_source() noexcept
+
+.. cpp:function:: void set_diagnostic_overlay(bool enabled) noexcept
+
+   The diagnostic overlay: the invalidation outlines (invalidation_overlay.hpp) and, at the top left, the counters card in each window's overlay plane (renderer, controls and stable ids, measure and arrange passes, paints and damage rectangles, input and focus, wakes and timer ticks, presents and the worst present: the figures the Gallery's Diagnostics panel shows). The counters card shows whenever the overlay is on (decision 3a). It is the process switch: set_diagnostic_overlay(true) sets set_invalidation_overlay_default(true), so every window without a setting of its own shows both; false clears it. It draws nothing into the program's controls and takes no input; a window shows the change at its next present. Any thread.
+
+.. cpp:function:: bool diagnostic_overlay() noexcept
+
+.. cpp:function:: bool toggle_diagnostic_overlay() noexcept
+
+   Turns the overlay to the other state and returns the new one (the gesture's action). Two threads toggling at once may both read the same state; the switch then ends in the state both wrote.
+
+.. cpp:function:: bool show_business_card(Window& window)
+
+   show_business_card(window) shows the card in the hand over ``window``, in a modal layer of the window's own (so it works the same on every host): the window behind is dimmed and takes no input until the card is put away. It returns false, changing nothing, when the window already shows it. The window capsule's help entry (the surface manager's default capsule help target) and a page card's open_requested call it. hide_business_card(window) puts the card away (the card emits put_away, whose handlers may throw); it does nothing when the window shows none. Both UI thread.
+
+.. cpp:function:: void hide_business_card(Window& window)
+
+.. cpp:function:: bool business_card_shown(const Window& window) noexcept
+
+.. cpp:function:: std::shared_ptr<BusinessCard> shown_business_card(const Window& window) noexcept
+
+   The card the window shows in the hand, else null (for tests and inspection). UI thread.
+
+.. cpp:var:: constexpr double maximum_business_card_pitch
+
+   The card's largest turn about its horizontal axis while dragged, in radians: it never turns over that way. Value: ``0.6``.
+
+.. cpp:var:: constexpr std::size_t maximum_business_card_remark
+
+   Value: ``160U``.
+
+.. cpp:var:: constexpr std::size_t maximum_business_card_remarks
+
+   Value: ``3U``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
 
 .. cpp:function:: FileDialogFilterParse parse_file_dialog_filter(std::string_view filter)
 
-   Parses a filter in Windows Forms' syntax, ``label|patterns|label|patterns``, where patterns are separated by ``;`` and spaces around a pattern are ignored: "Text files|*.txt;*.log|All files|*.*". ``*.extension`` becomes the host filter's extension (without the dot; ``*.tar.gz`` gives ``tar.gz``), and ``*`` and ``*.*`` become ``*``, which every host reads as any file. An empty string is no filter: the host shows every file.
+   Parses a filter in Windows Forms' syntax, ``label|patterns|label|patterns``, where patterns are separated by ``;`` and spaces around a pattern are ignored: "Text files\|*.txt;*.log\|All files\|*.*". ``*.extension`` becomes the host filter's extension (without the dot; ``*.tar.gz`` gives ``tar.gz``), and ``*`` and ``*.*`` become ``*``, which every host reads as any file. An empty string is no filter: the host shows every file.
 
 .. cpp:function:: bool file_dialog_filter_matches(const HostFileDialogFilter& filter, std::string_view file_name)
 
@@ -1828,7 +2058,7 @@ Functions, constants and aliases
 
 .. cpp:function:: ThreadExceptionReport describe_exception(const std::exception_ptr& error)
 
-   The report for a caught exception: the message of a std::exception, or "An exception of unknown type was thrown." for anything else, with no details. A null ``error`` gives an empty message.
+   The report for a caught exception: the message of a std::exception, or "An exception of unknown type was thrown." for anything else, with no details. A null ``error`` gives an empty message. A message that is not valid UTF-8 has each malformed byte replaced by U+FFFD; the dialog repairs a caller-filled caption, message and details the same way, so reporting never throws for its text.
 
 .. cpp:namespace:: gui_forms
 
@@ -1845,3 +2075,11 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const BundledFontFace> bundled_font_faces() noexcept
 
    The bundled faces a FontDialog offers, in its list order.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/modal_layer.hpp>``
+
+.. cpp:var:: constexpr FrameInterval modal_scrim_fade
+
+   The scrim's fade-in as a modal layer opens (roadmap row 2.6). Value: ``std::chrono::milliseconds(150)``.

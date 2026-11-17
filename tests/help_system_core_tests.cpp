@@ -18,10 +18,15 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -102,7 +107,7 @@ void records_and_layers() {
     require(static_cast<bool>(french), "the translation reads");
     catalog.set_translation(french.records, french.language);
     const HelpResolvedRecord resolved = catalog.resolve("main.copy");
-    require(resolved.found && resolved.title.text == "Copier" && resolved.title.origin == HelpLayer::translation,
+    require(resolved.found && resolved.title.text == "Copier" && resolved.title.origin == stxlib::Optional<gui_forms::HelpLayer>::of(HelpLayer::translation),
             "the translation's title wins");
     require(resolved.help_line.text == "Copies the selection." && resolved.help_line.fallback,
             "an untranslated field falls back to the built-in text, marked");
@@ -138,6 +143,36 @@ HelpCatalog make_catalog() {
     catalog.built_in().merge_over(read.records);
     put_declared_topics(catalog.built_in());
     return catalog;
+}
+
+// A little-endian unsigned field of a section's bytes.
+std::uint64_t read_field(const std::vector<std::byte>& bytes, std::size_t offset, std::size_t width) {
+    std::uint64_t value = 0U;
+    for (std::size_t index = 0U; index < width; ++index) {
+        value |= static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + index])) << (8U * index);
+    }
+    return value;
+}
+
+// The section's bytes with its sub-section `tag` (header, then tag, version
+// and 64-bit length before each payload) appended again at the end; the
+// bytes unchanged when there is none.
+std::vector<std::byte> with_sub_section_repeated(const std::vector<std::byte>& bytes, std::uint32_t tag) {
+    std::size_t offset = 8U;
+    while (offset + 16U <= bytes.size()) {
+        const std::uint64_t found = read_field(bytes, offset, 4U);
+        const std::uint64_t length = read_field(bytes, offset + 8U, 8U);
+        const std::size_t end = offset + 16U + static_cast<std::size_t>(length);
+        if (end > bytes.size()) break;
+        if (found == tag) {
+            std::vector<std::byte> repeated = bytes;
+            repeated.insert(repeated.end(), bytes.begin() + static_cast<std::ptrdiff_t>(offset),
+                            bytes.begin() + static_cast<std::ptrdiff_t>(end));
+            return repeated;
+        }
+        offset = end;
+    }
+    return bytes;
 }
 
 void contents_and_compile() {
@@ -200,6 +235,16 @@ void contents_and_compile() {
     require(!read_helpbook_section(cut), "a truncated section is refused");
     require(read_helpbook_section(std::span<const std::byte>{}).error == HelpBookReadError::not_a_section,
             "empty bytes are not a section");
+    // A-gf-core-07-F1: a known sub-section given twice is refused (a second
+    // records sub-section would replace the records the keyword, term and
+    // link indices were checked against).
+    for (std::uint32_t tag = 1U; tag <= 6U; ++tag) {
+        const std::vector<std::byte> repeated = with_sub_section_repeated(bytes, tag);
+        if (repeated.size() == bytes.size()) continue;
+        require(read_helpbook_section(repeated).error == HelpBookReadError::malformed,
+                "a repeated sub-section is refused");
+    }
+    require(with_sub_section_repeated(bytes, 2U).size() > bytes.size(), "the records sub-section is found");
 }
 
 void broken_links() {
@@ -223,7 +268,7 @@ void broken_links() {
     }
     require(broken && missing, "a broken topic link and a missing image are reported");
     require(!compiled.succeeded(), "a section with rejections does not succeed");
-    require(compiled.section.find("fine").has_value(), "the good record compiles anyway");
+    require(compiled.section.find("fine").present(), "the good record compiles anyway");
     bool external = false;
     for (const HelpLinkEntry& link : compiled.section.links) {
         if (link.kind == HelpLinkKind::external && link.target == "https://example.org") external = true;
@@ -300,6 +345,57 @@ void search() {
               << hits.size() << " hits\n";
 }
 
+// GAPS H2: folding beyond ASCII. The UTF-8 is spelled in escapes.
+void unicode_folding() {
+    std::string folded;
+    fold_help_text("R\xC3\xA9sum\xC3\xA9", folded);
+    require(folded == "resume", "diacritics fold away (R\u00e9sum\u00e9)");
+    fold_help_text("STRA\xC3\x9F" "E", folded);
+    require(folded == "strasse", "full case folding (\u00df to ss)");
+    fold_help_text("\xEF\xAC\x81le", folded);
+    require(folded == "file", "a ligature folds to its letters (\ufb01)");
+    fold_help_text("\xC4\xB0stanbul", folded);
+    require(folded == "istanbul", "dotted capital I folds to i");
+    fold_help_text("\xCE\xA9\xCE\x9C\xCE\x88\xCE\x93\xCE\x91", folded);
+    require(folded == "\xCF\x89\xCE\xBC\xCE\xB5\xCE\xB3\xCE\xB1", "Greek capitals and tonos fold");
+    fold_help_text("\xEF\xBC\xA1\xEF\xBC\xA2", folded);
+    require(folded == "ab", "full-width letters fold");
+    fold_help_text("na\xC3\xAFve\xE2\x80\x94test", folded);
+    require(folded == "naive test", "an em dash separates words");
+    const std::string devanagari = "\xE0\xA4\xB9\xE0\xA4\xBF\xE0\xA4\xA8\xE0\xA5\x8D\xE0\xA4\xA6\xE0\xA5\x80";
+    fold_help_text(devanagari, folded);
+    require(folded == devanagari, "Indic vowel signs and the virama are kept");
+    const std::string hangul = "\xED\x95\x9C\xEA\xB5\xAD";
+    fold_help_text(hangul, folded);
+    require(folded == hangul, "Hangul syllables stay composed");
+    fold_help_text("a\xFF\xC3" "b", folded);
+    require(folded == "a\xFF\xC3" "b", "malformed bytes are kept");
+    std::string again;
+    fold_help_text("Caf\xC3\xA9 \xC3\x85ngstr\xC3\xB6m", folded);
+    fold_help_text(folded, again);
+    require(again == folded && folded == "cafe angstrom", "folding is idempotent");
+
+    HelpCatalog catalog;
+    HelpRecordEntry entry{};
+    entry.stable_id = "main.resume";
+    entry.title = "R\xC3\xA9sum\xC3\xA9 and na\xC3\xAFvet\xC3\xA9";
+    entry.help = "Writing a CV \xE2\x80\x94 the STRA\xC3\x9F" "E guide.";
+    catalog.built_in().put(std::move(entry));
+    const HelpBookCompileResult compiled = compile_helpbook_section(catalog, {}, {});
+    HelpSearchQuery query;
+    std::vector<HelpSearchHit> hits;
+    parse_help_query("resume naivete", query);
+    require(search_help(compiled.section, query, {}, hits) == HelpSearchStatus::complete && hits.size() == 1U &&
+                hits[0].title_hit,
+            "an unaccented query finds accented words");
+    parse_help_query("Stra\xC3\x9F" "e", query);
+    require(search_help(compiled.section, query, {}, hits) == HelpSearchStatus::complete && hits.size() == 1U,
+            "\u00df in the query matches SS in the body");
+    parse_help_query("\"cv the\"", query);
+    require(search_help(compiled.section, query, {}, hits) == HelpSearchStatus::complete && hits.size() == 1U,
+            "a phrase spans an em dash");
+}
+
 void page_model() {
     HelpPageModel page;
     const MarkdownParseResult parsed = build_help_page(
@@ -323,11 +419,11 @@ void page_model() {
     }
     require(caution, "the callout attribute marks the next block");
     require(page.sections.size() == 1U && !page.sections[0].initially_open, "the collapsible section starts closed");
-    const std::optional<std::size_t> details = page.find_anchor("details");
-    require(details.has_value() && page.sections[0].heading == *details, "a heading's anchor is its folded text");
-    require(page.blocks[*details + 1U].section == std::optional<std::size_t>(0U), "the body is in the section");
-    const std::optional<std::size_t> open_part = page.find_anchor("open-part");
-    require(open_part.has_value() && !page.blocks[*open_part].section.has_value(),
+    const stxlib::Optional<std::size_t> details = page.find_anchor("details");
+    require(details.present() && page.sections[0].heading == (*details.value()), "a heading's anchor is its folded text");
+    require(page.blocks[(*details.value()) + 1U].section == gui_forms::platform::stxlib_optional(std::optional<std::size_t>(0U)), "the body is in the section");
+    const stxlib::Optional<std::size_t> open_part = page.find_anchor("open-part");
+    require(open_part.present() && page.blocks[(*open_part.value())].section.absent(),
             "a heading of the same level ends the section");
     require(page.blocks.back().kind == HelpPageBlockKind::image && page.images.size() == 1U &&
                 page.images[0].source == "logo.png" && page.images[0].alternative == "Logo",
@@ -369,6 +465,7 @@ int main() {
     contents_and_compile();
     broken_links();
     search();
+    unicode_folding();
     page_model();
     locale_depth_limit();
     std::cout << "help system core tests passed\n";

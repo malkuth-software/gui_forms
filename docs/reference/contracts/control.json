@@ -95,7 +95,7 @@
       "reviewed": false,
       "summary": "Moves a direct child to a new z-order index and reports whether the move applied."
     },
-    "gui_forms::Control::child_index_from_top|std::optional<std::size_t> (RuntimeId) const noexcept": {
+    "gui_forms::Control::child_index_from_top|stxlib::Optional<std::size_t> (RuntimeId) const noexcept": {
       "reviewed": false,
       "summary": "Returns the z-order index of a direct child (index zero is topmost)."
     },
@@ -387,7 +387,7 @@
       "reviewed": false,
       "summary": "Selects the paint plane and republishes damage."
     },
-    "gui_forms::Control::display_chunk_info|std::optional<DisplayChunkInfo> () const noexcept": {
+    "gui_forms::Control::display_chunk_info|stxlib::Optional<DisplayChunkInfo> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the retained display chunk information for this control."
     },

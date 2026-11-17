@@ -2,6 +2,7 @@
 #include "gui_forms/application.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "../../dispatcher/state/dispatcher_state.hpp"
 #include "../../drag_engine/drag_engine.hpp"
@@ -12,7 +13,9 @@
 #include "../interaction/interaction_state.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
 #include "../toasts/toast_presenter.hpp"
+#include "../../resources/stock_icons/stock_icon_cache.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -123,6 +126,9 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     if (!(*root_).is_alive()) {
         throw std::logic_error("GUI.Forms window root may not be disposed");
     }
+    // The status icons are baked for the window's scale at launch (stock
+    // icons, E10), once per scale for the process.
+    detail::prebake_stock_icons(scale());
     attach_subtree(root_, {});
     // The theme's backdrop request (stage T5) until the application makes
     // its own. Undeclared, the window is granted `opaque` whatever it asks.
@@ -163,6 +169,8 @@ Window::~Window() {
 void SurfaceRoot::release_tree() noexcept {
     paint_wake_handler_ = {};
     paint_wake_pending_ = false;
+    schedule_wake_handler_ = {};
+    schedule_wake_pending_ = false;
     abandon_deferred_input();
     // Teardown order (house style §4): the controls are told everything
     // (overlays closing, capture and focus revoked, the tree detached) while
@@ -269,12 +277,14 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     ControlVisualContext base_context;
     base_context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
     base_context.high_contrast = presentation_settings_.high_contrast;
-    const std::optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
-    if (base_band) {
+    const stxlib::Optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
+    if (base_band.present()) {
         // The outer band moves with the edges too, its rounded corners
         // reaching in by their radius.
-        double reach = std::max(*base_band, band_.reserved);
-        if (band_.reserved > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
+        const Insets& band = band_.reserved;
+        const double widest = std::max(std::max(band.left, band.top), std::max(band.right, band.bottom));
+        double reach = std::max((*base_band.value()), widest);
+        if (widest > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
             reach = std::max(reach, band_.corners.radius);
         }
         const DamageCauseScope cause(*this, InvalidationCause::layout, root_.get());
@@ -292,10 +302,11 @@ Rect SurfaceRoot::root_slot() const noexcept {
     // The outer band lies along the client area's edges; the chrome insets
     // are measured inside it.
     const Insets& insets = chrome_insets_;
-    const double band = band_.reserved;
-    const double width = client_size_.width - insets.left - insets.right - 2.0 * band;
-    const double height = client_size_.height - insets.top - insets.bottom - 2.0 * band;
-    const Rect slot{band + insets.left, band + insets.top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
+    const Insets& band = band_.reserved;
+    const double width = client_size_.width - insets.left - insets.right - band.left - band.right;
+    const double height = client_size_.height - insets.top - insets.bottom - band.top - band.bottom;
+    const Rect slot{band.left + insets.left, band.top + insets.top, width > 0.0 ? width : 0.0,
+                    height > 0.0 ? height : 0.0};
     return slot;
 }
 
@@ -345,6 +356,7 @@ void SurfaceRoot::mark_resized_measure(Control& control, bool width_reaches, boo
 void Window::set_scale(double scale) {
     require_root_thread("scale mutation");
     if (!set_surface_scale(scale)) return;
+    detail::prebake_stock_icons(scale);
     invalidate_cursor_interaction(CursorError::stale_metrics);
 }
 
@@ -416,13 +428,15 @@ void validate_presentation_settings(const PresentationSettings& settings) {
 
 PresentationSettings overridden_presentation(PresentationSettings settings,
                                              const PresentationOverrides& overrides) noexcept {
-    if (overrides.text_scale) settings.text_scale = *overrides.text_scale;
-    if (overrides.high_contrast) settings.high_contrast = *overrides.high_contrast;
-    if (overrides.reduced_motion) settings.reduced_motion = *overrides.reduced_motion;
-    if (overrides.sound_enabled) settings.sound_enabled = *overrides.sound_enabled;
-    if (overrides.ambient_motion) settings.ambient_motion = *overrides.ambient_motion;
-    if (overrides.reduced_transparency) settings.reduced_transparency = *overrides.reduced_transparency;
-    if (overrides.colour_scheme) settings.colour_scheme = *overrides.colour_scheme;
+    if (overrides.text_scale.present()) settings.text_scale = *overrides.text_scale.value();
+    if (overrides.high_contrast.present()) settings.high_contrast = *overrides.high_contrast.value();
+    if (overrides.reduced_motion.present()) settings.reduced_motion = *overrides.reduced_motion.value();
+    if (overrides.sound_enabled.present()) settings.sound_enabled = *overrides.sound_enabled.value();
+    if (overrides.ambient_motion.present()) settings.ambient_motion = *overrides.ambient_motion.value();
+    if (overrides.reduced_transparency.present()) {
+        settings.reduced_transparency = *overrides.reduced_transparency.value();
+    }
+    if (overrides.colour_scheme.present()) settings.colour_scheme = *overrides.colour_scheme.value();
     return settings;
 }
 
@@ -592,6 +606,12 @@ void SurfaceRoot::set_theme_override(std::shared_ptr<const Theme> theme) {
 void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     if (theme_ == shown) return;
     theme_ = shown;
+    // Composite looks are compiled for the new theme here, before anything
+    // resolves them (detail::CompositeLook::prepare).
+    if (root_) (*root_).prepare_composite_looks();
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) (*overlay_root).prepare_composite_looks();
+    }
     // Another theme draws parts differently: no cached part raster is
     // current.
     engine_parts_.invalidate_rasters();
@@ -640,6 +660,8 @@ void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // Deactivation gives a relative pointer back first (relative_pointer.hpp).
+    if (!active) static_cast<void>(end_relative_pointer(RelativePointerEnd::deactivated));
     // Keys and buttons released while the window was inactive never reach
     // it: forget them, raising the held keys' releases (key_events.hpp).
     if (!active && interaction_) {
@@ -676,14 +698,16 @@ namespace {
 // The PC convention, read by a window holding no table and joined to no
 // application. Made once; never changed.
 const KeyBindings& pc_key_bindings() {
-    static const KeyBindings convention{};
-    return convention;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const KeyBindings* const convention = new const KeyBindings{};
+    return *convention;
 }
 
 // The null table key_bindings() names for a window reading the convention.
 const std::shared_ptr<KeyBindings>& no_key_bindings() {
-    static const std::shared_ptr<KeyBindings> none{};
-    return none;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const std::shared_ptr<KeyBindings>* const none = new const std::shared_ptr<KeyBindings>{};
+    return *none;
 }
 
 } // namespace
@@ -765,6 +789,12 @@ void Window::install_host_key_map(const KeyMap& defaults) {
     // Seeds the table the window holds or reads (its application's, shared
     // by the application's windows), made now for a window with neither.
     static_cast<void>(held_key_bindings().seed(defaults));
+}
+
+void Window::install_host_locale(const HostLocale& locale) {
+    require_root_thread("host locale installation");
+    const std::shared_ptr<ApplicationResources> shared = resources();
+    if (shared) (*shared).seed_host_locale(locale);
 }
 
 void SurfaceRoot::set_text_scale(double text_scale) {

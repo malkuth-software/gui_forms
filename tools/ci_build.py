@@ -13,6 +13,7 @@ tools/build_sdk.py also uses without the harness.
 """
 from __future__ import annotations
 import argparse
+import json
 import os
 from pathlib import Path
 import platform
@@ -20,6 +21,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 import harness_link  # noqa: F401  (puts the harness's tools on sys.path)
 import change_selection
@@ -103,6 +105,31 @@ def gallery_enabled(flag: bool, environ: dict[str, str]) -> bool:
 # and module library is built with the test targets.
 LOADED_LIBRARY_RULES: tuple[str, ...] = ('C_SHARED_LIBRARY_LINKER', 'CXX_SHARED_LIBRARY_LINKER',
                                          'C_MODULE_LIBRARY_LINKER', 'CXX_MODULE_LIBRARY_LINKER')
+
+
+# The labels of tests that install the whole tree (gui_forms_sdk_consumer_link
+# runs cmake --install and links a consumer against every component): no
+# build output a command names stands for what they read, so a pull request
+# run that selects one builds `all`.
+WHOLE_TREE_LABELS: tuple[str, ...] = ('sdk',)
+
+
+def whole_tree_tests(listing: dict) -> list[str]:
+    """The names of the tests of listing that carry a label in WHOLE_TREE_LABELS."""
+    names: list[str] = []
+    test: dict
+    for test in listing.get('tests', []):
+        labels: list[str] = []
+        prop: dict
+        for prop in test.get('properties', []):
+            if prop.get('name') == 'LABELS':
+                labels = list(prop.get('value', []))
+        label: str
+        for label in labels:
+            if label in WHOLE_TREE_LABELS:
+                names.append(test['name'])
+                break
+    return names
 
 
 def ninja_outputs(toolkit: Path) -> dict[str, str]:
@@ -208,31 +235,93 @@ def report_stx_package(toolkit: Path, restored: bool) -> None:
               '(cmake/Stx.cmake)', flush=True)
 
 
+# The most distinct error lines a failed build prints at its end.
+KEEP_GOING_SUMMARY: int = 200
+# --test-jobs auto: the machine's processors, at most this many (CI's runners
+# have four; the suite marks its interfering tests RUN_SERIAL or with a
+# RESOURCE_LOCK, so ctest keeps those apart).
+TEST_JOBS_CAP: int = 4
+
+
+def print_build_errors(log_path: Path) -> None:
+    """Prints the distinct compiler error lines of a failed build's log, in
+    the order they first appear, up to KEEP_GOING_SUMMARY."""
+    seen: set[str] = set()
+    errors: list[str] = []
+    line: str
+    for line in log_path.read_text(encoding='utf-8', errors='replace').splitlines():
+        if ' error: ' not in line and not line.startswith('error: '):
+            continue
+        if line in seen:
+            continue
+        seen.add(line)
+        errors.append(line)
+    print(f'build failed: {len(errors)} distinct error lines', flush=True)
+    shown: str
+    for shown in errors[:KEEP_GOING_SUMMARY]:
+        print(shown, flush=True)
+
+
+# The wall-clock times of a tree's last logged build (milliseconds since the
+# Unix epoch): tools/ninja_phases.py places the .ninja_log's relative times on
+# the clock with them, to line a quiet stretch up with resource samples
+# (tools/windows_resource_sampler.ps1). Ninja exits as its last edge ends, so
+# finished_ms is that edge's end.
+BUILD_CLOCK_NAME: str = 'build-clock.json'
+
+
+def write_build_clock(toolkit: Path, started_ms: int, finished_ms: int) -> None:
+    """Writes toolkit/BUILD_CLOCK_NAME with the build's start and end, replacing an earlier one."""
+    clock: dict[str, int] = {'started_ms': started_ms, 'finished_ms': finished_ms}
+    (toolkit / BUILD_CLOCK_NAME).write_text(json.dumps(clock) + '\n', encoding='utf-8')
+
+
 def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
     """Runs `cmake --build toolkit` with `arguments`, echoing its output and
     keeping it in toolkit/build-output.log, then checks the warnings it
     reports against tools/warning_baseline.json (cmake/Hardening.cmake,
     owner decision D11). The sanitized build's warnings are not counted: its
-    flags differ from the baseline's. A build failure raises before the check."""
+    flags differ from the baseline's. A build failure raises before the check.
+
+    Ninja keeps going past a failed command (-k 0, every tree here is
+    configured with -G Ninja), so one run reports every compile error, and a
+    failed build ends with the distinct error lines (KEEP_GOING_SUMMARY)."""
     log_path: Path = toolkit / 'build-output.log'
-    command: list[str] = ['cmake', '--build', str(toolkit), *arguments]
+    command: list[str] = ['cmake', '--build', str(toolkit), *arguments, '--', '-k', '0']
     print(' '.join(command), flush=True)
     line: str
+    started_ms: int = time.time_ns() // 1000000
     with log_path.open('w', encoding='utf-8', errors='replace') as log:
         process: subprocess.Popen[str] = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                                           text=True, encoding='utf-8', errors='replace')
         assert process.stdout is not None
+        # Each line is flushed as it arrives, so the job log's timestamps
+        # are when ninja finished each edge, not when a block of output
+        # filled (a silence in the log is then a silence in the build).
         for line in process.stdout:
             sys.stdout.write(line)
+            sys.stdout.flush()
             log.write(line)
         status: int = process.wait()
     sys.stdout.flush()
+    write_build_clock(toolkit, started_ms, time.time_ns() // 1000000)
     if status != 0:
+        print_build_errors(log_path)
         raise subprocess.CalledProcessError(status, command)
     if sanitize:
         return
     run(sys.executable, '-B', ROOT / 'gui_forms/tools/warning_baseline.py', 'check', '--log', log_path,
         '--build-dir', toolkit)
+
+
+# The compile-only landing of #483 (owner, 2026-11-17): with GUI_FORMS_CI_COMPILE_ONLY=1 every
+# target is still built, test executables included, and no ctest run happens.
+def run_tests(*arguments: str | Path) -> None:
+    """Runs ctest with `arguments`, unless the compile-only switch is set."""
+    if os.environ.get('GUI_FORMS_CI_COMPILE_ONLY') == '1':
+        print('ctest skipped: compile-only (GUI_FORMS_CI_COMPILE_ONLY=1)', flush=True)
+        return
+    run(*arguments)
 
 
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
@@ -312,6 +401,10 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     if sanitize:
         sanitizer_cmake: list[str]
         sanitizer_environment: dict[str, str]
+        # On Linux these are -DCMAKE_<LANG>_FLAGS values, which replace the
+        # toolchain's _INIT flags; cmake/llvm22.cmake appends -stdlib=libc++
+        # to them, so the sanitized tree builds against libc++ 22 too, and
+        # the configure refuses a tree that would not.
         sanitizer_cmake, sanitizer_environment = sanitizer_options(
             host, ROOT / 'gui_forms/tools/sanitizer/lsan.supp', debug_info)
         options.extend(sanitizer_cmake)
@@ -326,6 +419,12 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     # GUIForms::DemoControls (audit F9), so the SDK this build installs
     # carries the lab and the Gallery model.
     options.extend(['-DGUI_FORMS_INSTALL_LAB=ON', '-DGUI_FORMS_INSTALL_GALLERY_MODEL=ON'])
+    # The text masks, as build_sdk.py --features all builds them: the
+    # SDK-consumer link test (gui_forms_sdk_consumer_link) then links
+    # GUIForms::TextMasks from the installed Application archive, which the
+    # one-module SDK once shipped without the masks (b68c80ecc, 2d4bb797b)
+    # while a tree without them passed.
+    options.append('-DGUI_FORMS_BUILD_TEXT_MASKS=ON')
     configure: list[str] = [
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
         *toolkit_options(ROOT / 'gui_forms', sdk, gallery, True), *options]
@@ -345,10 +444,15 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
             print(f'pull request: {len(chosen_names)} of {len(suite["tests"])} tests are affected by the paths '
                   f'changed since {changed_from} or always run', flush=True)
             selection = ctest_selection(change_selection.name_pattern(chosen_names), skip_labels)
-        unbuilt: list[str]
-        targets, unbuilt = test_build_targets(chosen, ninja_outputs(toolkit), toolkit)
-        print(f'pull request: {len(targets)} build outputs serve those tests, not `all`; '
-              f'{len(unbuilt)} named paths are sources or test outputs: {", ".join(unbuilt)}', flush=True)
+        whole_tree: list[str] = whole_tree_tests(chosen)
+        if whole_tree:
+            print(f'pull request: {", ".join(whole_tree)} install the whole tree, so `all` is built',
+                  flush=True)
+        else:
+            unbuilt: list[str]
+            targets, unbuilt = test_build_targets(chosen, ninja_outputs(toolkit), toolkit)
+            print(f'pull request: {len(targets)} build outputs serve those tests, not `all`; '
+                  f'{len(unbuilt)} named paths are sources or test outputs: {", ".join(unbuilt)}', flush=True)
     elif tests or changed_from:
         listing: dict = test_listing(toolkit, tests, skip_labels)
         if changed_from:
@@ -379,7 +483,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         write_build_record(toolkit, BUILT_NOTHING, 'the selected tests read no build output')
     os.environ['GUI_FORMS_FONT_DIR'] = str(ROOT / 'gui_forms/assets/fonts')
     if sanitize or tests:
-        run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
+        run_tests('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
             '--parallel', test_jobs, *selection)
         return
     if install_only:
@@ -387,7 +491,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     else:
         # The JUnit report names the passed tests the cache manifest records
         # (tools/native_tests.py); the programs job does not run them again.
-        run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
+        run_tests('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
             '--parallel', test_jobs, *selection, '--output-junit', native_tests.JUNIT_NAME)
     if test_targets_only:
         print('pull request: no SDK install or installed reference examples (the merge group builds them)',
@@ -408,14 +512,62 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', f'-DCMAKE_PREFIX_PATH={sdk}',
         '-DCMAKE_TOOLCHAIN_FILE=' + str(ROOT / 'gui_forms/cmake/llvm22.cmake'))
     run('cmake', '--build', examples, '--parallel', jobs)
-    run('ctest', '--test-dir', examples, '--output-on-failure')
+    run_tests('ctest', '--test-dir', examples, '--output-on-failure')
+
+
+def build_high_integrity(host: str, build: Path, jobs: int, test_jobs: int, clipboard_text: bool) -> None:
+    """Configures, builds and tests the high-integrity tree
+    (cmake/HighIntegrity.cmake) in build/gui-forms-high-integrity.
+
+    Its own configure: toolkit_options turns on the audio service and the
+    suite, which the configuration refuses. Only the tests labelled
+    high_integrity build and run (the build profile, the refusal tests, the
+    damaged font pack and the object-surface check). The warning baseline is
+    not checked: the tree compiles a different set of sources. Nothing is
+    installed.
+    """
+    toolkit: Path = build / 'gui-forms-high-integrity'
+    prepare_host(ROOT / 'gui_forms', True)
+    stx_package_dir: str = os.environ.get('GUI_FORMS_STX_PACKAGE_DIR', '')
+    if stx_package_dir:
+        stx_package_dir += '-high-integrity'
+    allowance: str = 'ON' if clipboard_text else 'OFF'
+    configure: list[str] = [
+        'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
+        '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
+        '-DCMAKE_TOOLCHAIN_FILE=' + str(ROOT / 'gui_forms/cmake/llvm22.cmake'),
+        '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', '-DGUI_FORMS_HIGH_INTEGRITY=ON',
+        f'-DGUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT={allowance}',
+        *host_options(host),
+        *stx_options(os.environ.get('GUI_FORMS_STX_PREFIX', ''), stx_package_dir)]
+    configure_tree(toolkit, configure)
+    run('cmake', '--build', toolkit, '--parallel', jobs)
+    run_tests('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', '300',
+        '--parallel', test_jobs, '-L', 'high_integrity')
+
+
+def test_job_count(text: str, processors: int | None = None) -> int:
+    """--test-jobs: a positive count, or 'auto' for the processors (os.cpu_count()
+    unless given) capped at TEST_JOBS_CAP. Raises argparse.ArgumentTypeError otherwise."""
+    if text == 'auto':
+        available: int = (os.cpu_count() if processors is None else processors) or 1
+        result: int = max(1, min(available, TEST_JOBS_CAP))
+        return result
+    try:
+        count: int = int(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError('--test-jobs takes a positive count or auto, not ' + text) from error
+    if count < 1:
+        raise argparse.ArgumentTypeError('--test-jobs must be positive')
+    return count
 
 
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jobs', type=int, default=4)
-    parser.add_argument('--test-jobs', type=int, default=1,
-                        help='tests ctest runs at once (default 1: one after another)')
+    parser.add_argument('--test-jobs', type=test_job_count, default=1,
+                        help='tests ctest runs at once (default 1: one after another), or auto: the '
+                             'processors, at most ' + str(TEST_JOBS_CAP))
     parser.add_argument('--debug-info', choices=tuple(DEBUG_INFO_FLAGS), default='',
                         help='with --sanitize, the debug information: lines (-gline-tables-only, the default) '
                              'or full (-g); also ' + DEBUG_INFO_VARIABLE)
@@ -441,6 +593,11 @@ def main() -> None:
     parser.add_argument('--gallery', action='store_true',
                         help='also configure GUI_FORMS_BUILD_GALLERY=ON '
                              '(or set GUI_FORMS_CI_BUILD_GALLERY=1); default OFF')
+    parser.add_argument('--high-integrity', action='store_true',
+                        help='build the high-integrity tree (cmake/HighIntegrity.cmake) in '
+                             'gui-forms-high-integrity and run its tests only')
+    parser.add_argument('--allow-clipboard-text', action='store_true',
+                        help='with --high-integrity, keep the clipboard text allowance')
     args: argparse.Namespace = parser.parse_args()
     if args.jobs < 1:
         parser.error('--jobs must be positive')
@@ -454,6 +611,12 @@ def main() -> None:
     if args.install_only and (args.sanitize or args.tests or args.changed_from or args.skip_labels):
         parser.error('--install-only builds and installs everything and runs no toolkit test; '
                      'it takes no --sanitize, --tests, --changed-from or --skip-labels')
+    if args.high_integrity and (args.sanitize or args.tests or args.changed_from or args.install_only
+                                or args.test_targets_only or args.gallery or args.skip_labels):
+        parser.error('--high-integrity builds its own tree and runs its own tests; it takes only '
+                     '--jobs, --test-jobs and --allow-clipboard-text')
+    if args.allow_clipboard_text and not args.high_integrity:
+        parser.error('--allow-clipboard-text is an allowance of --high-integrity')
     if args.debug_info and not args.sanitize:
         parser.error('--debug-info applies to the sanitized build only')
     debug_info: str = 'lines'
@@ -466,8 +629,17 @@ def main() -> None:
     architecture: str = 'x64'
     if platform.machine().lower() in ('arm64', 'aarch64'):
         architecture = 'arm64'
-    build: Path = ROOT / '.build' / ('native-' + host + '-' + architecture)
+    # The build root by its real path: with ccache's base_dir set, depfiles are
+    # written relative to the compiler's real working directory, so a build
+    # tree reached through a symlink records generated headers under paths
+    # ninja does not match to their generating rule (form_shared_source).
+    build_root: Path = ROOT / '.build'
+    build_root.mkdir(parents=True, exist_ok=True)
+    build: Path = build_root.resolve() / ('native-' + host + '-' + architecture)
     build.mkdir(parents=True, exist_ok=True)
+    if args.high_integrity:
+        build_high_integrity(host, build, args.jobs, args.test_jobs, args.allow_clipboard_text)
+        return
     build_toolkit(host, build, build / 'gui-forms-sdk', args.jobs,
                   gallery_enabled(args.gallery, dict(os.environ)), args.sanitize, args.tests,
                   args.test_jobs, debug_info, args.skip_labels, args.changed_from, args.install_only,

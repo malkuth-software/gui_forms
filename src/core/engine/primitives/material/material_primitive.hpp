@@ -4,6 +4,7 @@
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "material_bake_policy.hpp"
 
+#include <stxlib/optional.hpp>
 #include <span>
 
 namespace gui_forms::engine_primitives {
@@ -33,7 +34,9 @@ namespace gui_forms::engine_primitives {
 //
 // Every layer is anti-aliased by coverage in device pixels and blended
 // premultiplied in double; each pixel is quantized once. Gradient colours
-// are interpolated in straight colour, then premultiplied. A shadow of blur
+// are interpolated premultiplied in linear light to an sRGB colour
+// (gui_forms/types/linear_light/linear_light.hpp), then premultiplied by
+// coverage. A shadow of blur
 // b at scale s is a Gaussian of standard deviation σ = b / 2 × s device
 // pixels, widened by the pixel's own box filter, σ' = sqrt(σ² + 1/12); its
 // coverage is the smaller of the Gaussian integral over the shadow's
@@ -75,7 +78,7 @@ inline constexpr double material_outset = 8.0;
 class MaterialPrimitive final : public EnginePrimitive {
 public:
     [[nodiscard]] const PrimitiveDescriptor& descriptor() const noexcept override;
-    [[nodiscard]] std::optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] stxlib::Optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
                                                                   ControlVisualRole family) const noexcept override;
     [[nodiscard]] PartShape shape(const PrimitiveParameterBlock& parameters) const noexcept override;
     [[nodiscard]] bool accepts(const PrimitiveParameterBlock& parameters,

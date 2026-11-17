@@ -32,9 +32,9 @@
 #include "skia_raster.hpp"
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
-#include "../src/host/windows/fonts/sealed_pages_windows.hpp"
+#include "../src/surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../src/host/posix/fonts/sealed_pages_posix.hpp"
+#include "../src/surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <algorithm>
@@ -152,10 +152,10 @@ void ribbon_faces_at(double scale, double window_scale, const std::shared_ptr<co
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     const Ribbon::Parts parts = (*ribbon).parts();
     const std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
     require(realized.size() == 2U, "both tabs are realized");
@@ -213,11 +213,11 @@ void gallery_ribbon_at(double scale, double window_scale) {
     Window& window = *owned;
     window.set_scale(window_scale);
     window.perform_layout();
-    const std::shared_ptr<Button> navigation =
-        std::dynamic_pointer_cast<Button>(window.find("gallery.page.commands-and-menus"));
-    require(navigation != nullptr, "the commands page's navigation row exists");
-    if (!navigation) return;
-    static_cast<void>((*navigation).perform_click());
+    // The navigation opens the page through its ListView row; the shell's
+    // select_gallery_page is the same selection without the pointer.
+    const bool shown = gui_forms::gallery::select_gallery_page(window, "commands-and-menus");
+    require(shown, "the commands page's navigation row exists");
+    if (!shown) return;
     window.perform_layout();
     const std::shared_ptr<Ribbon> ribbon =
         std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));
@@ -237,10 +237,10 @@ void gallery_ribbon_at(double scale, double window_scale) {
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
     const Rect placed = (*ribbon).absolute_bounds();
     const Ribbon::Parts parts = (*ribbon).parts();
     const Point rail{placed.x + placed.width - 12.0, placed.y + 8.0};
@@ -276,10 +276,10 @@ void paint_whole(Window& window, render::SkiaRaster& raster, Size size) {
     raster.begin_frame(damage);
     raster.save();
     raster.clip_damage(damage);
-    const std::optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
+    const stxlib::Optional<PaintReceipt> receipt = window.paint(raster, damage.rectangles());
     raster.restore();
     raster.end_frame();
-    if (receipt) static_cast<void>(window.notify_presented(*receipt));
+    if (receipt.present()) static_cast<void>(window.notify_presented(*receipt.value()));
 }
 
 // Every label of the selected tab's commands fits its part, measured by
@@ -287,14 +287,14 @@ void paint_whole(Window& window, render::SkiaRaster& raster, Size size) {
 // a check box's in the CheckBox's own font, its label part inside the
 // command's cell. `where` names the case in a failure.
 void labels_fit(const Ribbon& ribbon, render::SkiaRaster& raster, const std::string& where) {
-    const std::optional<std::size_t> selected = ribbon.selected_tab.read();
-    require(selected.has_value(), "a tab is selected");
-    if (!selected) return;
+    const stxlib::Optional<std::size_t> selected = ribbon.selected_tab.read();
+    require(selected.present(), "a tab is selected");
+    if (selected.absent()) return;
     const std::span<const RibbonTabSpec> tabs = ribbon.tabs();
     const FontSpec label_font = ribbon.text_font(ribbon.font.read());
     std::size_t checked = 0U;
     for (const Ribbon::CommandItem& item : ribbon.realized_commands()) {
-        const RibbonCommandSpec& spec = tabs[*selected].groups[item.group].commands[item.index];
+        const RibbonCommandSpec& spec = tabs[*selected.value()].groups[item.group].commands[item.index];
         std::string authored = spec.text;
         if (authored.empty() && spec.command) authored = (*spec.command).state().text;
         const std::string shown = parse_mnemonic_text(authored).display_text;
@@ -342,9 +342,9 @@ void hosted_commands_at(double scale, const std::shared_ptr<const Theme>& theme,
     RibbonTabSpec view{.stable_id = "view", .text = "View"};
     RibbonGroupSpec zoom{.stable_id = "zoom", .caption = "Zoom"};
     zoom.commands.push_back({.stable_id = "zoom-in", .command = zoom_in});
-    zoom.commands.push_back({.stable_id = "zoom-out", .size = RibbonCommandSize::small, .command = zoom_out});
-    zoom.commands.push_back({.stable_id = "actual-size", .size = RibbonCommandSize::small, .command = actual});
-    zoom.commands.push_back({.stable_id = "full-screen", .size = RibbonCommandSize::small, .command = full});
+    zoom.commands.push_back({.stable_id = "zoom-out", .size = RibbonCommandSize::compact, .command = zoom_out});
+    zoom.commands.push_back({.stable_id = "actual-size", .size = RibbonCommandSize::compact, .command = actual});
+    zoom.commands.push_back({.stable_id = "full-screen", .size = RibbonCommandSize::compact, .command = full});
     RibbonGroupSpec show{.stable_id = "show-hide", .caption = "Show/Hide"};
     show.commands.push_back({.stable_id = "rulers", .kind = RibbonCommandKind::check_box, .text = "Rulers"});
     show.commands.push_back({.stable_id = "gridlines", .kind = RibbonCommandKind::check_box, .text = "Gridlines"});
@@ -419,9 +419,7 @@ void gallery_labels_at(double scale) {
     window.set_scale(scale);
     window.set_text_metrics_provider(&raster);
     window.perform_layout();
-    const std::shared_ptr<Button> navigation =
-        std::dynamic_pointer_cast<Button>(window.find("gallery.page.commands-and-menus"));
-    if (navigation) static_cast<void>((*navigation).perform_click());
+    static_cast<void>(gui_forms::gallery::select_gallery_page(window, "commands-and-menus"));
     window.perform_layout();
     const std::shared_ptr<Ribbon> ribbon =
         std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));

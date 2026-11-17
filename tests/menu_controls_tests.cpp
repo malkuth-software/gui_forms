@@ -5,9 +5,11 @@
 #include "support/typography_painter.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <stxlib/optional.hpp>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -17,6 +19,14 @@
 namespace {
 
 using namespace gui_forms;
+
+// Whether the strip's open root item is `index`; absent never matches.
+bool active_is(const MenuStrip& strip, std::size_t index) {
+    const stxlib::Optional<std::size_t> held = strip.active_index();
+    const std::size_t* const active = held.value();
+    const bool result = active != nullptr && *active == index;
+    return result;
+}
 
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -212,7 +222,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_2, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_3 = !(*delete_row).focusable.read();
     require(operation_check_3, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
-    const bool operation_check_4 = !(*delete_row).cursor.read();
+    const bool operation_check_4 = (*delete_row).cursor.read().absent();
     require(operation_check_4, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_5 = !has_semantic_state((*delete_node).states,
                                     SemanticState::enabled);
@@ -289,7 +299,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_29, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_30 = !(*disabled_submenu_row).focusable.read();
     require(operation_check_30, "submenu with no actionable descendant must explain and enforce its disabled state");
-    const bool operation_check_31 = !(*disabled_submenu_row).cursor.read();
+    const bool operation_check_31 = (*disabled_submenu_row).cursor.read().absent();
     require(operation_check_31, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_32 = (*disabled_submenu).description.find(
                     "No commands are currently available") !=
@@ -438,6 +448,47 @@ void test_context_menu_items_without_commands() {
     static_cast<void>(recorded);
 }
 
+// A-gf-controls-06-F3: a menu whose commands are all hidden shows nothing.
+// Opening it from the strip is refused before the strip changes, and a
+// ContextMenu stays closed; neither throws out of input handling.
+void test_menu_with_every_command_hidden_stays_closed() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("hidden.root"));
+    std::shared_ptr<gui_forms::MenuStrip> strip = make_control<MenuStrip>(StableId("hidden.strip"));
+    (*strip).set_requested_bounds({0.0, 0.0, 320.0, 24.0});
+    (*root).add_child(strip);
+    std::shared_ptr<gui_forms::Command> shown = std::make_shared<Command>("file.open", "Open");
+    std::shared_ptr<gui_forms::Command> hidden = std::make_shared<Command>("edit.undo", "Undo");
+    (*hidden).set_visible(false);
+    (*strip).set_items({
+        {"hidden.file", "File", {{"file.open", MenuItemKind::command, shown}}},
+        {"hidden.edit", "Edit", {{"edit.undo", MenuItemKind::command, hidden}}},
+    });
+    Window window(root, {320.0, 190.0});
+    require((*strip).open(0U, MenuOpenMode::pointer) && active_is(*strip, 0U),
+            "a menu with a visible command opens");
+    bool threw = false;
+    bool opened = true;
+    try {
+        opened = (*strip).open(1U, MenuOpenMode::pointer);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw && !opened, "a menu whose commands are all hidden is refused without throwing");
+    require(active_is(*strip, 0U) && (*strip).is_open(),
+            "the refused switch leaves the open menu as it was");
+    (*strip).close();
+
+    ContextMenu menu("hidden.menu");
+    menu.set_items({{"edit.undo", MenuItemKind::command, hidden}});
+    threw = false;
+    try {
+        menu.show(strip, {20.0, 20.0});
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw && !menu.is_open(), "a context menu with nothing visible stays closed without throwing");
+}
+
 // Item IDs that become part of a StableId are checked when they are set,
 // not later, when an overlay row or hosted control is made from them.
 void test_item_ids_follow_the_stable_id_segment_rule() {
@@ -544,7 +595,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_48, "Down on the menu bar must open its focused retained menu");
     const bool operation_check_49 = (*strip).is_open();
     require(operation_check_49, "Down on the menu bar must open its focused retained menu");
-    const bool operation_check_50 = (*strip).active_index() == 0U;
+    const bool operation_check_50 = active_is(*strip, 0U);
     require(operation_check_50, "Down on the menu bar must open its focused retained menu");
     const bool operation_check_51 = window.focus_scope_depth() == 1U;
     require(operation_check_51, "Down on the menu bar must open its focused retained menu");
@@ -563,7 +614,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_52, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_53 = (*strip).is_open();
     require(operation_check_53, "Right from a root command must switch top-level menus in one overlay scope");
-    const bool operation_check_54 = (*strip).active_index() == 1U;
+    const bool operation_check_54 = active_is(*strip, 1U);
     require(operation_check_54, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_55 = (*window.focused_control()).stable_id().value() ==
                     "menustrip.menu.overlay.row.view.icons";
@@ -594,21 +645,21 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_61, "semantic expansion must open the same retained overlay path");
     const bool operation_check_62 = (*strip).is_open();
     require(operation_check_62, "semantic expansion must open the same retained overlay path");
-    const bool operation_check_63 = (*strip).active_index() == 0U;
+    const bool operation_check_63 = active_is(*strip, 0U);
     require(operation_check_63, "semantic expansion must open the same retained overlay path");
     (*strip).close();
 
     const bool operation_check_64 = window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      {70.0, 12.0}});
     require(operation_check_64, "pointer activation must open the top-level item under its geometry");
-    const bool operation_check_65 = (*strip).active_index() == 1U;
+    const bool operation_check_65 = active_is(*strip, 1U);
     require(operation_check_65, "pointer activation must open the top-level item under its geometry");
     require(window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer dispatch must leave menu rows unselected");
     const bool operation_check_66 = window.dispatch_pointer({PointerAction::move, PointerButton::none,
                                      {12.0, 12.0}});
     require(operation_check_66, "moving across the open menu bar must switch menus without click-through");
-    const bool operation_check_67 = (*strip).active_index() == 0U;
+    const bool operation_check_67 = active_is(*strip, 0U);
     require(operation_check_67, "moving across the open menu bar must switch menus without click-through");
     require(window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer switching must leave the new menu rows unselected");
@@ -679,14 +730,14 @@ void test_menu_mnemonics_strip_markers_and_overlay_activation() {
     require(operation_check_68, "a top-level menu mnemonic must focus and open its retained overlay");
     const bool operation_check_69 = (*strip).is_open();
     require(operation_check_69, "a top-level menu mnemonic must focus and open its retained overlay");
-    const bool operation_check_70 = (*strip).active_index() == 0U;
+    const bool operation_check_70 = active_is(*strip, 0U);
     require(operation_check_70, "a top-level menu mnemonic must focus and open its retained overlay");
     (*strip).close();
     const bool operation_check_71 = window.dispatch_key(alt_f);
     require(operation_check_71, "duplicate top-level menu mnemonics must cycle deterministically");
     const bool operation_check_72 = (*strip).is_open();
     require(operation_check_72, "duplicate top-level menu mnemonics must cycle deterministically");
-    const bool operation_check_73 = (*strip).active_index() == 1U;
+    const bool operation_check_73 = active_is(*strip, 1U);
     require(operation_check_73, "duplicate top-level menu mnemonics must cycle deterministically");
     (*strip).close();
 
@@ -799,6 +850,80 @@ void test_menu_plain_letter_mnemonics() {
             "a plain letter must act while the menu panel itself has the focus");
 }
 
+// The first-letter jump: when no mnemonic matches, items without a mnemonic
+// whose text starts with the letter are taken as mnemonics are (one
+// activates, several take the focus in turn); a mnemonic always wins, and
+// an item with a mnemonic never answers its first letter.
+void test_menu_first_letter_jumps() {
+    require(is_first_letter(U'o', "Open") && is_first_letter(U'O', "open") && !is_first_letter(U'p', "Open") &&
+                !is_first_letter(U'o', "&Open") && !is_first_letter(U'x', "E&xit") &&
+                !is_first_letter(U'&', "&&Co") && !is_first_letter(U'a', "") &&
+                is_first_letter(U's', "Save&&Close"),
+            "is_first_letter matches the first displayed letter of a text without a mnemonic");
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("first.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("first.owner"), "Owner");
+    (*owner).set_requested_bounds({20.0, 20.0, 90.0, 28.0});
+    (*root).add_child(owner);
+    Window window(root, {360.0, 320.0});
+    window.perform_layout();
+
+    std::shared_ptr<gui_forms::Command> open = std::make_shared<Command>("open", "Open");
+    std::shared_ptr<gui_forms::Command> options = std::make_shared<Command>("options", "Options");
+    std::shared_ptr<gui_forms::Command> save = std::make_shared<Command>("save", "Save");
+    std::shared_ptr<gui_forms::Command> print = std::make_shared<Command>("print", "Print");
+    std::shared_ptr<gui_forms::Command> edit = std::make_shared<Command>("edit", "Edit");
+    std::shared_ptr<gui_forms::Command> exit = std::make_shared<Command>("exit", "Exit");
+    (*print).set_enabled(false);
+    std::string trace;
+    SubscriptionToken open_invoked = (*open).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken options_invoked = (*options).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken save_invoked = (*save).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken edit_invoked = (*edit).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken exit_invoked = (*exit).invoked().subscribe(RecordCommandId(trace));
+    ContextMenu menu("first.menu");
+    menu.set_items({
+        {"open", MenuItemKind::command, open, "Open"},
+        {"options", MenuItemKind::command, options, "Options"},
+        {"save", MenuItemKind::command, save, "Save"},
+        {"print", MenuItemKind::command, print, "Print"},
+        {"edit", MenuItemKind::command, edit, "Edit"},
+        {"exit", MenuItemKind::command, exit, "E&xit"},
+    });
+
+    TextInputEvent typed_s{"s"};
+    menu.show(owner, {20.0, 50.0});
+    require(window.dispatch_text(typed_s) && trace == "save" && !menu.is_open(),
+            "one first-letter match activates its item and closes the menu");
+
+    trace.clear();
+    menu.show(owner, {20.0, 50.0});
+    TextInputEvent typed_o{"o"};
+    // The menu opens with its first row, Open, focused; as with a shared
+    // mnemonic (and a native menu), the search starts after the focused
+    // row, so the first O goes on to Options and the next wraps to Open.
+    require(window.dispatch_text(typed_o), "a shared first letter is handled");
+    Control::Ptr focused = window.focused_control();
+    require(focused && (*focused).semantic_descriptor().name == "Options" && menu.is_open() && trace.empty(),
+            "a shared first letter moves the focus to the next match without activating");
+    require(window.dispatch_text(typed_o), "the shared first letter again");
+    focused = window.focused_control();
+    require(focused && (*focused).semantic_descriptor().name == "Open" && trace.empty(),
+            "the shared first letter wraps round to the first match");
+
+    TextInputEvent typed_p{"p"};
+    require(!window.dispatch_text(typed_p) && menu.is_open() && trace.empty(),
+            "a disabled item's first letter matches nothing");
+    TextInputEvent typed_e{"e"};
+    require(window.dispatch_text(typed_e) && trace == "edit" && !menu.is_open(),
+            "an item with a mnemonic does not answer its first letter: Edit is the only E");
+
+    trace.clear();
+    menu.show(owner, {20.0, 50.0});
+    TextInputEvent typed_x{"x"};
+    require(window.dispatch_text(typed_x) && trace == "exit" && !menu.is_open(),
+            "a mnemonic still activates its item");
+}
+
 class MenuFontMetrics final : public TextMetricsProvider {
 public:
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
@@ -843,7 +968,7 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
     const bool operation_check_78 = window.dispatch_pointer({PointerAction::down, PointerButton::primary,
                                      {old_width + 2.0, 12.0}});
     require(operation_check_78, "font-expanded menu area must hit the same first item painted there");
-    const bool operation_check_79 = (*strip).active_index() == 0U;
+    const bool operation_check_79 = active_is(*strip, 0U);
     require(operation_check_79, "font-expanded menu area must hit the same first item painted there");
     (*strip).close();
     window.set_text_scale(1.5);
@@ -929,18 +1054,82 @@ void test_menu_row_insets_follow_the_text_scale() {
     require(double_width > single_width * 1.8, "at text scale 2 the menu's gutters widen with its text");
 }
 
+// Destroys the menu from its item's command, as a command that removes and
+// drops the control owning the menu does.
+class DestroyMenu final {
+public:
+    explicit DestroyMenu(std::unique_ptr<ContextMenu>& menu) : menu_(menu) {}
+    void operator()(const CommandInvocation&) const { menu_.reset(); }
+
+private:
+    std::unique_ptr<ContextMenu>& menu_;
+};
+
+// Closes the menu when its owner loses the focus, as an owner that closes
+// its drop-down on leaving does.
+class CloseOnLeave final {
+public:
+    explicit CloseOnLeave(ContextMenu& menu) : menu_(menu) {}
+    void operator()(bool focused) const {
+        if (!focused) menu_.close();
+    }
+
+private:
+    ContextMenu& menu_;
+};
+
+// A-gf-controls-06-F1: a command that destroys the menu ends the
+// activation without touching the menu again. A-gf-controls-06-F2: a focus
+// handler that closes the menu while it opens leaves it closed, its focus
+// scope ended.
+void test_context_menu_survives_its_handlers() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("doomed.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("doomed.owner"), "Menu");
+    std::shared_ptr<gui_forms::Button> other = make_control<Button>(StableId("doomed.other"), "Other");
+    (*owner).set_requested_bounds({4.0, 4.0, 80.0, 30.0});
+    (*other).set_requested_bounds({100.0, 4.0, 80.0, 30.0});
+    (*root).add_child(owner);
+    (*root).add_child(other);
+    Window window(root, {320.0, 190.0});
+    require(window.request_focus(owner), "the menu owner takes focus");
+    std::shared_ptr<Command> closing = std::make_shared<Command>("doomed.close", "Close");
+    std::unique_ptr<ContextMenu> menu = std::make_unique<ContextMenu>("doomed.menu");
+    (*menu).set_items({MenuItemSpec("close", MenuItemKind::command, closing)});
+    SubscriptionToken destroyer = (*closing).invoked().subscribe(DestroyMenu(menu));
+    (*menu).show(owner, {20.0, 20.0});
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::end}) &&
+                window.dispatch_key({KeyAction::down, PhysicalKey::enter}),
+            "Enter chooses the item");
+    require(!menu && window.find("doomed.menu.overlay.row.close") == nullptr,
+            "the command destroyed the menu and its rows are gone");
+    destroyer.disconnect();
+
+    require(window.request_focus(owner), "the owner takes focus again");
+    ContextMenu leaving("leaving.menu");
+    leaving.set_items({MenuItemSpec("item", MenuItemKind::command, {}, "Item")});
+    SubscriptionToken closer = (*owner).focus_observed().subscribe(CloseOnLeave(leaving));
+    leaving.show(owner, {20.0, 20.0});
+    closer.disconnect();
+    require(!leaving.is_open() && window.find("leaving.menu.overlay.row.item") == nullptr,
+            "a menu its opening focus handler closed stays closed");
+    require(window.request_focus(other), "no focus scope of the closed menu holds the focus");
+}
+
 int main() {
     try {
         test_context_menu_command_snapshot_keyboard_nesting_and_restore();
         test_context_menu_scroll_and_validation_bounds();
         test_context_menu_items_without_commands();
+        test_context_menu_survives_its_handlers();
         test_item_ids_follow_the_stable_id_segment_rule();
         test_menu_strip_retained_switching_commands_and_semantics();
         test_menu_mnemonics_strip_markers_and_overlay_activation();
         test_menu_plain_letter_mnemonics();
+        test_menu_first_letter_jumps();
         test_menu_font_controls_geometry_paint_and_hit_testing();
         test_menu_strip_declares_the_drop_down_gutter();
         test_menu_row_insets_follow_the_text_scale();
+        test_menu_with_every_command_hidden_stays_closed();
         std::cout << "gui_forms_menu_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

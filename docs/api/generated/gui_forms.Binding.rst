@@ -345,7 +345,7 @@ gui_forms::Binding
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Binding``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 22 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Binding``. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 20 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -423,7 +423,7 @@ Counterpart: ``Binding``. Members declared here and by the counterpart: 8 suppor
    * - event
      - ``Format``
      - ``format``
-     - unclassified (untested)
+     - supported
    * - event
      - ``Parse``
      - ``parse``
@@ -471,7 +471,7 @@ Counterpart: ``Binding``. Members declared here and by the counterpart: 8 suppor
    * - property
      - GUI.Forms-only
      - ``target``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``validate``

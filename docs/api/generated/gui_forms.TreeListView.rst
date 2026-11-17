@@ -85,10 +85,10 @@ gui_forms::TreeListView
       **horizontal_offset** : ``double``
          The sideways scroll, in logical units, clamped to the columns' width.
 
-      **current_id** : ``std::optional<std::string_view>``, read-only
+      **current_id** : ``stxlib::Optional<std::string_view>``, read-only
          The node with the keyboard's position and the focus cue, or none.
 
-      **sort_column** : ``std::optional<std::size_t>``, read-only
+      **sort_column** : ``stxlib::Optional<std::size_t>``, read-only
          The column the siblings are sorted by, or none.
 
       **sort_order** : ``TreeListSortOrder``, default ``TreeListSortOrder::none``, read-only
@@ -260,7 +260,7 @@ gui_forms::TreeListView
           {.stable_id = "main", .text = "main.cpp", .cells = {"4 KB"}, .depth = 1U},
           {.stable_id = "app", .text = "app.cpp", .cells = {"9 KB"}, .depth = 1U},
       });
-      (*tree).set_sort(std::size_t{0U}, gf::TreeListSortOrder::ascending);
+      (*tree).set_sort(stxlib::Optional<std::size_t>::of(std::size_t{0U}), gf::TreeListSortOrder::ascending);
       // The rows are now src, app.cpp, main.cpp; the nodes keep their order.
 
 
@@ -348,11 +348,11 @@ gui_forms::TreeListView
 
       Sets :cpp:func:`horizontal_offset <gui_forms::TreeListView::horizontal_offset>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::string_view> current_id() const noexcept
+   .. cpp:function:: stxlib::Optional<std::string_view> current_id() const noexcept
 
       The node with the keyboard's position and the focus cue, or none.
 
-   .. cpp:function:: std::optional<std::size_t> sort_column() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> sort_column() const noexcept
 
       The column the siblings are sorted by, or none.
 
@@ -424,7 +424,7 @@ gui_forms::TreeListView
       column or position past the end and ``std::invalid_argument`` for the tree
       column or position 0.
 
-   .. cpp:function:: std::optional<std::size_t> index_of(std::string_view node_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> index_of(std::string_view node_id) const
 
       The model index of the node with an ID, or none.
 
@@ -445,7 +445,7 @@ gui_forms::TreeListView
 
       Re-reads the row count and drops every kept height (the rows were rebuilt). Selection and current row stay by row when below the count. Throws std::logic_error outside virtual mode.
 
-   .. cpp:function:: std::optional<std::size_t> row_of(std::string_view node_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> row_of(std::string_view node_id) const
 
       The row showing a node, or none when it is hidden or unknown.
 
@@ -482,6 +482,14 @@ gui_forms::TreeListView
    .. cpp:function:: void set_row_source(std::shared_ptr<TreeListRowSource> source)
 
       -- virtual rows ------------------------------------------------------------ Shows the source's rows instead of nodes (a null source returns to an empty node model). Drops the nodes, the selection (raising selection_changed when there was one) and the scroll. Throws std::invalid_argument when the source has more than maximum_nodes rows.
+
+   .. cpp:function:: void set_sort(stxlib::Optional<std::size_t> column, TreeListSortOrder order)
+
+      Orders every node's children, and the roots, by one column's text (ASCII
+      case folded, then byte order; equal texts keep the order given), or
+      returns to the order given with no column or
+      :cpp:enumerator:`TreeListSortOrder::none <gui_forms::TreeListSortOrder::none>`. The tree structure is kept and the model is
+      not reordered. Throws ``std::out_of_range`` for a column past the end.
 
    .. cpp:function:: void set_sort(std::optional<std::size_t> column, TreeListSortOrder order)
 
@@ -560,11 +568,11 @@ gui_forms::TreeListView
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 

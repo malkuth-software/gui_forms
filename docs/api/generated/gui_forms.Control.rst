@@ -63,14 +63,14 @@ gui_forms::Control
          ``std::invalid_argument`` is thrown. It is bindable and published as the
          semantic field ``tool_tip``. Data items such as list rows have none.
 
-      **cursor** : ``std::optional<CursorKind>``
+      **cursor** : ``stxlib::Optional<CursorKind>``
          The pointer shape over the control, or none to use the parent's.
          :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
 
-      **back_color** : ``std::optional<Color>``
+      **back_color** : ``stxlib::Optional<Color>``
          The own background colour; empty takes the parent's.
 
-      **fore_color** : ``std::optional<Color>``
+      **fore_color** : ``stxlib::Optional<Color>``
          The own text colour; empty takes the parent's.
 
       **minimum_size** : ``Size``, default ``{0, 0}``
@@ -259,7 +259,7 @@ gui_forms::Control
          The window whose tree contains this control, or null.
 
       **attached_surface_root** : ``BorrowedPointer<SurfaceRoot>``, read-only
-         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not. Its scale() is the device scale the control paints at (1 while detached).
 
       **effective_text_scale** : ``double``, read-only
          The attached window's presentation text scale, or 1 when detached.
@@ -284,6 +284,11 @@ gui_forms::Control
       **effective_key_map** : ``KeyMap``, read-only
          The attached window's key map (Window::key_map), or the PC convention's while detached. A control asks it whether a key event is a named keyboard command instead of naming the keys itself.
 
+      **effective_locale** : ``HostLocale``, read-only
+         The locale the control formats dates and numbers with (exhibit gap E11): its window's application locale (ApplicationResources::locale), or the portable default while detached. The reference stays valid while the control is attached and the locale unchanged; a control keeping something derived from it keys it by effective_locale_generation() (0 while detached).
+
+      **effective_locale_generation** : ``std::uint64_t``, read-only
+
       **theme_override** : ``std::shared_ptr<const Theme>``
          A theme for this control and its subtree instead of the inherited one,
          or null. Setting null throws ``std::invalid_argument``; use
@@ -291,12 +296,19 @@ gui_forms::Control
 
       **authored_surface_material** : ``std::optional<SurfaceMaterial>``
 
-      **ambient_back_color** : ``std::optional<Color>``, read-only
+      **ambient_back_color** : ``stxlib::Optional<Color>``, read-only
          The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Writing one (std::nullopt clears it) repaints the control and its descendants. This control's own colour, else its nearest ancestor's, else none.
 
-      **ambient_fore_color** : ``std::optional<Color>``, read-only
+      **ambient_fore_color** : ``stxlib::Optional<Color>``, read-only
 
       **owned_decorations** : ``std::span<const OwnerDecorationRecipe>``
+
+      **active_border** : ``stxlib::Optional<ActiveBorder>``
+
+      **active_border_pose** : ``stxlib::Optional<ActiveBorderPose>``, read-only
+         The pose the border last painted with (resolve_active_border), empty before its first paint or with no border; and whether its timer runs.
+
+      **active_border_animating** : ``bool``, read-only
 
       **visual_status** : ``ControlVisualStatus``, default ``ControlVisualStatus::normal``
          :cpp:enumerator:`ControlVisualStatus::pending <gui_forms::ControlVisualStatus::pending>` or :cpp:enumerator:`ControlVisualStatus::invalid <gui_forms::ControlVisualStatus::invalid>` change
@@ -328,11 +340,22 @@ gui_forms::Control
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
          :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
 
+      **theme_sheet** : ``std::string_view``
+         The sheet's text; empty without one. Valid until the sheet is set.
+
+      **theme_sheet_pending** : ``bool``, read-only
+         Whether the sheet waits for an attachment to compile.
+
       **inline_style** : ``BorrowedText``
          The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
 
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
+
+      **look_rules** : ``CompiledThemeRules*``, read-only
+         The rules of the composite look this control is styled by, for the theme in effect (CompiledThemeRules::compile_look), or null: a composite control sets its definition's look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something. A look reading the theme's roles or custom properties is compiled for each theme before resolution, at attachment and when a theme is applied, once for all the controls it styles (detail::CompositeLook); this reads that compilation and compiles nothing. The rules are borrowed until a theme is applied.
+
+      **has_composite_look** : ``bool``, read-only
 
       **on_ceremonial_surface** : ``bool``, read-only
          Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
@@ -367,6 +390,8 @@ gui_forms::Control
          Whether the window currently routes pointer input to this control
          regardless of position. :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>` changes it.
 
+      **has_relative_pointer** : ``bool``, read-only
+
       **dirty** : ``Dirty``, read-only
          The invalidation flags pending on this control itself.
 
@@ -380,7 +405,12 @@ gui_forms::Control
          The compositing plane the control paints into. Panels use
          :cpp:enumerator:`PaintPlane::backplane <gui_forms::PaintPlane::backplane>`.
 
-      **display_chunk_info** : ``std::optional<DisplayChunkInfo>``, read-only
+      **display_chunk_info** : ``stxlib::Optional<DisplayChunkInfo>``, read-only
+
+      **content_effect** : ``std::shared_ptr<const PaintGroupEffect>``
+
+      **shown_content_effect** : ``std::shared_ptr<const PaintGroupEffect>``, read-only
+         The effect the window draws: the one set, else the theme's.
 
       **initializing** : ``bool``, read-only
          Whether the control is between :cpp:func:`begin_init <gui_forms::Control::begin_init>` and :cpp:func:`end_init <gui_forms::Control::end_init>`.
@@ -402,6 +432,9 @@ gui_forms::Control
 
       **effective_layout_direction** : ``LayoutDirection``, read-only
          layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
+
+      **pointer_location** : ``PointerLocation``, read-only
+         Where the pointer is, as this control's window last saw it, in this control's coordinates and the window's (PointerLocation): the position on_mouse_enter and on_mouse_leave, which carry no arguments, read for the crossing. All zero while detached.
 
       **parts** : ``Parts``, read-only
 
@@ -436,6 +469,9 @@ gui_forms::Control
 
       **validated** : ``Event<>``
          Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+      **theme_sheet_compiled** : ``Event<const ThemeCompileResult&>``
+         Raised after each compilation of the sheet, on the control's thread.
 
       **tool_tip_text_changed** : ``Event<const std::string&>``
          Raised after :cpp:member:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
@@ -502,6 +538,11 @@ gui_forms::Control
       **key_press** : ``Event<KeyPressEventArgs&>``
 
       **key_up** : ``Event<KeyEventArgs&>``
+
+      **relative_pointer** : ``Event<RelativePointerEventArgs&>``
+         The relative pointer events (request_relative_pointer): one relative_pointer per host sample while this control holds the mode, then relative_pointer_ended once. Kept in a record made by the first accessor called.
+
+      **relative_pointer_ended** : ``Event<const RelativePointerEnded&>``
 
    :Inherited:
 
@@ -585,6 +626,12 @@ gui_forms::Control
         -  
       * - :cpp:func:`has_class <gui_forms::Control::has_class>`
         - Whether the control has the style class.
+      * - :cpp:func:`request_relative_pointer <gui_forms::Control::request_relative_pointer>`
+        - Relative pointer mode (gui_forms/events/relative_pointer): asks this control's window for the pointer's motion as deltas, every sample (relative_pointer), until the mode ends (relative_pointer_ended).
+      * - :cpp:func:`release_relative_pointer <gui_forms::Control::release_relative_pointer>`
+        -  
+      * - :cpp:func:`warp_pointer <gui_forms::Control::warp_pointer>`
+        -  
       * - :cpp:func:`invalidate <gui_forms::Control::invalidate>`
         - ``invalidate(Dirty)`` records what a change invalidated, for this control and the path to the root; the window acts on it at its next flush or paint.
       * - :cpp:func:`scroll_content <gui_forms::Control::scroll_content>`
@@ -629,6 +676,8 @@ gui_forms::Control
         -  
       * - :cpp:func:`measure_for_layout <gui_forms::Control::measure_for_layout>`
         - The measure entry layout solvers call (stage L).
+      * - :cpp:func:`mouse_event_arguments <gui_forms::Control::mouse_event_arguments>`
+        - The MouseEventArgs a routed pointer event carries on this control, as the window builds its mouse raisers' (SurfaceRoot:: mouse_event_arguments), for a handler of the routed form that reads the raisers' fields; key_event_arguments is the keys' counterpart.
       * - :cpp:func:`apply_provider_semantics <gui_forms::Control::apply_provider_semantics>`
         - Extender providers enrich the final semantic projection after a stock or custom control has authored its own descriptor.
       * - :cpp:func:`fill_part_geometry <gui_forms::Control::fill_part_geometry>`
@@ -643,6 +692,10 @@ gui_forms::Control
         - Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`, all of them by default.
       * - :cpp:func:`set_style <gui_forms::Control::set_style>`
         - Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms compatibility.
+      * - :cpp:func:`set_theme_overrides <gui_forms::Control::set_theme_overrides>`
+        - Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result.
+      * - :cpp:func:`set_composite_look <gui_forms::Control::set_composite_look>`
+        - Sets or (null) clears that look (CompositeControl) and invalidates the control's paint and text font.
       * - :cpp:func:`set_custom_cursor <gui_forms::Control::set_custom_cursor>`
         - A stock assignment clears the image override.
       * - :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>`
@@ -805,16 +858,16 @@ gui_forms::Control
       ``std::invalid_argument`` is thrown. It is bindable and published as the
       semantic field ``tool_tip``. Data items such as list rows have none.
 
-   .. cpp:member:: std::optional<CursorKind> cursor
+   .. cpp:member:: stxlib::Optional<CursorKind> cursor
 
       The pointer shape over the control, or none to use the parent's.
       :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
 
-   .. cpp:member:: std::optional<Color> back_color
+   .. cpp:member:: stxlib::Optional<Color> back_color
 
       The own background colour; empty takes the parent's.
 
-   .. cpp:member:: std::optional<Color> fore_color
+   .. cpp:member:: stxlib::Optional<Color> fore_color
 
       The own text colour; empty takes the parent's.
 
@@ -1048,7 +1101,7 @@ gui_forms::Control
 
    .. cpp:function:: BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept
 
-      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not. Its scale() is the device scale the control paints at (1 while detached).
 
    .. cpp:function:: double effective_text_scale() const noexcept
 
@@ -1079,6 +1132,12 @@ gui_forms::Control
 
       The attached window's key map (Window::key_map), or the PC convention's while detached. A control asks it whether a key event is a named keyboard command instead of naming the keys itself.
 
+   .. cpp:function:: const HostLocale& effective_locale() const noexcept
+
+      The locale the control formats dates and numbers with (exhibit gap E11): its window's application locale (ApplicationResources::locale), or the portable default while detached. The reference stays valid while the control is attached and the locale unchanged; a control keeping something derived from it keys it by effective_locale_generation() (0 while detached).
+
+   .. cpp:function:: std::uint64_t effective_locale_generation() const noexcept
+
    .. cpp:function:: std::shared_ptr<const Theme> theme_override() const noexcept
 
       A theme for this control and its subtree instead of the inherited one,
@@ -1093,15 +1152,31 @@ gui_forms::Control
 
    .. cpp:function:: void set_authored_surface_material(SurfaceMaterial material)
 
-   .. cpp:function:: std::optional<Color> ambient_back_color() const noexcept
+   .. cpp:function:: stxlib::Optional<Color> ambient_back_color() const noexcept
 
       The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Writing one (std::nullopt clears it) repaints the control and its descendants. This control's own colour, else its nearest ancestor's, else none.
 
-   .. cpp:function:: std::optional<Color> ambient_fore_color() const noexcept
+   .. cpp:function:: stxlib::Optional<Color> ambient_fore_color() const noexcept
 
    .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const& noexcept
 
    .. cpp:function:: void set_owned_decorations(const OwnerDecorationRecipe* decorations, std::size_t decoration_count)
+
+   .. cpp:function:: stxlib::Optional<ActiveBorder> active_border() const
+
+   .. cpp:function:: void set_active_border(stxlib::Optional<ActiveBorder> border)
+
+      The control border (active_border.hpp; the active border study's phase 2): set, validated first (an invalid border throws std::invalid_argument and changes nothing), or cleared with none. It paints after the control's content and its owned decorations, and its reach (active_border_reach) widens the visual outsets. A change repaints the control; a moving border repaints on a paint-gated timer (ADR-016) only while its pose moves, and its motion restarts lit whenever the timer starts. UI thread.
+
+   .. cpp:function:: void set_active_border(std::optional<ActiveBorder> border)
+
+      The standard form, kept for one stage (D15 Q3).
+
+   .. cpp:function:: stxlib::Optional<ActiveBorderPose> active_border_pose() const noexcept
+
+      The pose the border last painted with (resolve_active_border), empty before its first paint or with no border; and whether its timer runs.
+
+   .. cpp:function:: bool active_border_animating() const noexcept
 
    .. cpp:function:: ControlVisualStatus visual_status() const noexcept
 
@@ -1151,6 +1226,18 @@ gui_forms::Control
       The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
       :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
 
+   .. cpp:function:: std::string_view theme_sheet() const noexcept
+
+      The sheet's text; empty without one. Valid until the sheet is set.
+
+   .. cpp:function:: bool set_theme_sheet(std::string_view text, std::string_view name = "sheet")
+
+      The control's theme sheet (the ImGui-class demonstrator's I7): a whole program theme's text, as theme_sheet_package(text, name) holds it, compiled with the stock control anatomies into the window's ApplicationResources and set as this control's theme override for its subtree. Set while the control is attached to a window with resources, it compiles at once; set while it is not, it compiles when it is next attached, after the attachment is committed. It compiles again on an attachment to another window's resources (the theme's images belong to the resources it was compiled into). Every compilation raises theme_sheet_compiled with its result, the diagnostics included, whether it applied or was refused; a refused sheet leaves the theme override as it was, and so does a sheet an inline style of the subtree cannot compile against (reported as a refusal with the code E000 ``inline_style_refused``). Empty text removes the sheet and the override it set. Returns true when the sheet compiled and applied now; false when it was refused now or waits for an attachment (theme_sheet_pending).
+
+   .. cpp:function:: bool theme_sheet_pending() const noexcept
+
+      Whether the sheet waits for an attachment to compile.
+
    .. cpp:function:: BorrowedText inline_style() const noexcept
 
       The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
@@ -1162,6 +1249,12 @@ gui_forms::Control
    .. cpp:function:: const CompiledThemeRules* inline_style_rules() const noexcept
 
       Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
+
+   .. cpp:function:: const CompiledThemeRules* look_rules() const noexcept
+
+      The rules of the composite look this control is styled by, for the theme in effect (CompiledThemeRules::compile_look), or null: a composite control sets its definition's look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something. A look reading the theme's roles or custom properties is compiled for each theme before resolution, at attachment and when a theme is applied, once for all the controls it styles (detail::CompositeLook); this reads that compilation and compiles nothing. The rules are borrowed until a theme is applied.
+
+   .. cpp:function:: bool has_composite_look() const noexcept
 
    .. cpp:function:: bool on_ceremonial_surface() const noexcept
 
@@ -1206,6 +1299,8 @@ gui_forms::Control
       Whether the window currently routes pointer input to this control
       regardless of position. :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>` changes it.
 
+   .. cpp:function:: bool has_relative_pointer() const noexcept
+
    .. cpp:function:: Dirty dirty() const
 
       The invalidation flags pending on this control itself.
@@ -1227,7 +1322,17 @@ gui_forms::Control
 
       Sets :cpp:func:`paint_plane <gui_forms::Control::paint_plane>`; see the property's description above.
 
-   .. cpp:function:: std::optional<DisplayChunkInfo> display_chunk_info() const noexcept
+   .. cpp:function:: stxlib::Optional<DisplayChunkInfo> display_chunk_info() const noexcept
+
+   .. cpp:function:: const std::shared_ptr<const PaintGroupEffect>& content_effect() const& noexcept
+
+   .. cpp:function:: void set_content_effect(std::shared_ptr<const PaintGroupEffect> effect)
+
+      The control's content effect (capability review decision 1, owner 2026-11-16): PaintGroupEffect's colour stages, blur and masks applied to what this control and its descendants paint, as one image. The window draws the control's display chunk and its descendants' chunks in its paint plane inside one paint group carrying the effect, over the control's visual bounds and child viewport, and grows every damage of the control and its descendants by the effect's reach (paint_group_effect_reach), so that the blur's spread repaints. An effect set here wins over the theme's (``filter`` and ``mask-*`` on a control rule). Null for none. Throws std::invalid_argument, changing nothing, for an effect valid_paint_group_effect refuses. Shared read-only: the window's recordings keep it alive. Under forced high contrast the window paints it without its colour stages (SurfaceRoot::painted_content_effect).
+
+   .. cpp:function:: const std::shared_ptr<const PaintGroupEffect>& shown_content_effect() const& noexcept
+
+      The effect the window draws: the one set, else the theme's.
 
    .. cpp:function:: bool initializing() const noexcept
 
@@ -1256,6 +1361,10 @@ gui_forms::Control
    .. cpp:function:: LayoutDirection effective_layout_direction() const noexcept
 
       layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
+
+   .. cpp:function:: PointerLocation pointer_location() const
+
+      Where the pointer is, as this control's window last saw it, in this control's coordinates and the window's (PointerLocation): the position on_mouse_enter and on_mouse_leave, which carry no arguments, read for the crossing. All zero while detached.
 
    .. cpp:function:: Parts parts() const
 
@@ -1299,6 +1408,10 @@ gui_forms::Control
    .. cpp:function:: Event<>& validated() noexcept
 
       Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+   .. cpp:function:: Event<const ThemeCompileResult&>& theme_sheet_compiled()
+
+      Raised after each compilation of the sheet, on the control's thread.
 
    .. cpp:function:: Event<const std::string&>& tool_tip_text_changed() noexcept
 
@@ -1375,6 +1488,12 @@ gui_forms::Control
 
    .. cpp:function:: Event<KeyEventArgs&>& key_up()
 
+   .. cpp:function:: Event<RelativePointerEventArgs&>& relative_pointer()
+
+      The relative pointer events (request_relative_pointer): one relative_pointer per host sample while this control holds the mode, then relative_pointer_ended once. Kept in a record made by the first accessor called.
+
+   .. cpp:function:: Event<const RelativePointerEnded&>& relative_pointer_ended()
+
 
    .. rubric:: Methods
 
@@ -1400,7 +1519,7 @@ gui_forms::Control
       null if there is no such child. The child is not disposed: it lives on
       as long as someone holds it.
 
-   .. cpp:function:: std::optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> child_index_from_top(RuntimeId child) const noexcept
 
       The child's z-order index counted from the top, where 0 is the
       frontmost child (the Windows Forms index), or none. children() runs
@@ -1476,9 +1595,9 @@ gui_forms::Control
 
    .. cpp:function:: double snap_text_baseline(double logical_baseline) const noexcept
 
-   .. cpp:function:: std::optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
+   .. cpp:function:: stxlib::Optional<ThemeRoleColours> theme_role_colours(std::string_view name) const noexcept
 
-      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. Nullopt where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
+      The colours of the application colour role :cpp:member:`name <gui_forms::Control::name>` (a role the theme package declares with ``color-roles``, such as ``syntax-keyword``) for this control's window (window_media_facts; light, unforced while detached): from effective_theme, else, where that is GUI.Forms' own in place of the chosen theme, from the chosen theme. None where neither declares the role. Code draws program-meant colours through this rather than hard-coding them (T4 theme variants).
 
    .. cpp:function:: void clear_theme_override()
 
@@ -1533,6 +1652,14 @@ gui_forms::Control
    .. cpp:function:: bool has_class(std::string_view name) const noexcept
 
       Whether the control has the style class.
+
+   .. cpp:function:: RelativePointerGrant request_relative_pointer(RelativePointerRequest request = {})
+
+      Relative pointer mode (gui_forms/events/relative_pointer): asks this control's window for the pointer's motion as deltas, every sample (relative_pointer), until the mode ends (relative_pointer_ended). SurfaceRoot::begin_relative_pointer gives the rules; a detached control is refused with RelativePointerResult::detached. Release ends this control's mode only (false when it has none). warp_pointer moves the pointer to ``position`` in this control's coordinates where the host can (false where it cannot, or while this control has no mode).
+
+   .. cpp:function:: bool release_relative_pointer()
+
+   .. cpp:function:: bool warp_pointer(Point position)
 
    .. cpp:function:: void invalidate(Dirty dirty)
 
@@ -1627,6 +1754,10 @@ gui_forms::Control
 
       The measure entry layout solvers call (stage L). It answers from this control's measure cache when an entry was stored under exactly this constraint since the control last became measure-dirty, and otherwise calls measure_intrinsic once and stores the answer. The cache holds four entries: one min-content width, one max-content width, and the two most recent other queries. A result with a negative or non-finite dimension is clamped to zero and counted. Throws std::invalid_argument, with the cache unchanged, when valid_layout_constraint rejects the constraint. An attached control is measured on its window's UI thread only. The window's own measure pass calls this too, so a container's later query under the same constraint is a hit.
 
+   .. cpp:function:: MouseEventArgs mouse_event_arguments(const PointerEvent& event) const
+
+      The MouseEventArgs a routed pointer event carries on this control, as the window builds its mouse raisers' (SurfaceRoot:: mouse_event_arguments), for a handler of the routed form that reads the raisers' fields; key_event_arguments is the keys' counterpart. A detached control takes the event's own click count.
+
    .. cpp:function:: void apply_provider_semantics(SemanticDescriptor& descriptor) const
 
       Extender providers enrich the final semantic projection after a stock or custom control has authored its own descriptor. This keeps validation and help metadata from depending on every subclass remembering to call a particular base implementation.
@@ -1659,6 +1790,14 @@ gui_forms::Control
 
       Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms
       compatibility. Buffering flags never enable partial painting.
+
+   .. cpp:function:: bool set_theme_overrides(const ThemeOverrides& overrides)
+
+      Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result. Empty overrides remove the sheet.
+
+   .. cpp:function:: void set_composite_look(std::shared_ptr<detail::CompositeLook> look)
+
+      Sets or (null) clears that look (CompositeControl) and invalidates the control's paint and text font. Shared: a control taken out of its composite keeps the look, and the definition it belongs to, alive.
 
    .. cpp:function:: void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow)
 
@@ -1706,11 +1845,11 @@ gui_forms::Control
       container that places its own children calls ``arrange_self`` and
       ``set_child_layout`` instead.
 
-   .. cpp:function:: virtual std::optional<double> first_baseline(double width)
+   .. cpp:function:: virtual stxlib::Optional<double> first_baseline(double width)
 
       The baselines a layout container aligns this control by (stage L, PLAN.md section 12.3): its first and last line boxes' baselines, as offsets from the top of its border box when laid out at :cpp:func:`width <gui_forms::Control::width>`. None means it has no line box; the container then synthesizes one from the border box, as CSS does. The defaults answer none. Text that lays out in lines (TextBlock) and the CSS containers override them. Flex and grid alignment use the first baseline; an inline item in BlockPanel uses the last, as an inline-block does.
 
-   .. cpp:function:: virtual std::optional<double> last_baseline(double width)
+   .. cpp:function:: virtual stxlib::Optional<double> last_baseline(double width)
 
    .. cpp:function:: virtual bool size_depends_on_content() const noexcept
 
@@ -1731,6 +1870,10 @@ gui_forms::Control
    .. cpp:function:: virtual bool measures_children_in_arrange() const noexcept
 
       Whether this container's arrange asks each child the content questions its algorithm needs (min-content, max-content, a height at a definite width) rather than the at-most question the window's measure pass would ask. When true, the window's pass leaves a measure-dirty direct child to its arrange: the child's dirtiness has already emptied its cache, and measuring it against the parent's available size too would cost a second callback whose answer nothing reads (stage L, PLAN section 5: one item's text change costs one callback). False by default, which keeps every existing container's measure pass unchanged.
+
+   .. cpp:function:: virtual bool sizes_unrequested_extents_from_content() const noexcept
+
+      Whether a requested width or height of 0 means "from content" when this control is placed by its parent's dock and anchor layout without AutoSize (coordinator ruling, cp32 return 1: exhibit gap E12). The parent then measures it once, at the requested width (else the client's), and takes each zero axis from the answer: width first, then the height at that width (the A8 rule), so one layout pass converges. False by default, so a 0 stays 0 for every control that does not say otherwise; Label answers true.
 
    .. cpp:function:: virtual void on_paint(Painter& painter, Rect local_damage)
 
@@ -1834,7 +1977,7 @@ gui_forms::Control
 
       The inner control that takes keyboard focus for this one: a composite field (ComboBox with an edit field, NumericUpDown, MaskedTextBox, SearchField and the like) returns its edit part, which must be a descendant. SurfaceRoot::request_focus gives focus to the target instead (Windows Forms' Focus on a ComboBox puts the caret in its edit), and SurfaceRoot::active_control reports the composite while its target has focus. A composite with a target keeps focusable false itself, so keyboard traversal reaches only the target. The default is null: the control takes focus itself.
 
-   .. cpp:function:: virtual std::optional<Rect> text_input_caret() const
+   .. cpp:function:: virtual stxlib::Optional<Rect> text_input_caret() const
 
       Where an input method places its composition and candidate windows while this control has focus: the caret's box, in local coordinates. The base returns none, and SurfaceRoot::text_input_caret then uses a one-unit-wide box at the control's left edge.
 
@@ -1868,6 +2011,8 @@ gui_forms::Control
       Repeated items (stage T1, owner decision 5). A list, tree or grid publishes its realized (visible) items, each with the parts and states of its item system in anatomy() and the stable ID of its semantic virtual child. ``item`` counts realized items in paint order across every item system, not model positions. This is the generic path; item-bearing types also offer typed records through realized_items().
 
    .. cpp:function:: virtual std::string realized_item_stable_id(std::size_t item) const
+
+      Throws std::out_of_range for an item past realized_item_count(), as realized_item_anatomy_states does; an override keeps that rule (a count read before the items changed must not index past them).
 
    .. cpp:function:: virtual AnatomyStateSet realized_item_anatomy_states(std::size_t item) const
 
@@ -2345,11 +2490,11 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``33U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``41U``.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 231 supported, 0 deferred, 12 excluded, 312 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 250 supported, 0 deferred, 12 excluded, 323 unclassified; 228 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -2566,7 +2711,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - unclassified (unmatched)
    * - property
      - ``Font``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``ListView``, ``CheckBox``, ``RadioButton``, ``GroupBox``
      - unclassified (carried)
    * - property
      - ``FontHeight``
@@ -3419,7 +3564,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
    * - method
      - ``OnMouseLeave``
      - ``on_mouse_leave``
-     - unclassified (untested)
+     - supported
    * - method
      - ``OnMouseMove``
      - ``on_mouse_move``
@@ -3794,6 +3939,46 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``active_border``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_animating``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_pose``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``align_self``
      - unclassified (untested)
    * - property
@@ -3870,6 +4055,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``content_effect``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``declares_clarity``
      - supported
    * - property
@@ -3896,6 +4085,14 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - GUI.Forms-only
      - ``effective_layout_direction``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_locale``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_locale_generation``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``effective_text_scale``
@@ -3926,7 +4123,15 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``has_composite_look``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``has_pointer_capture``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_relative_pointer``
      - supported
    * - property
      - GUI.Forms-only
@@ -3978,6 +4183,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``look_rules``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``measure_generation``
      - supported
    * - property
@@ -4002,6 +4211,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``pointer_location``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``property_descriptors``
      - supported
    * - property
@@ -4015,6 +4228,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
    * - property
      - GUI.Forms-only
      - ``runtime_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``shown_content_effect``
      - supported
    * - property
      - GUI.Forms-only
@@ -4043,6 +4260,14 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
    * - property
      - GUI.Forms-only
      - ``theme_override``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_sheet``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_sheet_pending``
      - supported
    * - property
      - GUI.Forms-only
@@ -4084,6 +4309,18 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - GUI.Forms-only
      - ``pointer_preview_observed``
      - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``relative_pointer``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``relative_pointer_ended``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``theme_sheet_compiled``
+     - supported
    * - event
      - GUI.Forms-only
      - ``tool_tip_text_changed``
@@ -4290,6 +4527,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``mouse_event_arguments``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``notify_default``
      - unclassified (untested)
    * - method
@@ -4470,11 +4711,19 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``release_relative_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``remove_child``
      - supported
    * - method
      - GUI.Forms-only
      - ``remove_class``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_relative_pointer``
      - supported
    * - method
      - GUI.Forms-only
@@ -4518,6 +4767,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - supported
    * - method
      - GUI.Forms-only
+     - ``set_composite_look``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``set_custom_cursor``
      - supported
    * - method
@@ -4527,6 +4780,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
    * - method
      - GUI.Forms-only
      - ``set_property_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_theme_overrides``
      - supported
    * - method
      - GUI.Forms-only
@@ -4544,6 +4801,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - GUI.Forms-only
      - ``sizes_children_from_content``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``sizes_unrequested_extents_from_content``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``snap_text_baseline``
@@ -4580,3 +4841,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
      - GUI.Forms-only
      - ``visual_outsets``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``warp_pointer``
+     - unclassified (untested)

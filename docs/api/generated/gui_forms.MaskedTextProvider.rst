@@ -30,7 +30,7 @@ gui_forms::MaskedTextProvider
          optional ASCII letter or digit. ``.``, ``,``, ``:``, ``/`` and ``$`` are
          the culture's decimal separator, group separator, time separator, date
          separator and currency symbol, as literals. ``<`` lower-cases and ``>``
-         upper-cases the letters typed into the positions after it, ``|`` stops
+         upper-cases the letters typed into the positions after it, ``\|`` stops
          converting. ``\`` makes the next character a literal; every other
          character is a literal. A mask that is not valid UTF-8, ends in a lone
          backslash or holds a control character throws ``std::invalid_argument``.
@@ -66,7 +66,7 @@ gui_forms::MaskedTextProvider
       **mask_full** : ``bool``, read-only
          Whether every editable position is assigned.
 
-      **last_assigned_position** : ``std::optional<MaskPosition>``, read-only
+      **last_assigned_position** : ``stxlib::Optional<MaskPosition>``, read-only
          The last assigned position, or none.
 
       **prompt_character** : ``char32_t``, default ``'_'``
@@ -197,7 +197,7 @@ gui_forms::MaskedTextProvider
 
       Whether every editable position is assigned.
 
-   .. cpp:function:: std::optional<MaskPosition> last_assigned_position() const noexcept
+   .. cpp:function:: stxlib::Optional<MaskPosition> last_assigned_position() const noexcept
 
       The last assigned position, or none.
 
@@ -268,7 +268,7 @@ gui_forms::MaskedTextProvider
 
       Whether a position holds a character.
 
-   .. cpp:function:: std::optional<MaskPosition> find_edit_position(MaskPosition from, bool forward) const noexcept
+   .. cpp:function:: stxlib::Optional<MaskPosition> find_edit_position(MaskPosition from, bool forward) const noexcept
 
       The first editable position at or after a position (forward), or at or
       before it (backward), or none.

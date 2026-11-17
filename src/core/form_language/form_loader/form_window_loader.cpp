@@ -15,9 +15,7 @@ namespace {
 // during the call.
 struct DocumentWorkspace final {
     theme_language::ThemeSource source{};
-    theme_language::ThemeTokenBuffer tokens{};
-    theme_language::LineStartTable lines{};
-    theme_language::ThemeSyntaxTree tree{};
+    FormSyntax syntax{};
     FormModel model{};
 };
 
@@ -40,22 +38,16 @@ WindowLoadError load_document(DocumentWorkspace& workspace, std::string_view fil
                               theme_language::ThemeDiagnosticList& diagnostics) {
     workspace.source.file = file;
     workspace.source.text = document;
-    static_cast<void>(theme_language::tokenize_theme_sheet(workspace.source, workspace.tokens, workspace.lines,
-                                                           diagnostics));
-    const theme_language::ParseOutcome parsed =
-        theme_language::parse_theme_sheet(workspace.source, workspace.tokens, workspace.lines, workspace.tree,
-                                          diagnostics, theme_language::ThemeSheetForm::form_document);
-    if (parsed != theme_language::ParseOutcome::tree_complete) return WindowLoadError::refused;
-    const FormModelOutcome built = build_form_model(workspace.source, workspace.tokens, workspace.lines,
-                                                    workspace.tree, schema, workspace.model, diagnostics);
+    const FormModelOutcome built =
+        read_form_model(workspace.source, workspace.syntax, schema, workspace.model, diagnostics);
     if (built != FormModelOutcome::model_built) return WindowLoadError::refused;
     // A control root makes no window: refused before anything is made.
     const std::size_t root_type = workspace.model.objects[0].schema_type;
     if (schema.types[root_type].name != form_root_type_name) {
         return WindowLoadError::not_a_window;
     }
-    const FormLoadOutcome outcome = load_form(workspace.source, workspace.tokens, workspace.lines, workspace.tree,
-                                              schema, workspace.model, sources, loaded, diagnostics);
+    const FormLoadOutcome outcome =
+        load_form(workspace.source, schema, workspace.model, sources, loaded, diagnostics);
     if (outcome != FormLoadOutcome::loaded) return WindowLoadError::refused;
     return WindowLoadError::none;
 }

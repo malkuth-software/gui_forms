@@ -1,0 +1,12 @@
+#pragma once
+
+#include <string_view>
+
+namespace gui_forms {
+
+// `= {}` keeps its spelling; a default spelled with its type becomes the
+// empty TextView.
+bool execute(std::string_view source_id = {});
+bool execute_titled(std::string_view title = std::string_view());
+
+} // namespace gui_forms

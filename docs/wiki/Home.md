@@ -5,7 +5,7 @@ vocabulary of Windows Forms, for macOS, Windows and Linux. Controls are
 owned objects in a tree, a change marks only what it touches, and a window
 that has settled draws nothing.
 
-A GUI.Forms 0.5 program has four parts:
+A GUI.Forms program has four parts:
 
 - a **form document** (`.form`) that says which controls exist, generated at
   build time into a window class;

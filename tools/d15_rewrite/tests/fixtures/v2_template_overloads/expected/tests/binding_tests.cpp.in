@@ -1,0 +1,9 @@
+#include <gui_forms/binding.hpp>
+
+int main() {
+    int target = 0;
+    gui_forms::Value<bool> flag{true};
+    gui_forms::bind_value<1>(target, "checked", flag);
+    gui_forms::name_value("level");
+    return target == 8 ? 0 : 1;
+}

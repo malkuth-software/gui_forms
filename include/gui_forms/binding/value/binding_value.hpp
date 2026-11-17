@@ -9,6 +9,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -53,7 +54,7 @@ struct GUI_FORMS_API PropertyObjectMember final {
     bool writable{true};
     // Optional schema is required when a member's current value is null and
     // may also pin conversion/editor services independently of its owner.
-    std::optional<BindingValueKind> declared_kind;
+    stxlib::Optional<BindingValueKind> declared_kind;
     bool nullable{};
     std::shared_ptr<const PropertyEnumDescriptor> enumeration;
     std::vector<BindingValue> standard_values;
@@ -113,13 +114,13 @@ inline constexpr std::size_t maximum_property_value_nodes = 8192U;
 [[nodiscard]] GUI_FORMS_API BindingValueKind binding_value_kind(
     const BindingValue& value) noexcept;
 [[nodiscard]] GUI_FORMS_API std::string binding_value_to_string(const BindingValue& value);
-[[nodiscard]] GUI_FORMS_API std::optional<bool> binding_value_to_bool(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<bool> binding_value_to_bool(
     const BindingValue& value) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<std::int64_t> binding_value_to_signed(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<std::int64_t> binding_value_to_signed(
     const BindingValue& value) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<std::uint64_t> binding_value_to_unsigned(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<std::uint64_t> binding_value_to_unsigned(
     const BindingValue& value) noexcept;
-[[nodiscard]] GUI_FORMS_API std::optional<double> binding_value_to_number(
+[[nodiscard]] GUI_FORMS_API stxlib::Optional<double> binding_value_to_number(
     const BindingValue& value) noexcept;
 [[nodiscard]] GUI_FORMS_API std::optional<BindingValue> convert_binding_value(
     const BindingValue& value, BindingValueKind target_kind);

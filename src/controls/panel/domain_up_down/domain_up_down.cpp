@@ -145,37 +145,37 @@ void DomainUpDown::filter_edit(TextEdit& edit) {
     const unsigned char lead = static_cast<unsigned char>(edit.replacement[0]);
     const std::size_t length = utf8_sequence_length(lead);
     const std::string_view typed = edit.replacement.substr(0U, length);
-    const std::optional<std::size_t> found = next_item_starting_with(typed);
+    const stxlib::Optional<std::size_t> found = next_item_starting_with(typed);
     // Showing the item changes the editor's text inside its filter call; the
     // refused edit is then abandoned, as TextBox's filter contract states.
-    if (found) select(found, true);
+    if (found.present()) select(found, true);
 }
 
-std::optional<std::size_t> DomainUpDown::next_item_starting_with(std::string_view prefix) const {
+stxlib::Optional<std::size_t> DomainUpDown::next_item_starting_with(std::string_view prefix) const {
     const std::size_t count = items.read().size();
-    if (count == 0U || prefix.empty()) return std::nullopt;
-    const std::size_t start = selected_index_ ? *selected_index_ + 1U : 0U;
+    if (count == 0U || prefix.empty()) return stxlib::Optional<std::size_t>::none();
+    const std::size_t start = selected_index_.present() ? *selected_index_.value() + 1U : 0U;
     for (std::size_t step = 0U; step < count; ++step) {
         const std::size_t index = (start + step) % count;
         const std::string_view item = items[index];
         if (item.size() >= prefix.size() && equal_folded(item.substr(0U, prefix.size()), prefix)) {
-            return index;
+            return stxlib::Optional<std::size_t>::of(index);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<std::size_t> DomainUpDown::matching_index(std::string_view candidate) const {
+stxlib::Optional<std::size_t> DomainUpDown::matching_index(std::string_view candidate) const {
     for (std::size_t index = 0; index < items.read().size(); ++index) {
-        if (equal_folded(items[index], candidate)) return index;
+        if (equal_folded(items[index], candidate)) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-void DomainUpDown::select(std::optional<std::size_t> index, bool show_text) {
-    if (show_text && index && editor_) {
+void DomainUpDown::select(stxlib::Optional<std::size_t> index, bool show_text) {
+    if (show_text && index.present() && editor_) {
         synchronizing_ = true;
-        (*editor_).text = items[*index];
+        (*editor_).text = items[*index.value()];
         synchronizing_ = false;
     }
     if (selected_index_ == index) return;
@@ -203,14 +203,14 @@ void DomainUpDown::written(const decltype(items)&, const CollectionEdit&) {
     invalidate(Dirty::semantics);
 }
 
-std::optional<std::size_t> DomainUpDown::read_view(const decltype(selected_index)&) const {
-    const std::optional<std::size_t> current = selected_index_;
+stxlib::Optional<std::size_t> DomainUpDown::read_view(const decltype(selected_index)&) const {
+    const stxlib::Optional<std::size_t> current = selected_index_;
     return current;
 }
 
-void DomainUpDown::write_view(const decltype(selected_index)&, std::optional<std::size_t> incoming) {
+void DomainUpDown::write_view(const decltype(selected_index)&, stxlib::Optional<std::size_t> incoming) {
     require_mutable();
-    if (incoming && *incoming >= items.read().size()) {
+    if (incoming.present() && *incoming.value() >= items.read().size()) {
         throw std::out_of_range("DomainUpDown selected index is past the end");
     }
     select(incoming, true);
@@ -257,17 +257,17 @@ void DomainUpDown::step(std::ptrdiff_t offset) {
     if (items.read().empty()) return;
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(items.read().size());
     std::ptrdiff_t next = 0;
-    if (!selected_index_) {
+    if (selected_index_.absent()) {
         next = offset < 0 ? count - 1 : 0;
     } else {
-        next = static_cast<std::ptrdiff_t>(*selected_index_) + offset;
+        next = static_cast<std::ptrdiff_t>(*selected_index_.value()) + offset;
         if (next < 0) {
             next = wrap.read() ? count - 1 : 0;
         } else if (next >= count) {
             next = wrap.read() ? 0 : count - 1;
         }
     }
-    select(static_cast<std::size_t>(next), true);
+    select(stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(next)), true);
     // Stepping puts the focus in the field with the new item's text
     // selected, so typing replaces it. Outside a window nothing has focus.
     Window* const host = window();
@@ -366,8 +366,8 @@ bool DomainUpDown::on_semantic_action(SemanticAction action, std::string_view va
         return true;
     }
     if (action == SemanticAction::set_value) {
-        const std::optional<std::size_t> index = matching_index(value_text);
-        if (index) {
+        const stxlib::Optional<std::size_t> index = matching_index(value_text);
+        if (index.present()) {
             selected_index = index;
             return true;
         }
@@ -389,11 +389,11 @@ namespace {
 constexpr std::array<AnatomyState, 2> spin_arrow_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<DomainUpDown::Parts>, 7> domain_up_down_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DomainUpDown::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &DomainUpDown::Parts::edge},
-    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box"},
+    {.declaration = {.name = "field", .role = PartRole::well, .composed_from = "text_box", .states = {}},
      .member = &DomainUpDown::Parts::field},
     {.declaration = {.name = "up_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = spin_arrow_states},
@@ -432,6 +432,7 @@ constexpr ControlAnatomy domain_up_down_anatomy{
     .parts = domain_up_down_parts,
     .states = domain_up_down_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -495,7 +496,7 @@ namespace {
 
 // The events DomainUpDown adds to those of Panel, in declaration order.
 constexpr std::array<InteractionDeclaration, 1> domain_up_down_interactions{{
-    {.name = "selected_index_changed", .payload = "std::optional<std::size_t>", .mutable_payload = false},
+    {.name = "selected_index_changed", .payload = "stxlib::Optional<std::size_t>", .mutable_payload = false},
 }};
 
 } // namespace

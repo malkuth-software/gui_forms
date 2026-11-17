@@ -9,7 +9,6 @@
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/docking.hpp"
 
 #include <algorithm>
@@ -18,6 +17,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -433,498 +433,487 @@ gf_dock_node_kind node_kind_of(DockNodeKind kind) noexcept {
 
 // -- slots -------------------------------------------------------------------------
 
-gf_status GF_CALL docking_register_panel(gf_object workspace, const gf_dock_panel* panel) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(register_panel_slot.table_id, register_panel_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, register_panel_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockPanelDescriptor descriptor{};
-        std::string title;
-        const gf_status read = read_descriptor(panel, register_panel_slot, descriptor, title);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        Control::Ptr content;
-        const gf_status found = read_content((*panel).content, register_panel_slot, content);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        if ((*typed).find_registration(descriptor.id) != nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, register_panel_slot, "a panel of that id is registered already");
-        }
-        WorkspaceContents& contents = contents_of(typed);
-        const DockPanelId id = descriptor.id;
-        DockPanelRegistration registration{};
-        registration.descriptor = std::move(descriptor);
-        registration.title = std::move(title);
-        registration.factory =
-            Delegate<DockPanelCreation&>::bind<WorkspaceContents, &WorkspaceContents::create>(contents);
-        if (!(*typed).register_panel(std::move(registration))) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, register_panel_slot, "the layout refused the panel's descriptor");
-        }
-        contents.set(id, std::move(content));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(register_panel_slot);
+gf_status docking_register_panel_body(gf_object workspace, const gf_dock_panel* panel) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, register_panel_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    DockPanelDescriptor descriptor{};
+    std::string title;
+    const gf_status read = read_descriptor(panel, register_panel_slot, descriptor, title);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    Control::Ptr content;
+    const gf_status found = read_content((*panel).content, register_panel_slot, content);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if ((*typed).find_registration(descriptor.id) != nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, register_panel_slot, "a panel of that id is registered already");
+    }
+    WorkspaceContents& contents = contents_of(typed);
+    const DockPanelId id = descriptor.id;
+    DockPanelRegistration registration{};
+    registration.descriptor = std::move(descriptor);
+    registration.title = std::move(title);
+    registration.factory =
+        Delegate<DockPanelCreation&>::bind<WorkspaceContents, &WorkspaceContents::create>(contents);
+    if (!(*typed).register_panel(std::move(registration))) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, register_panel_slot, "the layout refused the panel's descriptor");
+    }
+    contents.set(id, std::move(content));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_register_panel(gf_object workspace, const gf_dock_panel* panel) noexcept {
+    return call_slot(register_panel_slot, docking_register_panel_body, workspace, panel);
+}
+
+gf_status docking_set_panel_content_body(gf_object workspace, gf_utf8_view panel, gf_object content) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_panel_content_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, set_panel_content_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    Control::Ptr control;
+    const gf_status found = read_content(content, set_panel_content_slot, control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const Control::Ptr held = (*typed).panel_content(id);
+    if (held && held != control) {
+        return fail(GF_STATUS_INVALID_STATE, set_panel_content_slot,
+                    "the workspace holds the panel's content; close the panel first");
+    }
+    contents_of(typed).set(id, std::move(control));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_set_panel_content(gf_object workspace, gf_utf8_view panel, gf_object content) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_panel_content_slot.table_id, set_panel_content_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, set_panel_content_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockPanelId id;
-        const gf_status read = read_registered_panel(*typed, panel, set_panel_content_slot, id);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        Control::Ptr control;
-        const gf_status found = read_content(content, set_panel_content_slot, control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        const Control::Ptr held = (*typed).panel_content(id);
-        if (held && held != control) {
-            return fail(GF_STATUS_INVALID_STATE, set_panel_content_slot,
-                        "the workspace holds the panel's content; close the panel first");
-        }
-        contents_of(typed).set(id, std::move(control));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_panel_content_slot);
+    return call_slot(set_panel_content_slot, docking_set_panel_content_body, workspace, panel, content);
+}
+
+gf_status docking_set_panel_title_body(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_panel_title_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, set_panel_title_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    std::string_view text;
+    const gf_status title_read = read_text(title, set_panel_title_slot, text);
+    if (title_read != GF_STATUS_OK) {
+        return title_read;
+    }
+    static_cast<void>((*typed).set_panel_title(id, std::string(text)));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_set_panel_title(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_panel_title_slot.table_id, set_panel_title_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, set_panel_title_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockPanelId id;
-        const gf_status read = read_registered_panel(*typed, panel, set_panel_title_slot, id);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        std::string_view text;
-        const gf_status title_read = read_text(title, set_panel_title_slot, text);
-        if (title_read != GF_STATUS_OK) {
-            return title_read;
-        }
-        static_cast<void>((*typed).set_panel_title(id, std::string(text)));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_panel_title_slot);
+    return call_slot(set_panel_title_slot, docking_set_panel_title_body, workspace, panel, title);
+}
+
+gf_status docking_apply_edit_body(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, apply_edit_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    DockEdit made{};
+    const gf_status read = read_edit(*typed, edit, apply_edit_slot, made);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    // Show, hide, close and float go through the workspace's own
+    // operations, which also keep its contents and floating windows;
+    // the rest is one program transaction.
+    DockTransactionResult result{};
+    switch (made.kind) {
+    case DockEditKind::show:
+        result = (*typed).show_panel(made.subject.panel, DockEditOrigin::program);
+        break;
+    case DockEditKind::hide:
+        result = (*typed).hide_panel(made.subject.panel, DockEditOrigin::program);
+        break;
+    case DockEditKind::close:
+        result = (*typed).close_panel(made.subject.panel, DockEditOrigin::program);
+        break;
+    case DockEditKind::float_subject:
+        if ((*typed).windows_attached()) {
+            result = (*typed).float_subject(made.subject, made.frame, DockEditOrigin::program);
+            break;
+        }
+        [[fallthrough]];
+    default: {
+        // Every other edit (docking, moving, sizing) is one program transaction.
+        DockTransaction transaction{};
+        transaction.origin = DockEditOrigin::program;
+        transaction.edits.push_back(std::move(made));
+        result = (*typed).apply(transaction);
+        break;
+    }
+    }
+    const gf_dock_refusal reason = static_cast<gf_dock_refusal>(result.refusal.reason);
+    if (refusal != nullptr) *refusal = result.applied ? GF_DOCK_REFUSAL_NONE : reason;
+    if (!result.applied) {
+        return fail(GF_STATUS_INVALID_STATE, apply_edit_slot, "the layout refused the edit");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_apply_edit(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(apply_edit_slot.table_id, apply_edit_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, apply_edit_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockEdit made{};
-        const gf_status read = read_edit(*typed, edit, apply_edit_slot, made);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        // Show, hide, close and float go through the workspace's own
-        // operations, which also keep its contents and floating windows;
-        // the rest is one program transaction.
-        DockTransactionResult result{};
-        switch (made.kind) {
-        case DockEditKind::show:
-            result = (*typed).show_panel(made.subject.panel, DockEditOrigin::program);
-            break;
-        case DockEditKind::hide:
-            result = (*typed).hide_panel(made.subject.panel, DockEditOrigin::program);
-            break;
-        case DockEditKind::close:
-            result = (*typed).close_panel(made.subject.panel, DockEditOrigin::program);
-            break;
-        case DockEditKind::float_subject:
-            if ((*typed).windows_attached()) {
-                result = (*typed).float_subject(made.subject, made.frame, DockEditOrigin::program);
-                break;
-            }
-            [[fallthrough]];
-        default: {
-            // Every other edit (docking, moving, sizing) is one program transaction.
-            DockTransaction transaction{};
-            transaction.origin = DockEditOrigin::program;
-            transaction.edits.push_back(std::move(made));
-            result = (*typed).apply(transaction);
-            break;
-        }
-        }
-        const gf_dock_refusal reason = static_cast<gf_dock_refusal>(result.refusal.reason);
-        if (refusal != nullptr) *refusal = result.applied ? GF_DOCK_REFUSAL_NONE : reason;
-        if (!result.applied) {
-            return fail(GF_STATUS_INVALID_STATE, apply_edit_slot, "the layout refused the edit");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(apply_edit_slot);
+    return call_slot(apply_edit_slot, docking_apply_edit_body, workspace, edit, refusal);
+}
+
+gf_status docking_locate_body(gf_object workspace, gf_utf8_view panel, gf_dock_location* location) {
+    if (location == nullptr || (*location).struct_size < location_size_1_1) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, locate_slot, "locate needs a location of at least the 1.1 size");
     }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, locate_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, locate_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const DockLayout& layout = (*typed).layout();
+    const DockPanelLocation found = layout.locate(id);
+    gf_dock_location made{};
+    made.struct_size = location_size_1_1;
+    made.placement = static_cast<gf_dock_placement>(found.placement);
+    made.stack_kind = GF_DOCK_NODE_KIND_NONE;
+    made.side = GF_DOCK_SIDE_NONE;
+    const DockNode* const stack = layout.find_node(found.stack);
+    if (stack != nullptr) {
+        made.stack = found.stack.value;
+        made.index = found.index;
+        made.stack_kind = node_kind_of((*stack).kind);
+        made.selected = (*stack).selected == found.index ? 1U : 0U;
+        made.stack_panel_count = static_cast<std::uint32_t>((*stack).panels.size());
+    }
+    if (found.placement == DockPlacementKind::floating) made.site = found.site.value;
+    if (found.placement == DockPlacementKind::docked) made.side = document_side(layout, found.stack);
+    if (found.placement == DockPlacementKind::auto_hidden) {
+        for (const DockAutoHideEntry& entry : layout.state().auto_hidden) {
+            if (entry.stack == found.stack) made.side = static_cast<gf_dock_side>(entry.edge);
+        }
+    }
+    // The caller's record may be larger; only the 1.1 fields are ours.
+    const std::uint32_t caller_size = (*location).struct_size;
+    *location = made;
+    (*location).struct_size = caller_size;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_locate(gf_object workspace, gf_utf8_view panel, gf_dock_location* location) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(locate_slot.table_id, locate_slot.slot_index);
-        if (location == nullptr || (*location).struct_size < location_size_1_1) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, locate_slot, "locate needs a location of at least the 1.1 size");
-        }
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, locate_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockPanelId id;
-        const gf_status read = read_registered_panel(*typed, panel, locate_slot, id);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const DockLayout& layout = (*typed).layout();
-        const DockPanelLocation found = layout.locate(id);
-        gf_dock_location made{};
-        made.struct_size = location_size_1_1;
-        made.placement = static_cast<gf_dock_placement>(found.placement);
-        made.stack_kind = GF_DOCK_NODE_KIND_NONE;
-        made.side = GF_DOCK_SIDE_NONE;
-        const DockNode* const stack = layout.find_node(found.stack);
-        if (stack != nullptr) {
-            made.stack = found.stack.value;
-            made.index = found.index;
-            made.stack_kind = node_kind_of((*stack).kind);
-            made.selected = (*stack).selected == found.index ? 1U : 0U;
-            made.stack_panel_count = static_cast<std::uint32_t>((*stack).panels.size());
-        }
-        if (found.placement == DockPlacementKind::floating) made.site = found.site.value;
-        if (found.placement == DockPlacementKind::docked) made.side = document_side(layout, found.stack);
-        if (found.placement == DockPlacementKind::auto_hidden) {
-            for (const DockAutoHideEntry& entry : layout.state().auto_hidden) {
-                if (entry.stack == found.stack) made.side = static_cast<gf_dock_side>(entry.edge);
-            }
-        }
-        // The caller's record may be larger; only the 1.1 fields are ours.
-        const std::uint32_t caller_size = (*location).struct_size;
-        *location = made;
-        (*location).struct_size = caller_size;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(locate_slot);
+    return call_slot(locate_slot, docking_locate_body, workspace, panel, location);
+}
+
+gf_status docking_save_layout_body(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                   std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, save_layout_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const DockLayoutWriteResult written = (*typed).save_layout();
+    if (!written) {
+        return fail(GF_STATUS_INTERNAL, save_layout_slot, "the layout could not be written");
+    }
+    return write_text(written.text, buffer, capacity, required, save_layout_slot);
 }
 
 gf_status GF_CALL docking_save_layout(gf_object workspace, char* buffer, std::uint64_t capacity,
                                       std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(save_layout_slot.table_id, save_layout_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, save_layout_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const DockLayoutWriteResult written = (*typed).save_layout();
-        if (!written) {
-            return fail(GF_STATUS_INTERNAL, save_layout_slot, "the layout could not be written");
-        }
-        return write_text(written.text, buffer, capacity, required, save_layout_slot);
-    } catch (...) {
-        return fail_with_current_exception(save_layout_slot);
+    return call_slot(save_layout_slot, docking_save_layout_body, workspace, buffer, capacity, required);
+}
+
+gf_status docking_load_layout_body(gf_object workspace, gf_utf8_view xml, std::uint64_t* diagnostic_count) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, load_layout_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    std::string_view text;
+    const gf_status read = read_text(xml, load_layout_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const DockRestoreResult result = (*typed).load_layout(text);
+    if (diagnostic_count != nullptr) *diagnostic_count = result.diagnostics.size();
+    if (result.status != DockRestoreStatus::restored) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_layout_slot, "the layout was unreadable or refused; kept");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_load_layout(gf_object workspace, gf_utf8_view xml, std::uint64_t* diagnostic_count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(load_layout_slot.table_id, load_layout_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, load_layout_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        std::string_view text;
-        const gf_status read = read_text(xml, load_layout_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const DockRestoreResult result = (*typed).load_layout(text);
-        if (diagnostic_count != nullptr) *diagnostic_count = result.diagnostics.size();
-        if (result.status != DockRestoreStatus::restored) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, load_layout_slot, "the layout was unreadable or refused; kept");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(load_layout_slot);
+    return call_slot(load_layout_slot, docking_load_layout_body, workspace, xml, diagnostic_count);
+}
+
+gf_status docking_activate_panel_body(gf_object workspace, gf_utf8_view panel) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, activate_panel_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, activate_panel_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    if (!(*typed).activate_panel(id, DockActivationCause::programmatic)) {
+        return fail(GF_STATUS_INVALID_STATE, activate_panel_slot, "the panel is not placed where it can activate");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_activate_panel(gf_object workspace, gf_utf8_view panel) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(activate_panel_slot.table_id, activate_panel_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, activate_panel_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockPanelId id;
-        const gf_status read = read_registered_panel(*typed, panel, activate_panel_slot, id);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        if (!(*typed).activate_panel(id, DockActivationCause::programmatic)) {
-            return fail(GF_STATUS_INVALID_STATE, activate_panel_slot, "the panel is not placed where it can activate");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(activate_panel_slot);
+    return call_slot(activate_panel_slot, docking_activate_panel_body, workspace, panel);
+}
+
+gf_status docking_attach_windows_body(gf_object workspace) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, attach_windows_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    if ((*typed).windows_attached()) {
+        return GF_STATUS_OK;
+    }
+    gf_object root = 0U;
+    ApplicationWindowHandle window;
+    const gf_status running = registry().current_run(attach_windows_slot, root, window);
+    if (running != GF_STATUS_OK) {
+        return running;
+    }
+    if (!window.active()) {
+        return fail(GF_STATUS_INVALID_STATE, attach_windows_slot, "the window is not ready yet");
+    }
+    // The running window's stable id is "main" (Application::run's id),
+    // which the floating windows name as their owner.
+    const std::string main_id = "main";
+    if (!(*typed).attach_windows(std::move(window), main_id)) {
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, attach_windows_slot,
+                    "the host has no runtime windows, or the workspace refused the window");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_attach_windows(gf_object workspace) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(attach_windows_slot.table_id, attach_windows_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, attach_windows_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if ((*typed).windows_attached()) {
-            return GF_STATUS_OK;
-        }
-        gf_object root = 0U;
-        ApplicationWindowHandle window;
-        const gf_status running = registry().current_run(attach_windows_slot, root, window);
-        if (running != GF_STATUS_OK) {
-            return running;
-        }
-        if (!window.active()) {
-            return fail(GF_STATUS_INVALID_STATE, attach_windows_slot, "the window is not ready yet");
-        }
-        // The running window's stable id is "main" (Application::run's id),
-        // which the floating windows name as their owner.
-        const std::string main_id = "main";
-        if (!(*typed).attach_windows(std::move(window), main_id)) {
-            return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, attach_windows_slot,
-                        "the host has no runtime windows, or the workspace refused the window");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(attach_windows_slot);
+    return call_slot(attach_windows_slot, docking_attach_windows_body, workspace);
+}
+
+gf_status docking_document_area_body(gf_object workspace, std::uint32_t* node) {
+    if (node == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, document_area_slot, "document_area needs a node output");
     }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, document_area_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *node = (*typed).layout().document_area().value;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_document_area(gf_object workspace, std::uint32_t* node) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(document_area_slot.table_id, document_area_slot.slot_index);
-        if (node == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, document_area_slot, "document_area needs a node output");
-        }
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, document_area_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *node = (*typed).layout().document_area().value;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(document_area_slot);
+    return call_slot(document_area_slot, docking_document_area_body, workspace, node);
+}
+
+gf_status docking_panel_at_body(gf_object workspace, std::uint32_t stack, std::uint64_t index, char* buffer,
+                                std::uint64_t capacity, std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, panel_at_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const DockNode* const node = (*typed).layout().find_node(DockNodeId{stack});
+    if (node == nullptr ||
+        ((*node).kind != DockNodeKind::tool_stack && (*node).kind != DockNodeKind::document_stack)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, panel_at_slot, "the node is not a stack");
+    }
+    if (index >= (*node).panels.size()) {
+        return fail(GF_STATUS_NOT_FOUND, panel_at_slot, "the index is past the stack's panels");
+    }
+    // Copied before the text is written: the buffer is the caller's.
+    const std::string id = (*node).panels[static_cast<std::size_t>(index)].value;
+    return write_text(id, buffer, capacity, required, panel_at_slot);
 }
 
 gf_status GF_CALL docking_panel_at(gf_object workspace, std::uint32_t stack, std::uint64_t index, char* buffer,
                                    std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(panel_at_slot.table_id, panel_at_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, panel_at_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const DockNode* const node = (*typed).layout().find_node(DockNodeId{stack});
-        if (node == nullptr ||
-            ((*node).kind != DockNodeKind::tool_stack && (*node).kind != DockNodeKind::document_stack)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, panel_at_slot, "the node is not a stack");
-        }
-        if (index >= (*node).panels.size()) {
-            return fail(GF_STATUS_NOT_FOUND, panel_at_slot, "the index is past the stack's panels");
-        }
-        // Copied before the text is written: the buffer is the caller's.
-        const std::string id = (*node).panels[static_cast<std::size_t>(index)].value;
-        return write_text(id, buffer, capacity, required, panel_at_slot);
-    } catch (...) {
-        return fail_with_current_exception(panel_at_slot);
+    return call_slot(panel_at_slot, docking_panel_at_body, workspace, stack, index, buffer, capacity, required);
+}
+
+gf_status docking_floating_sites_body(gf_object workspace, std::uint32_t* sites, std::uint64_t capacity,
+                                      std::uint64_t* count) {
+    if (count == nullptr || (sites == nullptr && capacity != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, floating_sites_slot,
+                    "floating_sites needs a count output, and sites when capacity is not zero");
     }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, floating_sites_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::vector<DockFloatingSite>& floating = (*typed).layout().state().floating_sites;
+    *count = floating.size();
+    if (floating.size() > capacity) {
+        return fail(GF_STATUS_BUFFER_TOO_SMALL, floating_sites_slot, "the sites array is too small");
+    }
+    for (std::size_t index = 0U; index < floating.size(); ++index) {
+        sites[index] = floating[index].id.value;
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_floating_sites(gf_object workspace, std::uint32_t* sites, std::uint64_t capacity,
                                          std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(floating_sites_slot.table_id, floating_sites_slot.slot_index);
-        if (count == nullptr || (sites == nullptr && capacity != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, floating_sites_slot,
-                        "floating_sites needs a count output, and sites when capacity is not zero");
-        }
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, floating_sites_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::vector<DockFloatingSite>& floating = (*typed).layout().state().floating_sites;
-        *count = floating.size();
-        if (floating.size() > capacity) {
-            return fail(GF_STATUS_BUFFER_TOO_SMALL, floating_sites_slot, "the sites array is too small");
-        }
-        for (std::size_t index = 0U; index < floating.size(); ++index) {
-            sites[index] = floating[index].id.value;
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(floating_sites_slot);
+    return call_slot(floating_sites_slot, docking_floating_sites_body, workspace, sites, capacity, count);
+}
+
+gf_status docking_floating_site_body(gf_object workspace, std::uint32_t site, gf_logical_rect* frame,
+                                     std::uint32_t* first_stack) {
+    if (frame == nullptr || first_stack == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, floating_site_slot, "floating_site needs its outputs");
     }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, floating_site_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const DockLayout& layout = (*typed).layout();
+    const DockFloatingSite* const found = layout.find_floating_site(DockSiteId{site});
+    if (found == nullptr) {
+        return fail(GF_STATUS_NOT_FOUND, floating_site_slot, "no floating site of that number");
+    }
+    // The first stack in tree order: down the first children.
+    DockNodeId stack = (*found).root;
+    const DockNode* node = layout.find_node(stack);
+    while (node != nullptr && (*node).kind == DockNodeKind::split) {
+        stack = (*node).first;
+        node = layout.find_node(stack);
+    }
+    const bool is_stack = node != nullptr && ((*node).kind == DockNodeKind::tool_stack ||
+                                              (*node).kind == DockNodeKind::document_stack);
+    const Rect bounds = (*found).frame;
+    gf_logical_rect made{};
+    made.x = bounds.x;
+    made.y = bounds.y;
+    made.width = bounds.width;
+    made.height = bounds.height;
+    *frame = made;
+    *first_stack = is_stack ? stack.value : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_floating_site(gf_object workspace, std::uint32_t site, gf_logical_rect* frame,
                                         std::uint32_t* first_stack) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(floating_site_slot.table_id, floating_site_slot.slot_index);
-        if (frame == nullptr || first_stack == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, floating_site_slot, "floating_site needs its outputs");
-        }
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, floating_site_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const DockLayout& layout = (*typed).layout();
-        const DockFloatingSite* const found = layout.find_floating_site(DockSiteId{site});
-        if (found == nullptr) {
-            return fail(GF_STATUS_NOT_FOUND, floating_site_slot, "no floating site of that number");
-        }
-        // The first stack in tree order: down the first children.
-        DockNodeId stack = (*found).root;
-        const DockNode* node = layout.find_node(stack);
-        while (node != nullptr && (*node).kind == DockNodeKind::split) {
-            stack = (*node).first;
-            node = layout.find_node(stack);
-        }
-        const bool is_stack = node != nullptr && ((*node).kind == DockNodeKind::tool_stack ||
-                                                  (*node).kind == DockNodeKind::document_stack);
-        const Rect bounds = (*found).frame;
-        gf_logical_rect made{};
-        made.x = bounds.x;
-        made.y = bounds.y;
-        made.width = bounds.width;
-        made.height = bounds.height;
-        *frame = made;
-        *first_stack = is_stack ? stack.value : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(floating_site_slot);
+    return call_slot(floating_site_slot, docking_floating_site_body, workspace, site, frame, first_stack);
+}
+
+gf_status docking_update_panel_body(gf_object workspace, const gf_dock_panel* panel) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, update_panel_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    DockPanelDescriptor descriptor{};
+    std::string title;
+    const gf_status read = read_descriptor(panel, update_panel_slot, descriptor, title);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const DockPanelRegistration* const registered = (*typed).find_registration(descriptor.id);
+    if (registered == nullptr) {
+        return fail(GF_STATUS_NOT_FOUND, update_panel_slot, "no panel of that id is registered");
+    }
+    if ((*registered).descriptor.kind != descriptor.kind) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, update_panel_slot, "a panel keeps the kind it was registered with");
+    }
+    // The group is not in the record: the registered one stays.
+    descriptor.group = (*registered).descriptor.group;
+    const DockPanelId id = descriptor.id;
+    if (!(*typed).update_panel(descriptor)) {
+        return fail(GF_STATUS_INVALID_STATE, update_panel_slot, "the workspace refused the descriptor");
+    }
+    static_cast<void>((*typed).set_panel_title(id, std::move(title)));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_update_panel(gf_object workspace, const gf_dock_panel* panel) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(update_panel_slot.table_id, update_panel_slot.slot_index);
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, update_panel_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        DockPanelDescriptor descriptor{};
-        std::string title;
-        const gf_status read = read_descriptor(panel, update_panel_slot, descriptor, title);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const DockPanelRegistration* const registered = (*typed).find_registration(descriptor.id);
-        if (registered == nullptr) {
-            return fail(GF_STATUS_NOT_FOUND, update_panel_slot, "no panel of that id is registered");
-        }
-        if ((*registered).descriptor.kind != descriptor.kind) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, update_panel_slot, "a panel keeps the kind it was registered with");
-        }
-        // The group is not in the record: the registered one stays.
-        descriptor.group = (*registered).descriptor.group;
-        const DockPanelId id = descriptor.id;
-        if (!(*typed).update_panel(descriptor)) {
-            return fail(GF_STATUS_INVALID_STATE, update_panel_slot, "the workspace refused the descriptor");
-        }
-        static_cast<void>((*typed).set_panel_title(id, std::move(title)));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(update_panel_slot);
+    return call_slot(update_panel_slot, docking_update_panel_body, workspace, panel);
+}
+
+gf_status docking_set_options_body(gf_object workspace, const gf_dock_options* options) {
+    if (options == nullptr || (*options).struct_size < options_size_1_1 || (*options).reserved != 0U ||
+        ((*options).flags & ~GF_DOCK_OPTION_ALL) != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_options_slot,
+                    "an options record has at least the 1.1 size, known flags and reserved zero");
     }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_options_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const gf_dock_option_flags flags = (*options).flags;
+    (*typed).set_floats_shown_while_inactive((flags & GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE) != 0U);
+    (*typed).set_document_tabs_shown((flags & GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN) == 0U);
+    (*typed).set_auto_hide_opens_on_hover((flags & GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER) == 0U);
+    stxlib::Optional<Color> area{};
+    if ((flags & GF_DOCK_OPTION_AREA_BACKGROUND) != 0U) {
+        const std::uint32_t rgba = (*options).area_background;
+        area.set(Color::rgba(static_cast<std::uint8_t>(rgba >> 24U), static_cast<std::uint8_t>(rgba >> 16U),
+                             static_cast<std::uint8_t>(rgba >> 8U), static_cast<std::uint8_t>(rgba)));
+    }
+    (*typed).set_area_background(area);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_set_options(gf_object workspace, const gf_dock_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_options_slot.table_id, set_options_slot.slot_index);
-        if (options == nullptr || (*options).struct_size < options_size_1_1 || (*options).reserved != 0U ||
-            ((*options).flags & ~GF_DOCK_OPTION_ALL) != 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_options_slot,
-                        "an options record has at least the 1.1 size, known flags and reserved zero");
-        }
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, set_options_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_dock_option_flags flags = (*options).flags;
-        (*typed).set_floats_shown_while_inactive((flags & GF_DOCK_OPTION_FLOATS_SHOWN_WHILE_INACTIVE) != 0U);
-        (*typed).set_document_tabs_shown((flags & GF_DOCK_OPTION_DOCUMENT_TABS_HIDDEN) == 0U);
-        (*typed).set_auto_hide_opens_on_hover((flags & GF_DOCK_OPTION_AUTO_HIDE_NO_HOVER) == 0U);
-        std::optional<Color> area{};
-        if ((flags & GF_DOCK_OPTION_AREA_BACKGROUND) != 0U) {
-            const std::uint32_t rgba = (*options).area_background;
-            area = Color::rgba(static_cast<std::uint8_t>(rgba >> 24U), static_cast<std::uint8_t>(rgba >> 16U),
-                               static_cast<std::uint8_t>(rgba >> 8U), static_cast<std::uint8_t>(rgba));
-        }
-        (*typed).set_area_background(area);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_options_slot);
+    return call_slot(set_options_slot, docking_set_options_body, workspace, options);
+}
+
+gf_status docking_set_floating_window_visibility_body(gf_object workspace, std::uint32_t site,
+                                                      gf_dock_window_visibility visibility) {
+    if (visibility > GF_DOCK_WINDOW_VISIBILITY_POLICY) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_floating_window_visibility_slot,
+                    "a visibility is WORKSPACE, SHOWN or POLICY");
     }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_floating_window_visibility_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if ((*typed).layout().find_floating_site(DockSiteId{site}) == nullptr) {
+        return fail(GF_STATUS_NOT_FOUND, set_floating_window_visibility_slot, "no floating site of that number");
+    }
+    stxlib::Optional<bool> shown{};
+    if (visibility == GF_DOCK_WINDOW_VISIBILITY_SHOWN) shown.set(true);
+    if (visibility == GF_DOCK_WINDOW_VISIBILITY_POLICY) shown.set(false);
+    (*typed).set_floating_window_shown_while_inactive(DockSiteId{site}, shown);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL docking_set_floating_window_visibility(gf_object workspace, std::uint32_t site,
                                                          gf_dock_window_visibility visibility) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_floating_window_visibility_slot.table_id,
-                                            set_floating_window_visibility_slot.slot_index);
-        if (visibility > GF_DOCK_WINDOW_VISIBILITY_POLICY) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_floating_window_visibility_slot,
-                        "a visibility is WORKSPACE, SHOWN or POLICY");
-        }
-        WorkspacePtr typed;
-        const gf_status entered = enter_workspace(workspace, set_floating_window_visibility_slot, typed);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if ((*typed).layout().find_floating_site(DockSiteId{site}) == nullptr) {
-            return fail(GF_STATUS_NOT_FOUND, set_floating_window_visibility_slot, "no floating site of that number");
-        }
-        std::optional<bool> shown{};
-        if (visibility == GF_DOCK_WINDOW_VISIBILITY_SHOWN) shown = true;
-        if (visibility == GF_DOCK_WINDOW_VISIBILITY_POLICY) shown = false;
-        (*typed).set_floating_window_shown_while_inactive(DockSiteId{site}, shown);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_floating_window_visibility_slot);
-    }
+    return call_slot(set_floating_window_visibility_slot, docking_set_floating_window_visibility_body,
+                     workspace, site, visibility);
 }
 
 const gf_docking_table table{

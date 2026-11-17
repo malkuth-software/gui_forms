@@ -1,34 +1,27 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
+#include "../../core/resources/fonts/program_typefaces.hpp"
+#include "../../core/text/prepared/prepared_face_pool.hpp"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace gui_forms {
 namespace {
 
-struct RasterLibrary final {
-    FT_Library value{};
-    RasterLibrary() {
-        const FT_Error status = FT_Init_FreeType(&value);
-        if (status != 0) throw std::runtime_error("Prepared raster initialization");
-    }
-    ~RasterLibrary() { if (value != nullptr) FT_Done_FreeType(value); }
-    RasterLibrary(const RasterLibrary&) = delete;
-    RasterLibrary& operator=(const RasterLibrary&) = delete;
-};
-
-struct RasterFace final {
-    FT_Face value{};
-    RasterFace() = default;
-    ~RasterFace() { if (value != nullptr) FT_Done_Face(value); }
-    RasterFace(const RasterFace&) = delete;
-    RasterFace& operator=(const RasterFace&) = delete;
-};
+// The faces one rasterization draws with: one ExecutorFace per bank face,
+// leased from the bank's pool and opened over its typefaces on first use
+// (prepared_face_pool.hpp).
+using RasterFaces = std::array<detail::ExecutorFace, PreparedTextLimits::font_faces>;
 
 struct InkBounds final {
     std::int64_t left{};
@@ -36,13 +29,6 @@ struct InkBounds final {
     std::int64_t right{};
     std::int64_t bottom{};
     bool present{};
-};
-
-struct GlyphBitmap final {
-    // Borrow ends on the next load on this face or face destruction.
-    const FT_Bitmap* bitmap{};
-    std::int64_t left{};
-    std::int64_t top{};
 };
 
 std::size_t raster_face_index(const detail::PreparedTextStorage& storage, const FontFaceId id) noexcept {
@@ -53,66 +39,42 @@ std::size_t raster_face_index(const detail::PreparedTextStorage& storage, const 
     return count;
 }
 
-PreparedTextStatus load_bitmap(const FT_Face face, const render::text::ShapedGlyph& glyph, GlyphBitmap& output) {
-    const double x = static_cast<double>(glyph.x);
-    const double y = static_cast<double>(glyph.y);
-    const double integral_x = std::floor(x);
-    const double integral_y = std::floor(y);
-    const long fractional_x = std::lround((x - integral_x) * 64.0);
-    const long fractional_y = std::lround(-(y - integral_y) * 64.0);
-    FT_Vector delta{fractional_x, fractional_y};
-    FT_Set_Transform(face, nullptr, &delta);
-    const FT_UInt id = static_cast<FT_UInt>(glyph.glyph.value);
-    // ADR-004 profile light_gray_v2: light auto-hinting, as every text path.
-    const FT_Error loaded = FT_Load_Glyph(face, id, FT_LOAD_NO_BITMAP | FT_LOAD_TARGET_LIGHT | FT_LOAD_FORCE_AUTOHINT);
-    if (loaded != 0) return PreparedTextStatus::native_failure;
-    FT_GlyphSlot slot = (*face).glyph;
-    if (slot == nullptr || (*slot).format != FT_GLYPH_FORMAT_OUTLINE) return PreparedTextStatus::unsupported_profile;
-    const FT_Error rendered = FT_Render_Glyph(slot, FT_RENDER_MODE_NORMAL);
-    if (rendered != 0) return PreparedTextStatus::native_failure;
-    const FT_Bitmap& bitmap = (*slot).bitmap;
-    if (bitmap.width == 0 || bitmap.rows == 0) { output = {}; return PreparedTextStatus::success; }
-    if (bitmap.pixel_mode != FT_PIXEL_MODE_GRAY || bitmap.num_grays != 256 || bitmap.pitch <= 0 ||
-        bitmap.buffer == nullptr || bitmap.width > static_cast<unsigned>(bitmap.pitch) ||
-        bitmap.width > 8192U || bitmap.rows > 8192U || bitmap.pitch > 16384 ||
-        (*slot).bitmap_left < -1'000'000 || (*slot).bitmap_left > 1'000'000 ||
-        (*slot).bitmap_top < -1'000'000 || (*slot).bitmap_top > 1'000'000) return PreparedTextStatus::unsupported_profile;
-    // FT allocation has already occurred. This is an indexing guard, not a
-    // pre-allocation bound on native memory. All arithmetic below is widened.
-    const std::size_t pitch = static_cast<std::size_t>(bitmap.pitch);
-    if (bitmap.rows > (64U * 1024U * 1024U) / pitch) return PreparedTextStatus::unsupported_profile;
-    output.bitmap = &bitmap;
-    output.left = static_cast<std::int64_t>(integral_x) + (*slot).bitmap_left;
-    output.top = static_cast<std::int64_t>(integral_y) - (*slot).bitmap_top;
-    return PreparedTextStatus::success;
+// ADR-004 profile, drawn by STXlib's glyph face: light auto-hinting along
+// y, grey coverage, at the layout's device size.
+stxlib::glyphs::DrawStyle raster_style(const detail::PreparedTextStorage& storage) noexcept {
+    stxlib::glyphs::DrawStyle style{};
+    style.size = static_cast<stxlib::i64>(storage.metrics.device_size_26_6);
+    style.fit = stxlib::glyphs::Fit::light;
+    return style;
 }
 
-PreparedTextStatus open_faces(const detail::PreparedTextStorage& storage, RasterLibrary& library,
-    std::array<RasterFace, PreparedTextLimits::font_faces>& faces) {
+PreparedTextStatus open_faces(const detail::PreparedTextStorage& storage, RasterFaces& faces) {
     const detail::PreparedFontBank& bank = *storage.fonts;
+    detail::FaceByteLimits limits{};
+    limits.fitted_bytes = PreparedTextLimits::fitted_glyph_bytes;
+    limits.mask_width = static_cast<std::uint32_t>(PreparedTextLimits::mask_dimension);
+    limits.mask_height = static_cast<std::uint32_t>(PreparedTextLimits::mask_dimension);
     for (std::size_t index = 0; index < bank.face_count; ++index) {
         if (!storage.face_ids[index].valid()) return PreparedTextStatus::incompatible_font;
         for (std::size_t prior = 0; prior < index; ++prior) {
             if (storage.face_ids[prior] == storage.face_ids[index]) return PreparedTextStatus::incompatible_font;
         }
-        const detail::PreparedFontFace& source = bank.faces[index];
-        const FT_Byte* bytes = reinterpret_cast<const FT_Byte*>(source.bytes.get());
-        const FT_Long length = static_cast<FT_Long>(source.size);
-        const FT_Long face_index = static_cast<FT_Long>(source.index);
-        const FT_Error opened = FT_New_Memory_Face(library.value, bytes, length, face_index, &faces[index].value);
-        if (opened != 0) return PreparedTextStatus::incompatible_font;
-        FT_Face face = faces[index].value;
-        if (face == nullptr || !FT_IS_SCALABLE(face) || (*face).num_glyphs <= 0) return PreparedTextStatus::incompatible_font;
-        const FT_Error charmap = FT_Select_Charmap(face, FT_ENCODING_UNICODE);
-        const FT_F26Dot6 size = static_cast<FT_F26Dot6>(storage.metrics.device_size_26_6);
-        const FT_Error sized = FT_Set_Char_Size(face, 0, size, 72U, 72U);
-        if (charmap != 0 || sized != 0) return PreparedTextStatus::incompatible_font;
+        const std::shared_ptr<const detail::ProgramTypeface>& typeface = bank.typefaces[index];
+        if (!typeface) return PreparedTextStatus::incompatible_font;
+        // A face this set opened before is kept, with what it has fitted.
+        if (faces[index].is_open()) continue;
+        // No keeper: the bank holds the typeface and outlives its pool.
+        detail::TypefaceBorrow borrow{};
+        borrow.typeface = typeface.get();
+        if (!faces[index].open(std::move(borrow), limits)) return PreparedTextStatus::resource_failure;
+    }
+    if (storage.metrics.device_size_26_6 <= 0 || storage.metrics.device_size_26_6 > (std::int64_t{1} << 30)) {
+        return PreparedTextStatus::unsupported_profile;
     }
     return PreparedTextStatus::success;
 }
 
-PreparedTextStatus validate_geometry(const detail::PreparedTextStorage& storage,
-    const std::array<RasterFace, PreparedTextLimits::font_faces>& faces) {
+PreparedTextStatus validate_geometry(const detail::PreparedTextStorage& storage, const RasterFaces& faces) {
     const render::text::BoundedShapedText& geometry = *storage.geometry;
     if (geometry.run_count > geometry.run_capacity || geometry.glyph_count > geometry.glyph_capacity ||
         geometry.run_count > 16'384 || geometry.glyph_count > 65'536 ||
@@ -128,11 +90,10 @@ PreparedTextStatus validate_geometry(const detail::PreparedTextStorage& storage,
         if (run.glyph_begin != consumed || run.glyph_count > geometry.glyph_count - consumed ||
             run.source_range.start.value() >= run.source_range.end.value() ||
             run.source_range.end.value() > (*storage.input).text_bytes) return PreparedTextStatus::invalid_geometry;
-        const std::uint64_t glyph_limit = static_cast<std::uint64_t>((*faces[face_index].value).num_glyphs);
+        const std::uint64_t glyph_limit = static_cast<std::uint64_t>((*faces[face_index].font()).glyph_count);
         for (std::size_t offset = 0; offset < run.glyph_count; ++offset) {
             const render::text::ShapedGlyph& glyph = geometry.glyphs[consumed + offset];
-            if (glyph.glyph.value == 0 || glyph.glyph.value >= glyph_limit ||
-                glyph.glyph.value > std::numeric_limits<FT_UInt>::max()) return PreparedTextStatus::incompatible_font;
+            if (glyph.glyph.value == 0 || glyph.glyph.value >= glyph_limit) return PreparedTextStatus::incompatible_font;
             if (!std::isfinite(glyph.x) || !std::isfinite(glyph.y) || !std::isfinite(glyph.advance_x) ||
                 !std::isfinite(glyph.advance_y) || std::abs(glyph.x) > 1'000'000.0F || std::abs(glyph.y) > 1'000'000.0F ||
                 glyph.cluster.value() < run.source_range.start.value() ||
@@ -144,96 +105,110 @@ PreparedTextStatus validate_geometry(const detail::PreparedTextStorage& storage,
     return PreparedTextStatus::success;
 }
 
-PreparedTextStatus measure_ink(const detail::PreparedTextStorage& storage,
-    std::array<RasterFace, PreparedTextLimits::font_faces>& faces, InkBounds& bounds) {
+// One run's glyphs as STXlib takes them, into `placed`: positions in 26.6
+// device pixels from the layout origin, y downward. validate_geometry has
+// bounded every position to a million pixels, so each fits 32 bits.
+void place_run(const render::text::BoundedShapedText& geometry, const render::text::BoundedFontRun& run,
+               std::vector<stxlib::glyphs::RunGlyph>& placed) {
+    placed.clear();
+    for (std::size_t offset = 0; offset < run.glyph_count; ++offset) {
+        const render::text::ShapedGlyph& glyph = geometry.glyphs[run.glyph_begin + offset];
+        stxlib::glyphs::RunGlyph entry{};
+        entry.glyph = glyph.glyph.value;
+        entry.x = static_cast<std::int32_t>(std::llround(static_cast<double>(glyph.x) * 64.0));
+        entry.y = static_cast<std::int32_t>(std::llround(static_cast<double>(glyph.y) * 64.0));
+        placed.push_back(entry);
+    }
+}
+
+PreparedTextStatus measure_ink(const detail::PreparedTextStorage& storage, RasterFaces& faces,
+    std::vector<stxlib::glyphs::RunGlyph>& placed, InkBounds& bounds) {
     const render::text::BoundedShapedText& geometry = *storage.geometry;
+    const stxlib::glyphs::DrawStyle style = raster_style(storage);
     for (std::size_t run_index = 0; run_index < geometry.run_count; ++run_index) {
         const render::text::BoundedFontRun& run = geometry.runs[run_index];
         const std::size_t face_index = raster_face_index(storage, run.face);
-        FT_Face face = faces[face_index].value;
-        for (std::size_t offset = 0; offset < run.glyph_count; ++offset) {
-            const render::text::ShapedGlyph& glyph = geometry.glyphs[run.glyph_begin + offset];
-            GlyphBitmap bitmap{};
-            const PreparedTextStatus loaded = load_bitmap(face, glyph, bitmap);
-            if (loaded != PreparedTextStatus::success) return loaded;
-            if (bitmap.bitmap == nullptr) continue;
-            const std::int64_t right = bitmap.left + (*bitmap.bitmap).width;
-            const std::int64_t bottom = bitmap.top + (*bitmap.bitmap).rows;
-            if (!bounds.present) bounds = {bitmap.left, bitmap.top, right, bottom, true};
-            else {
-                bounds.left = std::min(bounds.left, bitmap.left);
-                bounds.top = std::min(bounds.top, bitmap.top);
-                bounds.right = std::max(bounds.right, right);
-                bounds.bottom = std::max(bounds.bottom, bottom);
-            }
-            if (bounds.right - bounds.left > static_cast<std::int64_t>(PreparedTextLimits::mask_dimension) ||
-                bounds.bottom - bounds.top > static_cast<std::int64_t>(PreparedTextLimits::mask_dimension)) {
-                return PreparedTextStatus::budget_exceeded;
+        place_run(geometry, run, placed);
+        stxlib::glyphs::RunBox box{};
+        const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(placed.data(), placed.size());
+        const stxlib::OperationStatus measured = faces[face_index].measure_run(glyphs, style, box);
+        if (measured.failed() || box.missing_glyphs != 0U) return PreparedTextStatus::native_failure;
+        if (box.oversized) return PreparedTextStatus::budget_exceeded;
+        if (box.right <= box.left || box.bottom <= box.top) continue;
+        const InkBounds run_bounds{box.left, box.top, box.right, box.bottom, true};
+        if (!bounds.present) bounds = run_bounds;
+        else {
+            bounds.left = std::min(bounds.left, run_bounds.left);
+            bounds.top = std::min(bounds.top, run_bounds.top);
+            bounds.right = std::max(bounds.right, run_bounds.right);
+            bounds.bottom = std::max(bounds.bottom, run_bounds.bottom);
+        }
+        if (bounds.right - bounds.left > static_cast<std::int64_t>(PreparedTextLimits::mask_dimension) ||
+            bounds.bottom - bounds.top > static_cast<std::int64_t>(PreparedTextLimits::mask_dimension)) {
+            return PreparedTextStatus::budget_exceeded;
+        }
+    }
+    return PreparedTextStatus::success;
+}
+
+PreparedTextStatus fill_mask(const detail::PreparedTextStorage& storage, RasterFaces& faces,
+    std::vector<stxlib::glyphs::RunGlyph>& placed, stxlib::glyphs::RunCoverage& coverage,
+    detail::PreparedMaskStorage& mask) {
+    const render::text::BoundedShapedText& geometry = *storage.geometry;
+    const stxlib::glyphs::DrawStyle style = raster_style(storage);
+    for (std::size_t run_index = 0; run_index < geometry.run_count; ++run_index) {
+        const render::text::BoundedFontRun& run = geometry.runs[run_index];
+        const std::size_t face_index = raster_face_index(storage, run.face);
+        place_run(geometry, run, placed);
+        const stxlib::View<stxlib::glyphs::RunGlyph> glyphs(placed.data(), placed.size());
+        const stxlib::OperationStatus drawn = faces[face_index].draw_run(glyphs, style, coverage);
+        if (drawn.failed() || coverage.missing_glyphs != 0U || coverage.oversized) return PreparedTextStatus::native_failure;
+        if (coverage.width == 0U || coverage.height == 0U) continue;
+        const std::int64_t left = static_cast<std::int64_t>(coverage.left) - mask.left;
+        const std::int64_t top = static_cast<std::int64_t>(coverage.top) - mask.top;
+        if (left < 0 || top < 0 || left + coverage.width > mask.width || top + coverage.height > mask.height) {
+            return PreparedTextStatus::invalid_geometry;
+        }
+        const stxlib::View<stxlib::u8> pixels = coverage.pixels.view();
+        const std::size_t target_left = static_cast<std::size_t>(left);
+        const std::size_t target_top = static_cast<std::size_t>(top);
+        for (std::size_t row = 0; row < coverage.height; ++row) {
+            const std::size_t source_row = row * coverage.width;
+            const std::size_t destination_row = (target_top + row) * mask.width + target_left;
+            for (std::size_t column = 0; column < coverage.width; ++column) {
+                const unsigned value = pixels[source_row + column];
+                const unsigned previous = mask.pixels[destination_row + column];
+                const unsigned combined = value + previous * (255U - value) / 255U;
+                mask.pixels[destination_row + column] = static_cast<std::uint8_t>(combined);
             }
         }
     }
     return PreparedTextStatus::success;
 }
 
-PreparedTextStatus fill_mask(const detail::PreparedTextStorage& storage,
-    std::array<RasterFace, PreparedTextLimits::font_faces>& faces, detail::PreparedMaskStorage& mask) {
-    const render::text::BoundedShapedText& geometry = *storage.geometry;
-    for (std::size_t run_index = 0; run_index < geometry.run_count; ++run_index) {
-        const render::text::BoundedFontRun& run = geometry.runs[run_index];
-        const std::size_t face_index = raster_face_index(storage, run.face);
-        FT_Face face = faces[face_index].value;
-        for (std::size_t offset = 0; offset < run.glyph_count; ++offset) {
-            GlyphBitmap placement{};
-            const render::text::ShapedGlyph& glyph = geometry.glyphs[run.glyph_begin + offset];
-            const PreparedTextStatus loaded = load_bitmap(face, glyph, placement);
-            if (loaded != PreparedTextStatus::success) return loaded;
-            if (placement.bitmap == nullptr) continue;
-            const FT_Bitmap& bitmap = *placement.bitmap;
-            const std::int64_t left = placement.left - mask.left;
-            const std::int64_t top = placement.top - mask.top;
-            if (left < 0 || top < 0 || left + bitmap.width > mask.width || top + bitmap.rows > mask.height) {
-                return PreparedTextStatus::invalid_geometry;
-            }
-            const std::size_t pitch = static_cast<std::size_t>(bitmap.pitch);
-            const std::size_t target_left = static_cast<std::size_t>(left);
-            const std::size_t target_top = static_cast<std::size_t>(top);
-            for (std::size_t row = 0; row < bitmap.rows; ++row) {
-                const std::size_t source_row = row * pitch;
-                const std::size_t destination_row = (target_top + row) * mask.width + target_left;
-                for (std::size_t column = 0; column < bitmap.width; ++column) {
-                    const unsigned coverage = bitmap.buffer[source_row + column];
-                    const unsigned previous = mask.pixels[destination_row + column];
-                    const unsigned combined = coverage + previous * (255U - coverage) / 255U;
-                    mask.pixels[destination_row + column] = static_cast<std::uint8_t>(combined);
-                }
-            }
-        }
+// Charges to the bank's ledger what its typefaces, its pool's idle faces and
+// this rasterization's faces hold (faces leased by other rasterizations at
+// the time are charged when they next charge), and the most this
+// rasterization's faces and their typefaces held together.
+void charge_faces(const detail::PreparedTextStorage& storage, const RasterFaces& faces) noexcept {
+    const detail::PreparedFontBank& bank = *storage.fonts;
+    std::size_t held = (*bank.face_pool).idle_face_bytes();
+    std::size_t peak = 0;
+    for (std::size_t index = 0; index < bank.face_count; ++index) {
+        if (bank.typefaces[index]) held += (*bank.typefaces[index]).bytes_held();
+        held += faces[index].face_bytes_held();
+        peak += faces[index].bytes_peak();
     }
-    return PreparedTextStatus::success;
+    bank.face_charge.charge(bank.ledger, held, peak);
 }
 } // namespace
 
-PreparedTextStatus detail::validate_prepared_fonts(const PreparedFontBank& bank) {
+PreparedTextStatus detail::validate_prepared_fonts(PreparedFontBank& bank) {
     try {
-        RasterLibrary library{};
-        std::array<RasterFace, PreparedTextLimits::font_faces> faces{};
-        for (std::size_t index = 0; index < bank.face_count; ++index) {
-            const PreparedFontFace& source = bank.faces[index];
-            const FT_Byte* bytes = reinterpret_cast<const FT_Byte*>(source.bytes.get());
-            const FT_Long length = static_cast<FT_Long>(source.size);
-            const FT_Long face_index = static_cast<FT_Long>(source.index);
-            const FT_Error opened = FT_New_Memory_Face(library.value, bytes, length, face_index, &faces[index].value);
-            if (opened != 0) return PreparedTextStatus::incompatible_font;
-            FT_Face face = faces[index].value;
-            if (face == nullptr || !FT_IS_SCALABLE(face) || (*face).num_glyphs <= 0 || (*face).num_glyphs > 1'000'000) {
-                return PreparedTextStatus::incompatible_font;
-            }
-            const FT_Error charmap = FT_Select_Charmap(face, FT_ENCODING_UNICODE);
-            if (charmap != 0) return PreparedTextStatus::incompatible_font;
-        }
+        const bool opened = open_bank_typefaces(bank);
+        if (!opened) return PreparedTextStatus::incompatible_font;
         return PreparedTextStatus::success;
     } catch (const std::bad_alloc&) { return PreparedTextStatus::resource_failure; }
-    catch (const std::runtime_error&) { return PreparedTextStatus::native_failure; }
 }
 
 PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, const LayoutAuthority expected, GrayTextMask& output) {
@@ -241,15 +216,20 @@ PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, con
     if (!storage) return PreparedTextStatus::invalid_input;
     if (!detail::prepared_authority_current(*storage, expected)) return PreparedTextStatus::stale;
     try {
-        RasterLibrary library{};
-        // Faces die before library and before the retained encoded-byte owner.
-        std::array<RasterFace, PreparedTextLimits::font_faces> faces{};
-        const PreparedTextStatus opened = open_faces(*storage, library, faces);
+        if (!(*(*storage).fonts).face_pool) return PreparedTextStatus::incompatible_font;
+        // Returned to the bank's pool before `storage`, which holds the bank.
+        detail::PreparedFaceLease lease(*(*(*storage).fonts).face_pool);
+        detail::PreparedRasterFaces& set = lease.set();
+        RasterFaces& faces = set.faces;
+        const PreparedTextStatus opened = open_faces(*storage, faces);
         if (opened != PreparedTextStatus::success) return opened;
         const PreparedTextStatus validated = validate_geometry(*storage, faces);
         if (validated != PreparedTextStatus::success) return validated;
+        std::vector<stxlib::glyphs::RunGlyph>& placed = set.placed;
+        placed.reserve((*(*storage).geometry).glyph_count);
         InkBounds bounds{};
-        const PreparedTextStatus measured = measure_ink(*storage, faces, bounds);
+        const PreparedTextStatus measured = measure_ink(*storage, faces, placed, bounds);
+        charge_faces(*storage, faces);
         if (measured != PreparedTextStatus::success) return measured;
         const std::size_t width = static_cast<std::size_t>(bounds.right - bounds.left);
         const std::size_t height = static_cast<std::size_t>(bounds.bottom - bounds.top);
@@ -268,7 +248,8 @@ PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, con
         mask.top = static_cast<std::int32_t>(bounds.top);
         mask.pixel_count = bytes;
         if (bytes != 0) mask.pixels = std::make_unique<std::uint8_t[]>(bytes);
-        const PreparedTextStatus painted = fill_mask(*storage, faces, mask);
+        const PreparedTextStatus painted = fill_mask(*storage, faces, placed, set.coverage, mask);
+        charge_faces(*storage, faces);
         if (painted != PreparedTextStatus::success) return painted;
         detail::PreparedAuthorityState& authority = *(*storage).authority_state;
         std::lock_guard<std::mutex> publication_lock(authority.mutex);

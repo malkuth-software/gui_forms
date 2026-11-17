@@ -11,8 +11,10 @@ describes the result.
 ## The profile
 
 Shaping
-: HarfBuzz over FreeType with unhinted advances at the logical size. Kerning
-  and GPOS positioning are HarfBuzz's. Line widths therefore match the font's
+: STXlib's shaper (stxlib::glyphs) with unhinted advances at the logical
+  size. Kerning and GPOS positioning are the shaper's; it matches HarfBuzz's
+  results for the scripts it shapes, and Arabic and the Indic scripts are
+  drawn unshaped. Line widths therefore match the font's
   designed outlines within a tenth of a pixel instead of drifting with the
   hinter.
 
@@ -21,7 +23,8 @@ Placement
   horizontal subpixel phase is kept, so proportional text does not jitter.
 
 Rasterization
-: FreeType light auto-hinting, grayscale anti-aliasing, no stem darkening and
+: STXlib's light auto-hinting (a conversion of part of the FreeType
+  Project's auto-hinter), grayscale anti-aliasing, no stem darkening and
   no outline widening. Light hinting keeps vertical stems crisp without
   deforming glyphs in fonts that have no meaningful bytecode instructions.
 
@@ -48,10 +51,12 @@ pixel on one platform fails that test.
 - **Host font catalogues for control text.** Controls never enumerate or
   load system fonts. The bundled set is the whole set, which is what makes
   identical output possible. The one exception is the separate GUI.Drawing C
-  API: when a caller names a font family it never registered, the macOS
-  build asks CoreText for that family's bytes, and the Windows build
-  registers the bytes GDI selects for it. Either way the shared engine
-  shapes and rasterizes the text.
+  API. A family it is asked for resolves first through the font substitution
+  table (below); for a family the table does not name, the macOS build asks
+  CoreText for that family's bytes and the Windows build registers the bytes
+  GDI selects for it, accepted only when the host's face has the requested
+  name, and otherwise the content face substitutes. Either way the shared
+  engine shapes and rasterizes the text.
 - **Colour emoji.** The bundled emoji face is monochrome.
 - **Coverage gamma other than 1.0, linear-light blending, bytecode hinting.**
   Each was measured and rejected as a stylistic or polarity-dependent change
@@ -59,32 +64,52 @@ pixel on one platform fails that test.
 
 ## Bundled fonts
 
+The bundled fonts are the factory bundle: what it covers, what it
+guarantees, its size and its measured unpacking times are on
+[The factory bundle](factory-bundle).
+
 | Face | Role | Licence |
 |---|---|---|
 | Portsmouth Rapids (regular, bold) | `FontRole::control`: titles, buttons, labels, menus | Owner's MIT grant (`assets/fonts/LICENSE-PortsmouthRapids.txt`) |
 | Portsmouth Rapids (light, italic, bold italic), Portsmouth (five styles), Portsmouth Mono | Installed with the SDK; not registered by the hosts | Owner's MIT grant |
 | Carlito (four styles) | `FontRole::content`: editable text, lists, fields; metric-compatible with Calibri | SIL OFL |
 | Cousine (four styles) | `FontRole::monospace` | SIL OFL |
-| Noto Sans CJK JP | Fallback: Han, kana, Hangul | SIL OFL |
-| Noto Sans Arabic, Bengali, Devanagari, Gurmukhi, Hebrew | Fallback by script | SIL OFL |
+| Selawik (regular, semibold, bold) | A bundled family a theme names with `font-family: Selawik` (the Segoe UI-like face of `windows-professional`); read the first time text asks for it. It has no italic | SIL OFL |
+| Arimo, Tinos (four styles each) | Metric-compatible substitutes for Arial and Times New Roman in the font substitution table | SIL OFL |
+| Noto Sans CJK JP (subset) | Fallback: kana and the JIS X 0208 kanji, Japanese forms | SIL OFL |
+| Noto Sans CJK KR (subset) | Fallback: every Hangul syllable, the jamo and the KS X 1001 hanja, Korean forms | SIL OFL |
+| Noto Sans CJK SC (minimal) | Fallback: the common simplified hanzi the two faces above lack | SIL OFL |
+| Noto Sans Arabic, Bengali, Devanagari, Gurmukhi (minimal) | Fallback by script: basic letters, digits and punctuation, drawn without contextual shaping | SIL OFL |
+| Noto Sans Hebrew | Fallback by script | SIL OFL |
 | Noto Emoji (monochrome) | Fallback: emoji and symbols | SIL OFL |
 
-Controls ask for a `FontRole`, not a family name; the host-owned theme maps
-roles to faces. Fallback is resolved per grapheme cluster, so a Japanese word
-inside a Latin label takes the CJK face for exactly that run. The provenance
+Controls ask for a `FontRole`, not a family name; the theme maps roles to
+faces, and may name a bundled family in place of a role's faces
+([The theme language](theme-language)), never a host font. Fallback is resolved per grapheme cluster, so a Japanese word
+inside a Latin label takes the CJK face for exactly that run. A Han
+character both CJK faces hold draws in its Japanese form: fallback does not
+yet choose by text language. The provenance
 of every file, including hashes, is in `assets/fonts/ATTRIBUTION.md` and
 `assets/fonts/language-font-provenance.json`.
 
-The native hosts locate fonts differently:
+Every host, and GUI.Drawing's raster C API, reads the faces from the font
+pack compiled into the library; no font file is read at run time. A
+development build configured with `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON`
+reads a font directory first (`GUI_FORMS_FONT_DIR`, else the checkout's
+`assets/fonts`), for work on the faces themselves.
 
-- macOS reads `Contents/Resources/fonts` from the application bundle.
-- Windows reads `GUI_FORMS_FONT_DIR` when set, otherwise `fonts/` beside the executable.
-- Linux reads `GUI_FORMS_FONT_DIR` when set, otherwise `fonts/` beside the
-  executable if present, then `../share/GUIForms/fonts` relative to it.
+The font substitution table, `assets/fonts/font-substitution.json`, resolves
+a family requested by name to a bundled family: its own name first, then a
+substitution (Calibri to Carlito, Arial to Arimo, Times New Roman to Tinos,
+Courier New to Cousine, Tahoma to Selawik, each recorded as metric-compatible
+or nearest with its measured exceptions), an alias (Helvetica as Arial) or a
+generic name (`sans-serif` is Carlito, `serif` Tinos, `monospace` Cousine).
+The build generates fixed records from it
+(`gui_forms/drawing/font_substitution/font_substitution.hpp`); the C# and
+Web.Forms siblings read the same file.
 
-The native SDK installs fonts and exports their path as the CMake variable
-`GUIForms_FONT_DIR`; that variable does not set the runtime environment.
-Ship the directory, licences included, at the location your host expects.
+The native SDK installs the faces' licences and exports their directory as
+the CMake variable `GUIForms_FONT_DIR`. Ship the licences with your program.
 
 ## The text store
 
@@ -105,11 +130,38 @@ control:
   under edits.
 - A snapshot of revision, edit, style and rejected-operation counters.
 
-Bidirectional analysis in the shared shaping engine uses the vendored
-SheenBidi. Unicode line breaking through libunibreak belongs to the optional
-development text-mask profile (`GUI_FORMS_BUILD_TEXT_MASKS`); it is not part
-of the normal installed text engine. Neither dependency's types appear in
-public headers.
+Bidirectional analysis (UAX #9), Unicode line breaking (UAX #14) and script
+runs (UAX #24) come from STXlib's stxlib::textlayout at Unicode 18.0.0, one
+analysis per paragraph, in the shared shaping engine and the text masks.
+None of its types appear in public headers.
+
+## Paragraph layout for owner-drawn rows
+
+A control that draws many rows of wrapped text itself, such as the rows of a
+`VirtualRowsView`, lays each paragraph out with `lay_out_paragraph`
+(`gui_forms/text/paragraph_layout/paragraph_layout.hpp`) and draws it with
+`paint_paragraph`. The layout wraps as `TextBlock` wraps, with the same
+provider calls, so its lines are the lines `TextBlock` would paint, at about
+two shapings a line instead of one per candidate run.
+
+- **Caller storage.** The call keeps nothing between calls and allocates
+  nothing of its own: it fills the caller's `ParagraphStorage`, and a call
+  whose storage is too small returns `storage_too_small` with the sizes it
+  needs. `ParagraphBuffers` owns storage sized once and reused, and a
+  shaping workspace from the window's text metrics provider, so the
+  provider's shaping allocates nothing either once it is reserved.
+- **Glyph runs.** With `ParagraphGlyphOutput::runs` the layout also fills
+  each line's glyph runs (`GlyphRunRecord`, `PositionedGlyph`) into the
+  storage, and the `paint_paragraph` overload that takes them draws with
+  `Painter::draw_glyph_runs` without shaping the text again.
+- **Estimates.** `measure_paragraph` returns only the line count, height and
+  widest line, for a row's height before it is drawn.
+- **Limits.** Lines break in logical order and each line is reordered for
+  display as its own bidirectional paragraph; one base direction across a
+  paragraph's lines and vertical text are not supported.
+
+Its storage is counted under `AllocationSubsystem::text_layout`
+([Counting allocations](debugging.md#counting-allocations)).
 
 ## Text input
 

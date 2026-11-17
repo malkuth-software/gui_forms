@@ -6,6 +6,7 @@
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
 
+#include <stxlib/optional.hpp>
 #include <any>
 #include <cstddef>
 #include <cstdint>
@@ -93,10 +94,10 @@ public:
                            double density_scale, ImageId image);
 
     [[nodiscard]] std::string_view key_at(std::size_t index) const;
-    [[nodiscard]] std::optional<std::size_t> index_of_key(
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of_key(
         std::string_view key) const noexcept;
     [[nodiscard]] bool contains_key(std::string_view key) const noexcept {
-        return index_of_key(key).has_value();
+        return index_of_key(key).present();
     }
     void set_key_name(std::size_t index, std::string key);
     bool remove_at(std::size_t index);
@@ -142,7 +143,7 @@ private:
     static void validate_density(double density_scale);
     static void validate_image_size(Size image_size);
     [[nodiscard]] std::size_t require_index(std::string_view key) const;
-    [[nodiscard]] std::optional<std::size_t> variant_index(
+    [[nodiscard]] stxlib::Optional<std::size_t> variant_index(
         const Entry& entry, ImageVisualState state,
         double density_scale) const noexcept;
     [[nodiscard]] Size source_size(ImageId image) const;

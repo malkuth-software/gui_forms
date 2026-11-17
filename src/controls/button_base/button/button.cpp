@@ -1,4 +1,5 @@
 #include "gui_forms/controls/button.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -53,17 +55,17 @@ void Button::on_activate() {
 namespace {
 
 constexpr std::array<PartField<Button::Parts>, 6> button_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Button::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &Button::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &Button::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &Button::Parts::label},
-    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}},
+    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}, .states = {}},
      .member = &Button::Parts::preselect},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Button::Parts::focus},
 }};
 
@@ -99,6 +101,7 @@ constexpr ControlAnatomy button_anatomy{
     .parts = button_parts,
     .states = button_states,
     .custom_states = button_custom_states,
+    .item_systems = {},
 };
 
 // The theme role a button of `style` is drawn with.
@@ -154,7 +157,7 @@ AnatomyStateSet Button::anatomy_states() const {
 ButtonBase::FaceLayer Button::face_layer() const noexcept {
     FaceLayer layer{};
     if (!danger.read()) return layer;
-    layer.state = danger_state;
+    layer.state.set(danger_state);
     layer.level = danger_level_;
     layer.leading_mark = PartMark::warning;
     return layer;
@@ -166,7 +169,7 @@ double Button::danger_glow_level(FrameInterval since) noexcept {
     const double turns = seconds / period;
     const double phase = (turns - std::floor(turns)) * 2.0 * 3.14159265358979323846;
     // A raised cosine: 1 at the start of each period, the floor half way.
-    const double rise = 0.5 + 0.5 * std::cos(phase);
+    const double rise = 0.5 + 0.5 * engine_sine_cosine(phase).cosine;
     const double level = danger_glow_floor + (1.0 - danger_glow_floor) * rise;
     return level;
 }
@@ -205,8 +208,9 @@ AnimationTickResult Button::advance_danger_glow(FrameTime now) {
         invalidate(Dirty::paint);
         return AnimationTickResult::damaged;
     }
-    if (!danger_since_) danger_since_ = now;
-    const FrameInterval since = std::chrono::duration_cast<FrameInterval>(now - *danger_since_);
+    if (danger_since_.absent()) danger_since_.set(now);
+    const FrameTime started = danger_since_.value_or(now);
+    const FrameInterval since = std::chrono::duration_cast<FrameInterval>(now - started);
     const double level = danger_glow_level(since);
     if (level == danger_level_) return AnimationTickResult::unchanged;
     danger_level_ = level;
@@ -273,14 +277,14 @@ void Button::on_paint(Painter& painter, Rect) {
     // the theme's disabled accent plate does (sweep defect D11: a disabled
     // accent kept its fill). The other styles take the override's face and
     // text.
-    std::optional<AuthoredButtonColours> authored{};
+    stxlib::Optional<AuthoredButtonColours> authored{};
     if (has_style_override()) {
         const BasicControlStyle& colours = style();
         const bool accent = visual_style.read() == ButtonVisualStyle::accent && effectively_enabled();
         const bool flat = visual_style.read() == ButtonVisualStyle::flat;
         const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
         const Color text = accent ? colours.paper : colours.text;
-        authored = AuthoredButtonColours{face, text};
+        authored.set(AuthoredButtonColours{face, text});
     }
     paint_themed_button(painter, bounds, role, default_button.read(),
                         visual_style.read() == ButtonVisualStyle::command,

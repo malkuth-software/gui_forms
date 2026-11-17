@@ -15,6 +15,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -155,11 +156,46 @@ void refusals_and_owners() {
             "moving back enters the region at its remembered control");
 }
 
+// Refuses every focus change away from its control and, as a form that
+// rebuilds its panes when validation fails might, declares a shorter list
+// of regions.
+struct RefuseAndRedeclare final {
+    Window* window{};
+    std::weak_ptr<Control> kept{};
+    void operator()(ControlValidationEvent& event) const {
+        event.cancel = true;
+        const Control::Ptr region = kept.lock();
+        if (region) (*window).set_focus_regions({region});
+    }
+};
+
+// A Validating handler that cancels the move and re-declares the regions
+// (A-gf-core-17-F2): the traversal keeps the regions it started with, so
+// it never indexes past the shorter list, and focus stays where it was.
+void validation_redeclares_regions() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    const Region first = region(root, "first", 0.0);
+    const Region second = region(root, "second", 50.0);
+    const Region third = region(root, "third", 100.0);
+    Window window(root, {300.0, 160.0});
+    window.perform_layout();
+    window.set_focus_regions({first.panel, second.panel, third.panel});
+    require(window.request_focus(first.first), "focus starts in the first region");
+    const SubscriptionToken token =
+        (*first.first).validating().subscribe(RefuseAndRedeclare{&window, first.panel});
+    static_cast<void>(press(window));
+    require(window.focused_control() == first.first, "every refused attempt leaves focus where it was");
+    require(window.focus_regions().size() == 1U && window.focus_regions()[0] == first.panel,
+            "the handler's shorter list is the window's");
+}
+
 } // namespace
 
 int main() {
     cycles_three_regions();
     refusals_and_owners();
-    std::cout << "F6 focus regions: order, wrapping, remembered focus, skipping, refusals and owners passed\n";
+    validation_redeclares_regions();
+    std::cout << "F6 focus regions: order, wrapping, remembered focus, skipping, refusals, owners and "
+                 "re-declared regions passed\n";
     return 0;
 }

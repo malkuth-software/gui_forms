@@ -8,6 +8,7 @@
 #include <exception>
 #include <iostream>
 #include <stdexcept>
+#include <stxlib/optional.hpp>
 
 namespace {
 
@@ -275,7 +276,7 @@ void test_review_card_owns_typed_theme_aware_projection() {
                     TextStyleRole::body &&
                 (*(*card).verdict_label()).text_style_role.read() ==
                     TextStyleRole::caption &&
-                !(*(*card).title_label()).font.read().has_value(),
+                (*(*card).title_label()).font.read().absent(),
             "ReviewCard must own one typed theme-aware title/body/verdict projection");
     const SemanticDescriptor pending_semantics = (*card).semantic_descriptor();
     require(pending_semantics.name == pending.title &&

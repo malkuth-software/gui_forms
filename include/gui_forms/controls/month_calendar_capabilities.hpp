@@ -65,7 +65,7 @@ struct ShowWeekNumbersCapability {
     }
 };
 
-// The weekday each week row starts on.
+// The weekday each week row starts on, once written; until then the host locale's first day (effective_first_day_of_week).
 template <typename Declaring>
 struct FirstDayOfWeekCapability {
     PropertyCell<CalendarWeekday, FirstDayOfWeekCapability<Declaring>> first_day_of_week{CalendarWeekday::sunday};
@@ -117,7 +117,7 @@ struct ScrollChangeCapability {
     }
 };
 
-// Month and day names and the "Today:" date pattern.
+// Month and day names and the "Today:" date pattern, once written; until then the host locale's (effective_format_provider).
 template <typename Declaring>
 struct MonthCalendarFormatProviderCapability {
     PropertyCell<DateTimeFormatProvider, MonthCalendarFormatProviderCapability<Declaring>> format_provider{DateTimeFormatProvider::english_united_states()};

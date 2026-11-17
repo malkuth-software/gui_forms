@@ -13,7 +13,7 @@
 //     OffscreenAttachment attached(*raster, window);                 // after both
 //     OffscreenCaptureOptions options{};
 //     options.scale = 2.0;
-//     options.colour_scheme = ColourScheme::dark;
+//     options.colour_scheme.set(ColourScheme::dark);
 //     std::optional<WindowCapture> picture = attached.capture_control(button, options);
 //
 // The renderer is private to the GUI.Forms library: no renderer type
@@ -22,6 +22,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +32,8 @@
 #include <string>
 #include <variant>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 namespace detail {
@@ -39,11 +42,9 @@ struct OffscreenRasterAccess;
 
 enum class OffscreenRasterError : std::uint8_t {
     none,
-    // No directory holds the bundled faces: the options name none, and the
-    // places the hosts look (GUI_FORMS_FONT_DIR, beside the program, beside
-    // the GUI.Forms library) hold none, or the program has no host to ask
-    // (it links the core libraries alone). bundled_font_refusal names the
-    // directories tried.
+    // No source holds the bundled faces: the directory the options name
+    // lacks them, or (with no directory named) the embedded font pack does
+    // not open. bundled_font_refusal says why.
     fonts_not_found,
     // A directory was found but the raster refused its faces (a face
     // missing, short or altered).
@@ -53,9 +54,10 @@ enum class OffscreenRasterError : std::uint8_t {
 };
 
 struct GUI_FORMS_API OffscreenRasterOptions final {
-    // The bundled font directory (assets/fonts, installed as
-    // share/GUIForms/fonts); empty looks where the hosts look.
-    std::filesystem::path font_directory{};
+    // A directory of the bundled faces (assets/fonts) to read in place of
+    // the embedded font pack; empty takes the source the hosts' windows
+    // take (the pack, or a development build's directory).
+    FilePath font_directory{};
 };
 
 class OffscreenRaster;
@@ -112,8 +114,9 @@ public:
     OffscreenRaster(OffscreenRaster&&) = delete;
     OffscreenRaster& operator=(OffscreenRaster&&) = delete;
 
-    // The directory its faces came from.
-    [[nodiscard]] const std::filesystem::path& font_directory() const noexcept;
+    // The directory its faces came from; empty when they came from the
+    // embedded font pack.
+    [[nodiscard]] const FilePath& font_directory() const noexcept;
     // How many attachments to it are alive.
     [[nodiscard]] std::size_t attachments() const noexcept { return attachments_; }
 
@@ -137,10 +140,11 @@ struct GUI_FORMS_API OffscreenCaptureOptions final {
     // this scale for the capture, as a host lays it out on such a display.
     double scale{1.0};
     // The colour scheme drawn; none keeps the window's.
-    std::optional<ColourScheme> colour_scheme{};
+    stxlib::Optional<ColourScheme> colour_scheme{};
     // Forced high contrast; none keeps the window's.
-    std::optional<bool> high_contrast{};
-    // capture_window: the window's in-surface overlays.
+    stxlib::Optional<bool> high_contrast{};
+    // capture_window: the window's in-surface overlays; capture_control:
+    // those the control or a descendant owns (ControlCaptureOptions).
     bool include_overlays{true};
     // capture_control: logical units around the control (ControlCaptureOptions::margin).
     double margin{};

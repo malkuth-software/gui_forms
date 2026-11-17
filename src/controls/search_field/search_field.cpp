@@ -38,19 +38,19 @@ constexpr double well_frame = 1.0;
 constexpr std::array<AnatomyState, 2> clear_part_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<SearchField::Parts>, 7> search_field_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &SearchField::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &SearchField::Parts::well},
-    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &SearchField::Parts::icon},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = "text_box"},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = "text_box", .states = {}},
      .member = &SearchField::Parts::content},
     {.declaration = {.name = "actuator", .role = PartRole::glyph, .composed_from = {}, .states = clear_part_states},
      .member = &SearchField::Parts::actuator},
-    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}},
+    {.declaration = {.name = "activity", .role = PartRole::activity, .composed_from = {}, .states = {}},
      .member = &SearchField::Parts::activity},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &SearchField::Parts::focus},
 }};
 
@@ -66,6 +66,7 @@ constexpr ControlAnatomy search_field_anatomy{
     .parts = search_field_parts,
     .states = search_field_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events SearchField adds to those of Control, in declaration order.
@@ -90,7 +91,7 @@ struct SearchField::SearchDelayCallback final {
 SearchField::SearchField(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     focusable = false;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
 SearchField::~SearchField() {
@@ -378,6 +379,15 @@ void SearchField::on_mouse_up(MouseEventArgs& arguments) {
         if (over_clear(arguments.window_position)) static_cast<void>(clear());
     }
     Control::on_mouse_up(arguments);
+}
+
+// The window ends a primary press's capture after its release, when the
+// press has already ended; any other loss forgets it (A-gf-controls-13-F3).
+void SearchField::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!pressed_clear_) return;
+    pressed_clear_ = false;
+    invalidate(Dirty::paint);
 }
 
 // Whether a window point lies on the clear button, which shows only while

@@ -8,11 +8,11 @@
 
 #include "abi_tables.hpp"
 
+#include "../custom/abi_composite.hpp"
 #include "../events/abi_event_catalog.hpp"
 #include "../events/abi_interactions.hpp"
 #include "../registry/abi_registry.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <algorithm>
 #include <array>
@@ -80,7 +80,10 @@ SubscriptionToken connect_interaction(Component& source, std::string_view name,
             return token;
         }
     }
-    return SubscriptionToken{};
+    // A composite control's declared events (since 1.5) are its
+    // definition's, not a catalog type's.
+    SubscriptionToken declared = connect_composite_event(source, name, binding);
+    return declared;
 }
 
 namespace {
@@ -161,78 +164,76 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
     return GF_STATUS_OK;
 }
 
+gf_status events_subscribe_body(gf_object source, gf_utf8_view interaction, const gf_callback* callback,
+                                gf_subscription* subscription) {
+    const gf_status subscribed = subscribe_to(source, interaction, callback, subscription, false, subscribe_slot);
+    return subscribed;
+}
+
 gf_status GF_CALL events_subscribe(gf_object source, gf_utf8_view interaction, const gf_callback* callback,
                                    gf_subscription* subscription) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(subscribe_slot.table_id, subscribe_slot.slot_index);
-        const gf_status subscribed = subscribe_to(source, interaction, callback, subscription, false, subscribe_slot);
-        return subscribed;
-    } catch (...) {
-        return fail_with_current_exception(subscribe_slot);
-    }
+    return call_slot(subscribe_slot, events_subscribe_body, source, interaction, callback, subscription);
+}
+
+gf_status events_subscribe_property_body(gf_object source, gf_utf8_view property, const gf_callback* callback,
+                                         gf_subscription* subscription) {
+    const gf_status subscribed =
+        subscribe_to(source, property, callback, subscription, true, subscribe_property_slot);
+    return subscribed;
 }
 
 gf_status GF_CALL events_subscribe_property(gf_object source, gf_utf8_view property, const gf_callback* callback,
                                             gf_subscription* subscription) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(subscribe_property_slot.table_id, subscribe_property_slot.slot_index);
-        const gf_status subscribed =
-            subscribe_to(source, property, callback, subscription, true, subscribe_property_slot);
-        return subscribed;
-    } catch (...) {
-        return fail_with_current_exception(subscribe_property_slot);
+    return call_slot(subscribe_property_slot, events_subscribe_property_body, source, property, callback, subscription);
+}
+
+gf_status events_disconnect_body(gf_subscription subscription) {
+    const gf_status entered = registry().enter_ui(disconnect_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const gf_status disconnected = registry().disconnect(subscription, disconnect_slot);
+    return disconnected;
 }
 
 gf_status GF_CALL events_disconnect(gf_subscription subscription) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(disconnect_slot.table_id, disconnect_slot.slot_index);
-        const gf_status entered = registry().enter_ui(disconnect_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status disconnected = registry().disconnect(subscription, disconnect_slot);
-        return disconnected;
-    } catch (...) {
-        return fail_with_current_exception(disconnect_slot);
+    return call_slot(disconnect_slot, events_disconnect_body, subscription);
+}
+
+gf_status events_write_field_body(gf_event* event, std::uint64_t field, const gf_value* value) {
+    const gf_status entered = registry().enter_ui(write_field_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    EventFields* frame = EventFields::frame_of(event);
+    if (frame == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, write_field_slot, "no callback is running for that event");
+    }
+    const gf_status written = (*frame).write(field, value, write_field_slot);
+    return written;
 }
 
 gf_status GF_CALL events_write_field(gf_event* event, std::uint64_t field, const gf_value* value) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(write_field_slot.table_id, write_field_slot.slot_index);
-        const gf_status entered = registry().enter_ui(write_field_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EventFields* frame = EventFields::frame_of(event);
-        if (frame == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, write_field_slot, "no callback is running for that event");
-        }
-        const gf_status written = (*frame).write(field, value, write_field_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(write_field_slot);
+    return call_slot(write_field_slot, events_write_field_body, event, field, value);
+}
+
+gf_status events_field_element_body(const gf_event* event, std::uint64_t field, std::uint64_t index,
+                                    gf_value* element) {
+    const gf_status entered = registry().enter_ui(field_element_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    EventFields* frame = EventFields::frame_of(event);
+    if (frame == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, field_element_slot, "no callback is running for that event");
+    }
+    const gf_status read = (*frame).element(field, index, element, field_element_slot);
+    return read;
 }
 
 gf_status GF_CALL events_field_element(const gf_event* event, std::uint64_t field, std::uint64_t index,
                                        gf_value* element) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(field_element_slot.table_id, field_element_slot.slot_index);
-        const gf_status entered = registry().enter_ui(field_element_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EventFields* frame = EventFields::frame_of(event);
-        if (frame == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, field_element_slot, "no callback is running for that event");
-        }
-        const gf_status read = (*frame).element(field, index, element, field_element_slot);
-        return read;
-    } catch (...) {
-        return fail_with_current_exception(field_element_slot);
-    }
+    return call_slot(field_element_slot, events_field_element_body, event, field, index, element);
 }
 
 constexpr gf_events_table table{

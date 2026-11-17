@@ -1,24 +1,21 @@
 #pragma once
 
-// The export macro of the Application library (libgui_forms_application)
-// (CP29 handoff section 2.2). A class, function or variable of the public
-// C++ API leaves the library only when its declaration carries
-// GUI_FORMS_API: on ELF and Mach-O through the export list the build
-// generates from the marks (tools/export_annotations.py places the macro,
-// writes the lists under cmake/exports/ and checks both), on Windows
-// through dllexport, without --export-all-symbols. The shared test
-// runtime, which holds the same archives, exports everything instead,
-// because the tests call private functions.
+// The mark of the public C++ API (CP29 handoff section 2.2). The Application
+// library is a static archive linked into the one module of each program
+// (one module, owner decision 2026-11-15), so no shipped library exports
+// the marked declarations now. tools/export_annotations.py still places the
+// mark and keeps the lists under cmake/exports/ in step with it: the marks
+// record the public surface, and the lists stay ready for a consumer that
+// builds its own shared library from the archives. The test runtime is a
+// static archive too (cmake/TestRuntime.cmake).
 //
 // Which form the macro takes is set by the build, per target:
-// - GUI_FORMS_API_BUILD: the unit is compiled into one of those libraries
-//   (the core, drawing core, controls, plot primitives, renderers, hosts and
-//   the library's own sources): dllexport on Windows;
-// - GUI_FORMS_API_IMPORT: the unit links one of those libraries (the
-//   Application library's and the test runtime's usage requirement):
-//   dllimport on Windows;
-// - neither: the unit links the static archives into its own image, and the
-//   macro is empty on Windows.
+// - GUI_FORMS_API_BUILD: the unit is compiled into a shared library that
+//   exports the marks (no first-party target now): dllexport on Windows;
+// - GUI_FORMS_API_IMPORT: the unit links such a library (no first-party
+//   target now): dllimport on Windows;
+// - neither: the unit is compiled into or links the static archives, which
+//   every shipped program does, and the macro is empty on Windows.
 // On ELF and Mach-O the macro is default visibility in every case, so a
 // consumer compiled with -fvisibility=hidden still references the library's
 // symbols as default-visibility ones.

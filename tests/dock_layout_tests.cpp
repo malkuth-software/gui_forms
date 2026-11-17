@@ -283,6 +283,38 @@ void test_round_trip() {
     require(second.text == first.text, "save and restore round trip is byte-stable");
 }
 
+// A-gf-core-04-F1: the restore's membership checks (seen panels, used IDs)
+// keep their results: a panel placed twice is reported and dropped, a
+// repeated node ID refuses the layout.
+void test_restore_duplicates() {
+    std::string twice = standard_xml;
+    const std::string output_panel = "        <panel id=\"tools.output\"/>\n";
+    const std::size_t at = twice.find(output_panel);
+    require(at != std::string::npos, "the fixture places tools.output");
+    twice.insert(at + output_panel.size(), output_panel);
+    DockLayout duplicated{};
+    register_standard(duplicated);
+    const DockRestoreResult placed = duplicated.restore_xml(twice, DockRestoreOptions{});
+    bool reported = false;
+    for (const DockRestoreDiagnostic& diagnostic : placed.diagnostics) {
+        if (diagnostic.kind == DockRestoreDiagnosticKind::duplicate_panel) reported = true;
+    }
+    require(placed.status == DockRestoreStatus::restored && reported,
+            "a panel placed twice restores once, with a duplicate_panel diagnostic");
+    const DockNode& output_stack = *duplicated.find_node(stack_of(duplicated, "tools.output"));
+    require(output_stack.panels.size() == 1U, "the duplicate placement is dropped");
+
+    std::string repeated = standard_xml;
+    const std::string stack_four = "<tool_stack id=\"4\"";
+    const std::size_t four = repeated.find(stack_four);
+    require(four != std::string::npos, "the fixture has stack 4");
+    repeated.replace(four, stack_four.size(), "<tool_stack id=\"2\"");
+    DockLayout refused{};
+    register_standard(refused);
+    const DockRestoreResult result = refused.restore_xml(repeated, DockRestoreOptions{});
+    require(result.status == DockRestoreStatus::kept_current, "a repeated node ID refuses the layout");
+}
+
 void test_hide_and_show_memory() {
     DockLayout layout{};
     register_standard(layout);
@@ -539,14 +571,16 @@ void test_pins() {
     require(layout.register_panel(tool("tools.toolbox")), "register toolbox");
     show_standard(layout);
     const DockNodeId solution = stack_of(layout, "tools.solution");
-    require(layout.pin_owner(panel("tools.solution")) == solution, "a lone panel's pin is its stack's");
+    require(layout.pin_owner(panel("tools.solution")) == stxlib::Optional<DockNodeId>::of(solution),
+            "a lone panel's pin is its stack's");
     require(static_cast<bool>(apply_one(layout, DockEdit::dock_into(subject("tools.toolbox"), solution))),
             "toolbox tabs into solution");
-    require(layout.pin_owner(panel("tools.toolbox")) == solution, "a group's panels share the group's pin");
+    require(layout.pin_owner(panel("tools.toolbox")) == stxlib::Optional<DockNodeId>::of(solution),
+            "a group's panels share the group's pin");
     require_refused(layout, DockEdit::auto_hide(subject("tools.toolbox"), DockSide::left),
                     DockRefusalReason::not_root_level, DockRefusalLayer::model,
                     "a panel inside a group has no pin of its own");
-    require(!layout.pin_owner(panel("doc.a")).has_value(), "documents carry no pin");
+    require(layout.pin_owner(panel("doc.a")).absent(), "documents carry no pin");
     std::vector<DockNodeId> pinnable{};
     layout.collect_pinnable_items(pinnable);
     require(pinnable.size() == 3U, "three docked tool stacks carry pins");
@@ -556,13 +590,14 @@ void test_pins() {
     require(layout.locate(panel("tools.toolbox")).placement == DockPlacementKind::auto_hidden &&
                 layout.locate(panel("tools.solution")).placement == DockPlacementKind::auto_hidden,
             "both panels auto-hidden");
-    require(layout.pin_owner(panel("tools.toolbox")) == solution, "the auto-hidden group keeps its pin");
+    require(layout.pin_owner(panel("tools.toolbox")) == stxlib::Optional<DockNodeId>::of(solution),
+            "the auto-hidden group keeps its pin");
     layout.collect_pinnable_items(pinnable);
     require(pinnable.size() == 3U && pinnable.back() == solution, "auto-hidden stacks are listed last");
     require(static_cast<bool>(apply_one(layout, DockEdit::float_subject(subject("tools.output"),
                                                                          Rect{0.0, 0.0, 100.0, 100.0}, ""))),
             "output floats");
-    require(!layout.pin_owner(panel("tools.output")).has_value(), "a floating stack carries no pin");
+    require(layout.pin_owner(panel("tools.output")).absent(), "a floating stack carries no pin");
     require_refused(layout, DockEdit::auto_hide(subject("tools.output"), DockSide::left),
                     DockRefusalReason::not_in_main_site, DockRefusalLayer::model,
                     "a floating stack cannot auto-hide");
@@ -1680,6 +1715,7 @@ int main() {
     test_default_layout();
     test_standard_layout_and_format();
     test_round_trip();
+    test_restore_duplicates();
     test_hide_and_show_memory();
     test_primitive_edits();
     test_restrictions();

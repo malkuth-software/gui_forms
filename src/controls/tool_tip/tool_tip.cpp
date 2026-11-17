@@ -197,7 +197,8 @@ void ToolTip::show(const std::shared_ptr<Control>& target, std::chrono::millisec
     if (!target || !owns(*target)) {
         throw std::invalid_argument("ToolTip explicit show requires a mapped target");
     }
-    owner.show_tool_tip(target, duration);
+    const stxlib::Optional<std::chrono::milliseconds> shown_for = stxlib::Optional<std::chrono::milliseconds>::of(duration);
+    owner.show_tool_tip(target, shown_for);
 }
 
 void ToolTip::hide() {

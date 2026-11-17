@@ -1,0 +1,61 @@
+{
+  "description": "Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), tools/std_surface_census.py. D15 and Q2: every count only falls, and V6 ends at zero. Occurrences are ratcheted; headers are reported.",
+  "names": {
+    "string": {
+      "occurrences": 1771,
+      "headers": 271
+    },
+    "vector": {
+      "occurrences": 1343,
+      "headers": 244
+    },
+    "shared_ptr": {
+      "occurrences": 785,
+      "headers": 180
+    },
+    "weak_ptr": {
+      "occurrences": 97,
+      "headers": 47
+    },
+    "make_shared": {
+      "occurrences": 16,
+      "headers": 11
+    },
+    "enable_shared_from_this": {
+      "occurrences": 4,
+      "headers": 4
+    },
+    "static_pointer_cast": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "dynamic_pointer_cast": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "unique_ptr": {
+      "occurrences": 155,
+      "headers": 77
+    },
+    "make_unique": {
+      "occurrences": 2,
+      "headers": 1
+    },
+    "optional": {
+      "occurrences": 200,
+      "headers": 61
+    },
+    "nullopt": {
+      "occurrences": 1,
+      "headers": 1
+    },
+    "string_view": {
+      "occurrences": 915,
+      "headers": 205
+    },
+    "span": {
+      "occurrences": 874,
+      "headers": 235
+    }
+  }
+}

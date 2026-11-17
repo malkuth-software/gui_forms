@@ -132,6 +132,45 @@ struct SaveFileDialogFileNameCapability {
     }
 };
 
+// Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
+template <typename Declaring>
+struct SaveFileDialogCheckFileExistsCapability {
+    PropertyCell<bool, SaveFileDialogCheckFileExistsCapability<Declaring>> check_file_exists{false};
+
+    static void assign(SaveFileDialogCheckFileExistsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.check_file_exists), incoming);
+        if (!capability.check_file_exists.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.check_file_exists));
+    }
+};
+
+// Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
+template <typename Declaring>
+struct SaveFileDialogCheckPathExistsCapability {
+    PropertyCell<bool, SaveFileDialogCheckPathExistsCapability<Declaring>> check_path_exists{true};
+
+    static void assign(SaveFileDialogCheckPathExistsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.check_path_exists), incoming);
+        if (!capability.check_path_exists.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.check_path_exists));
+    }
+};
+
+// Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
+template <typename Declaring>
+struct SaveFileDialogCreatePromptCapability {
+    PropertyCell<bool, SaveFileDialogCreatePromptCapability<Declaring>> create_prompt{false};
+
+    static void assign(SaveFileDialogCreatePromptCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.create_prompt), incoming);
+        if (!capability.create_prompt.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.create_prompt));
+    }
+};
+
 // Every SaveFileDialog capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>,
@@ -141,6 +180,9 @@ struct SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declari
                                     public SaveFileDialogDefaultExtCapability<Declaring>,
                                     public SaveFileDialogAddExtensionCapability<Declaring>,
                                     public SaveFileDialogOverwritePromptCapability<Declaring>,
-                                    public SaveFileDialogFileNameCapability<Declaring> {};
+                                    public SaveFileDialogFileNameCapability<Declaring>,
+                                    public SaveFileDialogCheckFileExistsCapability<Declaring>,
+                                    public SaveFileDialogCheckPathExistsCapability<Declaring>,
+                                    public SaveFileDialogCreatePromptCapability<Declaring> {};
 
 } // namespace gui_forms

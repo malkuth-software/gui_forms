@@ -76,7 +76,7 @@ gui_forms::Ribbon
          its label at the wider of its resting and selected fonts, so selecting a
          tab never moves the others.
 
-      **selected_tab** : ``std::optional<std::size_t>``
+      **selected_tab** : ``stxlib::Optional<std::size_t>``
          The selected tab, or none while no tab shows. Assigning a tab past the
          end throws ``std::out_of_range``; a tab not shown or disabled, or no value,
          throws ``std::invalid_argument``.
@@ -84,6 +84,9 @@ gui_forms::Ribbon
       **tabs_activate_on_release** : ``bool``, default ``false``
          Whether a tab is selected when the pointer is released over the tab it
          was pressed on, instead of on the press (Office's way, the default).
+
+      **help_button_visible** : ``bool``
+         Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
       **tabs** : ``std::span<const RibbonTabSpec>``
          The tabs, each with its groups and their commands: the core tabs, then
@@ -114,7 +117,7 @@ gui_forms::Ribbon
       **tab_sets** : ``std::span<const RibbonTabSetSpec>``, read-only
          The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
-      **ladder_step** : ``std::optional<std::size_t>``, read-only
+      **ladder_step** : ``stxlib::Optional<std::size_t>``, read-only
          The selected tab's ladder entry the plane shows, or none while it is
          hidden or minimized.
 
@@ -137,6 +140,13 @@ gui_forms::Ribbon
          The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
          ``std::invalid_argument`` for an invalid menu, or for items other than
          commands and separators beside recent items.
+
+      **plane_popup_open** : ``bool``, read-only
+
+      **plane_popup** : ``Control::Ptr``, read-only
+         The popup's content control while open (for tests and inspection).
+
+      **quick_access_toolbar** : ``std::shared_ptr<QuickAccessToolbar>``
 
       **recent_items** : ``std::span<const RibbonRecentItem>``
          The application menu's recent pane (:cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`: ID, text and a
@@ -196,6 +206,9 @@ gui_forms::Ribbon
       **selected_tab_changed** : ``Event<const RibbonTabChange&>``
          Raised after the selected tab changes.
 
+      **help_button_clicked** : ``Event<const RibbonHelpRequest&>``
+         Raised by a click on the help button and by request_help. Named apart from Control::help_requested (F1's HelpRequestEvent), which a Ribbon also raises.
+
       **minimized_changed** : ``Event<bool>``
          Raised after the command plane is hidden or shown.
 
@@ -229,6 +242,10 @@ gui_forms::Ribbon
         - A group's layouts, largest first: as authored, or generated.
       * - :cpp:func:`reduction_ladder <gui_forms::Ribbon::reduction_ladder>`
         - A tab's :cpp:class:`RibbonLadderEntry <gui_forms::RibbonLadderEntry>` list from the widest to the narrowest, built if needed.
+      * - :cpp:func:`show_plane_popup <gui_forms::Ribbon::show_plane_popup>`
+        - The minimized ribbon's temporary popup (interview G1, D3, T7): the selected tab's plane in an overlay below the tab row, casting the overlay shadow, over the document instead of pushing it down.
+      * - :cpp:func:`close_plane_popup <gui_forms::Ribbon::close_plane_popup>`
+        -  
       * - :cpp:func:`show_application_menu <gui_forms::Ribbon::show_application_menu>`
         - Opens the File tab's file area: Backstage when the ribbon has one, otherwise the application menu over the ribbon, below the File tab (in two panes beside recent items).
       * - :cpp:func:`show_backstage <gui_forms::Ribbon::show_backstage>`
@@ -251,6 +268,8 @@ gui_forms::Ribbon
         -  
       * - :cpp:func:`text_box <gui_forms::Ribbon::text_box>`
         -  
+      * - :cpp:func:`request_help <gui_forms::Ribbon::request_help>`
+        - Raises help_button_clicked, as a click on the help button does, whether or not the button shows (an F1 binding may call it).
       * - :cpp:func:`set_tab_set_availability <gui_forms::Ribbon::set_tab_set_availability>`
         -  
 
@@ -274,16 +293,16 @@ gui_forms::Ribbon
 
    A large command shows a 32-unit icon over its label and fills the group's
    height; small and hosted commands take one of three rows, stacked in
-   columns. Labels are shown at every size (decision 6); a small command with an
+   columns. Labels are shown at every size (decision 6); a compact command with an
    image may be authored icon-only (decision 30). A large split's face is its
    icon, and its arrow is the label and glyph beneath; a small split's arrow is
    the zone at its right end.
 
    Scaling (the WPF/MFC model, owner decision 5). Each group has layouts
    (:cpp:class:`RibbonGroupLayout <gui_forms::RibbonGroupLayout>`: a size, large, medium, small or collapsed, the image
-   size of each command and the small commands per column, 1 to 3). A group
+   size of each command and the compact commands per column, 1 to 3). A group
    that authors none gets generated layouts: its commands' own sizes, then, one
-   layout per step, the rightmost run of up to three large commands made small,
+   layout per step, the rightmost run of up to three large commands made compact,
    then collapsed, except a group of one command, which never shrinks. Labels
    never drop (decision 6). A tab's reduction ladder starts with every group at
    its largest layout and its gallery at its most columns; each step shrinks one
@@ -419,7 +438,7 @@ gui_forms::Ribbon
       std::shared_ptr<gf::Ribbon> ribbon = gf::make_control<gf::Ribbon>(gf::StableId("main.ribbon"));
       gf::RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard", .dialog_launcher = true};
       clipboard.commands.push_back({.stable_id = "paste", .command = paste});
-      clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::small, .command = paste});
+      clipboard.commands.push_back({.stable_id = "copy", .size = gf::RibbonCommandSize::compact, .command = paste});
       clipboard.layouts = {{.size = gf::RibbonGroupSize::large}, {.size = gf::RibbonGroupSize::collapsed}};
       gf::RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
       home.groups.push_back(std::move(clipboard));
@@ -479,7 +498,7 @@ gui_forms::Ribbon
       its label at the wider of its resting and selected fonts, so selecting a
       tab never moves the others.
 
-   .. cpp:member:: std::optional<std::size_t> selected_tab
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_tab
 
       The selected tab, or none while no tab shows. Assigning a tab past the
       end throws ``std::out_of_range``; a tab not shown or disabled, or no value,
@@ -489,6 +508,10 @@ gui_forms::Ribbon
 
       Whether a tab is selected when the pointer is released over the tab it
       was pressed on, instead of on the press (Office's way, the default).
+
+   .. cpp:member:: bool help_button_visible
+
+      Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
    .. cpp:function:: std::span<const RibbonTabSpec> tabs() const& noexcept
 
@@ -525,7 +548,7 @@ gui_forms::Ribbon
 
       The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
-   .. cpp:function:: std::optional<std::size_t> ladder_step() const
+   .. cpp:function:: stxlib::Optional<std::size_t> ladder_step() const
 
       The selected tab's ladder entry the plane shows, or none while it is
       hidden or minimized.
@@ -558,6 +581,18 @@ gui_forms::Ribbon
    .. cpp:function:: void set_application_menu(std::vector<MenuItemSpec> items)
 
       Sets :cpp:func:`application_menu <gui_forms::Ribbon::application_menu>`; see the property's description above.
+
+   .. cpp:function:: bool plane_popup_open() const noexcept
+
+   .. cpp:function:: Control::Ptr plane_popup() const noexcept
+
+      The popup's content control while open (for tests and inspection).
+
+   .. cpp:function:: const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept
+
+   .. cpp:function:: void set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolbar)
+
+      The Quick Access Toolbar the ribbon hosts (owner decisions RB-12 and RB-44, interview D1), a child of the ribbon while set. Its placement chooses where it shows: above_ribbon on the tab row after the File tab, the tabs following it, taking at most half the row's free width (commands that do not fit go to its overflow menu); below_ribbon on a row of its own under the plane (under the tab row while the plane does not show). The ribbon follows its placement and customization. Null removes it (it is detached, not disposed). Throws std::invalid_argument for a toolbar another parent holds.
 
    .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const& noexcept
 
@@ -637,6 +672,10 @@ gui_forms::Ribbon
 
       Raised after the selected tab changes.
 
+   .. cpp:function:: Event<const RibbonHelpRequest&>& help_button_clicked() noexcept
+
+      Raised by a click on the help button and by request_help. Named apart from Control::help_requested (F1's HelpRequestEvent), which a Ribbon also raises.
+
    .. cpp:function:: Event<bool>& minimized_changed() noexcept
 
       Raised after the command plane is hidden or shown.
@@ -663,7 +702,7 @@ gui_forms::Ribbon
       and applies the selection rules (see Notes). Both throw
       ``std::out_of_range`` for an unknown set.
 
-   .. cpp:function:: std::optional<AccentIndex> tab_set_accent(std::string_view set_id) const
+   .. cpp:function:: stxlib::Optional<AccentIndex> tab_set_accent(std::string_view set_id) const
 
       The :cpp:class:`AccentIndex <gui_forms::AccentIndex>` a shown set is tinted with, or none while it is hidden.
       Throws ``std::out_of_range`` for an unknown set.
@@ -682,6 +721,12 @@ gui_forms::Ribbon
 
       A tab's :cpp:class:`RibbonLadderEntry <gui_forms::RibbonLadderEntry>` list from the widest to the narrowest, built
       if needed. Throws ``std::out_of_range`` for a tab past the end.
+
+   .. cpp:function:: bool show_plane_popup()
+
+      The minimized ribbon's temporary popup (interview G1, D3, T7): the selected tab's plane in an overlay below the tab row, casting the overlay shadow, over the document instead of pushing it down. While minimized, clicking a tab other than the selected one selects it and opens the popup; clicking the selected tab pins the plane open again (decision 19). A click outside the popup is consumed and only closes it (a click on a tab still acts); Escape closes it, and so does a command or launcher run from it. The selected tab's hosted controls move into the popup while it is open. False when not minimized, without a selected tab, a window, or while disabled.
+
+   .. cpp:function:: void close_plane_popup() noexcept
 
    .. cpp:function:: bool show_application_menu(MenuOpenMode mode = MenuOpenMode::keyboard)
 
@@ -730,6 +775,10 @@ gui_forms::Ribbon
    .. cpp:function:: std::shared_ptr<CheckBox> check_box(std::string_view command_id) const
 
    .. cpp:function:: std::shared_ptr<TextBox> text_box(std::string_view command_id) const
+
+   .. cpp:function:: void request_help()
+
+      Raises help_button_clicked, as a click on the help button does, whether or not the button shows (an F1 binding may call it).
 
    .. cpp:function:: void set_tab_set_availability(std::string_view set_id, RibbonTabSetAvailability availability)
 
@@ -862,7 +911,7 @@ gui_forms::Ribbon
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 38 supported, 0 deferred, 0 excluded, 6 unclassified; 44 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 5 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -911,6 +960,18 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 38 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``plane_popup``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``plane_popup_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``quick_access_toolbar``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``realized_commands``
      - supported
    * - property
@@ -956,7 +1017,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 38 s
    * - event
      - GUI.Forms-only
      - ``backstage_open_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``command_clicked``
@@ -969,6 +1030,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 38 s
      - GUI.Forms-only
      - ``drop_down_item_invoked``
      - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``help_button_clicked``
+     - supported
    * - event
      - GUI.Forms-only
      - ``minimized_changed``
@@ -999,6 +1064,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 38 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``close_plane_popup``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``combo_box``
      - supported
    * - method
@@ -1012,6 +1081,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 38 s
    * - method
      - GUI.Forms-only
      - ``reduction_ladder``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_help``
      - supported
    * - method
      - GUI.Forms-only
@@ -1032,6 +1105,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 38 s
    * - method
      - GUI.Forms-only
      - ``show_group_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_plane_popup``
      - supported
    * - method
      - GUI.Forms-only

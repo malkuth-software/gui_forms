@@ -8,7 +8,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
-#include <optional>
+#include <stxlib/optional.hpp>
 #include <string_view>
 
 namespace gui_forms {
@@ -51,8 +51,8 @@ struct GUI_FORMS_API ColourSchemeSet final {
 // theme then reads its fallback. They are hints: a theme may use,
 // override or ignore them, and GUI.Forms' own theme reads neither.
 struct GUI_FORMS_API SystemColourHints final {
-    std::optional<Color> accent{};
-    std::optional<Color> highlight{};
+    stxlib::Optional<Color> accent{};
+    stxlib::Optional<Color> highlight{};
 
     friend bool operator==(const SystemColourHints& left, const SystemColourHints& right) noexcept {
         return left.accent == right.accent && left.highlight == right.highlight;

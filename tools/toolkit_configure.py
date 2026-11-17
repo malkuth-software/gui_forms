@@ -27,9 +27,9 @@ HOST_OPTION_NAMES: dict[str, str] = {'WINDOWS': 'windows', 'MACOS': 'macos', 'LI
 def prepare_host(source: Path, fetch_text: bool) -> None:
     """Prepare what a host's configure reads, before configuring source.
 
-    Nothing is fetched here any more: the renderer (stx_skia) and the text
-    sources (HarfBuzz, FreeType, libunibreak, MD4C, SheenBidi) are in the stx
-    repository, which cmake/Stx.cmake builds into the stx package at
+    Nothing is fetched here any more: the renderer (stx_skia) is in the stx
+    repository, and the text code is STXlib's, which stx pins (FreeType left
+    on 2026-11-16). cmake/Stx.cmake builds stx into the stx package at
     stx.lock's commit during the configure, or links already built (a source
     SDK carries the source, tools/build_sdk.py). fetch_text is kept for the
     callers and has no effect.
@@ -41,7 +41,7 @@ def host_options(host: str) -> list[str]:
     """The configure options that select host's native host and renderer.
 
     Every host builds the Skia adapters on stx_skia (from the stx package) and uses the
-    HarfBuzz/FreeType text engine.
+    text engine (STXlib).
     """
     options: list[str] = []
     name: str
@@ -50,7 +50,7 @@ def host_options(host: str) -> list[str]:
         if HOST_OPTION_NAMES[name] == host:
             enabled = 'ON'
         options.append(f'-DGUI_FORMS_ENABLE_{name}_HOST={enabled}')
-    options.extend(['-DGUI_FORMS_ENABLE_SKIA=ON', '-DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON'])
+    options.extend(['-DGUI_FORMS_ENABLE_SKIA=ON'])
     return options
 
 
@@ -79,11 +79,18 @@ def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> l
     prefix as the install prefix; gallery and tests switch the demonstration
     programs and the test suite. tools/build_sdk.py configures with these
     too (gallery and tests off), so the SDK a consumer builds is this build.
+
+    A build with tests is a reference and conformance build: it compiles with
+    the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, no floating-
+    point contraction; owner, 2026-11-16), which the engine gate, the
+    pixel-hash tests and the cross-host comparisons pin. A build without
+    tests (the SDK, profiling) is a deployment build and leaves contraction
+    on.
     """
     gallery_option: str = 'ON' if gallery else 'OFF'
     tests_option: str = 'ON' if tests else 'OFF'
     return ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
             '-DCMAKE_TOOLCHAIN_FILE=' + str(source / 'cmake/llvm22.cmake'),
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', f'-DGUI_FORMS_BUILD_GALLERY={gallery_option}',
-            f'-DGUI_FORMS_BUILD_TESTS={tests_option}', '-DGUI_FORMS_BUILD_AUDIO=ON',
-            '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']
+            f'-DGUI_FORMS_BUILD_TESTS={tests_option}', f'-DGUI_FORMS_REFERENCE_ARITHMETIC={tests_option}',
+            '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']

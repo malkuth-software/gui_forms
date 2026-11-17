@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <iostream>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -129,9 +130,9 @@ std::size_t copies_of(const Compilation& compilation, std::string_view label) {
 
 std::size_t amplitude_index() {
     const EnginePrimitive* const bulge = builtin_primitive_registry().find("bulge");
-    const std::optional<std::size_t> found =
-        bulge == nullptr ? std::optional<std::size_t>{} : find_parameter((*bulge).descriptor(), "amplitude");
-    return found ? *found : 0U;
+    const stxlib::Optional<std::size_t> found =
+        bulge == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*bulge).descriptor(), "amplitude");
+    return found.present() ? (*found.value()) : 0U;
 }
 
 // What a part asks the cascade.
@@ -294,7 +295,7 @@ void test_media_tokens() {
             "two names varying under one condition: two copies, not four");
     if (compiled.sheet.rules.size() == 2U) {
         require(media_condition_unconditional(compiled.sheet.rules[0].media) &&
-                    compiled.sheet.rules[1].media.dark_scheme == std::optional<bool>{true} &&
+                    compiled.sheet.rules[1].media.dark_scheme == stxlib::Optional<bool>::of(true) &&
                     compiled.sheet.rules[0].scoped_conditions.empty(),
                 "the light copy everywhere, the dark one where dark holds, unconditioned");
     }

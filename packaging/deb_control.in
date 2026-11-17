@@ -10,4 +10,4 @@ Description: @SUMMARY@
  @DESCRIPTION@
  .
  Installed under @INSTALL_DIR@ with a launcher in /usr/bin. Requires an X11
- display (XWayland works). Bundled fonts; no host fonts are read.
+ display (XWayland works). Fonts compiled in; no host fonts are read.

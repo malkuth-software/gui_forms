@@ -19,6 +19,44 @@
     } \
 } while (0)
 
+/* A native surface refresh made on a thread of its own (the staging test
+   below). */
+typedef struct RefreshJob {
+    const gd_api_v0 *api;
+    HWND window;
+    gd_handle bitmap;
+    gd_rect bounds;
+    gd_result result;
+} RefreshJob;
+
+static DWORD WINAPI refresh_on_thread(LPVOID argument) {
+    RefreshJob *job = (RefreshJob *)argument;
+    (*job).result = (*(*job).api).native_surface_refresh(
+        (uintptr_t)(*job).window, GD_NATIVE_SURFACE_HWND, (*job).bitmap, &(*job).bounds);
+    return 0;
+}
+
+/* A whole capture on a thread of its own: capture, a refresh that makes the
+   staging, and the release that destroys it, all before the thread ends. */
+static DWORD WINAPI capture_on_thread(LPVOID argument) {
+    RefreshJob *job = (RefreshJob *)argument;
+    gd_handle captured = {0};
+    gd_rect bounds = {0};
+    (*job).result = (*(*job).api).native_surface_capture(
+        (uintptr_t)(*job).window, GD_NATIVE_SURFACE_HWND, &captured, &bounds);
+    if ((*job).result != GD_OK) return 0;
+    (*job).result = (*(*job).api).native_surface_refresh(
+        (uintptr_t)(*job).window, GD_NATIVE_SURFACE_HWND, captured, &(*job).bounds);
+    if ((*(*job).api).release(captured) != GD_OK && (*job).result == GD_OK) {
+        (*job).result = GD_ERROR_INTERNAL;
+    }
+    return 0;
+}
+
+static DWORD gdi_objects(void) {
+    return GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
+}
+
 int main(void) {
     gd_api_v0 api;
     gd_handle source = {0};
@@ -63,7 +101,9 @@ int main(void) {
     CHECK(pixel.argb == UINT32_C(0xffff0000));
     CHECK(api.bitmap_acquire_hdc(imported, &leased_hdc, &lease_token) == GD_OK);
     CHECK(leased_hdc != 0 && lease_token != 0);
-    CHECK(api.dispose(imported) == GD_ERROR_INVALID_ARGUMENT);
+    /* A bitmap under a device-context lease refuses disposal as a state
+       fault (seal decision 4). */
+    CHECK(api.dispose(imported) == GD_ERROR_INVALID_STATE);
     CHECK(SetPixel((HDC)leased_hdc, 2, 1, RGB(0, 0, 255)) != CLR_INVALID);
     CHECK(api.bitmap_release_hdc(imported, lease_token) == GD_OK);
     CHECK(api.bitmap_release_hdc(imported, lease_token) == GD_ERROR_INVALID_ARGUMENT);
@@ -123,6 +163,63 @@ int main(void) {
     CHECK(surface_bounds.width == 3 && surface_bounds.height == 2);
     CHECK(api.native_surface_present((uintptr_t)window, GD_NATIVE_SURFACE_HWND,
                                      captured) == GD_OK);
+
+    /* Refresh staging belongs to the captured bitmap, not to a thread: a
+       refresh on another thread makes it (a memory DC and its DIB section),
+       that thread's exit leaves it, a refresh back on this thread reuses it,
+       and releasing the bitmap destroys it once. */
+    {
+        gd_handle staged = {0};
+        gd_rect staged_bounds = {0};
+        RefreshJob job;
+        HANDLE thread = NULL;
+        DWORD baseline = 0;
+        DWORD after_thread = 0;
+        CHECK(api.native_surface_capture((uintptr_t)window, GD_NATIVE_SURFACE_HWND,
+                                         &staged, &staged_bounds) == GD_OK);
+        baseline = gdi_objects();
+        CHECK(baseline != 0);
+        memset(&job, 0, sizeof(job));
+        job.api = &api;
+        job.window = window;
+        job.bitmap = staged;
+        job.result = GD_ERROR_INTERNAL;
+        thread = CreateThread(NULL, 0, refresh_on_thread, &job, 0, NULL);
+        CHECK(thread != NULL);
+        CHECK(WaitForSingleObject(thread, INFINITE) == WAIT_OBJECT_0);
+        CHECK(CloseHandle(thread) != 0);
+        CHECK(job.result == GD_OK);
+        CHECK(job.bounds.width == 3 && job.bounds.height == 2);
+        after_thread = gdi_objects();
+        CHECK(after_thread >= baseline + 2U);
+        CHECK(api.native_surface_refresh((uintptr_t)window, GD_NATIVE_SURFACE_HWND,
+                                         staged, &staged_bounds) == GD_OK);
+        CHECK(gdi_objects() == after_thread);
+        CHECK(api.release(staged) == GD_OK);
+        CHECK(gdi_objects() == baseline);
+        puts("drawing-windows-refresh-staging=pass");
+    }
+
+    /* G4c: a capture made and released on another thread leaves no GDI
+       object behind once that thread has ended. */
+    {
+        RefreshJob job;
+        HANDLE thread = NULL;
+        DWORD before = gdi_objects();
+        CHECK(before != 0);
+        memset(&job, 0, sizeof(job));
+        job.api = &api;
+        job.window = window;
+        job.result = GD_ERROR_INTERNAL;
+        thread = CreateThread(NULL, 0, capture_on_thread, &job, 0, NULL);
+        CHECK(thread != NULL);
+        CHECK(WaitForSingleObject(thread, INFINITE) == WAIT_OBJECT_0);
+        CHECK(CloseHandle(thread) != 0);
+        CHECK(job.result == GD_OK);
+        CHECK(gdi_objects() == before);
+        puts("drawing-windows-thread-capture=pass");
+    }
+
     CHECK(DestroyWindow(window) != 0);
 
     CHECK(SelectObject(memory, previous) == (HGDIOBJ)hbitmap);

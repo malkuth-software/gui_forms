@@ -1,0 +1,21 @@
+#include <gui_forms/bytes.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string_view>
+
+namespace gui_forms {
+
+std::size_t count_bytes(const std::string_view bytes) {
+    return bytes.size();
+}
+
+bool is_marker(const std::string_view text) {
+    return text == "\xff";
+}
+
+std::size_t name_length(const stxlib::TextView name) {
+    return name.count();
+}
+
+} // namespace gui_forms

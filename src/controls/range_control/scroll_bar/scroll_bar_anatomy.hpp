@@ -18,7 +18,7 @@ inline constexpr std::array<AnatomyState, 3> thumb_part_states{{
 // Parts and states ScrollBar, HScrollBar and VScrollBar share. Each type
 // publishes them under its own registry id.
 inline constexpr std::array<PartField<ScrollBar::Parts>, 8> part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ScrollBar::Parts::region},
     {.declaration = {.name = "decrement_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = pressable_part_states},
@@ -38,7 +38,7 @@ inline constexpr std::array<PartField<ScrollBar::Parts>, 8> part_fields{{
     {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {},
                      .states = thumb_part_states},
      .member = &ScrollBar::Parts::thumb},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ScrollBar::Parts::focus},
 }};
 

@@ -104,6 +104,13 @@ gui_forms::MonthCalendar
       **monthly_bolded_dates** : ``std::span<const DateTimeValue>``
          Days shown in bold every month: only their day counts.
 
+      **effective_format_provider** : ``DateTimeFormatProvider``, read-only
+         The provider and the first day of the week the calendar shows: its window's locale's (Control::effective_locale) while each follows the host locale, else the format_provider and first_day_of_week properties (exhibit gap E11). Each follows from construction until its property is written with a change; follow_host_locale() returns both to following. The provider reference stays valid until the next call on the calendar.
+
+      **effective_first_day_of_week** : ``CalendarWeekday``, read-only
+
+      **follows_host_locale** : ``bool``, read-only
+
       **parts** : ``Parts``, read-only
 
       **realized_days** : ``std::vector<Day>``, read-only
@@ -151,6 +158,8 @@ gui_forms::MonthCalendar
         -  
       * - :cpp:func:`bolded <gui_forms::MonthCalendar::bolded>`
         - Whether a day is shown in bold.
+      * - :cpp:func:`follow_host_locale <gui_forms::MonthCalendar::follow_host_locale>`
+        -  
       * - :cpp:func:`set_date <gui_forms::MonthCalendar::set_date>`
         - Selects one day.
       * - :cpp:func:`set_range <gui_forms::MonthCalendar::set_range>`
@@ -320,6 +329,14 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`monthly_bolded_dates <gui_forms::MonthCalendar::monthly_bolded_dates>`; see the property's description above.
 
+   .. cpp:function:: const DateTimeFormatProvider& effective_format_provider() const
+
+      The provider and the first day of the week the calendar shows: its window's locale's (Control::effective_locale) while each follows the host locale, else the format_provider and first_day_of_week properties (exhibit gap E11). Each follows from construction until its property is written with a change; follow_host_locale() returns both to following. The provider reference stays valid until the next call on the calendar.
+
+   .. cpp:function:: CalendarWeekday effective_first_day_of_week() const noexcept
+
+   .. cpp:function:: bool follows_host_locale() const noexcept
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: std::vector<Day> realized_days() const
@@ -368,6 +385,8 @@ gui_forms::MonthCalendar
    .. cpp:function:: bool bolded(DateTimeValue date) const noexcept
 
       Whether a day is shown in bold.
+
+   .. cpp:function:: void follow_host_locale()
 
    .. cpp:function:: void set_date(DateTimeValue date)
 
@@ -422,6 +441,12 @@ gui_forms::MonthCalendar
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press whose capture is taken away (the sequence broken, the calendar or an ancestor made unavailable) ends the drag without date_selected.
+
    .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*
@@ -442,15 +467,15 @@ gui_forms::MonthCalendar
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18 supported, 0 deferred, 1 excluded, 44 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 21 supported, 0 deferred, 1 excluded, 45 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -691,7 +716,19 @@ Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18
      - unclassified (unmatched)
    * - property
      - GUI.Forms-only
+     - ``effective_first_day_of_week``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_format_provider``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``first_displayed_month``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``follows_host_locale``
      - supported
    * - property
      - GUI.Forms-only
@@ -700,6 +737,10 @@ Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18
    * - method
      - GUI.Forms-only
      - ``bolded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``follow_host_locale``
      - supported
    * - method
      - ``Control.OnFontChanged``

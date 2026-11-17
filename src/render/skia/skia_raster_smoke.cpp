@@ -4,9 +4,9 @@
 #include "../text/harfbuzz/bundled_face_loader.hpp"
 #include "stx_zlib/checksum.hpp"
 #if defined(_WIN32)
-#include "../../host/windows/fonts/sealed_pages_windows.hpp"
+#include "../../surface/windows/fonts/sealed_pages_windows.hpp"
 #else
-#include "../../host/posix/fonts/sealed_pages_posix.hpp"
+#include "../../surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
 
 #include <array>
@@ -157,7 +157,7 @@ bool bundled_fonts_are_shared() {
     for (const gui_forms::detail::BundledFaceUse& use : gui_forms::detail::bundled_face_uses()) {
         for (const gui_forms::detail::BundledFaceRecord& record : gui_forms::detail::bundled_face_manifest()) {
             if (record.file_name != use.file_name) continue;
-            if (use.file_name == "NotoSansCJKjp-Regular.otf") cjk_bytes = record.size_bytes;
+            if (use.file_name == "NotoSansCJKjp-Subset.otf") cjk_bytes = record.size_bytes;
             if (gui_forms::render::text::lazy_bundled_coverage(use)) continue;
             ++eager_faces;
             eager_bytes += record.size_bytes;

@@ -8,6 +8,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -236,7 +237,7 @@ void ownership_and_quota_contract() {
     ImageRegistry registry;
     const ImageLoadResult first = registry.load_png(bytes);
     require(static_cast<bool>(first), "registry rejected valid PNG");
-    require(registry.find(first.image).has_value(), "new image ID did not resolve");
+    require(registry.find(first.image).present(), "new image ID did not resolve");
     require(registry.snapshot().resource_count == 1 &&
                 registry.snapshot().encoded_bytes == bytes.size() &&
                 registry.snapshot().decoded_bytes == 4,
@@ -249,14 +250,14 @@ void ownership_and_quota_contract() {
     require(!rejected && rejected.error == ImageResourceError::invalid_signature,
             "invalid replacement did not report its parser error");
     require(registry.snapshot().revision == before_invalid.revision &&
-                registry.find(first.image).has_value(),
+                registry.find(first.image).present(),
             "failed replacement was not atomic");
 
     const ImageLoadResult replacement = registry.replace_png(first.image, bytes);
     require(replacement && replacement.image != first.image,
             "replacement did not advance the image generation");
-    require(!registry.find(first.image).has_value() &&
-                registry.find(replacement.image).has_value(),
+    require(registry.find(first.image).absent() &&
+                registry.find(replacement.image).present(),
             "stale image ID resolved after replacement");
     require(registry.replace_png(first.image, bytes).error ==
                 ImageResourceError::stale_image_id,
@@ -328,13 +329,13 @@ void owned_pixel_surface_contract() {
     const ImageLoadResult loaded = registry.load_bgra32_premultiplied(
         2, 2, 12, padded);
     require(static_cast<bool>(loaded), "owned BGRA surface was rejected");
-    const std::optional<ImageResourceView> resource = registry.find(loaded.image);
-    require(resource.has_value() &&
-                (*resource).encoding == ImageResourceEncoding::bgra32_premultiplied &&
-                (*resource).row_bytes == 8 && (*resource).encoded.size() == 16 &&
-                (*resource).metadata.decoded_byte_count == 16,
+    const stxlib::Optional<ImageResourceView> resource = registry.find(loaded.image);
+    require(resource.present() &&
+                ((*resource.value())).encoding == ImageResourceEncoding::bgra32_premultiplied &&
+                ((*resource.value())).row_bytes == 8 && ((*resource.value())).encoded.size() == 16 &&
+                ((*resource.value())).metadata.decoded_byte_count == 16,
             "owned BGRA surface was not tightly normalized");
-    require((*resource).encoded[8] == std::byte{255},
+    require(((*resource.value())).encoded[8] == std::byte{255},
             "owned BGRA surface retained source row padding");
     require(registry.load_bgra32_premultiplied(2, 2, 7, padded).error ==
                 ImageResourceError::dimension_limit_exceeded,
@@ -344,7 +345,7 @@ void owned_pixel_surface_contract() {
     const ImageLoadResult replaced = registry.replace_bgra32_premultiplied(
         loaded.image, 2, 2, 8, replacement);
     require(replaced && replaced.image != loaded.image &&
-                !registry.find(loaded.image).has_value(),
+                registry.find(loaded.image).absent(),
             "owned BGRA replacement did not stale its prior generation");
 
     const std::array<std::byte, 4> green{
@@ -353,18 +354,18 @@ void owned_pixel_surface_contract() {
     const ImageLoadResult patched = registry.patch_bgra32_premultiplied(
         replaced.image, 1, 0, 1, 1, 4, green);
     require(patched && patched.image != replaced.image &&
-                !registry.find(replaced.image).has_value(),
+                registry.find(replaced.image).absent(),
             "bounded BGRA patch did not advance the resource generation");
-    const std::optional<ImageResourceView> patched_view = registry.find(patched.image);
-    require(patched_view && (*patched_view).encoded[4] == std::byte{0} &&
-                (*patched_view).encoded[5] == std::byte{255} &&
-                (*patched_view).encoded[7] == std::byte{255},
+    const stxlib::Optional<ImageResourceView> patched_view = registry.find(patched.image);
+    require(patched_view.present() && ((*patched_view.value())).encoded[4] == std::byte{0} &&
+                ((*patched_view.value())).encoded[5] == std::byte{255} &&
+                ((*patched_view.value())).encoded[7] == std::byte{255},
             "bounded BGRA patch did not update the selected pixel");
     require(registry.patch_bgra32_premultiplied(
                 patched.image, 2, 0, 1, 1, 4, green).error ==
                 ImageResourceError::dimension_limit_exceeded &&
                 registry.snapshot().revision == before_patch.revision + 1U &&
-                registry.find(patched.image).has_value(),
+                registry.find(patched.image).present(),
             "failed bounded BGRA patch was not atomic");
 }
 
@@ -374,14 +375,14 @@ void bounded_patch_stride_and_revision_contract() {
     const ImageLoadResult loaded = registry.load_bgra32_premultiplied(2, 3, 8, original);
     require(static_cast<bool>(loaded), "stride fixture load failed");
     const std::uint64_t initial_revision = registry.snapshot().revision;
-    const std::uint64_t initial_stamp = (*registry.find(loaded.image)).content_hash;
+    const std::uint64_t initial_stamp = (registry.find(loaded.image).take()).content_hash;
     const std::array<std::byte, 4> short_patch{};
     require(registry.patch_bgra32_premultiplied(
                 loaded.image, 0, 0, 1, 3, std::uint64_t{1} << 63U, short_patch).error ==
                 ImageResourceError::dimension_limit_exceeded,
             "overflowing patch stride was accepted");
     require(registry.snapshot().revision == initial_revision &&
-                (*registry.find(loaded.image)).content_hash == initial_stamp,
+                (registry.find(loaded.image).take()).content_hash == initial_stamp,
             "rejected stride changed registry state");
 
     // Two rows with padding between them, but no padding after the final row.
@@ -391,8 +392,8 @@ void bounded_patch_stride_and_revision_contract() {
     const ImageLoadResult patched = registry.patch_bgra32_premultiplied(
         loaded.image, 1, 1, 1, 2, 8, padded_patch);
     require(static_cast<bool>(patched), "patch required nonexistent final-row padding");
-    const ImageResourceView view = *registry.find(patched.image);
-    require(view.content_hash != initial_stamp && !registry.find(loaded.image),
+    const ImageResourceView view = registry.find(patched.image).take();
+    require(view.content_hash != initial_stamp && registry.find(loaded.image).absent(),
             "patch failed to invalidate the renderer cache identity");
     for (std::size_t index = 0; index < view.encoded.size(); ++index) {
         const std::byte expected = index == 12U ? std::byte{9} :
@@ -509,7 +510,7 @@ void stale_image_identity_refusals() {
     require(static_cast<bool>(loaded), "the raw surface loads");
     (*probe).image = loaded.image;
     ImageCountingPainter painter;
-    require(window.paint(painter).has_value(), "the first frame paints");
+    require(window.paint(painter).present(), "the first frame paints");
     require(painter.images == 1U && painter.last_image == loaded.image &&
                 window.metrics_snapshot().stale_image_refusals == 0U,
             "a held identity draws and refuses nothing");
@@ -519,7 +520,7 @@ void stale_image_identity_refusals() {
         loaded.image, 0, 0, 1, 1, 4, pixel, *probe, {0.0, 0.0, 8.0, 8.0});
     require(static_cast<bool>(patched) && !(patched.image == loaded.image),
             "a patch returns the identity that replaces the old one");
-    require(!window.image_resources().find(loaded.image).has_value(), "the old identity is stale");
+    require(window.image_resources().find(loaded.image).absent(), "the old identity is stale");
 
     const ImageLoadResult stale_patch = window.patch_bgra32_premultiplied(
         loaded.image, 1, 1, 1, 1, 4, pixel, *probe, {0.0, 0.0, 8.0, 8.0});
@@ -530,20 +531,20 @@ void stale_image_identity_refusals() {
     require(!stale_update && stale_update.error == ImageResourceError::stale_image_id &&
                 window.metrics_snapshot().stale_image_refusals == 2U,
             "an update of the old identity is refused and counted");
-    const std::optional<ImageResourceView> kept = window.image_resources().find(patched.image);
-    require(kept.has_value() && static_cast<std::uint8_t>((*kept).encoded[0]) == 255U &&
-                static_cast<std::uint8_t>((*kept).encoded[4 * 2 + 4]) == 0U,
+    const stxlib::Optional<ImageResourceView> kept = window.image_resources().find(patched.image);
+    require(kept.present() && static_cast<std::uint8_t>(((*kept.value())).encoded[0]) == 255U &&
+                static_cast<std::uint8_t>(((*kept.value())).encoded[4 * 2 + 4]) == 0U,
             "the refusals changed nothing");
 
     // The probe, damaged by the patch, records its paint again with the old
     // identity: the draw is refused and counted.
-    require(window.paint(painter).has_value(), "the frame after the patch paints");
+    require(window.paint(painter).present(), "the frame after the patch paints");
     require(painter.images == 1U && window.metrics_snapshot().stale_image_refusals == 3U,
             "a draw of the old identity is refused and counted");
 
     (*probe).image = patched.image;
     (*probe).invalidate(Dirty::paint);
-    require(window.paint(painter).has_value(), "the frame with the new identity paints");
+    require(window.paint(painter).present(), "the frame with the new identity paints");
     require(painter.images == 2U && painter.last_image == patched.image &&
                 window.metrics_snapshot().stale_image_refusals == 3U,
             "the returned identity draws and refuses nothing");
@@ -564,7 +565,7 @@ void move_contract() {
     const std::uint64_t source_revision = source.snapshot().revision;
 
     ImageRegistry constructed(std::move(source));
-    require(constructed.find(loaded.image).has_value() && constructed.snapshot().resource_count == 1 &&
+    require(constructed.find(loaded.image).present() && constructed.snapshot().resource_count == 1 &&
                 constructed.snapshot().revision > source_revision,
             "move construction kept the image and advanced the revision");
     require(source.image_ids().empty() && source.snapshot().resource_count == 0 &&
@@ -577,7 +578,7 @@ void move_contract() {
     const std::uint64_t replaced_revision = assigned.snapshot().revision;
     const std::uint64_t moved_revision = constructed.snapshot().revision;
     assigned = std::move(constructed);
-    require(assigned.find(loaded.image).has_value() && assigned.snapshot().resource_count == 1 &&
+    require(assigned.find(loaded.image).present() && assigned.snapshot().resource_count == 1 &&
                 assigned.snapshot().revision > replaced_revision && assigned.snapshot().revision > moved_revision,
             "move assignment kept the image and advanced past both revisions");
     require(constructed.image_ids().empty() && constructed.snapshot().resource_count == 0 &&
@@ -588,7 +589,7 @@ void move_contract() {
     ImageRegistry& alias = assigned;
     const ImageRegistrySnapshot before_self = assigned.snapshot();
     assigned = std::move(alias);
-    require(assigned.find(loaded.image).has_value() && assigned.snapshot().revision == before_self.revision &&
+    require(assigned.find(loaded.image).present() && assigned.snapshot().revision == before_self.revision &&
                 assigned.snapshot().resource_count == 1,
             "self-move leaves the registry unchanged");
 }

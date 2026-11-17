@@ -82,7 +82,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "Running windows on a native host, host options per platform, and the "
           "portable host protocol: capabilities, services, cursors, dialogs and "
           "lifecycle records.",
-          ("application", "platform", "host")),
+          ("application", "platform", "host", "build_profile")),
     Group("window", "Window, scheduling and dispatch",
           "The retained window model, update scopes, damage, frame scheduling, "
           "the UI-thread dispatcher, per-window instrumentation, the counters "
@@ -94,8 +94,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "with layout, docking, anchoring and validation vocabularies (layout "
           "constraints, intrinsic sizes and layout direction among them), and the "
           "anatomy each control publishes: named parts, part roles and states, "
-          "and the interactions each type raises.",
-          ("control", "component", "anatomy", "schema", "layout", "borrow")),
+          "and the interactions each type raises; composite controls, the "
+          "control types a `.control` document defines.",
+          ("control", "component", "anatomy", "schema", "layout", "borrow", "composites")),
     Group("events-values-and-commands", "Events, values and commands",
           "Retained events and owned handlers, application-owned `Value` state, "
           "command bindings, a window's rules (a trigger, conditions and "
@@ -124,7 +125,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
     Group("drawing", "Drawing",
           "The renderer-neutral drawing vocabulary: bitmaps, brushes, paths, "
           "painters, framebuffers and live surfaces.",
-          ("drawing", "paint_framebuffer", "live_surface")),
+          ("drawing", "paint_framebuffer", "live_surface", "content")),
     Group("text", "Text",
           "The text store, shaping and typography records, and the development "
           "prepared-text, text-mask and document-view services.",
@@ -195,6 +196,9 @@ HEADER_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/node_graph.hpp": "Drawing",
     # The node canvas's link flow effect precedes NodeCanvas too.
     "include/gui_forms/controls/link_flow_effects.hpp": "Drawing",
+    # The column model's placement, shared by VirtualRowsView and
+    # DataGridView, sits with the grids.
+    "include/gui_forms/controls/column_strip.hpp": "Selection from a list",
     # The help system's printing sits beside its controls.
     "include/gui_forms/controls/help_print.hpp": "Information display",
     # The stock specimens (one per anatomy, for captures and the theme

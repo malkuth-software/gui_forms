@@ -1,0 +1,11 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::size_t row_index(stxlib::TextView name);
+
+} // namespace gui_forms

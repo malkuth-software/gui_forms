@@ -2,7 +2,7 @@
 
 // Form bindings made at creation (stage FD, FD-6; owner rulings R1, R2 and
 // R4 of 2026-11-07). A form document binds a property in its own slot,
-// `value: bind(interval_);`, and the generated code or the loader calls one
+// `value="bind(interval_)"`, and the generated code or the loader calls one
 // of these while it builds the form: the property takes the source's value
 // at its place in document order, and the subscription is made in the same
 // call, so there is no default-then-overwrite and no separate connect step.

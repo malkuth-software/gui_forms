@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -44,7 +45,7 @@ std::string_view list_suffix(DockNavigatorList list) noexcept {
 
 DockNavigator::DockNavigator(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
 }
 
@@ -67,7 +68,7 @@ void DockNavigator::set_entries(std::vector<DockNavigatorEntry> tools, std::vect
     list_ = list;
     if (list_entries(list_).empty()) list_ = other_list(list_);
     current_.reset();
-    if (!list_entries(list_).empty()) current_ = 0U;
+    if (!list_entries(list_).empty()) current_.set(0U);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -83,8 +84,8 @@ std::span<const DockNavigatorEntry> DockNavigator::entries(DockNavigatorList lis
 }
 
 std::optional<DockPanelId> DockNavigator::current_panel() const {
-    if (!current_) return std::nullopt;
-    const DockPanelId panel = list_entries(list_)[*current_].panel;
+    if (current_.absent()) return std::nullopt;
+    const DockPanelId panel = list_entries(list_)[(*current_.value())].panel;
     return panel;
 }
 
@@ -92,7 +93,7 @@ bool DockNavigator::select(DockNavigatorList list, std::size_t index) {
     require_mutable();
     if (index >= list_entries(list).size()) return false;
     list_ = list;
-    current_ = index;
+    current_.set(index);
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
@@ -100,8 +101,8 @@ bool DockNavigator::select(DockNavigatorList list, std::size_t index) {
 bool DockNavigator::step(int direction) {
     require_mutable();
     const std::size_t count = list_entries(list_).size();
-    if (count == 0U || !current_) return false;
-    const std::size_t index = direction >= 0 ? (*current_ + 1U) % count : (*current_ + count - 1U) % count;
+    if (count == 0U || current_.absent()) return false;
+    const std::size_t index = direction >= 0 ? ((*current_.value()) + 1U) % count : ((*current_.value()) + count - 1U) % count;
     const bool selected = select(list_, index);
     return selected;
 }
@@ -190,8 +191,8 @@ void DockNavigator::arrange(Rect final_bounds) {
 
 AnatomyStateSet DockNavigator::row_states(DockNavigatorList list, std::size_t index) const {
     AnatomyStateSet states{};
-    if (hot_ && (*hot_).list == list && (*hot_).index == index) states.insert(AnatomyState::hot);
-    if (current_ && list_ == list && *current_ == index) states.insert(AnatomyState::selected);
+    if (hot_.present() && ((*hot_.value())).list == list && ((*hot_.value())).index == index) states.insert(AnatomyState::hot);
+    if (current_.present() && list_ == list && (*current_.value()) == index) states.insert(AnatomyState::selected);
     return states;
 }
 
@@ -237,7 +238,7 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
 
 // -- input ---------------------------------------------------------------------
 
-std::optional<DockNavigator::Row> DockNavigator::row_at(Point local) const {
+stxlib::Optional<DockNavigator::Row> DockNavigator::row_at(Point local) const {
     const Rect surface = client_rectangle();
     const Layout placed = layout_for(Size{surface.width, surface.height});
     const std::array<DockNavigatorList, 2> lists{DockNavigatorList::tools, DockNavigatorList::documents};
@@ -246,22 +247,22 @@ std::optional<DockNavigator::Row> DockNavigator::row_at(Point local) const {
         for (std::size_t index = 0; index < count; ++index) {
             if (!row_bounds(placed, list, index).contains(local)) continue;
             const Row row{list, index};
-            return row;
+            return stxlib::Optional<DockNavigator::Row>::of(row);
         }
     }
-    return std::nullopt;
+    return stxlib::Optional<DockNavigator::Row>::none();
 }
 
-void DockNavigator::set_hot(std::optional<Row> row) {
-    const bool same = hot_.has_value() == row.has_value() &&
-                      (!row || ((*hot_).list == (*row).list && (*hot_).index == (*row).index));
+void DockNavigator::set_hot(stxlib::Optional<Row> row) {
+    const bool same = hot_.present() == row.present() &&
+                      (row.absent() || (((*hot_.value())).list == ((*row.value())).list && ((*hot_.value())).index == ((*row.value())).index));
     if (same) return;
     hot_ = row;
     invalidate(Dirty::paint);
 }
 
 void DockNavigator::on_mouse_leave() {
-    set_hot(std::nullopt);
+    set_hot(stxlib::Optional<DockNavigator::Row>::none());
     Control::on_mouse_leave();
 }
 
@@ -275,8 +276,8 @@ void DockNavigator::on_mouse_move(MouseEventArgs& arguments) {
 // A press makes its row current; the release over the same row chooses.
 void DockNavigator::on_mouse_down(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary) {
-        const std::optional<Row> row = row_at(arguments.location);
-        if (row) static_cast<void>(select((*row).list, (*row).index));
+        const stxlib::Optional<Row> row = row_at(arguments.location);
+        if (row.present()) static_cast<void>(select(((*row.value())).list, ((*row.value())).index));
         arguments.handled = true;
     }
     Control::on_mouse_down(arguments);
@@ -284,9 +285,9 @@ void DockNavigator::on_mouse_down(MouseEventArgs& arguments) {
 
 void DockNavigator::on_mouse_up(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary) {
-        const std::optional<Row> row = row_at(arguments.location);
+        const stxlib::Optional<Row> row = row_at(arguments.location);
         arguments.handled = true;
-        if (row && current_ && (*row).list == list_ && (*row).index == *current_) static_cast<void>(choose());
+        if (row.present() && current_.present() && ((*row.value())).list == list_ && ((*row.value())).index == (*current_.value())) static_cast<void>(choose());
     }
     Control::on_mouse_up(arguments);
 }
@@ -343,7 +344,7 @@ SemanticDescriptor DockNavigator::semantic_descriptor() const {
     const std::optional<DockPanelId> panel = current_panel();
     if (panel) {
         const std::vector<DockNavigatorEntry>& held = list_entries(list_);
-        descriptor.value = held[*current_].title;
+        descriptor.value = held[(*current_.value())].title;
     }
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
@@ -378,11 +379,11 @@ std::vector<SemanticNode> DockNavigator::semantic_virtual_children() const {
             row.runtime_id = virtual_semantic_runtime_id(row.stable_id);
             row.role = SemanticRole::list_item;
             row.name = held[index].title;
-            row.position_in_set = index + 1U;
-            row.set_size = held.size();
+            row.position_in_set.set(index + 1U);
+            row.set_size.set(held.size());
             row.bounds = to_window(absolute, row_bounds(placed, list, index));
             row.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
-            if (current_ && list_ == list && *current_ == index) row.states |= SemanticState::selected;
+            if (current_.present() && list_ == list && (*current_.value()) == index) row.states |= SemanticState::selected;
             row.actions = {SemanticAction::select, SemanticAction::press};
             node.children.push_back(std::move(row));
         }
@@ -411,15 +412,15 @@ bool DockNavigator::on_semantic_child_action(std::string_view stable_id, Semanti
 namespace {
 
 constexpr std::array<PartField<DockNavigator::Parts>, 5> navigator_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::face},
-    {.declaration = {.name = "tool_heading", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "tool_heading", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::tool_heading},
-    {.declaration = {.name = "document_heading", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "document_heading", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::document_heading},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DockNavigator::Parts::focus},
 }};
 
@@ -430,9 +431,9 @@ constexpr std::array<AnatomyState, 5> navigator_states{
 };
 
 constexpr std::array<PartField<DockNavigator::ItemParts>, 2> entry_part_fields{{
-    {.declaration = {.name = "entry_face", .role = PartRole::face, .composed_from = "menu_item"},
+    {.declaration = {.name = "entry_face", .role = PartRole::face, .composed_from = "menu_item", .states = {}},
      .member = &DockNavigator::ItemParts::entry_face},
-    {.declaration = {.name = "entry_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "entry_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DockNavigator::ItemParts::entry_label},
 }};
 constexpr std::array<PartDeclaration, 2> entry_parts = part_declarations(entry_part_fields);

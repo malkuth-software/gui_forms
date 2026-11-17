@@ -139,7 +139,7 @@
       "hand": [
         "prepare keeps edit below window; written updates the row order mode"
       ],
-      "sample": "DataGridViewRowOrderThresholds{}"
+      "sample": "DataGridViewRowOrderThresholds{300000U, 100000U, 20000U, 1000U, 64U}"
     },
     {
       "name": "allow_user_to_delete_rows",
@@ -157,6 +157,24 @@
       "table": null,
       "hooks": "generated",
       "effects": null,
+      "sample": "false"
+    },
+    {
+      "name": "show_cell_tool_tips",
+      "capability": "DataGridViewShowCellToolTips",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.",
+      "getter": "show_cell_tool_tips",
+      "setter": "set_show_cell_tool_tips",
+      "clear": null,
+      "field": "show_cell_tool_tips_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics",
       "sample": "false"
     },
     {
@@ -231,7 +249,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "rows_default_cell_style",
@@ -251,7 +269,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "alternating_rows_default_cell_style",
@@ -271,7 +289,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "column_headers_default_cell_style",
@@ -291,7 +309,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "row_headers_default_cell_style",
@@ -311,7 +329,7 @@
       "hand": [
         "prepare validates the style; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
-      "sample": "DataGridViewCellStyle{.wrap_mode = true}"
+      "sample": "DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)}"
     },
     {
       "name": "enable_headers_visual_styles",
@@ -334,7 +352,7 @@
     {
       "name": "grid_color",
       "capability": "DataGridViewGridColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The authored colour of the grid lines; empty takes the theme's (GridColor).",
       "getter": "grid_color",
@@ -347,12 +365,12 @@
       "table": null,
       "hooks": "generated",
       "effects": "Dirty::paint",
-      "sample": "std::optional<Color>{Color::rgba(10U, 20U, 30U)}"
+      "sample": "stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U))"
     },
     {
       "name": "background_color",
       "capability": "DataGridViewBackgroundColor",
-      "value": "std::optional<Color>",
+      "value": "stxlib::Optional<Color>",
       "initial": null,
       "comment": "The authored colour behind the cells; empty takes the theme's (BackgroundColor).",
       "getter": "background_color",
@@ -365,7 +383,7 @@
       "table": null,
       "hooks": "generated",
       "effects": "Dirty::paint",
-      "sample": "std::optional<Color>{Color::rgba(10U, 20U, 30U)}"
+      "sample": "stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U))"
     },
     {
       "name": "border_style",
@@ -529,6 +547,26 @@
       "sample": "30.0"
     },
     {
+      "name": "column_headers_height_size_mode",
+      "capability": "DataGridViewColumnHeadersHeightSizeMode",
+      "value": "DataGridViewColumnHeadersHeightSizeMode",
+      "initial": "DataGridViewColumnHeadersHeightSizeMode::enable_resizing",
+      "comment": "Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).",
+      "getter": "column_headers_height_size_mode",
+      "setter": "set_column_headers_height_size_mode",
+      "clear": null,
+      "field": "column_headers_height_size_mode_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare checks the grid is mutable; written calls structure_changed() (the grid's layout, damage and semantics)"
+      ],
+      "sample": "DataGridViewColumnHeadersHeightSizeMode::auto_size"
+    },
+    {
       "name": "row_headers_width",
       "capability": "DataGridViewRowHeadersWidth",
       "value": "double",
@@ -567,6 +605,46 @@
         "prepare checks the range; written calls structure_changed() (the grid's layout, damage and semantics)"
       ],
       "sample": "30.0"
+    },
+    {
+      "name": "minimum_row_height",
+      "capability": "DataGridViewMinimumRowHeight",
+      "value": "double",
+      "initial": "4.0",
+      "comment": "The least height of every row, 4 to 4096 logical units (RowTemplate.MinimumHeight, for every row): user resizing, automatic heights and set_row_height_at stop there, and shorter heights are laid out at it.",
+      "getter": "minimum_row_height",
+      "setter": "set_minimum_row_height",
+      "clear": null,
+      "field": "minimum_row_height_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare checks the range; written calls structure_changed() (the grid's layout, damage and semantics)"
+      ],
+      "sample": "20.0"
+    },
+    {
+      "name": "frozen_row_count",
+      "capability": "DataGridViewFrozenRowCount",
+      "value": "std::size_t",
+      "initial": "0U",
+      "comment": "The leading rows that stay at the top of the data area while the other rows scroll (Windows Forms' DataGridViewRow.Frozen, which freezes a row and every row above it); counts past the rows freeze them all.",
+      "getter": "frozen_row_count",
+      "setter": "set_frozen_row_count",
+      "clear": null,
+      "field": "frozen_row_count_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare requires a mutable grid; written calls structure_changed() (the grid's layout, damage and semantics)"
+      ],
+      "sample": "2U"
     },
     {
       "name": "font",
@@ -817,6 +895,42 @@
       "hand": [
         "a view: write_view keeps the setter whole, since it reads the current position before the store (owner 2026-11-08: a cell)"
       ]
+    },
+    {
+      "name": "auto_generate_columns",
+      "capability": "DataGridViewAutoGenerateColumns",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).",
+      "getter": "auto_generate_columns",
+      "setter": "set_auto_generate_columns",
+      "clear": null,
+      "field": "auto_generate_columns_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": null,
+      "sample": "true"
+    },
+    {
+      "name": "standard_tab",
+      "capability": "DataGridViewStandardTab",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.",
+      "getter": "standard_tab",
+      "setter": "set_standard_tab",
+      "clear": null,
+      "field": "standard_tab_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": null,
+      "sample": "true"
     },
     {
       "name": "data_source",

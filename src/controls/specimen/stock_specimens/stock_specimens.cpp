@@ -497,6 +497,37 @@ StockSpecimenInstance make_plot_view(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+// A 3D plot of a fixed 9 x 9 surface, z = (x^2 - y^2) / 2 over [-1, 1]^2
+// (a saddle, exact on the grid; no clock, no random source), with titled
+// axes.
+StockSpecimenInstance make_plot3d_view(const StockSpecimen&, StableId id) {
+    constexpr std::size_t side = 9U;
+    std::array<double, side> along{};
+    for (std::size_t index = 0U; index < side; ++index) {
+        along[index] = -1.0 + 2.0 * static_cast<double>(index) / static_cast<double>(side - 1U);
+    }
+    std::array<double, side * side> heights{};
+    for (std::size_t row = 0U; row < side; ++row) {
+        for (std::size_t column = 0U; column < side; ++column) {
+            heights[row * side + column] = 0.5 * (along[column] * along[column] - along[row] * along[row]);
+        }
+    }
+    const std::shared_ptr<Plot3DView> control = make_control<Plot3DView>(std::move(id));
+    plots::Plot3DSurfaceSpec surface{};
+    surface.x = along;
+    surface.y = along;
+    surface.z = heights;
+    surface.rows = side;
+    surface.columns = side;
+    surface.label = "Saddle";
+    static_cast<void>((*control).add_surface(surface));
+    (*control).set_axis_title(plots::Plot3DAxis::x, "x");
+    (*control).set_axis_title(plots::Plot3DAxis::y, "y");
+    (*control).set_axis_title(plots::Plot3DAxis::z, "z");
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 // A plot item shows only inside its plot: the plot is the root and the
 // frame, the item the subject.
 StockSpecimenInstance make_plot_axis_item(const StockSpecimen&, StableId id) {
@@ -785,7 +816,7 @@ StockSpecimenInstance make_virtual_rows_view(const StockSpecimen&, StableId id) 
     (*control).set_row_callbacks(callbacks);
     (*control).set_estimated_row_height(2.0 * specimen_row_padding + 2.0 * specimen_line_height);
     (*control).reset_rows(specimen_message_rows);
-    (*control).set_selected_row(VirtualRowIndex{1U});
+    (*control).set_selected_row(stxlib::Optional<VirtualRowIndex>::of(VirtualRowIndex{1U}));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -906,6 +937,12 @@ StockSpecimenInstance make_domain_up_down(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+StockSpecimenInstance make_color_picker(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<ColorPicker> control = make_control<ColorPicker>(id, Color::rgba(46, 125, 196, 220));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 StockSpecimenInstance make_color_value_editor(const StockSpecimen&, StableId id) {
     const std::shared_ptr<ColorValueEditor> control =
         make_control<ColorValueEditor>(std::move(id), Color::rgba(38, 110, 196));
@@ -1021,6 +1058,20 @@ StockSpecimenInstance make_scaled_panel(const StockSpecimen& specimen, StableId 
     (*control).add_at(field, Rect{12.0, 38.0, 180.0, 26.0});
     const std::shared_ptr<Button> apply = make_control<Button>(child_id(id, ".apply"), "Apply");
     (*control).add_at(apply, Rect{12.0, 76.0, 88.0, 28.0});
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+StockSpecimenInstance make_form_layout(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<FormLayout> control = make_control<FormLayout>(id);
+    const std::shared_ptr<TextBox> name = make_control<TextBox>(child_id(id, ".name"));
+    set_sample_text(*name, "Harbour Quay");
+    static_cast<void>((*control).add_row("Display name", name, 26.0));
+    const std::shared_ptr<TextBox> town = make_control<TextBox>(child_id(id, ".town"));
+    set_sample_text(*town, "Portsmouth");
+    static_cast<void>((*control).add_row("Town", town, 26.0));
+    const std::shared_ptr<CheckBox> listed = make_control<CheckBox>(child_id(id, ".listed"), "Listed");
+    static_cast<void>((*control).add_row("Visibility", listed, 24.0));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1467,7 +1518,7 @@ StockSpecimenInstance make_ribbon_color_picker(const StockSpecimen&, StableId id
     const std::shared_ptr<RibbonColorPicker> control = make_control<RibbonColorPicker>(std::move(id));
     (*control).set_palette(sample_palette());
     // A chosen colour, so the face's colour bar shows it (Automatic shows none).
-    (*control).value = std::optional<Color>(Color::rgba(196, 60, 52));
+    (*control).value = stxlib::Optional<Color>::of(Color::rgba(196, 60, 52));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1571,15 +1622,15 @@ StockSpecimenInstance make_ribbon(const StockSpecimen&, StableId id) {
     clipboard.caption = "Clipboard";
     clipboard.dialog_launcher = true;
     clipboard.commands.push_back(ribbon_button("paste", "Paste", RibbonCommandSize::large, RibbonCommandKind::button));
-    clipboard.commands.push_back(ribbon_button("cut", "Cut", RibbonCommandSize::small, RibbonCommandKind::button));
-    clipboard.commands.push_back(ribbon_button("copy", "Copy", RibbonCommandSize::small, RibbonCommandKind::button));
+    clipboard.commands.push_back(ribbon_button("cut", "Cut", RibbonCommandSize::compact, RibbonCommandKind::button));
+    clipboard.commands.push_back(ribbon_button("copy", "Copy", RibbonCommandSize::compact, RibbonCommandKind::button));
     RibbonGroupSpec format{};
     format.stable_id = "format";
     format.caption = "Format";
-    format.commands.push_back(ribbon_button("bold", "Bold", RibbonCommandSize::small, RibbonCommandKind::toggle));
-    format.commands.push_back(ribbon_button("italic", "Italic", RibbonCommandSize::small, RibbonCommandKind::toggle));
+    format.commands.push_back(ribbon_button("bold", "Bold", RibbonCommandSize::compact, RibbonCommandKind::toggle));
+    format.commands.push_back(ribbon_button("italic", "Italic", RibbonCommandSize::compact, RibbonCommandKind::toggle));
     format.commands.push_back(
-        ribbon_button("underline", "Underline", RibbonCommandSize::small, RibbonCommandKind::toggle));
+        ribbon_button("underline", "Underline", RibbonCommandSize::compact, RibbonCommandKind::toggle));
     RibbonGroupSpec theme{};
     theme.stable_id = "theme";
     theme.caption = "Theme";

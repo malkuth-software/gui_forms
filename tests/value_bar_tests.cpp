@@ -26,6 +26,7 @@
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <cmath>
@@ -35,6 +36,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -93,8 +95,8 @@ std::unique_ptr<Fixture> make_fixture() {
     (*fixture).bar = make_control<ValueBar>(StableId("value.bar"));
     ValueBar& bar = *(*fixture).bar;
     bar.set_requested_bounds({20.0, 20.0, 200.0, 24.0});
-    bar.soft_maximum = std::optional<double>{50.0};
-    bar.scrub_rate = std::optional<double>{0.5};
+    bar.soft_maximum = stxlib::Optional<double>::of(50.0);
+    bar.scrub_rate = stxlib::Optional<double>::of(0.5);
     bar.value = 10.0;
     bar.label = std::string("Samples");
     (*(*fixture).root).add_child((*fixture).bar);
@@ -160,10 +162,10 @@ void ranges() {
             "no soft minimum is the hard one");
     require(near(bar.soft_proportion(), 0.2) && !bar.overrange(), "10 of 0..50 fills a fifth");
     require(near(bar.fill_bounds().width, 40.0), "the fill is that proportion of the track");
-    bar.soft_maximum = std::optional<double>{500.0};
+    bar.soft_maximum = stxlib::Optional<double>::of(500.0);
     require(near(bar.effective_soft_maximum(), 100.0), "a soft limit past the hard one is held at it");
-    bar.soft_minimum = std::optional<double>{80.0};
-    bar.soft_maximum = std::optional<double>{60.0};
+    bar.soft_minimum = stxlib::Optional<double>::of(80.0);
+    bar.soft_maximum = stxlib::Optional<double>::of(60.0);
     require(near(bar.effective_soft_minimum(), 60.0) && near(bar.effective_soft_maximum(), 80.0),
             "crossed soft limits are ordered");
     require(bar.overrange() && near(bar.soft_proportion(), 0.0), "below the soft range: overrange and empty");
@@ -171,7 +173,7 @@ void ranges() {
             "the overrange marker is at the end the value passed");
     bool refused = false;
     try {
-        bar.soft_minimum = std::optional<double>{std::nan("")};
+        bar.soft_minimum = stxlib::Optional<double>::of(std::nan(""));
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -245,7 +247,7 @@ void scrub_modifiers() {
     std::unique_ptr<Fixture> fixture = make_fixture();
     Window& window = *(*fixture).window;
     ValueBar& bar = *(*fixture).bar;
-    bar.snap_step = std::optional<double>{5.0};
+    bar.snap_step = stxlib::Optional<double>::of(5.0);
     pointer(window, PointerAction::down, {100.0, row});
     pointer(window, PointerAction::move, {110.0, row});
     pointer(window, PointerAction::move, {130.0, row}, Modifier::shift);
@@ -375,13 +377,16 @@ void semantics() {
     const SemanticDescriptor descriptor = bar.semantic_descriptor();
     require(descriptor.role == SemanticRole::slider, "the fill style is a slider");
     require(descriptor.name == "Samples", "the label names it without an accessible name");
-    require(descriptor.value == "10.000" && descriptor.numeric_value && near(*descriptor.numeric_value, 10.0),
+    require(descriptor.value == "10.000" && descriptor.numeric_value.present() &&
+                near(*descriptor.numeric_value.value(), 10.0),
             "the value and its text");
-    require(descriptor.minimum_value && near(*descriptor.minimum_value, 0.0) && descriptor.maximum_value &&
-                near(*descriptor.maximum_value, 100.0),
+    require(descriptor.minimum_value.present() && near(*descriptor.minimum_value.value(), 0.0) &&
+                descriptor.maximum_value.present() &&
+                near(*descriptor.maximum_value.value(), 100.0),
             "the hard range");
-    require(descriptor.small_step && near(*descriptor.small_step, 1.0) && descriptor.large_step &&
-                near(*descriptor.large_step, 10.0),
+    require(descriptor.small_step.present() && near(*descriptor.small_step.value(), 1.0) &&
+                descriptor.large_step.present() &&
+                near(*descriptor.large_step.value(), 10.0),
             "the steps");
     require(!descriptor.include_descendants, "the closed editor is not published");
     require(bar.on_semantic_action(SemanticAction::increment, {}) && near(bar.value.read(), 11.0),
@@ -408,7 +413,7 @@ void capabilities() {
     bar.set_property_value("presentation", BindingValue{PropertyEnumValue{"value_bar_style", "field", 1}});
     require(bar.presentation.read() == ValueBarStyle::field, "a write by name reaches the cell");
     bar.set_property_value("soft_minimum", BindingValue{5.0});
-    require(bar.soft_minimum.read() == std::optional<double>{5.0}, "a nullable number by name");
+    require(bar.soft_minimum.read() == stxlib::Optional<double>::of(5.0), "a nullable number by name");
     require(bar.anatomy().control_id == "value_bar" && bar.anatomy().parts.size() == 12U, "the anatomy");
 }
 
@@ -471,10 +476,13 @@ void numeric_up_down_scrub() {
     pointer(window, PointerAction::down, {40.0, line});
     pointer(window, PointerAction::move, {50.0, line});
     require((*spin).scrubbing() && near((*spin).value.read(), 20.0), "a drag scrubs by the increment per unit");
+    require(near((*spin).scrub_glow_target(), 1.0) && (*spin).scrub_glow() < 1.0,
+            "past the threshold the field's glow starts to rise (row 2.6)");
     pointer(window, PointerAction::move, {53.0, line}, Modifier::shift);
     require(near((*spin).value.read(), 20.0), "Shift: 0.3 rounds away at no decimals");
     pointer(window, PointerAction::up, {53.0, line});
     require(!(*spin).scrubbing() && near((*spin).value.read(), 20.0), "the release keeps the value");
+    require(near((*spin).scrub_glow_target(), 0.0), "the release fades the glow");
     require(window.focused_control() != (*spin).editor(), "a scrub does not focus the field");
     pointer(window, PointerAction::down, {40.0, line});
     pointer(window, PointerAction::move, {60.0, line});
@@ -488,6 +496,18 @@ void numeric_up_down_scrub() {
     pointer(window, PointerAction::move, {70.0, line});
     pointer(window, PointerAction::up, {70.0, line});
     require(near((*spin).value.read(), 20.0), "a focused field edits text instead of scrubbing");
+    require(near((*spin).scrub_glow_target(), 0.0), "no scrub, no glow");
+
+    // Under reduced motion the glow jumps: lit at once, dark at once.
+    require(window.request_focus(other), "the focus leaves the field again");
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::move, {50.0, line});
+    require((*spin).scrubbing() && near((*spin).scrub_glow(), 1.0), "under reduced motion the glow is lit at once");
+    pointer(window, PointerAction::up, {50.0, line});
+    require(!(*spin).scrubbing() && near((*spin).scrub_glow(), 0.0), "and dark at once after the release");
 }
 
 } // namespace

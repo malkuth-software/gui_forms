@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -25,9 +26,9 @@ class Label;
 class ProgressBar;
 class RadioButton;
 
-// The standard icons of a task dialog page (Windows Forms' TaskDialogIcon).
-// The vocabulary has no information, warning, error or shield mark yet; see
-// TaskDialog's notes for how each is drawn.
+// The standard icons of a task dialog page (Windows Forms' TaskDialogIcon),
+// drawn from the stock icon set in its solid style: information-circle,
+// exclamation-triangle, x-circle and shield-check, as MessageBox's alerts.
 enum class TaskDialogIcon : std::uint8_t { none, information, warning, error, shield };
 
 // The standard buttons (Windows Forms' TaskDialogButton.OK and the rest).
@@ -50,8 +51,11 @@ enum class TaskDialogStandardButton : std::uint8_t {
 // One command button. `stable_id` names the button in results and events
 // and is unique within the page; a standard button with an empty ID takes
 // its standard name ("ok", "cancel", "try_again", ...), and a standard button
-// with empty text shows its standard text. A button whose `allow_close` is
-// false raises button_clicked and leaves the dialog open.
+// with empty text shows its standard text. Any other ID is a stable-ID
+// segment ([a-z0-9] runs joined by '-' or '.'), since it names the button's
+// control; the standard "try_again" names a control segment "try-again".
+// A button whose `allow_close` is false raises button_clicked and leaves the
+// dialog open.
 struct GUI_FORMS_API TaskDialogButton final {
     std::string stable_id{};
     std::string text{};
@@ -60,7 +64,8 @@ struct GUI_FORMS_API TaskDialogButton final {
     bool allow_close{true};
 };
 
-// One radio button; at most one of a page's radio buttons is checked.
+// One radio button; at most one of a page's radio buttons is checked. Its
+// `stable_id` is a stable-ID segment, as a custom button's is.
 struct GUI_FORMS_API TaskDialogRadioButton final {
     std::string stable_id{};
     std::string text{};
@@ -105,7 +110,7 @@ struct GUI_FORMS_API TaskDialogPage final {
     std::optional<TaskDialogExpander> expander{};
     std::string footnote{};
     TaskDialogIcon footnote_icon{TaskDialogIcon::none};
-    std::optional<TaskDialogProgressBar> progress_bar{};
+    stxlib::Optional<TaskDialogProgressBar> progress_bar{};
     bool allow_cancel{};
 };
 
@@ -204,10 +209,8 @@ public:
         PartGeometry edge;
         PartGeometry caption_band;
         PartGeometry caption;
-        PartGeometry icon_plate;
+        // The page's icon: its custom image, else its standard stock icon.
         PartGeometry icon_image;
-        PartGeometry icon_glyph;
-        PartGeometry icon_label;
         PartGeometry heading;
         PartGeometry text;
         PartGeometry progress;
@@ -220,9 +223,7 @@ public:
         PartGeometry button_divider;
         PartGeometry button_row;
         PartGeometry footnote_band;
-        PartGeometry footnote_plate;
-        PartGeometry footnote_glyph;
-        PartGeometry footnote_label;
+        PartGeometry footnote_icon;
         PartGeometry footnote;
         PartGeometry focus;
     };
@@ -260,9 +261,8 @@ private:
     void finish(std::string button_id);
     [[nodiscard]] std::string cancel_button_id() const;
     [[nodiscard]] std::string default_button_id() const;
-    [[nodiscard]] std::optional<std::size_t> button_index(std::string_view button_id) const noexcept;
-    void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& plate,
-                    const PartGeometry& glyph, const PartGeometry& label) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> button_index(std::string_view button_id) const noexcept;
+    void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const;
 
     TaskDialogPage page_{};
     std::vector<std::shared_ptr<Button>> buttons_{};

@@ -15,7 +15,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -31,8 +30,8 @@ void require(bool condition, const char* message) {
 
 // Records every selected_index_changed payload.
 struct RecordSelection final {
-    std::vector<std::optional<std::size_t>>* seen{};
-    void operator()(std::optional<std::size_t> index) const { (*seen).push_back(index); }
+    std::vector<stxlib::Optional<std::size_t>>* seen{};
+    void operator()(stxlib::Optional<std::size_t> index) const { (*seen).push_back(index); }
 };
 
 std::shared_ptr<DomainUpDown> make_domain(const char* id) {
@@ -46,25 +45,26 @@ void stepping_and_wrap() {
     std::shared_ptr<DomainUpDown> domain = make_domain("domain.step");
     Window window(domain, {180.0, 32.0});
     window.perform_layout();
-    std::vector<std::optional<std::size_t>> seen;
+    std::vector<stxlib::Optional<std::size_t>> seen;
     SubscriptionToken token = (*domain).selected_index_changed().subscribe(RecordSelection{&seen});
-    require(!(*domain).selected_index.read() && (*domain).text.read().empty(), "a new domain has no selection");
+    require((*domain).selected_index.read().absent() && (*domain).text.read().empty(), "a new domain has no selection");
     (*domain).down_button();
-    require((*domain).selected_index.read() == 0U && (*domain).text.read() == "AM",
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(0U) && (*domain).text.read() == "AM",
             "down with no selection selects the first item");
     (*domain).up_button();
-    require((*domain).selected_index.read() == 0U, "up at the first item stays there without wrap");
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(0U), "up at the first item stays there without wrap");
     (*domain).wrap = true;
     (*domain).up_button();
-    require((*domain).selected_index.read() == 2U && (*domain).text.read() == "WFM", "up wraps to the last item");
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && (*domain).text.read() == "WFM", "up wraps to the last item");
     (*domain).down_button();
-    require((*domain).selected_index.read() == 0U, "down wraps to the first item");
-    require(seen.size() == 3U && seen[0] == 0U && seen[1] == 2U && seen[2] == 0U,
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(0U), "down wraps to the first item");
+    require(seen.size() == 3U && seen[0] == stxlib::Optional<std::size_t>::of(0U) &&
+                seen[1] == stxlib::Optional<std::size_t>::of(2U) && seen[2] == stxlib::Optional<std::size_t>::of(0U),
             "selected_index_changed reports each change once, with the new selection");
 
     require(window.request_focus((*domain).editor()), "the editor takes focus");
     KeyEvent down{KeyAction::down, PhysicalKey::down};
-    require(window.dispatch_key(down) && (*domain).selected_index.read() == 1U,
+    require(window.dispatch_key(down) && (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "the down key steps to the next item before the editor sees it");
 
     const Rect spin = (*window.find("domain.step.spinner")).absolute_bounds();
@@ -77,7 +77,7 @@ void stepping_and_wrap() {
     const Point upper{spin.x + spin.width * 0.5, spin.y + spin.height * 0.25};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, upper}),
             "the upper arrow takes the press");
-    require((*domain).selected_index.read() == 0U, "the upper arrow moves to the previous item");
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(0U), "the upper arrow moves to the previous item");
     const DomainUpDown::Parts held = (*domain).parts();
     require(held.up_arrow.states.contains(AnatomyState::pressed) &&
                 !held.down_arrow.states.contains(AnatomyState::pressed),
@@ -94,9 +94,9 @@ void text_and_sorting() {
     Window window(domain, {180.0, 32.0});
     window.perform_layout();
     require(window.request_focus((*domain).editor()), "the editor takes focus");
-    require(window.dispatch_text({"fm"}) && (*domain).selected_index.read() == 1U,
+    require(window.dispatch_text({"fm"}) && (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "typed text selects the item it equals, ignoring ASCII case");
-    require(window.dispatch_text({"x"}) && !(*domain).selected_index.read() && (*domain).text.read() == "fmx",
+    require(window.dispatch_text({"x"}) && (*domain).selected_index.read().absent() && (*domain).text.read() == "fmx",
             "text that equals no item clears the selection and stays");
     (*domain).sorted = true;
     (*domain).items = {"lsb", "USB", "AM", "cw"};
@@ -104,13 +104,13 @@ void text_and_sorting() {
                 (*domain).items[2] == "lsb" && (*domain).items[3] == "USB",
             "sorted items order by folded case");
     (*domain).text = "Usb";
-    require((*domain).selected_index.read() == 3U, "set_text re-matches the selection");
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(3U), "set_text re-matches the selection");
     (*domain).items.erase(3U, 1U);
-    require(!(*domain).selected_index.read() && (*domain).text.read() == "Usb",
+    require((*domain).selected_index.read().absent() && (*domain).text.read() == "Usb",
             "removing the selected item clears the selection and keeps the text");
     bool threw = false;
     try {
-        (*domain).selected_index = 9U;
+        (*domain).selected_index = stxlib::Optional<std::size_t>::of(9U);
     } catch (const std::out_of_range&) {
         threw = true;
     }
@@ -124,27 +124,27 @@ void read_only_and_semantics() {
     window.perform_layout();
     require((*domain).states().read_only, "a read-only domain publishes read_only");
     require(window.request_focus((*domain).editor()), "the editor takes focus");
-    std::vector<std::optional<std::size_t>> seen;
+    std::vector<stxlib::Optional<std::size_t>> seen;
     SubscriptionToken token = (*domain).selected_index_changed().subscribe(RecordSelection{&seen});
     static_cast<void>(window.dispatch_text({"x"}));
-    require((*domain).text.read().empty() && !(*domain).selected_index.read() && seen.empty(),
+    require((*domain).text.read().empty() && (*domain).selected_index.read().absent() && seen.empty(),
             "a character no item starts with changes nothing");
     static_cast<void>(window.dispatch_text({"f"}));
-    require((*domain).text.read() == "FM" && (*domain).selected_index.read() == 1U && seen.size() == 1U,
+    require((*domain).text.read() == "FM" && (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && seen.size() == 1U,
             "a typed first letter selects the item it starts, ignoring case");
     (*domain).items = {"AM", "FM", "WFM", "fax", "USB"};
     static_cast<void>(window.dispatch_text({"F"}));
-    require((*domain).text.read() == "fax" && (*domain).selected_index.read() == 3U,
+    require((*domain).text.read() == "fax" && (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(3U),
             "the same letter again moves to the next item it starts");
     static_cast<void>(window.dispatch_text({"f"}));
-    require((*domain).text.read() == "FM" && (*domain).selected_index.read() == 1U,
+    require((*domain).text.read() == "FM" && (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "the lookup wraps past the last item");
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::backspace}));
     require((*domain).text.read() == "FM", "a read-only field refuses deletion");
     require(!(*(*domain).editor()).undo() && (*domain).text.read() == "FM",
             "the editor has no history to undo into");
     (*domain).read_only = false;
-    require(window.dispatch_text({"x"}) && (*domain).text.read() == "FMx" && !(*domain).selected_index.read(),
+    require(window.dispatch_text({"x"}) && (*domain).text.read() == "FMx" && (*domain).selected_index.read().absent(),
             "an editable field takes text again");
     (*domain).read_only = true;
     (*domain).items = {"AM", "FM", "WFM"};
@@ -155,10 +155,10 @@ void read_only_and_semantics() {
                 has_semantic_state(descriptor.states, SemanticState::read_only),
             "a domain is a read-only combo box to accessibility");
     require((*domain).on_semantic_action(SemanticAction::increment, {}) &&
-                (*domain).selected_index.read() == 0U,
+                (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(0U),
             "increment moves to the next item");
     require((*domain).on_semantic_action(SemanticAction::set_value, "wfm") &&
-                (*domain).selected_index.read() == 2U && (*domain).text.read() == "WFM",
+                (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && (*domain).text.read() == "WFM",
             "set_value selects the matching item and shows its text");
     require(!(*domain).on_semantic_action(SemanticAction::set_value, "SSB"),
             "a read-only domain refuses a value that matches no item");
@@ -167,7 +167,7 @@ void read_only_and_semantics() {
     // select the item they start, not the first item sharing the lead byte.
     (*domain).items = {"AM", "À la carte", "Éclair"};
     static_cast<void>(window.dispatch_text({"É"}));
-    require((*domain).selected_index.read() == 2U && (*domain).text.read() == "Éclair",
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && (*domain).text.read() == "Éclair",
             "a typed multi-byte character selects the item it starts");
 }
 
@@ -179,25 +179,25 @@ void property_capabilities() {
     std::shared_ptr<DomainUpDown> domain = make_domain("domain.capabilities");
     Window window(domain, {180.0, 32.0});
     window.perform_layout();
-    std::vector<std::optional<std::size_t>> seen;
+    std::vector<stxlib::Optional<std::size_t>> seen;
     const SubscriptionToken token = (*domain).selected_index_changed().subscribe(RecordSelection{&seen});
-    (*domain).selected_index = std::optional<std::size_t>{1U};
-    require((*domain).selected_index.read() == std::optional<std::size_t>{1U} && (*domain).text.read() == "FM" &&
+    (*domain).selected_index = stxlib::Optional<std::size_t>::of(1U);
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(1U) && (*domain).text.read() == "FM" &&
                 seen.size() == 1U,
             "a selected_index write shows the item and raises selected_index_changed");
     bool refused = false;
     try {
-        (*domain).selected_index = std::optional<std::size_t>{7U};
+        (*domain).selected_index = stxlib::Optional<std::size_t>::of(7U);
     } catch (const std::out_of_range&) {
         refused = true;
     }
-    require(refused && (*domain).selected_index.read() == std::optional<std::size_t>{1U},
+    require(refused && (*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(1U),
             "an index past the end is refused");
     (*domain).text = "wfm";
-    require((*domain).selected_index.read() == std::optional<std::size_t>{2U} && seen.size() == 2U,
+    require((*domain).selected_index.read() == stxlib::Optional<std::size_t>::of(2U) && seen.size() == 2U,
             "a text write re-matches the selection, ignoring ASCII case");
     (*domain).text = "Other";
-    require(!(*domain).selected_index.read() && (*domain).text.read() == "Other",
+    require((*domain).selected_index.read().absent() && (*domain).text.read() == "Other",
             "text that equals no item clears the selection and is kept");
     (*domain).wrap = true;
     (*domain).sorted = true;

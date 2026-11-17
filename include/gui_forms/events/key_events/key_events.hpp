@@ -57,6 +57,34 @@ struct GUI_FORMS_API KeyEventArgs final {
     bool suppress_key_press{};
 };
 
+// The Windows Forms Keys code of a physical key (a USB HID usage): the
+// key's code on a US layout, the same on every host. The modifier keys
+// give the side-less codes Windows Forms reports in KeyDown (ShiftKey
+// 0x10, ControlKey 0x11, Menu 0x12; the Windows keys 0x5B and 0x5C).
+// Zero for a usage with no Keys code.
+[[nodiscard]] GUI_FORMS_API std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept;
+
+// The KeyEventArgs a routed key event carries: the record the window
+// hands on_key_down and on_key_up, for a handler that takes the routed form
+// (on_key_preview, on_key_bubble) and reads the raisers' fields. key_code
+// comes from key_code_from_physical_key; physical_key, scan_code,
+// modifiers, repeat and handled are the event's. released_by_deactivation
+// and suppress_key_press are false: a deactivation release reaches only
+// the raisers and the window's key_up, never a route. The window builds
+// its raisers' arguments with this, so the two forms cannot drift apart;
+// the caller copies handled (and suppress_key_press, which implies it)
+// back.
+[[nodiscard]] inline KeyEventArgs key_event_arguments(const KeyEvent& event) noexcept {
+    KeyEventArgs arguments{};
+    arguments.key_code = key_code_from_physical_key(event.physical_key);
+    arguments.physical_key = event.physical_key;
+    arguments.scan_code = event.scan_code;
+    arguments.modifiers = event.modifiers;
+    arguments.repeat = event.repeat;
+    arguments.handled = event.handled;
+    return arguments;
+}
+
 // The routed key event a KeyEventArgs carries, for code that takes the
 // routed form (an editing engine, a key command table): action is the
 // raiser's (down for on_key_down, up for on_key_up); the phase is target.
@@ -110,13 +138,6 @@ struct GUI_FORMS_API KeyStateChange final {
     bool down{};
     bool released_by_deactivation{};
 };
-
-// The Windows Forms Keys code of a physical key (a USB HID usage): the
-// key's code on a US layout, the same on every host. The modifier keys
-// give the side-less codes Windows Forms reports in KeyDown (ShiftKey
-// 0x10, ControlKey 0x11, Menu 0x12; the Windows keys 0x5B and 0x5C).
-// Zero for a usage with no Keys code.
-[[nodiscard]] GUI_FORMS_API std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept;
 
 // The single Unicode scalar value UTF-8 `text` holds, or zero when it
 // holds none, more than one, or is not valid UTF-8.

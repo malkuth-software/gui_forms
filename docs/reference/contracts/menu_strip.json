@@ -33,7 +33,7 @@
       "reviewed": false,
       "summary": "Validates and replaces menu topology, closes stale transient state, and refreshes geometry and semantics."
     },
-    "gui_forms::MenuStrip::active_index|std::optional<std::size_t> () const noexcept": {
+    "gui_forms::MenuStrip::active_index|stxlib::Optional<std::size_t> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the currently open top-level item index, if any."
     },
@@ -53,7 +53,7 @@
       "reviewed": false,
       "summary": "Returns the event forwarding a committed leaf invocation from the owned context menu."
     },
-    "gui_forms::MenuStrip::open_changed|Event<std::optional<std::size_t>> &() noexcept": {
+    "gui_forms::MenuStrip::open_changed|Event<stxlib::Optional<std::size_t>> &() noexcept": {
       "reviewed": false,
       "summary": "Returns the event forwarding real changes to the menu strip's open state."
     },

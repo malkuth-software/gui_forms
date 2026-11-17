@@ -7,6 +7,7 @@
 #include "gui_forms/events.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 #include "gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp"
+#include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp"
 #include "gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp"
 #include "gui_forms/types.hpp"
@@ -21,6 +22,8 @@
 #include <type_traits>
 #include <variant>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -317,6 +320,12 @@ struct GUI_FORMS_API HostMessageDialogRequest final {
     // buttons. Pressing it, or F1 where the host's dialog takes it, reports
     // a HostDialogHelpEvent and leaves the dialog open.
     bool help_button{};
+    // The picture GUI.Forms draws for `icon` (the stock icon set, exhibit
+    // gap E10; stock_alert_icon_image), at the owner window's scale. A host
+    // that can put its own image in the dialog shows it in place of its
+    // system icon (the AppKit and Win32 hosts do); one that cannot keeps
+    // its system icon for `icon` (the X11 host). Empty for no icon.
+    std::optional<HostImage> icon_image{};
 };
 
 // The user asked for help in an open message dialog: its Help button, or
@@ -335,6 +344,11 @@ struct GUI_FORMS_API HostOpenFileDialogRequest final {
     // The filter the dialog starts with, an index into `filters`; zero when
     // there are none.
     std::size_t initial_filter{};
+    // Windows Forms' CheckFileExists and CheckPathExists: accept only an
+    // existing file, and only a name in an existing folder. An adapter whose
+    // dialog always requires both (macOS's NSOpenPanel) ignores false.
+    bool check_file_exists{true};
+    bool check_path_exists{true};
 };
 
 struct GUI_FORMS_API HostSaveFileDialogRequest final {
@@ -347,6 +361,14 @@ struct GUI_FORMS_API HostSaveFileDialogRequest final {
     // The filter the dialog starts with, an index into `filters`; zero when
     // there are none.
     std::size_t initial_filter{};
+    // Windows Forms' CheckFileExists, CheckPathExists and CreatePrompt:
+    // accept only an existing file; accept only a name in an existing
+    // folder (macOS's NSSavePanel always requires one and ignores false);
+    // ask before accepting a file that does not exist yet. A refused name
+    // leaves the dialog open (or shows it again) with the name kept.
+    bool check_file_exists{};
+    bool check_path_exists{true};
+    bool create_prompt{};
 };
 
 struct GUI_FORMS_API HostFolderDialogRequest final {
@@ -387,7 +409,7 @@ struct GUI_FORMS_API HostPathDialogResult final {
     // user accepted, an index into its `filters`; none when the request had
     // no filters, the user chose a filter the host added (such as "All
     // files"), or the host cannot tell.
-    std::optional<std::size_t> chosen_filter{};
+    stxlib::Optional<std::size_t> chosen_filter{};
 };
 
 struct GUI_FORMS_API HostColorDialogResult final {
@@ -556,6 +578,12 @@ struct GUI_FORMS_API HostCloseRequest final {
     // session remains attached. Observers can cancel; changing this policy
     // during notification does not change the adapter's action.
     bool hide_on_accept{};
+    // A question, not a request: observers hear it and may cancel, and the
+    // result reports close_allowed, but an allowed query authorizes nothing
+    // and the session stays in its phase. A host asks this way before a
+    // quit closes anything, so a quit another window then refuses leaves
+    // every window that agreed live and closable (A-gf-host-02-F1).
+    bool query_only{};
 };
 
 struct GUI_FORMS_API HostClosedEvent final {
@@ -627,6 +655,66 @@ struct GUI_FORMS_API HostWindowStateEvent final {
     bool full_screen{};
 };
 
+// One motion sample in relative pointer mode (capability relative_pointer;
+// host protocol version 14). A host sends one per native sample, never
+// merged: macOS each mouse moved or dragged event's deltaX and deltaY, X11
+// each XI2 raw motion. delta: logical units, sub-unit precision kept;
+// unaccelerated: delta is the device's raw counts scaled to logical units
+// (raw_pointer_motion), not the accelerated motion. position: the pointer
+// in window logical units where it moves (free and confined modes); empty
+// while locked. timestamp_nanoseconds: the sample's time (PointerEvent's
+// clock; zero: the HostEvent's). The window refuses a delta or position
+// that is not finite as invalid_payload. In confined and locked modes the
+// host sends no absolute pointer moves (buttons and the wheel still come
+// as PointerEvents); in free mode it sends both.
+struct GUI_FORMS_API HostRelativeMotionEvent final {
+    Point delta{};
+    bool unaccelerated{};
+    stxlib::Optional<Point> position{};
+    Modifier modifiers{Modifier::none};
+    std::uint64_t timestamp_nanoseconds{};
+};
+
+// What the window asks of the host for relative pointer mode
+// (HostServices::set_relative_pointer). active false returns the pointer to
+// normal (shown, free, absolute moves). confine: the rectangle (window
+// logical units) a confined pointer stays in. A host that cannot do the
+// mode reports the error, and the window falls back (RelativePointerGrant).
+struct GUI_FORMS_API HostRelativePointerRequest final {
+    bool active{};
+    RelativePointerMode mode{RelativePointerMode::free};
+    bool hide_cursor{};
+    bool raw_motion{};
+    Rect confine{};
+};
+
+// Maps a host's own event clock into FrameClock nanoseconds
+// (PointerEvent::timestamp_nanoseconds) for a host whose events carry a
+// time on another clock: X11's server milliseconds, Windows'
+// GetMessageTime. The offset is the smallest (receipt - event time) seen,
+// the estimate of least delay, so a mapped time never lies after its
+// receipt and differences between events keep the host's own spacing.
+// `host_nanoseconds` must not go backwards except by a wrap the caller
+// has already unwrapped. One per host connection, on its thread.
+class GUI_FORMS_API HostEventClock final {
+public:
+    [[nodiscard]] std::uint64_t map(std::uint64_t host_nanoseconds, std::uint64_t receipt_nanoseconds) noexcept {
+        const std::int64_t candidate =
+            static_cast<std::int64_t>(receipt_nanoseconds) - static_cast<std::int64_t>(host_nanoseconds);
+        if (!known_ || candidate < offset_) {
+            offset_ = candidate;
+            known_ = true;
+        }
+        const std::int64_t mapped = static_cast<std::int64_t>(host_nanoseconds) + offset_;
+        const std::uint64_t result = mapped < 0 ? 0U : static_cast<std::uint64_t>(mapped);
+        return result;
+    }
+
+private:
+    std::int64_t offset_{};
+    bool known_{};
+};
+
 using HostEventPayload = std::variant<
     HostAttachEvent,
     HostResizeEvent,
@@ -645,7 +733,8 @@ using HostEventPayload = std::variant<
     HostInputSettingsEvent,
     HostContextRequestEvent,
     HostHoverEvent,
-    HostWindowStateEvent>;
+    HostWindowStateEvent,
+    HostRelativeMotionEvent>;
 
 struct GUI_FORMS_API HostEvent final {
     std::uint64_t sequence{};

@@ -1,5 +1,7 @@
 #include "gui_forms/metrics/types/metrics_types.hpp"
 
+#include "../../json/json_text/json_text.hpp"
+
 #include <sstream>
 #include <string_view>
 
@@ -26,6 +28,9 @@ std::string escaped_json(std::string_view value) {
 
 std::string MetricsSnapshot::to_json() const {
     std::ostringstream output;
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << '{'
            << "\"control_count\":" << control_count << ','
            << "\"stable_id_count\":" << stable_id_count << ','
@@ -95,6 +100,7 @@ std::string MetricsSnapshot::to_json() const {
            << "\"frame_deadlines_fired\":" << frame_deadlines_fired << ','
            << "\"motion_clock_ticks\":" << motion_clock_ticks << ','
            << "\"frame_requests_coalesced\":" << frame_requests_coalesced << ','
+           << "\"internal_wakes_refused\":" << internal_wakes_refused << ','
            << "\"wake_expectation_misses\":" << wake_expectation_misses << ','
            << "\"paint_budget_misses\":" << paint_budget_misses << ','
            << "\"live_drain_misses\":" << live_drain_misses << ','
@@ -134,6 +140,8 @@ std::string MetricsSnapshot::to_json() const {
            << "\"effects_unverified\":" << effects_unverified << ','
            << "\"engine_primitive_refusals\":" << engine_primitive_refusals << ','
            << "\"engine_dither_degradations\":" << engine_dither_degradations << ','
+           << "\"engine_built_in_fallbacks\":" << engine_built_in_fallbacks << ','
+           << "\"engine_raster_failures\":" << engine_raster_failures << ','
            << "\"engine_material_assemblies\":" << engine_material_assemblies << ','
            << "\"paint_group_refusals\":" << paint_group_refusals << ','
            << "\"layout_arrange_refusals\":" << layout_arrange_refusals << ','

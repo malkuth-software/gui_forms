@@ -233,7 +233,8 @@ void test_table_layout_starts_at_the_right() {
     (*table).on_paint(right_to_left, {0.0, 0.0, 200.0, 100.0});
     require(right_to_left.xs == std::vector<double>{95.0, 155.0, 195.0},
             "right to left, the column lines are painted in mirrored order");
-    require((*table).cell_position(*first) == std::optional(TableLayoutCellPosition{0U, 0U}) &&
+    require((*table).cell_position(*first) ==
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{0U, 0U}) &&
                 (*table).control_from_position(0U, 0U) == first &&
                 (*table).control_from_position(1U, 0U) == second,
             "right to left, cell positions stay logical");
@@ -275,8 +276,10 @@ void test_reentrant_measure_keeps_the_outer_pass() {
             "each panel must have been laid out inside its own pass");
     require((*flow).flow_break[*after].read() && (*after).arranged_bounds().x == (*nested).arranged_bounds().right(),
             "the flow's outer pass must keep its items after a nested pass");
-    require((*table).cell_position(*cell) == std::optional(TableLayoutCellPosition{0U, 0U}) &&
-                (*table).cell_position(*neighbour) == std::optional(TableLayoutCellPosition{1U, 0U}) &&
+    require((*table).cell_position(*cell) ==
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{0U, 0U}) &&
+                (*table).cell_position(*neighbour) ==
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{1U, 0U}) &&
                 (*neighbour).arranged_bounds().x == (*cell).arranged_bounds().right(),
             "the table's outer pass must keep its cells after a nested pass");
 }

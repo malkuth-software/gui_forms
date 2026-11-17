@@ -7,6 +7,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/window.hpp"
 
+#include "../../diagnostics/blend_study/count_display_blend.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../display/recording_painter/recording_painter.hpp"
 #include "../../display/replay/replay_display_chunk.hpp"
@@ -22,6 +23,8 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
+#include <exception>
+#include <memory>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -131,12 +134,15 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     backplane_framebuffer_scale_ = 0.0;
 }
 
-SurfaceRoot::CapturePaintLease::CapturePaintLease(SurfaceRoot& root) noexcept : root_(root) {
+SurfaceRoot::CapturePaintLease::CapturePaintLease(SurfaceRoot& root, const double capture_scale) noexcept
+    : root_(root) {
     root_.in_paint_ = true;
+    root_.transient_recording_scale_ = capture_scale != root_.scale_ ? capture_scale : 0.0;
 }
 
 SurfaceRoot::CapturePaintLease::~CapturePaintLease() {
     root_.in_paint_ = false;
+    root_.transient_recording_scale_ = 0.0;
     // Fills an image atlas deferred during the capture, then the input
     // deferred during it, as paint's end does (neither throws).
     if (root_.resources_) (*root_.resources_).apply_deferred_image_fills();
@@ -146,21 +152,21 @@ SurfaceRoot::CapturePaintLease::~CapturePaintLease() {
 // Four stages: validate the request; record the subtree's planes into one
 // display chunk; replay that chunk into an offscreen framebuffer; copy the
 // pixels into the image registry as premultiplied BGRA.
-std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr& control, const double scale) {
+stxlib::Optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr& control, const double scale) {
     require_root_thread("snapshot_control");
-    if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
-    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return std::nullopt;
-    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
+    if (in_paint_ || framebuffer_painter_ == nullptr || !control) return stxlib::Optional<ControlSnapshot>::none();
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return stxlib::Optional<ControlSnapshot>::none();
+    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return stxlib::Optional<ControlSnapshot>::none();
     const Rect bounds = absolute_bounds_of(*control);
-    if (bounds.empty() || !bounds.finite()) return std::nullopt;
+    if (bounds.empty() || !bounds.finite()) return stxlib::Optional<ControlSnapshot>::none();
     const Size logical{bounds.width, bounds.height};
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
-    if (!framebuffer) return std::nullopt;
+    if (!framebuffer) return stxlib::Optional<ControlSnapshot>::none();
     // Record: the subtree's planes, each in order, into one command list in
     // the subtree's own coordinates, its materials baked at the snapshot's
     // scale.
     // Painting from here to the return, as paint is for its pass.
-    const CapturePaintLease painting(*this);
+    const CapturePaintLease painting(*this, scale);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -175,31 +181,46 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
         paint_recursive(control, parent_origin_of(*control), candidate, bounds, plane, visited_nodes, painted_controls, consumed_invalidations,
                         chunks_rebuilt, chunks_reused, commands_replayed);
     }
+    // The overlays the subtree owns, over it (gathered before any paints:
+    // a paint callback may close one, which the liveness check skips).
+    std::vector<Control::Ptr> owned_overlays;
+    gather_owned_overlays(*control, owned_overlays);
+    for (const Control::Ptr& overlay : owned_overlays) {
+        if (!(*overlay).is_alive() || (*overlay).surface_root_ != this) continue;
+        for (std::size_t index = 0; index < paint_plane_count; ++index) {
+            const PaintPlane plane = static_cast<PaintPlane>(index);
+            paint_recursive(overlay, parent_origin_of(*overlay), candidate, bounds, plane, visited_nodes,
+                            painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
+                            commands_replayed);
+        }
+    }
     candidate.restore();
     const Rect local{0.0, 0.0, logical.width, logical.height};
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, local);
-    // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    if (consumed_invalidations > 0U && (*control).is_alive()) mark_subtree_dirty(*control, Dirty::paint);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen:
+    // damage over the area, as capture_window.
+    if (consumed_invalidations > 0U) add_damage_all_planes(bounds);
     // Replay into the offscreen raster.
-    if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
+    if (!(*framebuffer).begin(image_resources(), local)) return stxlib::Optional<ControlSnapshot>::none();
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
     // Register the pixels in the registry's layout.
     std::vector<std::byte> bgra;
-    if (!detail::copy_framebuffer_bgra(*framebuffer, bgra)) return std::nullopt;
+    if (!detail::copy_framebuffer_bgra(*framebuffer, bgra)) return stxlib::Optional<ControlSnapshot>::none();
     const std::uint32_t width = (*framebuffer).width();
     const std::uint32_t height = (*framebuffer).height();
     const std::uint64_t row = static_cast<std::uint64_t>(width) * 4U;
     const ImageLoadResult loaded = (*resources_).registry().load_bgra32_premultiplied(width, height, row, bgra);
-    if (!loaded) return std::nullopt;
+    if (!loaded) return stxlib::Optional<ControlSnapshot>::none();
     ControlSnapshot snapshot{};
     snapshot.image = loaded.image;
     snapshot.logical_size = logical;
     snapshot.scale = scale;
     snapshot.pixel_width = width;
     snapshot.pixel_height = height;
-    return snapshot;
+    const stxlib::Optional<ControlSnapshot> result = stxlib::Optional<ControlSnapshot>::of(snapshot);
+    return result;
 }
 
 bool SurfaceRoot::release_control_snapshot(ImageId image) {
@@ -226,7 +247,7 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
     // Painting from here to the return, as paint is for its pass.
-    const CapturePaintLease painting(*this);
+    const CapturePaintLease painting(*this, scale);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -268,11 +289,11 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, window_bounds);
     // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    if (consumed_invalidations > 0U && (*root_).is_alive()) mark_subtree_dirty(*root_, Dirty::paint);
-    for (const Control::Ptr& overlay : overlay_roots) {
-        if (consumed_invalidations == 0U || !overlay || !(*overlay).is_alive()) continue;
-        mark_subtree_dirty(*overlay, Dirty::paint);
-    }
+    // They are what the next paint would record (a capture at another scale
+    // records transiently and consumes none), so the screen owes only their
+    // presentation: damage, which take_damage hands to the host and a paint
+    // discharges.
+    if (consumed_invalidations > 0U) add_damage_all_planes(window_bounds);
     if (!(*framebuffer).begin(image_resources(), window_bounds)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
@@ -310,7 +331,7 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
     // Painting from here to the return, as paint is for its pass.
-    const CapturePaintLease painting(*this);
+    const CapturePaintLease painting(*this, scale);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -334,12 +355,25 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
         paint_recursive(control, parent_origin_of(*control), candidate, area, plane, visited_nodes, painted_controls,
                         consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
     }
+    // The overlays the subtree owns, over it (exhibit gap E3).
+    std::vector<Control::Ptr> owned_overlays;
+    if (options.include_overlays) gather_owned_overlays(*control, owned_overlays);
+    for (const Control::Ptr& overlay : owned_overlays) {
+        if (!(*overlay).is_alive() || (*overlay).surface_root_ != this) continue;
+        for (std::size_t index = 0; index < paint_plane_count; ++index) {
+            const PaintPlane plane = static_cast<PaintPlane>(index);
+            paint_recursive(overlay, parent_origin_of(*overlay), candidate, area, plane, visited_nodes,
+                            painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
+                            commands_replayed);
+        }
+    }
     candidate.restore();
     const Rect local{0.0, 0.0, logical.width, logical.height};
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, local);
-    // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    if (consumed_invalidations > 0U && (*control).is_alive()) mark_subtree_dirty(*control, Dirty::paint);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen:
+    // damage over the area, as capture_window.
+    if (consumed_invalidations > 0U) add_damage_all_planes(area);
     if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
@@ -350,6 +384,25 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
     capture.pixel_width = (*framebuffer).width();
     capture.pixel_height = (*framebuffer).height();
     return capture;
+}
+
+void SurfaceRoot::gather_owned_overlays(const Control& subtree, std::vector<Control::Ptr>& roots) const {
+    roots.clear();
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr owner = (*overlay).owner();
+        const Control::Ptr root = (*overlay).overlay();
+        if (!owner || !root) continue;
+        // The owner's ancestor chain, bounded by maximum_control_tree_depth
+        // (the tree refuses deeper attachments).
+        bool inside = false;
+        for (const Control* current = owner.get(); current != nullptr; current = (*current).parent_link_) {
+            if (current == &subtree) {
+                inside = true;
+                break;
+            }
+        }
+        if (inside) roots.push_back(root);
+    }
 }
 
 bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png) {
@@ -539,19 +592,20 @@ void SurfaceRoot::note_inline_with_theme(const Control& control) {
     theme_language::write_theme_diagnostics(list, stderr);
 }
 
-std::optional<PartRecordHandle> SurfaceRoot::note_engine_part(const Control& control, const PartKey& key,
+stxlib::Optional<PartRecordHandle> SurfaceRoot::note_engine_part(const Control& control, const PartKey& key,
                                                          AnatomyStateSet states) {
     const PartRecordAcquisition acquired = engine_parts_.acquire(control.stable_id().value(), key);
     if (acquired.created) metrics_.record_engine_part_created(key.index_fallback(), engine_parts_.record_count());
     if (acquired.evicted > 0U) metrics_.record_engine_parts_evicted(acquired.evicted, engine_parts_.record_count());
     EnginePartRecord* const record = engine_parts_.record(acquired.handle);
-    if (record == nullptr) return std::nullopt;
+    if (record == nullptr) return stxlib::Optional<PartRecordHandle>::none();
     // time_in_state counts from the paint that first shows new states.
     if (acquired.created || !((*record).states == states)) (*record).state_entered = motion_clock_.now();
     (*record).states = states;
     // The paint in progress, counted as the paints completed before it.
     (*record).last_painted = paint_leases_completed_;
-    return acquired.handle;
+    const stxlib::Optional<PartRecordHandle> result = stxlib::Optional<PartRecordHandle>::of(acquired.handle);
+    return result;
 }
 
 PartRasterResult SurfaceRoot::engine_part_raster(PartRecordHandle handle, const PartRasterRequest& request) {
@@ -584,6 +638,8 @@ void SurfaceRoot::arm_engine_idle() {
         detail::FrameRequestKind::engine_idle, Control::WeakPtr{}, first, motion_frame_interval);
     frame_requests_.push_back(std::move(idle));
     metrics_.record_frame_request();
+    // Usually armed while painting, after the host armed its wake.
+    request_schedule_wake();
 }
 
 PartRasterResult SurfaceRoot::engine_unkeyed_raster(const PartRasterRequest& request) {
@@ -677,13 +733,80 @@ void SurfaceRoot::paint_plane_rectangle(Painter& candidate, const std::size_t in
                     consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
 }
 
+void SurfaceRoot::count_blend_frame(const detail::DisplayChunk& transaction, Painter& painter,
+                                    const std::span<const Rect> painted, const Rect window_bounds) noexcept {
+    BlendFrameCounters counted{};
+    try {
+        if (!blend_planes_) blend_planes_ = std::make_unique<BlendStudyPlanes>();
+        // The window's device extent, as its raster is sized: whole device
+        // pixels, outward. Beyond the study's limit begin_frame refuses.
+        const double device_width = std::ceil(client_size_.width * scale_);
+        const double device_height = std::ceil(client_size_.height * scale_);
+        const bool representable = device_width >= 0.0 && device_height >= 0.0 && device_width <= 65536.0 &&
+                                   device_height <= 65536.0;
+        const std::uint32_t width = representable ? static_cast<std::uint32_t>(device_width) : 0U;
+        const std::uint32_t height = representable ? static_cast<std::uint32_t>(device_height) : 0U;
+        blend_painted_.clear();
+        for (const Rect rectangle : painted) blend_painted_.push_back(detail::device_outward(rectangle, scale_));
+        BlendStudyPlanes& planes = *blend_planes_;
+        if (planes.begin_frame(width, height, blend_painted_)) {
+            detail::count_display_blend(transaction, painter, window_bounds, scale_, planes);
+        }
+        counted = planes.end_frame(blend_painted_);
+    } catch (const std::exception&) {
+        // The study is diagnostics: a frame it cannot count (storage, or a
+        // painter's measurement failing) is counted as refused, and the
+        // paint goes on.
+        counted = BlendFrameCounters{};
+        counted.refused = 1U;
+    }
+    blend_last_ = counted;
+    blend_frame_pending_ = true;
+}
+
+void SurfaceRoot::set_blend_study(const stxlib::Optional<BlendStudyMode> mode) {
+    require_root_thread("blend study setting");
+    blend_study_setting_ = mode;
+    if (blend_study_mode() == BlendStudyMode::off) blend_planes_.reset();
+}
+
+BlendStudyMode SurfaceRoot::blend_study_mode() const noexcept {
+    const BlendStudyMode mode = blend_study_setting_.value_or(blend_study_default());
+    return mode;
+}
+
+BlendStudySnapshot SurfaceRoot::blend_study_snapshot() const noexcept {
+    BlendStudySnapshot snapshot{};
+    snapshot.mode = blend_study_mode();
+    snapshot.frames = blend_frames_;
+    snapshot.last = blend_last_;
+    snapshot.totals = blend_totals_;
+    return snapshot;
+}
+
+void SurfaceRoot::reset_blend_study() noexcept {
+    blend_frames_ = 0U;
+    blend_last_ = BlendFrameCounters{};
+    blend_totals_ = BlendFrameCounters{};
+    blend_frame_pending_ = false;
+}
+
+BlendHeatMapView SurfaceRoot::blend_heat_map() const& noexcept {
+    const BlendStudyMode mode = blend_study_mode();
+    const bool heat = mode == BlendStudyMode::overdraw_heat_map || mode == BlendStudyMode::blend_heat_map;
+    if (!heat || !blend_planes_) return BlendHeatMapView{};
+    const BlendStudyPlanes& planes = *blend_planes_;
+    const BlendHeatMapView view = planes.heat_map(mode);
+    return view;
+}
+
 void SurfaceRoot::note_opaque_cover(const Control& control, const Painter& painter, const Rect local) noexcept {
     const Painter* const recorder = recording_painter_;
     if (recording_control_ != &control || recorder != &painter) return;
     (*recording_painter_).mark_opaque_cover(local);
 }
 
-std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           Rect requested_damage) {
     settle_dirty();
     // One rectangle: the request, or else the bounds of all damage.
@@ -701,7 +824,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
     return paint_timed(painter, bounds, false);
 }
 
-std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           std::span<const Rect> requested_damage) {
     settle_dirty();
     if (!requested_damage.empty()) {
@@ -717,10 +840,10 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
 
 // One paint tick, checked against the paint budget (paint_within_budget):
 // a tick that took longer is a missed expectation, never a fault.
-std::optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span<const Rect> rectangles,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span<const Rect> rectangles,
                                                      bool explicit_request) {
     const FrameTime started = FrameClock::now();
-    std::optional<PaintReceipt> receipt = paint_rectangles(painter, rectangles, explicit_request);
+    stxlib::Optional<PaintReceipt> receipt = paint_rectangles(painter, rectangles, explicit_request);
     const FrameInterval elapsed = FrameClock::now() - started;
     const std::uint64_t nanoseconds = static_cast<std::uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count());
@@ -728,10 +851,18 @@ std::optional<PaintReceipt> SurfaceRoot::paint_timed(Painter& painter, std::span
     if (nanoseconds > budget) {
         metrics_.record_expectation_miss(HousekeepingExpectation::paint_within_budget, budget, nanoseconds);
     }
+    if (blend_frame_pending_) {
+        blend_frame_pending_ = false;
+        blend_last_.paint_nanoseconds = nanoseconds;
+        add_blend_frame(blend_totals_, blend_last_);
+        ++blend_frames_;
+        // GUI_FORMS_BLEND_STUDY_LOG, when set (blend_study.hpp).
+        if ((*root_).is_alive()) append_blend_study_log((*root_).stable_id().value(), blend_frames_, blend_last_);
+    }
     return receipt;
 }
 
-std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     Painter& painter, std::span<const Rect> rectangles, bool explicit_request) {
     require_root_thread("paint");
     if (in_paint_) {
@@ -750,31 +881,31 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
             }
         }
         request_paint_wake();
-        return std::nullopt;
+        return stxlib::Optional<PaintReceipt>::none();
     }
-    if (occluded_) return std::nullopt;
+    if (occluded_) return stxlib::Optional<PaintReceipt>::none();
     // The lease this paint starts, when it paints anything.
     ShadowFrameCall shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
                                  paint_leases_started_ + 1U);
-    std::optional<PaintReceipt> receipt = paint_rectangles_in_frame(painter, rectangles, explicit_request);
+    stxlib::Optional<PaintReceipt> receipt = paint_rectangles_in_frame(painter, rectangles, explicit_request);
     shadow_frame.returned();
     return receipt;
 }
 
 // The paint pass itself, inside paint_rectangles' frame.
-std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
                                                                    bool explicit_request) {
     ensure_layout(true);
 
     if (!(*root_).is_alive()) {
-        return std::nullopt;
+        return stxlib::Optional<PaintReceipt>::none();
     }
 
     const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<Rect>& painted = painted_rectangles_;
     merge_paint_rectangles(rectangles, window_bounds, scale_, painted);
     if (painted.empty()) {
-        return std::nullopt;
+        return stxlib::Optional<PaintReceipt>::none();
     }
     Rect paint_bounds = painted.front();
     double painted_area = 0.0;
@@ -901,19 +1032,22 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& pain
             display_generation_, PaintPlane::control, window_bounds);
         if (lease_epoch != surface_epoch_ || !(*root_).is_alive()) {
             abandon_paint(generation_before);
-            return std::nullopt;
+            return stxlib::Optional<PaintReceipt>::none();
         }
         // The frame's recording is replayed into the terminal painter, which
         // alone can say whether an opaque live surface hides what lies
         // beneath it (a panned canvas's sheet over its surround).
         static_cast<void>(detail::replay_display_chunk_occluded(*transaction, painter, window_bounds));
+        // The blend study (blend_study.hpp) walks the same commands; off, it
+        // costs the switch's one atomic load.
+        if (blend_study_mode() != BlendStudyMode::off) count_blend_frame(*transaction, painter, painted, window_bounds);
         // A backend painter may enter a native callback while replaying. A
         // resize, scale transition, or owner retirement at that boundary
         // invalidates the candidate even though every draw command returned.
         // The host receives no receipt and therefore cannot publish it.
         if (lease_epoch != surface_epoch_ || !(*root_).is_alive()) {
             abandon_paint(generation_before);
-            return std::nullopt;
+            return stxlib::Optional<PaintReceipt>::none();
         }
     } catch (...) {
         abandon_paint(generation_before);
@@ -957,7 +1091,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& pain
     // pass is over, their damage requests the next frame (never throws).
     if (resources_) (*resources_).apply_deferred_image_fills();
     schedule_deferred_input_drain();
-    return PaintReceipt{lease_revision, lease_epoch};
+    const PaintReceipt receipt{lease_revision, lease_epoch};
+    const stxlib::Optional<PaintReceipt> result = stxlib::Optional<PaintReceipt>::of(receipt);
+    return result;
 }
 
 bool SurfaceRoot::notify_presented(PaintReceipt receipt,
@@ -1097,6 +1233,17 @@ bool Window::queue_live_surface_presentation(
         const detail::WakeIdleLiveSurface wake(live_surface_idle_wake_);
         wake();
     }
+    return true;
+}
+
+bool Window::withdraw_live_surface_presentation(const Control::Ptr& control,
+                                                const std::shared_ptr<LiveSurface>& surface) noexcept {
+    if (!check_access() || !control || !surface) return false;
+    const LiveSurfaceRegistrationMap::iterator entry =
+        live_surface_registrations_.find((*control).runtime_id().value);
+    if (entry == live_surface_registrations_.end() || (*entry).second.surface != surface) return false;
+    // Erasing disconnects the registration's idle wake with it.
+    live_surface_registrations_.erase(entry);
     return true;
 }
 
@@ -1422,6 +1569,13 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         ++iterator;
     }
     return result;
+}
+
+void SurfaceRoot::set_schedule_wake_handler(std::function<void()> wake) {
+    require_root_thread("schedule wake-handler mutation");
+    schedule_wake_handler_ = std::move(wake);
+    schedule_wake_pending_ = false;
+    if (schedule_wake_handler_ && next_wake().present()) request_schedule_wake();
 }
 
 void SurfaceRoot::set_paint_wake_handler(std::function<void()> wake) {

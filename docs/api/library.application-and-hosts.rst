@@ -51,6 +51,8 @@ Related types
      -  
    * - :cpp:class:`ApplicationWindowOpenResult <gui_forms::ApplicationWindowOpenResult>`
      -  
+   * - :cpp:class:`BuildProfileRecord <gui_forms::BuildProfileRecord>`
+     - What the library was built with: the profile and the allowances of the high-integrity configuration.
    * - :cpp:class:`CompositorGeneration <gui_forms::CompositorGeneration>`
      - The order of compositor state reports within one host run.
    * - :cpp:class:`CompositorState <gui_forms::CompositorState>`
@@ -73,6 +75,12 @@ Related types
      - A point on the host's device desktop: Win32 screen pixels of a per-monitor-aware process, X11 root-window pixels.
    * - :cpp:class:`DesktopLogicalPoint <gui_forms::DesktopLogicalPoint>`
      - A point in desktop logical units: where window frames, the pointer's desktop position and logical work areas are published.
+   * - :cpp:class:`FirstFrameShowGate <gui_forms::FirstFrameShowGate>`
+     - One window's first-frame show: the wait for its first presented frame, bounded by the ceiling, as described at the top of this header.
+   * - :cpp:class:`FirstFrameShowSnapshot <gui_forms::FirstFrameShowSnapshot>`
+     - The gate's counters, for the host's diagnostics.
+   * - :cpp:class:`FirstFrameShowStep <gui_forms::FirstFrameShowStep>`
+     - What the host does after a gate call: perform the native show when ``show`` is true.
    * - :cpp:class:`HostActivationEvent <gui_forms::HostActivationEvent>`
      - HostActivationEvent carries portable top-level activation state.
    * - :cpp:class:`HostAttachEvent <gui_forms::HostAttachEvent>`
@@ -113,6 +121,8 @@ Related types
      - HostDisplayEvent carries a complete validated unique-primary monitor set after display topology change.
    * - :cpp:class:`HostEvent <gui_forms::HostEvent>`
      - HostEvent binds nonzero monotonic sequence and caller-supplied monotonic timestamp to one portable lifecycle/input payload.
+   * - :cpp:class:`HostEventClock <gui_forms::HostEventClock>`
+     - Maps a host's own event clock into FrameClock nanoseconds (PointerEvent::timestamp_nanoseconds) for a host whose events carry a time on another clock: X11's server milliseconds, Windows' GetMessageTime.
    * - :cpp:class:`HostFileDialogFilter <gui_forms::HostFileDialogFilter>`
      - HostFileDialogFilter carries a user-facing label and bounded extension vocabulary without native filter syntax.
    * - :cpp:class:`HostFolderDialogRequest <gui_forms::HostFolderDialogRequest>`
@@ -125,6 +135,8 @@ Related types
      - A borrowed, top-to-bottom, premultiplied BGRA8 sRGB image: blue, green, red, alpha in memory, each colour channel at most its alpha, as every framebuffer and raster holds pixels.
    * - :cpp:class:`HostInputSettingsEvent <gui_forms::HostInputSettingsEvent>`
      - The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes.
+   * - :cpp:class:`HostLocale <gui_forms::HostLocale>`
+     - The host's locale details GUI.Forms formats with (exhibit gap E11; owner, 2026-11-13: GUI.Forms defers to the host for the date and time and, where possible, the locale details).
    * - :cpp:class:`HostMessageDialogRequest <gui_forms::HostMessageDialogRequest>`
      - HostMessageDialogRequest declares portable title/message, button set, semantic icon, and valid default choice.
    * - :cpp:class:`HostMessageDialogResult <gui_forms::HostMessageDialogResult>`
@@ -145,6 +157,10 @@ Related types
      - Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry).
    * - :cpp:class:`HostProtocolRevision <gui_forms::HostProtocolRevision>`
      - One host protocol version and the feature it added.
+   * - :cpp:class:`HostRelativeMotionEvent <gui_forms::HostRelativeMotionEvent>`
+     - One motion sample in relative pointer mode (capability relative_pointer; host protocol version 14).
+   * - :cpp:class:`HostRelativePointerRequest <gui_forms::HostRelativePointerRequest>`
+     - What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer).
    * - :cpp:class:`HostResizeEvent <gui_forms::HostResizeEvent>`
      - HostResizeEvent carries a validated logical client extent for an attached session.
    * - :cpp:class:`HostSaveFileDialogRequest <gui_forms::HostSaveFileDialogRequest>`
@@ -229,6 +245,12 @@ Related types
      - A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input.
    * - :cpp:class:`SplashscreenResult <gui_forms::SplashscreenResult>`
      -  
+   * - :cpp:class:`SurfaceApplicationOptions <gui_forms::host::SurfaceApplicationOptions>`
+     -  
+   * - :cpp:class:`SurfaceApplicationWindow <gui_forms::host::SurfaceApplicationWindow>`
+     -  
+   * - :cpp:class:`SurfaceHostOptions <gui_forms::host::SurfaceHostOptions>`
+     - The windows of a single-surface host (owner decision, 2026-11-15): the browser now, a framebuffer appliance later, any host with one surface.
    * - :cpp:class:`ThemeChoice <gui_forms::ThemeChoice>`
      -  
    * - :cpp:class:`ThemeCommandLine <gui_forms::ThemeCommandLine>`
@@ -284,7 +306,7 @@ Related types
 
    .. cpp:member:: ApplicationThemeConfig theme
 
-   .. cpp:member:: std::optional<PresentationSettings> presentation
+   .. cpp:member:: stxlib::Optional<PresentationSettings> presentation
 
       The presentation defaults every window of the application starts with, until the host reports its own; GUI.Forms' defaults when unset.
 
@@ -403,7 +425,7 @@ Related types
 
       A floating window (stage DK decisions 1, 10 and 11): owned by the primary window (owner_id names it; tool_window stays false), no taskbar button, minimized with it, above it only, moved with it and clamped to the work area of the screen it lands on. A floating tool also hides while the application is inactive; a floating document does not. The policy decides when the window is on screen; show and hide on its handle say whether it is wanted. See HostWindowKindTraits. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (HostPopupPlacement): opened only during the run, owned by ``owner_id``, never a tool or floating window; none for every other kind.
 
@@ -432,6 +454,22 @@ Related types
    .. cpp:member:: ApplicationWindowHandle window
 
       Active once the window is ready; inactive when the open was refused.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BuildProfileRecord final
+
+   ``#include <gui_forms/build_profile/build_profile.hpp>``
+
+   What the library was built with: the profile and the allowances of the high-integrity configuration. In a standard build every allowance is true, since nothing is compiled out.
+
+   .. cpp:member:: BuildProfile profile
+
+      Default: ``{BuildProfile::standard}``.
+
+   .. cpp:member:: bool clipboard_text
+
+      HostServices::read_clipboard_text and write_clipboard_text are compiled (GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT in high integrity). Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -468,6 +506,8 @@ Related types
       Default: ``{CompositorPresence::unknown}``.
 
    .. cpp:member:: std::array<WindowBackdropSupport, window_backdrop_count> support
+
+      Default: ``{WindowBackdropSupport::supported, WindowBackdropSupport::host_unsupported, WindowBackdropSupport::host_unsupported, WindowBackdropSupport::host_unsupported}``.
 
    .. cpp:member:: bool transparency_enabled
 
@@ -617,6 +657,111 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: FirstFrameShowGate final
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   One window's first-frame show: the wait for its first presented frame, bounded by the ceiling, as described at the top of this header.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit FirstFrameShowGate(FrameInterval ceiling = first_frame_show_ceiling) noexcept
+
+      ``ceiling`` is clamped to [0, maximum_first_frame_show_ceiling]; zero turns the gate off (every request shows at once).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: FirstFrameShowState state() const noexcept
+
+   .. cpp:function:: bool waiting() const noexcept
+
+   .. cpp:function:: stxlib::Optional<FrameTime> deadline() const noexcept
+
+      The deadline while waiting; empty otherwise.
+
+   .. cpp:function:: const FirstFrameShowSnapshot& snapshot() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: FirstFrameShowStep request_show(FrameTime now) noexcept
+
+      The show is asked for at ``now``. Shows at once when a frame was already presented (frame_presented), the window was shown before or the ceiling is zero (immediate); otherwise starts the wait with the deadline ``now + ceiling`` and shows nothing. A request while waiting keeps the first deadline and shows nothing.
+
+   .. cpp:function:: FirstFrameShowStep report_frame_presented(FrameTime now) noexcept
+
+      A frame was presented into the window's storage at ``now``. Shows (frame_presented) when waiting; records the frame in any state, so a later request shows at once.
+
+   .. cpp:function:: FirstFrameShowStep poll(FrameTime now) noexcept
+
+      The host's wake at ``now``. Shows (deadline) when waiting and ``now`` is at or after the deadline; otherwise nothing.
+
+   .. cpp:function:: bool cancel() noexcept
+
+      The window was hidden or closed before it was shown. Ends a wait, forgetting its deadline, and returns true; returns false, changing nothing, when no wait was under way.
+
+   .. cpp:function:: void set_ceiling(FrameInterval ceiling) noexcept
+
+      Sets the ceiling (clamped as the constructor's) for later requests; a wait under way keeps its deadline.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FirstFrameShowSnapshot final
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   The gate's counters, for the host's diagnostics.
+
+   .. cpp:member:: FirstFrameShowState state
+
+      Default: ``{FirstFrameShowState::idle}``.
+
+   .. cpp:member:: FirstFrameShowCause last_cause
+
+      The cause of the last show; none before the first. Default: ``{FirstFrameShowCause::none}``.
+
+   .. cpp:member:: FrameInterval ceiling
+
+      The ceiling in force (after clamping).
+
+   .. cpp:member:: FrameInterval last_wait
+
+      How long the last show waited from its request; zero before the first show and for a show at once.
+
+   .. cpp:member:: std::uint64_t requests
+
+   .. cpp:member:: std::uint64_t frame_shows
+
+   .. cpp:member:: std::uint64_t deadline_shows
+
+   .. cpp:member:: std::uint64_t immediate_shows
+
+   .. cpp:member:: std::uint64_t cancelled_waits
+
+   .. cpp:member:: std::uint64_t presented_frames
+
+      Frames reported presented, in any state.
+
+   .. cpp:member:: bool frame_presented
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FirstFrameShowStep final
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   What the host does after a gate call: perform the native show when ``show`` is true. A gate returns show at most once per wait, and the gate is already in its shown state when it does, so a reentrant call (the show itself causing a present or an activation) returns no show.
+
+   .. cpp:member:: bool show
+
+   .. cpp:member:: FirstFrameShowCause cause
+
+      Default: ``{FirstFrameShowCause::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostActivationEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -708,6 +853,14 @@ Related types
    .. cpp:member:: KeyMap key_map
 
       The keys this host's convention gives the named keyboard commands (owner decision DK-30, interview G5-1): host data, not core policy. The first HostSession of an application seeds the application's KeyBindings with it (owner decision DK-44); the application's rebindings stay over it. Default: ``{pc_key_map()}``.
+
+   .. cpp:member:: HostLocale locale
+
+      The platform's locale (exhibit gap E11): what the host read when it reports HostCapability::locale, else the portable default. The first HostSession of an application seeds the application's locale with it (ApplicationResources::locale) unless the program set one. Default: ``{portable_host_locale()}``.
+
+   .. cpp:member:: WindowCornerShapes window_corner_shapes
+
+      The corner shapes the host may report with HostCapability:: window_corners (WindowShapingReport): host data, so a host that only ever reports square corners (macOS) does not claim rounded ones.
 
 .. cpp:namespace:: gui_forms
 
@@ -808,6 +961,10 @@ Related types
    .. cpp:member:: bool hide_on_accept
 
       Adapter policy: an accepted request hides a reusable window while its session remains attached. Observers can cancel; changing this policy during notification does not change the adapter's action.
+
+   .. cpp:member:: bool query_only
+
+      A question, not a request: observers hear it and may cancel, and the result reports close_allowed, but an allowed query authorizes nothing and the session stays in its phase. A host asks this way before a quit closes anything, so a quit another window then refuses leaves every window that agreed live and closable (A-gf-host-02-F1).
 
 .. cpp:namespace:: gui_forms
 
@@ -964,6 +1121,19 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: HostEventClock final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   Maps a host's own event clock into FrameClock nanoseconds (PointerEvent::timestamp_nanoseconds) for a host whose events carry a time on another clock: X11's server milliseconds, Windows' GetMessageTime. The offset is the smallest (receipt - event time) seen, the estimate of least delay, so a mapped time never lies after its receipt and differences between events keep the host's own spacing. ``host_nanoseconds`` must not go backwards except by a wrap the caller has already unwrapped. One per host connection, on its thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::uint64_t map(std::uint64_t host_nanoseconds, std::uint64_t receipt_nanoseconds) noexcept
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostFileDialogFilter final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1065,6 +1235,66 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostLocale final
+
+   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+
+   The host's locale details GUI.Forms formats with (exhibit gap E11; owner, 2026-11-13: GUI.Forms defers to the host for the date and time and, where possible, the locale details). Host data, not core policy: a host fills what its platform says (HostCapabilities::locale, reported with HostCapability::locale) and leaves the rest at the portable default. The patterns use the DateTimePicker's custom-format letters (d, dd, ddd, dddd, M to MMMM, yy, yyyy, h, hh, H, HH, m, mm, s, ss, t, tt, text in single quotes); a host converts its platform's pattern language to them. The names run January first and Sunday first. Every text is UTF-8; the names and patterns are never empty (valid_host_locale).
+
+   .. cpp:member:: std::string name
+
+      The platform's name for the locale, a BCP 47 tag where the platform gives one ("en-GB", "de-DE"), else as the platform writes it; "und" (undetermined) for the portable default. Default: ``{"und"}``.
+
+   .. cpp:member:: std::array<std::string, 12> month_names
+
+      Default: ``{"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}``.
+
+   .. cpp:member:: std::array<std::string, 12> abbreviated_month_names
+
+      Default: ``{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}``.
+
+   .. cpp:member:: std::array<std::string, 7> day_names
+
+      Default: ``{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}``.
+
+   .. cpp:member:: std::array<std::string, 7> abbreviated_day_names
+
+      Default: ``{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}``.
+
+   .. cpp:member:: std::string long_date_pattern
+
+      Default: ``{"dddd, MMMM d, yyyy"}``.
+
+   .. cpp:member:: std::string short_date_pattern
+
+      Default: ``{"M/d/yyyy"}``.
+
+   .. cpp:member:: std::string time_pattern
+
+      Default: ``{"h:mm tt"}``.
+
+   .. cpp:member:: std::string am_designator
+
+      Default: ``{"AM"}``.
+
+   .. cpp:member:: std::string pm_designator
+
+      Default: ``{"PM"}``.
+
+   .. cpp:member:: std::string decimal_separator
+
+      The separators of formatted numbers: between the integer and the fraction, and between digit groups of the integer. Default: ``{"."}``.
+
+   .. cpp:member:: std::string group_separator
+
+      Default: ``{","}``.
+
+   .. cpp:member:: HostWeekday first_day_of_week
+
+      Default: ``{HostWeekday::sunday}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostMessageDialogRequest final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1096,6 +1326,10 @@ Related types
    .. cpp:member:: bool help_button
 
       Windows Forms' displayHelpButton: a Help button after the set's buttons. Pressing it, or F1 where the host's dialog takes it, reports a HostDialogHelpEvent and leaves the dialog open.
+
+   .. cpp:member:: std::optional<HostImage> icon_image
+
+      The picture GUI.Forms draws for ``icon`` (the stock icon set, exhibit gap E10; stock_alert_icon_image), at the owner window's scale. A host that can put its own image in the dialog shows it in place of its system icon (the AppKit and Win32 hosts do); one that cannot keeps its system icon for ``icon`` (the X11 host). Empty for no icon.
 
 .. cpp:namespace:: gui_forms
 
@@ -1191,6 +1425,14 @@ Related types
 
       The filter the dialog starts with, an index into ``filters``; zero when there are none.
 
+   .. cpp:member:: bool check_file_exists
+
+      Windows Forms' CheckFileExists and CheckPathExists: accept only an existing file, and only a name in an existing folder. An adapter whose dialog always requires both (macOS's NSOpenPanel) ignores false. Default: ``{true}``.
+
+   .. cpp:member:: bool check_path_exists
+
+      Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostPathDialogResult final
@@ -1205,7 +1447,7 @@ Related types
 
    .. cpp:member:: std::vector<std::string> paths
 
-   .. cpp:member:: std::optional<std::size_t> chosen_filter
+   .. cpp:member:: stxlib::Optional<std::size_t> chosen_filter
 
       For an accepted file dialog, the request's filter selected when the user accepted, an index into its ``filters``; none when the request had no filters, the user chose a filter the host added (such as "All files"), or the host cannot tell.
 
@@ -1243,6 +1485,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostRelativeMotionEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   One motion sample in relative pointer mode (capability relative_pointer; host protocol version 14). A host sends one per native sample, never merged: macOS each mouse moved or dragged event's deltaX and deltaY, X11 each XI2 raw motion. delta: logical units, sub-unit precision kept; unaccelerated: delta is the device's raw counts scaled to logical units (raw_pointer_motion), not the accelerated motion. position: the pointer in window logical units where it moves (free and confined modes); empty while locked. timestamp_nanoseconds: the sample's time (PointerEvent's clock; zero: the HostEvent's). The window refuses a delta or position that is not finite as invalid_payload. In confined and locked modes the host sends no absolute pointer moves (buttons and the wheel still come as PointerEvents); in free mode it sends both.
+
+   .. cpp:member:: Point delta
+
+   .. cpp:member:: bool unaccelerated
+
+   .. cpp:member:: stxlib::Optional<Point> position
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostRelativePointerRequest final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer). active false returns the pointer to normal (shown, free, absolute moves). confine: the rectangle (window logical units) a confined pointer stays in. A host that cannot do the mode reports the error, and the window falls back (RelativePointerGrant).
+
+   .. cpp:member:: bool active
+
+   .. cpp:member:: RelativePointerMode mode
+
+      Default: ``{RelativePointerMode::free}``.
+
+   .. cpp:member:: bool hide_cursor
+
+   .. cpp:member:: bool raw_motion
+
+   .. cpp:member:: Rect confine
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostResizeEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1276,6 +1558,16 @@ Related types
    .. cpp:member:: std::size_t initial_filter
 
       The filter the dialog starts with, an index into ``filters``; zero when there are none.
+
+   .. cpp:member:: bool check_file_exists
+
+      Windows Forms' CheckFileExists, CheckPathExists and CreatePrompt: accept only an existing file; accept only a name in an existing folder (macOS's NSSavePanel always requires one and ignores false); ask before accepting a file that does not exist yet. A refused name leaves the dialog open (or shows it again) with the name kept.
+
+   .. cpp:member:: bool check_path_exists
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool create_prompt
 
 .. cpp:namespace:: gui_forms
 
@@ -1365,6 +1657,14 @@ Related types
 
       Host lifecycle hooks: revoke before focus/capture loss, detach or close. Cleanup failures remain visible on outstanding leases and this snapshot.
 
+   .. cpp:function:: HostServiceStatus warp_pointer(Point position)
+
+      Moves the pointer to ``position``, window logical units (capability pointer_warp). invalid_argument for a position that is not finite.
+
+   .. cpp:function:: HostServiceStatus open_url(std::string_view url_utf8)
+
+      Hands ``url`` to the platform, which opens it in the user's browser or mail program (capability open_url); it returns once the platform has the address, not when anything opened. Refused, changing nothing: unsupported without open_url; invalid_argument for an address that is not valid UTF-8, is longer than maximum_url_bytes, holds a space or a control character, or does not begin "https://", "http://" (each with something after it) or "mailto:" (with an address after it). No other scheme reaches the platform: a file, a program or a custom handler is never opened this way. UI thread.
+
    .. cpp:function:: HostClipboardTextResult read_clipboard_text()
 
       Validates service policy, delegates native read, enforces UTF-8/size/generation rules, and accounts failures.
@@ -1447,6 +1747,10 @@ Related types
 
       Validates pointer identity and capability, delegates native capture, and commits exact captured state only on success.
 
+   .. cpp:function:: HostServiceStatus set_relative_pointer(const HostRelativePointerRequest& request)
+
+      Relative pointer mode (capability relative_pointer; the window calls it from SurfaceRoot::begin_relative_pointer and its ends). An active request puts the native pointer in ``request.mode``; an inactive one gives the ordinary pointer back (shown, free, absolute moves) and is accepted whenever the pointer is in the mode. Refused, changing nothing: unsupported without relative_pointer, or for a confined or locked mode without pointer_confinement; invalid_argument for a mode outside the enumeration or a confine rectangle that is not finite and positive in a confined mode. Shutdown gives the pointer back.
+
 
    .. rubric:: Extension points
 
@@ -1495,6 +1799,22 @@ Related types
       *Protected.*
 
       Requires a concrete adapter to synchronize retained and native capture.
+
+   .. cpp:function:: virtual HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request)
+
+      *Protected.*
+
+      Called with a validated request whose capabilities the host advertises. An inactive request must give the pointer back even when it reports a failure. The defaults refuse as unsupported.
+
+   .. cpp:function:: virtual HostServiceStatus warp_pointer_impl(Point position)
+
+      *Protected.*
+
+   .. cpp:function:: virtual HostServiceStatus open_url_impl(std::string_view url_utf8)
+
+      *Protected.*
+
+      Called with an address open_url validated, on a host that advertises open_url. The default refuses as unsupported.
 
    .. cpp:function:: virtual HostClipboardTextResult read_clipboard_text_impl() = 0
 
@@ -1598,6 +1918,10 @@ Related types
 
       Default: ``64U * 1024U``.
 
+   .. cpp:member:: constexpr std::size_t maximum_url_bytes
+
+      Default: ``8U * 1024U``.
+
    .. cpp:member:: constexpr std::size_t maximum_dialog_filters
 
       Default: ``64U``.
@@ -1672,6 +1996,18 @@ Related types
    .. cpp:member:: std::uint64_t cursor_updates
 
    .. cpp:member:: std::uint64_t pointer_capture_updates
+
+   .. cpp:member:: bool relative_pointer_active
+
+      Relative pointer mode (set_relative_pointer): whether the native pointer is in it now, the accepted requests, and the pointer warps.
+
+   .. cpp:member:: std::uint64_t relative_pointer_updates
+
+   .. cpp:member:: std::uint64_t pointer_warps
+
+   .. cpp:member:: std::uint64_t opened_urls
+
+      Addresses handed to the platform (open_url, accepted).
 
    .. cpp:member:: std::uint64_t clipboard_reads
 
@@ -1816,6 +2152,10 @@ Related types
    .. cpp:member:: std::uint64_t modal_transitions
 
    .. cpp:member:: std::uint64_t modal_input_suppressions
+
+   .. cpp:member:: std::uint64_t relative_motion_events
+
+      HostRelativeMotionEvent samples delivered to the window.
 
    .. cpp:member:: std::uint64_t drag_events
 
@@ -2151,7 +2491,7 @@ Related types
 
    .. cpp:function:: HostServiceStatus destroy_window(HostWindowId window)
 
-      Closes and destroys a window opened by this run without asking its closing handler: the program decided. Its closed callback runs before this returns and its identity is retired. The primary window and a window that still owns live windows are invalid_argument.
+      Closes and destroys a window opened by this run without asking its closing handler: the program decided. Its closed callback runs before this returns and its identity is retired. The popup-kind windows it owns (the warm Popup slots and tooltip the run keeps for its model) are destroyed first, each with its closed callback. The primary window and a window that still owns any other live window are invalid_argument; a refusal after its popups went leaves the window open without them.
 
    .. cpp:function:: HostMonitorResult query_monitors()
 
@@ -2165,15 +2505,15 @@ Related types
 
       Runs the platform's event loop nested inside the caller until ``window`` closes, as Form.ShowDialog does: meanwhile the run's other windows that ``window`` does not own refuse user input (the adapter disables them), while posted work, timers, wakes and repaint continue in every window. Returns once ``window`` is no longer live, after its closed callback; the adapter releases the native window after the outer loop turn, never inside this call. When the run is told to quit during the nested loop (the primary window closed, a quit message), the nested loop ends at once and the quit reaches the outer loop, so this may return while ``window`` is still live (the run is ending). Needs runtime_windows and supports_modal_windows() (else unsupported); ``window`` must be live and owned and must not be a popup or floating window (invalid_argument); at most maximum_modal_depth calls nest (modal_limit). A callback inside the loop may call it again for another window.
 
-   .. cpp:function:: std::optional<HostWindowId> find(std::string_view stable_id) const noexcept
+   .. cpp:function:: stxlib::Optional<HostWindowId> find(std::string_view stable_id) const noexcept
 
       Table queries (no capability needed).
 
    .. cpp:function:: bool live(HostWindowId window) const noexcept
 
-   .. cpp:function:: std::optional<HostWindowKind> kind(HostWindowId window) const noexcept
+   .. cpp:function:: stxlib::Optional<HostWindowKind> kind(HostWindowId window) const noexcept
 
-   .. cpp:function:: std::optional<HostWindowId> owner(HostWindowId window) const noexcept
+   .. cpp:function:: stxlib::Optional<HostWindowId> owner(HostWindowId window) const noexcept
 
       The owner, or an invalid identity for a window without one. Empty for an unknown window.
 
@@ -2435,7 +2775,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (ApplicationWindow::popup); none for every other kind.
 
@@ -2459,9 +2799,9 @@ Related types
 
    .. cpp:member:: std::string capture_path
 
-      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
+      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
-   .. cpp:member:: std::optional<Size> capture_size
+   .. cpp:member:: stxlib::Optional<Size> capture_size
 
       When set, the window is created at this logical size instead of initial_size.
 
@@ -2472,6 +2812,10 @@ Related types
    .. cpp:member:: bool initially_visible
 
       Default: ``{true}``.
+
+   .. cpp:member:: std::chrono::milliseconds first_frame_show_ceiling
+
+      How long a newly shown window stays unmapped waiting for its first frame, painted into the raster and copied on the first Expose (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate). Zero maps at once. A popup is never gated. Default: ``{gui_forms::first_frame_show_ceiling}``.
 
    .. cpp:member:: bool hide_on_close
 
@@ -2539,7 +2883,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (ApplicationWindow::popup); none for every other kind.
 
@@ -2565,15 +2909,15 @@ Related types
 
    .. cpp:member:: std::string capture_path
 
-      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
+      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
-   .. cpp:member:: std::optional<Size> capture_size
+   .. cpp:member:: stxlib::Optional<Size> capture_size
 
       When set, the window is created at this logical size instead of initial_size.
 
    .. cpp:member:: MacTitlebarPresentation titlebar_presentation
 
-      Full-size content retains the native titled window, traffic-light controls, resize behavior, system title, and accessibility identity. It only makes the title material transparent and lets retained content occupy that region.
+      Full-size content retains the native titled window, traffic-light controls, resize behavior, system title, and accessibility identity. It only makes the title material transparent and lets retained content occupy that region. Default: ``{MacTitlebarPresentation::standard}``.
 
    .. cpp:member:: std::string window_drag_region_id
 
@@ -2586,6 +2930,10 @@ Related types
    .. cpp:member:: bool initially_visible
 
       Application-mode secondary windows may be constructed and attached before the run loop while remaining hidden until their owner invokes them. hide_on_close keeps a reusable owned surface alive instead of turning its native close button into a one-shot lifetime boundary. Default: ``{true}``.
+
+   .. cpp:member:: std::chrono::milliseconds first_frame_show_ceiling
+
+      How long a newly shown window stays off screen waiting for its first presented frame (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate). Zero shows at once. A popup is never gated. Default: ``{gui_forms::first_frame_show_ceiling}``.
 
    .. cpp:member:: bool hide_on_close
 
@@ -2675,7 +3023,7 @@ Related types
 
       invalid_argument for text that is not UTF-8 or too long, or a progress outside [0, 1], changing nothing.
 
-   .. cpp:function:: SplashscreenError set_progress(std::optional<double> progress)
+   .. cpp:function:: SplashscreenError set_progress(stxlib::Optional<double> progress)
 
 .. cpp:namespace:: gui_forms
 
@@ -2705,7 +3053,7 @@ Related types
 
       UTF-8, at most maximum_text_bytes.
 
-   .. cpp:member:: std::optional<double> progress
+   .. cpp:member:: stxlib::Optional<double> progress
 
       In [0, 1]; none shows no bar.
 
@@ -2720,6 +3068,98 @@ Related types
       Default: ``{SplashscreenError::none}``.
 
    .. cpp:member:: std::unique_ptr<Splashscreen> splashscreen
+
+.. cpp:namespace:: gui_forms::host
+
+.. cpp:struct:: SurfaceApplicationOptions final
+
+   ``#include <gui_forms/platform/surface_host.hpp>``
+
+   .. cpp:member:: std::function<void(HostWindowing &windowing, SurfaceOpenWindow open)> windowing_ready
+
+      Published once on the run's thread before the first window is created. ``windowing`` lives until windowing_ended has been called.
+
+   .. cpp:member:: std::function<void()> windowing_ended
+
+      Published once when the event loop ends (or the run fails), before the windowing is shut down and released.
+
+.. cpp:namespace:: gui_forms::host
+
+.. cpp:struct:: SurfaceApplicationWindow final
+
+   ``#include <gui_forms/platform/surface_host.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string owner_id
+
+   .. cpp:member:: std::unique_ptr<Window> model
+
+   .. cpp:member:: SurfaceHostOptions options
+
+   .. cpp:member:: bool tool_window
+
+   .. cpp:member:: HostWindowFloating floating
+
+      See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
+
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
+
+      A popup layer (ApplicationWindow::popup); none for every other kind.
+
+.. cpp:namespace:: gui_forms::host
+
+.. cpp:struct:: SurfaceHostOptions final
+
+   ``#include <gui_forms/platform/surface_host.hpp>``
+
+   The windows of a single-surface host (owner decision, 2026-11-15): the browser now, a framebuffer appliance later, any host with one surface. GUI.Forms' own window manager (src/host/surface/) makes every window of the run a layer of that surface: the primary window fills it; owned, tool and floating windows have a frame it draws, with a title bar and minimise, maximise and close boxes, and can be moved, resized, minimised to a tab along the surface's bottom edge, maximised and restored; popups and menus are placed as the program puts them; modal windows block the windows beneath them. The host supplies only the surface, its input and a present call. The options mirror LinuxHostOptions and are published the same way, on the run's thread.
+
+   .. cpp:member:: std::string title
+
+      Default: ``{"GUI.Forms Application"}``.
+
+   .. cpp:member:: Size initial_size
+
+      A primary window takes the surface's size; other windows open at this client size, centred over their owner. Default: ``{1120.0, 680.0}``.
+
+   .. cpp:member:: Size minimum_size
+
+   .. cpp:member:: bool print_metrics_on_close
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool initially_visible
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool hide_on_close
+
+   .. cpp:member:: bool minimizable
+
+      Whether a framed window shows a minimise box. Default: ``{true}``.
+
+   .. cpp:member:: std::function<void(std::function<void()> show, std::function<void()> hide)> visibility_ready
+
+   .. cpp:member:: std::function<void(std::function<void()> toggle)> full_screen_ready
+
+      The primary window's full-screen toggle is the host's (a browser's requestFullscreen); other windows ignore it.
+
+   .. cpp:member:: std::function<void(std::function<HostServiceStatus(std::string_view)>)> title_ready
+
+      The primary window's title is the host's (a document's title).
+
+   .. cpp:member:: std::function<void(std::function<HostServiceStatus(Size)>)> client_size_ready
+
+      The primary window's client size is the surface's, decided by the host: its request is unsupported. Other windows are resized in the surface.
+
+   .. cpp:member:: std::function<void(HostCloseRequest &)> close_request
+
+   .. cpp:member:: std::function<void(std::function<void()> wake, std::function<void()> request_close, std::function<HostDialogResult(const HostDialogRequest &)> show_dialog, std::function<HostClipboardTextResult()> read_clipboard_text, std::function<HostServiceStatus(std::string_view)> write_clipboard_text)> host_ready
+
+   .. cpp:member:: std::function<void()> dispatch_pending
+
+   .. cpp:member:: std::function<void()> closed
 
 .. cpp:namespace:: gui_forms
 
@@ -3122,7 +3562,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (ApplicationWindow::popup); none for every other kind.
 
@@ -3188,7 +3628,7 @@ Related types
 
    .. cpp:member:: std::string capture_path
 
-      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
+      Portable frame capture (identical on every host). When capture_path is non-empty, after the first presented frame that covers the whole window the host encodes the presented framebuffer as PNG to that path, prints one JSON line {"automation":"capture","saved":true\|false,"path":"..."} to stdout, and requests close. The process exit code is 0 when the file was saved and non-zero otherwise. Only how the adapter obtains its framebuffer differs between hosts.
 
    .. cpp:member:: std::optional<Size> capture_size
 
@@ -3381,6 +3821,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BuildProfile
+
+   ``#include <gui_forms/build_profile/build_profile.hpp>``
+
+   .. cpp:enumerator:: standard
+
+   .. cpp:enumerator:: high_integrity
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: CompositorPresence
 
    ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
@@ -3432,6 +3882,32 @@ Enumerations
    .. cpp:enumerator:: released
 
    .. cpp:enumerator:: revoked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FirstFrameShowCause
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: frame_presented
+
+   .. cpp:enumerator:: deadline
+
+   .. cpp:enumerator:: immediate
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FirstFrameShowState
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   .. cpp:enumerator:: idle
+
+   .. cpp:enumerator:: waiting
+
+   .. cpp:enumerator:: shown
 
 .. cpp:namespace:: gui_forms
 
@@ -3530,6 +4006,26 @@ Enumerations
    .. cpp:enumerator:: window_corners
 
    .. cpp:enumerator:: window_state_reports
+
+   .. cpp:enumerator:: locale
+
+   .. cpp:enumerator:: hosted_content
+
+   .. cpp:enumerator:: relative_pointer
+
+   .. cpp:enumerator:: raw_pointer_motion
+
+   .. cpp:enumerator:: pointer_confinement
+
+   .. cpp:enumerator:: pointer_warp
+
+   .. cpp:enumerator:: open_url
+
+   .. cpp:enumerator:: direct_buffers
+
+   .. cpp:enumerator:: host_scroll
+
+   .. cpp:enumerator:: reference_presentation
 
 .. cpp:namespace:: gui_forms
 
@@ -3766,6 +4262,26 @@ Enumerations
    .. cpp:enumerator:: warning
 
    .. cpp:enumerator:: error
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostWeekday
+
+   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+
+   .. cpp:enumerator:: sunday
+
+   .. cpp:enumerator:: monday
+
+   .. cpp:enumerator:: tuesday
+
+   .. cpp:enumerator:: wednesday
+
+   .. cpp:enumerator:: thursday
+
+   .. cpp:enumerator:: friday
+
+   .. cpp:enumerator:: saturday
 
 .. cpp:namespace:: gui_forms
 
@@ -4074,6 +4590,18 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/build_profile/build_profile.hpp>``
+
+.. cpp:function:: BuildProfileRecord build_profile() noexcept
+
+   The library's build profile and allowances. Constant for the process; any thread.
+
+.. cpp:var:: constexpr BuildProfile compiled_build_profile
+
+   The profile the including unit is compiled with (high_integrity under GUI_FORMS_HIGH_INTEGRITY, else standard). build_profile() reports the library's; the link markers above keep the two equal. One declaration, so the reference documents it once. Value: ``detail::compiled_profile_of_unit()``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
 
 .. cpp:function:: const char* window_backdrop_name(WindowBackdrop backdrop) noexcept
@@ -4118,15 +4646,39 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 6> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 8> host_protocol_revisions
 
-   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
+   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}, {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and " "warp_pointer) and pointer event timestamps and scroll phases"}}}``.
 
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/host/types/host_capability/host_capability.hpp>``
 
+.. cpp:function:: constexpr HostCapability without_capability(HostCapability available, HostCapability removed) noexcept
+
+   ``available`` without the flags of ``removed``.
+
 .. cpp:function:: constexpr bool has_capability(HostCapability available, HostCapability requested) noexcept
+
+.. cpp:var:: constexpr HostCapability high_integrity_compiled_out_capabilities
+
+   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+
+.. cpp:function:: HostLocale portable_host_locale()
+
+   The fixed portable default, used where a host cannot say: HostLocale's member defaults. They are the patterns, names and separators the DateTimePicker and NumericUpDown drew before GUI.Forms read a host locale (English names, month-day-year dates, a twelve-hour clock, "." and ","), kept so a host that reports nothing draws as before; a choice, not a claim about any user's locale.
+
+.. cpp:function:: bool valid_host_locale(const HostLocale& locale)
+
+   Whether ``locale`` can be formatted with: every name and pattern non-empty valid UTF-8, the designators and separators valid UTF-8 (they may be empty), the decimal separator non-empty and different from the group separator, and a known first day.
+
+.. cpp:function:: std::string host_locale_json(const HostLocale& locale)
+
+   ``locale`` as one JSON object (HostCapabilities::to_json writes it under "locale").
 
 .. cpp:namespace:: gui_forms
 
@@ -4166,7 +4718,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent>
 
 .. cpp:namespace:: gui_forms
 
@@ -4193,6 +4745,22 @@ Functions, constants and aliases
 .. cpp:function:: DesktopDevicePoint desktop_device_point(std::span<const HostMonitor> device_monitors, DesktopLogicalPoint logical_point, double& scale) noexcept
 
    The inverse: finds the monitor whose logical frame contains the point (or the nearest logical frame) and maps it back to device units. Returns the point unchanged when ``device_monitors`` is empty. ``scale`` receives that monitor's scale (1 when there is none), which a caller uses to convert an extent placed at that point.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+.. cpp:function:: const char* first_frame_show_state_name(FirstFrameShowState state) noexcept
+
+.. cpp:function:: const char* first_frame_show_cause_name(FirstFrameShowCause cause) noexcept
+
+.. cpp:var:: constexpr std::chrono::milliseconds first_frame_show_ceiling
+
+   The ceiling the owner chose: a window waits at most this long, from its show request, for its first frame (ApplicationWindowOptions:: first_frame_show_ceiling's default). Value: ``{300}``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds maximum_first_frame_show_ceiling
+
+   The longest ceiling a program may ask for; a longer one is clamped to it, so that no option keeps a window off screen for long. Value: ``{1000}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4226,7 +4794,9 @@ Functions, constants and aliases
 
 .. cpp:function:: int run_linux(std::unique_ptr<Window> window, LinuxHostOptions options = {})
 
-.. cpp:function:: int run_linux_application(std::vector<LinuxApplicationWindow> linux, LinuxApplicationOptions application = {})
+   The host never changes the process locale; that belongs to the program. Input methods named by the environment (XMODIFIERS: ibus, fcitx) and the locale's compose sequences follow the process LC_CTYPE when the host opens its X input method, so a program that wants them calls std::setlocale(LC_CTYPE, "") before run_linux or run_linux_application. In the C locale each key still delivers its own UTF-8 text.
+
+.. cpp:function:: int run_linux_application(std::vector<LinuxApplicationWindow> windows, LinuxApplicationOptions application = {})
 
 .. cpp:type:: LinuxOpenWindow = std::function<HostWindowAdmission(LinuxApplicationWindow)>
 
@@ -4250,7 +4820,41 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
+``#include <gui_forms/platform/surface_host.hpp>``
+
+.. cpp:type:: SurfaceOpenWindow = std::function<HostWindowAdmission(SurfaceApplicationWindow)>
+
+   Opens one window while the application runs, as LinuxOpenWindow does. Callable on the run's thread while the run lives; afterwards it reports after_shutdown.
+
+.. cpp:namespace:: gui_forms::host
+
+``#include <gui_forms/platform/web_host.hpp>``
+
+.. cpp:function:: HostCapabilities web_capabilities()
+
+.. cpp:function:: int run_web_application(std::vector<WebApplicationWindow> windows, WebApplicationOptions application = {})
+
+   Runs the windows until the primary window closes and returns the exit code, as run_linux_application does: 0 after an ordinary close, 1 when the run failed, 2 when a window could not be opened. Call it on the program's thread (main under PROXY_TO_PTHREAD), never on the page's main thread, which must stay free for the browser (wrong_thread is reported as 3).
+
+.. cpp:function:: int run_web(std::unique_ptr<Window> window, WebHostOptions options = {})
+
+.. cpp:type:: WebHostOptions = SurfaceHostOptions
+
+   The browser host (Emscripten; owner decisions, 2026-11-15). The program runs on a worker thread (the page is linked with PROXY_TO_PTHREAD), so its event loop, nested modal loops included, blocks there as on a desktop, while the page's main thread keeps the browser's events, the canvas and WebGL2. The canvas (the element ``#gui-forms-canvas``, unless the page sets Module.guiFormsCanvas) is the one surface of GUI.Forms' window manager (surface_host.hpp): every window of the run is a layer the manager composes into it on the CPU, and the page shows the result as one WebGL2 texture. What a page cannot do is reported, not imitated (web_capabilities): no accessibility publication yet, no window frames outside the canvas, no tray, no sound cues, no clipboard images, no frame capture, no folder dialog. The open-file dialog is the browser's file chooser (files are copied into the program's file system under /web/files/<request>/); the save dialog is the browser's save chooser where it has one and a download otherwise, made when the program closes the file it wrote at the path the dialog returned. Message boxes are drawn by the host. The window types are the single-surface host's (surface_host.hpp).
+
+.. cpp:type:: WebApplicationWindow = SurfaceApplicationWindow
+
+.. cpp:type:: WebOpenWindow = SurfaceOpenWindow
+
+.. cpp:type:: WebApplicationOptions = SurfaceApplicationOptions
+
+.. cpp:namespace:: gui_forms::host
+
 ``#include <gui_forms/platform/windows_host.hpp>``
+
+.. cpp:function:: void accept_automation_environment() noexcept
+
+   Development opt-in, Windows only: after this call, a later run_windows_application (and so Application::run) honours GUI_FORMS_WINDOWS_AUTOMATION=1 in the process environment by turning on the automation channel (automation_enabled) in every window. Without the call the variable is ignored, and a build configured without GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT ignores it even after the call. It is for test probes that run through the portable Application API, whose options cannot ask for automation; a shipped program does not call it. Process-wide, callable from any thread, and never withdrawn.
 
 .. cpp:function:: HostCapabilities windows_capabilities()
 

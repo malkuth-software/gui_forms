@@ -170,8 +170,9 @@ FixtureCatalogue::FixtureCatalogue()
 }
 
 const FixtureCatalogue& FixtureCatalogue::instance() {
-    static const FixtureCatalogue catalogue;
-    return catalogue;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FixtureCatalogue* const catalogue = new const FixtureCatalogue();
+    return *catalogue;
 }
 
 static bool replace_path_prefix(std::string& path,

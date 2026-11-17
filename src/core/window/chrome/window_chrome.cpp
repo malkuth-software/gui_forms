@@ -8,6 +8,7 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "../../image/png_pixels.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <cstring>
 #include <new>
@@ -130,8 +131,8 @@ WindowChrome Window::chrome() const {
     WindowChrome request{};
     request.text = text.read();
     if (icon.read().value != 0U) {
-        const std::optional<ImageResourceView> found = image_resources().find(icon.read());
-        if (found.has_value()) request.icon = decode_icon(*found);
+        const stxlib::Optional<ImageResourceView> found = image_resources().find(icon.read());
+        if (found.present()) request.icon = decode_icon((*found.value()));
     }
     request.form_border_style = form_border_style.read();
     request.minimize_box = minimize_box.read();
@@ -172,7 +173,7 @@ void Window::written(const decltype(text)&) {
 
 void Window::prepare_write(const decltype(icon)&, ImageId& incoming) {
     require_root_thread("window icon");
-    if (incoming.value != 0U && !image_resources().find(incoming).has_value()) {
+    if (incoming.value != 0U && image_resources().find(incoming).absent()) {
         throw std::invalid_argument("GUI.Forms window icon is not an image of the window's registry");
     }
 }

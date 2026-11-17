@@ -7,6 +7,8 @@
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <stxlib/optional.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -16,7 +18,10 @@
 
 namespace gui_forms {
 
+class PartRaster;
+
 class Control;
+class LiveSurface;
 class Painter;
 
 // The by-role paint path (owner ruling, 2026-10-14: the atom vocabulary is the
@@ -92,9 +97,9 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
 // the order they were admitted in.
-inline constexpr std::array<std::string_view, 9> part_value_names{
+inline constexpr std::array<std::string_view, 10> part_value_names{
     {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
-     "text_tone", "pointed_face", "part_profile", "arc_angles"}};
+     "text_tone", "pointed_face", "part_profile", "arc_angles", "text_angle"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
 
@@ -141,7 +146,7 @@ enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into }
 // width, the flare by its height, all by maximum_part_shape.
 struct GUI_FORMS_API PartProfile final {
     double taper{};
-    std::optional<Color> taper_colour{};
+    stxlib::Optional<Color> taper_colour{};
     double flare{};
     Color flare_colour{};
     double edge_shadow{};
@@ -238,20 +243,20 @@ struct GUI_FORMS_API PartPaint final {
     ImageId image{};
     // A focus or preselect ring follows the same shape: a connected
     // segment's square corners, for one.
-    std::optional<double> corner_radius{};
+    stxlib::Optional<double> corner_radius{};
     // A pointed face (design language §8.5; owner decision 2026-11-02): the
     // surface's trailing end is a nose this many units long, its tip at the
     // middle of the right edge, as a raised breadcrumb segment's. Only
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
-    std::optional<double> point{};
+    stxlib::Optional<double> point{};
     // The nose is at the left edge instead, its tip at the middle of the
     // left edge: a right-to-left breadcrumb segment's (Control::
     // right_to_left). Read only with `point`.
     bool point_leading{};
     // The part's profile beside its rectangle (PartProfile), or none. Only
     // surface roles read it; a pointed face ignores it.
-    std::optional<PartProfile> profile{};
+    stxlib::Optional<PartProfile> profile{};
     // Whether the part draws its frame. A surface part with frame none is
     // its material's ground: the material's border and per-edge borders are
     // left out, and its fills, keylines, shadows and shape are kept. It is
@@ -265,7 +270,7 @@ struct GUI_FORMS_API PartPaint final {
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its
     // material; text and mark roles ignore it.
-    std::optional<AccentIndex> accent{};
+    stxlib::Optional<AccentIndex> accent{};
     // The colour the part shows as its content (design language 8.5; owner
     // decision W-7), such as a colour picker's sample, or none. Only the
     // fill role honours it: a fill with a content colour is painted that
@@ -277,7 +282,21 @@ struct GUI_FORMS_API PartPaint final {
     // high-contrast recipe, so the sample stays outlined), and when the
     // part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds
     // it, so a disabled swatch shows through its well, edge and label).
-    std::optional<Color> content_color{};
+    //
+    // A surface part (face or well) with a content colour draws its
+    // material, and the colours its theme rules write as CSS's currentcolor
+    // take the content colour instead of the text colour: a colour picker's
+    // field, spectrum and alpha ramp are gradient rules over the colour
+    // they show (the ColorPicker parts in the default and familiar themes'
+    // content rules). The dark variant's rule does not darken such a
+    // part's material. In forced high contrast (owner ruling, W-7: content
+    // is data, not chrome) the part keeps those fills inside high
+    // contrast's material: its border (or, without one, a 1-unit border in
+    // high contrast's text colour) frames them, and its shadows and glows
+    // are dropped. Without the theme engine (no window, or a theme whose
+    // rules write no fills for the part), the part draws its recipe and the
+    // colour is not shown.
+    stxlib::Optional<Color> content_color{};
     // The colours an application authored for this part (design language
     // 8.5; owner decision T4-1), or none, such as a DataGridView cell
     // style's BackColor and ForeColor. They stand where an inline style's
@@ -299,14 +318,14 @@ struct GUI_FORMS_API PartPaint final {
     // stands over both; a primitive that draws a theme material takes the
     // background in its material's fills, and a primitive's own colour
     // parameters do not read them.
-    std::optional<Color> authored_background{};
-    std::optional<Color> authored_foreground{};
+    stxlib::Optional<Color> authored_background{};
+    stxlib::Optional<Color> authored_foreground{};
     // The part's identity across frames (T2 GIVEN H3-1), or none. A part
     // with a key has a record in its window's engine part table; one without
     // is drawn statically, with no transitions and no cached raster. It is
     // identity, not vocabulary: it changes nothing a part looks like today.
     // Its views are borrowed for the call.
-    std::optional<PartKey> key{};
+    stxlib::Optional<PartKey> key{};
     // The control type whose theme rules style the part (an anatomy control
     // id, such as "v_scroll_bar"), when a control draws a part on behalf of
     // a stock control it embeds (a scrollable control's built-in scroll
@@ -325,10 +344,10 @@ struct GUI_FORMS_API PartPaint final {
     // (paint_text_part_at does), so the text is not measured again; none
     // otherwise. A cache, not vocabulary: it changes nothing drawn, and a
     // caller that sets it must have measured exactly `text` in `font`.
-    std::optional<Size> measured_text{};
+    stxlib::Optional<Size> measured_text{};
     // The arc and needle roles' angles (PartArc), or none, when neither
     // draws. Every other role ignores them.
-    std::optional<PartArc> arc{};
+    stxlib::Optional<PartArc> arc{};
     // The baked light planes the part is composited from (PartLightPlanes),
     // or none. Such a part is drawn as the bake's light, room · R +
     // Σ colour · power · L_i toned (engine_light::composite_light_planes),
@@ -340,7 +359,32 @@ struct GUI_FORMS_API PartPaint final {
     // recipe draws the part instead in forced high contrast, where the
     // role's colours stand, and when no raster of the part's size can be
     // made (ornament gives way first).
-    std::optional<PartLightPlanes> light_planes{};
+    stxlib::Optional<PartLightPlanes> light_planes{};
+    // A content surface's newest frame (the consumer's picture of a
+    // ContentSurface or ContentTextEditor), or none. Only the image role
+    // reads it: the frame is composed into `bounds` exactly as given
+    // (Painter::draw_live_surface), in ordinary and high-contrast
+    // presentation alike and disabled or not, as a content colour is
+    // (GIVEN E2-1); no rule or primitive restyles it. Shared for the call.
+    std::shared_ptr<LiveSurface> live_surface{};
+    // A text part's turn (D5 ruling of 2026-11-13: text at any angle), in
+    // degrees anticlockwise as seen, or 0. The text is laid out in `bounds`
+    // as an unturned horizontal line is, then the line turns this far about
+    // the bounds' centre (Painter::draw_rotated_text_utf8), clipped to the
+    // rectangle bounding the turned bounds; `orientation` is not read. The
+    // caller keeps that rectangle inside the control's paint area, so its
+    // damage covers the text. Only text roles read it; a non-finite angle
+    // draws no text.
+    double text_angle{};
+    // A picture the control rendered itself (a PartRaster, such as a 3D
+    // plot's frame), or null. The image role draws it as given, never
+    // tinted, dimmed or resampled, its top left at the top left of `bounds`
+    // (Painter::draw_part_raster); a raster of another display scale than
+    // the painter's is not drawn. It stands in place of `image`. Shared
+    // read-only for the call; a recording keeps it for as long as the
+    // recording lives, so its maker writes a raster again only while it
+    // holds the last reference. Every other role ignores it.
+    std::shared_ptr<const PartRaster> raster{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,

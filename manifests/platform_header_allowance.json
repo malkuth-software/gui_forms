@@ -1,0 +1,4 @@
+{
+  "description": "Files outside src/surface/<platform>/ that may still include a platform header, with their counts (tools/check_platform_headers.py). Shrink-only: lower or drop an entry as includes move to a host or to STXlib; never raise or add one.",
+  "files": {}
+}

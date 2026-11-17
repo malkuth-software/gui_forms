@@ -8,6 +8,7 @@
 #include "gui_forms/controls/calendar_values.hpp"
 #include "gui_forms/controls/month_calendar_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -52,7 +53,7 @@ public:
     // time-zone service) until set_today_date sets it.
     [[nodiscard]] DateTimeValue today_date() const noexcept { return set_today_.value_or(system_today_); }
     void set_today_date(DateTimeValue date);
-    [[nodiscard]] bool today_date_set() const noexcept { return set_today_.has_value(); }
+    [[nodiscard]] bool today_date_set() const noexcept { return set_today_.present(); }
     // The first day of the first month shown.
     [[nodiscard]] DateTimeValue first_displayed_month() const noexcept;
     // Scrolls the months shown by `months` (negative: back), within
@@ -94,6 +95,20 @@ public:
     // Raised when the user selects with the pointer (on release) or through
     // assistive technology, after date_changed.
     [[nodiscard]] Event<const CalendarDateRange&>& date_selected() noexcept { return date_selected_; }
+
+    // The provider and the first day of the week the calendar shows: its
+    // window's locale's (Control::effective_locale) while each follows the
+    // host locale, else the format_provider and first_day_of_week
+    // properties (exhibit gap E11). Each follows from construction until
+    // its property is written with a change; follow_host_locale() returns
+    // both to following. The provider reference stays valid until the next
+    // call on the calendar.
+    [[nodiscard]] const DateTimeFormatProvider& effective_format_provider() const;
+    [[nodiscard]] CalendarWeekday effective_first_day_of_week() const noexcept;
+    [[nodiscard]] bool follows_host_locale() const noexcept {
+        return provider_follows_locale_ && first_day_follows_locale_;
+    }
+    void follow_host_locale();
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -162,6 +177,10 @@ protected:
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_wheel(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    // A press whose capture is taken away (the sequence broken, the
+    // calendar or an ancestor made unavailable) ends the drag without
+    // date_selected.
+    void on_mouse_capture_changed() override;
     void on_key_down(KeyEventArgs& arguments) override;
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -224,31 +243,41 @@ private:
     // The system clock's date, read once at construction; set_today_ replaces
     // it once set_today_date has run, so the two cannot disagree.
     DateTimeValue system_today_{};
-    std::optional<DateTimeValue> set_today_{};
+    stxlib::Optional<DateTimeValue> set_today_{};
     std::int32_t first_year_{2000};
     std::uint8_t first_month_{1U};
     std::vector<DateTimeValue> bolded_{};
     std::vector<DateTimeValue> annually_bolded_{};
     std::vector<DateTimeValue> monthly_bolded_{};
-    std::optional<DateTimeValue> hot_date_{};
+    stxlib::Optional<DateTimeValue> hot_date_{};
     Zone hot_zone_{Zone::none};
     Zone pressed_zone_{Zone::none};
     bool dragging_{};
     bool focused_{};
+    // Whether the provider and the first day follow the locale
+    // (follows_host_locale), and the locale's provider with the locale
+    // generation it was made for.
+    bool provider_follows_locale_{true};
+    bool first_day_follows_locale_{true};
+    mutable stxlib::Optional<std::uint64_t> locale_provider_generation_{};
+    mutable DateTimeFormatProvider locale_provider_{};
     Event<const CalendarDateRange&> date_changed_{};
     Event<const CalendarDateRange&> date_selected_{};
     // property_codemod begin MonthCalendar (tools/property_families/month_calendar.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_font_changed();
 
 private:
     // The routed form of a key the raisers left unhandled.
     void handle_key(KeyEvent& event);
     // The target phase in the routed form, from the mouse raisers.
     void handle_pointer(PointerEvent& event);
+    // Ends a drag or arrow press the window broke without a release.
+    void end_broken_press();
     friend struct ShowTodayCapability<MonthCalendar>;
     friend struct ShowTodayCircleCapability<MonthCalendar>;
     friend struct ShowWeekNumbersCapability<MonthCalendar>;

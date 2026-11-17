@@ -62,6 +62,6 @@ operations. The window system supplies the blur; GUI.Forms paints only the
 tint and never reads other windows' pixels. Under reduced transparency or
 without a compositor the window is opaque.
 
-Full pages: [Themes](https://gui-forms.readthedocs.io/user/themes.html),
-[The theme language](https://gui-forms.readthedocs.io/user/theme-language.html),
-[Transparency, glass and reflections](https://gui-forms.readthedocs.io/user/transparency.html).
+Full pages: [Themes](https://gui-forms.readthedocs.io/en/latest/user/themes.html),
+[The theme language](https://gui-forms.readthedocs.io/en/latest/user/theme-language.html),
+[Transparency, glass and reflections](https://gui-forms.readthedocs.io/en/latest/user/transparency.html).

@@ -30,6 +30,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <iostream>
@@ -59,6 +60,14 @@ constexpr std::array<PartDeclaration, 1> pad_parts{{
 const ControlAnatomy pad_anatomy{
     .control_id = "pad", .parts = pad_parts, .states = {}, .custom_states = {}, .item_systems = {}};
 
+// A pad with a custom state (R2-13), for inline styles selecting it.
+constexpr std::array<CustomStateDeclaration, 1> lamp_pad_custom_states{{{.name = "lit"}}};
+const ControlAnatomy lamp_pad_anatomy{.control_id = "lamp_pad",
+                                      .parts = pad_parts,
+                                      .states = {},
+                                      .custom_states = lamp_pad_custom_states,
+                                      .item_systems = {}};
+
 // Draws nothing; a paint only plans and records the parts.
 class QuietPainter final : public Painter {
 public:
@@ -85,10 +94,16 @@ public:
         part.role = PartRole::face;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
-        part.key = PartKey{"face", {}, {}};
+        part.key.set(PartKey{"face", {}, {}});
         return part;
     }
     void on_paint(Painter& painter, Rect) override { paint_part(painter, *this, face()); }
+};
+
+class LampPad final : public Control {
+public:
+    explicit LampPad(StableId stable_id) : Control(std::move(stable_id)) {}
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override { return lamp_pad_anatomy; }
 };
 
 struct PadWindow final {
@@ -136,9 +151,9 @@ std::shared_ptr<const Theme> theme_from(std::string_view sheet) {
 
 std::size_t amplitude_index() {
     const EnginePrimitive* const bulge = builtin_primitive_registry().find("bulge");
-    const std::optional<std::size_t> found =
-        bulge == nullptr ? std::optional<std::size_t>{} : find_parameter((*bulge).descriptor(), "amplitude");
-    return found ? *found : 0U;
+    const stxlib::Optional<std::size_t> found =
+        bulge == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*bulge).descriptor(), "amplitude");
+    return found.present() ? (*found.value()) : 0U;
 }
 
 // The pad face's plan in its window.
@@ -180,9 +195,9 @@ ControlVisualRecipe high_contrast_recipe(const PadWindow& held) {
 
 std::size_t parameter_index(std::string_view primitive, std::string_view parameter) {
     const EnginePrimitive* const found = builtin_primitive_registry().find(primitive);
-    const std::optional<std::size_t> index =
-        found == nullptr ? std::optional<std::size_t>{} : find_parameter((*found).descriptor(), parameter);
-    return index ? *index : 0U;
+    const stxlib::Optional<std::size_t> index =
+        found == nullptr ? stxlib::Optional<std::size_t>::none() : find_parameter((*found).descriptor(), parameter);
+    return index.present() ? (*index.value()) : 0U;
 }
 
 std::size_t field_index(MaterialField field) { return static_cast<std::size_t>(field); }
@@ -423,6 +438,31 @@ void test_forms() {
             "a part the control lacks is dropped with W106");
 }
 
+// -- custom states ---------------------------------------------------------------------
+
+// An inline style's selectors name no control type: a custom state they
+// name is the style's own control's (cp32; before, W106 "no control type
+// to declare").
+void test_custom_states() {
+    const std::shared_ptr<LampPad> lamp = make_control<LampPad>(StableId("lamp"));
+    const InlineStyleResult declared = (*lamp).set_inline_style("::part(face):state(lit) { opacity: 0.5 }");
+    require(declared.succeeded() && declared.diagnostics().empty() && (*lamp).inline_style_rules() != nullptr &&
+                (*(*lamp).inline_style_rules()).rule_count() == 1U,
+            "a custom state the control declares is selected without a warning");
+    const InlineStyleResult negated = (*lamp).set_inline_style("::part(face):not(:state(lit)) { opacity: 0.5 }");
+    require(negated.succeeded() && negated.diagnostics().empty() && (*(*lamp).inline_style_rules()).rule_count() == 1U,
+            "and inside :not()");
+    const InlineStyleResult undeclared = (*lamp).set_inline_style("::part(face):state(dim) { opacity: 0.5 }");
+    bool named = false;
+    for (const ThemeCompileDiagnostic& diagnostic : undeclared.diagnostics()) {
+        if (diagnostic.code == "W106" && diagnostic.detail.find("lamp-pad declares no custom state dim") != std::string::npos) {
+            named = true;
+        }
+    }
+    require(undeclared.succeeded() && named && (*(*lamp).inline_style_rules()).rule_count() == 0U,
+            "a custom state the control lacks drops its selector with W106, naming the control");
+}
+
 // -- W401 -------------------------------------------------------------------------------
 
 void paint(PadWindow& held) {
@@ -456,6 +496,7 @@ int main() {
     test_material_under_forced_high_contrast();
     test_owned_by_the_control();
     test_forms();
+    test_custom_states();
     test_inline_with_theme();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";

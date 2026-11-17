@@ -32,7 +32,11 @@ namespace gui_forms {
 // have no WinForms counterpart: what the pointer did (action; enter and
 // leave reach no MouseEventArgs), the host's pointer identity (pointer_id;
 // one for the mouse), the route phase the raiser runs in (phase; target
-// for the raisers) and what wheel_delta counts (wheel_unit). The hosts
+// for the raisers), what wheel_delta counts (wheel_unit) and the event's
+// place in a scroll gesture (wheel_phase). timestamp_nanoseconds is when
+// the host took the event (PointerEvent: FrameClock nanoseconds, monotonic,
+// the same clock on every host), so a fling's speed is measured between
+// events and not by when a handler runs. The hosts
 // report no touch or pen data yet, so the record carries none.
 struct GUI_FORMS_API MouseEventArgs final {
     PointerButton button{PointerButton::none};
@@ -47,6 +51,8 @@ struct GUI_FORMS_API MouseEventArgs final {
     EventPhase phase{EventPhase::target};
     bool handled{};
     bool suppress_click{};
+    WheelPhase wheel_phase{WheelPhase::none};
+    std::uint64_t timestamp_nanoseconds{};
 };
 
 // The routed pointer event a MouseEventArgs carries, for code that takes
@@ -65,8 +71,67 @@ struct GUI_FORMS_API MouseEventArgs final {
     event.handled = arguments.handled;
     event.click_count = arguments.clicks;
     event.wheel_unit = arguments.wheel_unit;
+    event.wheel_phase = arguments.wheel_phase;
+    event.timestamp_nanoseconds = arguments.timestamp_nanoseconds;
     return event;
 }
+
+// The MouseEventArgs a routed pointer event carries on a control whose
+// absolute bounds start at `control_origin` (window coordinates): the
+// record the window hands the mouse raisers. location is the event's
+// position less control_origin, window_position the event's position;
+// clicks is `press_clicks` for a press or release (the window passes the
+// count the host reported for the press, which a release carries) and
+// zero otherwise; the button, wheel delta, modifiers, action, wheel unit,
+// wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click
+// is false. The window builds its raisers' arguments with this, so the
+// routed and raiser forms cannot drift apart; Control::
+// mouse_event_arguments fills the origin and click count for a handler of
+// the routed form. The caller copies handled (and a release's
+// suppress_click) back.
+[[nodiscard]] inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, Point control_origin,
+                                                          std::uint32_t press_clicks) noexcept {
+    const bool press = event.action == PointerAction::down;
+    const bool release = event.action == PointerAction::up;
+    MouseEventArgs arguments{};
+    arguments.button = event.button;
+    arguments.clicks = press || release ? press_clicks : 0U;
+    arguments.location = Point{event.position.x - control_origin.x, event.position.y - control_origin.y};
+    arguments.window_position = event.position;
+    arguments.wheel_delta = event.wheel_delta;
+    arguments.modifiers = event.modifiers;
+    arguments.action = event.action;
+    arguments.wheel_unit = event.wheel_unit;
+    arguments.wheel_phase = event.wheel_phase;
+    arguments.timestamp_nanoseconds = event.timestamp_nanoseconds;
+    arguments.pointer_id = event.pointer_id;
+    arguments.phase = event.phase;
+    arguments.handled = event.handled;
+    return arguments;
+}
+
+// Where the pointer is, as a window last saw it: the position of the last
+// pointer event the window dispatched, which is the event being dispatched
+// while its raisers run. MouseEnter and MouseLeave carry no arguments
+// (Windows Forms' EventArgs), so their handlers read the crossing here:
+// on_mouse_leave and on_mouse_enter run during the move that crossed (the
+// leave first, then the enter, both at that move's position), and the
+// window's own leave raises on_mouse_leave at the position the host
+// reported for it. location is in the asking control's coordinates (the
+// window's when the window is asked), window_position in the window's;
+// inside is false once the pointer has left the window, and before the
+// window has seen a pointer event (all zero then). A detached control
+// reports all zero.
+struct GUI_FORMS_API PointerLocation final {
+    Point location{};
+    Point window_position{};
+    bool inside{};
+
+    friend bool operator==(const PointerLocation& left, const PointerLocation& right) noexcept {
+        return left.location == right.location && left.window_position == right.window_position &&
+               left.inside == right.inside;
+    }
+};
 
 // Where a context-menu request came from: the pointer (a right press or
 // release, a Control-click on macOS) or the keyboard (Shift+F10 or the

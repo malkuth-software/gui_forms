@@ -100,6 +100,24 @@ void test_equivalence() {
     marks.reserve(16'383);
     for (std::size_t index = 0; index < 8191; ++index) marks.append("\xcc\x81");
     compare_existing(marks);
+    // A run of regional indicators pairs from its start (GB12, GB13), read
+    // from parity carried forward (A-gf-core-12-F2): 4,097 flag letters
+    // make 2,048 flags and a lone letter, also after a letter breaks a run.
+    std::string flags("a");
+    const std::string_view letter = "\xf0\x9f\x87\xa6";
+    for (std::size_t index = 0; index < 4097; ++index) flags.append(letter);
+    flags.append("b");
+    flags.append(letter);
+    flags.append(letter);
+    flags.append(letter);
+    compare_existing(flags);
+    const gui_forms::Utf8ValidationResult validation = gui_forms::validate_utf8(flags);
+    const std::vector<std::size_t> boundaries = extended_grapheme_boundaries(flags, validation.scalar_count);
+    // a, 2,048 pairs, the lone letter, b, one pair, the lone last letter.
+    require(boundaries.size() == 1U + 1U + 2048U + 1U + 1U + 1U + 1U, "regional indicators pair from each run's start");
+    require(boundaries[2] == 1U + 8U, "the first flag is the first two letters");
+    require(boundaries[2049] == 1U + 4096U * 4U, "the run's last letter stands alone");
+    require(boundaries[boundaries.size() - 2U] == 1U + 4097U * 4U + 1U + 8U, "the second run pairs from its start");
 }
 
 void test_preservation_and_moves() {

@@ -139,7 +139,7 @@
       "capability": "DateTimePickerFormatProvider",
       "value": "DateTimeFormatProvider",
       "initial": "DateTimeFormatProvider::english_united_states()",
-      "comment": "The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.",
+      "comment": "The month and day names and the patterns the value is shown with, once written; until then the host locale's (effective_format_provider). An invalid provider throws std::invalid_argument; a change closes an open calendar.",
       "getter": "format_provider",
       "setter": "set_format_provider",
       "clear": null,
@@ -150,7 +150,7 @@
       "table": null,
       "hooks": "hand",
       "hand": [
-        "prepare validates the provider; written closes the calendar and invalidates"
+        "prepare validates the provider; written stops following the host locale, closes the calendar and invalidates"
       ],
       "effects": null
     },
@@ -235,7 +235,7 @@
       "name": "drop_down_alignment",
       "capability": "DateTimePickerDropDownAlignment",
       "value": "DateTimeDropDownAlignment",
-      "initial": "DateTimeDropDownAlignment::left",
+      "initial": "DateTimeDropDownAlignment::start",
       "comment": "Which edge the calendar aligns to (DropDownAlign). An undeclared alignment throws std::invalid_argument.",
       "getter": "drop_down_alignment",
       "setter": "set_drop_down_alignment",
@@ -249,11 +249,11 @@
       "hand": [],
       "effects": "Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (incoming != DateTimeDropDownAlignment::left && incoming != DateTimeDropDownAlignment::right) {",
+        "if (incoming != DateTimeDropDownAlignment::start && incoming != DateTimeDropDownAlignment::end) {",
         "    throw std::invalid_argument(\"DateTimePicker drop-down alignment is invalid\");",
         "}"
       ],
-      "sample": "DateTimeDropDownAlignment::right"
+      "sample": "DateTimeDropDownAlignment::end"
     },
     {
       "name": "font",

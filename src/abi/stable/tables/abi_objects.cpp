@@ -9,9 +9,9 @@
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <array>
 #include <cstdint>
@@ -120,82 +120,91 @@ gf_status read_type_and_id(gf_utf8_view type_name, gf_utf8_view stable_id, SlotI
     return GF_STATUS_OK;
 }
 
+// enter_ui bound the thread for this call once *entered_ui is set.
+gf_status objects_create_body(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object, bool* entered_ui) {
+    if (object == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "create needs an object output");
+    }
+    std::size_t type = 0U;
+    std::string_view id_text;
+    const gf_status read = read_type_and_id(type_name, stable_id, create_slot, type, id_text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_status entered = registry().enter_ui(create_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *entered_ui = true;
+    const Component::Ptr made = create_catalog_type(type, StableId(std::string(id_text)));
+    if (made == nullptr && catalog_type_made_from_definition(type)) {
+        registry().unbind_if_idle();
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, create_slot,
+                    "this type is made only from a definition (custom controls: load_composite, "
+                    "create_composite)");
+    }
+    if (made == nullptr) {
+        // Bound for this call alone when nothing else holds the thread.
+        registry().unbind_if_idle();
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, create_slot,
+                    "create makes controls from a stable id and components from nothing; this type needs "
+                    "another object or a window (create_with)");
+    }
+    *object = registry().add_reference(made);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL objects_create(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
-        if (object == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "create needs an object output");
-        }
-        std::size_t type = 0U;
-        std::string_view id_text;
-        const gf_status read = read_type_and_id(type_name, stable_id, create_slot, type, id_text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status entered = registry().enter_ui(create_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const Component::Ptr made = create_catalog_type(type, StableId(std::string(id_text)));
-        if (made == nullptr) {
-            // Bound for this call alone when nothing else holds the thread.
-            registry().unbind_if_idle();
-            return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, create_slot,
-                        "create makes controls from a stable id and components from nothing; this type needs "
-                        "another object or a window (create_with)");
-        }
-        *object = registry().add_reference(made);
-        return GF_STATUS_OK;
-    } catch (...) {
-        const gf_status failed = fail_with_current_exception(create_slot);
-        // A throw after enter_ui bound the thread for this call must not
+    bool entered_ui = false;
+    bool* const entered_flag = &entered_ui;
+    const gf_status status =
+        call_slot(create_slot, objects_create_body, type_name, stable_id, object, entered_flag);
+    if (status != GF_STATUS_OK && entered_ui) {
+        // A failure after enter_ui bound the thread for this call must not
         // leave the library bound to it (N10). Nothing to undo otherwise.
         try {
             registry().unbind_if_idle();
         } catch (...) {
         }
-        return failed;
     }
+    return status;
+}
+
+gf_status objects_retain_body(gf_object object) {
+    const gf_status retained = registry().retain(object, retain_slot);
+    return retained;
 }
 
 gf_status GF_CALL objects_retain(gf_object object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(retain_slot.table_id, retain_slot.slot_index);
-        const gf_status retained = registry().retain(object, retain_slot);
-        return retained;
-    } catch (...) {
-        return fail_with_current_exception(retain_slot);
-    }
+    return call_slot(retain_slot, objects_retain_body, object);
+}
+
+gf_status objects_release_body(gf_object object) {
+    const gf_status released = registry().release(object, release_slot);
+    return released;
 }
 
 gf_status GF_CALL objects_release(gf_object object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(release_slot.table_id, release_slot.slot_index);
-        const gf_status released = registry().release(object, release_slot);
-        return released;
-    } catch (...) {
-        return fail_with_current_exception(release_slot);
+    return call_slot(release_slot, objects_release_body, object);
+}
+
+gf_status objects_dispose_body(gf_object object) {
+    Component::Ptr component;
+    const gf_status entered = enter_with_component(object, dispose_slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    // The subtree is read before the disposal detaches it; only these
+    // sources' subscriptions are visited afterwards (N8).
+    std::vector<const Component*> sources;
+    collect_disposal_sources(component, sources);
+    (*component).dispose();
+    registry().end_disposed_subscriptions(std::span<const Component* const>(sources));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_dispose(gf_object object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(dispose_slot.table_id, dispose_slot.slot_index);
-        Component::Ptr component;
-        const gf_status entered = enter_with_component(object, dispose_slot, component);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        // The subtree is read before the disposal detaches it; only these
-        // sources' subscriptions are visited afterwards (N8).
-        std::vector<const Component*> sources;
-        collect_disposal_sources(component, sources);
-        (*component).dispose();
-        registry().end_disposed_subscriptions(std::span<const Component* const>(sources));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(dispose_slot);
-    }
+    return call_slot(dispose_slot, objects_dispose_body, object);
 }
 
 // A control's stable id; a component's own id when its type has one, else
@@ -232,242 +241,260 @@ gf_object_state object_state_of(ComponentState state) noexcept {
     return GF_OBJECT_STATE_DISPOSED;
 }
 
-gf_status GF_CALL objects_state(gf_object object, gf_object_state* state) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(state_slot.table_id, state_slot.slot_index);
-        if (state == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
-        }
-        Component::Ptr component;
-        const gf_status entered = enter_with_component(object, state_slot, component);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *state = object_state_of((*component).component_state());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(state_slot);
+gf_status objects_state_body(gf_object object, gf_object_state* state) {
+    if (state == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
+    Component::Ptr component;
+    const gf_status entered = enter_with_component(object, state_slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *state = object_state_of((*component).component_state());
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL objects_state(gf_object object, gf_object_state* state) noexcept {
+    return call_slot(state_slot, objects_state_body, object, state);
+}
+
+gf_status objects_type_id_body(gf_object object, char* buffer, std::uint64_t capacity,
+                               std::uint64_t* required) {
+    Component::Ptr component;
+    const gf_status entered = enter_with_component(object, type_id_slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    // A window is not a schema type; its id is the windows table's. A
+    // composite control's is its definition's type: the document's name,
+    // its '-' written '_' (CompositeControl::type_name: "kit_card" for
+    // kit-card), not the shared schema entry composite_control, whose
+    // properties property_name_at still lists for it.
+    const bool window = dynamic_cast<const WindowHandle*>(component.get()) != nullptr;
+    const CompositeControl* const composite = dynamic_cast<const CompositeControl*>(component.get());
+    std::string_view id = catalog_type_id_of(*component);
+    if (window) {
+        id = std::string_view("window");
+    } else if (composite != nullptr) {
+        id = (*composite).type_name();
+    }
+    const gf_status written = write_text(id, buffer, capacity, required, type_id_slot);
+    return written;
 }
 
 gf_status GF_CALL objects_type_id(gf_object object, char* buffer, std::uint64_t capacity,
                                   std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(type_id_slot.table_id, type_id_slot.slot_index);
-        Component::Ptr component;
-        const gf_status entered = enter_with_component(object, type_id_slot, component);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        // A window is not a schema type; its id is the windows table's.
-        const bool window = dynamic_cast<const WindowHandle*>(component.get()) != nullptr;
-        const std::string_view id = window ? std::string_view("window") : catalog_type_id_of(*component);
-        const gf_status written = write_text(id, buffer, capacity, required, type_id_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(type_id_slot);
+    return call_slot(type_id_slot, objects_type_id_body, object, buffer, capacity, required);
+}
+
+gf_status objects_stable_id_body(gf_object object, char* buffer, std::uint64_t capacity,
+                                 std::uint64_t* required) {
+    Component::Ptr component;
+    const gf_status entered = enter_with_component(object, stable_id_slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const std::string_view id = stable_id_of(*component);
+    const gf_status written = write_text(id, buffer, capacity, required, stable_id_slot);
+    return written;
 }
 
 gf_status GF_CALL objects_stable_id(gf_object object, char* buffer, std::uint64_t capacity,
                                     std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(stable_id_slot.table_id, stable_id_slot.slot_index);
-        Component::Ptr component;
-        const gf_status entered = enter_with_component(object, stable_id_slot, component);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::string_view id = stable_id_of(*component);
-        const gf_status written = write_text(id, buffer, capacity, required, stable_id_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(stable_id_slot);
+    return call_slot(stable_id_slot, objects_stable_id_body, object, buffer, capacity, required);
+}
+
+gf_status objects_insert_child_body(gf_object parent, gf_object child, std::uint64_t index) {
+    Control::Ptr parent_control;
+    Control::Ptr child_control;
+    const gf_status entered = enter_with_object(parent, insert_child_slot, parent_control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const gf_status found = registry().find_object(child, insert_child_slot, child_control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (require_alive(*parent_control, insert_child_slot) != GF_STATUS_OK ||
+        require_alive(*child_control, insert_child_slot) != GF_STATUS_OK) {
+        return GF_STATUS_DISPOSED;
+    }
+    if ((*child_control).parent()) {
+        return fail(GF_STATUS_INVALID_STATE, insert_child_slot, "the child already has a parent");
+    }
+    Control::Ptr ancestor = parent_control;
+    while (ancestor) {
+        if (ancestor == child_control) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, insert_child_slot, "a control cannot be its own ancestor");
+        }
+        ancestor = (*ancestor).parent();
+    }
+    const std::uint64_t count = (*parent_control).children().size();
+    if (index > count) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, insert_child_slot, "the index is past the child count");
+    }
+    // The core counts from the top, as WinForms does: position index
+    // among count + 1 children is top index count - index. One core
+    // mutation, so a failure leaves the parent's children as they were.
+    // The core refuses a tree nested past maximum_control_tree_depth
+    // with ControlTreeDepthError, a std::length_error, which the slot
+    // gate's classifier reports as GF_STATUS_LIMIT_EXCEEDED.
+    const std::size_t from_top = static_cast<std::size_t>(count - index);
+    (*parent_control).insert_child(child_control, from_top);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_insert_child(gf_object parent, gf_object child, std::uint64_t index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(insert_child_slot.table_id, insert_child_slot.slot_index);
-        Control::Ptr parent_control;
-        Control::Ptr child_control;
-        const gf_status entered = enter_with_object(parent, insert_child_slot, parent_control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status found = registry().find_object(child, insert_child_slot, child_control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        if (require_alive(*parent_control, insert_child_slot) != GF_STATUS_OK ||
-            require_alive(*child_control, insert_child_slot) != GF_STATUS_OK) {
-            return GF_STATUS_DISPOSED;
-        }
-        if ((*child_control).parent()) {
-            return fail(GF_STATUS_INVALID_STATE, insert_child_slot, "the child already has a parent");
-        }
-        Control::Ptr ancestor = parent_control;
-        while (ancestor) {
-            if (ancestor == child_control) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, insert_child_slot, "a control cannot be its own ancestor");
-            }
-            ancestor = (*ancestor).parent();
-        }
-        const std::uint64_t count = (*parent_control).children().size();
-        if (index > count) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, insert_child_slot, "the index is past the child count");
-        }
-        // The core counts from the top, as WinForms does: position index
-        // among count + 1 children is top index count - index. One core
-        // mutation, so a failure leaves the parent's children as they were.
-        // The core refuses a tree nested past maximum_control_tree_depth
-        // with ControlTreeDepthError, a std::length_error, which
-        // fail_with_current_exception reports as GF_STATUS_LIMIT_EXCEEDED.
-        const std::size_t from_top = static_cast<std::size_t>(count - index);
-        (*parent_control).insert_child(child_control, from_top);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(insert_child_slot);
+    return call_slot(insert_child_slot, objects_insert_child_body, parent, child, index);
+}
+
+gf_status objects_remove_child_body(gf_object parent, gf_object child) {
+    Control::Ptr parent_control;
+    Control::Ptr child_control;
+    const gf_status entered = enter_with_object(parent, remove_child_slot, parent_control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const gf_status found = registry().find_object(child, remove_child_slot, child_control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (require_alive(*parent_control, remove_child_slot) != GF_STATUS_OK) {
+        return GF_STATUS_DISPOSED;
+    }
+    if ((*child_control).parent() != parent_control) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, remove_child_slot, "the child is not a child of the parent");
+    }
+    // The caller's reference keeps the removed child; it ends when that
+    // reference is released.
+    static_cast<void>((*parent_control).remove_child((*child_control).runtime_id()));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_remove_child(gf_object parent, gf_object child) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(remove_child_slot.table_id, remove_child_slot.slot_index);
-        Control::Ptr parent_control;
-        Control::Ptr child_control;
-        const gf_status entered = enter_with_object(parent, remove_child_slot, parent_control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const gf_status found = registry().find_object(child, remove_child_slot, child_control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        if (require_alive(*parent_control, remove_child_slot) != GF_STATUS_OK) {
-            return GF_STATUS_DISPOSED;
-        }
-        if ((*child_control).parent() != parent_control) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, remove_child_slot, "the child is not a child of the parent");
-        }
-        // The caller's reference keeps the removed child; it ends when that
-        // reference is released.
-        static_cast<void>((*parent_control).remove_child((*child_control).runtime_id()));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(remove_child_slot);
+    return call_slot(remove_child_slot, objects_remove_child_body, parent, child);
+}
+
+gf_status objects_child_count_body(gf_object parent, std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, child_count_slot, "child_count needs an output");
     }
+    Control::Ptr control;
+    const gf_status entered = enter_with_object(parent, child_count_slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *count = (*control).children().size();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_child_count(gf_object parent, std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(child_count_slot.table_id, child_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, child_count_slot, "child_count needs an output");
-        }
-        Control::Ptr control;
-        const gf_status entered = enter_with_object(parent, child_count_slot, control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *count = (*control).children().size();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(child_count_slot);
+    return call_slot(child_count_slot, objects_child_count_body, parent, count);
+}
+
+gf_status objects_child_at_body(gf_object parent, std::uint64_t index, gf_object* child) {
+    if (child == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "child_at needs an output");
     }
+    Control::Ptr control;
+    const gf_status entered = enter_with_object(parent, child_at_slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const Control::ChildView children = (*control).children();
+    if (index >= children.size()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "the index is past the last child");
+    }
+    *child = registry().add_reference(children[static_cast<std::size_t>(index)]);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_child_at(gf_object parent, std::uint64_t index, gf_object* child) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(child_at_slot.table_id, child_at_slot.slot_index);
-        if (child == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "child_at needs an output");
-        }
-        Control::Ptr control;
-        const gf_status entered = enter_with_object(parent, child_at_slot, control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const Control::ChildView children = (*control).children();
-        if (index >= children.size()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "the index is past the last child");
-        }
-        *child = registry().add_reference(children[static_cast<std::size_t>(index)]);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(child_at_slot);
+    return call_slot(child_at_slot, objects_child_at_body, parent, index, child);
+}
+
+gf_status objects_parent_body(gf_object object, gf_object* parent) {
+    if (parent == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, parent_slot, "parent needs an output");
     }
+    Control::Ptr control;
+    const gf_status entered = enter_with_object(object, parent_slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const Control::Ptr parent_control = (*control).parent();
+    *parent = parent_control ? registry().add_reference(parent_control) : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_parent(gf_object object, gf_object* parent) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(parent_slot.table_id, parent_slot.slot_index);
-        if (parent == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, parent_slot, "parent needs an output");
-        }
-        Control::Ptr control;
-        const gf_status entered = enter_with_object(object, parent_slot, control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const Control::Ptr parent_control = (*control).parent();
-        *parent = parent_control ? registry().add_reference(parent_control) : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(parent_slot);
+    return call_slot(parent_slot, objects_parent_body, object, parent);
+}
+
+gf_status objects_create_with_body(gf_utf8_view type_name, gf_utf8_view stable_id,
+                                   const gf_create_arguments* arguments, gf_object* object, bool* entered_ui) {
+    if (object == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot, "create_with needs an object output");
     }
+    if (arguments == nullptr || (*arguments).struct_size < create_arguments_size_1_0) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot,
+                    "create_with needs gf_create_arguments of at least the 1.0 size");
+    }
+    if (((*arguments).flags & ~static_cast<gf_create_flags>(GF_CREATE_FLAGS_COMBINABLE)) != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot, "unknown gf_create_flags bits are set");
+    }
+    CreateRequest request{};
+    std::string_view id_text;
+    const gf_status read = read_type_and_id(type_name, stable_id, create_with_slot, request.type, id_text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_status read_choices = read_enumeration((*arguments).enumeration, (*arguments).choices, (*arguments).choice_count,
+                         ((*arguments).flags & GF_CREATE_FLAGS_COMBINABLE) != 0U, create_with_slot,
+                         request.enumeration);
+    if (read_choices != GF_STATUS_OK) {
+        return read_choices;
+    }
+    request.value = (*arguments).value;
+    const gf_status entered = registry().enter_ui(create_with_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *entered_ui = true;
+    if ((*arguments).owner != 0U) {
+        const gf_status found = registry().find_component((*arguments).owner, create_with_slot, request.owner);
+        if (found != GF_STATUS_OK) {
+            registry().unbind_if_idle();
+            return found;
+        }
+    }
+    Component::Ptr made;
+    const gf_status created =
+        create_from_request(request, StableId(std::string(id_text)), create_with_slot, made);
+    if (created != GF_STATUS_OK) {
+        registry().unbind_if_idle();
+        return created;
+    }
+    *object = registry().add_reference(made);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL objects_create_with(gf_utf8_view type_name, gf_utf8_view stable_id,
                                       const gf_create_arguments* arguments, gf_object* object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_with_slot.table_id, create_with_slot.slot_index);
-        if (object == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot, "create_with needs an object output");
-        }
-        if (arguments == nullptr || (*arguments).struct_size < create_arguments_size_1_0) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot,
-                        "create_with needs gf_create_arguments of at least the 1.0 size");
-        }
-        if (((*arguments).flags & ~static_cast<gf_create_flags>(GF_CREATE_FLAGS_COMBINABLE)) != 0U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot, "unknown gf_create_flags bits are set");
-        }
-        CreateRequest request{};
-        std::string_view id_text;
-        const gf_status read = read_type_and_id(type_name, stable_id, create_with_slot, request.type, id_text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status read_choices = read_enumeration((*arguments).enumeration, (*arguments).choices, (*arguments).choice_count,
-                             ((*arguments).flags & GF_CREATE_FLAGS_COMBINABLE) != 0U, create_with_slot,
-                             request.enumeration);
-        if (read_choices != GF_STATUS_OK) {
-            return read_choices;
-        }
-        request.value = (*arguments).value;
-        const gf_status entered = registry().enter_ui(create_with_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if ((*arguments).owner != 0U) {
-            const gf_status found = registry().find_component((*arguments).owner, create_with_slot, request.owner);
-            if (found != GF_STATUS_OK) {
-                registry().unbind_if_idle();
-                return found;
-            }
-        }
-        Component::Ptr made;
-        const gf_status created =
-            create_from_request(request, StableId(std::string(id_text)), create_with_slot, made);
-        if (created != GF_STATUS_OK) {
+    bool entered_ui = false;
+    bool* const entered_flag = &entered_ui;
+    const gf_status status = call_slot(create_with_slot, objects_create_with_body, type_name, stable_id,
+                                       arguments, object, entered_flag);
+    if (status != GF_STATUS_OK && entered_ui) {
+        // As create (N10, A-gf-abi-03-F5): an exception after enter_ui bound
+        // the thread must not leave the library bound to it. The status
+        // paths have unbound already; a second call finds nothing to undo.
+        try {
             registry().unbind_if_idle();
-            return created;
+        } catch (...) {
         }
-        *object = registry().add_reference(made);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(create_with_slot);
     }
+    return status;
 }
 
 constexpr gf_objects_table table{

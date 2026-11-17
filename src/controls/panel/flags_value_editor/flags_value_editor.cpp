@@ -8,7 +8,9 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <optional>
@@ -67,7 +69,7 @@ FlagsValueEditor::FlagsValueEditor(StableId stable_id) : Panel(std::move(stable_
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 FlagsValueEditor::FlagsValueEditor(
@@ -268,8 +270,20 @@ void FlagsValueEditor::written(const decltype(overlay_width)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+namespace {
+// Clears an open-in-progress flag when it goes, also when the call that set
+// it throws.
+struct ClearOpeningOnExit final {
+    bool* flag{};
+    explicit ClearOpeningOnExit(bool* cleared) noexcept : flag(cleared) {}
+    ClearOpeningOnExit(const ClearOpeningOnExit&) = delete;
+    ClearOpeningOnExit& operator=(const ClearOpeningOnExit&) = delete;
+    ~ClearOpeningOnExit() { *flag = false; }
+};
+} // namespace
+
 void FlagsValueEditor::open_drop_down() {
-    if (dropped_down_ || !attached() || window() == nullptr) return;
+    if (dropped_down_ || opening_drop_down_ || !attached() || window() == nullptr) return;
     const Control::Ptr root = (*window()).root();
     if (!root) return;
     const Rect editor = absolute_bounds();
@@ -304,9 +318,9 @@ void FlagsValueEditor::open_drop_down() {
         editor.x, 0.0, std::max(0.0, client.width - list_width));
     (*list).set_requested_bounds({overlay_x, y, list_width, height});
     OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
-    const std::optional<Rect> face =
+    const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), editor, Size{overlay_width.read(), height}, editor.x);
-    const bool lifted = face.has_value() && lift_.lift(*window(), list, *face);
+    const bool lifted = face.present() && lift_.lift(*window(), list, (*face.value()));
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 
@@ -336,7 +350,27 @@ void FlagsValueEditor::open_drop_down() {
                 weak, &FlagsValueEditor::on_popup_window_closed));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
-    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    const Control::Ptr lifetime = shared_from_this();
+    // An open is in progress until the scope has begun: a handler reached
+    // from the focus move that asks to open again is served by this open
+    // (a second layer would repeat this one's stable IDs). Cleared on every
+    // way out; lifetime keeps the control while the guard writes it.
+    opening_drop_down_ = true;
+    const ClearOpeningOnExit opening{&opening_drop_down_};
+    const std::uint64_t scope = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    // Beginning the scope moves focus into the drop-down and runs the
+    // field's lost-focus and validation handlers before it returns; one may
+    // close the drop-down (or close it and open another). The scope is kept
+    // only for this call's layer still open; otherwise it is ended and the
+    // control stays closed, having published nothing (A-gf-controls-08-F3).
+    if (!is_alive()) return;
+    if (overlay_layer_ != layer || overlay_scope_ != 0U) {
+        if (window() != nullptr && scope != 0U) {
+            static_cast<void>((*window()).end_focus_scope(FocusScopeId{scope}));
+        }
+        return;
+    }
+    overlay_scope_ = scope;
     dropped_down_ = true;
     synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -455,8 +489,8 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ink{};
+    if (has_style_override()) ink.set(style().text);
     const double button_width = std::min(24.0, bounds.width);
     const double divider_x = std::max(0.0, bounds.width - button_width);
     PartPaint drop_down;
@@ -579,17 +613,17 @@ void FlagsValueEditor::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<FlagsValueEditor::Parts>, 6> flags_value_editor_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::edge},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::content},
-    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::divider},
-    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &FlagsValueEditor::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &FlagsValueEditor::Parts::disclosure},
 }};
 
@@ -618,6 +652,7 @@ constexpr ControlAnatomy flags_value_editor_anatomy{
     .parts = flags_value_editor_parts,
     .states = flags_value_editor_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

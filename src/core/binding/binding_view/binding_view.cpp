@@ -2,6 +2,7 @@
 
 #include "binding_view.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <bit>
 #include <functional>
@@ -229,13 +230,13 @@ std::size_t BindingView::row_of(std::size_t position) const {
     return row;
 }
 
-std::optional<std::size_t> BindingView::position_of(std::size_t row) const {
+stxlib::Optional<std::size_t> BindingView::position_of(std::size_t row) const {
     const std::uint32_t slot = source_order_.select(row);
     if (member_[slot] == 0U) {
-        return std::nullopt;
+        return stxlib::Optional<std::size_t>::none();
     }
     const std::size_t position = view_order_.rank(slot);
-    return position;
+    return stxlib::Optional<std::size_t>::of(position);
 }
 
 bool BindingView::uses_column(std::size_t column) const noexcept {

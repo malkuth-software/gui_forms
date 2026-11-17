@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <stdexcept>
@@ -487,7 +488,7 @@ void test_table_mixed_tracks_spans_and_lookup() {
                 (*spanning).arranged_bounds() == Rect{45.0, 35.0, 200.0, 30.0},
             "table cells and a three-column span must place preferred child sizes at cell origins");
     require((*table).cell_position(*automatic) ==
-                std::optional(TableLayoutCellPosition{2U, 0U}) &&
+                stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{2U, 0U}) &&
                 (*table).control_from_position(3U, 1U) == spanning &&
                 (*table).column_span[*spanning].read() == 3U &&
                 (*spanning).requested_bounds() == spanning_preferred,
@@ -521,21 +522,21 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
     window.perform_layout();
     require((*table).row_heights().size() == 2U &&
                 (*table).cell_position(*third) ==
-                    std::optional(TableLayoutCellPosition{0U, 1U}),
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{0U, 1U}),
             "AddRows must create the minimum runtime track for automatic overflow");
 
     (*second).visible = false;
     window.perform_layout();
     require((*table).row_heights().size() == 1U &&
                 (*table).cell_position(*third) ==
-                    std::optional(TableLayoutCellPosition{1U, 0U}),
+                    stxlib::Optional<TableLayoutCellPosition>::of(TableLayoutCellPosition{1U, 0U}),
             "hidden table children must release occupancy and collapse runtime tracks");
 
     (*second).visible = true;
     (*table).grow_style = TableLayoutGrowStyle::fixed_size;
     window.perform_layout();
     require((*table).layout_overflowed() && (*third).arranged_bounds().empty() &&
-                !(*table).cell_position(*third),
+                (*table).cell_position(*third).absent(),
             "fixed tables must report overflow and assign no overlapping slot");
 
     bool invalid_style_rejected = false;
@@ -552,6 +553,28 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
     }
     require(invalid_style_rejected && invalid_span_rejected,
             "table styles and spans must reject degenerate configuration before mutation");
+}
+
+// A-gf-controls-13-F8: a child the table refuses adds no tracks. With add_columns, a cell
+// past both the last column and the last row needed a column it got and a row it could not
+// get; the grid kept the column.
+void test_table_refused_child_adds_no_tracks() {
+    std::shared_ptr<gui_forms::TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.refused"));
+    (*table).column_count = 2U;
+    (*table).row_count = 1U;
+    (*table).grow_style = TableLayoutGrowStyle::add_columns;
+    std::shared_ptr<Button> placed = sized_button("layout.table.refused.placed", 30.0, 20.0);
+    std::shared_ptr<Button> beyond = sized_button("layout.table.refused.beyond", 30.0, 20.0);
+    (*table).add_child(placed);
+    (*table).add_child(beyond);
+    (*table).cell[*beyond] = GridCell{.row = 3U, .column = 4U};
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{200.0, 80.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    require((*table).layout_overflowed() && (*table).column_widths().size() == 2U &&
+                (*table).row_heights().size() == 1U,
+            "a child the table cannot place leaves the grid's tracks as they were");
 }
 
 void test_table_cell_dock_fill_consumes_growth() {
@@ -672,9 +695,9 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
                 (*grouped).requested_bounds() == grouped_preferred,
             "scaled layout must publish retained slots without overwriting authored bounds");
     require((*root).design_bounds(*child) ==
-                std::optional(Rect{10.0, 20.0, 30.0, 40.0}) &&
+                stxlib::Optional<Rect>::of(Rect{10.0, 20.0, 30.0, 40.0}) &&
                 (*group).design_bounds(*grouped) ==
-                std::optional(Rect{5.0, 10.0, 20.0, 15.0}),
+                stxlib::Optional<Rect>::of(Rect{5.0, 10.0, 20.0, 15.0}),
             "scaled layouts must retain queryable authored geometry");
 
     (*root).set_design_bounds(*child, {20.0, 10.0, 40.0, 20.0});
@@ -683,7 +706,7 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
             "runtime slot mutation must relayout without a custom subclass");
     static_cast<void>((*root).remove_child((*child).runtime_id()));
     window.perform_layout();
-    require(!(*root).design_bounds(*child),
+    require((*root).design_bounds(*child).absent(),
             "scaled layouts must revoke detached child metadata deterministically");
 
     bool invalid_size_rejected = false;
@@ -780,7 +803,7 @@ void test_insert_child_is_one_mutation() {
                 (*root).children()[1] == middle &&
                 (*root).children()[2] == top,
             "insert_child must place a new child at its top-counted index");
-    require((*root).child_index_from_top((*middle).runtime_id()) == std::optional<std::size_t>(1U),
+    require((*root).child_index_from_top((*middle).runtime_id()) == stxlib::Optional<std::size_t>::of(1U),
             "insert_child index must read back through child_index");
     (*root).insert_child(middle, 0U);
     require((*root).children()[2] == middle && (*root).children().size() == 3U,
@@ -1152,6 +1175,7 @@ int main() {
         test_layout_panels_revalidate_snapshot_after_measure_callback();
         test_table_mixed_tracks_spans_and_lookup();
         test_table_growth_hidden_children_and_fixed_overflow();
+        test_table_refused_child_adds_no_tracks();
         test_table_cell_dock_fill_consumes_growth();
         test_table_track_spacing_is_relational_and_bounded();
         test_table_border_paint_is_public_geometry();

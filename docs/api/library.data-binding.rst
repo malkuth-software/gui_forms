@@ -326,7 +326,11 @@ Types
 
    .. cpp:member:: DataSourceUpdateMode data_source_update_mode
 
+      Default: ``{DataSourceUpdateMode::on_validation}``.
+
    .. cpp:member:: ControlUpdateMode control_update_mode
+
+      Default: ``{ControlUpdateMode::on_property_changed}``.
 
    .. cpp:member:: bool formatting_enabled
 
@@ -515,7 +519,11 @@ Types
 
       The column at index (below size()).
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view name) const
+   .. cpp:function:: const std::string& spelling(std::size_t index) const&
+
+      The column's name at index as its provider wrote it (trimmed, letters as given: "City"), for display, such as a generated grid column's header; column(index).name is the canonical match key ("city").
+
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view name) const
 
       The index of the column named name in any spelling that folds to it, or empty. A name that is blank finds nothing.
 
@@ -658,7 +666,7 @@ Types
 
    .. cpp:function:: bool editable(std::size_t row) const
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view stable_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view stable_id) const
 
       The row's index, found by a linear search.
 
@@ -894,9 +902,9 @@ Types
 
       Records an edit already stored. A replacement needs room reserved for its position; a position past the bitset's reach (2^32) lowers the watermark instead.
 
-   .. cpp:function:: std::optional<std::size_t> take(std::vector<std::uint32_t>& replaced)
+   .. cpp:function:: stxlib::Optional<std::size_t> take(std::vector<std::uint32_t>& replaced)
 
-      Appends the replaced positions below the watermark to ``replaced``, in increasing order (the caller's storage, reused; not emptied first), clears the record and returns the watermark, or nullopt when no structural edit is pending. If appending fails, the record becomes "everything dirty" (watermark 0) for the next take, and the failure propagates.
+      Appends the replaced positions below the watermark to ``replaced``, in increasing order (the caller's storage, reused; not emptied first), clears the record and returns the watermark, or none when no structural edit is pending. If appending fails, the record becomes "everything dirty" (watermark 0) for the next take, and the failure propagates.
 
    .. cpp:function:: void clear() noexcept
 
@@ -944,9 +952,9 @@ Types
 
       The element at :cpp:func:`index <gui_forms::CollectionEdit::index>` replaced by another value.
 
-   .. cpp:function:: std::optional<std::size_t> remap(std::size_t before) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> remap(std::size_t before) const noexcept
 
-      Where an element at position ``before`` is after the edit, or nullopt when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
+      Where an element at position ``before`` is after the edit, or none when the edit removed it. An assignment keeps the positions below its new length (the elements there are new; the position is what a selection without stable identities keeps); a replacement keeps every position.
 
 .. cpp:namespace:: gui_forms
 
@@ -1123,7 +1131,7 @@ Types
 
       Default: ``{NumberFormatKind::general}``.
 
-   .. cpp:member:: std::optional<std::uint32_t> precision
+   .. cpp:member:: stxlib::Optional<std::uint32_t> precision
 
       Empty for the kind's default: 2 for F, N, P and C; 6 for E. For G an empty or zero precision gives a double's shortest text that parses back to the same value (scientific from an exponent of 15 or below -5) and an integer's every digit.
 
@@ -1254,6 +1262,8 @@ Types
    .. cpp:member:: bool invalidates_subtree
 
    .. cpp:member:: PropertySerializationVisibility serialization_visibility
+
+      Default: ``{PropertySerializationVisibility::visible}``.
 
    .. cpp:member:: bool readable
 
@@ -1428,7 +1438,7 @@ Types
 
       Default: ``{true}``.
 
-   .. cpp:member:: std::optional<BindingValueKind> declared_kind
+   .. cpp:member:: stxlib::Optional<BindingValueKind> declared_kind
 
       Optional schema is required when a member's current value is null and may also pin conversion/editor services independently of its owner.
 
@@ -1902,7 +1912,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/binding/number_format/number_format.hpp>``
 
-.. cpp:function:: std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept
+.. cpp:function:: stxlib::Optional<NumberFormat> parse_number_format(std::string_view text) noexcept
 
    The format a format string names: one of the letters F, N, P, C, E and G in either case, then at most two decimal digits. Empty for any other text, the empty string included (an empty format string means "no format" to its callers, not a format).
 
@@ -2062,7 +2072,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr TypeTag<BindingValue> binding_value
 
-.. cpp:var:: constexpr TypeTag<std::optional<Color>> optional_color
+.. cpp:var:: constexpr TypeTag<stxlib::Optional<Color>> optional_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2080,13 +2090,13 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string binding_value_to_string(const BindingValue& value)
 
-.. cpp:function:: std::optional<bool> binding_value_to_bool(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<bool> binding_value_to_bool(const BindingValue& value) noexcept
 
-.. cpp:function:: std::optional<std::int64_t> binding_value_to_signed(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<std::int64_t> binding_value_to_signed(const BindingValue& value) noexcept
 
-.. cpp:function:: std::optional<std::uint64_t> binding_value_to_unsigned(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<std::uint64_t> binding_value_to_unsigned(const BindingValue& value) noexcept
 
-.. cpp:function:: std::optional<double> binding_value_to_number(const BindingValue& value) noexcept
+.. cpp:function:: stxlib::Optional<double> binding_value_to_number(const BindingValue& value) noexcept
 
 .. cpp:function:: std::optional<BindingValue> convert_binding_value(const BindingValue& value, BindingValueKind target_kind)
 

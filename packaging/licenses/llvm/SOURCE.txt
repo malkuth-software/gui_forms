@@ -1,0 +1,7 @@
+LLVM 22.1.8 runtime licence notices (libc++, libc++abi, libunwind), the
+files libcxx/LICENSE.TXT, libcxxabi/LICENSE.TXT and libunwind/LICENSE.TXT of
+https://github.com/llvm/llvm-project/tree/llvmorg-22.1.8.
+Linux programs link libc++ 22, libc++abi and libunwind statically
+(cmake/llvm22.cmake; apt.llvm.org's libc++-22-dev, libc++abi-22-dev and
+libunwind-22-dev on Ubuntu) and carry these notices; macOS and Windows take
+theirs from their runtime trees (packaging/licenses.json).

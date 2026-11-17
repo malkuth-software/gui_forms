@@ -26,10 +26,13 @@ gui_forms::ModalLayer
 
       **is_shown** : ``bool``, read-only
 
+      **scrim_opacity** : ``double``, read-only
+         The scrim's opacity now, as a factor on the theme's: it fades in from 0 over modal_scrim_fade as the layer opens (ease out, on a paint-gated timer, ADR-016), and is 1 at once under reduced motion or in an occluded window. The content and its shadow show at once, and closing removes the layer at once.
+
       **content** : ``Control::Ptr``, read-only
          The content while shown, else empty.
 
-      **result** : ``std::optional<DialogResult>``, read-only
+      **result** : ``stxlib::Optional<DialogResult>``, read-only
          The result of the last closing, or none before the first.
 
       **parts** : ``Parts``, read-only
@@ -39,6 +42,9 @@ gui_forms::ModalLayer
       **closing** : ``Event<ModalLayerClosingEvent&>``
 
       **closed** : ``Event<DialogResult>``
+
+      **outside_pressed** : ``Event<>``
+         A primary or secondary press while shown that fell beside the content (the layer takes it either way): a light-dismiss owner closes on it.
 
    :Inherited:
 
@@ -71,11 +77,15 @@ gui_forms::ModalLayer
 
    .. cpp:function:: bool is_shown() const noexcept
 
+   .. cpp:function:: double scrim_opacity() const noexcept
+
+      The scrim's opacity now, as a factor on the theme's: it fades in from 0 over modal_scrim_fade as the layer opens (ease out, on a paint-gated timer, ADR-016), and is 1 at once under reduced motion or in an occluded window. The content and its shadow show at once, and closing removes the layer at once.
+
    .. cpp:function:: Control::Ptr content() const noexcept
 
       The content while shown, else empty.
 
-   .. cpp:function:: std::optional<DialogResult> result() const noexcept
+   .. cpp:function:: stxlib::Optional<DialogResult> result() const noexcept
 
       The result of the last closing, or none before the first.
 
@@ -87,6 +97,10 @@ gui_forms::ModalLayer
    .. cpp:function:: Event<ModalLayerClosingEvent&>& closing() noexcept
 
    .. cpp:function:: Event<DialogResult>& closed() noexcept
+
+   .. cpp:function:: Event<>& outside_pressed() noexcept
+
+      A primary or secondary press while shown that fell beside the content (the layer takes it either way): a light-dismiss owner closes on it.
 
 
    .. rubric:: Methods
@@ -150,7 +164,7 @@ gui_forms::ModalLayer
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 4 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -177,6 +191,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
      - GUI.Forms-only
      - ``result``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrim_opacity``
+     - supported
    * - event
      - GUI.Forms-only
      - ``closed``
@@ -185,6 +203,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
      - GUI.Forms-only
      - ``closing``
      - supported
+   * - event
+     - GUI.Forms-only
+     - ``outside_pressed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``close``

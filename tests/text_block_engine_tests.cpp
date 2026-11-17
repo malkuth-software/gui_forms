@@ -1,6 +1,6 @@
 // Stage L, phase L8a: what TextBlock reaches through the bundled text
 // engine (PLAN section 12). The engine's UAX #14 break opportunities
-// (libunibreak 8.0, admitted to the text engine by the owner on 2026-10-26)
+// (stxlib::textlayout, Unicode 18.0.0; libunibreak 8.0 until 2026-11-16)
 // against the white-space estimate; the faces' unrounded design metrics;
 // and the line boxes they give, which are Chromium's (measured against
 // Chrome 155 headless: Carlito 15 px tall at 13 px and 24 px at 19.5 px,
@@ -9,6 +9,8 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
 #include "harfbuzz_font_engine.hpp"
+#include "../textlayout/text_analysis.hpp"
+#include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 
 #include <array>
 #include <cmath>
@@ -19,6 +21,8 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
+#include <stxlib/text.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -32,6 +36,14 @@ using render::text::HarfBuzzFontEngine;
 
 void require(bool condition, const std::string& message) {
     if (!condition) throw std::runtime_error(message);
+}
+
+// A baseline the test expects; none fails the test instead of reading an
+// absent value.
+double present_baseline(const stxlib::Optional<double>& baseline, const std::string& what) {
+    require(baseline.present(), what + ": a baseline");
+    const double value = *baseline.value();
+    return value;
 }
 
 void require_near(double actual, double expected, double tolerance, const std::string& what) {
@@ -116,6 +128,21 @@ void test_break_opportunities() {
     require(line_feed[1] == LineBreakOpportunity::mandatory, "a line feed ends its line");
     require(estimated_breaks("a\nb")[1] == LineBreakOpportunity::mandatory, "in the estimate too");
 
+    // Where stxlib::textlayout follows UAX #14 (Unicode 18.0.0) and
+    // libunibreak 8.0 did not (docs/TEXTLAYOUT.md in STXlib): BA x GL is no
+    // break since rule LB12a stopped excepting BA, and "++" (PR PR) may
+    // break, libunibreak's own tailoring kept it whole. The BA character is
+    // U+2013 EN DASH: U+2010 HYPHEN is class HH, which LB12a still excepts
+    // ([^SP HY HH] x GL), so a break after it stays allowed.
+    const std::vector<LineBreakOpportunity> glued = engine_breaks("a\xE2\x80\x93\xC2\xA0" "b");
+    require(glued[3] == LineBreakOpportunity::prohibited, "no break between U+2013 and a no-break space");
+    const std::vector<LineBreakOpportunity> hyphened = engine_breaks("a\xE2\x80\x90\xC2\xA0" "b");
+    require(hyphened[3] == LineBreakOpportunity::allowed, "a break between U+2010 (HH) and a no-break space");
+    const std::vector<LineBreakOpportunity> pluses = engine_breaks("a++b");
+    require(pluses[0] == LineBreakOpportunity::prohibited && pluses[1] == LineBreakOpportunity::allowed &&
+                pluses[2] == LineBreakOpportunity::prohibited,
+            "a break between two prefix signs, none around them");
+
     std::array<LineBreakOpportunity, 2> short_storage{LineBreakOpportunity::allowed, LineBreakOpportunity::allowed};
     require(HarfBuzzFontEngine::fill_line_break_opportunities_utf8("abc", short_storage) ==
                 TextResolutionStatus::invalid_request,
@@ -133,6 +160,40 @@ void test_break_opportunities() {
             "an empty text has nothing to fill");
 }
 
+// The engine's bidi analysis (TextAnalysis over stxlib::textlayout): a
+// paragraph reordered as one line gives its runs in visual order with byte
+// offsets; analysing it again reuses the storage (no text_layout change), and
+// release gives back exactly what was counted.
+void test_bidi_analysis() {
+    using render::text::TextAnalysis;
+    const std::string_view mixed = "abc \xD7\x90\xD7\x91\xD7\x92 def";
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(mixed.data(), mixed.size());
+    require(validated.succeeded(), "the mixed text is UTF-8");
+    const stxlib::TextView text = *validated.value();
+    TextAnalysis analysis{};
+    const std::size_t length = render::text::analyse_paragraph_line(text, 0U, analysis);
+    require(length == mixed.size(), "one paragraph");
+    const stxlib::View<stxlib::textlayout::BidiRun> runs = analysis.line.runs();
+    require(runs.count() == 3U, "three runs");
+    require(runs[0].offset == 0U && runs[0].length == 4U && runs[0].level == 0U, "the Latin start");
+    require(runs[1].offset == 4U && runs[1].length == 6U && runs[1].level == 1U, "the Hebrew run, right to left");
+    require(runs[2].offset == 10U && runs[2].length == 4U && runs[2].level == 0U, "the Latin end");
+    const std::size_t held = analysis.bytes_held();
+    require(held != 0U, "the analysis holds storage");
+    const AllocationScope steady{};
+    for (int repeat = 0; repeat < 8; ++repeat) {
+        static_cast<void>(render::text::analyse_paragraph_line(text, 0U, analysis));
+    }
+    const AllocationCounts again = steady.counted().of(AllocationSubsystem::text_layout);
+    require(again.allocations == 0U && again.releases == 0U && analysis.bytes_held() == held,
+            "a paragraph analysed again reuses its storage");
+    const AllocationScope released{};
+    analysis.release();
+    const AllocationCounts freed = released.counted().of(AllocationSubsystem::text_layout);
+    require(analysis.bytes_held() == 0U && freed.releases == 1U && freed.released_bytes == held,
+            "release counts back what was held");
+}
+
 FontSpec content(double size) {
     const FontSpec font{FontRole::content, size, 400, false, 0.0};
     return font;
@@ -141,8 +202,8 @@ FontSpec content(double size) {
 void require_line_box(HarfBuzzFontEngine& engine, double size, double height, double baseline,
                       const std::string& face) {
     const ResolvedTextLayout primary = engine.resolve(" ", content(size));
-    require(primary.design_metrics.has_value(), face + " resolves its design metrics");
-    const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
+    require(primary.design_metrics.present(), face + " resolves its design metrics");
+    const LineBoxMetrics line = line_box_metrics(primary, stxlib::Optional<double>::none());
     require_near(line.height, height, 0.0, face + " " + std::to_string(size) + " px line-height: normal");
     require_near(line.baseline, baseline, 0.0, face + " " + std::to_string(size) + " px baseline");
 }
@@ -153,7 +214,7 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     require(carlito.register_typeface(FontRole::content, 400, false, carlito_bytes).has_value(),
             "Carlito registers");
     const ResolvedTextLayout resolved = carlito.resolve("Settings", content(13.0));
-    const FontVerticalMetrics design = resolved.design_metrics.value();
+    const FontVerticalMetrics design = (*resolved.design_metrics.value());
     require_near(design.ascent, 1950.0 * 13.0 / 2048.0, 1.0e-9, "Carlito's hhea ascender at 13 px");
     require_near(design.descent, 550.0 * 13.0 / 2048.0, 1.0e-9, "its descender");
     require_near(design.line_gap, 0.0, 1.0e-9, "and no line gap");
@@ -177,14 +238,14 @@ void test_design_metrics_and_line_boxes(const std::filesystem::path& fonts) {
     // px line box, and as wide as the engine shapes it.
     EngineMetrics metrics(carlito);
     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("engine.text"), "Settings");
-    (*block).font = content(13.0);
+    (*block).font = stxlib::Optional<FontSpec>::of(content(13.0));
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{400.0, 300.0});
     (*held).set_text_metrics_provider(&metrics);
     const LayoutConstraint widest{max_content_extent(), max_content_extent()};
     const Size measured = (*block).measure_for_layout(widest);
     require_near(measured.width, resolved.logical_size.width, 0.0, "the block is as wide as its shaped line");
     require_near(measured.height, 15.0, 0.0, "and one line box tall");
-    require_near((*block).first_baseline(measured.width).value(), 12.0, 0.0, "its baseline is Chromium's");
+    require_near(present_baseline((*block).first_baseline(measured.width), "its baseline is Chromium's"), 12.0, 0.0, "its baseline is Chromium's");
 }
 
 } // namespace
@@ -193,6 +254,7 @@ int main(int argument_count, char** arguments) {
     try {
         require(argument_count == 2, "usage: gui_forms_text_block_engine_tests <assets/fonts>");
         test_break_opportunities();
+        test_bidi_analysis();
         test_design_metrics_and_line_boxes(std::filesystem::path(arguments[1]));
         std::cout << "text-block-engine-tests: pass\n";
         return EXIT_SUCCESS;

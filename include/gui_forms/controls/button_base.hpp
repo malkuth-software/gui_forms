@@ -16,6 +16,8 @@
 #include <string>
 #include <string_view>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 class Command;
@@ -36,7 +38,7 @@ public:
 
     [[nodiscard]] const BasicControlStyle& style() const noexcept;
     [[nodiscard]] bool has_style_override() const noexcept {
-        return style_override_.has_value();
+        return style_override_.present();
     }
     void set_style(BasicControlStyle style);
     void clear_style();
@@ -46,14 +48,21 @@ public:
     }
     void set_visual_recipes(ControlStateRecipes recipes);
     void clear_visual_recipes();
-    [[nodiscard]] const std::optional<ConnectedControlTopology>&
+    [[nodiscard]] const stxlib::Optional<ConnectedControlTopology>&
     connection_topology() const noexcept {
         return connection_topology_;
     }
-    // Nullopt is a standalone control. A non-null value is explicit authored
+    // None is a standalone control. A topology is explicit authored
     // topology; layout coordinates are never consulted to infer connection.
-    void set_connection_topology(
-        std::optional<ConnectedControlTopology> topology);
+    void set_connection_topology(stxlib::Optional<ConnectedControlTopology> topology);
+    // The standard form, kept for one stage (D15 Q3).
+    [[deprecated("pass stxlib::Optional<ConnectedControlTopology>")]]
+    void set_connection_topology(std::optional<ConnectedControlTopology> topology) {
+        set_connection_topology(connected_topology_from_standard(topology));
+    }
+    // A plain topology is refused rather than routed to the deprecated
+    // form: pass stxlib::Optional<ConnectedControlTopology>::of(topology).
+    void set_connection_topology(ConnectedControlTopology topology) = delete;
     void clear_image();
     [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept {
         return image_list_;
@@ -76,7 +85,7 @@ public:
     [[nodiscard]] bool focused_visual() const noexcept { return focused_; }
     [[nodiscard]] bool focus_cue_visible() const noexcept;
     [[nodiscard]] bool hovered_visual() const noexcept { return hovered_; }
-    [[nodiscard]] Event<std::optional<bool>>& expanded_changed() noexcept {
+    [[nodiscard]] Event<stxlib::Optional<bool>>& expanded_changed() noexcept {
         return expanded_changed_;
     }
     [[nodiscard]] Event<ButtonBase&>& clicked() noexcept { return clicked_; }
@@ -138,8 +147,8 @@ protected:
     // applied only when painting.
     struct GUI_FORMS_API ContentLayout final {
         // None when the button shows no text, or no image.
-        std::optional<Rect> text{};
-        std::optional<Rect> image{};
+        stxlib::Optional<Rect> text{};
+        stxlib::Optional<Rect> image{};
         double line_height{};
     };
 
@@ -171,7 +180,7 @@ protected:
     struct GUI_FORMS_API ButtonContentInk final {
         ControlVisualRole family{ControlVisualRole::button};
         AnatomyStateSet states{};
-        std::optional<Color> authored{};
+        stxlib::Optional<Color> authored{};
     };
     // The image and the text lines laid out in `bounds`, drawn as the icon
     // part and one label part per line through the theme's engine,
@@ -198,7 +207,7 @@ protected:
     //   and content_box make room for it. It is the state's cue that does
     //   not rest on colour.
     struct GUI_FORMS_API FaceLayer final {
-        std::optional<CustomStateIndex> state{};
+        stxlib::Optional<CustomStateIndex> state{};
         double level{1.0};
         PartMark leading_mark{PartMark::none};
     };
@@ -214,7 +223,7 @@ protected:
                              ControlVisualRole role, bool default_cue,
                              bool command_alignment = false,
                              bool selected = false,
-                             std::optional<AuthoredButtonColours> authored = {}) const;
+                             stxlib::Optional<AuthoredButtonColours> authored = {}) const;
     // A flat button (WinForms FlatStyle.Flat): the style override's face
     // (else none: the parent shows), a light veil while hot or pressed, a
     // border `border_width` logical pixels wide in the override's text
@@ -246,9 +255,9 @@ private:
     void paint_leading_mark(Painter& painter, Rect face, PartMark mark, bool command_alignment,
                             ControlVisualRole family, AnatomyStateSet states, Point offset) const;
 
-    std::optional<BasicControlStyle> style_override_;
+    stxlib::Optional<BasicControlStyle> style_override_;
     std::optional<ControlStateRecipes> visual_recipes_override_;
-    std::optional<ConnectedControlTopology> connection_topology_;
+    stxlib::Optional<ConnectedControlTopology> connection_topology_;
     ImageId image_{};
     std::shared_ptr<ImageList> image_list_;
     SubscriptionToken image_list_changed_;
@@ -262,7 +271,7 @@ private:
     bool keyboard_pressed_{};
     bool focused_{};
     bool hovered_{};
-    Event<std::optional<bool>> expanded_changed_{};
+    Event<stxlib::Optional<bool>> expanded_changed_{};
     // property_codemod begin ButtonBase (tools/property_families/button_base.json; generated, do not edit)
 public:
     // ButtonBase's property table: Control's entries, then its own.
@@ -308,7 +317,7 @@ private:
     void written(const decltype(image_gap)& cell);
     void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
     void written(const decltype(use_mnemonic)& cell);
-    void prepare_write(const decltype(expanded_state)& cell, std::optional<bool>& incoming);
+    void prepare_write(const decltype(expanded_state)& cell, stxlib::Optional<bool>& incoming);
     void written(const decltype(expanded_state)& cell);
     void write_view(const decltype(image)& cell, ImageId incoming);
     [[nodiscard]] ImageId read_view(const decltype(image)& cell) const;

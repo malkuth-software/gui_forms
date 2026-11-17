@@ -51,6 +51,14 @@ Related types
      - How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
    * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
      -  
+   * - :cpp:class:`BlendFrameCounters <gui_forms::BlendFrameCounters>`
+     - One painted frame's counts, or a sum of frames' (add_blend_frame).
+   * - :cpp:class:`BlendHeatMapView <gui_forms::BlendHeatMapView>`
+     - A window's planes as the last counted frames left them, borrowed from the window until its next paint: ``height`` rows of ``width`` bytes each, depth (saturating at 255) and class (blend_class_* bits).
+   * - :cpp:class:`BlendStudyPlanes <gui_forms::BlendStudyPlanes>`
+     - The planes and the frame's counts (owned by the window while its study is on).
+   * - :cpp:class:`BlendStudySnapshot <gui_forms::BlendStudySnapshot>`
+     - A window's study: its mode, the frames counted since the window was made or reset_blend_study, the last of them and their sum.
    * - :cpp:class:`CaretSettings <gui_forms::CaretSettings>`
      - How a text caret blinks (audit N75): blink_milliseconds is one phase, the time the caret stays shown or hidden before it toggles; 0 means the caret never blinks and stays shown (the user turned blinking off).
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
@@ -151,6 +159,8 @@ Related types
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
+   * - :cpp:class:`PressTrace <gui_forms::PressTrace>`
+     - The last primary press: where it landed and how the route treated it.
    * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
@@ -183,10 +193,14 @@ Related types
      - ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
    * - :cpp:class:`WindowBandAppearance <gui_forms::WindowBandAppearance>`
      -  
+   * - :cpp:class:`WindowBandEdges <gui_forms::WindowBandEdges>`
+     - One width per edge, in logical units, before each is snapped to whole device pixels (WindowBandOptions::edges).
    * - :cpp:class:`WindowBandOptions <gui_forms::WindowBandOptions>`
      - A window's band declaration (Window::declare_band).
    * - :cpp:class:`WindowBandSnapshot <gui_forms::WindowBandSnapshot>`
-     - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+     - A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved widths (snapped, logical units), the colours the strips draw now, and the corners it follows.
+   * - :cpp:class:`WindowBandTexture <gui_forms::WindowBandTexture>`
+     - A texture under the band's colour (owner answer 6: textures are the window band's alone).
    * - :cpp:class:`WindowCapabilities <gui_forms::WindowCapabilities>`
      - Every Window chrome capability, in the order Window takes them.
    * - :cpp:class:`WindowCapture <gui_forms::WindowCapture>`
@@ -201,6 +215,8 @@ Related types
      - Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
    * - :cpp:class:`WindowCornerReport <gui_forms::WindowCornerReport>`
      - The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners).
+   * - :cpp:class:`WindowCornerShapes <gui_forms::WindowCornerShapes>`
+     - The corner shapes a host may report (HostCapabilities:: window_corner_shapes): Windows 11 rounds or squares, macOS reports square corners where they are (full screen, a borderless window) and nothing otherwise, X11 reports none.
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
      - A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window.
    * - :cpp:class:`WindowFormBorderStyleCapability <gui_forms::WindowFormBorderStyleCapability>`
@@ -219,6 +235,8 @@ Related types
      - What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table.
    * - :cpp:class:`WindowRef <gui_forms::WindowRef>`
      - The root of one retained control tree and the thread that owns it (the threaded sub-surfaces design, stage S1): the control table, the dirty structure, update scopes and flushes, layout, paint, focus, input routing, the motion clock, the dispatcher queue its thread drains, and the counters its work reports into.
+   * - :cpp:class:`WindowShapingReport <gui_forms::WindowShapingReport>`
+     - What a window's shaping can rely on (Window::shaping_report; the owner's approval of 2026-11-13: the host capability reported).
    * - :cpp:class:`WindowShowInTaskbarCapability <gui_forms::WindowShowInTaskbarCapability>`
      - Whether the window has a taskbar button (Form.ShowInTaskbar).
    * - :cpp:class:`WindowStartPositionCapability <gui_forms::WindowStartPositionCapability>`
@@ -431,6 +449,140 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BlendFrameCounters final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   One painted frame's counts, or a sum of frames' (add_blend_frame). Pixel counts are device pixels; a pixel written twice counts twice.
+
+   .. cpp:member:: std::uint64_t copied_pixels
+
+   .. cpp:member:: std::uint64_t blended_pixels
+
+   .. cpp:member:: std::uint64_t overdraw_pixels
+
+      Device pixels a copy replaced after an earlier draw of the frame had written them, and the earlier writes those copies hid.
+
+   .. cpp:member:: std::uint64_t overdraw_writes
+
+   .. cpp:member:: std::array<std::uint64_t, blend_depth_bins> depth_histogram
+
+      Over the painted rectangles at the end of the frame.
+
+   .. cpp:member:: std::uint64_t opaque_fills_blended
+
+   .. cpp:member:: std::uint64_t opaque_images_blended
+
+   .. cpp:member:: std::uint64_t draws_counted
+
+      Drawing commands charged, and text runs charged no area because their extent was unknown (prepared text).
+
+   .. cpp:member:: std::uint64_t text_runs_unmeasured
+
+   .. cpp:member:: std::uint64_t refused
+
+      Frames not counted: the window was larger than maximum_blend_study_pixels, or the planes could not be allocated.
+
+   .. cpp:member:: std::uint64_t paint_nanoseconds
+
+      The paint pass that drew the frame, counting included.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BlendHeatMapView final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   A window's planes as the last counted frames left them, borrowed from the window until its next paint: ``height`` rows of ``width`` bytes each, depth (saturating at 255) and class (blend_class_* bits). A pixel outside every painted rectangle keeps what the frame that last painted it left.
+
+   .. cpp:member:: BlendStudyMode mode
+
+      Default: ``{BlendStudyMode::off}``.
+
+   .. cpp:member:: std::span<const std::uint8_t> depth
+
+   .. cpp:member:: std::span<const std::uint8_t> classes
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BlendStudyPlanes final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   The planes and the frame's counts (owned by the window while its study is on). The kernels take device rectangles already inside the planes; the window's walk of the frame's commands clips them (count_display_blend). UI thread, as the window.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool active() const noexcept
+
+   .. cpp:function:: std::uint32_t width() const noexcept
+
+   .. cpp:function:: std::uint32_t height() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool begin_frame(std::uint32_t width, std::uint32_t height, std::span<const DevicePixelRect> painted) noexcept
+
+      Starts a frame of :cpp:func:`width <gui_forms::BlendStudyPlanes::width>` by :cpp:func:`height <gui_forms::BlendStudyPlanes::height>` device pixels: sizes the planes (reset to zero when the size changes; storage only grows), clears both inside each painted rectangle and zeroes the frame's counts. False, counting nothing until the next begin_frame, when the size is zero or over maximum_blend_study_pixels or the storage cannot be had; the frame is then counted as refused.
+
+   .. cpp:function:: void replace(DevicePixelRect area) noexcept
+
+      An opaque write that hides everything beneath it in ``area``: each pixel's earlier writes count as overdraw, its depth becomes one and its class copied. ``area`` lies inside the planes (clip_to_planes).
+
+   .. cpp:function:: void layer(DevicePixelRect area, BlendWrite write) noexcept
+
+      A write over what lies beneath it in ``area``: each pixel's depth grows by one (saturating) and its class gains the write's bit.
+
+   .. cpp:function:: DevicePixelRect clip_to_planes(DevicePixelRect area) const noexcept
+
+      ``area`` within the planes, or empty.
+
+   .. cpp:function:: void note_draw() noexcept
+
+   .. cpp:function:: void note_opaque_fill_blended() noexcept
+
+   .. cpp:function:: void note_opaque_image_blended() noexcept
+
+   .. cpp:function:: void note_unmeasured_text() noexcept
+
+   .. cpp:function:: BlendFrameCounters end_frame(std::span<const DevicePixelRect> painted) noexcept
+
+      Ends the frame: fills the depth histogram over the painted rectangles and returns the frame's counts. A frame begin_frame refused returns only refused = 1.
+
+   .. cpp:function:: BlendHeatMapView heat_map(BlendStudyMode mode) const& noexcept
+
+      The planes for the heat map (BlendHeatMapView), in ``mode``.
+
+   .. cpp:function:: void release() noexcept
+
+      Frees both planes; the next begin_frame allocates again.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BlendStudySnapshot final
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   A window's study: its mode, the frames counted since the window was made or reset_blend_study, the last of them and their sum.
+
+   .. cpp:member:: BlendStudyMode mode
+
+      Default: ``{BlendStudyMode::off}``.
+
+   .. cpp:member:: std::uint64_t frames
+
+   .. cpp:member:: BlendFrameCounters last
+
+   .. cpp:member:: BlendFrameCounters totals
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CaretSettings final
 
    ``#include <gui_forms/window/presentation/input_settings.hpp>``
@@ -499,6 +651,10 @@ Related types
    .. cpp:member:: bool include_backplane
 
       The window's backplane (the theme's window material) under the control, as capture_window draws it, so the picture is what the window shows there; off, what the subtree does not paint stays transparent, as snapshot_control leaves it. Default: ``{true}``.
+
+   .. cpp:member:: bool include_overlays
+
+      The in-surface overlays owned by the control or a descendant (an ErrorProvider's icons, an open drop-down or tooltip), composited over the subtree within the area, as capture_window composites every overlay. Off, only the subtree is drawn. Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -834,7 +990,7 @@ Related types
 
    .. cpp:member:: bool suppressed_by_occlusion
 
-   .. cpp:member:: std::optional<FrameTime> next_wake
+   .. cpp:member:: stxlib::Optional<FrameTime> next_wake
 
 .. cpp:namespace:: gui_forms
 
@@ -987,6 +1143,14 @@ Related types
 
    .. cpp:function:: bool empty() const noexcept
 
+      No outline shows (the counters card may still): nothing fades, so a host stops its fade ticks.
+
+   .. cpp:function:: std::span<const std::string> counters() const& noexcept
+
+   .. cpp:function:: void set_counters(std::span<const std::string_view> lines)
+
+      Replaces the counters card's lines (the window fills them from its metrics after each paint): the first maximum_overlay_counter_lines, each cut to maximum_overlay_counter_characters bytes. The lines' storage is reused, so a steady card allocates nothing. No lines, no card.
+
    .. cpp:function:: std::span<const InvalidationOutline> outlines() const& noexcept
 
       Oldest first.
@@ -1008,13 +1172,15 @@ Related types
 
    .. cpp:function:: void clear() noexcept
 
+      Drops every outline; the counters stay.
+
    .. cpp:function:: void fill_regions(double scale, std::uint32_t width, std::uint32_t height, std::vector<DevicePixelRect>& regions) const
 
-      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, and the legend while any outline shows. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
+      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, the legend while any outline shows, and the counters card at the top left while it has lines. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
 
    .. cpp:function:: void compose(const InvalidationOverlayTarget& target, double scale, InvalidationClock::time_point now, DevicePixelRect clip) const
 
-      Composites the outlines, their labels and the legend at ``now`` onto ``target`` at ``scale``, inside ``clip`` only; each outline's opacity falls with its age. The target is a copy of what the window presents.
+      Composites the outlines, their labels, the legend and the counters card at ``now`` onto ``target`` at ``scale``, inside ``clip`` only; each outline's opacity falls with its age (the card is opaque). The target is a copy of what the window presents.
 
 .. cpp:namespace:: gui_forms
 
@@ -1093,7 +1259,7 @@ Related types
 
       Declared per popup; there is no global rule (owner, 2026-11-04). Default: ``{HostPopupFocus::passive}``.
 
-   .. cpp:member:: std::optional<BackdropChain> backdrop
+   .. cpp:member:: stxlib::Optional<BackdropChain> backdrop
 
       The popup window's backdrop chain (Window::set_backdrop_chain): a blur is the system material granted to the popup window, and GUI.Forms paints only the tint. None by default.
 
@@ -1189,17 +1355,17 @@ Related types
 
       Device pixels per logical unit, in (0, 8]. The window is laid out at this scale for the capture, as a host lays it out on such a display. Default: ``{1.0}``.
 
-   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+   .. cpp:member:: stxlib::Optional<ColourScheme> colour_scheme
 
       The colour scheme drawn; none keeps the window's.
 
-   .. cpp:member:: std::optional<bool> high_contrast
+   .. cpp:member:: stxlib::Optional<bool> high_contrast
 
       Forced high contrast; none keeps the window's.
 
    .. cpp:member:: bool include_overlays
 
-      capture_window: the window's in-surface overlays. Default: ``{true}``.
+      capture_window: the window's in-surface overlays; capture_control: those the control or a descendant owns (ControlCaptureOptions). Default: ``{true}``.
 
    .. cpp:member:: double margin
 
@@ -1220,9 +1386,9 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::filesystem::path& font_directory() const noexcept
+   .. cpp:function:: const FilePath& font_directory() const noexcept
 
-      The directory its faces came from.
+      The directory its faces came from; empty when they came from the embedded font pack.
 
    .. cpp:function:: std::size_t attachments() const noexcept
 
@@ -1280,9 +1446,9 @@ Related types
 
    ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
 
-   .. cpp:member:: std::filesystem::path font_directory
+   .. cpp:member:: FilePath font_directory
 
-      The bundled font directory (assets/fonts, installed as share/GUIForms/fonts); empty looks where the hosts look.
+      A directory of the bundled faces (assets/fonts) to read in place of the embedded font pack; empty takes the source the hosts' windows take (the pack, or a development build's directory).
 
 .. cpp:namespace:: gui_forms
 
@@ -1546,19 +1712,19 @@ Related types
 
       Whether no field is set.
 
-   .. cpp:member:: std::optional<double> text_scale
+   .. cpp:member:: stxlib::Optional<double> text_scale
 
-   .. cpp:member:: std::optional<bool> high_contrast
+   .. cpp:member:: stxlib::Optional<bool> high_contrast
 
-   .. cpp:member:: std::optional<bool> reduced_motion
+   .. cpp:member:: stxlib::Optional<bool> reduced_motion
 
-   .. cpp:member:: std::optional<bool> sound_enabled
+   .. cpp:member:: stxlib::Optional<bool> sound_enabled
 
-   .. cpp:member:: std::optional<bool> ambient_motion
+   .. cpp:member:: stxlib::Optional<bool> ambient_motion
 
-   .. cpp:member:: std::optional<bool> reduced_transparency
+   .. cpp:member:: stxlib::Optional<bool> reduced_transparency
 
-   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+   .. cpp:member:: stxlib::Optional<ColourScheme> colour_scheme
 
 .. cpp:namespace:: gui_forms
 
@@ -1624,6 +1790,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PressTrace final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   The last primary press: where it landed and how the route treated it. Strings are copied, so the record outlives the controls it names. A control without a stable ID is named by its anatomy's control ID alone.
+
+   .. cpp:member:: std::uint64_t presses
+
+      Primary presses routed by this window so far.
+
+   .. cpp:member:: std::string target_stable_id
+
+      The hit (or captured) control the press was routed to; empty for no_target.
+
+   .. cpp:member:: std::string target_control_id
+
+   .. cpp:member:: std::string handled_by
+
+      The control whose preview handler took the press (preview_handled).
+
+   .. cpp:member:: Point position
+
+      The press's window position.
+
+   .. cpp:member:: PressOutcome outcome
+
+      Default: ``{PressOutcome::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ScrollCopy final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -1640,7 +1836,7 @@ Related types
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
-   One frame. Fields a kind does not use are zero and empty. The text arrays hold subject_size and name_size bytes; the bytes past them are stale.
+   One frame. Fields a kind does not use are zero and empty. The text arrays hold subject_size and name_size bytes; the bytes past them are zero.
 
    .. cpp:member:: ShadowFrameKind kind
 
@@ -1680,7 +1876,7 @@ Related types
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
-   A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Writes the same stack as ShadowFrameScope (the library's), and never throws or allocates.
+   A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Never throws or allocates.
 
 
    .. rubric:: Construction
@@ -1700,7 +1896,7 @@ Related types
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
-   Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included. Never throws or allocates. Scopes nest strictly (they are not copied or moved), so the frame closed is always the innermost.
+   Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included. Never throws or allocates. Scopes nest strictly (they are not copied or moved), so the frame closed is always the innermost. Kept for the C++ API before 1.0; the library's own frames are gates and ShadowFrameCall, which need no runtime query.
 
 
    .. rubric:: Construction
@@ -1786,9 +1982,9 @@ Related types
 
    The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour. Each is empty where the host reports none, and a theme then reads its fallback. They are hints: a theme may use, override or ignore them, and GUI.Forms' own theme reads neither.
 
-   .. cpp:member:: std::optional<Color> accent
+   .. cpp:member:: stxlib::Optional<Color> accent
 
-   .. cpp:member:: std::optional<Color> highlight
+   .. cpp:member:: stxlib::Optional<Color> highlight
 
 .. cpp:namespace:: gui_forms
 
@@ -1858,7 +2054,7 @@ Related types
 
       The thing the tooltip is about, in the root's coordinates; the bubble shows below it.
 
-   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+   .. cpp:member:: stxlib::Optional<std::chrono::milliseconds> duration
 
       How long it shows: none, the root's auto-pop delay; zero, until it is withdrawn or replaced.
 
@@ -1930,11 +2126,37 @@ Related types
 
       Default: ``{WindowBandState::rest}``.
 
-   .. cpp:member:: std::optional<Color> rest_colour
+   .. cpp:member:: stxlib::Optional<Color> rest_colour
 
       The application's colours, each replacing the theme's while set. Ignored under high contrast, where the band takes the high-contrast palette.
 
-   .. cpp:member:: std::optional<Color> lit_colour
+   .. cpp:member:: stxlib::Optional<Color> lit_colour
+
+   .. cpp:member:: WindowBandColourRole lit_role
+
+      The theme colour the band lights in while lit_colour is empty. Default: ``{WindowBandColourRole::theme}``.
+
+   .. cpp:member:: double frequency
+
+      Cycles a second of a flash or a cycle, lowered to maximum_band_frequency; 0, or anything below minimum_active_border_frequency, holds the band lit. Finite, not negative. Default: ``{maximum_band_frequency}``.
+
+   .. cpp:member:: stxlib::Optional<WindowBandTexture> texture
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowBandEdges final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   One width per edge, in logical units, before each is snapped to whole device pixels (WindowBandOptions::edges). An edge of 0 reserves nothing on that side.
+
+   .. cpp:member:: double left
+
+   .. cpp:member:: double top
+
+   .. cpp:member:: double right
+
+   .. cpp:member:: double bottom
 
 .. cpp:namespace:: gui_forms
 
@@ -1946,11 +2168,15 @@ Related types
 
    .. cpp:member:: double width
 
-      The width asked for, in logical units, before it is snapped to whole device pixels: 0 takes the theme's ``band-width``, or one logical unit where the theme declares none. Finite, from 0 to maximum_band_width.
+      The width asked for on every side, in logical units, before it is snapped to whole device pixels: 0 takes the theme's ``band-width``, or one logical unit where the theme declares none. Finite, from 0 to maximum_band_width. Not read while ``edges`` is set.
 
    .. cpp:member:: WindowBandFullScreen full_screen
 
       Default: ``{WindowBandFullScreen::stays}``.
+
+   .. cpp:member:: stxlib::Optional<WindowBandEdges> edges
+
+      Per-edge widths (the owner's approval of 2026-11-13: per-edge widths in logical units). When set, each edge takes its own width, finite from 0 to maximum_band_width, and the theme's ``band-width`` is not read; under high contrast each edge that has a width is widened to the palette's focus width, and an edge of 0 stays empty.
 
 .. cpp:namespace:: gui_forms
 
@@ -1958,15 +2184,19 @@ Related types
 
    ``#include <gui_forms/window/band/window_band.hpp>``
 
-   A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved width (snapped, logical units), the colours the strips draw now, and the corners it follows.
+   A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved widths (snapped, logical units), the colours the strips draw now, and the corners it follows.
 
    .. cpp:member:: bool declared
 
    .. cpp:member:: bool reserved
 
-      Declared and not hidden by full screen.
+      Declared, not hidden by full screen, and wider than 0 on some edge.
 
    .. cpp:member:: double width
+
+      The widest reserved edge; ``edges`` holds each.
+
+   .. cpp:member:: Insets edges
 
    .. cpp:member:: WindowBandOptions options
 
@@ -1980,11 +2210,47 @@ Related types
 
       Whether a flash is running now (not stilled).
 
+   .. cpp:member:: bool cycling
+
+      Whether a cycle is running now (not stilled).
+
+   .. cpp:member:: double frequency
+
+      The frequency a flash or cycle runs at after the limiter, in cycles a second; 0 when neither runs.
+
+   .. cpp:member:: bool textured
+
+      Whether the strips draw a texture now.
+
    .. cpp:member:: WindowCornerReport corners
 
    .. cpp:member:: std::uint64_t flash_changes
 
       The flash phase changes the strips have been damaged for, counted from the window's creation.
+
+   .. cpp:member:: std::uint64_t cycle_frames
+
+      The cycle frames the strips have been damaged for, counted from the window's creation.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WindowBandTexture final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   A texture under the band's colour (owner answer 6: textures are the window band's alone). Each strip is its own surface (the top and bottom strips run the full width, the side strips lie between them), so a bake stays the size of a strip, never the window's; it is drawn beneath the band's colour: a resting band with the default transparent rest colour shows the texture alone, and a lit colour composites over it. ``procedural`` reads ``procedural`` (tile from minimum_procedural_tile to maximum_procedural_tile, strength in [0, 1]); ``finish`` reads ``finish``, any kind but the glint (whose cost the bake budget refuses over a window). ``opacity`` in [0, 1]. Under high contrast no texture is drawn.
+
+   .. cpp:member:: WindowBandTextureSource source
+
+      Default: ``{WindowBandTextureSource::procedural}``.
+
+   .. cpp:member:: ProceduralFill procedural
+
+   .. cpp:member:: FinishFill finish
+
+   .. cpp:member:: double opacity
+
+      Default: ``{1.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2188,6 +2454,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: WindowCornerShapes final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   The corner shapes a host may report (HostCapabilities:: window_corner_shapes): Windows 11 rounds or squares, macOS reports square corners where they are (full screen, a borderless window) and nothing otherwise, X11 reports none.
+
+   .. cpp:member:: bool square
+
+   .. cpp:member:: bool rounded
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: WindowDispatcher final
 
    ``#include <gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>``
@@ -2375,6 +2653,34 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: WindowShapingReport final
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   What a window's shaping can rely on (Window::shaping_report; the owner's approval of 2026-11-13: the host capability reported). Every field is what the attached host says, never assumed: - ``corners_reported``: the host shapes and reports the window's corners (HostCapability::window_corners); without it the band draws square. - ``square_corners`` and ``rounded_corners``: the shapes the host may report (HostCapabilities::window_corner_shapes), whatever is asked. - ``state_reported``: the host reports full screen and the changes that may reshape corners (HostCapability::window_state_reports); without it a band declared to hide in full screen never hides. - ``native_border``: the host can draw the band's colour itself outside the client area. No host can yet; the Windows 11 contract is written for its host (docs/user/window-band.md).
+
+   .. cpp:member:: bool host_attached
+
+   .. cpp:member:: bool corners_reported
+
+   .. cpp:member:: bool square_corners
+
+   .. cpp:member:: bool rounded_corners
+
+   .. cpp:member:: bool state_reported
+
+   .. cpp:member:: bool native_border
+
+   .. cpp:member:: bool full_screen
+
+   .. cpp:member:: WindowCornerPreference preference
+
+      Default: ``{WindowCornerPreference::system}``.
+
+   .. cpp:member:: WindowCornerReport corners
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> WindowShowInTaskbarCapability
 
    ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
@@ -2488,6 +2794,30 @@ Enumerations
    .. cpp:enumerator:: saturate
 
    .. cpp:enumerator:: tint
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BlendStudyMode
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: counters
+
+   .. cpp:enumerator:: overdraw_heat_map
+
+   .. cpp:enumerator:: blend_heat_map
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BlendWrite
+
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+   .. cpp:enumerator:: copied
+
+   .. cpp:enumerator:: blended
 
 .. cpp:namespace:: gui_forms
 
@@ -2743,6 +3073,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PressOutcome
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: no_target
+
+   .. cpp:enumerator:: preview_handled
+
+   .. cpp:enumerator:: focus_refused
+
+   .. cpp:enumerator:: delivered
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SettingOrigin
 
    ``#include <gui_forms/window/presentation/input_settings.hpp>``
@@ -2780,6 +3126,8 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+   .. cpp:enumerator:: gate
 
 .. cpp:namespace:: gui_forms
 
@@ -2835,6 +3183,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: WindowBandColourRole
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: theme
+
+   .. cpp:enumerator:: focus
+
+   .. cpp:enumerator:: accent
+
+   .. cpp:enumerator:: accent_light
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: border
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: WindowBandFullScreen
 
    ``#include <gui_forms/window/band/window_band.hpp>``
@@ -2854,6 +3220,18 @@ Enumerations
    .. cpp:enumerator:: lit
 
    .. cpp:enumerator:: flashing
+
+   .. cpp:enumerator:: cycling
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowBandTextureSource
+
+   ``#include <gui_forms/window/band/window_band.hpp>``
+
+   .. cpp:enumerator:: procedural
+
+   .. cpp:enumerator:: finish
 
 .. cpp:namespace:: gui_forms
 
@@ -2950,6 +3328,52 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+
+.. cpp:function:: void add_blend_frame(BlendFrameCounters& totals, const BlendFrameCounters& frame) noexcept
+
+   Adds ``frame`` to ``totals``, field by field (the histogram bin by bin).
+
+.. cpp:function:: std::string blend_frame_counters_json(const BlendFrameCounters& counters)
+
+   The counters as one JSON object, field names as declared, the histogram as an array.
+
+.. cpp:function:: void append_blend_study_log(std::string_view window, std::uint64_t frame, const BlendFrameCounters& counters) noexcept
+
+   The study's log, for programs measured without code of their own (the product procedure of tools/blend_study.py): when the environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is appended to it as one JSON line, {"window":<its root's stable id>, "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}. The file is opened on the first counted frame (append mode) and each line is flushed; lines from windows on several threads are serialized. Unset, empty or not openable, nothing is written. Any thread.
+
+.. cpp:function:: BlendStudyMode blend_study_requested_by_environment() noexcept
+
+   GUI_FORMS_DEBUG_BLEND's request (see the top of this file).
+
+.. cpp:function:: void set_blend_study_default(BlendStudyMode mode) noexcept
+
+   The process switch every window without a setting of its own follows; on the first read it is the environment's request. Any thread.
+
+.. cpp:function:: BlendStudyMode blend_study_default() noexcept
+
+.. cpp:function:: void compose_blend_heat_map(const InvalidationOverlayTarget& target, const BlendHeatMapView& map, DevicePixelRect clip) noexcept
+
+   Tints ``target`` (a copy of the presented frame, as the invalidation overlay composites onto) with the view's heat map, half and half, inside ``clip`` and the smaller of the two sizes only; pixels written by nothing are left as they are, and every tinted pixel is opaque. A view in neither heat-map mode changes nothing.
+
+.. cpp:var:: constexpr std::size_t blend_depth_bins
+
+   The depth histogram's bins: bin d counts device pixels written d times since the last copy that hid what lay beneath; the last bin also counts every deeper pixel. Value: ``16U``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_blend_study_pixels
+
+   The largest window the study counts, in device pixels (a 16384 x 16384 client): a larger one counts nothing (BlendFrameCounters::refused). Value: ``16384ULL * 16384ULL``.
+
+.. cpp:var:: constexpr std::uint8_t blend_class_copied
+
+   The class plane's bits: a pixel's last copy, and any blended write since. Value: ``1U``.
+
+.. cpp:var:: constexpr std::uint8_t blend_class_blended
+
+   Value: ``2U``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
 
 .. cpp:function:: InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept
@@ -2988,6 +3412,14 @@ Functions, constants and aliases
 
    The characters of an outline's source label it shows. Value: ``32U``.
 
+.. cpp:var:: constexpr std::size_t maximum_overlay_counter_lines
+
+   The counters card (the diagnostic overlay, business_card.hpp): at most this many lines, each cut to this many characters. The label font has letters (shown upper case), digits and the punctuation ``. - _ : / ( ) # [ ] , ?``; any other character shows as ``?``. Value: ``12U``.
+
+.. cpp:var:: constexpr std::size_t maximum_overlay_counter_characters
+
+   Value: ``30U``.
+
 .. cpp:type:: InvalidationClock = std::chrono::steady_clock
 
    The time outlines are stamped and aged with.
@@ -3002,7 +3434,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
 
-   As copy_shadow_frames, but for a boundary that has just caught an exception: the frames open where the exception was thrown, the frames it unwound included, when no frame has been opened or closed by a return since its last unwinding pop; otherwise (no exception unwound a frame, or the thread has moved on) the frames open now. state.depth is the depth copied from; pushed and dropped are the thread's. Never throws or allocates. The mark cannot tell two unwindings apart when nothing opens or closes a frame between them: an exception caught and handled inside a frame, then another thrown from that frame or an outer one, shows the first's deeper frames above the second's. The outer frames are the second's either way.
+   As copy_shadow_frames, but for a handler that has just caught an exception and is not a gate: the frames open where the exception was thrown, the frames it unwound included, or the frames open now when no frame saw the exception leave. Takes the thread's pending capture (stxlib::park_shadow), so call it once per caught exception, inside the handler. state.depth is the depth copied from; pushed and dropped are the thread's. Never throws or allocates.
 
 .. cpp:var:: constexpr std::size_t shadow_frame_subject_capacity
 
@@ -3166,11 +3598,15 @@ Functions, constants and aliases
 
 .. cpp:function:: bool window_band_options_valid(const WindowBandOptions& options) noexcept
 
-   Whether ``options`` is a declaration the window accepts: a finite width from 0 to maximum_band_width and a known full-screen choice.
+   Whether ``options`` is a declaration the window accepts: finite widths from 0 to maximum_band_width (the uniform one, or each edge's) and a known full-screen choice.
 
 .. cpp:function:: bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept
 
-   Whether ``appearance`` names a known state.
+   Whether ``appearance`` names a known state and role, a finite frequency that is not negative, and a texture window_band_texture_valid accepts.
+
+.. cpp:function:: bool window_band_texture_valid(const WindowBandTexture& texture) noexcept
+
+   Whether ``texture`` may be drawn in the band, by WindowBandTexture's rules.
 
 .. cpp:function:: double snapped_band_width(double width, double scale) noexcept
 
@@ -3187,6 +3623,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr unsigned maximum_band_flash_transitions
 
    The flash limiter (study section 5, WCAG 2.3.1): at most this many luminance transitions a second, whatever the theme or the application asks: a flashing band changes colour once every half second. Value: ``2U``.
+
+.. cpp:var:: constexpr double maximum_band_frequency
+
+   The same limit in cycles a second (one cycle is two transitions), for flashing and cycling alike: a higher ``frequency`` is lowered to it. Value: ``1.0``.
+
+.. cpp:var:: constexpr double band_cycling_frames_per_second
+
+   A cycling band repaints its strips at this rate; a flashing one only at its transitions. Value: ``30.0``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3228,7 +3672,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
 
-.. cpp:function:: std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
+.. cpp:function:: stxlib::Optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
 
    The face, in ``window``'s client coordinates, of a drop-down of ``size`` hung from ``anchor`` (client coordinates) at ``preferred_x``, against the work area of the monitor under the anchor's lower left corner: under the anchor, or above it when it would overrun the area's bottom, and moved and cut to stay inside the area. None when the run has no Popup windows or cannot say the work area; the caller then places the drop-down in its client. UI thread.
 

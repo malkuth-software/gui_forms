@@ -216,12 +216,19 @@ window's from its first frame. A window is made with `windows.create(root)`.
 The splashscreen calls of `GF_TABLE_RUNTIME` work before anything else, on
 the thread that will be the UI thread.
 
-Since 1.1, additively:
+Since 1.2, additively:
 - `windows.show_modal` and `windows.show_owned` open modal and owned
   windows over the running window;
 - `overlays.open_anchored` and `close_anchored` open menus and drop-downs;
 - `properties.get`, `set` and `reset` take the window properties above on
   a window (schema component type `window`);
 - `windows.key_state` and `windows.focused_control` read keys and focus
-  ([Input and focus](input-and-focus.md#key-events)). See the C ABI header
-`gui_forms/c/gf_abi.h` and [The C ABI conformance kit](c-abi-conformance-kit).
+  ([Input and focus](input-and-focus.md#key-events)).
+
+Since 1.3, `GF_TABLE_CLASSES` makes objects from class tables: a C or C#
+program overrides a stock class's raisers (`on_click`, `on_key_down`,
+`on_paint_background` and the rest) for the objects it makes, as a C++
+subclass overrides them ([Overriding the raisers](input-and-focus.md#overriding-the-raisers)).
+The tables are generated into `gui_forms/c/gf_abi_classes.h`, which
+`gf_abi.h` includes. See the C ABI header `gui_forms/c/gf_abi.h` and
+[The C ABI conformance kit](c-abi-conformance-kit).

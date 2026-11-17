@@ -3,11 +3,14 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <exception>
 #include <functional>
@@ -168,6 +171,15 @@ struct GUI_FORMS_API ApplicationWindowOptions final {
     // (Window::declare_non_opaque). The backdrop itself is asked for through
     // Window::request_backdrop, and the window is opaque without it.
     bool non_opaque{};
+    // How long a newly shown window stays off screen waiting for its first
+    // presented frame, from the show request, so that it appears already
+    // drawn (FirstFrameShowGate, gui_forms/host/windowing/
+    // first_frame_show.hpp). After it the window is shown with whatever
+    // frame exists. Zero shows at once; longer than
+    // maximum_first_frame_show_ceiling is clamped to it. Honoured by the
+    // macOS and Linux X11 hosts; the Windows host shows at once until it
+    // reports presented frames to the gate.
+    std::chrono::milliseconds first_frame_show_ceiling{gui_forms::first_frame_show_ceiling};
     // Runs after this model has an attached host and services. Other windows
     // may not be ready yet. Keep a weak handle for native window requests.
     std::function<void(Window&, ApplicationWindowHandle)> ready{};
@@ -206,7 +218,7 @@ struct GUI_FORMS_API ApplicationWindow final {
     // A native popup window (HostPopupPlacement): opened only during the
     // run, owned by `owner_id`, never a tool or floating window; none for
     // every other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 struct GUI_FORMS_API ApplicationWindowOpenResult final {
@@ -266,7 +278,9 @@ public:
     [[nodiscard]] ApplicationModalResult show_modal(ApplicationWindow&& window) const;
     // Closes and destroys a window this run opened, or an owned initial
     // window, without asking its closing handler (HostWindowing::
-    // destroy_window). Its closed callback runs before this returns.
+    // destroy_window). Its closed callback runs before this returns. The
+    // popup windows the run kept for it (drop-down lists, menus, its
+    // tooltip) go with it; a window the program opened over it refuses.
     [[nodiscard]] HostServiceStatus destroy_window(const ApplicationWindowHandle& window) const;
     // The pointer in desktop logical units (capability screen_pointer).
     [[nodiscard]] HostScreenPointResult pointer_position() const;
@@ -311,7 +325,7 @@ struct GUI_FORMS_API ApplicationConfig final {
     ApplicationThemeConfig theme{};
     // The presentation defaults every window of the application starts
     // with, until the host reports its own; GUI.Forms' defaults when unset.
-    std::optional<PresentationSettings> presentation{};
+    stxlib::Optional<PresentationSettings> presentation{};
     // The quotas of the application's shared image registry.
     ImageRegistryLimits image_limits{};
 };

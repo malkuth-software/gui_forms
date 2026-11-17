@@ -70,6 +70,13 @@ enum class MaterialProperty : std::uint8_t {
     glow,
     glow_placement,
     mask_image,
+    // The mask layers' longhands (E9.6, owner 2026-11-16): MaterialField::
+    // mask_modes, mask_composites, mask_positions, mask_sizes, mask_repeats.
+    mask_mode,
+    mask_composite,
+    mask_position,
+    mask_size,
+    mask_repeat,
     reflection,
     surface_finish,
     // The part's seat in its panel: `seat: none | <height> [<colour>]`.
@@ -77,6 +84,12 @@ enum class MaterialProperty : std::uint8_t {
     // The final quantization's dither (MaterialDither): `none`, `ordered`
     // or `blue-noise`.
     gradient_dither,
+    // The material's own transform (MaterialTransform): `transform: none |
+    // rotate() | scale()`, owner 2026-11-16.
+    transform,
+    // The material's clip path (MaterialClipPath): `clip-path: none |
+    // polygon() | path()`, owner 2026-11-16.
+    clip_path,
     // The four inner lines one unit inside the border (T4 floor sheet,
     // owner option 1): `keylines: <top> <right> <bottom> <left>`.
     keylines,
@@ -115,6 +128,9 @@ enum class MaterialProperty : std::uint8_t {
     needle_shape,
     scrim_color,
     stroke_width,
+    // How ProgressRing draws its ring (`ring-style: dots | arc`), on the
+    // control (RecipeField::ring_style).
+    ring_style,
     // A progress fill's stripe pattern (the barber pole, owner rulings of
     // 2026-11-11): recipe fields of a named part (RecipeField::stripe_pitch
     // on), read by the stripe effect.
@@ -210,6 +226,38 @@ struct MaterialLoweringProblem final {
     std::string detail{};
 };
 
+// A theme-declared filter (`@filter <id> { ... }`; capability review,
+// owner 2026-11-16), as `filter: url(#<id>)` composes it: the colour
+// matrix its `color-matrix` declarations compose, in order, then the
+// table its `component-transfer` declaration makes, if any. `name`
+// borrows the sheet's text for the compile.
+struct NamedThemeFilter final {
+    std::string_view name{};
+    MaterialColourStages stages{};
+};
+
+// The most `@filter` rules a sheet declares.
+inline constexpr std::size_t maximum_theme_filters = 64U;
+
+// Lowers one declaration of an `@filter` block into `filter`:
+// - `color-matrix`: 20 numbers (SVG feColorMatrix type="matrix", rows of
+//   red, green, blue and alpha, each four factors and an offset on
+//   straight colour in [0, 1]), or `saturate(<number>)`,
+//   `hue-rotate(<angle>)` or `luminance-to-alpha`; each composes after the
+//   matrix so far. After a component-transfer it is refused.
+// - `component-transfer`: up to four `<channel> <function>` pairs, the
+//   channel `red`, `green`, `blue` or `alpha` (each at most once), the
+//   function `identity`, `table(<n>...)`, `discrete(<n>...)` (1 to 32
+//   values), `linear(<slope> <intercept>)` or
+//   `gamma(<amplitude> <exponent> <offset>)` (feComponentTransfer's
+//   feFuncX types); unnamed channels are identity. At most one per block.
+// `property` is the declaration's name in lower case; false, filling
+// `problem`, for an unknown property or a value out of its form, with
+// `filter` then unspecified.
+[[nodiscard]] bool lower_theme_filter_declaration(std::string_view property, const ThemeValue& value,
+                                                  std::uint32_t start, NamedThemeFilter& filter,
+                                                  MaterialLoweringProblem& problem);
+
 // One declaration's lowering, caller-owned and reused: a lowering
 // replaces the contents and keeps the capacity.
 struct MaterialLowering final {
@@ -220,6 +268,9 @@ struct MaterialLowering final {
     // each keeps its lengths.
     double em{};
     bool keep_gradients{};
+    // Whether `font-family` resolves live application font families by name
+    // after the bundled families (ThemeCompileInput::admit_app_fonts).
+    bool admit_app_fonts{};
     // What the lowering reads CSS's currentcolor as (written, or a shadow's
     // or a glow's default): the compiler lowers again at another colour, and
     // the colours that differ are current; `read_current_colour` says the
@@ -231,6 +282,13 @@ struct MaterialLowering final {
     // A recipe property's fields.
     std::vector<RecipeDeclaration> recipe_fields{};
     MaterialLoweringProblem problem{};
+    // The sheet's `@filter` rules that `filter: url(#<id>)` may name,
+    // borrowed from the compiler for the lowering; the last of a name wins.
+    std::span<const NamedThemeFilter> filters{};
+    // Warnings about a declaration that still applies (outcome `lowered`):
+    // the compiler reports each and keeps the declaration, as for a
+    // `font-family` entry naming a family that is not bundled (W113).
+    std::vector<MaterialLoweringProblem> warnings{};
 };
 
 // Lowers `value`, a value of `property` that is not a CSS-wide keyword,

@@ -7,7 +7,7 @@
 #include "../values/abi_values.hpp"
 
 #include "gui_forms/detail/property_binding_adapters.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -106,11 +106,16 @@ private:
 };
 
 // A bound surface's wake, called on the producer's thread when it
-// publishes: posts one repaint unless one is pending.
+// publishes: posts one repaint unless one is pending. It posts through the
+// window's dispatcher handle and never takes a strong reference to the
+// control: a producer that held the last reference would otherwise run the
+// control's destructor, and the client's release, on its own thread
+// (A-gf-abi-02-F2). The posted repaint holds only weak references.
 class BoundSurfaceWakeCallback final {
 public:
-    BoundSurfaceWakeCallback(std::weak_ptr<Control> target, std::weak_ptr<BoundSurfaceWake> wake) noexcept
-        : target_(std::move(target)), wake_(std::move(wake)) {}
+    BoundSurfaceWakeCallback(WindowDispatcher dispatcher, std::weak_ptr<Control> target,
+                             std::weak_ptr<BoundSurfaceWake> wake) noexcept
+        : dispatcher_(std::move(dispatcher)), target_(std::move(target)), wake_(std::move(wake)) {}
 
     void operator()() const noexcept {
         const std::shared_ptr<BoundSurfaceWake> wake = wake_.lock();
@@ -118,19 +123,17 @@ public:
             (*wake).queued.exchange(true, std::memory_order_acq_rel)) {
             return;
         }
-        const std::shared_ptr<Control> target = target_.lock();
-        if (!target) {
-            (*wake).queued.store(false, std::memory_order_release);
-            return;
-        }
         try {
-            static_cast<void>((*target).begin_invoke(BoundSurfaceRepaint(target_, wake_)));
+            // A window that is gone answers with a cancelled operation and
+            // releases the repaint; nothing else is touched.
+            static_cast<void>(dispatcher_.begin_invoke(BoundSurfaceRepaint(target_, wake_)));
         } catch (...) {
             (*wake).queued.store(false, std::memory_order_release);
         }
     }
 
 private:
+    WindowDispatcher dispatcher_;
     std::weak_ptr<Control> target_;
     std::weak_ptr<BoundSurfaceWake> wake_;
 };
@@ -191,13 +194,12 @@ BindingValue CustomControlState::get(const Control& control, std::size_t index) 
     const PropertyDescriptor& descriptor = definitions_[index].descriptor;
     gf_value record{};
     record.struct_size = value_size_1_0;
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            descriptor.name, 0U);
-        status = callbacks_.get_property(callbacks_.context, registry().identity_of(&control),
-                                         static_cast<std::uint64_t>(index), &record);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    std::uint64_t property = static_cast<std::uint64_t>(index);
+    gf_value* answer = &record;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), descriptor.name};
+    const gf_status status = call_client(frame, callbacks_.get_property, context, self, property, answer);
     if (status != GF_STATUS_OK) {
         throw std::logic_error("the custom control's get_property failed");
     }
@@ -233,13 +235,12 @@ void CustomControlState::set(const Control& control, std::size_t index, const Bi
     const LentCallText lent(lent_texts_, text);
     record.text.data = lent.text().data();
     record.text.size = lent.text().size();
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            descriptor.name, 0U);
-        status = callbacks_.set_property(callbacks_.context, registry().identity_of(&control),
-                                         static_cast<std::uint64_t>(index), &record);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    std::uint64_t property = static_cast<std::uint64_t>(index);
+    const gf_value* given = &record;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), descriptor.name};
+    const gf_status status = call_client(frame, callbacks_.set_property, context, self, property, given);
     if (status != GF_STATUS_OK) {
         throw std::invalid_argument("the custom control's set_property refused the value");
     }
@@ -257,8 +258,12 @@ void CustomControlState::paint(Control& control, Painter& painter, Rect local_da
         // frame published while it ran asks for exactly one more repaint.
         if (wake_state_) {
             (*wake_state_).queued.store(false, std::memory_order_release);
-            if ((*bound_surface_).snapshot().published_generation != sampled) {
-                const BoundSurfaceWakeCallback wake(control.weak_from_this(), wake_state_);
+            // The wake posts through the window's dispatcher, as the one
+            // connected to the surface does (A-gf-abi-02-F2); a control no
+            // longer in a window has nothing to repaint.
+            const Window* window = control.attached_window();
+            if ((*bound_surface_).snapshot().published_generation != sampled && window != nullptr) {
+                const BoundSurfaceWakeCallback wake((*window).dispatcher(), control.weak_from_this(), wake_state_);
                 wake();
             }
         }
@@ -314,9 +319,11 @@ void CustomControlState::paint(Control& control, Painter& painter, Rect local_da
     target.scale = scale;
     target.damage = gf_logical_rect{damage.x, damage.y, damage.width, damage.height};
     {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            paint_frame_name, 0U);
-        callbacks_.paint(callbacks_.context, registry().identity_of(&control), &target);
+        void* context = callbacks_.context;
+        gf_object self = registry().identity_of(&control);
+        gf_paint_target* painted = &target;
+        const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), paint_frame_name};
+        call_client(frame, callbacks_.paint, context, self, painted);
     }
     if (revoked_) {
         // The callback disposed the control.
@@ -372,14 +379,31 @@ void CustomControlState::connect_wake(Control& control) {
         // The window's host samples the newest frames itself; a publication
         // posts nothing.
         direct_presentation_ = true;
+        presented_in_ = (*window).window_ref();
+        presented_control_ = self;
         return;
     }
     wake_state_ = std::make_shared<BoundSurfaceWake>();
     wake_ = (*bound_surface_).connect_presentation_wake(
-        BoundSurfaceWakeCallback(std::weak_ptr<Control>(self), std::weak_ptr<BoundSurfaceWake>(wake_state_)));
+        BoundSurfaceWakeCallback((*window).dispatcher(), std::weak_ptr<Control>(self),
+                                 std::weak_ptr<BoundSurfaceWake>(wake_state_)));
 }
 
 void CustomControlState::disconnect_wake() noexcept {
+    if (direct_presentation_) {
+        // The window would otherwise keep presenting the surface's last
+        // frame over the control, and keep the surface alive, until the
+        // control left it (A-gf-abi-02-F3). A window or control already
+        // gone holds nothing; off the window's thread nothing is touched
+        // (the registration then lapses when the control leaves).
+        Window* const window = presented_in_.get();
+        const std::shared_ptr<Control> control = presented_control_.lock();
+        if (window != nullptr && control && (*window).check_access()) {
+            static_cast<void>((*window).withdraw_live_surface_presentation(control, bound_surface_));
+        }
+    }
+    presented_in_.reset();
+    presented_control_.reset();
     direct_presentation_ = false;
     if (wake_state_) {
         (*wake_state_).connected.store(false, std::memory_order_release);
@@ -407,12 +431,11 @@ std::optional<Size> CustomControlState::measure(const Control& control, Size ava
     given.width = available.width;
     given.height = available.height;
     gf_logical_size preferred{};
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            "measure", 0U);
-        status = layout_.measure(callbacks_.context, registry().identity_of(&control), given, &preferred);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    gf_logical_size* answer = &preferred;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), "measure"};
+    const gf_status status = call_client(frame, layout_.measure, context, self, given, answer);
     if (status != GF_STATUS_OK || !std::isfinite(preferred.width) || !std::isfinite(preferred.height) ||
         preferred.width < 0.0 || preferred.height < 0.0) {
         return std::nullopt;
@@ -429,12 +452,11 @@ std::optional<bool> CustomControlState::hit_test(const Control& control, Point l
     point.x = local_point.x;
     point.y = local_point.y;
     std::uint32_t hit = 2U;
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            "hit_test", 0U);
-        status = layout_.hit_test(callbacks_.context, registry().identity_of(&control), point, &hit);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    std::uint32_t* answer = &hit;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), "hit_test"};
+    const gf_status status = call_client(frame, layout_.hit_test, context, self, point, answer);
     if (status != GF_STATUS_OK || hit > 1U) {
         return std::nullopt;
     }
@@ -455,12 +477,11 @@ void CustomControlState::describe(const Control& control, SemanticDescriptor& de
     record.value.size = descriptor.value.size();
     record.description.data = descriptor.description.data();
     record.description.size = descriptor.description.size();
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            "semantics", 0U);
-        status = layout_.semantics(callbacks_.context, registry().identity_of(&control), &record);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    gf_custom_semantics* answer = &record;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), "semantics"};
+    const gf_status status = call_client(frame, layout_.semantics, context, self, answer);
     if (status != GF_STATUS_OK || record.role >= semantic_role_count) {
         return;
     }
@@ -495,6 +516,10 @@ CustomControl<Base>::CustomControl(StableId stable_id, const gf_custom_control_c
     if (focusable) {
         (*this).focusable = true;
     }
+}
+
+template <typename Base>
+void CustomControl<Base>::arm_release() noexcept {
     state_.arm();
 }
 

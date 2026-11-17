@@ -10,6 +10,8 @@
 #include "../../surface_root/access/surface_resource_access.hpp"
 #include "gui_forms/resources/image_atlas/image_atlas.hpp"
 
+#include <stxlib/optional.hpp>
+#include <atomic>
 #include <cstdio>
 
 #include <stdexcept>
@@ -183,10 +185,17 @@ void ApplicationResources::hold_theme_request(std::unique_ptr<DeferredThemeReque
 void ApplicationResources::settle_theme_request() {
     require_access("theme request");
     if (held_theme_request_ == nullptr || !windows_.empty()) return;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A high-integrity build (cmake/HighIntegrity.cmake) applies no theme
+    // request, so the first window never reaches the user-theme loader
+    // (apply_theme_request): a held request is released unread.
+    held_theme_request_.reset();
+#else
     // Released first: a request that throws is not settled twice.
     const std::unique_ptr<DeferredThemeRequest> held = std::move(held_theme_request_);
     ThemeRequestReport report = apply_theme_request(*this, (*held).request, (*held).context);
     theme_request_report_ = std::make_unique<ThemeRequestReport>(std::move(report));
+#endif
 }
 
 bool icon_identifier_valid(std::string_view identifier) noexcept {
@@ -215,7 +224,7 @@ void ApplicationResources::register_icon(std::string_view identifier, ImageId im
     for (const IconDeclaration& declared : icons_) {
         if (declared.identifier == identifier) throw std::invalid_argument("the icon is already registered");
     }
-    if (!images_.find(image)) throw std::invalid_argument("the icon's image is not one of these resources'");
+    if (images_.find(image).absent()) throw std::invalid_argument("the icon's image is not one of these resources'");
     // Both reserved first, so that neither push_back can throw between
     // them.
     icons_.reserve(icons_.size() + 1U);
@@ -224,23 +233,23 @@ void ApplicationResources::register_icon(std::string_view identifier, ImageId im
     icon_images_.push_back(image);
 }
 
-std::optional<ImageId> ApplicationResources::icon(std::string_view identifier) const noexcept {
+stxlib::Optional<ImageId> ApplicationResources::icon(std::string_view identifier) const noexcept {
     for (std::size_t index = 0U; index < icons_.size(); ++index) {
         if (icons_[index].identifier != identifier) continue;
         if (icons_[index].policy == IconOverride::overridable && user_theme_ != nullptr) {
-            const std::optional<ImageId> replaced = (*user_theme_).icon_override(identifier);
-            if (replaced) return replaced;
+            const stxlib::Optional<ImageId> replaced = (*user_theme_).icon_override(identifier);
+            if (replaced.present()) return replaced;
         }
-        return icon_images_[index];
+        return stxlib::Optional<ImageId>::of(icon_images_[index]);
     }
-    return std::nullopt;
+    return stxlib::Optional<ImageId>::none();
 }
 
-std::optional<ImageId> ApplicationResources::program_icon(std::string_view identifier) const noexcept {
+stxlib::Optional<ImageId> ApplicationResources::program_icon(std::string_view identifier) const noexcept {
     for (std::size_t index = 0U; index < icons_.size(); ++index) {
-        if (icons_[index].identifier == identifier) return icon_images_[index];
+        if (icons_[index].identifier == identifier) return stxlib::Optional<ImageId>::of(icon_images_[index]);
     }
-    return std::nullopt;
+    return stxlib::Optional<ImageId>::none();
 }
 
 ThemeCompileResult ApplicationResources::compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
@@ -319,10 +328,48 @@ void ApplicationResources::set_light_plane_directory(std::filesystem::path direc
     std::unique_ptr<engine_light::LightPlaneCache> made{};
     if (!directory.empty()) made = std::make_unique<engine_light::LightPlaneCache>(std::move(directory));
     light_planes_ = std::move(made);
-    // Any window may show a part composited from the old directory's bakes:
-    // the same whole repaint an image replacement makes.
+    // Any window may show a part composited from the old directory's bakes,
+    // and a bake's presence changes the part's aspect: every sharing window
+    // lays out and repaints (cp31 follow-up; a repaint alone left the
+    // published part geometry stale until the next layout).
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
-        detail::SurfaceResourceAccess::repaint_for_image_replacement(*windows_[index]);
+        detail::SurfaceResourceAccess::relayout_for_resource_content(*windows_[index]);
+    }
+}
+
+namespace {
+
+// Locale generations are drawn from one process-wide count, so a control's
+// cache keyed by a generation never mistakes one resources' locale for
+// another's (0 is the portable default's, outside any resources).
+std::uint64_t next_locale_generation() noexcept {
+    static std::atomic<std::uint64_t> generations{0U};
+    const std::uint64_t generation = generations.fetch_add(1U, std::memory_order_relaxed) + 1U;
+    return generation;
+}
+
+} // namespace
+
+void ApplicationResources::set_locale(HostLocale locale) {
+    require_access("locale");
+    if (!valid_host_locale(locale)) throw std::invalid_argument("ApplicationResources::set_locale: invalid locale");
+    locale_set_by_program_ = true;
+    adopt_locale(std::move(locale));
+}
+
+void ApplicationResources::seed_host_locale(const HostLocale& locale) {
+    require_access("host locale");
+    if (locale_set_by_program_ || host_locale_seeded_ || !valid_host_locale(locale)) return;
+    host_locale_seeded_ = true;
+    adopt_locale(locale);
+}
+
+void ApplicationResources::adopt_locale(HostLocale locale) {
+    if (locale == locale_) return;
+    locale_ = std::move(locale);
+    locale_generation_ = next_locale_generation();
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        detail::SurfaceResourceAccess::relayout_for_resource_content(*windows_[index]);
     }
 }
 

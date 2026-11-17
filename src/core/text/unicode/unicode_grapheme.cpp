@@ -17,6 +17,11 @@ struct GraphemeWorkspaceScalar final {
   unicode_data::GraphemeBreak grapheme_break{unicode_data::GraphemeBreak::Other};
   unicode_data::IndicConjunctBreak indic_break{unicode_data::IndicConjunctBreak::None};
   bool extended_pictographic{};
+  // Whether this scalar is a regional indicator ending a run of an odd
+  // number of them, counted from the run's start (GB12, GB13): carried
+  // forward while scalars are classified, so the rule reads one bit where
+  // it walked the run back (A-gf-core-12-F2).
+  bool regional_run_odd{};
 };
 
 namespace {
@@ -144,20 +149,11 @@ lookup(char32_t scalar,
     }
   }
 
-  // GB12-GB13: regional indicators pair from the start of each RI run.
+  // GB12-GB13: regional indicators pair from the start of each RI run; the
+  // left scalar ends a run of an odd number of them when right would pair.
   if (left_break == GraphemeBreak::Regional_Indicator &&
-      right_break == GraphemeBreak::Regional_Indicator) {
-    std::size_t preceding_regional_indicators = 0;
-    std::size_t index = right_index;
-    while (index > 0U &&
-           scalars[index - 1U].grapheme_break ==
-               GraphemeBreak::Regional_Indicator) {
-      --index;
-      ++preceding_regional_indicators;
-    }
-    if ((preceding_regional_indicators % 2U) == 1U) {
-      return false;
-    }
+      right_break == GraphemeBreak::Regional_Indicator && left.regional_run_odd) {
+    return false;
   }
 
   return true; // GB999
@@ -174,14 +170,18 @@ std::size_t fill_grapheme_parts(const char* GUI_FORMS_RESTRICT text, const std::
   const std::span<Scalar> scalars(scalar_data, scalar_count);
   const std::span<std::size_t> boundaries(boundary_data, boundary_count);
   std::size_t offset = 0U;
+  bool regional_odd_before = false;
   for (std::size_t index = 0U; index < scalars.size(); ++index) {
     const std::size_t byte_offset = offset;
     const char32_t value = decode(utf8, offset);
     const GraphemeBreak grapheme = lookup(value, unicode_data::grapheme_break_ranges, GraphemeBreak::Other);
     const IndicConjunctBreak indic = lookup(value, unicode_data::indic_conjunct_break_ranges, IndicConjunctBreak::None);
     const bool pictographic = lookup(value, unicode_data::extended_pictographic_ranges, false);
+    const bool regional = grapheme == GraphemeBreak::Regional_Indicator;
+    const bool run_odd = regional && !regional_odd_before;
     scalars[index] = Scalar{.byte_offset = byte_offset, .grapheme_break = grapheme,
-        .indic_break = indic, .extended_pictographic = pictographic};
+        .indic_break = indic, .extended_pictographic = pictographic, .regional_run_odd = run_odd};
+    regional_odd_before = run_odd;
   }
   boundaries[0] = 0U;
   std::size_t count = 1U;
@@ -353,16 +353,19 @@ extended_grapheme_boundaries(std::string_view valid_utf8,
   std::vector<Scalar> scalars;
   scalars.reserve(scalar_count);
   std::size_t offset = 0;
+  bool regional_odd_before = false;
   while (offset < valid_utf8.size()) {
     const std::size_t byte_offset = offset;
     const char32_t value = decode(valid_utf8, offset);
-    scalars.push_back(
-        {byte_offset,
-         lookup(value, unicode_data::grapheme_break_ranges,
-                GraphemeBreak::Other),
-         lookup(value, unicode_data::indic_conjunct_break_ranges,
-                IndicConjunctBreak::None),
-         lookup(value, unicode_data::extended_pictographic_ranges, false)});
+    const GraphemeBreak grapheme = lookup(value, unicode_data::grapheme_break_ranges, GraphemeBreak::Other);
+    const IndicConjunctBreak indic = lookup(value, unicode_data::indic_conjunct_break_ranges, IndicConjunctBreak::None);
+    const bool pictographic = lookup(value, unicode_data::extended_pictographic_ranges, false);
+    const bool regional = grapheme == GraphemeBreak::Regional_Indicator;
+    const bool run_odd = regional && !regional_odd_before;
+    const Scalar scalar{.byte_offset = byte_offset, .grapheme_break = grapheme,
+        .indic_break = indic, .extended_pictographic = pictographic, .regional_run_odd = run_odd};
+    scalars.push_back(scalar);
+    regional_odd_before = run_odd;
   }
 
   std::vector<std::size_t> boundaries;

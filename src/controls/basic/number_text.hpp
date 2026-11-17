@@ -4,11 +4,18 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <array>
+#include <string>
 #include <string_view>
 #include <system_error>
 
-// Locale-independent parsing of numbers typed by the user or written by an
-// assistive client (audit F4). std::stod and std::stoll follow LC_NUMERIC,
+// Locale-independent numbers: parsing what the user types or an assistive
+// client writes (audit F4), and writing what the controls publish
+// (A-gf-controls-05-F5, 10-F10 and the locale findings after them). This is
+// the one place that owns number text; std::to_string, printf and default
+// streams follow a locale the program may set.
+//
+// Parsing: std::stod and std::stoll follow LC_NUMERIC, std::stod and std::stoll follow LC_NUMERIC,
 // which an embedding application may change, and throw on ordinary bad input;
 // these read the C-locale form with std::from_chars and report failure with a
 // result instead.
@@ -43,6 +50,32 @@ namespace gui_forms::number_text {
     return true;
 }
 
+// Reads the leading decimal number of `text` as std::strtod(text, nullptr)
+// reads it in the C locale, for expression text that may carry a unit or
+// other words after the number: leading white space, an optional '+' or '-',
+// then the longest decimal number. 0 when no number starts the text or it is
+// out of range; hexadecimal forms read their leading "0". Unlike strtod it
+// never follows LC_NUMERIC (A-gf-controls-02-F4).
+[[nodiscard]] inline double leading_decimal(std::string_view text) noexcept {
+    std::size_t first = 0U;
+    while (first < text.size() && (text[first] == ' ' || text[first] == '\t' || text[first] == '\n' ||
+                                   text[first] == '\v' || text[first] == '\f' || text[first] == '\r')) {
+        ++first;
+    }
+    std::string_view rest = text.substr(first);
+    // from_chars accepts '-' but not '+'; a '+' followed by another sign reads nothing.
+    if (!rest.empty() && rest.front() == '+') {
+        rest.remove_prefix(1U);
+        if (!rest.empty() && rest.front() == '-') return 0.0;
+    }
+    if (rest.empty()) return 0.0;
+    double parsed{};
+    const std::from_chars_result result =
+        std::from_chars(rest.data(), rest.data() + rest.size(), parsed, std::chars_format::general);
+    if (result.ec != std::errc{}) return 0.0;
+    return parsed;
+}
+
 // Reads a hexadecimal integer as std::stoll(text, nullptr, 16) read it: an
 // optional sign, an optional "0x" or "0X" prefix, then hexadecimal digits.
 // `value` is written only on success; magnitudes beyond INT64_MAX are refused.
@@ -62,6 +95,37 @@ namespace gui_forms::number_text {
     if (result.ec != std::errc{} || result.ptr != last) return false;
     value = negative ? -magnitude : magnitude;
     return true;
+}
+
+// Writing: std::to_chars with a format and precision is specified to write
+// what printf's matching conversion writes in the C locale, so "%.6g" is
+// append_number_text(out, value, std::chars_format::general, 6) and "%.0f" is
+// (..., std::chars_format::fixed, 0). Appends nothing when the text would not
+// fit 64 bytes, which no general form and no fixed form of a value below 1e40
+// reaches.
+inline void append_number_text(std::string& out, double value, std::chars_format format, int precision) {
+    std::array<char, 64> text{};
+    char* const first = text.data();
+    char* const last = first + text.size();
+    const std::to_chars_result written = std::to_chars(first, last, value, format, precision);
+    if (written.ec != std::errc{}) return;
+    out.append(first, written.ptr);
+}
+
+// An integer in uppercase hexadecimal, as a stream with std::uppercase and
+// std::hex writes it in the classic locale: a negative value is written as
+// its two's complement bits (the stream formats it unsigned).
+inline void append_hexadecimal_integer(std::string& out, std::int64_t value) {
+    std::array<char, 32> text{};
+    char* const first = text.data();
+    char* const last = first + text.size();
+    const std::uint64_t bits = static_cast<std::uint64_t>(value);
+    const std::to_chars_result written = std::to_chars(first, last, bits, 16);
+    if (written.ec != std::errc{}) return;
+    for (char* digit = first; digit != written.ptr; ++digit) {
+        if (*digit >= 'a' && *digit <= 'f') *digit = static_cast<char>(*digit - 'a' + 'A');
+    }
+    out.append(first, written.ptr);
 }
 
 } // namespace gui_forms::number_text

@@ -122,8 +122,8 @@ internal static class Program
         var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(drawingPath);
         NativeLibrary.SetDllImportResolver(assembly, (libraryName, _, _) =>
         {
-            if (!libraryName.Equals("gui_drawing_abi0", StringComparison.OrdinalIgnoreCase) &&
-                !libraryName.Equals("gui_drawing_raster0", StringComparison.OrdinalIgnoreCase))
+            // The drawing ABI and its raster service are part of the C ABI library.
+            if (!libraryName.Equals("gui_forms_abi1", StringComparison.OrdinalIgnoreCase))
                 return 0;
             var fileName = Path.HasExtension(libraryName) ? libraryName : libraryName + ".dll";
             var path = Path.Combine(nativeDirectory, fileName);

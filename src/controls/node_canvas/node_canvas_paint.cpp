@@ -84,10 +84,12 @@ void write_socket_class(std::string& text, std::uint16_t socket_type) {
 void NodeCanvas::ensure_look() {
     const Theme& theme = effective_theme();
     const CompiledThemeRules* const inline_rules = inline_style_rules();
+    const CompiledThemeRules* const composite_look = look_rules();
     const ControlVisualContext context = visual_context();
     const std::span<const std::string> current_classes = classes.read();
-    const std::optional<Color> authored = back_color.read();
+    const stxlib::Optional<Color> authored = back_color.read();
     const bool unchanged = look_resolved_ && look_theme_ == &theme && look_inline_rules_ == inline_rules &&
+                           look_composite_rules_ == composite_look &&
                            look_dark_ == context.dark && look_high_contrast_ == context.high_contrast &&
                            look_back_color_ == authored && same_classes(current_classes, look_classes_);
     if (unchanged) return;
@@ -99,10 +101,12 @@ void NodeCanvas::ensure_look() {
     look_ = resolve_canvas_look(theme, *this, scheme);
     // back_color is the per-control override of the region's colour, as
     // VirtualRowsView's is of its well; high contrast keeps the plate.
-    if (authored.has_value() && !context.high_contrast) look_.background.fill = *authored;
-    if (grid_spacing_set_.has_value()) look_.grid.spacing = *grid_spacing_set_;
+    const Color* authored_fill = authored.value();
+    if (authored_fill != nullptr && !context.high_contrast) look_.background.fill = *authored_fill;
+    if (grid_spacing_set_.present()) look_.grid.spacing = *grid_spacing_set_.value();
     look_theme_ = &theme;
     look_inline_rules_ = inline_rules;
+    look_composite_rules_ = composite_look;
     look_dark_ = context.dark;
     look_high_contrast_ = context.high_contrast;
     look_back_color_ = authored;
@@ -267,8 +271,8 @@ void NodeCanvas::on_paint(Painter& painter, Rect) {
     // With no node to carry the focus cue, the canvas itself shows it: the
     // focus ring just inside the canvas.
     bool node_carries_focus = false;
-    if (focused_node_.has_value()) {
-        node_carries_focus = std::binary_search(visible_nodes_.begin(), visible_nodes_.end(), (*focused_node_).index);
+    if (focused_node_.present()) {
+        node_carries_focus = std::binary_search(visible_nodes_.begin(), visible_nodes_.end(), (*focused_node_.value()).index);
     }
     const Window* const host = attached_window();
     if (focused_ && !node_carries_focus && host != nullptr && (*host).focus_cue_visible()) {
@@ -306,7 +310,7 @@ void NodeCanvas::paint_links(Painter& painter) {
         statistics_.link_points_flattened += count;
         const std::span<const Point> path(link_points_.data(), count);
         const LinkId id{slot, link.generation};
-        const bool chosen = selected_link_.has_value() && *selected_link_ == id;
+        const bool chosen = selected_link_.present() && *selected_link_.value() == id;
         const CanvasLinkState state = chosen ? CanvasLinkState::selected : CanvasLinkState::normal;
         paint_canvas_link(painter, link_look(slot, link), path, state, CanvasLinkStyle::plain);
         ++painted;
@@ -443,7 +447,7 @@ void NodeCanvas::paint_node(Painter& painter, std::uint32_t slot, const NodeReco
     // Ports over the body (and the body callback), so a port on the edge is
     // never covered by its own node.
     paint_ports(painter, slot, node);
-    if (states.contains(AnatomyState::focus_visible) && !focused_port_.has_value()) {
+    if (states.contains(AnatomyState::focus_visible) && !focused_port_.present()) {
         // node_look again: the ports wrote their own focus record.
         paint_canvas_focus(painter, node_look(slot, node), rect, corner);
         ++statistics_.focus_rings_painted;
@@ -457,7 +461,7 @@ CanvasPortState NodeCanvas::port_state(std::uint32_t slot, std::size_t port) con
     if (link_from_.node.index == slot && link_from_.port.value == port) return CanvasPortState::hot;
     std::optional<std::size_t> target{};
     if (keyboard_link_ && keyboard_target_ < candidates_.size()) target = keyboard_target_;
-    if (!keyboard_link_ && link_hit_.has_value() && *link_hit_ < candidates_.size()) target = *link_hit_;
+    if (!keyboard_link_ && link_hit_.present() && *link_hit_.value() < candidates_.size()) target = *link_hit_.value();
     if (target.has_value()) {
         const PortRef captured = candidates_[*target].port;
         if (captured.node.index == slot && captured.port.value == port) return CanvasPortState::hot;
@@ -489,7 +493,7 @@ void NodeCanvas::paint_ports(Painter& painter, std::uint32_t slot, const NodeRec
     const FontSpec label_font = effective_font(label_base);
     const Rect rect = view_.rect_to_view(node.bounds);
     const Window* const host = attached_window();
-    const bool node_focus_cue = focused_node_.has_value() && (*focused_node_).index == slot && focused_ &&
+    const bool node_focus_cue = focused_node_.present() && (*focused_node_.value()).index == slot && focused_ &&
                                 host != nullptr && (*host).focus_cue_visible();
     for (std::size_t port = 0U; port < node.ports.size(); ++port) {
         const PortRecord& record = node.ports[port];
@@ -523,7 +527,7 @@ void NodeCanvas::paint_ports(Painter& painter, std::uint32_t slot, const NodeRec
             paint_canvas_port_label(painter, look, baseline, record.name, label_font, state);
             painter.restore();
         }
-        if (node_focus_cue && focused_port_.has_value() && (*focused_port_).value == port) {
+        if (node_focus_cue && focused_port_.present() && (*focused_port_.value()).value == port) {
             const Rect disc{anchor.x - radius, anchor.y - radius, 2.0 * radius, 2.0 * radius};
             paint_canvas_focus(painter, look, disc, radius);
             ++statistics_.focus_rings_painted;
@@ -552,7 +556,7 @@ void NodeCanvas::paint_overlay(Painter& painter) {
     // pointer.
     std::optional<std::size_t> target{};
     if (keyboard_link_ && keyboard_target_ < candidates_.size()) target = keyboard_target_;
-    if (!keyboard_link_ && link_hit_.has_value() && *link_hit_ < candidates_.size()) target = *link_hit_;
+    if (!keyboard_link_ && link_hit_.present() && *link_hit_.value() < candidates_.size()) target = *link_hit_.value();
     WorldPoint end = view_.to_world(current_view_);
     SceneEdge end_edge = SceneEdge::left;
     if (target.has_value()) {
@@ -570,8 +574,8 @@ void NodeCanvas::paint_overlay(Painter& painter) {
         flatten_scene_cubic(cubic, 24U, view_, std::span<Point>(link_points_.data(), link_points_.size()));
     // The preview in its state, in the look of the port it leaves (its
     // socket's rules).
-    const std::optional<CanvasPreviewState> state = link_preview_state();
-    const CanvasPreviewState shown = state.has_value() ? *state : CanvasPreviewState::seeking;
+    const stxlib::Optional<CanvasPreviewState> state = link_preview_state();
+    const CanvasPreviewState shown = state.value_or(CanvasPreviewState::seeking);
     const CanvasLook& look = port_look(link_from_.node.index, *from_node, link_from_.port.value);
     paint_canvas_link_preview(painter, look, std::span<const Point>(link_points_.data(), count), shown);
 }

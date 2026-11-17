@@ -1,0 +1,88 @@
+/* The page shell's layout: the canvas fills the window; the host's hidden
+   input element and dialog prompts are placed over it (web_host.js). */
+:root {
+  color-scheme: dark;
+  --shell-background: #1e1e1e;
+  --shell-text: #f0f0f0;
+  --shell-muted: #a0a0a0;
+  --shell-accent: #3f8cff;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--shell-background);
+  color: var(--shell-text);
+  font: 14px/1.4 system-ui, sans-serif;
+}
+
+#gui-forms-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#gui-forms-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+#gui-forms-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--shell-background);
+}
+
+#gui-forms-status[hidden] {
+  display: none;
+}
+
+#gui-forms-progress {
+  width: min(320px, 80vw);
+  accent-color: var(--shell-accent);
+}
+
+.gui-forms-error {
+  max-width: 36em;
+  padding: 0 16px;
+  text-align: center;
+  color: var(--shell-text);
+}
+
+.gui-forms-prompt {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #2d2d30;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 50%);
+  z-index: 10;
+}
+
+.gui-forms-prompt button {
+  font: inherit;
+  padding: 6px 14px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #3a3a3d;
+  color: var(--shell-text);
+  cursor: pointer;
+}
+
+.gui-forms-prompt button:first-child {
+  background: var(--shell-accent);
+  border-color: var(--shell-accent);
+}

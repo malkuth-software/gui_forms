@@ -4,15 +4,12 @@ This repository carries no third-party sources (owner, 2026-11-05). They are
 kept in the stx repository (malkuth-software/stx) at the commit `stx.lock`
 names. `cmake/Stx.cmake` builds them once, at that commit, into the stx
 package (`cmake/stx_package/`), which the build links; it fetches the stx
-source only when the package must be built:
+source only when the package must be built. (HarfBuzz, FreeType, the line
+breaker, the markdown reader and the bidi library were retired on
+2026-11-16: STXlib does that work.)
 
 | stx path | What | GUI.Forms uses it for |
 |---|---|---|
-| `third_party/harfbuzz/` | HarfBuzz 14.6.0 at `c7a7457b`, without `test/` and `perf/` | shaping (`GUI_FORMS_ENABLE_HARFBUZZ_TEXT`) |
-| `third_party/freetype/` | FreeType 2.14.2 at `f4205da1` | glyph loading and rasterisation, with the options header in `cmake/freetype/` |
-| `third_party/libunibreak/` | libunibreak 8.0 at `28a2756b` | UAX #14 line breaking in the text engine (`cmake/LineBreak.cmake`) |
-| `third_party/md4c/` | MD4C 0.6.0 | the markdown framework's CommonMark parser |
-| `third_party/sheenbidi/` | SheenBidi 2.9.0 | bidirectional ordering in the text adapter |
 | `third_party/unicode/` | the Unicode 17 licence and the provenance of GUI.Forms' generated grapheme tables | the tables' attribution |
 | `stx_skia/` | the CPU Skia derivative (Skia `chrome/m152`, pruned and converted) | the Skia adapters, linked from the stx package |
 
@@ -22,8 +19,10 @@ moved files were blob-for-blob equal to this repository's at 06a78004.
 
 What stays here:
 
-- `fetch_showcase_fallback_fonts.sh`, which refreshes the Noto fallback fonts
-  bundled in `assets/fonts/` from their pinned upstream files;
+- `fetch_showcase_fallback_fonts.sh`, which downloads the pinned upstream
+  Noto files the bundled fallback subsets are cut from (into
+  `build/fallback-font-sources/`, for `tools/fallback_font_subsets.py`), and
+  Noto Emoji and the Noto licences into `assets/fonts/`;
 - `SKIA_BUILD_EVIDENCE.md`, GUI.Forms' record of how its Skia builds were made;
 - miniaudio, which `cmake/Audio.cmake` fetches at its pin into
   `third_party/miniaudio/` (ignored), for audio builds.

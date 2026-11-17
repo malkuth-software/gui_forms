@@ -8,6 +8,9 @@
 // part_composite_identity_tests.
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/surface_material.hpp"
 #include "gui_forms/visual_inspection.hpp"
 #include "gui_forms/window.hpp"
 
@@ -54,12 +57,14 @@ public:
     void begin_group(const PaintGroup& group) override {
         calls.emplace_back("begin");
         opacities.push_back(group.opacity);
+        effects.push_back(group.effect);
     }
     void end_group() override { calls.emplace_back("end"); }
 
     std::vector<std::string> calls{};
     std::vector<Rect> clips{};
     std::vector<double> opacities{};
+    std::vector<std::shared_ptr<const PaintGroupEffect>> effects{};
 };
 
 // A painter keeping the base fallback for groups.
@@ -79,7 +84,18 @@ public:
     std::vector<Rect> clips{};
 };
 
-enum class Script : std::uint8_t { nested, too_deep, left_open, ended_twice, saves_cross };
+enum class Script : std::uint8_t { nested, too_deep, left_open, ended_twice, saves_cross, effect, plain };
+
+// The effect the `effect` script's group carries: grey fill, a blur and a
+// half-alpha mask.
+std::shared_ptr<const PaintGroupEffect> script_effect() {
+    PaintGroupEffect effect{};
+    effect.colour_filter = MaterialColourMatrix::fill(Color::rgba(128, 128, 128));
+    effect.blur = 2.0;
+    effect.masks.push_back(MaterialMaskLayer{.source = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 128))});
+    const std::shared_ptr<const PaintGroupEffect> shared = std::make_shared<const PaintGroupEffect>(effect);
+    return shared;
+}
 
 // A control drawing one of the scripts.
 class Grouper final : public Control {
@@ -111,6 +127,17 @@ public:
             painter.end_group();
             painter.end_group();
             return;
+        case Script::effect: {
+            PaintGroup group = group_of({10.0, 10.0, 30.0, 20.0}, 1.0);
+            group.effect = effect;
+            painter.begin_group(group);
+            painter.fill_rect({12.0, 12.0, 10.0, 10.0}, Color::rgba(200, 30, 30, 255));
+            painter.end_group();
+            return;
+        }
+        case Script::plain:
+            painter.fill_rect({0.0, 0.0, 10.0, 10.0}, Color::rgba(30, 200, 30, 255));
+            return;
         case Script::saves_cross:
             painter.begin_group(group_of({0.0, 0.0, 50.0, 40.0}, 0.5));
             painter.save();
@@ -123,6 +150,7 @@ public:
     }
 
     Script script{Script::nested};
+    std::shared_ptr<const PaintGroupEffect> effect{};
 };
 
 struct Fixture final {
@@ -185,6 +213,194 @@ void recorded_and_replayed() {
             "and names them");
 }
 
+// A group's effect (capability review decision 1) is recorded with the
+// group, replayed as the same shared effect, and inspected.
+void effect_recorded_and_replayed() {
+    Fixture fixture = make_fixture(Script::effect);
+    const std::shared_ptr<const PaintGroupEffect> effect = script_effect();
+    (*fixture.root).effect = effect;
+    ListingPainter painter{};
+    static_cast<void>((*fixture.window).paint(painter));
+    require(painter.effects.size() == 1U && painter.effects[0] == effect,
+            "the replayed group carries the recorded effect, shared");
+    require(painter.opacities == std::vector<double>({1.0}), "an effect group keeps its opacity");
+
+    VisualInspectionOptions options{};
+    const VisualInspectionSnapshot snapshot = (*fixture.window).visual_inspection_snapshot(options);
+    const VisualControlInspection* const control = snapshot.find("grouper");
+    require(control != nullptr, "the effect's control is inspected");
+    bool inspected = false;
+    for (const VisualPaintOperationSnapshot& operation : (*control).display_operations) {
+        if (operation.operation != VisualPaintOperation::begin_group) continue;
+        inspected = operation.group_effect == effect;
+    }
+    require(inspected, "inspection shows the group's effect");
+    const std::string json = snapshot.to_json();
+    require(json.find("\"group_effect\":{\"colour_filter\":true,\"colour_table\":false,\"blur\":") !=
+                    std::string::npos &&
+                json.find(",\"masks\":1}") != std::string::npos,
+            "the snapshot's JSON names the effect's stages");
+    require(valid_paint_group_effect(*effect) && paint_group_effect_reach(*effect) == 6.0,
+            "the script's effect is valid and reaches 1.5 × 2 + 3");
+}
+
+// A control's content effect (Control::set_content_effect) wraps the
+// control's chunk and its descendants' chunks in one group carrying it, and
+// a damage inside grows by the effect's reach.
+void content_effect_wraps_the_subtree() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("content.root"));
+    const std::shared_ptr<Panel> holder = make_control<Panel>(StableId("content.holder"));
+    const std::shared_ptr<Grouper> child = make_control<Grouper>(StableId("content.child"));
+    (*child).script = Script::plain;
+    (*holder).set_requested_bounds(Rect{20.0, 20.0, 60.0, 40.0});
+    (*child).set_requested_bounds(Rect{20.0, 10.0, 10.0, 10.0});
+    (*holder).add_child(child);
+    (*root).add_child(holder);
+    Window window(root, Size{100.0, 80.0});
+    window.perform_layout();
+
+    PaintGroupEffect bad{};
+    bad.blur = -1.0;
+    bool refused = false;
+    try {
+        (*holder).set_content_effect(std::make_shared<const PaintGroupEffect>(bad));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !(*holder).content_effect(), "an invalid content effect is refused and nothing changes");
+
+    const std::shared_ptr<const PaintGroupEffect> effect = script_effect();
+    (*holder).set_content_effect(effect);
+    require((*holder).content_effect() == effect && (*holder).shown_content_effect() == effect,
+            "the control keeps and shows its content effect");
+    ListingPainter painter{};
+    static_cast<void>(window.paint(painter));
+    std::size_t effect_group = painter.effects.size();
+    for (std::size_t index = 0U; index < painter.effects.size(); ++index) {
+        if (painter.effects[index] == effect) effect_group = index;
+    }
+    require(effect_group < painter.effects.size(), "the replay opens a group carrying the content effect");
+    // Walk to that group's begin, then to its matching end, counting the
+    // child's fill inside.
+    std::size_t begins = 0U;
+    std::size_t depth = 0U;
+    bool inside = false;
+    bool closed = false;
+    std::size_t fills_inside = 0U;
+    for (const std::string& call : painter.calls) {
+        if (closed) break;
+        if (call == "begin") {
+            if (!inside && begins == effect_group) {
+                inside = true;
+                depth = 0U;
+            } else if (inside) {
+                ++depth;
+            }
+            ++begins;
+            continue;
+        }
+        if (!inside) continue;
+        if (call == "fill") ++fills_inside;
+        if (call == "end") {
+            if (depth == 0U) {
+                closed = true;
+            } else {
+                --depth;
+            }
+        }
+    }
+    require(closed, "the content effect's group ends after the subtree");
+    require(fills_inside >= 1U, "the descendant's chunk draws inside the group");
+
+    // A damage in the child spreads by the reach, 1.5 × 2 + 3 = 6, on every
+    // side: its 10 × 10 bounds request at least 22 × 22.
+    const double before = window.metrics_snapshot().requested_damage_area;
+    (*child).invalidate(invalidation::paint_only);
+    ListingPainter repaint{};
+    static_cast<void>(window.paint(repaint));
+    const double requested = window.metrics_snapshot().requested_damage_area - before;
+    require(requested >= 22.0 * 22.0, "a damage under a content effect grows by its reach");
+
+    (*holder).set_content_effect(nullptr);
+    require(!(*holder).shown_content_effect(), "a null effect clears it");
+
+    // A rule with no part writing `filter` (here the control's inline
+    // style) is its theme content effect, resolved where its paint damage
+    // is owed (owner 2026-11-16).
+    const InlineStyleResult styled = (*holder).set_inline_style("filter: grayscale(1) blur(1px)");
+    require(styled.succeeded(), "a control's filter compiles as its content effect");
+    ListingPainter themed{};
+    static_cast<void>(window.paint(themed));
+    const std::shared_ptr<const PaintGroupEffect> from_theme = (*holder).shown_content_effect();
+    require(from_theme && !(*holder).content_effect() && (*from_theme).colour_filter.has_value() &&
+                (*from_theme).blur == 2.0 && (*from_theme).masks.empty(),
+            "the theme's content effect is shown: grayscale and blur(1px), 2 in filter_blur's units");
+    bool themed_group = false;
+    for (const std::shared_ptr<const PaintGroupEffect>& carried : themed.effects) {
+        if (carried == from_theme) themed_group = true;
+    }
+    require(themed_group, "the replay groups the subtree with the theme's effect");
+    (*holder).set_content_effect(effect);
+    require((*holder).shown_content_effect() == effect, "an effect set in code wins over the theme's");
+    (*holder).set_content_effect(nullptr);
+    require(styled.succeeded() && (*holder).set_inline_style("").succeeded(), "the style clears");
+    ListingPainter cleared{};
+    static_cast<void>(window.paint(cleared));
+    require(!(*holder).shown_content_effect(), "without the rule the control shows no content effect");
+}
+
+// A child repainting under a parent whose theme blurs it damages the
+// child's bounds grown by the parent's reach, exactly; under forced high
+// contrast a content effect paints without its colour stages, its blur and
+// masks kept, and one with only colour stages makes no group.
+void theme_effect_spreads_and_contrast_suppresses() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("contrast.root"));
+    const std::shared_ptr<Panel> holder = make_control<Panel>(StableId("contrast.holder"));
+    const std::shared_ptr<Grouper> child = make_control<Grouper>(StableId("contrast.child"));
+    (*child).script = Script::plain;
+    (*holder).set_requested_bounds(Rect{20.0, 20.0, 60.0, 40.0});
+    (*child).set_requested_bounds(Rect{20.0, 10.0, 10.0, 10.0});
+    (*holder).add_child(child);
+    (*root).add_child(holder);
+    Window window(root, Size{100.0, 80.0});
+    window.perform_layout();
+    require((*holder).set_inline_style("filter: blur(1px)").succeeded(), "the parent's theme blurs it");
+    ListingPainter first{};
+    static_cast<void>(window.paint(first));
+    // blur(1px) is 2 in filter_blur's units: the reach is ceil(1.5 × 2) + 3
+    // = 6 on every side of the child's 10 × 10.
+    const double before = window.metrics_snapshot().requested_damage_area;
+    (*child).invalidate(invalidation::paint_only);
+    ListingPainter repaint{};
+    static_cast<void>(window.paint(repaint));
+    const double requested = window.metrics_snapshot().requested_damage_area - before;
+    require(requested == 22.0 * 22.0, "the child's damage grows by the theme effect's reach, exactly");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    require((*holder).set_inline_style("").succeeded(), "the theme effect clears");
+    const std::shared_ptr<const PaintGroupEffect> effect = script_effect();
+    (*holder).set_content_effect(effect);
+    ListingPainter contrast{};
+    static_cast<void>(window.paint(contrast));
+    bool suppressed = false;
+    bool recoloured = false;
+    for (const std::shared_ptr<const PaintGroupEffect>& carried : contrast.effects) {
+        if (carried == effect) recoloured = true;
+        if (carried && !(*carried).colour_filter && (*carried).blur == 2.0 && (*carried).masks.size() == 1U) {
+            suppressed = true;
+        }
+    }
+    require(suppressed && !recoloured, "forced high contrast drops the colour stages and keeps the blur and mask");
+    PaintGroupEffect colour_only{};
+    colour_only.colour_filter = MaterialColourMatrix::fill(Color::rgba(128, 128, 128));
+    (*holder).set_content_effect(std::make_shared<const PaintGroupEffect>(colour_only));
+    ListingPainter plain{};
+    static_cast<void>(window.paint(plain));
+    require(plain.effects.empty(), "an effect of colour stages alone makes no group under forced high contrast");
+}
+
 void refused_past_the_depth() {
     Fixture fixture = make_fixture(Script::too_deep);
     ListingPainter painter{};
@@ -221,9 +437,12 @@ void minimal_painter_fallback() {
 
 int main() {
     recorded_and_replayed();
+    effect_recorded_and_replayed();
+    content_effect_wraps_the_subtree();
+    theme_effect_spreads_and_contrast_suppresses();
     refused_past_the_depth();
     unbalanced_chunks_are_refused();
     minimal_painter_fallback();
-    std::cout << "paint groups: recording, nesting, refusals, balance, inspection and the fallback passed\n";
+    std::cout << "paint groups: recording, effects, content effects, nesting, refusals, balance, inspection and the fallback passed\n";
     return EXIT_SUCCESS;
 }

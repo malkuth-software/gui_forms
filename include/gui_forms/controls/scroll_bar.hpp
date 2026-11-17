@@ -70,6 +70,9 @@ protected:
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_wheel(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    // A press whose capture is taken away (the sequence broken, the bar or
+    // an ancestor made unavailable) ends the drag and the repeat.
+    void on_mouse_capture_changed() override;
     void on_key_down(KeyEventArgs& arguments) override;
 
     void on_detached_from_window() noexcept override;

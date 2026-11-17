@@ -80,6 +80,11 @@ struct GUI_FORMS_API LinkRouterOptions final {
     double corner_radius{10.0};
     // The soft style's largest distance between a drawn point and its curve.
     double flatten_tolerance{0.25};
+    // Whether route counts the crossings into its statistics, comparing every
+    // segment with every segment of every later route (quadratic in the
+    // segments). Off, LinkRouteStatistics::crossings is 0 and the routes are
+    // the same.
+    bool count_crossings{true};
 };
 
 inline constexpr std::size_t maximum_route_grid_vertices = 1048576U;
@@ -111,7 +116,8 @@ struct GUI_FORMS_API LinkRouteStatistics final {
     std::size_t grid_rows{};
     // A* states expanded over all searches.
     std::size_t expanded{};
-    // Perpendicular crossings between different links after nudging.
+    // Perpendicular crossings between different links after nudging; 0
+    // unless LinkRouterOptions::count_crossings.
     std::size_t crossings{};
     // Segments moved by nudging.
     std::size_t nudged{};

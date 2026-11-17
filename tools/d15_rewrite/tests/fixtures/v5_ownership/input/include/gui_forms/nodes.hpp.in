@@ -1,0 +1,21 @@
+#pragma once
+
+#include <memory>
+
+namespace gui_forms {
+
+struct Node {
+    virtual ~Node() noexcept;
+    int weight{0};
+};
+
+struct Leaf final : Node {
+    int colour{0};
+};
+
+struct Tree final {
+    std::shared_ptr<Node> root;
+    std::weak_ptr<Node> parent;
+};
+
+} // namespace gui_forms

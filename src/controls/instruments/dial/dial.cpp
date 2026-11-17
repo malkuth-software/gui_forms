@@ -1,4 +1,5 @@
 #include "gui_forms/controls/dial.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -30,19 +31,19 @@ constexpr double knob_share = 0.56;
 constexpr double needle_inset_share = 0.1;
 
 constexpr std::array<PartField<Dial::Parts>, 7> dial_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::track},
-    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}},
+    {.declaration = {.name = "value_arc", .role = PartRole::arc, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::value_arc},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::graticule},
-    {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {}},
+    {.declaration = {.name = "thumb", .role = PartRole::thumb, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::thumb},
-    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}},
+    {.declaration = {.name = "needle", .role = PartRole::needle, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::needle},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &Dial::Parts::focus},
 }};
 
@@ -59,6 +60,7 @@ constexpr ControlAnatomy dial_anatomy{
     .parts = dial_parts,
     .states = dial_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {
@@ -82,7 +84,7 @@ Rect centred_square(Point centre, double half) noexcept {
 
 Dial::Dial(StableId stable_id) : RangeControl(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::hand;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
 }
 
 double Dial::ratio() const noexcept {
@@ -115,8 +117,9 @@ Dial::Face Dial::face() const noexcept {
 Rect Dial::mark_at(Point centre, double radius, double at, double side) noexcept {
     // Clockwise from twelve o'clock, in y-down coordinates.
     const double angle = sweep_start + sweep * at;
-    const double x = centre.x + radius * std::sin(angle);
-    const double y = centre.y - radius * std::cos(angle);
+    const EngineSineCosine turn = engine_sine_cosine(angle);
+    const double x = centre.x + radius * turn.sine;
+    const double y = centre.y - radius * turn.cosine;
     const Rect square{x - side * 0.5, y - side * 0.5, side, side};
     return square;
 }
@@ -142,7 +145,7 @@ double Dial::value_from_window_point(Point point, double previous) const noexcep
     const double dy = point.y - (absolute.y + placed.centre.y);
     if (dx == 0.0 && dy == 0.0) return previous;
     // Clockwise from twelve o'clock, from -pi to pi.
-    const double angle = std::atan2(dx, -dy);
+    const double angle = engine_arctangent2(dx, -dy);
     double at = 0.0;
     if (angle < sweep_start || angle > sweep_start + sweep) {
         // In the gap at the bottom: stay at the end the value is nearer.
@@ -184,14 +187,14 @@ void Dial::on_paint(Painter& painter, Rect) {
 
     PartPaint track{.role = PartRole::arc, .bounds = placed.arc, .states = states,
                     .family = ControlVisualRole::progress};
-    track.arc = PartArc{.start = sweep_start, .sweep = sweep};
-    track.key = PartKey{"track", {}, {}};
+    track.arc.set(PartArc{.start = sweep_start, .sweep = sweep});
+    track.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track);
     if (show_arc.read() && reading > 0.0) {
         PartPaint lit{.role = PartRole::arc, .bounds = placed.arc, .states = lit_states,
                       .family = ControlVisualRole::progress};
-        lit.arc = PartArc{.start = sweep_start, .sweep = sweep * reading};
-        lit.key = PartKey{"value_arc", {}, {}};
+        lit.arc.set(PartArc{.start = sweep_start, .sweep = sweep * reading});
+        lit.key.set(PartKey{"value_arc", {}, {}});
         paint_part(painter, *this, lit);
     }
 
@@ -202,8 +205,8 @@ void Dial::on_paint(Painter& painter, Rect) {
         const double requested = std::floor(span / frequency) + 1.0;
         const std::size_t marks = static_cast<std::size_t>(std::clamp(requested, 2.0, static_cast<double>(most_marks)));
         PartPaint mark{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-        mark.corner_radius = placed.mark * 0.5;
-        mark.key = PartKey{"graticule", {}, {}};
+        mark.corner_radius.set(placed.mark * 0.5);
+        mark.key.set(PartKey{"graticule", {}, {}});
         for (std::size_t index = 0U; index < marks; ++index) {
             const double at = static_cast<double>(index) / static_cast<double>(marks - 1U);
             mark.bounds = mark_at(placed.centre, placed.mark_radius, at, placed.mark);
@@ -213,21 +216,21 @@ void Dial::on_paint(Painter& painter, Rect) {
 
     const Rect knob = knob_bounds();
     PartPaint thumb{.role = PartRole::thumb, .bounds = knob, .states = states, .family = ControlVisualRole::button};
-    thumb.corner_radius = knob.width * 0.5;
-    thumb.key = PartKey{"thumb", {}, {}};
+    thumb.corner_radius.set(knob.width * 0.5);
+    thumb.key.set(PartKey{"thumb", {}, {}});
     paint_part(painter, *this, thumb);
 
     PartPaint needle{.role = PartRole::needle, .bounds = needle_bounds(), .states = lit_states,
                      .family = ControlVisualRole::progress};
-    needle.arc = PartArc{.start = pointer_angle(), .sweep = 0.0};
-    needle.key = PartKey{"needle", {}, {}};
+    needle.arc.set(PartArc{.start = pointer_angle(), .sweep = 0.0});
+    needle.key.set(PartKey{"needle", {}, {}});
     paint_part(painter, *this, needle);
 
     if (focused_) {
         PartPaint focus = thumb;
         focus.role = PartRole::focus;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
@@ -271,6 +274,16 @@ void Dial::on_mouse_up(MouseEventArgs& arguments) {
         arguments.handled = true;
     }
     RangeControl::on_mouse_up(arguments);
+}
+
+// The window ends a primary press's capture after its release, when
+// tracking has already ended; any other loss ends the drag here, so a later
+// hover move does not set the value (A-gf-controls-05-F4).
+void Dial::on_mouse_capture_changed() {
+    RangeControl::on_mouse_capture_changed();
+    if (!tracking_) return;
+    tracking_ = false;
+    invalidate(Dirty::paint);
 }
 
 void Dial::on_key_down(KeyEventArgs& arguments) {
@@ -331,11 +344,11 @@ SemanticDescriptor Dial::semantic_descriptor() const {
     shown.imbue(std::locale::classic());
     shown << value.read();
     descriptor.value = shown.str();
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
-    descriptor.small_step = small_change.read();
-    descriptor.large_step = large_change.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
+    descriptor.small_step.set(small_change.read());
+    descriptor.large_step.set(large_change.read());
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment, SemanticAction::decrement,
                           SemanticAction::set_value};
     descriptor.exposed = true;

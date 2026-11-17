@@ -33,6 +33,7 @@ void DataGridView::prepare_edit(const decltype(rows)&, const CollectionEdit& edi
     for (const DataGridViewRow& row : incoming) validate_row_text(row);
     edit_takes_new_row_id_ = false;
     edit_former_current_.reset();
+    edit_former_count_ = rows.read().size();
     switch (edit.kind()) {
     case CollectionEditKind::assign:
         prepare_rows_assignment(incoming);
@@ -118,8 +119,8 @@ void DataGridView::prepare_rows_insertion(const CollectionEdit& edit, std::span<
 // The current row's position is kept for drop_missing_rows; a cell edit in
 // an erased row is cancelled; the erased rows leave the index.
 void DataGridView::prepare_rows_erasure(const CollectionEdit& edit) {
-    const std::optional<std::size_t> former = current_position();
-    if (former && *former >= edit.index() && *former - edit.index() < edit.count()) cancel_edit_before_row_edit();
+    const stxlib::Optional<std::size_t> former = current_position();
+    if (former.present() && *former.value() >= edit.index() && *former.value() - edit.index() < edit.count()) cancel_edit_before_row_edit();
     edit_former_current_ = former;
     const std::span<const DataGridViewRow> present = rows.read();
     for (std::size_t offset = 0U; offset < edit.count(); ++offset) {
@@ -138,8 +139,8 @@ void DataGridView::prepare_rows_replacement(const CollectionEdit& edit, std::spa
         throw std::invalid_argument("DataGridView row stable IDs must be unique");
     }
     row.cells.resize(columns_.size());
-    const std::optional<std::size_t> former = current_position();
-    if (former == edit.index()) cancel_edit_before_row_edit();
+    const stxlib::Optional<std::size_t> former = current_position();
+    if (former == stxlib::Optional<std::size_t>::of(edit.index())) cancel_edit_before_row_edit();
     edit_former_current_ = former;
     if (!rekeyed) return;
     row_positions_.emplace(row.stable_id.value, edit.index());
@@ -181,6 +182,23 @@ void DataGridView::written(const decltype(rows)&, const CollectionEdit& edit) {
         effects |= Dirty::measure;
     }
     invalidate(effects);
+    // The rows' events, unless a larger change raises its own.
+    if (quiet_row_edits_) return;
+    switch (edit.kind()) {
+    case CollectionEditKind::assign:
+        if (!raise_rows_removed(0U, edit_former_count_)) return;
+        static_cast<void>(raise_rows_added(0U, edit.count()));
+        break;
+    case CollectionEditKind::insert:
+        static_cast<void>(raise_rows_added(edit.index(), edit.count()));
+        break;
+    case CollectionEditKind::erase:
+        static_cast<void>(raise_rows_removed(edit.index(), edit.count()));
+        break;
+    case CollectionEditKind::replace:
+    default:
+        break;
+    }
 }
 
 // -- the flush -----------------------------------------------------------------
@@ -192,9 +210,11 @@ void DataGridView::written(const decltype(rows)&, const CollectionEdit& edit) {
 // when shown and above the watermark.
 void DataGridView::settle_rows_damage(bool whole, const GridLayout& layout) {
     settled_rows_.clear();
-    const std::optional<std::size_t> structural_from = take_dirty(*this, settled_rows_);
-    if (!structural_from && settled_rows_.empty()) return;
-    if (whole) {
+    const stxlib::Optional<std::size_t> structural_from = take_dirty(*this, settled_rows_);
+    if (structural_from.absent() && settled_rows_.empty()) return;
+    // Frozen rows or columns split the data area into panes whose rows
+    // and columns move apart: the whole grid repaints.
+    if (whole || has_frozen_panes()) {
         invalidate(Dirty::paint);
         return;
     }
@@ -204,8 +224,8 @@ void DataGridView::settle_rows_damage(bool whole, const GridLayout& layout) {
     if (right <= left || bottom <= layout.data.y) return;
     const std::size_t window_end = visible_row_end(layout);
     std::size_t replaced_end = window_end;
-    if (structural_from && *structural_from < window_end) {
-        const std::size_t first = std::max(*structural_from, first_row_);
+    if (structural_from.present() && *structural_from.value() < window_end) {
+        const std::size_t first = std::max(*structural_from.value(), first_row_);
         const double top = layout.data.y + row_offset(first, layout);
         if (top < bottom) invalidate(Rect{left, top, right - left, bottom - top});
         replaced_end = first;

@@ -1,9 +1,12 @@
 #pragma once
 
 #include "gui_forms/controls/date_time_format_provider.hpp"
+#include "gui_forms/control/control/control.hpp"
 #include "gui_forms/events.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -22,6 +25,12 @@ namespace gui_forms::date_time_detail {
     DateTimeValue value, std::string_view pattern,
     const DateTimeFormatProvider& provider);
 void validate_provider(const DateTimeFormatProvider& provider);
+// The provider of `control`'s locale (Control::effective_locale), kept in
+// `cache` and remade only when the locale's generation differs from
+// `generation`, which it then records. The result is `cache`.
+[[nodiscard]] const DateTimeFormatProvider& locale_format_provider(const Control& control,
+                                                                   stxlib::Optional<std::uint64_t>& generation,
+                                                                   DateTimeFormatProvider& cache);
 [[nodiscard]] bool parse_iso_date(
     std::string_view text, DateTimeValue& value);
 

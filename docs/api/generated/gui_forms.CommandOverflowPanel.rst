@@ -32,14 +32,16 @@ gui_forms::CommandOverflowPanel
 
    :Properties:
 
-      **group_spec** : ``std::optional<CommandOverflowGroupSpec>``, child property, default none
+      **group_spec** : ``stxlib::Optional<CommandOverflowGroupSpec>``, child property, default none
          A direct child's sizing and collapse rule, a property the panel provides
          to its children and stores for each: `(*shelf).group_spec[*group] =
-         CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};` gives a ``minimum``,
+         stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0,
+         176.0, 176.0, 2U});` gives a ``minimum``,
          ``preferred`` and ``maximum`` width (a ``maximum`` of 0 means unbounded) and
          an optional ``collapse_priority``. The group is given its preferred width
          and shrinks toward its minimum before any group collapses; it never
-         grows past its preferred width. Writing ``std::nullopt`` removes the spec,
+         grows past its preferred width. Writing
+         ``stxlib::Optional<CommandOverflowGroupSpec>::none()`` removes the spec,
          and the child then keeps its measured width and never collapses. In a
          ``.form`` the value is text: the three widths, then optionally ``priority``
          and the priority, as in ``group-spec: "176 176 176 priority 2";``; the
@@ -158,8 +160,8 @@ gui_forms::CommandOverflowPanel
       (*shelf).add_child(arrange);
       (*shelf).add_child(more);
       (*shelf).group_gap = 4.0;
-      (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
-      (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
+      (*shelf).group_spec[*selection] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, stxlib::Optional<std::uint16_t>::of(std::uint16_t{2})});
+      (*shelf).group_spec[*arrange] = stxlib::Optional<gf::CommandOverflowGroupSpec>::of(gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, stxlib::Optional<std::uint16_t>::of(std::uint16_t{1})});
       (*shelf).set_overflow_actuator(*more);
 
       gf::Window window(shelf, {600.0, 66.0});
@@ -183,15 +185,17 @@ gui_forms::CommandOverflowPanel
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<CommandOverflowGroupSpec> group_spec
+   .. cpp:member:: stxlib::Optional<CommandOverflowGroupSpec> group_spec
 
       A direct child's sizing and collapse rule, a property the panel provides
       to its children and stores for each: `(*shelf).group_spec[*group] =
-      CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};` gives a ``minimum``,
+      stxlib::Optional<CommandOverflowGroupSpec>::of(CommandOverflowGroupSpec{176.0,
+      176.0, 176.0, 2U});` gives a ``minimum``,
       ``preferred`` and ``maximum`` width (a ``maximum`` of 0 means unbounded) and
       an optional ``collapse_priority``. The group is given its preferred width
       and shrinks toward its minimum before any group collapses; it never
-      grows past its preferred width. Writing ``std::nullopt`` removes the spec,
+      grows past its preferred width. Writing
+      ``stxlib::Optional<CommandOverflowGroupSpec>::none()`` removes the spec,
       and the child then keeps its measured width and never collapses. In a
       ``.form`` the value is text: the three widths, then optionally ``priority``
       and the priority, as in ``group-spec: "176 176 176 priority 2";``; the

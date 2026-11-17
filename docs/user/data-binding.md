@@ -9,17 +9,15 @@ formatting and validation, in the manner of Windows Forms. The types are
 [`BindingContext`](../api/generated/gui_forms.BindingContext.rst); the
 [Data binding reference](../api/library.data-binding.rst) lists the rest.
 
-```text
-/* forms/person.form */
-form person.window {
-  text: "Person";
-  client-size: 320 120;
-
-  panel person.root {
-    text-box person.name { bounds: 12 12 296 28; }
-    check-box person.active { text: "Active"; bounds: 12 52 296 28; }
-  }
-}
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- forms/person.form -->
+<form xmlns="urn:gui-forms:form:1" id="person.window" text="Person" client-size="320 120">
+  <panel id="person.root">
+    <text-box id="person.name" bounds="12 12 296 28"/>
+    <check-box id="person.active" text="Active" bounds="12 52 296 28"/>
+  </panel>
+</form>
 ```
 
 ```cmake
@@ -60,7 +58,7 @@ int main() {
 ```
 
 A form binds a property to a scalar `Value` or a `Command` of its model in
-the property's own slot (`checked: bind(autosave);`), when the control is
+the property's own slot (`checked="bind(autosave)"`), when the control is
 created ([Forms](forms.md#bindings)). The record bindings on this page are the
 layer under that: they take a field of a `BindingSource`'s current record.
 

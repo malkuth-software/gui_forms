@@ -45,6 +45,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -229,7 +230,7 @@ void test_rule_faces() {
     require((*group).background() == group_blue, "the group reports the stable-ID rule's background");
     // An application's own colour in code still stands over the theme
     // (truly inline code, the owner's last layer).
-    (*heading).fore_color = Color::rgba(1, 2, 3);
+    (*heading).fore_color = stxlib::Optional<Color>::of(Color::rgba(1, 2, 3));
     require((*heading).foreground() == Color::rgba(1, 2, 3), "code's own foreground stands over the rule");
 }
 
@@ -455,8 +456,8 @@ bool embedded_bar_amber(std::string_view sheet, bool authored_back) {
     (*panel).add_child(child);
     (*panel).auto_scroll = true;
     if (authored_back) {
-        (*panel).back_color = Color::rgba(0x19, 0x19, 0x19);
-        (*panel).fore_color = Color::rgba(0xff, 0xff, 0xff);
+        (*panel).back_color = stxlib::Optional<Color>::of(Color::rgba(0x19, 0x19, 0x19));
+        (*panel).fore_color = stxlib::Optional<Color>::of(Color::rgba(0xff, 0xff, 0xff));
     }
     Window window(panel, Size{120.0, 100.0});
     window.set_theme(theme_from_sheet(sheet));

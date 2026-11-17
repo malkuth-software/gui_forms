@@ -101,6 +101,15 @@ static gf_status GF_CALL provider_read_stable_id(void* context, uint64_t row, gf
 static gf_status GF_CALL provider_write_value(void* context, uint64_t row, uint64_t column, const gf_value* value,
                                               uint32_t* accepted, gf_utf8_view* reason) {
     kit_provider* provider = (kit_provider*)context;
+    if (column == 1u && (*value).kind == GF_VALUE_KIND_NUMBER && (*value).number == -2.0) {
+        /* A-gf-abi-03-F11: a reason that is not UTF-8 (a lone continuation
+         * byte) is not taken as text. */
+        static const char not_utf8[] = {(char)0x80, 'x'};
+        *accepted = 0u;
+        (*reason).data = not_utf8;
+        (*reason).size = sizeof(not_utf8);
+        return GF_STATUS_OK;
+    }
     if (column != 1u || (*value).kind != GF_VALUE_KIND_NUMBER || (*value).number < 0.0) {
         *accepted = 0u;
         *reason = gf_kit_text("amounts are not negative");
@@ -206,6 +215,10 @@ static void kit_binding_provider(gf_kit* kit, gf_object source) {
     gf_kit_status(kit, (*kit).bindings.set_current_field(source, gf_kit_text("amount"), &amount, &accepted),
                   GF_STATUS_OK, "write a refused amount");
     gf_kit_check(kit, accepted == 0u && provider.amounts[0] == 4.0, "the provider refuses it");
+    amount.number = -2.0;
+    gf_kit_status(kit, (*kit).bindings.set_current_field(source, gf_kit_text("amount"), &amount, &accepted),
+                  GF_STATUS_OK, "write an amount refused with a reason that is not UTF-8");
+    gf_kit_check(kit, accepted == 0u && provider.amounts[0] == 4.0, "the refusal stands without its reason");
     const gf_value renamed = text_value("Paris");
     gf_kit_status(kit, (*kit).bindings.set_current_field(source, gf_kit_text("name"), &renamed, &accepted),
                   GF_STATUS_OK, "write a read-only column");

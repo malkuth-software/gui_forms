@@ -1,0 +1,23 @@
+#pragma once
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::string copied_name(stxlib::TextView name);
+[[nodiscard]] std::string copied_label(stxlib::TextView label);
+[[nodiscard]] std::size_t name_hash(stxlib::TextView name);
+[[nodiscard]] bool sorts_before(stxlib::TextView name, stxlib::TextView other);
+[[nodiscard]] std::size_t dots(stxlib::TextView name);
+[[nodiscard]] char first_letter(stxlib::TextView name);
+[[nodiscard]] std::string prefix(stxlib::TextView label);
+[[nodiscard]] bool starts_with_item(stxlib::TextView name);
+[[nodiscard]] bool label_starts_with_item(stxlib::TextView label);
+[[nodiscard]] std::size_t measured(stxlib::TextView label);
+void refuse_wrong(stxlib::TextView message);
+[[nodiscard]] const char* terminated(const std::string& label);
+
+} // namespace gui_forms

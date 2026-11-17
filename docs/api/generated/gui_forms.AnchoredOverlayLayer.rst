@@ -15,8 +15,8 @@ gui_forms::AnchoredOverlayLayer
 
    An anchored overlay layer holds one content control, such as a panel with a
    few fields, and keeps it positioned against an anchor, usually the button
-   that opened it: below or above the anchor, aligned to its near edge, center
-   or far edge, and always inside the window. You open the layer as a window
+   that opened it: below or above the anchor, aligned to its start edge, center
+   or end edge, and always inside the window. You open the layer as a window
    overlay with ``Window::open_overlay`` and contain focus in it with
    ``Window::begin_focus_scope``. When the user clicks outside the content or
    presses Escape, the layer raises :cpp:func:`dismiss_requested <gui_forms::AnchoredOverlayLayer::dismiss_requested>`; it does not close
@@ -44,7 +44,7 @@ gui_forms::AnchoredOverlayLayer
       **placement** : ``AnchoredOverlayPlacement``, default ``AnchoredOverlayPlacement{}``
          The content's preferred size (0 by 0 by default, so set it), its
          horizontal alignment to the anchor
-         (:cpp:enumerator:`OverlayHorizontalAlignment::near <gui_forms::OverlayHorizontalAlignment::near>` by default), the side it prefers
+         (:cpp:enumerator:`OverlayHorizontalAlignment::start <gui_forms::OverlayHorizontalAlignment::start>` by default), the side it prefers
          (:cpp:enumerator:`OverlayVerticalPreference::below <gui_forms::OverlayVerticalPreference::below>` by default), the gap between anchor and
          content (0), the margin kept from the window's edges (4), and whether it
          may flip to the other side (true). Sizes, gap and margin must be finite
@@ -213,7 +213,7 @@ gui_forms::AnchoredOverlayLayer
 
       The content's preferred size (0 by 0 by default, so set it), its
       horizontal alignment to the anchor
-      (:cpp:enumerator:`OverlayHorizontalAlignment::near <gui_forms::OverlayHorizontalAlignment::near>` by default), the side it prefers
+      (:cpp:enumerator:`OverlayHorizontalAlignment::start <gui_forms::OverlayHorizontalAlignment::start>` by default), the side it prefers
       (:cpp:enumerator:`OverlayVerticalPreference::below <gui_forms::OverlayVerticalPreference::below>` by default), the gap between anchor and
       content (0), the margin kept from the window's edges (4), and whether it
       may flip to the other side (true). Sizes, gap and margin must be finite

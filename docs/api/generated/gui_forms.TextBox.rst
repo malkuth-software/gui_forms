@@ -138,7 +138,7 @@ gui_forms::TextBox
          always compare exactly.
 
       **text_alignment** : ``HorizontalAlignment``
-         Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+         Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
       **scroll_offset** : ``Point``, read-only
 
@@ -156,7 +156,7 @@ gui_forms::TextBox
          typed text, in source order, each text once, at most 256. Empty while
          the list is closed.
 
-      **auto_complete_highlighted** : ``std::optional<std::size_t>``, read-only
+      **auto_complete_highlighted** : ``stxlib::Optional<std::size_t>``, read-only
          The highlighted suggestion's index, or none.
 
       **decorations** : ``TextDecorations``
@@ -528,7 +528,7 @@ gui_forms::TextBox
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where a single-line box's text sits when it is narrower than the box (TextAlign): near, center or far; a multiline box keeps its text at the near edge.
+      Where a single-line box's text sits when it is narrower than the box (TextAlign): start, center or end; a multiline box keeps its text at the near edge.
 
    .. cpp:function:: Point scroll_offset() const noexcept
 
@@ -550,7 +550,7 @@ gui_forms::TextBox
       typed text, in source order, each text once, at most 256. Empty while
       the list is closed.
 
-   .. cpp:function:: std::optional<std::size_t> auto_complete_highlighted() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> auto_complete_highlighted() const noexcept
 
       The highlighted suggestion's index, or none.
 
@@ -771,25 +771,25 @@ gui_forms::TextBox
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_text_changed()
+   .. cpp:function:: void on_text_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
-   .. cpp:function:: virtual void on_read_only_changed()
-
-      *Protected.*
-
-   .. cpp:function:: virtual void on_multiline_changed()
+   .. cpp:function:: void on_read_only_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_accepts_tab_changed()
+   .. cpp:function:: void on_multiline_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_accepts_tab_changed()
+
+      *Protected.*
+
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
@@ -807,7 +807,7 @@ gui_forms::TextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 supported, 0 deferred, 0 excluded, 28 unclassified; 31 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TextBox``. Members declared here and by the counterpart: 25 supported, 0 deferred, 0 excluded, 26 unclassified; 31 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -897,7 +897,7 @@ Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 suppo
    * - property
      - ``TextBoxBase.Multiline``
      - ``multiline``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``password_protected``
@@ -905,7 +905,7 @@ Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 suppo
    * - property
      - ``TextBoxBase.ReadOnly``
      - ``read_only``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``scroll_offset``

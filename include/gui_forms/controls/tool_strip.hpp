@@ -21,6 +21,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 namespace detail {
@@ -103,7 +105,7 @@ struct GUI_FORMS_API ToolStripItemSpec final {
     // How the item joins another strip when its strip merges (MergeAction,
     // merge_strips), and its position there; none matches by text only.
     MergeAction merge_action{MergeAction::append};
-    std::optional<std::size_t> merge_index{};
+    stxlib::Optional<std::size_t> merge_index{};
 };
 
 // A click on an item, after any command it carries has executed.
@@ -297,6 +299,8 @@ protected:
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
+    // The model position of a realized item. Throws std::out_of_range for an
+    // item past realized_item_count().
     [[nodiscard]] std::size_t realized_item_index(std::size_t item) const;
     // The strip's own parts, as ToolStrip publishes them.
     [[nodiscard]] Parts strip_parts() const;
@@ -319,7 +323,7 @@ private:
     [[nodiscard]] Control::Ptr hosted_control(std::string_view item_id, ToolStripItemKind kind) const;
     [[nodiscard]] Control::Ptr make_hosted(const ToolStripItemSpec& item) const;
     void configure_hosted(const ToolStripItemSpec& item, Control& hosted) const;
-    [[nodiscard]] std::optional<std::size_t> index_of(std::string_view item_id) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> index_of(std::string_view item_id) const;
     [[nodiscard]] Size item_size(const ToolStripItemSpec& item) const;
     [[nodiscard]] std::string item_text(const ToolStripItemSpec& item) const;
     [[nodiscard]] bool item_enabled(const ToolStripItemSpec& item) const;
@@ -327,16 +331,19 @@ private:
     [[nodiscard]] bool item_interactive(std::size_t index) const;
     [[nodiscard]] ItemParts item_parts(std::size_t index, Rect bounds) const;
     [[nodiscard]] AnatomyStateSet item_states(std::size_t index) const;
-    [[nodiscard]] std::optional<std::size_t> index_at(Point window_point, ItemZone& zone) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> index_at(Point window_point, ItemZone& zone) const;
     [[nodiscard]] bool overflow_at(Point window_point) const;
-    [[nodiscard]] std::optional<std::size_t> next_interactive(std::size_t start, int direction) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> next_interactive(std::size_t start, int direction) const;
+    // Whether `held` (hot_index_, pressed_index_ or open_index_) holds item
+    // `index`.
+    [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept;
     void click(std::size_t index);
     // Flips a check-on-click item's checked state: its command's when it has
     // one, else the strip's own. Returns whether the strip's own state
     // changed (a command's change reaches the strip through on_command_state).
     [[nodiscard]] bool flip_checked(std::size_t index);
-    void set_hot(std::optional<std::size_t> index, ItemZone zone);
-    void focus_item(std::optional<std::size_t> index);
+    void set_hot(stxlib::Optional<std::size_t> index, ItemZone zone);
+    void focus_item(stxlib::Optional<std::size_t> index);
     void paint_item(Painter& painter, std::size_t index, Rect bounds) const;
     void on_overlay_item_invoked(const MenuItemInvocation& invocation);
     void on_overlay_open_changed(bool open);
@@ -347,11 +354,11 @@ private:
     std::vector<ItemState> item_states_{};
     std::unique_ptr<ContextMenu> overlay_{};
     // The item whose menu is open; none with the overflow menu or no menu.
-    std::optional<std::size_t> open_index_{};
+    stxlib::Optional<std::size_t> open_index_{};
     bool overflow_open_{};
-    std::optional<std::size_t> hot_index_{};
+    stxlib::Optional<std::size_t> hot_index_{};
     ItemZone hot_zone_{ItemZone::none};
-    std::optional<std::size_t> pressed_index_{};
+    stxlib::Optional<std::size_t> pressed_index_{};
     ItemZone pressed_zone_{ItemZone::none};
     bool overflow_hot_{};
     bool focused_{};

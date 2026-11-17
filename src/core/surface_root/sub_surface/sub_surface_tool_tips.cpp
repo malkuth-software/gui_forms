@@ -79,7 +79,7 @@ void SubSurfaceToolTipRequester::revoke(std::optional<OpenRequest>& slot) {
 }
 
 void SubSurfaceToolTipRequester::post(SubSurfaceToolTipOrigin origin, ToolTipSubject subject, std::string description,
-                                      std::optional<std::chrono::milliseconds> duration,
+                                      stxlib::Optional<std::chrono::milliseconds> duration,
                                       std::optional<OpenRequest>& slot) {
     if (!root_.channel_) return;
     SubSurfaceRequest request;
@@ -124,7 +124,7 @@ void SubSurfaceToolTipRequester::request_pointer(bool force) {
     revoke(pointer_);
     if (subject.text.empty()) return;
     std::string description = description_of(subject);
-    post(SubSurfaceToolTipOrigin::pointer, std::move(subject), std::move(description), std::nullopt, pointer_);
+    post(SubSurfaceToolTipOrigin::pointer, std::move(subject), std::move(description), stxlib::Optional<std::chrono::milliseconds>::none(), pointer_);
 }
 
 void SubSurfaceToolTipRequester::request_focus(bool force) {
@@ -139,7 +139,7 @@ void SubSurfaceToolTipRequester::request_focus(bool force) {
     revoke(keyboard_);
     if (subject.text.empty()) return;
     std::string description = description_of(subject);
-    post(SubSurfaceToolTipOrigin::keyboard, std::move(subject), std::move(description), std::nullopt, keyboard_);
+    post(SubSurfaceToolTipOrigin::keyboard, std::move(subject), std::move(description), stxlib::Optional<std::chrono::milliseconds>::none(), keyboard_);
 }
 
 void SubSurfaceToolTipRequester::request_program(bool force) {
@@ -256,7 +256,7 @@ void SubSurfaceToolTipRequester::cover(RuntimeId control, std::string_view item_
 }
 
 void SubSurfaceToolTipRequester::show_program(const Control::Ptr& target,
-                                              std::optional<std::chrono::milliseconds> duration) {
+                                              stxlib::Optional<std::chrono::milliseconds> duration) {
     revoke(program_);
     explicit_request_ = 0U;
     explicit_item_.clear();
@@ -290,7 +290,7 @@ void SubSurfaceToolTipRequester::withdraw(std::string_view item_id) {
 }
 
 void SubSurfaceToolTipRequester::show_program_item(const Control::Ptr&, std::string, std::string, Rect,
-                                                   std::optional<std::chrono::milliseconds>) {}
+                                                   stxlib::Optional<std::chrono::milliseconds>) {}
 
 void SubSurfaceToolTipRequester::hide() {
     if (explicit_request_ != 0U) {

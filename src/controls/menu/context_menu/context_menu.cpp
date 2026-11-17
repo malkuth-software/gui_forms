@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -43,11 +44,11 @@ namespace {
 
 // The one character a text event types, or none when it types several, is
 // malformed or is still composing.
-[[nodiscard]] std::optional<char32_t> typed_character(
+[[nodiscard]] stxlib::Optional<char32_t> typed_character(
     const TextInputEvent& event) noexcept {
-    if (event.composing || event.text_utf8.empty()) return std::nullopt;
+    if (event.composing || event.text_utf8.empty()) return stxlib::Optional<char32_t>::none();
     const Utf8ValidationResult validation = validate_utf8(event.text_utf8);
-    if (!validation.valid() || validation.scalar_count != 1U) return std::nullopt;
+    if (!validation.valid() || validation.scalar_count != 1U) return stxlib::Optional<char32_t>::none();
     const std::string_view text = event.text_utf8;
     const char32_t lead = static_cast<unsigned char>(text[0]);
     char32_t scalar = lead;
@@ -58,7 +59,7 @@ namespace {
         scalar = (scalar << 6U) |
                  (static_cast<char32_t>(static_cast<unsigned char>(text[offset])) & 0x3FU);
     }
-    return scalar;
+    return stxlib::Optional<char32_t>::of(scalar);
 }
 
 } // namespace
@@ -89,6 +90,11 @@ struct ContextMenu::Impl final {
     };
 
     explicit Impl(ContextMenu& public_owner) : owner(public_owner) {}
+    Impl(const Impl&) = delete;
+    Impl& operator=(const Impl&) = delete;
+    // Marks the menu destroyed for a call still running inside it (see
+    // destroyed below).
+    ~Impl() { *destroyed = true; }
 
     [[nodiscard]] double text_scale() const noexcept {
         return window ? (*window).presentation_settings().text_scale : 1.0;
@@ -198,7 +204,7 @@ struct ContextMenu::Impl final {
                 shadow.role = PartRole::shadow;
                 shadow.family = ControlVisualRole::panel;
                 shadow.bounds = local_bounds();
-                shadow.corner_radius = 0.0;
+                shadow.corner_radius.set(0.0);
                 paint_part(painter, *this, shadow);
             }
             Panel::on_paint(painter, local_damage);
@@ -209,7 +215,7 @@ struct ContextMenu::Impl final {
             gutter.family = ControlVisualRole::menu_item;
             gutter.role = PartRole::well;
             gutter.control_type = menu_item_control_type;
-            gutter.key = PartKey{menu_gutter_part, {}, {}};
+            gutter.key.set(PartKey{menu_gutter_part, {}, {}});
             gutter.bounds = {menu_border, menu_border, menu_gutter_width,
                              std::max(0.0, bounds.height - menu_border * 2.0)};
             paint_part(painter, *this, gutter);
@@ -276,8 +282,8 @@ struct ContextMenu::Impl final {
         // A plain letter in an open menu acts as that item's mnemonic, as in
         // a native Windows menu; Alt is not needed.
         void on_text_input(TextInputEvent& event) override {
-            const std::optional<char32_t> character = typed_character(event);
-            if (character && impl_.type_mnemonic(depth_, std::nullopt, *character)) {
+            const stxlib::Optional<char32_t> character = typed_character(event);
+            if (character.present() && impl_.type_mnemonic(depth_, std::nullopt, *character.value())) {
                 event.handled = true;
             }
         }
@@ -389,9 +395,8 @@ struct ContextMenu::Impl final {
             set_paint_plane(PaintPlane::overlay);
             enabled = item.kind != MenuItemKind::separator && enabled_item();
             focusable = item.kind != MenuItemKind::separator && enabled_item();
-            cursor = item.kind != MenuItemKind::separator && enabled_item()
-                ? std::optional<CursorKind>{CursorKind::hand}
-                : std::optional<CursorKind>{};
+            cursor = item.kind != MenuItemKind::separator && enabled_item() ? stxlib::Optional<CursorKind>::of(CursorKind::hand)
+                                                                            : stxlib::Optional<CursorKind>::none();
         }
 
         [[nodiscard]] bool enabled_item() const noexcept {
@@ -450,7 +455,7 @@ struct ContextMenu::Impl final {
                             std::max(0.0, bounds.height - 2.0)};
             plate.states = states;
             plate.control_type = menu_item_control_type;
-            plate.key = PartKey{menu_item_part, item_.stable_id, {}};
+            plate.key.set(PartKey{menu_item_part, item_.stable_id, {}});
             paint_part(painter, *this, plate);
             const bool checked = (item_.kind == MenuItemKind::check || item_.kind == MenuItemKind::radio) &&
                                  item_.command_state.checked;
@@ -496,7 +501,7 @@ struct ContextMenu::Impl final {
             label.font = font;
             // A destructive command's red ink, provisionally an authored
             // colour until the theme has a text tone for it (asked).
-            if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
+            if (item_.command_state.destructive) label.authored_foreground.set(menu_ink(item_, style));
             const double label_width = std::max(0.0, bounds.width - label_left);
             if (impl_.right_to_left) {
                 // Right-aligned against the gutter, which is on the right.
@@ -517,7 +522,7 @@ struct ContextMenu::Impl final {
                 shortcut.states = states;
                 shortcut.text = lend_paint_text(item_.command_state.shortcut);
                 shortcut.font = shortcut_font;
-                shortcut.measured_text = size;
+                shortcut.measured_text.set(size);
                 // Right-aligned in the shortcut column, before the chevron's
                 // trailing space.
                 const double shortcut_x =
@@ -615,8 +620,8 @@ struct ContextMenu::Impl final {
 
         void on_text_input(TextInputEvent& event) override {
             if (!focused_) return;
-            const std::optional<char32_t> character = typed_character(event);
-            if (character && impl_.type_mnemonic(depth_, index_, *character)) {
+            const stxlib::Optional<char32_t> character = typed_character(event);
+            if (character.present() && impl_.type_mnemonic(depth_, index_, *character.value())) {
                 event.handled = true;
             }
         }
@@ -725,9 +730,11 @@ struct ContextMenu::Impl final {
             throw std::logic_error("ContextMenu requires an attached owner control");
         }
         snapshot = snapshot_items(specs);
-        if (snapshot.empty()) {
-            throw std::logic_error("ContextMenu has no visible items to show");
-        }
+        // Every command hidden (or nothing but separators) is a state the
+        // application reaches through command visibility, and show runs
+        // from pointer and key handlers: the menu stays closed rather than
+        // throwing out of input handling (A-gf-controls-06-F3).
+        if (snapshot.empty()) return;
         window = (*invoker).attached_window();
         // Every other menu on the window closes first (one menu chain per
         // window); this one is closed and not yet subscribed, so it is not
@@ -762,21 +769,47 @@ struct ContextMenu::Impl final {
         popup_mode = panels[0U].in_popup;
         Control::Ptr preferred = mode == MenuOpenMode::pointer ? panels[0U].panel : first_focusable(0U);
         if (!preferred) preferred = panels[0U].panel;
+        // Moving the focus runs focus handlers, which may close the menu
+        // or destroy it (A-gf-controls-06-F2): after each move the menu
+        // goes on only if neither happened, and a scope begun for a menu
+        // that closed meanwhile is ended here.
+        Window& shown_in = *window;
+        const std::shared_ptr<bool> gone = destroyed;
+        const std::uint64_t closes = close_count;
         if (popup_mode) {
             (*layer).focusable = true;
-            focus_scope = (*window).begin_focus_scope(layer, layer);
-            popup_closed = (*window).popup_window_closed().subscribe(
+            const FocusScopeId scope = shown_in.begin_focus_scope(layer, layer);
+            if (!keep_scope(shown_in, scope, gone, closes)) return;
+            popup_closed = shown_in.popup_window_closed().subscribe(
                 owner, Delegate<std::size_t>::bind<Impl, &Impl::on_popup_closed>(*this));
-            owner_active = (*window).active_changed().subscribe(
+            owner_active = shown_in.active_changed().subscribe(
                 owner, Delegate<bool>::bind<Impl, &Impl::on_owner_active>(*this));
-            owner_moved = (*window).frame_moved().subscribe(
+            owner_moved = shown_in.frame_moved().subscribe(
                 owner, Delegate<>::bind<Impl, &Impl::on_owner_moved>(*this));
             static_cast<void>(focus_row(0U, preferred));
+            if (*gone || close_count != closes) return;
         } else {
-            focus_scope = (*window).begin_focus_scope(layer, preferred);
+            const FocusScopeId scope = shown_in.begin_focus_scope(layer, preferred);
+            if (!keep_scope(shown_in, scope, gone, closes)) return;
         }
         open = true;
         owner.open_changed_.emit(true);
+    }
+
+    // Keeps the focus scope show began, unless the menu was destroyed or
+    // closed while the scope moved the focus: then the scope is ended (the
+    // window still holds it) and show stops. False when show stops.
+    bool keep_scope(Window& shown_in, FocusScopeId scope, const std::shared_ptr<bool>& gone,
+                    std::uint64_t closes) noexcept {
+        if (*gone || close_count != closes) {
+            try {
+                static_cast<void>(shown_in.end_focus_scope(scope));
+            } catch (...) {
+            }
+            return false;
+        }
+        focus_scope = scope;
+        return true;
     }
 
     void close() noexcept {
@@ -795,7 +828,8 @@ struct ContextMenu::Impl final {
         overlay_token.disconnect();
         overlay_revocation.disconnect();
         const bool changed = open;
-        reset_visual_state();
+        // Released when close returns, after the menu's last use here.
+        const Control::Ptr invoker = reset_visual_state();
         closing = false;
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
     }
@@ -814,7 +848,8 @@ struct ContextMenu::Impl final {
         ++close_count;
         hide_popups();
         const bool changed = open;
-        reset_visual_state();
+        // Released when this returns, after the menu's last use here.
+        const Control::Ptr invoker = reset_visual_state();
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
     }
 
@@ -922,17 +957,22 @@ struct ContextMenu::Impl final {
         return true;
     }
 
-    void reset_visual_state() noexcept {
+    // Resets what the open menu showed and gives back the invoker, which
+    // the caller releases after its last use of the menu: the invoker may
+    // hold the last reference to the menu's owner (A-gf-controls-06-F1).
+    [[nodiscard]] Control::Ptr reset_visual_state() noexcept {
+        Control::Ptr invoker = std::move(owner_control);
+        owner_control.reset();
         panels.clear();
         popup_mode = false;
         right_to_left = false;
         focus_depth = 0U;
         layer.reset();
-        owner_control.reset();
         invoker_theme.reset();
         window = nullptr;
         snapshot.clear();
         open = false;
+        return invoker;
     }
 
     // The region panels are placed in, in the owner's client coordinates:
@@ -944,7 +984,7 @@ struct ContextMenu::Impl final {
         const Size client = (*window).client_size();
         const Rect client_area{0.0, 0.0, client.width, client.height};
         if (!popup_mode) return client_area;
-        const std::optional<Rect> work_area = (*window).popup_work_area(at);
+        const stxlib::Optional<Rect> work_area = (*window).popup_work_area(at);
         const Rect area = work_area.value_or(client_area);
         return area;
     }
@@ -1281,6 +1321,12 @@ struct ContextMenu::Impl final {
         // An item without a Command (GAPS E9) is chosen with an empty
         // command_id; there is nothing to execute.
         const std::shared_ptr<Command> command = item.command;
+        // The command and the item_invoked handlers may destroy the menu
+        // (a command that removes and drops the menu's owner): the invoker
+        // is held for the call, and after each the menu goes on only if it
+        // was not destroyed (A-gf-controls-06-F1).
+        const std::shared_ptr<bool> gone = destroyed;
+        const Control::Ptr invoker = owner_control;
         const std::string command_id = command ? (*command).stable_id() : std::string{};
         // Release containment and restore the invoker before application code
         // runs. A command may deliberately focus its resulting surface; doing
@@ -1296,18 +1342,22 @@ struct ContextMenu::Impl final {
         } else if (command) {
             executed = (*command).execute(source_id);
         }
+        if (*gone) return;
         if (executed && owner.is_alive()) {
             MenuItemInvocation invocation{owner.stable_id_, item_id,
                                           command_id, source_id};
             owner.item_invoked_.emit(invocation);
         }
+        if (*gone) return;
         close();
     }
 
     // A typed character in the panel at depth. One enabled item whose
     // mnemonic matches is activated (a submenu opens); several take the
-    // focus in turn, starting after the focused row. Returns false when no
-    // item matches.
+    // focus in turn, starting after the focused row. When no mnemonic
+    // matches, the items without a mnemonic whose text starts with the
+    // character are taken the same way (the first-letter jump of Windows
+    // menus and ToolStripDropDown). Returns false when nothing matches.
     bool type_mnemonic(std::size_t depth, std::optional<std::size_t> focused,
                        char32_t character) {
         if (depth >= panels.size() || !panels[depth].items) return false;
@@ -1319,6 +1369,15 @@ struct ContextMenu::Impl final {
             if (item.kind != MenuItemKind::separator && snapshot_enabled(item) &&
                 is_mnemonic(character, item.text)) {
                 matches.push_back(index);
+            }
+        }
+        if (matches.empty()) {
+            for (std::size_t index = 0U; index < count; ++index) {
+                const MenuSnapshot& item = (*state.items)[index];
+                if (item.kind != MenuItemKind::separator && snapshot_enabled(item) &&
+                    is_first_letter(character, item.text)) {
+                    matches.push_back(index);
+                }
             }
         }
         if (matches.empty()) return false;
@@ -1386,6 +1445,12 @@ struct ContextMenu::Impl final {
     // the rows refer to (owner, 2026-11-10: the use after free in
     // open_submenu, gdb2 to gdb4).
     std::uint64_t close_count{};
+    // Set when the menu is destroyed. A call that runs application code
+    // (a command, a focus or item_invoked handler) holds a copy and stops
+    // when it is set, since the code may have destroyed the menu with its
+    // owner (A-gf-controls-06-F1). Allocated with the menu: a menu that
+    // cannot allocate it is not made.
+    std::shared_ptr<bool> destroyed = std::make_shared<bool>(false);
     std::function<bool(int)> root_navigation_handler;
     std::function<bool(const PointerEvent&)> outside_pointer_handler;
 };

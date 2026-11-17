@@ -5,7 +5,7 @@
 
 #include "gf_conformance.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -39,6 +39,8 @@ typedef struct gf_kit {
     gf_fonts_table fonts;
     gf_help_table help;
     gf_classes_table classes;
+    gf_content_table content;
+    gf_list_view_table list_view;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
@@ -107,6 +109,14 @@ void gf_kit_window_properties(gf_kit* kit);
  * gf_kit_focus runs a root. */
 void gf_kit_focus_refusals(gf_kit* kit);
 void gf_kit_focus(gf_kit* kit);
+/* The controls table's relative pointer slots (since 1.5), on a window
+ * that has not run. */
+void gf_kit_relative_pointer(gf_kit* kit);
+/* The controls table's content effect slot (since 1.5). */
+void gf_kit_content_effect(gf_kit* kit);
+/* The window outer band and shaping (since 1.3), on a window that has not
+ * run. */
+void gf_kit_band(gf_kit* kit);
 void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);
@@ -126,10 +136,18 @@ void gf_kit_rules(gf_kit* kit);
 /* A data grid view's columns, rows, cells and selection (GF_TABLE_DATA_GRID),
  * on a created window's root. */
 void gf_kit_data_grid(gf_kit* kit);
+/* A list view's columns, items, groups, selection and focus
+ * (GF_TABLE_LIST_VIEW, since 1.4), its properties and its events, on a
+ * created window's root. */
+void gf_kit_list_view(gf_kit* kit);
 /* A dock workspace's panels and layout (GF_TABLE_DOCKING), with no window
  * running. */
 void gf_kit_docking(gf_kit* kit);
 void gf_kit_help(gf_kit* kit);
+/* A content surface's channel, a content program, the hosted-content
+ * refusals and a content text editor's layout (GF_TABLE_CONTENT, since 1.4),
+ * with no window running. */
+void gf_kit_content(gf_kit* kit);
 void gf_kit_splashscreen_refusals(gf_kit* kit);
 void gf_kit_splashscreen(gf_kit* kit);
 void gf_kit_host(gf_kit* kit);

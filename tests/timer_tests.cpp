@@ -7,6 +7,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/frame_wake.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -16,6 +17,8 @@
 #include <stdexcept>
 #include <thread>
 #include <vector>
+
+using gui_forms::test_support::wake_at;
 
 namespace {
 
@@ -84,22 +87,22 @@ void test_disabled_timer_is_idle_and_exact() {
     int ticks = 0;
     SubscriptionToken subscription = timer.tick().subscribe(
         test_support::IncrementCounter<int>(ticks));
-    require(!timer.enabled() && !fixture.window.next_wake(),
+    require(!timer.enabled() && fixture.window.next_wake().absent(),
             "a newly constructed Timer must not keep the UI loop awake");
 
     const FrameTime base{};
     timer.start_at(base + 10ms);
-    require(timer.enabled() && fixture.window.next_wake() == base + 10ms,
+    require(timer.enabled() && fixture.window.next_wake() == wake_at(base + 10ms),
             "deterministic Timer start must publish its exact first deadline");
     require(fixture.window.poll_frame_schedule(base + 9ms).ui_timer_ticks == 0U &&
                 ticks == 0,
             "Timer must not tick early");
     const FramePollResult due = fixture.window.poll_frame_schedule(base + 10ms);
     require(due.ui_timer_ticks == 1U && ticks == 1 &&
-                due.next_wake == base + 20ms,
+                due.next_wake == wake_at(base + 20ms),
             "Timer must tick once and retain its cadence");
     timer.stop();
-    require(!timer.enabled() && !fixture.window.next_wake(),
+    require(!timer.enabled() && fixture.window.next_wake().absent(),
             "stopping the last Timer must return the UI loop to idle");
 }
 
@@ -119,7 +122,7 @@ void test_registration_order_and_late_coalescing() {
     const FramePollResult late = fixture.window.poll_frame_schedule(base + 35ms);
     require(order == std::vector<int>({1, 2}) && late.ui_timer_ticks == 2U &&
                 late.coalesced_requests == 4U &&
-                late.next_wake == base + 40ms,
+                late.next_wake == wake_at(base + 40ms),
             "late timers must fire once in registration order and skip catch-up bursts");
 }
 
@@ -140,7 +143,7 @@ void test_callback_stop_restart_and_disposal_are_snapshot_safe() {
 
     const FramePollResult first = fixture.window.poll_frame_schedule(base + 10ms);
     require(controller_ticks == 1 && victim_ticks == 0 && victim.is_disposed() &&
-                first.ui_timer_ticks == 1U && first.next_wake == base + 100ms,
+                first.ui_timer_ticks == 1U && first.next_wake == wake_at(base + 100ms),
             "a callback must be able to stop/restart itself and dispose a later timer");
     static_cast<void>(fixture.window.poll_frame_schedule(base + 100ms));
     require(controller_ticks == 2 && victim_ticks == 0,
@@ -156,11 +159,11 @@ void test_occlusion_does_not_suspend_component_time() {
     const FrameTime base{};
     timer.start_at(base + 25ms);
     fixture.window.set_occluded(true, base);
-    require(fixture.window.next_wake() == base + 25ms,
+    require(fixture.window.next_wake() == wake_at(base + 25ms),
             "UI component timers must remain scheduled while rendering is occluded");
     const FramePollResult result = fixture.window.poll_frame_schedule(base + 25ms);
     require(result.suppressed_by_occlusion && result.ui_timer_ticks == 1U &&
-                ticks == 1 && result.next_wake == base + 50ms,
+                ticks == 1 && result.next_wake == wake_at(base + 50ms),
             "occlusion must suppress rendering work, not UI component callbacks");
 }
 

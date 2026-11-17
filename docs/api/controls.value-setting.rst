@@ -27,6 +27,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A text field for a number, with up and down buttons that step it.
    * - :cpp:class:`DomainUpDown <gui_forms::DomainUpDown>`
      - A text field with up and down buttons that steps through a list of strings.
+   * - :cpp:class:`ColorPicker <gui_forms::ColorPicker>`
+     - Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.
    * - :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>`
      - A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
    * - :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>`
@@ -51,6 +53,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.ValueBar
    generated/gui_forms.NumericUpDown
    generated/gui_forms.DomainUpDown
+   generated/gui_forms.ColorPicker
    generated/gui_forms.ColorValueEditor
    generated/gui_forms.FlagsValueEditor
    generated/gui_forms.PropertyGrid
@@ -83,6 +86,18 @@ Related types
      - How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
    * - :cpp:class:`CheckBoxThreeStateCapability <gui_forms::CheckBoxThreeStateCapability>`
      - Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
+   * - :cpp:class:`ColorPicker::Parts <gui_forms::ColorPicker::Parts>`
+     -  
+   * - :cpp:class:`ColorPicker::States <gui_forms::ColorPicker::States>`
+     -  
+   * - :cpp:class:`ColorPickerAlphaEnabledCapability <gui_forms::ColorPickerAlphaEnabledCapability>`
+     - Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
+   * - :cpp:class:`ColorPickerCapabilities <gui_forms::ColorPickerCapabilities>`
+     - Every ColorPicker capability, in the order the declaring class takes them.
+   * - :cpp:class:`ColorPickerHsv <gui_forms::ColorPickerHsv>`
+     - A colour in hue, saturation and brightness (HSV): hue in degrees [0, 360), saturation and brightness in [0, 1].
+   * - :cpp:class:`ColorPickerValueCapability <gui_forms::ColorPickerValueCapability>`
+     - The picked colour; a change raises value_changed.
    * - :cpp:class:`ColorValueEditor::Parts <gui_forms::ColorValueEditor::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ColorValueEditor::States <gui_forms::ColorValueEditor::States>`
@@ -166,9 +181,9 @@ Related types
    * - :cpp:class:`NumericUpDownScrubCapability <gui_forms::NumericUpDownScrubCapability>`
      - Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected.
    * - :cpp:class:`NumericUpDownTextAlignmentCapability <gui_forms::NumericUpDownTextAlignmentCapability>`
-     - Where the editor's text sits (TextAlign): near, center or far.
+     - Where the editor's text sits (TextAlign): start, center or end.
    * - :cpp:class:`NumericUpDownThousandsSeparatorCapability <gui_forms::NumericUpDownThousandsSeparatorCapability>`
-     - Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way.
+     - Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way.
    * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
      - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
@@ -263,6 +278,8 @@ Related types
      - The current value (Value), within minimum and maximum; a view onto the range's value.
    * - :cpp:class:`RangeScrollEvent <gui_forms::RangeScrollEvent>`
      - RangeScrollEvent is the typed transition payload shared by interactive range controls.
+   * - :cpp:class:`ScrubGlow <gui_forms::ScrubGlow>`
+     - The scrub glow: an edge inside the field in the frame's primary colour and a faint tint in its secondary, both at an opacity that follows the transition (smoothed).
    * - :cpp:class:`ToggleSwitch::Parts <gui_forms::ToggleSwitch::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ToggleSwitchCapabilities <gui_forms::ToggleSwitchCapabilities>`
@@ -504,6 +521,117 @@ Related types
    .. cpp:member:: PropertyCell<bool, CheckBoxThreeStateCapability<Declaring>> three_state
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColorPicker::Parts final
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry field
+
+   .. cpp:member:: PartGeometry field_thumb
+
+   .. cpp:member:: PartGeometry hue_track
+
+   .. cpp:member:: PartGeometry hue_thumb
+
+   .. cpp:member:: PartGeometry alpha_track
+
+   .. cpp:member:: PartGeometry alpha_thumb
+
+   .. cpp:member:: PartGeometry swatch
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColorPicker::States final
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool captured
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorPickerAlphaEnabledCapability
+
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+
+   Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorPickerAlphaEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ColorPickerAlphaEnabledCapability<Declaring>> alpha_enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorPickerCapabilities : public ColorPickerValueCapability<Declaring>, public ColorPickerAlphaEnabledCapability<Declaring>
+
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+
+   Every ColorPicker capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Color value
+
+      The picked colour; a change raises value_changed. Picking writes it; a program's write moves the thumbs (the hue is kept when the colour is grey).
+
+   .. cpp:member:: bool alpha_enabled
+
+      Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColorPickerHsv final
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   A colour in hue, saturation and brightness (HSV): hue in degrees [0, 360), saturation and brightness in [0, 1].
+
+   .. cpp:member:: double hue
+
+   .. cpp:member:: double saturation
+
+   .. cpp:member:: double brightness
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorPickerValueCapability
+
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+
+   The picked colour; a change raises value_changed. Picking writes it; a program's write moves the thumbs (the hue is kept when the colour is grey).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorPickerValueCapability& capability, Color incoming)
+
+   .. cpp:member:: PropertyCell<Color, ColorPickerValueCapability<Declaring>> value
+
+      Default: ``{Color::rgba(255, 255, 255)}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -749,7 +877,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<std::size_t> selected_index
+   .. cpp:member:: stxlib::Optional<std::size_t> selected_index
 
       The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
 
@@ -799,11 +927,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DomainUpDownSelectedIndexCapability& capability, std::optional<std::size_t> incoming)
+   .. cpp:function:: static void assign(DomainUpDownSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming)
 
-   .. cpp:function:: static std::optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability)
+   .. cpp:function:: static stxlib::Optional<std::size_t> read(const DomainUpDownSelectedIndexCapability& capability)
 
-   .. cpp:member:: PropertyView<std::optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index
+   .. cpp:member:: PropertyView<stxlib::Optional<std::size_t>, DomainUpDownSelectedIndexCapability<Declaring>> selected_index
 
 .. cpp:namespace:: gui_forms
 
@@ -1219,11 +1347,11 @@ Related types
 
    .. cpp:member:: bool thousands_separator
 
-      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+      Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
-      Where the editor's text sits (TextAlign): near, center or far.
+      Where the editor's text sits (TextAlign): start, center or end.
 
 .. cpp:namespace:: gui_forms
 
@@ -1329,7 +1457,7 @@ Related types
 
    ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
 
-   Where the editor's text sits (TextAlign): near, center or far.
+   Where the editor's text sits (TextAlign): start, center or end.
 
 
    .. rubric:: Methods
@@ -1338,7 +1466,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, NumericUpDownTextAlignmentCapability<Declaring>> text_alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1346,7 +1474,7 @@ Related types
 
    ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
 
-   Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+   Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
 
    .. rubric:: Methods
@@ -2300,6 +2428,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ScrubGlow final
+
+   ``#include <gui_forms/controls/numeric_up_down_effects.hpp>``
+
+   The scrub glow: an edge inside the field in the frame's primary colour and a faint tint in its secondary, both at an opacity that follows the transition (smoothed). Nothing at transition 0. It keeps no state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<NumericUpDown>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = NumericUpDown
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "scrub_glow", .engine_version = 2U, .time_model = EffectTimeModel::transition, .cost = {.fixed = 1200U, .per_device_pixel = 2U}, .state_budget = 8U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToggleSwitch::Parts final
 
    ``#include <gui_forms/controls/toggle_switch.hpp>``
@@ -2620,15 +2767,15 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: std::optional<double> soft_minimum
+   .. cpp:member:: stxlib::Optional<double> soft_minimum
 
       The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> soft_maximum
+   .. cpp:member:: stxlib::Optional<double> soft_maximum
 
       The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> snap_step
+   .. cpp:member:: stxlib::Optional<double> snap_step
 
       Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
 
@@ -2652,7 +2799,7 @@ Related types
 
       The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
 
-   .. cpp:member:: std::optional<double> scrub_rate
+   .. cpp:member:: stxlib::Optional<double> scrub_rate
 
       Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
 
@@ -2749,11 +2896,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarScrubRateCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarScrubRateCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarScrubRateCapability<Declaring>> scrub_rate
 
 .. cpp:namespace:: gui_forms
 
@@ -2766,11 +2911,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarSnapStepCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarSnapStepCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarSnapStepCapability<Declaring>> snap_step
 
 .. cpp:namespace:: gui_forms
 
@@ -2783,11 +2926,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarSoftMaximumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarSoftMaximumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarSoftMaximumCapability<Declaring>> soft_maximum
 
 .. cpp:namespace:: gui_forms
 
@@ -2800,11 +2941,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ValueBarSoftMinimumCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(ValueBarSoftMinimumCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, ValueBarSoftMinimumCapability<Declaring>> soft_minimum
 
 .. cpp:namespace:: gui_forms
 
@@ -2847,6 +2986,20 @@ Enumerations
    .. cpp:enumerator:: checked
 
    .. cpp:enumerator:: indeterminate
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ColorPickerPart
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: field
+
+   .. cpp:enumerator:: hue
+
+   .. cpp:enumerator:: alpha
 
 .. cpp:namespace:: gui_forms
 
@@ -3000,6 +3153,26 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/numeric_up_down.hpp>``
+
+.. cpp:var:: constexpr FrameInterval scrub_glow_rise
+
+   The scrub glow's rise as a scrub starts and its fade as it ends. Value: ``std::chrono::milliseconds(120)``.
+
+.. cpp:var:: constexpr FrameInterval scrub_glow_fall
+
+   Value: ``std::chrono::milliseconds(240)``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/numeric_up_down_effects.hpp>``
+
+.. cpp:function:: void register_numeric_up_down_effects(EffectRegistry& registry)
+
+   Adds the scrub glow to ``registry``.
 
 .. cpp:namespace:: gui_forms
 

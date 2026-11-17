@@ -2,10 +2,10 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../basic/number_text.hpp"
 
 #include <array>
 #include <cmath>
-#include <sstream>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
@@ -21,16 +21,15 @@ constexpr double maximum_field_width = 512.0;
 
 // A size as its list shows it: whole points without a fraction, others with
 // one decimal ("10.5").
+// Written in the C locale's form, as typed sizes are compared with it; a
+// default stream grouped and marked decimals by the global C++ locale
+// (A-gf-controls-12-F9).
 std::string size_text(double size) {
-    std::ostringstream text;
-    if (std::floor(size) == size) {
-        text << static_cast<long long>(size);
-    } else {
-        text.setf(std::ios::fixed);
-        text.precision(1);
-        text << size;
-    }
-    return text.str();
+    std::string text;
+    const bool whole = std::floor(size) == size;
+    const int decimals = whole ? 0 : 1;
+    number_text::append_number_text(text, size, std::chars_format::fixed, decimals);
+    return text;
 }
 
 // The size list's rows, one per size in `sizes`.
@@ -168,7 +167,7 @@ void RibbonFontControl::write_view(const decltype(value)&, FontChoice incoming) 
 
 // -- synchronization ---------------------------------------------------------------
 
-void RibbonFontControl::FieldChanged::operator()(std::optional<std::size_t> index) const {
+void RibbonFontControl::FieldChanged::operator()(stxlib::Optional<std::size_t> index) const {
     const std::shared_ptr<RibbonFontControl> control = target.lock();
     if (control && (*control).is_alive()) (*control).field_changed(field, index);
 }
@@ -187,15 +186,16 @@ void RibbonFontControl::CommandStateChanged::operator()(const CommandState&) con
 
 // The user chose in a field: the other half of the value is kept, and the
 // choice commits to the command (or becomes the control's own value).
-void RibbonFontControl::field_changed(Field field, std::optional<std::size_t> index) {
-    if (synchronizing_ || !index) return;
+void RibbonFontControl::field_changed(Field field, stxlib::Optional<std::size_t> index) {
+    if (synchronizing_ || index.absent()) return;
+    const std::size_t picked = *index.value();
     FontChoice chosen = value.read();
     if (field == Field::family) {
-        if (*index >= families_.size()) return;
-        chosen.family = families_[*index];
+        if (picked >= families_.size()) return;
+        chosen.family = families_[picked];
     } else {
-        if (*index >= sizes_.size()) return;
-        chosen.size = sizes_[*index];
+        if (picked >= sizes_.size()) return;
+        chosen.size = sizes_[picked];
     }
     if (command.read()) {
         const Control::Ptr lifetime = shared_from_this();
@@ -212,13 +212,13 @@ void RibbonFontControl::field_changed(Field field, std::optional<std::size_t> in
 // Shows `value` in the fields; a half that is unknown or not listed shows
 // empty.
 void RibbonFontControl::show(const FontChoice& value) {
-    std::optional<std::size_t> family{};
+    stxlib::Optional<std::size_t> family{};
     for (std::size_t index = 0; index < families_.size(); ++index) {
-        if (families_[index] == value.family) family = index;
+        if (families_[index] == value.family) family.set(index);
     }
-    std::optional<std::size_t> size{};
+    stxlib::Optional<std::size_t> size{};
     for (std::size_t index = 0; index < sizes_.size(); ++index) {
-        if (sizes_[index] == value.size) size = index;
+        if (sizes_[index] == value.size) size.set(index);
     }
     synchronizing_ = true;
     if ((*family_).selected_index.read() != family) (*family_).selected_index = family;
@@ -281,11 +281,11 @@ SemanticDescriptor RibbonFontControl::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<RibbonFontControl::Parts>, 3> font_control_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &RibbonFontControl::Parts::region},
-    {.declaration = {.name = "family_field", .role = PartRole::well, .composed_from = "combo_box"},
+    {.declaration = {.name = "family_field", .role = PartRole::well, .composed_from = "combo_box", .states = {}},
      .member = &RibbonFontControl::Parts::family_field},
-    {.declaration = {.name = "size_field", .role = PartRole::well, .composed_from = "combo_box"},
+    {.declaration = {.name = "size_field", .role = PartRole::well, .composed_from = "combo_box", .states = {}},
      .member = &RibbonFontControl::Parts::size_field},
 }};
 

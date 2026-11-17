@@ -44,7 +44,12 @@ struct GUI_FORMS_API ValueBarContrast final {
 // Gestures (study 3.4): press and drag sideways scrubs (the shared
 // ScrubGesture on the window's drag engine): Shift slows it, Ctrl snaps to
 // snap_step, Escape or a right press restores the start value, and the
-// release raises value_committed once. A click without a drag, Enter or F2
+// release raises value_committed once. The press captures the pointer, so
+// a scrub that leaves the bar keeps tracking until the release; with the
+// host's relative-motion pointer lock the pointer is hidden and the scrub
+// is unbounded, otherwise it stops at the window's edge at the same rate
+// (ScrubPointerLock, src/core/drag_engine/scrub_gesture.hpp). A lost
+// capture restores the start value. A click without a drag, Enter or F2
 // opens the inline editor with the value selected; Enter, Tab or focus
 // leaving it commits the typed text (bounded arithmetic and units, clamped
 // to the hard range), Escape cancels, and a refused text keeps the editor
@@ -212,7 +217,7 @@ private:
     [[nodiscard]] double scrub_rate_in_force() const noexcept;
     // The label and value text; `over_fill` is the colour of the half drawn
     // over the fill, none for the half over the track.
-    void paint_texts(Painter& painter, AnatomyStateSet states, std::optional<Color> over_fill) const;
+    void paint_texts(Painter& painter, AnatomyStateSet states, stxlib::Optional<Color> over_fill) const;
     // The text colour over the fill: the label part's fill-text-color, else
     // the fill's selected text colour.
     [[nodiscard]] Color over_fill_text_colour(AnatomyStateSet states) const;
@@ -251,11 +256,11 @@ private:
     friend struct ValueBarLabelCapability<ValueBar>;
     friend struct ValueBarScrubRateCapability<ValueBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void prepare_write(const decltype(soft_minimum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(soft_minimum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(soft_minimum)& cell);
-    void prepare_write(const decltype(soft_maximum)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(soft_maximum)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(soft_maximum)& cell);
-    void prepare_write(const decltype(snap_step)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(snap_step)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(snap_step)& cell);
     void prepare_write(const decltype(precision)& cell, std::int32_t& incoming);
     void written(const decltype(precision)& cell);
@@ -267,7 +272,7 @@ private:
     void written(const decltype(presentation)& cell);
     void prepare_write(const decltype(label)& cell, std::string& incoming);
     void written(const decltype(label)& cell);
-    void prepare_write(const decltype(scrub_rate)& cell, std::optional<double>& incoming);
+    void prepare_write(const decltype(scrub_rate)& cell, stxlib::Optional<double>& incoming);
     void written(const decltype(scrub_rate)& cell);
     // property_codemod end ValueBar
 };

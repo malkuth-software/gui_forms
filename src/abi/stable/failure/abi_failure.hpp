@@ -2,8 +2,13 @@
 
 #include "gui_forms/c/gf_abi.h"
 
+#include <stxlib/error.hpp>
+#include <stxlib/shadow.hpp>
+
 #include <array>
 #include <cstdint>
+#include <exception>
+#include <memory>
 #include <string_view>
 
 namespace gui_forms::abi1 {
@@ -46,5 +51,67 @@ void clear_failure() noexcept;
 // fit in capacity. Text that is not valid UTF-8 is cut at the last lead byte
 // boundary, never inside a sequence.
 [[nodiscard]] std::size_t utf8_prefix_length(std::string_view text, std::size_t capacity) noexcept;
+
+// A C++ exception carried as a value and rethrown later, with the shadow
+// record of its throw (survey B8; the class bridge's frames, HookFrame). A
+// base function catches the failure of the raiser below inside its slot
+// gate, so the C entry that called base returns normally; once the entry
+// has returned, the raise rethrows the exception, and the outer gate that
+// catches it files the frames of the original throw, not of the rethrow.
+// One per carrying frame, on its thread.
+//
+// The failure owns its frames (the owner's decision for S3, the A2 list's
+// G3): the park copies the record's frames and trace into frames
+// (stxlib::park_shadow_into), so they survive any capture between the park
+// and the rethrow (a thread keeps the last 4 records in a development build,
+// the last 1 in a release build), and a nested park keeps its own. The
+// rethrow files the copy as a new record and makes it pending
+// (stxlib::restore_shadow_from), so the outer gate, STXlib's record and
+// GUI.Forms' snapshot alike, attaches the original throw's frames.
+//
+// The copy (about 7.9 KiB) is allocated on the failure path, not kept in
+// every HookFrame on a class entry's stack (foreign threads can have short
+// stacks). Parking happens on failure paths, out of memory included: when
+// the allocation is refused, or STXlib cannot park into it (an exhausted
+// shadow sequence), the reference alone is kept (stxlib::park_shadow and
+// restore_shadow) and the loss is recorded as data. The park counts it
+// (detail::FailureStatistics::parked_frames_dropped) and sets frames_lost;
+// the rethrow marks the outer gate's filing (frames_lost_at_park on the
+// snapshot, a line in the fail-fast report), whose frames are then what the
+// thread still held of the record, possibly none, never another failure's.
+struct ParkedShadowFrames final {
+    stxlib::ParkedShadow parked{};
+    std::array<stxlib::ShadowFrameRecord, stxlib::parked_shadow_frame_room> records{};
+    std::array<stxlib::uptr, stxlib::parked_shadow_trace_room> trace{};
+};
+
+struct ParkedFailure final {
+    std::exception_ptr exception;
+    // The parked record (frames' parked.reference when the copy is held).
+    stxlib::ShadowReference shadow{};
+    // The copy of shadow's frames and trace; null when nothing is kept or
+    // only the reference is.
+    std::unique_ptr<ParkedShadowFrames> frames;
+    // The first failure was parked without a copy (see above).
+    bool frames_lost = false;
+
+    // Inside a catch block: parks the current exception's shadow record
+    // (which clears the thread's pending capture) and returns it, for the
+    // failure's snapshot, which reads it at once. The first failure parked
+    // is the one kept, with its copy of the record; a later one is only
+    // parked (stxlib::park_shadow) and returned.
+    stxlib::ShadowReference park() noexcept;
+
+    // Rethrows the kept exception after filing its copy of the frames as
+    // the thread's pending capture (stxlib::restore_shadow_from; with only
+    // the reference, stxlib::restore_shadow), and holds nothing afterwards.
+    // Returns without throwing when nothing is kept.
+    void rethrow();
+};
+
+// The allocation fault seam for tests: the next first park on the calling
+// thread (ParkedFailure::park keeping a new failure) behaves as if its
+// copy's allocation were refused. Spent by that park.
+void refuse_next_parked_copy() noexcept;
 
 } // namespace gui_forms::abi1

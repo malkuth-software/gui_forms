@@ -654,11 +654,11 @@ gui_forms::ObjectView
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr std::size_t maximum_details_text_bytes
 
@@ -683,8 +683,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - supported
    * - property
      - ``Activation``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``Alignment``
      - none
@@ -707,8 +707,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (untested)
    * - property
      - ``CheckBoxes``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``CheckedIndices``
      - none
@@ -727,8 +727,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``FullRowSelect``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``GridLines``
      - none
@@ -743,8 +743,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (carried)
    * - property
      - ``HeaderStyle``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``HideSelection``
      - none
@@ -767,8 +767,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - supported
    * - property
      - ``LabelEdit``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``LabelWrap``
      - none
@@ -783,8 +783,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``MultiSelect``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``OwnerDraw``
      - none
@@ -811,8 +811,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``ShowGroups``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``ShowItemToolTips``
      - none
@@ -831,8 +831,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``TileSize``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``TopItem``
      - none
@@ -843,8 +843,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``View``
-     - none
-     - unclassified (unmatched)
+     - on ``ListView``
+     - unclassified (carried)
    * - property
      - ``VirtualListSize``
      - none

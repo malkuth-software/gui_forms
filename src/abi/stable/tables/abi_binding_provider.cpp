@@ -7,6 +7,8 @@
 #include "../registry/abi_registry.hpp"
 #include "../values/abi_values.hpp"
 
+#include "gui_forms/text/types/text_types.hpp"
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -54,8 +56,12 @@ struct ProviderRegistry final {
 };
 
 ProviderRegistry& provider_registry() {
-    static ProviderRegistry registry;
-    return registry;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): bindings.notify may be called from any thread, so the
+    // mutex and the links outlive every caller, and no link is released by a
+    // static destructor at exit.
+    static ProviderRegistry* const registry = new ProviderRegistry();
+    return *registry;
 }
 
 std::atomic<std::uint64_t>& provider_counter() noexcept {
@@ -105,6 +111,25 @@ std::string copy_lent_bounded(const BorrowedText& lent, std::size_t maximum) {
     return copied;
 }
 
+// The shadow frame a provider callback runs under (A-gf-abi-03-F12): every
+// call into the provider goes through call_client, the callback gate.
+CallbackFrame provider_frame(std::string_view name) noexcept {
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, std::string_view("binding_provider"), name};
+    return frame;
+}
+
+// Whether a provider's answer text is well-formed UTF-8 (A-gf-abi-03-F11):
+// every other text entering through the ABI is validated by the library's
+// strict validator, and an identity or error text that is not is no answer.
+bool well_formed_answer(gf_utf8_view view) noexcept {
+    if (view.data == nullptr || view.size == 0U) {
+        return view.size == 0U;
+    }
+    const std::string_view text(view.data, static_cast<std::size_t>(view.size));
+    const Utf8ValidationResult validation = validate_utf8(text);
+    return validation.valid();
+}
+
 gf_utf8_view view_of(std::string_view text) noexcept {
     gf_utf8_view view{};
     view.data = text.data();
@@ -138,7 +163,8 @@ AbiBindingProvider::AbiBindingProvider(BindingSchema schema, const gf_binding_pr
 
 AbiBindingProvider::~AbiBindingProvider() {
     if (callbacks_.release != nullptr) {
-        callbacks_.release(callbacks_.context);
+        void* context = callbacks_.context;
+        call_client(provider_frame("release"), callbacks_.release, context);
     }
 }
 
@@ -157,7 +183,9 @@ BindingProviderCapabilities AbiBindingProvider::capabilities() const {
 
 std::size_t AbiBindingProvider::row_count() {
     std::uint64_t count = 0U;
-    const gf_status status = callbacks_.row_count(callbacks_.context, &count);
+    void* context = callbacks_.context;
+    std::uint64_t* answer = &count;
+    const gf_status status = call_client(provider_frame("row_count"), callbacks_.row_count, context, answer);
     if (status != GF_STATUS_OK) {
         // No answer: the source shows no rows and reports the provider.
         throw std::runtime_error("the provider's row_count failed");
@@ -171,8 +199,12 @@ std::size_t AbiBindingProvider::row_count() {
 bool AbiBindingProvider::read_cell(std::size_t row, std::size_t column, BindingValue& value) {
     gf_value record{};
     record.struct_size = static_cast<std::uint32_t>(sizeof(gf_value));
-    const gf_status status = callbacks_.read_value(callbacks_.context, static_cast<std::uint64_t>(row),
-                                                   static_cast<std::uint64_t>(column), &record);
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    std::uint64_t column_index = static_cast<std::uint64_t>(column);
+    gf_value* answer = &record;
+    const gf_status status =
+        call_client(provider_frame("read_value"), callbacks_.read_value, context, row_index, column_index, answer);
     if (status != GF_STATUS_OK) {
         return false;
     }
@@ -188,10 +220,13 @@ bool AbiBindingProvider::read_stable_id(std::size_t row, std::string& stable_id)
     // The answer's scope: the identity's text is borrowed until it ends.
     const detail::BorrowScope answer;
     gf_utf8_view identity{};
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    gf_utf8_view* answer_view = &identity;
     const gf_status status =
-        callbacks_.read_stable_id(callbacks_.context, static_cast<std::uint64_t>(row), &identity);
+        call_client(provider_frame("read_stable_id"), callbacks_.read_stable_id, context, row_index, answer_view);
     if (status != GF_STATUS_OK || (identity.data == nullptr && identity.size != 0U) ||
-        identity.size > binding_maximum_text_bytes) {
+        identity.size > binding_maximum_text_bytes || !well_formed_answer(identity)) {
         return false;
     }
     stable_id = copy_lent(lend_caller_text(answer, identity));
@@ -210,13 +245,22 @@ BindingWriteResult AbiBindingProvider::write_cell(std::size_t row, std::size_t c
     const detail::BorrowScope answer;
     std::uint32_t accepted = 0U;
     gf_utf8_view reason{};
-    const gf_status status = callbacks_.write_value(callbacks_.context, static_cast<std::uint64_t>(row),
-                                                    static_cast<std::uint64_t>(column), &record, &accepted, &reason);
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    std::uint64_t column_index = static_cast<std::uint64_t>(column);
+    const gf_value* given = &record;
+    std::uint32_t* accepted_answer = &accepted;
+    gf_utf8_view* reason_answer = &reason;
+    const gf_status status = call_client(provider_frame("write_value"), callbacks_.write_value, context, row_index,
+                                         column_index, given, accepted_answer, reason_answer);
     if (status != GF_STATUS_OK) {
         return BindingWriteResult{BindingWriteStatus::refused, "the provider's write_value failed"};
     }
     if (accepted == 1U) {
         return BindingWriteResult{BindingWriteStatus::accepted, {}};
+    }
+    if (!well_formed_answer(reason)) {
+        return BindingWriteResult{BindingWriteStatus::refused, "the provider's refusal reason is not UTF-8"};
     }
     return BindingWriteResult{BindingWriteStatus::refused,
                               copy_lent_bounded(lend_caller_text(answer, reason), binding_maximum_error_bytes)};
@@ -228,8 +272,13 @@ bool AbiBindingProvider::cell_read_only(std::size_t row, std::size_t column) {
     }
     std::uint32_t read_only = 0U;
     gf_utf8_view error{};
-    const gf_status status = callbacks_.read_cell_state(callbacks_.context, static_cast<std::uint64_t>(row),
-                                                        static_cast<std::uint64_t>(column), &read_only, &error);
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    std::uint64_t column_index = static_cast<std::uint64_t>(column);
+    std::uint32_t* read_only_answer = &read_only;
+    gf_utf8_view* error_answer = &error;
+    const gf_status status = call_client(provider_frame("read_cell_state"), callbacks_.read_cell_state, context,
+                                         row_index, column_index, read_only_answer, error_answer);
     // A failed answer, or a flag other than 0 or 1, keeps the cell
     // read-only: the safe reading of an answer that cannot be trusted.
     const bool locked = status != GF_STATUS_OK || read_only != 0U;
@@ -243,9 +292,14 @@ bool AbiBindingProvider::read_error(std::size_t row, std::size_t column, std::st
     const detail::BorrowScope answer;
     std::uint32_t read_only = 0U;
     gf_utf8_view error{};
-    const gf_status status = callbacks_.read_cell_state(callbacks_.context, static_cast<std::uint64_t>(row),
-                                                        static_cast<std::uint64_t>(column), &read_only, &error);
-    if (status != GF_STATUS_OK || error.size == 0U) {
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    std::uint64_t column_index = static_cast<std::uint64_t>(column);
+    std::uint32_t* read_only_answer = &read_only;
+    gf_utf8_view* error_answer = &error;
+    const gf_status status = call_client(provider_frame("read_cell_state"), callbacks_.read_cell_state, context,
+                                         row_index, column_index, read_only_answer, error_answer);
+    if (status != GF_STATUS_OK || error.size == 0U || !well_formed_answer(error)) {
         return false;
     }
     text = copy_lent_bounded(lend_caller_text(answer, error), binding_maximum_error_bytes);
@@ -264,9 +318,14 @@ BindingWriteResult AbiBindingProvider::insert_row(std::size_t row, const Binding
         }
     }
     std::uint32_t accepted = 0U;
-    const gf_status status =
-        callbacks_.insert_row(callbacks_.context, static_cast<std::uint64_t>(row), view_of(values.stable_id),
-                              records.data(), static_cast<std::uint64_t>(records.size()), &accepted);
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    gf_utf8_view identity = view_of(values.stable_id);
+    const gf_value* given = records.data();
+    std::uint64_t given_count = static_cast<std::uint64_t>(records.size());
+    std::uint32_t* accepted_answer = &accepted;
+    const gf_status status = call_client(provider_frame("insert_row"), callbacks_.insert_row, context, row_index,
+                                         identity, given, given_count, accepted_answer);
     if (status != GF_STATUS_OK || accepted != 1U) {
         return BindingWriteResult{BindingWriteStatus::refused, "the provider refused the row"};
     }
@@ -278,8 +337,12 @@ BindingWriteResult AbiBindingProvider::remove_rows(std::size_t row, std::size_t 
         return BindingWriteResult{BindingWriteStatus::unavailable, "the provider does not remove rows"};
     }
     std::uint32_t accepted = 0U;
-    const gf_status status = callbacks_.remove_rows(callbacks_.context, static_cast<std::uint64_t>(row),
-                                                    static_cast<std::uint64_t>(count), &accepted);
+    void* context = callbacks_.context;
+    std::uint64_t row_index = static_cast<std::uint64_t>(row);
+    std::uint64_t removed_count = static_cast<std::uint64_t>(count);
+    std::uint32_t* accepted_answer = &accepted;
+    const gf_status status = call_client(provider_frame("remove_rows"), callbacks_.remove_rows, context, row_index,
+                                         removed_count, accepted_answer);
     if (status != GF_STATUS_OK || accepted != 1U) {
         return BindingWriteResult{BindingWriteStatus::refused, "the provider refused the removal"};
     }
@@ -299,8 +362,11 @@ bool AbiBindingProvider::apply_sort(std::span<const BindingSortKey> keys) {
                                                                                       : GF_BINDING_SORT_ASCENDING;
         record.column = view_of(keys[index].column);
     }
-    const gf_status status =
-        callbacks_.apply_sort(callbacks_.context, records.data(), static_cast<std::uint64_t>(records.size()));
+    void* context = callbacks_.context;
+    const gf_binding_sort_key* given = records.data();
+    std::uint64_t given_count = static_cast<std::uint64_t>(records.size());
+    const gf_status status = call_client(provider_frame("apply_sort"), callbacks_.apply_sort, context, given,
+                                         given_count);
     return status == GF_STATUS_OK;
 }
 
@@ -328,8 +394,11 @@ bool AbiBindingProvider::apply_filter(const BindingFilter& filter) {
             record.operand = &operands[index];
         }
     }
-    const gf_status status =
-        callbacks_.apply_filter(callbacks_.context, records.data(), static_cast<std::uint64_t>(records.size()));
+    void* context = callbacks_.context;
+    const gf_binding_predicate* given = records.data();
+    std::uint64_t given_count = static_cast<std::uint64_t>(records.size());
+    const gf_status status = call_client(provider_frame("apply_filter"), callbacks_.apply_filter, context, given,
+                                         given_count);
     return status == GF_STATUS_OK;
 }
 

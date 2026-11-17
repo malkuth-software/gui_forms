@@ -1,4 +1,5 @@
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "plot_engine.hpp"
 #include "plot_view_live.hpp"
@@ -9,13 +10,17 @@
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "../../basic/number_text.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <stdexcept>
 #include <utility>
 
 namespace gui_forms {
@@ -36,21 +41,21 @@ constexpr std::uint64_t signature_prime = 1099511628211ULL;
 }
 
 constexpr std::array<PartField<PlotView::Parts>, 8> plot_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::region},
-    {.declaration = {.name = "title", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "title", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::title},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::plot},
-    {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::x_axis},
-    {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}},
+    {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::y_axis},
-    {.declaration = {.name = "legend", .role = PartRole::legend, .composed_from = {}},
+    {.declaration = {.name = "legend", .role = PartRole::legend, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::legend},
-    {.declaration = {.name = "crosshair", .role = PartRole::crosshair, .composed_from = {}},
+    {.declaration = {.name = "crosshair", .role = PartRole::crosshair, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::crosshair},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &PlotView::Parts::focus},
 }};
 
@@ -70,14 +75,17 @@ constexpr ControlAnatomy plot_view_anatomy{
     .parts = plot_view_parts,
     .states = plot_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events PlotView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 4> plot_view_interactions{{
+constexpr std::array<InteractionDeclaration, 6> plot_view_interactions{{
     {.name = "view_changed", .payload = "PlotViewRanges", .mutable_payload = false},
     {.name = "selection_changed", .payload = "PlotQuery", .mutable_payload = false},
     {.name = "point_picked", .payload = "PlotPointPick", .mutable_payload = false},
     {.name = "legend_toggled", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "handle_moved", .payload = "PlotHandleMove", .mutable_payload = false},
+    {.name = "handle_committed", .payload = "PlotHandleMove", .mutable_payload = false},
 }};
 
 [[nodiscard]] plots::AxisSide axis_side(bool horizontal, std::size_t position) noexcept {
@@ -93,8 +101,13 @@ const ControlAnatomy& detail::plot_view_anatomy_reference() noexcept {
 
 PlotView::PlotView(StableId stable_id)
     : Control(std::move(stable_id)), engine_(std::make_unique<detail::PlotEngine>()),
-      signal_sink_(std::make_unique<plots::SignalSink>()) {
+      signal_sink_(std::make_unique<plots::SignalSink>()), handle_drag_(*this) {
     focusable = true;
+    handle_drag_.callbacks.plan = Delegate<DragPlan&>::bind<PlotView, &PlotView::plan_handle_drag>(*this);
+    handle_drag_.callbacks.preview =
+        Delegate<const DragTrackerFrame&>::bind<PlotView, &PlotView::preview_handle_drag>(*this);
+    handle_drag_.callbacks.finished =
+        Delegate<const DragTrackerFrame&>::bind<PlotView, &PlotView::finish_handle_drag>(*this);
     (*engine_).set_axes(std::span<const detail::PlotEngineAxis>{}, std::span<const detail::PlotEngineAxis>{});
 }
 
@@ -139,6 +152,15 @@ void PlotView::collect_series(std::vector<detail::PlotEngineSeries>& series,
             one.order = (*item).x_order();
             one.pyramid = (*item).pyramid();
             one.revision = (*item).revision();
+            one.item_identity = (*item).runtime_id().value;
+            // A custom kind draws instead of the points: the engine reads
+            // no columns for it.
+            one.custom = (*item).custom().get();
+            if (one.custom != nullptr) {
+                one.borrowed = false;
+                one.columns = plots::ColumnSamples<double, double>{};
+                one.pyramid = nullptr;
+            }
             series.push_back(one);
             if (items != nullptr) (*items).push_back(item);
             continue;
@@ -168,7 +190,9 @@ void PlotView::take_axes(bool force) {
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const PlotAxisItem* const item = dynamic_cast<const PlotAxisItem*>(all[index].get());
         if (item == nullptr) continue;
-        signature = mix(signature, reinterpret_cast<std::uintptr_t>(item));
+        // The runtime identity, not the address: a replacement allocated at
+        // the same address starts at the same revision (A-gf-controls-10-F7).
+        signature = mix(signature, (*item).runtime_id().value);
         signature = mix(signature, (*item).revision());
         const bool horizontal = (*item).direction.read() == PlotAxisDirection::horizontal;
         std::size_t& count = horizontal ? x_count : y_count;
@@ -202,6 +226,7 @@ void PlotView::take_axes(bool force) {
 void PlotView::fit_and_follow() {
     std::uint64_t signature = mix(0U, gathered_.size());
     for (std::size_t index = 0U; index < gathered_.size(); ++index) {
+        signature = mix(signature, gathered_[index].item_identity);
         signature = mix(signature, gathered_[index].revision);
         signature = mix(signature, gathered_[index].hidden ? 1U : 0U);
     }
@@ -239,7 +264,8 @@ bool PlotView::set_x_range(std::size_t index, plots::PlotRange range) {
     if (!(*engine_).model().set_x_range(index, range)) return false;
     view_moved_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
-    if (index == 0U) raise_outcome(true, false, std::nullopt, std::nullopt);
+    if (index == 0U) raise_outcome(true, false, stxlib::Optional<PlotPointPick>::none(),
+                                   stxlib::Optional<std::size_t>::none());
     if (live_host_) send_live_update(false);
     return true;
 }
@@ -249,7 +275,8 @@ bool PlotView::set_y_range(std::size_t index, plots::PlotRange range) {
     if (!(*engine_).model().set_y_range(index, range)) return false;
     view_moved_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
-    if (index == 0U) raise_outcome(true, false, std::nullopt, std::nullopt);
+    if (index == 0U) raise_outcome(true, false, stxlib::Optional<PlotPointPick>::none(),
+                                   stxlib::Optional<std::size_t>::none());
     if (live_host_) send_live_update(false);
     return true;
 }
@@ -262,7 +289,7 @@ void PlotView::fit_view() {
     view_moved_ = false;
     if (!moved) return;
     invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(true, false, std::nullopt, std::nullopt);
+    raise_outcome(true, false, stxlib::Optional<PlotPointPick>::none(), stxlib::Optional<std::size_t>::none());
     if (live_host_) send_live_update(false);
 }
 
@@ -290,17 +317,18 @@ PlotQuery PlotView::query() const {
 
 void PlotView::clear_query() {
     require_mutable();
-    if (!(*engine_).model().selection().has_value()) return;
+    if ((*engine_).model().selection().absent()) return;
     (*engine_).model().clear_selection();
     invalidate(Dirty::paint);
-    raise_outcome(false, true, std::nullopt, std::nullopt);
+    raise_outcome(false, true, stxlib::Optional<PlotPointPick>::none(), stxlib::Optional<std::size_t>::none());
 }
 
-std::optional<PlotPointPick> PlotView::cursor() const {
+stxlib::Optional<PlotPointPick> PlotView::cursor() const {
     if (live_host_) return live_cursor_;
     std::vector<detail::PlotEngineSeries> series;
     collect_series(series, nullptr, nullptr);
-    return (*engine_).cursor_point(series);
+    const stxlib::Optional<PlotPointPick> at = platform::stxlib_optional((*engine_).cursor_point(series));
+    return at;
 }
 
 bool PlotView::set_cursor(std::size_t series, std::size_t element) {
@@ -308,7 +336,8 @@ bool PlotView::set_cursor(std::size_t series, std::size_t element) {
     gather_series();
     if (!(*engine_).set_cursor(detail::PlotCursor{series, element}, gathered_)) return false;
     invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(false, false, (*engine_).cursor_point(gathered_), std::nullopt);
+    raise_outcome(false, false, platform::stxlib_optional((*engine_).cursor_point(gathered_)),
+                  stxlib::Optional<std::size_t>::none());
     return true;
 }
 
@@ -344,8 +373,8 @@ double PlotView::device_scale() const noexcept {
     return scale;
 }
 
-void PlotView::raise_outcome(bool view, bool selection, const std::optional<PlotPointPick>& pick,
-                             const std::optional<std::size_t>& legend_toggle) {
+void PlotView::raise_outcome(bool view, bool selection, const stxlib::Optional<PlotPointPick>& pick,
+                             const stxlib::Optional<std::size_t>& legend_toggle) {
     if (view) {
         const PlotViewRanges ranges = (*engine_).ranges();
         view_changed_.emit(ranges);
@@ -354,8 +383,10 @@ void PlotView::raise_outcome(bool view, bool selection, const std::optional<Plot
         const PlotQuery shown = (*engine_).query();
         selection_changed_.emit(shown);
     }
-    if (pick.has_value()) point_picked_.emit(*pick);
-    if (legend_toggle.has_value()) toggle_series(*legend_toggle);
+    const PlotPointPick* const picked = pick.value();
+    if (picked != nullptr) point_picked_.emit(*picked);
+    const std::size_t* const toggled = legend_toggle.value();
+    if (toggled != nullptr) toggle_series(*toggled);
 }
 
 // -- layout and paint ----------------------------------------------------------------
@@ -398,6 +429,7 @@ void PlotView::on_paint(Painter& painter, Rect) {
     options.show_grid = show_grid.read();
     options.crosshair = crosshair.read();
     (*engine_).paint(painter, *this, anatomy_states(), options, gathered_, annotations_, device_scale());
+    paint_handles(painter);
     paints_ = paints_ + 1U;
     update_ambient();
 }
@@ -417,7 +449,7 @@ void PlotView::update_ambient() {
     bool produced = false;
     for (std::size_t index = 0U; index < series_items_.size(); ++index) {
         const PlotSeriesItem& item = *series_items_[index];
-        produced = produced || item.signal().has_value() || static_cast<bool>(item.channel());
+        produced = produced || item.signal().present() || static_cast<bool>(item.channel());
     }
     if (!produced || live_host_) {
         clock.withdraw_control_ambient(*this);
@@ -437,9 +469,9 @@ bool PlotView::on_ambient_frame(FrameTime now) {
     const plots::SignalFrame frame = signal_clock_.advance(now, 16U);
     for (std::size_t index = 0U; index < series_items_.size(); ++index) {
         PlotSeriesItem& item = *series_items_[index];
-        if (item.signal().has_value() && frame.tick_count != 0U) {
+        if (item.signal().present() && frame.tick_count != 0U) {
             plots::SignalFrame own = frame;
-            own.samples_per_tick = (*item.signal()).samples_per_tick;
+            own.samples_per_tick = ((*item.signal().value())).samples_per_tick;
             static_cast<void>(item.run_signal_frame(own, *signal_sink_));
         }
         if (item.channel()) {
@@ -458,6 +490,14 @@ void PlotView::on_attached_to_window() {
     update_live_host();
 }
 
+void PlotView::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    // A pointer drag has ended capture_lost already; a session left here
+    // ends without calling back, and the handle keeps its last preview.
+    handle_drag_.owner_detaching(former_window);
+    handle_drag_state_.reset();
+    Control::on_detaching_from_window(former_window);
+}
+
 void PlotView::on_detached_from_window() noexcept {
     SurfaceRoot* const root = surface_root();
     if (root != nullptr) (*root).motion_clock().withdraw_control_ambient(*this);
@@ -468,9 +508,39 @@ void PlotView::on_detached_from_window() noexcept {
 
 void PlotView::handle_pointer(PointerEvent& event) {
     if (live_host_ || !eligible_for_input()) return;
+    // A running handle drag takes the moves and the release.
+    if (handle_drag_.running() && handle_drag_.pointer(event)) {
+        event.handled = true;
+        return;
+    }
     gather_series();
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    // A primary press on a handle arms its drag, ahead of panning.
+    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
+        const stxlib::Optional<std::size_t> hit_found = handle_at(local);
+        const std::size_t* const hit = hit_found.value();
+        if (hit != nullptr) {
+            const PlotHandle& handle = handles_[*hit];
+            const stxlib::Optional<Point> centre_found = handle_point(handle.id);
+            const Point* const centre = centre_found.value();
+            if (centre != nullptr) {
+                DragStart start{};
+                start.key = handle.id;
+                start.source.set(Rect{absolute.x + (*centre).x - handle_pick_radius,
+                                    absolute.y + (*centre).y - handle_pick_radius, handle_pick_radius * 2.0,
+                                    handle_pick_radius * 2.0});
+                handle_drag_state_.set(HandleDrag{handle.id, handle.x, handle.y});
+                const DragStartResult result = handle_drag_.press(event, start);
+                if (result == DragStartResult::armed || result == DragStartResult::started) {
+                    if (surface_root() != nullptr) static_cast<void>((*surface_root()).request_focus(shared_from_this()));
+                    event.handled = true;
+                    return;
+                }
+                handle_drag_state_.reset();
+            }
+        }
+    }
     if (event.action == PointerAction::down && surface_root() != nullptr) {
         static_cast<void>((*surface_root()).request_focus(shared_from_this()));
     }
@@ -483,7 +553,182 @@ void PlotView::handle_pointer(PointerEvent& event) {
     event.handled = true;
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+    raise_outcome(outcome.view, outcome.selection, platform::stxlib_optional(outcome.pick),
+                  platform::stxlib_optional(outcome.legend_toggle));
+}
+
+// -- handles -------------------------------------------------------------------------
+
+void PlotView::set_handles(std::vector<PlotHandle> handles) {
+    require_mutable();
+    if (handles.size() > maximum_plot_handles) throw std::invalid_argument("PlotView holds at most 256 handles");
+    for (std::size_t index = 0U; index < handles.size(); ++index) {
+        const PlotHandle& handle = handles[index];
+        if (!std::isfinite(handle.x) || !std::isfinite(handle.y)) {
+            throw std::invalid_argument("PlotView handle positions must be finite");
+        }
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (handles[earlier].id == handle.id) throw std::invalid_argument("PlotView handle ids must be unique");
+        }
+    }
+    if (handle_drag_.running()) handle_drag_.cancel(DragEnd::model_changed);
+    handles_ = std::move(handles);
+    invalidate(Dirty::paint);
+}
+
+bool PlotView::set_handle_position(std::uint32_t id, double x, double y) {
+    require_mutable();
+    const stxlib::Optional<std::size_t> found = handle_index(id);
+    const std::size_t* const index = found.value();
+    if (index == nullptr || !std::isfinite(x) || !std::isfinite(y)) return false;
+    handles_[*index].x = x;
+    handles_[*index].y = y;
+    invalidate(Dirty::paint);
+    return true;
+}
+
+stxlib::Optional<std::uint32_t> PlotView::dragged_handle() const noexcept {
+    const HandleDrag* const drag = handle_drag_state_.value();
+    if (drag == nullptr) return stxlib::Optional<std::uint32_t>::none();
+    const stxlib::Optional<std::uint32_t> id = stxlib::Optional<std::uint32_t>::of((*drag).id);
+    return id;
+}
+
+stxlib::Optional<std::size_t> PlotView::handle_index(std::uint32_t id) const noexcept {
+    for (std::size_t index = 0U; index < handles_.size(); ++index) {
+        if (handles_[index].id == id) return stxlib::Optional<std::size_t>::of(index);
+    }
+    return stxlib::Optional<std::size_t>::none();
+}
+
+stxlib::Optional<Point> PlotView::handle_point(std::uint32_t id) const {
+    const stxlib::Optional<std::size_t> found = handle_index(id);
+    const std::size_t* const index = found.value();
+    if (index == nullptr) return stxlib::Optional<Point>::none();
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<Point>::none();
+    const PlotHandle& handle = handles_[*index];
+    const Rect plot = made.transform.plot();
+    Point centre = made.transform.to_device(handle.x, handle.y);
+    // A line's grab point is its middle across the plot.
+    if (handle.kind == PlotHandleKind::vertical_line) centre.y = plot.y + plot.height * 0.5;
+    if (handle.kind == PlotHandleKind::horizontal_line) centre.x = plot.x + plot.width * 0.5;
+    return stxlib::Optional<Point>::of(centre);
+}
+
+stxlib::Optional<std::size_t> PlotView::handle_at(Point local) const {
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<std::size_t>::none();
+    const Rect plot = made.transform.plot();
+    if (!plot.contains(local)) return stxlib::Optional<std::size_t>::none();
+    // The last handle drawn is on top, so it is found first.
+    for (std::size_t remaining = handles_.size(); remaining > 0U; --remaining) {
+        const PlotHandle& handle = handles_[remaining - 1U];
+        if (!handle.enabled) continue;
+        const Point at = made.transform.to_device(handle.x, handle.y);
+        double distance = 0.0;
+        if (handle.kind == PlotHandleKind::vertical_line) {
+            distance = std::abs(local.x - at.x);
+        } else if (handle.kind == PlotHandleKind::horizontal_line) {
+            distance = std::abs(local.y - at.y);
+        } else {
+            distance = engine_hypotenuse(local.x - at.x, local.y - at.y);
+        }
+        if (distance <= handle_pick_radius) return stxlib::Optional<std::size_t>::of(remaining - 1U);
+    }
+    return stxlib::Optional<std::size_t>::none();
+}
+
+stxlib::Optional<Point> PlotView::handle_data_at(Point window_top_left) const {
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<Point>::none();
+    const Rect absolute = absolute_bounds();
+    const double local_x = window_top_left.x + handle_pick_radius - absolute.x;
+    const double local_y = window_top_left.y + handle_pick_radius - absolute.y;
+    const Point data{made.transform.x_from_device(local_x), made.transform.y_from_device(local_y)};
+    if (!std::isfinite(data.x) || !std::isfinite(data.y)) return stxlib::Optional<Point>::none();
+    return stxlib::Optional<Point>::of(data);
+}
+
+void PlotView::plan_handle_drag(DragPlan& plan) {
+    const HandleDrag* const drag = handle_drag_state_.value();
+    const stxlib::Optional<std::size_t> found =
+        drag != nullptr ? handle_index((*drag).id) : stxlib::Optional<std::size_t>::none();
+    const std::size_t* const index = found.value();
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (index == nullptr || made.check != plots::PlotTransformCheck::valid) {
+        plan.refused = true;
+        return;
+    }
+    // The subject is a square of twice the pick radius centred on the grab
+    // point; its top-left stays where its centre stays inside the plot.
+    const Rect absolute = absolute_bounds();
+    const Rect plot = made.transform.plot();
+    plan.kind = DragKind::placement;
+    plan.placement.bounds = Rect{absolute.x + plot.x - handle_pick_radius, absolute.y + plot.y - handle_pick_radius,
+                                 plot.width + handle_pick_radius * 2.0, plot.height + handle_pick_radius * 2.0};
+    plan.placement.grid = Size{};
+    plan.placement.free_drop = true;
+    const PlotHandleKind kind = handles_[*index].kind;
+    plan.placement.axis_lock = DragAxisLock::none;
+    if (kind == PlotHandleKind::vertical_line) plan.placement.axis_lock = DragAxisLock::horizontal;
+    if (kind == PlotHandleKind::horizontal_line) plan.placement.axis_lock = DragAxisLock::vertical;
+    plan.container = this;
+}
+
+void PlotView::preview_handle_drag(const DragTrackerFrame& frame) {
+    const HandleDrag* const drag = handle_drag_state_.value();
+    if (frame.hit != DragHit::point || drag == nullptr) return;
+    const stxlib::Optional<std::size_t> found = handle_index((*drag).id);
+    const std::size_t* const index = found.value();
+    const stxlib::Optional<Point> data_found = handle_data_at(frame.point);
+    const Point* const data = data_found.value();
+    if (index == nullptr) {
+        // The handle went away under the drag.
+        handle_drag_.cancel(DragEnd::model_changed);
+        return;
+    }
+    if (data == nullptr) return;
+    PlotHandle& handle = handles_[*index];
+    if (handle.kind != PlotHandleKind::horizontal_line) handle.x = (*data).x;
+    if (handle.kind != PlotHandleKind::vertical_line) handle.y = (*data).y;
+    invalidate(Dirty::paint);
+    const PlotHandleMove move{handle.id, handle.x, handle.y, DragEnd::none};
+    handle_moved_.emit(move);
+}
+
+void PlotView::finish_handle_drag(const DragTrackerFrame& frame) {
+    const HandleDrag* const dragged = handle_drag_state_.value();
+    if (dragged == nullptr) return;
+    const HandleDrag drag = *dragged;
+    handle_drag_state_.reset();
+    invalidate(Dirty::paint);
+    const stxlib::Optional<std::size_t> found = handle_index(drag.id);
+    const std::size_t* const index = found.value();
+    if (index == nullptr) return;
+    PlotHandle& handle = handles_[*index];
+    if (drag_end_commits(frame.end)) {
+        const stxlib::Optional<Point> data_found =
+            frame.hit == DragHit::point ? handle_data_at(frame.point) : stxlib::Optional<Point>::none();
+        const Point* const data = data_found.value();
+        if (data != nullptr) {
+            if (handle.kind != PlotHandleKind::horizontal_line) handle.x = (*data).x;
+            if (handle.kind != PlotHandleKind::vertical_line) handle.y = (*data).y;
+        }
+        const PlotHandleMove committed{handle.id, handle.x, handle.y, frame.end};
+        handle_committed_.emit(committed);
+        return;
+    }
+    handle.x = drag.start_x;
+    handle.y = drag.start_y;
+    const PlotHandleMove restored{handle.id, handle.x, handle.y, frame.end};
+    handle_moved_.emit(restored);
+}
+
+void PlotView::paint_handles(Painter& painter) {
+    const std::optional<std::uint32_t> dragged = platform::standard_optional(dragged_handle());
+    (*engine_).paint_handles(painter, *this, std::span<const PlotHandle>(handles_.data(), handles_.size()), dragged,
+                             device_scale());
 }
 
 // The mouse raisers hand the target phase to handle_pointer, whose
@@ -536,7 +781,8 @@ void PlotView::handle_key(KeyEvent& event) {
     event.handled = true;
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
-    raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+    raise_outcome(outcome.view, outcome.selection, platform::stxlib_optional(outcome.pick),
+                  platform::stxlib_optional(outcome.legend_toggle));
 }
 
 // The key raisers raise the event first; an unhandled key reaches
@@ -642,7 +888,7 @@ void PlotView::send_live_update(bool reset_view) {
         if (series.borrowed) {
             series.borrowed_x = item.borrowed_x();
             series.borrowed_y = item.borrowed_y();
-        } else if (!series.channel && !series.signal.has_value()) {
+        } else if (!series.channel && series.signal.absent()) {
             series.columns = live_columns(index, item);
         }
         state.series.push_back(std::move(series));
@@ -701,7 +947,7 @@ void PlotView::take_live_notice(const detail::PlotLiveNotice& notice) {
         selection_changed_.emit(notice.query);
         return;
     case detail::PlotLiveNoticeKind::pick:
-        live_cursor_ = notice.pick;
+        live_cursor_.set(notice.pick);
         invalidate(Dirty::semantics);
         point_picked_.emit(notice.pick);
         return;
@@ -769,11 +1015,14 @@ SemanticDescriptor PlotView::semantic_descriptor() const {
     descriptor.role = SemanticRole::figure;
     descriptor.name = accessible_name.read().empty() ? title.read() : accessible_name.read();
     descriptor.description = accessible_description.read().empty() ? summary() : accessible_description.read();
-    const std::optional<PlotPointPick> at = cursor();
-    if (at.has_value()) {
-        std::array<char, 64> text{};
-        const int written = std::snprintf(text.data(), text.size(), "%.6g, %.6g", (*at).x, (*at).y);
-        if (written > 0) descriptor.value = std::string(text.data());
+    const stxlib::Optional<PlotPointPick> at_found = cursor();
+    const PlotPointPick* const at = at_found.value();
+    if (at != nullptr) {
+        std::string text;
+        number_text::append_number_text(text, (*at).x, std::chars_format::general, 6);
+        text += ", ";
+        number_text::append_number_text(text, (*at).y, std::chars_format::general, 6);
+        descriptor.value = text;
     }
     descriptor.include_descendants = false;
     descriptor.exposed = true;

@@ -89,6 +89,12 @@ gui_forms::ListView
          ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
          cancels an edit in progress.
 
+      **activation** : ``ListViewActivation``
+         How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+
+      **header_style** : ``ListViewHeaderStyle``
+         The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
+
       **columns** : ``std::span<const ListViewColumn>``
          The details view's columns. :cpp:func:`set_columns <gui_forms::ListView::set_columns>` replaces them and throws
          ``std::invalid_argument`` for a repeated ID or one that breaks the
@@ -130,7 +136,7 @@ gui_forms::ListView
       **selected_indices** : ``std::vector<std::size_t>``, read-only
          The selected items' indices, ascending.
 
-      **focused_index** : ``std::optional<std::size_t>``
+      **focused_index** : ``stxlib::Optional<std::size_t>``
          The item with the focus cue and the keyboard's position, or none.
          :cpp:func:`set_focused_index <gui_forms::ListView::set_focused_index>` moves it and scrolls the item into view.
 
@@ -140,17 +146,17 @@ gui_forms::ListView
       **horizontal_offset** : ``double``
          The details view's sideways scroll, in logical units.
 
-      **sort_column** : ``std::optional<std::size_t>``, read-only
+      **sort_column** : ``stxlib::Optional<std::size_t>``, read-only
          The column showing the sort glyph, or none.
 
       **sort_order** : ``ListViewSortOrder``, default ``ListViewSortOrder::none``, read-only
          The order the sort glyph shows.
 
-      **insertion_mark** : ``std::optional<ListViewInsertionMark>``, default none, read-only
+      **insertion_mark** : ``stxlib::Optional<ListViewInsertionMark>``, default none, read-only
          Where the insertion mark stands, as an item's index and whether the mark
          is after it, or none. See :cpp:func:`show_insertion_mark <gui_forms::ListView::show_insertion_mark>`.
 
-      **label_edit_index** : ``std::optional<std::size_t>``, read-only
+      **label_edit_index** : ``stxlib::Optional<std::size_t>``, read-only
          The item in edit, or none.
 
       **label_editor** : ``std::shared_ptr<TextBox>``, read-only
@@ -266,6 +272,8 @@ gui_forms::ListView
         - Commits the edit in progress, if any.
       * - :cpp:func:`cancel_label_edit <gui_forms::ListView::cancel_label_edit>`
         - Cancels the edit in progress, if any.
+      * - :cpp:func:`list_view_property_entries <gui_forms::ListView::list_view_property_entries>`
+        -  
       * - :cpp:func:`set_column_width <gui_forms::ListView::set_column_width>`
         - Sets one column's width in logical units.
       * - :cpp:func:`set_item_checked <gui_forms::ListView::set_item_checked>`
@@ -465,6 +473,14 @@ gui_forms::ListView
       ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
       cancels an edit in progress.
 
+   .. cpp:member:: ListViewActivation activation
+
+      How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+
+   .. cpp:member:: ListViewHeaderStyle header_style
+
+      The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
+
    .. cpp:function:: std::span<const ListViewColumn> columns() const& noexcept
 
       The details view's columns. :cpp:func:`set_columns <gui_forms::ListView::set_columns>` replaces them and throws
@@ -531,10 +547,14 @@ gui_forms::ListView
 
       The selected items' indices, ascending.
 
-   .. cpp:function:: std::optional<std::size_t> focused_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> focused_index() const noexcept
 
       The item with the focus cue and the keyboard's position, or none.
       :cpp:func:`set_focused_index <gui_forms::ListView::set_focused_index>` moves it and scrolls the item into view.
+
+   .. cpp:function:: void set_focused_index(stxlib::Optional<std::size_t> index)
+
+      Sets :cpp:func:`focused_index <gui_forms::ListView::focused_index>`; see the property's description above.
 
    .. cpp:function:: void set_focused_index(std::optional<std::size_t> index)
 
@@ -552,7 +572,7 @@ gui_forms::ListView
 
       Sets :cpp:func:`horizontal_offset <gui_forms::ListView::horizontal_offset>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::size_t> sort_column() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> sort_column() const noexcept
 
       The column showing the sort glyph, or none.
 
@@ -560,12 +580,12 @@ gui_forms::ListView
 
       The order the sort glyph shows.
 
-   .. cpp:function:: std::optional<ListViewInsertionMark> insertion_mark() const noexcept
+   .. cpp:function:: stxlib::Optional<ListViewInsertionMark> insertion_mark() const noexcept
 
       Where the insertion mark stands, as an item's index and whether the mark
       is after it, or none. See :cpp:func:`show_insertion_mark <gui_forms::ListView::show_insertion_mark>`.
 
-   .. cpp:function:: std::optional<std::size_t> label_edit_index() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> label_edit_index() const noexcept
 
       The item in edit, or none.
 
@@ -658,7 +678,7 @@ gui_forms::ListView
 
    .. cpp:function:: void initialize_control_tree()
 
-   .. cpp:function:: std::optional<std::size_t> index_of(std::string_view item_id) const
+   .. cpp:function:: stxlib::Optional<std::size_t> index_of(std::string_view item_id) const
 
       The index of the item with an ID in an ordinary view; none in virtual
       mode.
@@ -703,7 +723,7 @@ gui_forms::ListView
       the sort glyph. The selection and focus follow their items. Throws
       ``std::logic_error`` in virtual mode.
 
-   .. cpp:function:: std::optional<std::size_t> item_index_at(Point window_point) const
+   .. cpp:function:: stxlib::Optional<std::size_t> item_index_at(Point window_point) const
 
       The item under a point in window coordinates, or none.
 
@@ -720,7 +740,7 @@ gui_forms::ListView
 
       Removes the insertion mark.
 
-   .. cpp:function:: std::optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const
+   .. cpp:function:: stxlib::Optional<ListViewInsertionMark> insertion_mark_at(Point window_point) const
 
       The mark nearest a point in window coordinates (Windows Forms'
       ``InsertionMark.NearestIndex``), with the point clamped into the item
@@ -744,6 +764,8 @@ gui_forms::ListView
 
       Cancels the edit in progress, if any.
 
+   .. cpp:function:: static const std::array<PropertyEntry, list_view_property_count>& list_view_property_entries() noexcept
+
    .. cpp:function:: void set_column_width(std::size_t column, double width)
 
       Sets one column's width in logical units. Throws ``std::out_of_range`` for
@@ -757,6 +779,10 @@ gui_forms::ListView
    .. cpp:function:: void set_selected(std::size_t index, bool selected)
 
       Selects or deselects one item, keeping the others (in single-selection mode selecting an item deselects the rest). Throws std::out_of_range.
+
+   .. cpp:function:: void set_sort_indicator(stxlib::Optional<std::size_t> column, ListViewSortOrder order)
+
+      Shows the sort glyph on one column, or on none. It never reorders items.
 
    .. cpp:function:: void set_sort_indicator(std::optional<std::size_t> column, ListViewSortOrder order)
 
@@ -833,11 +859,13 @@ gui_forms::ListView
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
@@ -871,9 +899,13 @@ gui_forms::ListView
 
       Default: ``2048.0``.
 
+   .. cpp:member:: constexpr std::size_t list_view_property_count
+
+      ListView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 11U``.
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 98 unclassified; 38 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 101 unclassified; 40 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -890,8 +922,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - supported
    * - property
      - ``Activation``
-     - none
-     - unclassified (unmatched)
+     - ``activation``
+     - unclassified (untested)
    * - property
      - ``Alignment``
      - none
@@ -914,8 +946,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (carried)
    * - property
      - ``CheckBoxes``
-     - none
-     - unclassified (unmatched)
+     - ``check_boxes``
+     - unclassified (untested)
    * - property
      - ``CheckedIndices``
      - none
@@ -934,8 +966,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``FullRowSelect``
-     - none
-     - unclassified (unmatched)
+     - ``full_row_select``
+     - unclassified (untested)
    * - property
      - ``GridLines``
      - none
@@ -950,8 +982,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - supported
    * - property
      - ``HeaderStyle``
-     - none
-     - unclassified (unmatched)
+     - ``header_style``
+     - unclassified (untested)
    * - property
      - ``HideSelection``
      - none
@@ -974,8 +1006,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - supported
    * - property
      - ``LabelEdit``
-     - none
-     - unclassified (unmatched)
+     - ``label_edit``
+     - unclassified (untested)
    * - property
      - ``LabelWrap``
      - none
@@ -990,8 +1022,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``MultiSelect``
-     - none
-     - unclassified (unmatched)
+     - ``multi_select``
+     - unclassified (untested)
    * - property
      - ``OwnerDraw``
      - none
@@ -1018,8 +1050,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``ShowGroups``
-     - none
-     - unclassified (unmatched)
+     - ``show_groups``
+     - unclassified (untested)
    * - property
      - ``ShowItemToolTips``
      - none
@@ -1038,8 +1070,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``TileSize``
-     - none
-     - unclassified (unmatched)
+     - ``tile_size``
+     - unclassified (untested)
    * - property
      - ``TopItem``
      - none
@@ -1050,8 +1082,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``View``
-     - none
-     - unclassified (unmatched)
+     - ``view``
+     - unclassified (untested)
    * - property
      - ``VirtualListSize``
      - none
@@ -1326,8 +1358,16 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - GUI.Forms-only
+     - ``default_group_header``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``focused_index``
      - supported
+   * - property
+     - ``Control.Font``
+     - ``font``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``grouped``
@@ -1440,6 +1480,10 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - GUI.Forms-only
      - ``item_index_at``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``list_view_property_entries``
+     - unclassified (untested)
    * - method
      - ``Control.OnFontChanged``
      - ``on_font_changed``

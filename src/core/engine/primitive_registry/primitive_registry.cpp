@@ -8,6 +8,7 @@
 #include "../primitives/material/overlay_shadow_primitive.hpp"
 #include "../primitives/relief/relief_primitives.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -186,52 +187,52 @@ ParameterValidation validate_parameters(const PrimitiveDescriptor& descriptor,
     return ParameterValidation{};
 }
 
-std::optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor, std::string_view name) noexcept {
+stxlib::Optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor, std::string_view name) noexcept {
     for (std::size_t index = 0U; index < descriptor.parameters.size(); ++index) {
-        if (descriptor.parameters[index].name == name) return index;
+        if (descriptor.parameters[index].name == name) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 ParameterAssignment set_number_parameter(PrimitiveParameterBlock& block, const PrimitiveDescriptor& descriptor,
                                          std::string_view name, double value) noexcept {
-    const std::optional<std::size_t> index = find_parameter(descriptor, name);
-    if (!index || *index >= block.count) return ParameterAssignment::unknown_name;
-    const PrimitiveParameterDeclaration& declaration = descriptor.parameters[*index];
+    const stxlib::Optional<std::size_t> index = find_parameter(descriptor, name);
+    if (index.absent() || (*index.value()) >= block.count) return ParameterAssignment::unknown_name;
+    const PrimitiveParameterDeclaration& declaration = descriptor.parameters[(*index.value())];
     if (declaration.kind != PrimitiveParameterKind::number) return ParameterAssignment::wrong_kind;
     if (!std::isfinite(value)) return ParameterAssignment::not_finite;
     if (!number_in_range(declaration, value)) return ParameterAssignment::out_of_range;
-    block.values[*index].number = value;
+    block.values[(*index.value())].number = value;
     return ParameterAssignment::assigned;
 }
 
 ParameterAssignment set_colour_parameter(PrimitiveParameterBlock& block, const PrimitiveDescriptor& descriptor,
                                          std::string_view name, Color value) noexcept {
-    const std::optional<std::size_t> index = find_parameter(descriptor, name);
-    if (!index || *index >= block.count) return ParameterAssignment::unknown_name;
-    const PrimitiveParameterDeclaration& declaration = descriptor.parameters[*index];
+    const stxlib::Optional<std::size_t> index = find_parameter(descriptor, name);
+    if (index.absent() || (*index.value()) >= block.count) return ParameterAssignment::unknown_name;
+    const PrimitiveParameterDeclaration& declaration = descriptor.parameters[(*index.value())];
     if (declaration.kind != PrimitiveParameterKind::colour) return ParameterAssignment::wrong_kind;
-    block.values[*index].colour = value;
+    block.values[(*index.value())].colour = value;
     return ParameterAssignment::assigned;
 }
 
-std::optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration,
+stxlib::Optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration,
                                        std::string_view choice) noexcept {
     for (std::size_t index = 0U; index < declaration.choices.size(); ++index) {
-        if (declaration.choices[index] == choice) return index;
+        if (declaration.choices[index] == choice) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 ParameterAssignment set_choice_parameter(PrimitiveParameterBlock& block, const PrimitiveDescriptor& descriptor,
                                          std::string_view name, std::string_view choice) noexcept {
-    const std::optional<std::size_t> index = find_parameter(descriptor, name);
-    if (!index || *index >= block.count) return ParameterAssignment::unknown_name;
-    const PrimitiveParameterDeclaration& declaration = descriptor.parameters[*index];
+    const stxlib::Optional<std::size_t> index = find_parameter(descriptor, name);
+    if (index.absent() || (*index.value()) >= block.count) return ParameterAssignment::unknown_name;
+    const PrimitiveParameterDeclaration& declaration = descriptor.parameters[(*index.value())];
     if (declaration.kind != PrimitiveParameterKind::choice) return ParameterAssignment::wrong_kind;
-    const std::optional<std::size_t> position = find_choice(declaration, choice);
-    if (!position) return ParameterAssignment::out_of_range;
-    block.values[*index].number = static_cast<double>(*position);
+    const stxlib::Optional<std::size_t> position = find_choice(declaration, choice);
+    if (position.absent()) return ParameterAssignment::out_of_range;
+    block.values[(*index.value())].number = static_cast<double>((*position.value()));
     return ParameterAssignment::assigned;
 }
 
@@ -249,22 +250,22 @@ bool EnginePrimitive::blank(const PrimitiveParameterBlock&) const noexcept {
     return false;
 }
 
-std::optional<ControlVisualRole> EnginePrimitive::theme_material(const PrimitiveParameterBlock&,
+stxlib::Optional<ControlVisualRole> EnginePrimitive::theme_material(const PrimitiveParameterBlock&,
                                                                  ControlVisualRole) const noexcept {
-    return std::nullopt;
+    return stxlib::Optional<ControlVisualRole>::none();
 }
 
 bool EnginePrimitive::lends_overlay_shadow() const noexcept {
     return false;
 }
 
-std::optional<PointerOverlay> EnginePrimitive::pointer_overlay(const PrimitiveParameterBlock&, Size) const noexcept {
-    return std::nullopt;
+stxlib::Optional<PointerOverlay> EnginePrimitive::pointer_overlay(const PrimitiveParameterBlock&, Size) const noexcept {
+    return stxlib::Optional<PointerOverlay>::none();
 }
 
-std::optional<std::uint32_t> EnginePrimitive::backplane_margin(const PrimitiveParameterBlock&,
+stxlib::Optional<std::uint32_t> EnginePrimitive::backplane_margin(const PrimitiveParameterBlock&,
                                                                DeviceScale) const noexcept {
-    return std::nullopt;
+    return stxlib::Optional<std::uint32_t>::none();
 }
 
 std::size_t EnginePrimitive::image_variants(const PrimitiveParameterBlock&, const PrimitiveTarget&,
@@ -371,8 +372,9 @@ std::span<const EnginePrimitive* const> PrimitiveRegistry::primitives() const no
 }
 
 const PrimitiveRegistry& builtin_primitive_registry() {
-    static const PrimitiveRegistry registry = make_builtin_registry();
-    return registry;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const PrimitiveRegistry* const registry = new const PrimitiveRegistry(make_builtin_registry());
+    return *registry;
 }
 
 } // namespace gui_forms

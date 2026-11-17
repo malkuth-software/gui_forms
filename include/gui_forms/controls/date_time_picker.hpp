@@ -8,9 +8,11 @@
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/date_time_picker_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -28,6 +30,16 @@ public:
     void set_range(DateTimeValue earliest, DateTimeValue latest);
 
     [[nodiscard]] std::string formatted_value() const;
+
+    // The provider the picker shows its value with: its window's locale's
+    // (Control::effective_locale, DateTimeFormatProvider::from_locale)
+    // while it follows the host locale, else format_provider (exhibit gap
+    // E11). It follows from construction until format_provider is written
+    // with a change; follow_host_locale() returns to following. The
+    // reference stays valid until the next call on the picker.
+    [[nodiscard]] const DateTimeFormatProvider& effective_format_provider() const;
+    [[nodiscard]] bool follows_host_locale() const noexcept { return follows_host_locale_; }
+    void follow_host_locale();
 
     [[nodiscard]] Event<DateTimeValue>& value_changed() noexcept {
         return value_changed_;
@@ -98,6 +110,11 @@ private:
     void on_popup_window_closed(std::size_t slot);
 
     BasicControlStyle style_;
+    // Whether the picker shows its locale's provider (follows_host_locale),
+    // and that provider with the locale generation it was made for.
+    bool follows_host_locale_{true};
+    mutable stxlib::Optional<std::uint64_t> locale_provider_generation_{};
+    mutable DateTimeFormatProvider locale_provider_{};
     // Whether set_style supplied style_: its text then inks the field's text
     // and marks as authored colours (T4-1); otherwise the theme's stand.
     bool style_authored_{};
@@ -110,6 +127,8 @@ private:
     Control::Ptr overlay_calendar_;
     OverlayToken overlay_token_;
     std::uint64_t overlay_scope_{};
+    // Set while open_drop_down begins its focus scope (A-gf-controls-08-F3).
+    bool opening_drop_down_{};
     SubscriptionToken overlay_commit_;
     SubscriptionToken overlay_cancel_;
     SubscriptionToken overlay_dismiss_;
@@ -125,11 +144,12 @@ private:
     // property_codemod begin DateTimePicker (tools/property_families/date_time_picker.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_value_changed();
-    virtual void on_format_changed();
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_value_changed();
+    void on_format_changed();
+    void on_font_changed();
 
 private:
     friend struct DateTimePickerValueCapability<DateTimePicker>;

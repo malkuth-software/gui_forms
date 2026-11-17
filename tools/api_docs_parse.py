@@ -166,6 +166,8 @@ def normalize_signature(value: str) -> str:
 
 
 def method_name(signature: str, owner: str) -> str | None:
+    # An attribute with an argument, [[deprecated("...")]], is not the name.
+    signature = re.sub(r"\[\[.*?\]\]\s*", "", signature)
     function_pointer = re.search(
         r"\(\s*\*\s*([A-Za-z_]\w*)\s*\)", signature)
     if function_pointer:
@@ -271,6 +273,31 @@ def ends_at_depth_zero(clean: str) -> bool:
     return False
 
 
+def opens_initializer(clean: str) -> bool:
+    """True when the first ``{`` outside parentheses begins a brace initializer.
+
+    A variable or data member such as ``std::array<int, 3> values{1, 2,``
+    whose braces continue on later lines, not a class, enum or function body:
+    the text before the brace holds no parenthesis and no type keyword, and
+    the braces in ``clean`` do not yet balance.
+    """
+    depth = 0
+    for index, character in enumerate(clean):
+        if character == "(":
+            depth += 1
+        elif character == ")":
+            depth = max(0, depth - 1)
+        elif depth == 0 and character == ";":
+            return False
+        elif depth == 0 and character == "{":
+            before = clean[:index].strip()
+            if not before or "(" in before or NON_MEMBER_PREFIXES.match(before) \
+                    or NON_FIELD_PREFIXES.match(before):
+                return False
+            return clean.count("{") > clean.count("}")
+    return False
+
+
 def assigned_before_call(head: str) -> bool:
     """True for ``T name = f(...)``: an initialised variable, not a function."""
     depth = 0
@@ -309,11 +336,27 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
     clean_buffer: list[str] = []
     comment: list[str] = []
     pending_comment = ""
+    # True while a brace initializer begun at depth zero continues on later
+    # lines; its lines join the declaration until the closing ``;``.
+    in_initializer = False
     methods: list[Method] = []
     declarations_found: list[Declaration] = []
     for original_line, clean_line in zip(body.splitlines(), clean.splitlines()):
         stripped = clean_line.strip()
         original = original_line.strip()
+        if in_initializer:
+            code, trailing = split_trailing_comment(original_line)
+            buffer.append(code.strip())
+            clean_buffer.append(stripped)
+            joined = " ".join(clean_buffer)
+            if joined.count("{") <= joined.count("}") and joined.rstrip().endswith(";"):
+                record_declaration(normalize_signature(" ".join(buffer)), clean_line, access,
+                                   pending_comment or trailing, methods, declarations_found)
+                buffer.clear()
+                clean_buffer.clear()
+                pending_comment = ""
+                in_initializer = False
+            continue
         if original.startswith("#"):
             # Preprocessor lines are not declarations; the declarations they
             # guard are still read.
@@ -337,6 +380,11 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
             code, trailing = split_trailing_comment(original_line)
             buffer.append(code.strip())
             clean_buffer.append(stripped)
+            if opens_initializer(" ".join(clean_buffer)):
+                # Depth stays zero: the initializer's braces are counted by
+                # the continuation above, not as a body.
+                in_initializer = True
+                continue
             if ends_at_depth_zero(" ".join(clean_buffer)):
                 pending_comment = pending_comment or trailing
                 record_declaration(normalize_signature(" ".join(buffer)), clean_line, access,

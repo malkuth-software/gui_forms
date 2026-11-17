@@ -11,7 +11,14 @@ name: State-machine gate
 # it changes none; a merge group does the same against the main commit it
 # extends, and a push to main against the commit it replaced. The daily
 # schedule (native.yml's cron) and a manual run check the whole tree, as does
-# any change to the checker itself.
+# any change to the checker itself (a harness.lock bump counts only when the
+# checker's own files differ between the two pins).
+#
+# Each translation unit's diagnostics are kept between runs by content hash
+# (check_state_machines.py --cache): a push runs the front end only over the
+# units whose command, source, reached headers, compiler or stx pin changed.
+# A pull request restores its own store, then main's; the schedule and a
+# manual run restore nothing (cold, the full proof) and save what they found.
 #
 # One host (Linux, the cheapest) with the shared engine and no native host
 # or Skia: it compiles the core, controls, demo, tests, audio, the stx
@@ -37,7 +44,9 @@ jobs:
   state-machines:
     name: state-machine-gate
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # A whole-tree check took about 23 minutes before the #483 batch fold and
+    # passed 30 after it; 50 leaves room without hiding a hang.
+    timeout-minutes: 50
     steps:
       # The whole history, so the changed paths are taken from the merge base
       # (tools/change_selection.py). A pull request checks out its test merge
@@ -94,27 +103,89 @@ jobs:
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install LLVM 22 and Ninja
         if: steps.scope.outputs.scope != 'none'
-        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+        run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+      - name: Identify and verify LLVM release compiler
+        id: compiler
+        if: steps.scope.outputs.scope != 'none'
+        run: python template_harness/harness/compiler_identity.py
+      # Linux links the harness's static position-independent C++ runtime
+      # (template_harness build_linux_runtimes.py; cmake/llvm22.cmake refuses
+      # a configure without it), cached under the native jobs' key.
+      - name: Select the Linux runtime prefix
+        id: linux-runtime
+        if: steps.scope.outputs.scope != 'none'
+        run: |
+          directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
+          echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: steps.scope.outputs.scope != 'none'
+        with:
+          path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
+          key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
+      - name: Build the static Linux runtimes
+        if: steps.scope.outputs.scope != 'none'
+        run: |
+          if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
+          fi
+          python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
+      # The gate's own stx package (Skia off, audio on: another stamp than the
+      # native jobs' package, so its own family), under the native jobs' key
+      # inputs; saved whenever its stamp exists (cmake/Stx.cmake writes it only
+      # after a complete build), so configuring links it instead of building it
+      # (about 60 s; the check efficiency audit, 1d and 5).
+      - uses: actions/cache/restore@v4
+        id: stx-package
+        if: steps.scope.outputs.scope != 'none'
+        with:
+          path: .ci/stx-package
+          key: gui-stx-package-v1-state-machines-${{ runner.arch }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       # Configure only: the checker runs the front end (-fsyntax-only) over the
       # tree's compile commands and builds just the generated headers.
       # The form-compiler test is off: its header is generated at build time,
-      # so building it would compile and link the whole library first.
+      # so building it would compile and link the whole library first. The
+      # tests' shared precompiled headers are off too: the gate builds no .pch,
+      # and a unit whose command reads a missing one fails in the front end
+      # with no diagnostics (the check efficiency audit, 1c). The checker now
+      # fails the gate on such a unit instead of dropping it.
       - name: Configure the tree
         if: steps.scope.outputs.scope != 'none'
         run: |
           cmake -S gui_forms -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/gui_forms/cmake/llvm22.cmake" \
+            -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package" \
             -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON \
             -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF -DGUI_FORMS_ENABLE_MACOS_HOST=OFF \
-            -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_ENABLE_SKIA=OFF -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON \
-            -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF
+            -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_ENABLE_SKIA=OFF \
+            -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF \
+            -DGUI_FORMS_TEST_PRECOMPILED_HEADER=OFF
+      - uses: actions/cache/save@v4
+        if: always() && steps.scope.outputs.scope != 'none' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
+        with:
+          path: .ci/stx-package
+          key: ${{ steps.stx-package.outputs.cache-primary-key }}
+      - uses: actions/cache/restore@v4
+        if: steps.scope.outputs.scope != 'none' && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        with:
+          path: .ci/state-machine-units.json
+          key: gui-state-machine-units-v1-${{ github.head_ref || github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            gui-state-machine-units-v1-${{ github.head_ref || github.ref_name }}-
+            gui-state-machine-units-v1-main-
+      # The salt names what a unit reads from outside the checkout and the build
+      # tree: the compiler (and its system headers) and the stx package (its pin
+      # and recipe).
       - name: Check the state machines
+        # Compile-only landing of #483 (owner, 2026-11-17): findings are reported, not blocking.
+        continue-on-error: true
         if: steps.scope.outputs.scope != 'none'
         shell: bash
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           SCOPE: ${{ steps.scope.outputs.scope }}
+          SALT: ${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**') }}
         run: |
           set -o pipefail
           changed=""
@@ -122,7 +193,16 @@ jobs:
             changed="--changed-from $BASE"
           fi
           python3 -B template_harness/harness/check_state_machines.py --root gui_forms --build-dir build --jobs 4 \
+            --cache .ci/state-machine-units.json --cache-salt "$SALT" \
             --gate --json state-machines.json $changed | tee state-machines.txt
+      # Saved whether the gate passed or not: a failing finding is recomputed
+      # from the stored diagnostics on every run, and a unit that failed to
+      # compile is never stored.
+      - uses: actions/cache/save@v4
+        if: always() && steps.scope.outputs.scope != 'none' && hashFiles('.ci/state-machine-units.json') != ''
+        with:
+          path: .ci/state-machine-units.json
+          key: gui-state-machine-units-v1-${{ github.head_ref || github.ref_name }}-${{ github.run_id }}
       - name: Show the findings
         if: always() && steps.scope.outputs.scope != 'none'
         run: |

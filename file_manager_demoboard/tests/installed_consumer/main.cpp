@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <vector>
 
 namespace {
@@ -80,7 +81,7 @@ int main() {
         std::make_shared<gui_forms::Button>(
             gui_forms::StableId("installed.overlay.owner"), "Open overlay");
     (*overlay_owner).set_requested_bounds({190, 116, 120, 28});
-    (*overlay_owner).expanded_state = false;
+    (*overlay_owner).expanded_state = stxlib::Optional<bool>::of(false);
     (*root).add_child(overlay_owner);
     std::shared_ptr<gui_forms::ListBox> stable_list =
         std::make_shared<gui_forms::ListBox>(
@@ -171,7 +172,7 @@ int main() {
     gui_forms::AnchoredOverlayPlacement overlay_placement;
     overlay_placement.preferred_size = {160, 80};
     overlay_placement.horizontal_alignment =
-        gui_forms::OverlayHorizontalAlignment::far;
+        gui_forms::OverlayHorizontalAlignment::end;
     overlay_placement.gap = 2;
     std::shared_ptr<gui_forms::Panel> overlay_content =
         std::make_shared<gui_forms::Panel>(
@@ -240,7 +241,7 @@ int main() {
         std::dynamic_pointer_cast<gui_forms::TextBox>(
             (*rack).field_editor("installed.criterion.content", "value")) &&
         (*stable_list).item_stable_id(1U) == "installed.stable-list.beta" &&
-        (*overlay_owner).expanded_state.read() == false &&
+        (*overlay_owner).expanded_state.read() == stxlib::Optional<bool>::of(false) &&
         (*button).text.read() == "Installed command" &&
         (*button).accessible_description.read() ==
             "Installed public command metadata" ? 0 : 1;

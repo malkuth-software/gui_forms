@@ -1,0 +1,39 @@
+# The embedded font pack's groups (cmake/FontPack.cmake; stx_fontpack/README.md
+# describes the format). Every face of bundled-fonts.sha256 goes to the first
+# group with a pattern matching its file name. An eager group is decoded the
+# first time the application asks for any face; a lazy group the first time it
+# asks for one of that group's faces. A face matching no group, or a group
+# matching no face, fails the build.
+#
+# The interface faces draw every window from its first frame: all Portsmouth
+# faces (Portsmouth Mono among them) and Carlito.
+group interface eager
+Portsmouth*.ttf
+Carlito-*.ttf
+# The monospace role's faces, apart so the other families stay undecoded until
+# text names them.
+group monospace lazy
+Cousine-*.ttf
+# The families with faces of their own (the registry's Selawik, Selawik
+# Semibold, Arimo and Tinos).
+group families lazy
+Selawik-*.ttf
+Arimo-*.ttf
+Tinos-*.ttf
+# The fallback faces (GUI_FORMS_INSTALL_FALLBACK_FONTS), each group decoded
+# when text first needs a character only it covers (tools/fallback_font_subsets.py
+# cuts the subsets). Japanese and Korean are proper CJK faces with a group each;
+# the minimal Chinese, Arabic and Indic faces and Hebrew share one small group.
+group japanese lazy
+NotoSansCJKjp-*.otf
+group korean lazy
+NotoSansCJKkr-*.otf
+group minimal lazy
+NotoSansCJKsc-*.otf
+NotoSansArabic-*.ttf
+NotoSansHebrew-*.ttf
+NotoSansDevanagari-*.ttf
+NotoSansBengali-*.ttf
+NotoSansGurmukhi-*.ttf
+group emoji lazy
+NotoEmoji-*.ttf

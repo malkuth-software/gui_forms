@@ -50,7 +50,7 @@ gui_forms::ErrorProvider
          Whether icon alignments are mirrored: ``top_left`` is drawn as ``top_right``,
          and so on.
 
-      **icon** : ``std::optional<ImageId>``, default ``std::nullopt``
+      **icon** : ``stxlib::Optional<ImageId>``, default ``std::nullopt``
          An image from the window's registry to draw instead of the built-in red
          exclamation mark. An :cpp:class:`ImageId <gui_forms::ImageId>` that is not in the registry throws
          ``std::invalid_argument``.
@@ -246,7 +246,7 @@ gui_forms::ErrorProvider
       Whether icon alignments are mirrored: ``top_left`` is drawn as ``top_right``,
       and so on.
 
-   .. cpp:member:: std::optional<ImageId> icon
+   .. cpp:member:: stxlib::Optional<ImageId> icon
 
       An image from the window's registry to draw instead of the built-in red
       exclamation mark. An :cpp:class:`ImageId <gui_forms::ImageId>` that is not in the registry throws

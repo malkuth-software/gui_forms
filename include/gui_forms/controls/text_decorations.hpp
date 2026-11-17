@@ -8,10 +8,11 @@
 #include <compare>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -48,23 +49,22 @@ enum class TextUnderline : std::uint8_t { none, single, squiggle };
 // - background: a flat ground under the text, drawn under the selection
 //   band and left out in high contrast.
 struct GUI_FORMS_API TextDecorationStyle final {
-    std::optional<TextInkRole> ink{};
-    std::optional<Color> foreground{};
-    std::optional<std::uint16_t> weight{};
-    std::optional<bool> italic{};
-    std::optional<TextUnderline> underline{};
-    std::optional<Color> underline_color{};
-    std::optional<Color> background{};
+    stxlib::Optional<TextInkRole> ink{};
+    stxlib::Optional<Color> foreground{};
+    stxlib::Optional<std::uint16_t> weight{};
+    stxlib::Optional<bool> italic{};
+    stxlib::Optional<TextUnderline> underline{};
+    stxlib::Optional<Color> underline_color{};
+    stxlib::Optional<Color> background{};
 
     // Whether the style changes the font (and therefore the layout).
     [[nodiscard]] bool changes_font() const noexcept {
-        const bool result = weight.has_value() || italic.has_value();
+        const bool result = weight.present() || italic.present();
         return result;
     }
     [[nodiscard]] bool empty() const noexcept {
-        const bool result = !ink.has_value() && !foreground.has_value() && !changes_font() &&
-                            !underline.has_value() && !underline_color.has_value() &&
-                            !background.has_value();
+        const bool result = ink.absent() && foreground.absent() && !changes_font() && underline.absent() &&
+                            underline_color.absent() && background.absent();
         return result;
     }
     friend bool operator==(const TextDecorationStyle& left, const TextDecorationStyle& right) noexcept {

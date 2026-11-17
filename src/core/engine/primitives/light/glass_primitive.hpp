@@ -2,6 +2,7 @@
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -53,9 +54,9 @@ class GlassPrimitive final : public EnginePrimitive {
 public:
     [[nodiscard]] const PrimitiveDescriptor& descriptor() const noexcept override;
     [[nodiscard]] PartShape shape(const PrimitiveParameterBlock& parameters) const noexcept override;
-    [[nodiscard]] std::optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] stxlib::Optional<ControlVisualRole> theme_material(const PrimitiveParameterBlock& parameters,
                                                                   ControlVisualRole family) const noexcept override;
-    [[nodiscard]] std::optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters,
+    [[nodiscard]] stxlib::Optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters,
                                                                 DeviceScale scale) const noexcept override;
     [[nodiscard]] bool accepts(const PrimitiveParameterBlock& parameters,
                                const PrimitiveTarget& target) const noexcept override;

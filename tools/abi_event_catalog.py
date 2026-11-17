@@ -19,7 +19,9 @@ Members of a type the fields cannot carry are left out and listed in
 
 It also writes each interaction payload in the C ABI's own vocabulary (audit
 K2): the event fields a callback receives, as ``name: kind`` pairs
-(``value: boolean``; ``cancel: boolean, row_id: unsigned_integer``), into
+(``value: boolean``; ``cancel: boolean, row_id: unsigned_integer``; a
+fixed-size ``std::array<double, 3>`` member is ``target: number[3]``, its
+element kind and count), into
 ``src/abi/stable/schema/abi_interaction_fields.hpp``, which the schema table
 publishes as ``gf_schema_interaction.payload``, and into
 ``manifests/abi/interaction_fields.json``, the public map from the C++
@@ -58,6 +60,18 @@ HAND_WRITTEN_KINDS: dict[str, str] = {
     'MaskPosition': 'unsigned_integer', 'Control::Ptr': 'object',
 }
 
+# The payload words a composite control's events can carry: the C++
+# spelling of each control-language kind's value
+# (control_language::control_payload_type_name, payload_type_words in
+# src/core/control_language/control_model/control_model.cpp, which
+# tools/test_composite_payloads.py compares with this list). The map keeps
+# an entry for each, so the C ABI maps a composite event's payload through
+# interaction_fields.json with no second vocabulary.
+COMPOSITE_PAYLOADS: tuple[str, ...] = (
+    'bool', 'double', 'std::int64_t', 'std::uint64_t', 'std::string', 'PropertyEnumValue', 'Color',
+    'FontSpec', 'ImageId', 'Size', 'Point', 'Rect', 'Insets',
+)
+
 # Types the hand-written fields (abi_event_fields.hpp) carry, by spelling.
 HAND_WRITTEN: frozenset[str] = frozenset({
     'bool', 'int', 'double', 'float', 'std::string', 'std::string_view', 'std::size_t', 'std::ptrdiff_t',
@@ -82,7 +96,14 @@ DEFERRED: dict[str, str] = {
     'MaterialColourFilter': 'surface material values (C5c)',
     'DockDragOutcome': 'docking family (C5d)',
     'Theme': 'no field form; theme_changed is a notification',
+    'ThemeCompileResult': 'no field form yet; theme_sheet_compiled is a notification (fold D, I7)',
 }
+
+# The element kinds a fixed-size array field may hold: single values with no
+# text of their own to keep (gf_abi.h, "Event fields"). An enumeration is
+# admitted too; another element type leaves the array deferred.
+FIXED_ELEMENT_EXCLUDED: frozenset[str] = frozenset({'text', 'any', 'object'})
+FIXED_ELEMENT_DEFERRED: str = 'fixed-size arrays carry single-value elements only'
 
 # Declaring types that are not Components, reached through the ABI object
 # that holds them: (holder class, the holder's header, the accessor giving
@@ -105,11 +126,16 @@ ENTRY = re.compile(r'\{\s*\.name\s*=\s*"([^"]+)",\s*\.payload\s*=\s*"([^"]*)",\s
 APPEND = re.compile(r'void ([\w:]+)::append_interactions\(std::vector<InteractionDeclaration>& interactions\) '
                     r'(?:const )?\{(.*?)\n\}', re.S)
 CLASS = re.compile(r'^(?:class|struct) (?:GUI_FORMS_API )?(\w+)(?: final)?\s*(?::\s*([^{;]*))?\{', re.M)
-OPTIONAL = re.compile(r'^std::optional<(.+)>$')
+# An optional, standard or STXlib's owned form (D15): both lend the same
+# optional field.
+OPTIONAL = re.compile(r'^(?:std::optional|stxlib::Optional)<(.+)>$')
 # A collection: a vector, a span, or a borrowed span (a call-scope payload,
 # gui_forms/borrow/borrowed_view/borrowed_view.hpp), whose element follows.
 VECTOR = re.compile(r'^(?:std::(?:vector|span)|BorrowedSpan)<(?:const )?(.+)>$')
 POINTER = re.compile(r'^(?:std::shared_ptr<(\w+)>|(\w+)\*)$')
+# A fixed-size array: std::array<element, count>. Its field is one
+# COLLECTION of count elements lent in place, spelled `kind[count]`.
+FIXED_ARRAY = re.compile(r'^std::array<(.+),\s*(\d+)U?>$')
 
 
 @dataclass
@@ -298,6 +324,12 @@ def resolve(catalog: Catalog, headers: dict[str, str], spelling: str, readable: 
     if element is not None:
         resolve(catalog, headers, element.group(1), False, path + '[]')
         return
+    fixed: re.Match[str] | None = FIXED_ARRAY.match(text)
+    if fixed is not None:
+        resolve(catalog, headers, fixed.group(1), readable, path + '[]')
+        if fixed_element_kind(catalog, fixed.group(1)) is None:
+            catalog.deferred.append(f'{path} ({text}): {FIXED_ELEMENT_DEFERRED}')
+        return
     if POINTER.match(text) is not None or text in HAND_WRITTEN:
         return
     if text in DEFERRED:
@@ -311,16 +343,24 @@ def resolve(catalog: Catalog, headers: dict[str, str], spelling: str, readable: 
         return
     if text in catalog.enums:
         return
+    # A namespaced spelling (plots::Plot3DHit) is defined under its last
+    # name; its members' own types from that header are qualified alike.
+    bare: str = text.split('::')[-1]
+    namespace: str = text[:len(text) - len(bare)]
     for header, source in headers.items():
-        body: str | None = struct_body(source, text)
+        body: str | None = struct_body(source, bare)
         if body is not None:
-            catalog.structs[text] = Struct(text, header, parse_members(body))
+            members: list[tuple[str, str]] = parse_members(body)
+            if namespace:
+                members = [(qualified_member(source, namespace, member_type), member_name)
+                           for member_type, member_name in members]
+            catalog.structs[text] = Struct(text, header, members)
             if readable:
                 catalog.readable.add(text)
             for member_type, member_name in catalog.structs[text].members:
                 resolve(catalog, headers, member_type, readable, text + '.' + member_name)
             return
-        choices_body: str | None = enum_body(source, text)
+        choices_body: str | None = enum_body(source, bare)
         if choices_body is not None:
             choices, flags = parse_choices(choices_body)
             catalog.enums[text] = Enumeration(text, header, choices, flags)
@@ -328,6 +368,18 @@ def resolve(catalog: Catalog, headers: dict[str, str], spelling: str, readable: 
     # A class the fields carry as an object (a Component), or a reference to
     # the sender, which the event already names.
     return
+
+
+def qualified_member(source: str, namespace: str, member_type: str) -> str:
+    """member_type with each type the same header defines prefixed by namespace."""
+    parts: list[str] = re.split(r'((?<![:\w])[A-Z]\w*\b)', member_type)
+    qualified: list[str] = []
+    part: str
+    for part in parts:
+        defined: bool = (re.fullmatch(r'[A-Z]\w*', part) is not None and
+                         (struct_body(source, part) is not None or enum_body(source, part) is not None))
+        qualified.append(namespace + part if defined else part)
+    return ''.join(qualified)
 
 
 def build() -> Catalog:
@@ -351,8 +403,21 @@ def build() -> Catalog:
     return catalog
 
 
-def member_is_field(member_type: str) -> bool:
+def fixed_element_kind(catalog: Catalog, spelling: str) -> str | None:
+    """The kind of a fixed-size array's element, or None when no array field holds it."""
+    text: str = spelling.replace('const ', '').strip()
+    if text in HAND_WRITTEN_KINDS and HAND_WRITTEN_KINDS[text] not in FIXED_ELEMENT_EXCLUDED:
+        return HAND_WRITTEN_KINDS[text]
+    if text in catalog.enums:
+        return 'enumeration'
+    return None
+
+
+def member_is_field(catalog: Catalog, member_type: str) -> bool:
     text: str = member_type.replace('const ', '').strip()
+    fixed: re.Match[str] | None = FIXED_ARRAY.match(text)
+    if fixed is not None:
+        return fixed_element_kind(catalog, fixed.group(1)) is not None
     return text not in DEFERRED and not text.endswith('&')
 
 
@@ -403,7 +468,7 @@ def render(catalog: Catalog) -> str:
             lines.append(f'void read_field(EventFields& fields, std::string_view name, {item.name}& value);')
     lines.append('')
     for item in structs:
-        carried: list[tuple[str, str]] = [member for member in item.members if member_is_field(member[0])]
+        carried: list[tuple[str, str]] = [member for member in item.members if member_is_field(catalog, member[0])]
         single: bool = len(item.members) == 1 and item.members[0][1] == 'value'
         lines.append(f'inline void append_field(EventFields& fields, std::string_view name, const {item.name}& value) {{')
         if single:
@@ -500,6 +565,12 @@ def field_entries(catalog: Catalog, spelling: str, name: str, members_unprefixed
         return optional_entries
     if VECTOR.match(text) is not None:
         return [name + ': collection']
+    fixed: re.Match[str] | None = FIXED_ARRAY.match(text)
+    if fixed is not None:
+        kind: str | None = fixed_element_kind(catalog, fixed.group(1))
+        if kind is None:
+            return []
+        return [f'{name}: {kind}[{fixed.group(2)}]']
     if text in HAND_WRITTEN_KINDS:
         return [name + ': ' + HAND_WRITTEN_KINDS[text]]
     if POINTER.match(text) is not None or text.endswith('::Ptr'):
@@ -509,11 +580,17 @@ def field_entries(catalog: Catalog, spelling: str, name: str, members_unprefixed
     if text in catalog.enums:
         return [name + ': enumeration']
     if text in catalog.structs:
+        members: list[tuple[str, str]] = catalog.structs[text].members
+        if len(members) == 1 and members[0][1] == 'value':
+            # An identity: one field named for the member itself, as the
+            # generated writer appends it (append_field(fields, name,
+            # value.value)), not "name.value".
+            return field_entries(catalog, members[0][0], name, False)
         entries = []
         member_type: str
         member_name: str
         for member_type, member_name in catalog.structs[text].members:
-            if not member_is_field(member_type):
+            if not member_is_field(catalog, member_type):
                 continue
             member: str = member_name if members_unprefixed else name + '.' + member_name
             entries.extend(field_entries(catalog, member_type, member, False))
@@ -541,6 +618,13 @@ def payload_map(catalog: Catalog) -> dict[str, str]:
     declaration: Declaration
     for declaration in catalog.declarations:
         mapped[declaration.payload] = payload_fields(catalog, declaration.payload)
+    # A composite control's events are declared at run time, by documents:
+    # every payload word they can carry is mapped whether or not a C++
+    # event uses it yet.
+    payload: str
+    for payload in COMPOSITE_PAYLOADS:
+        if payload not in mapped:
+            mapped[payload] = payload_fields(catalog, payload)
     return dict(sorted(mapped.items()))
 
 
@@ -622,7 +706,21 @@ ORDER_SEQUENCES: list[tuple[str, list[tuple[str, str]], str, str]] = [
                              ('Control.key_up', 'physical'), ('ButtonBase.clicked', 'activation')],
      'Control.key_down:suppress_key_press',
      'Space or Enter on a button: the activation follows key_up, with no mouse events'),
+    ('relative_pointer', [('Control.relative_pointer', 'repeated'), ('Control.relative_pointer_ended', 'deferred')],
+     '',
+     'one relative_pointer per host sample in the host order, never merged, each with its timestamp; in confined '
+     'and locked modes buttons and the wheel are samples and click, mouse_click, double_click and the activation do '
+     'not apply; in free mode the routed mouse events go on beside the samples; relative_pointer_ended once'),
 ]
+
+# Sequences whose ends differ from the routed sequences' (rule 5): a
+# relative pointer mode ends on each trigger relative_pointer.hpp lists.
+DROPPED_WHEN: dict[str, list[str]] = {
+    'relative_pointer': ['Escape', 'focus moved outside the owner', 'window deactivated', 'modal or focus scope opened',
+                         'control disposed, detached, hidden or disabled', 'until_release press released',
+                         'released or superseded'],
+}
+DEFAULT_DROPPED_WHEN: list[str] = ['control disposed', 'modal opened', 'capture lost']
 
 
 def render_order(catalog: Catalog) -> str:
@@ -637,7 +735,7 @@ def render_order(catalog: Catalog) -> str:
         missing: list[str] = [event for event, kind in steps if event not in declared]
         cancel_event: str = cancelled_by.partition(':')[0]
         cancel_field: str = cancelled_by.partition(':')[2]
-        if cancel_event not in declared:
+        if cancelled_by and cancel_event not in declared:
             missing.append(cancel_event)
         if missing:
             raise SystemExit(f'abi_event_catalog: the order of {name} names undeclared interactions: '
@@ -649,8 +747,13 @@ def render_order(catalog: Catalog) -> str:
         lines.extend(f'        {entry}{"," if position + 1 < len(rendered) else ""}'
                      for position, entry in enumerate(rendered))
         lines.append('      ],')
-        lines.append(f'      "cancelled_by": {{"event": "{cancel_event}", "field": "{cancel_field}"}},')
-        lines.append('      "dropped_when": ["control disposed", "modal opened", "capture lost"],')
+        if cancelled_by:
+            lines.append(f'      "cancelled_by": {{"event": "{cancel_event}", "field": "{cancel_field}"}},')
+        else:
+            lines.append('      "cancelled_by": null,')
+        dropped: list[str] = DROPPED_WHEN.get(name, DEFAULT_DROPPED_WHEN)
+        quoted: str = ', '.join(f'"{reason}"' for reason in dropped)
+        lines.append(f'      "dropped_when": [{quoted}],')
         lines.append(f'      "note": "{note}"')
         lines.append(f'    }}{separator}')
     lines.extend(['  }', '}', ''])

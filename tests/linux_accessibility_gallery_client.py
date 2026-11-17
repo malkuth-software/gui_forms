@@ -93,7 +93,7 @@ NONVISUAL: tuple[str, ...] = (
     'ribbon_tool_tip', 'timer', 'background_worker', 'notify_icon', 'thread_exception_dialog',
     'image_list', 'error_provider',
     'help_provider', 'semantic_feedback', 'binding', 'binding_source', 'binding_context', 'live_surface',
-    'dock_workspace', 'open_file_dialog', 'save_file_dialog', 'folder_browser_dialog',
+    'dock_workspace', 'plot_link_group', 'open_file_dialog', 'save_file_dialog', 'folder_browser_dialog',
     'color_dialog',
     # A PlotView's item children, which it paints as its own parts; the
     # About box and the help system, components shown through their dialog
@@ -144,7 +144,7 @@ ACCEPTED_WITHOUT_CHANGE: dict[str, str] = {
 
 # The Gallery's own frame (navigation, header, command row), which every
 # page repeats; a type's action target is chosen outside it.
-SHELL_PREFIXES: tuple[str, ...] = ('gallery.command.', 'gallery.page.', 'gallery.nav', 'gallery.header')
+SHELL_PREFIXES: tuple[str, ...] = ('gallery.command.', 'gallery.page.', 'gallery.nav', 'gallery.header', 'gallery.sidebar.')
 
 # SemanticState bits (include/gui_forms/semantics/types/semantic_types.hpp).
 ENABLED: int = 1 << 0
@@ -163,7 +163,7 @@ CHECKABLE: int = 1 << 12
 MULTISELECTABLE: int = 1 << 13
 
 # The semantic role and the AT-SPI role name the ATK adapter publishes it as
-# (native_role in src/host/linux/accessibility/linux_accessibility.cpp).
+# (native_role in src/surface/linux/accessibility/linux_accessibility.cpp).
 ROLE_NAMES: dict[str, str] = {
     'generic': 'PANEL', 'group': 'PANEL', 'static_text': 'LABEL', 'button': 'PUSH_BUTTON',
     'check_box': 'CHECK_BOX', 'radio_button': 'RADIO_BUTTON', 'link': 'LINK', 'text_box': 'ENTRY',
@@ -178,11 +178,15 @@ ROLE_NAMES: dict[str, str] = {
     'row': 'TABLE_ROW', 'cell': 'TABLE_CELL', 'column_header': 'COLUMN_HEADER', 'row_header': 'ROW_HEADER',
     'tree_grid': 'TREE_TABLE', 'dialog': 'DIALOG', 'status_bar': 'STATUS_BAR', 'live_region': 'PANEL',
     'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY', 'figure': 'CHART',
+    'document': 'DOCUMENT_FRAME', 'heading': 'HEADING',
 }
 
 # The role whose states and interfaces a newer role shares
 # (semantic_role_fallback in semantic_types.hpp); every other role is its own.
-ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box', 'figure': 'image'}
+ROLE_FALLBACKS: dict[str, str] = {
+    'toggle_switch': 'check_box', 'search_box': 'text_box', 'figure': 'image', 'document': 'pane',
+    'heading': 'static_text',
+}
 
 
 def acting_role(node: dict[str, Any]) -> str:

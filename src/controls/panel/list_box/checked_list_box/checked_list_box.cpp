@@ -10,6 +10,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 
@@ -93,8 +94,15 @@ void CheckedListBox::set_item_check_state(std::size_t index,
     }
     if (check_states_[index] == state) return;
     ItemCheckEvent change{index, check_states_[index], state, false};
+    // A handler may edit the items (erase the one being checked): the
+    // check applies only to the items it was raised for
+    // (A-gf-controls-08-F2). It may also drop the list's last reference:
+    // `self` keeps it alive (none while it is not shared yet).
+    const std::uint64_t revision = TextItemsCapability<ListBox>::items_revision(*this);
+    const Ptr self = weak_from_this().lock();
     item_checking_.emit(change);
     if (!is_alive() || change.cancel) return;
+    if (TextItemsCapability<ListBox>::items_revision(*this) != revision || index >= check_states_.size()) return;
     if (change.new_state != CheckState::unchecked &&
         change.new_state != CheckState::checked &&
         change.new_state != CheckState::indeterminate) {
@@ -131,6 +139,8 @@ std::vector<std::size_t> CheckedListBox::checked_indices() const {
 // (every press with check_on_click, else a press on a selected item), then
 // raises MouseDown through Control (ListBox's raiser would handle it again).
 void CheckedListBox::on_mouse_down(MouseEventArgs& arguments) {
+    // The press's focus, selection and check handlers may drop the list.
+    const Ptr self = shared_from_this();
     toggle_on_press(arguments);
     Control::on_mouse_down(arguments);
 }
@@ -140,14 +150,18 @@ void CheckedListBox::toggle_on_press(MouseEventArgs& arguments) {
         list_pointer(arguments);
         return;
     }
-    const std::optional<std::size_t> index = arguments.button == PointerButton::primary
-        ? index_at(arguments.window_position) : std::optional<std::size_t>{};
-    const bool was_selected = index && detail::binary_search_contains(
-        selected_indices(), *index);
+    const stxlib::Optional<std::size_t> index = arguments.button == PointerButton::primary
+        ? index_at(arguments.window_position) : stxlib::Optional<std::size_t>::none();
+    const bool was_selected = index.present() && detail::binary_search_contains(
+        selected_indices(), *index.value());
+    // The focus and selection handlers that list_pointer runs may edit the
+    // items: the press toggles only the items it was made on.
+    const std::uint64_t revision = TextItemsCapability<ListBox>::items_revision(*this);
     list_pointer(arguments);
-    if (!is_alive() || !index || *index >= items.read().size()) return;
+    if (!is_alive() || index.absent() || TextItemsCapability<ListBox>::items_revision(*this) != revision ||
+        *index.value() >= items.read().size()) return;
     if (check_on_click.read() || was_selected) {
-        toggle_item(*index);
+        toggle_item(*index.value());
         arguments.handled = true;
     }
 }
@@ -157,8 +171,9 @@ void CheckedListBox::on_key_down(KeyEventArgs& arguments) {
     ListControl::on_key_down(arguments);
     if (arguments.handled) return;
     if (arguments.physical_key == PhysicalKey::space && focused_for_extension() && enabled.read()) {
-        if (const std::optional<std::size_t> index = active_index_for_extension()) {
-            toggle_item(*index);
+        const stxlib::Optional<std::size_t> index = active_index_for_extension();
+        if (index.present()) {
+            toggle_item(*index.value());
             arguments.handled = true;
         }
         return;
@@ -194,8 +209,8 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     // The theme's choice corners up to 2 px, as a check box's well.
     const ControlVisualContext context = part_visual_context(*this, states);
     const double theme_radius = effective_theme().resolve(ControlVisualRole::choice, context).material.corner_radius;
-    well.corner_radius = std::min(2.0, theme_radius);
-    if (has_style_override()) well.authored_background = selected && focused ? style().highlight : style().paper;
+    well.corner_radius.set(std::min(2.0, theme_radius));
+    if (has_style_override()) well.authored_background.set(selected && focused ? style().highlight : style().paper);
     paint_part(painter, *this, well);
     const CheckState state = check_states_[index];
     if (state == CheckState::unchecked) return;
@@ -203,7 +218,7 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
     mark.family = ControlVisualRole::choice;
     mark.role = PartRole::indicator;
     mark.states = states;
-    if (has_style_override()) mark.authored_foreground = style().accent;
+    if (has_style_override()) mark.authored_foreground.set(style().accent);
     if (state == CheckState::checked) {
         mark.mark = PartMark::check;
         mark.states.insert(AnatomyState::checked);
@@ -221,8 +236,8 @@ std::vector<SemanticNode> CheckedListBox::semantic_virtual_children() const {
     // names its row.
     std::vector<SemanticNode> nodes = ListBox::semantic_virtual_children();
     for (SemanticNode& node : nodes) {
-        if (!node.position_in_set || *node.position_in_set == 0U) continue;
-        const std::size_t index = *node.position_in_set - 1U;
+        if (node.position_in_set.absent() || *node.position_in_set.value() == 0U) continue;
+        const std::size_t index = *node.position_in_set.value() - 1U;
         if (index >= check_states_.size()) continue;
         node.role = SemanticRole::check_list_item;
         node.states |= SemanticState::checkable;
@@ -253,26 +268,33 @@ bool CheckedListBox::on_semantic_child_action(std::string_view stable_id,
                                         index);
     if (parsed.ec != std::errc{} || parsed.ptr != suffix.data() + suffix.size() ||
         index >= items.read().size()) return false;
+    // The focus and selection handlers may edit the items: the item is
+    // toggled only if they did not (A-gf-controls-08-F2).
+    // `self` keeps the list alive across the focus handlers, so the
+    // checks below read a live object (never is_alive() on a freed one).
+    const std::uint64_t revision = TextItemsCapability<ListBox>::items_revision(*this);
+    const Ptr self = shared_from_this();
     if (window() != nullptr) {
-        static_cast<void>((*window()).request_focus(shared_from_this()));
+        static_cast<void>((*window()).request_focus(self));
     }
+    if (!is_alive() || TextItemsCapability<ListBox>::items_revision(*this) != revision) return true;
     select_index(index, false, false);
-    if (is_alive()) toggle_item(index);
+    if (is_alive() && TextItemsCapability<ListBox>::items_revision(*this) == revision && index < items.read().size()) toggle_item(index);
     return true;
 }
 
 namespace {
 
 constexpr std::array<PartField<CheckedListBox::ItemParts>, 5> checked_item_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::row},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::label},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::row_focus},
-    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::check_well},
-    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &CheckedListBox::ItemParts::check},
 }};
 

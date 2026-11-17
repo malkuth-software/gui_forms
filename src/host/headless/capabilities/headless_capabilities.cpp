@@ -5,7 +5,7 @@
 namespace gui_forms::host {
 
 HostCapabilities headless_capabilities() {
-    return {HostCapabilities::current_protocol_version,
+    HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "headless-reference",
             HostCapability::lifecycle |
                 HostCapability::scale_notifications |
@@ -43,8 +43,30 @@ HostCapabilities headless_capabilities() {
                 // (HeadlessHostServices::set_corner_report).
                 HostCapability::window_corners |
                 // Tests dispatch HostWindowStateEvent themselves.
-                HostCapability::window_state_reports,
+                HostCapability::window_state_reports |
+                // The reference host simulates relative pointer mode:
+                // tests dispatch HostRelativeMotionEvent and the services
+                // record each request and warp
+                // (HeadlessHostServices::relative_pointer_requests).
+                HostCapability::relative_pointer |
+                HostCapability::raw_pointer_motion |
+                HostCapability::pointer_confinement |
+                HostCapability::pointer_warp |
+                // The reference host records each address it is asked to
+                // open (HeadlessHostServices::opened_urls) and opens none.
+                HostCapability::open_url |
+                // Hosted content is real: the platform's process
+                // implementation runs under the reference host too.
+                HostCapability::hosted_content,
             // The reference host reports the PC convention.
             pc_key_map()};
+    // The simulated platform may report either corner shape.
+    capabilities.window_corner_shapes = WindowCornerShapes{true, true};
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+    capabilities.available = without_capability(capabilities.available,
+                                                high_integrity_compiled_out_capabilities);
+#endif
+    return capabilities;
 }
 } // namespace gui_forms::host

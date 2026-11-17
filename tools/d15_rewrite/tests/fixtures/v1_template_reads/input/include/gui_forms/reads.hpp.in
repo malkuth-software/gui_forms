@@ -1,0 +1,39 @@
+#pragma once
+
+#include <cstddef>
+#include <optional>
+
+#include <stxlib/optional.hpp>
+
+namespace gui_forms {
+
+struct Panel final {
+    [[nodiscard]] int key(int name) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(int name) const noexcept;
+};
+
+[[nodiscard]] stxlib::Optional<std::size_t> find_part(int name) noexcept;
+
+struct Reader final {
+    std::optional<std::size_t> last;
+};
+
+// Dependent calls that already give stxlib::Optional (the capability read()
+// templates of the V1 run): nothing to wrap.
+template <typename Control>
+[[nodiscard]] std::size_t read_part(const Control& control, const int name) noexcept {
+    const stxlib::Optional<std::size_t> part = find_part(control.key(name));
+    const stxlib::Optional<std::size_t> current = control.read_view(name);
+    if (part.present()) return *part.value();
+    return current.value_or(0U);
+}
+
+template <typename Control>
+struct Capability final {
+    [[nodiscard]] static std::size_t read(const Control& control, const int name) noexcept {
+        const stxlib::Optional<std::size_t> current = control.read_view(name);
+        return current.value_or(0U);
+    }
+};
+
+} // namespace gui_forms

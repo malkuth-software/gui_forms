@@ -36,7 +36,7 @@
       "reviewed": false,
       "summary": "Validates row index and finite nonnegative absolute/percent/auto track data before invalidating the solution."
     },
-    "gui_forms::TableLayoutPanelCompat::cell_position|std::optional<TableLayoutCellPosition> (const Control &) const": {
+    "gui_forms::TableLayoutPanelCompat::cell_position|stxlib::Optional<TableLayoutCellPosition> (const Control &) const": {
       "reviewed": false,
       "summary": "Returns the explicit authored cell, not the transient automatically resolved cell."
     },

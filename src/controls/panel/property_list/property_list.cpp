@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <vector>
 #include <string>
 #include <array>
@@ -108,7 +109,7 @@ struct PropertyList::Impl final {
         Impl* implementation{};
         std::string row_id;
         std::weak_ptr<ComboBox> choice;
-        void operator()(std::optional<std::size_t>) const {
+        void operator()(stxlib::Optional<std::size_t>) const {
             if ((*implementation).synchronizing) return;
             RowState* row = (*implementation).find_row(row_id);
             const std::shared_ptr<ComboBox> editor = choice.lock();
@@ -273,8 +274,8 @@ struct PropertyList::Impl final {
                         std::find(row.choices.begin(),
                                                     row.choices.end(), row.value);
                     if (selected != row.choices.end()) {
-                        (*editor).selected_index = static_cast<std::size_t>(
-                            std::distance(row.choices.begin(), selected));
+                        (*editor).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                            std::distance(row.choices.begin(), selected)));
                     }
                     (*editor).font = FontSpec{FontRole::content, 10.0, 400, false};
                     (*editor).accessible_name = row.name;
@@ -603,7 +604,7 @@ void PropertyList::set_groups(std::vector<PropertyGroupSpec> groups) {
                     "PropertyList choice value must be empty or one declared choice");
             }
             if (row.editor == PropertyEditorKind::boolean &&
-                !binding_value_to_bool(BindingValue{row.value})) {
+                binding_value_to_bool(BindingValue{row.value}).absent()) {
                 throw std::invalid_argument(
                     "PropertyList Boolean value must be True, False, 1, or 0");
             }
@@ -631,7 +632,7 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
             "PropertyList choice value must be empty or one declared choice");
     }
     if (model.editor == PropertyEditorKind::boolean &&
-        !binding_value_to_bool(BindingValue{value})) {
+        binding_value_to_bool(BindingValue{value}).absent()) {
         throw std::invalid_argument(
             "PropertyList Boolean value must be True, False, 1, or 0");
     }
@@ -645,9 +646,9 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
         const std::vector<std::string>::iterator found =
             std::find(model.choices.begin(), model.choices.end(), value);
         (*choice).selected_index = found == model.choices.end()
-            ? std::optional<std::size_t>{}
-            : std::optional<std::size_t>{static_cast<std::size_t>(
-                std::distance(model.choices.begin(), found))};
+            ? stxlib::Optional<std::size_t>::none()
+            : stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(
+                std::distance(model.choices.begin(), found)));
     } else if (const std::shared_ptr<gui_forms::CheckBox> check =
                    std::dynamic_pointer_cast<CheckBox>((*row).editor)) {
         const bool checked = binding_value_to_bool(
@@ -750,11 +751,11 @@ bool PropertyList::set_row_expanded(std::string_view id, bool expanded) {
     return true;
 }
 
-std::optional<bool> PropertyList::row_expanded(std::string_view id) const {
+stxlib::Optional<bool> PropertyList::row_expanded(std::string_view id) const {
     const Impl::RowState* row = (*impl_).find_row(id);
     return row && (*impl_).spec(*row).expandable
-        ? std::optional<bool>{(*impl_).spec(*row).expanded}
-        : std::optional<bool>{};
+        ? stxlib::Optional<bool>::of((*impl_).spec(*row).expanded)
+        : stxlib::Optional<bool>::none();
 }
 
 std::optional<std::string> PropertyList::value(std::string_view id) const {
@@ -823,6 +824,16 @@ void PropertyList::set_header_content(Control::Ptr content, double height) {
             "PropertyList header requires content and a 0 through 4096 height");
     }
     if ((*impl_).header == content && (*impl_).header_height == height) return;
+    // The same header at another height keeps its control; only the height
+    // changes (A-gf-controls-09-F7).
+    if ((*impl_).header == content) {
+        (*impl_).header_height = height;
+        (*impl_).recompute_geometry();
+        (*impl_).arrange_editors();
+        invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
+                   Dirty::semantics);
+        return;
+    }
     if ((*impl_).header && (*(*impl_).header).parent().get() == this) {
         Control::Ptr previous = remove_child((*(*impl_).header).runtime_id());
         if (previous && (*previous).is_alive()) (*previous).dispose();
@@ -965,8 +976,8 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     face.role = PartRole::face;
     face.bounds = bounds;
     face.states = states;
-    if (has_background_override()) face.authored_background = background();
-    face.key = PartKey{"face", {}, {}};
+    if (has_background_override()) face.authored_background.set(background());
+    face.key.set(PartKey{"face", {}, {}});
     paint_part(painter, *this, face);
     double y = (*impl_).header_height - (*impl_).scroll_offset;
     for (std::size_t group_index = 0;
@@ -1290,28 +1301,28 @@ void PropertyList::on_dispose() noexcept {
 namespace {
 
 constexpr std::array<PartField<PropertyList::Parts>, 1> property_list_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PropertyList::Parts::face},
 }};
 
 constexpr std::array<PartField<PropertyList::ItemParts>, 9> property_list_item_part_fields{{
-    {.declaration = {.name = "group_header", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "group_header", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::group_header},
-    {.declaration = {.name = "group_expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "group_expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::group_expander},
-    {.declaration = {.name = "group_title", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "group_title", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::group_title},
-    {.declaration = {.name = "property_row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "property_row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::property_row},
-    {.declaration = {.name = "property_name", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "property_name", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::property_name},
-    {.declaration = {.name = "property_value", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "property_value", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::property_value},
-    {.declaration = {.name = "row_expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "row_expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::row_expander},
-    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}},
+    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::validation},
-    {.declaration = {.name = "row_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "row_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &PropertyList::ItemParts::row_divider},
 }};
 
@@ -1377,8 +1388,10 @@ std::size_t PropertyList::realized_item_count() const {
     return item_entries().size();
 }
 
+// The realized-item accessors read their entry with .at(), so an item past
+// the realized ones is refused with std::out_of_range (A-gf-controls-09-F9).
 std::string PropertyList::realized_item_stable_id(std::size_t item) const {
-    const ItemEntry entry = item_entries()[item];
+    const ItemEntry entry = item_entries().at(item);
     if (entry.group) return (*impl_).groups[entry.group_index].stable_id;
     return (*impl_).spec((*impl_).rows[entry.row_index]).stable_id;
 }
@@ -1390,7 +1403,7 @@ void PropertyList::publish_realized_item_geometry(std::size_t item,
     // Group headers and property rows share one item anatomy; the parts of
     // the other kind are absent. Text is published as the slots on_paint
     // draws into; value editors are child controls.
-    const ItemEntry entry = item_entries()[item];
+    const ItemEntry entry = item_entries().at(item);
     const Rect bounds = local_bounds();
     const double s = effective_text_scale();
     if (entry.group) {
@@ -1435,7 +1448,7 @@ void PropertyList::publish_realized_item_geometry(std::size_t item,
 
 AnatomyStateSet PropertyList::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states;
-    const ItemEntry entry = item_entries()[item];
+    const ItemEntry entry = item_entries().at(item);
     if (entry.group) {
         states.insert(group_header_item_state);
         const bool expanded = (*impl_).groups[entry.group_index].expanded;

@@ -1,11 +1,15 @@
 #include "support.hpp"
 
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/callout.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/anchored_overlay_placement.hpp"
@@ -18,6 +22,7 @@
 #include <array>
 #include <cmath>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 
 namespace gallery_pages_tests {
@@ -34,10 +39,22 @@ constexpr std::array<std::string_view, 2> anatomy_pending{
     "help_book_viewer",
 };
 
+// A composite type for CompositeControl's registry entry, which is made
+// only from a definition (construction "definition"): its anatomy is the
+// definition's, named for the composite type (coverage_chip).
+constexpr std::string_view coverage_chip_document = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="coverage-chip" version="1.0" base="user-control" family="card">
+  <property name="text" kind="text" default="Coverage chip" category="Appearance"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <focus target="none"/>
+  <semantics role="group" name="property(text)" children="hidden"/>
+</control>
+)xml";
+
 // Registry entries that are not controls: nonvisual components and the
 // LiveSurface service type. They have no parts; a component that shows
 // something (a context menu, a tool tip) does so through an internal control.
-constexpr std::array<std::string_view, 33> nonvisual_entries{
+constexpr std::array<std::string_view, 34> nonvisual_entries{
     "command",
     "gallery_command",
     "font_command",
@@ -62,6 +79,8 @@ constexpr std::array<std::string_view, 33> nonvisual_entries{
     "binding_context",
     "live_surface",
     "dock_workspace",
+    // Links the axes of PlotViews; it shows nothing of its own.
+    "plot_link_group",
     // A PlotView's item children declare its axes, series and annotations;
     // the PlotView paints them as its own parts.
     "plot_axis_item",
@@ -258,6 +277,24 @@ void inspect_control(const Control& control, std::vector<std::string>& seen_ids)
             }
         }
     }
+    // One past the realized items is refused, never read past the tables
+    // (A-gf-controls-03-F4 and the realized-item findings after it).
+    bool identity_refused = false;
+    try {
+        static_cast<void>(control.realized_item_stable_id(items));
+    } catch (const std::out_of_range&) {
+        identity_refused = true;
+    }
+    bool states_refused = false;
+    try {
+        static_cast<void>(control.realized_item_anatomy_states(items));
+    } catch (const std::out_of_range&) {
+        states_refused = true;
+    }
+    if (!identity_refused || !states_refused) {
+        throw std::runtime_error(std::string(anatomy.control_id) +
+                                 " answers for a realized item past realized_item_count()");
+    }
     const std::string id(anatomy.control_id);
     if (!contains_id(seen_ids, id)) {
         seen_ids.push_back(id);
@@ -355,6 +392,34 @@ void test_anatomy_coverage() {
     inspect_control(*modal_layer, seen_ids);
     inspect_control(*help_viewer, seen_ids);
     inspected += 4U;
+    // The business card, which no Gallery page places (programs place it on
+    // their help pages or show it in the hand).
+    const std::shared_ptr<BusinessCard> business_card =
+        make_control<BusinessCard>(StableId("anatomy.coverage.business-card"));
+    inspect_control(*business_card, seen_ids);
+    inspected += 1U;
+    // The 3D plot and the window capsule, which no Gallery page places yet
+    // (the capsule is the surface window manager's and a program's title
+    // control).
+    const std::shared_ptr<Plot3DView> plot3d_view = make_control<Plot3DView>(StableId("anatomy.coverage.plot3d-view"));
+    const std::shared_ptr<WindowCapsule> window_capsule =
+        make_control<WindowCapsule>(StableId("anatomy.coverage.window-capsule"));
+    inspect_control(*plot3d_view, seen_ids);
+    inspect_control(*window_capsule, seen_ids);
+    inspected += 2U;
+    // CompositeControl, made only from a definition: a composite made from
+    // one stands for the registry entry, its own anatomy checked.
+    const std::span<const CompositeChildType> no_child_types{};
+    const CompositeLoadResult chip_definition =
+        load_composite_definition("coverage-chip.control", coverage_chip_document, no_child_types);
+    require(static_cast<bool>(chip_definition), "the coverage composite loads");
+    if (chip_definition) {
+        const std::shared_ptr<CompositeControl> chip =
+            make_control<CompositeControl>(StableId("anatomy.coverage.composite"), chip_definition.definition);
+        inspect_control(*chip, seen_ids);
+        seen_ids.push_back(std::string("composite_control"));
+        inspected += 1U;
+    }
 
     std::string unexpected_gaps;
     std::string stale_pending;

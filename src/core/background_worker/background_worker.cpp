@@ -220,9 +220,15 @@ void BackgroundWorker::run_worker_async(BindingValue argument) {
     (*run).work = do_work_;
     (*run).argument = std::move(argument);
     (*run).reports_progress = reports_progress_;
+    // The worker is made before any member changes (A-gf-core-01-F3): when its
+    // thread cannot be started the constructor throws, and the object stays
+    // idle rather than busy for ever. The local `run` keeps the record alive
+    // until it moves into run_; moving the pointer does not move the record.
+    std::unique_ptr<Worker> worker =
+        std::make_unique<Worker>(&BackgroundWorker::run_entry, static_cast<void*>(run.get()));
     cancellation_requested_ = false;
     run_ = std::move(run);
-    worker_ = std::make_unique<Worker>(&BackgroundWorker::run_entry, static_cast<void*>(run_.get()));
+    worker_ = std::move(worker);
 }
 
 void BackgroundWorker::cancel_async() {

@@ -17,10 +17,13 @@
 #include <array>
 #include <cmath>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 // Identical bits on every host need the same operations in the same order:
 // no fused multiply-add for the colour arithmetic (T2 plan, "Numerics").
+// Off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC says
+// (CMakeLists.txt, "Floating-point contraction").
 #if defined(__clang__)
 #pragma clang fp contract(off)
 #endif
@@ -446,6 +449,10 @@ private:
     [[nodiscard]] bool read_component();
     [[nodiscard]] bool number_of(std::size_t at, NumberRead& number);
     [[nodiscard]] bool read_resource(std::size_t at);
+    // Pushes a fragment component for `id` (url(#id)), `next_` after
+    // `close`; false, reporting at `argument_token`, for an empty id.
+    [[nodiscard]] bool push_fragment(std::uint32_t token, std::uint32_t argument_token, std::string_view id,
+                                     std::size_t close);
     [[nodiscard]] bool open_function(std::size_t at);
     [[nodiscard]] bool close_function();
     [[nodiscard]] bool children_of(std::uint32_t function, ChildList& children);
@@ -641,14 +648,23 @@ bool ValuePass::read_resource(std::size_t at) {
     const std::uint32_t token = stream_[at].token;
     const std::size_t argument = at + 1U;
     const std::size_t close = at + 2U;
-    const bool shaped = close < stream_.size() && is_sheet(argument) && is_sheet(close) &&
-                        kind_of(argument) == TokenKind::string && kind_of(close) == TokenKind::right_paren;
+    const bool closed = close < stream_.size() && is_sheet(argument) && is_sheet(close) &&
+                        kind_of(close) == TokenKind::right_paren;
+    // url(#id), unquoted: a fragment reference.
+    if (closed && kind_of(argument) == TokenKind::hash) {
+        const std::string_view hashed = text_of(argument);
+        return push_fragment(token, stream_[argument].token, hashed.substr(1U), close);
+    }
+    const bool shaped = closed && kind_of(argument) == TokenKind::string;
     if (!shaped) {
         report(DiagnosticCode::value_syntax, token, "url() takes one string");
         return false;
     }
     const std::string_view quoted = text_of(argument);
     const std::string_view written = quoted.substr(1U, quoted.size() - 2U);
+    if (!written.empty() && written[0] == '#') {
+        return push_fragment(token, stream_[argument].token, written.substr(1U), close);
+    }
     constexpr std::string_view scheme = "resource:";
     if (written.substr(0U, scheme.size()) != scheme) {
         report(DiagnosticCode::value_form_not_admitted, stream_[argument].token, clipped_theme_detail(written));
@@ -666,6 +682,21 @@ bool ValuePass::read_resource(std::size_t at) {
     ValueComponent component{};
     component.kind = ValueComponentKind::resource;
     component.text = name;
+    component.token = token;
+    push_component(component);
+    next_ = close + 1U;
+    return true;
+}
+
+bool ValuePass::push_fragment(const std::uint32_t token, const std::uint32_t argument_token, const std::string_view id,
+                              const std::size_t close) {
+    if (id.empty()) {
+        report(DiagnosticCode::value_syntax, argument_token, "url(#) names no filter");
+        return false;
+    }
+    ValueComponent component{};
+    component.kind = ValueComponentKind::fragment;
+    component.text = id;
     component.token = token;
     push_component(component);
     next_ = close + 1U;
@@ -985,17 +1016,17 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
     // A built-in role, else one of the theme's application roles: its
     // slot follows the built-in ones, and it carries its fallback's
     // meaning.
-    std::optional<ColourRole> role = colour_role_from_name(lower);
-    std::size_t position = role ? static_cast<std::size_t>(*role) : palette_slot_count;
-    bool paired = role ? colour_role_paired(*role) : false;
-    for (std::size_t index = 0U; !role && index < context_.application_roles.size(); ++index) {
+    stxlib::Optional<ColourRole> role = colour_role_from_name(lower);
+    std::size_t position = role.present() ? static_cast<std::size_t>(*role.value()) : palette_slot_count;
+    bool paired = role.present() ? colour_role_paired(*role.value()) : false;
+    for (std::size_t index = 0U; role.absent() && index < context_.application_roles.size(); ++index) {
         const ApplicationRoleName& declared = context_.application_roles[index];
         if (declared.name != lower) continue;
-        role = declared.fallback;
+        role.set(declared.fallback);
         position = colour_role_count + index;
         paired = declared.paired;
     }
-    if (!role || position >= palette_slot_count) {
+    if (role.absent() || position >= palette_slot_count) {
         report(DiagnosticCode::keyword_unknown, written.token, clipped_theme_detail(written.text));
         return false;
     }
@@ -1034,7 +1065,7 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
     replace_with_colour(function, colour);
     ColourOrigin origin{};
     origin.source = ColourSource::role;
-    origin.role = *role;
+    origin.role = *role.value();
     origin.side = side;
     value_.components.back().origin = origin;
     return true;
@@ -1067,11 +1098,11 @@ bool ValuePass::colour_from_env(std::uint32_t function) {
         report(DiagnosticCode::keyword_unknown, named.token, clipped_theme_detail(named.text));
         return false;
     }
-    std::optional<Color> hint{};
+    stxlib::Optional<Color> hint{};
     if (context_.system_colours != nullptr) {
         hint = accent ? (*context_.system_colours).accent : (*context_.system_colours).highlight;
     }
-    const Color colour = hint ? *hint : *fallback;
+    const Color colour = hint.present() ? *hint.value() : *fallback;
     replace_with_colour(function, colour);
     return true;
 }
@@ -1378,13 +1409,13 @@ bool ValuePass::push_name_operand(std::size_t at, ExpressionFunction function) {
     const std::string_view written = text_of(argument);
     const std::string registered = registered_name_from_kebab(written);
     if (function == ExpressionFunction::state) {
-        const std::optional<AnatomyState> state =
-            registered.empty() ? std::optional<AnatomyState>{} : anatomy_state_from_name(registered);
-        if (!state) {
+        const stxlib::Optional<AnatomyState> state =
+            registered.empty() ? stxlib::Optional<AnatomyState>::none() : anatomy_state_from_name(registered);
+        if (state.absent()) {
             report(DiagnosticCode::value_syntax, stream_[argument].token, clipped_theme_detail(written));
             return false;
         }
-        push_operand(ExpressionInstruction::state(*state), ValueUnit::none, false);
+        push_operand(ExpressionInstruction::state(*state.value()), ValueUnit::none, false);
         return true;
     }
     std::size_t position = context_.parameters.size();

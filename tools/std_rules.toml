@@ -1,0 +1,31 @@
+# check_std_rules for GUI.Forms (D15, decision 6a): the standard-library
+# rules STXlib's audit B governs, read from source text. The tool is
+# tools/check_std_rules.py, copied from STXlib at 60dea8f (its first lines
+# say how to update it); the guide is STXlib's tools/STD_RULES.md. CI's
+# house-style job runs:
+#   python3 -I tools/check_std_rules.py --config tools/std_rules.toml
+# The allowance shrinks only: fix a finding, then lower or drop its line.
+format = 1
+root = ".."
+profile = "consumer"
+paths = ["src", "include", "tests", "examples", "demo", "benchmarks", "fuzz", "lab"]
+# Native code, where the host-only rules (pthread, wchar_t and the rest)
+# do not apply: the platform hosts, and the tests and probes that drive a
+# native host or its system interfaces directly.
+host_paths = [
+    "src/host/*",
+    "src/surface/*",
+    "tests/windows_*",
+    "tests/macos_*",
+    "tests/linux_*",
+    "tests/support/windows_*",
+    "tests/abi/host/*",
+    "tests/abi/msvc/*",
+    "tests/application_native_tests.cpp",
+    # The C ABI's C programs: C has no portable thread, so the conformance
+    # kit and the C11 runtime test start their threads natively.
+    "tests/abi/conformance/*",
+    "tests/abi/gf_abi_runtime_c11_tests.c",
+]
+exclude = ["tests/form_language/generated/*"]
+allowance = "tools/std_rules_allowance.txt"

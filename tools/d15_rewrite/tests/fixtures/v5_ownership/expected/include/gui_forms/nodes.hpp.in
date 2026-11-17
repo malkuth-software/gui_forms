@@ -1,0 +1,22 @@
+#pragma once
+
+#include <stxlib/shared.hpp>
+#include <memory>
+
+namespace gui_forms {
+
+struct Node {
+    virtual ~Node() noexcept;
+    int weight{0};
+};
+
+struct Leaf final : Node {
+    int colour{0};
+};
+
+struct Tree final {
+    stxlib::Shared<Node> root;
+    stxlib::Weak<Node> parent;
+};
+
+} // namespace gui_forms

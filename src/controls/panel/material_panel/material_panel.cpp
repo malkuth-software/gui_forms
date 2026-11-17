@@ -3,6 +3,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <stdexcept>
 #include <utility>
@@ -23,19 +24,19 @@ void MaterialPanel::on_attached_to_window() {
 void MaterialPanel::validate_window_images(
     const SurfaceMaterial& recipe) const {
     if (window() == nullptr) return;
-    // The fills, then an image mask (E9.6).
+    // The fills, then the mask's layers (E9.6).
     std::vector<const MaterialFillLayer*> layers{};
-    layers.reserve(recipe.fills.size() + 1U);
+    layers.reserve(recipe.fills.size() + recipe.masks.size());
     for (const MaterialFillLayer& fill : recipe.fills) layers.push_back(&fill);
-    if (recipe.mask) layers.push_back(&*recipe.mask);
+    for (const MaterialMaskLayer& mask : recipe.masks) layers.push_back(&mask.source);
     for (const MaterialFillLayer* layer : layers) {
         const MaterialFillLayer& fill = *layer;
         if (fill.kind != MaterialFillKind::image) continue;
-        const std::optional<ImageResourceView> resource = (*window()).image_resources().find(fill.image);
-        if (!resource ||
-            static_cast<double>((*resource).metadata.width) !=
+        const stxlib::Optional<ImageResourceView> resource = (*window()).image_resources().find(fill.image);
+        if (resource.absent() ||
+            static_cast<double>(((*resource.value())).metadata.width) !=
                 fill.image_pixel_size.width ||
-            static_cast<double>((*resource).metadata.height) !=
+            static_cast<double>(((*resource.value())).metadata.height) !=
                 fill.image_pixel_size.height) {
             throw std::invalid_argument(
                 "material image is missing from the attached Window or its declared pixel size is stale");
@@ -52,7 +53,9 @@ void MaterialPanel::on_paint(Painter& painter, Rect) {
 }
 
 Insets MaterialPanel::visual_outsets() const noexcept {
-    return surface_material_visual_outsets(material.read());
+    const Rect arranged = committed_arranged_bounds();
+    const Insets outsets = surface_material_visual_outsets(material.read(), Size{arranged.width, arranged.height});
+    return outsets;
 }
 
 namespace {
@@ -62,6 +65,7 @@ constexpr ControlAnatomy material_panel_anatomy{
     .parts = panel_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

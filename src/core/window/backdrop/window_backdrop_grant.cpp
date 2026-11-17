@@ -38,7 +38,7 @@ bool SurfaceRoot::declare_content_surface() {
     if (content_surface_declared_) return true;
     content_surface_declared_ = true;
     // A theme chain lowered before the declaration no longer applies.
-    if (!application_backdrop_chain_) apply_backdrop_chain(std::nullopt);
+    if (!application_backdrop_chain_) apply_backdrop_chain(stxlib::Optional<BackdropChain>::none());
     const bool declared = declare_non_opaque();
     return declared;
 }
@@ -120,9 +120,9 @@ void SurfaceRoot::refresh_backdrop() {
     backdrop_changed_.emit(emitted);
 }
 
-void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
+void SurfaceRoot::set_backdrop_chain(stxlib::Optional<BackdropChain> chain) {
     require_root_thread("backdrop chain");
-    if (chain.has_value() && !backdrop_chain_valid(*chain)) {
+    if (chain.present() && !backdrop_chain_valid(*chain.value())) {
         throw std::invalid_argument(
             "GUI.Forms backdrop chain needs at most eight operations in range with at most one blur");
     }
@@ -136,11 +136,11 @@ void SurfaceRoot::lower_theme_backdrop_chain() {
     if (application_backdrop_chain_ || content_surface_declared_) return;
     const Window* const window = (*root_).attached_window();
     if (window == nullptr) return;
-    const std::optional<BackdropChain> chain = (*theme_).window_backdrop_chain(*window);
+    const stxlib::Optional<BackdropChain> chain = (*theme_).window_backdrop_chain(*window);
     apply_backdrop_chain(chain);
 }
 
-void SurfaceRoot::apply_backdrop_chain(const std::optional<BackdropChain>& chain) {
+void SurfaceRoot::apply_backdrop_chain(const stxlib::Optional<BackdropChain>& chain) {
     if (chain == backdrop_chain_) return;
     backdrop_chain_ = chain;
     // A window following its theme's request follows the chain's instead
@@ -168,9 +168,9 @@ SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context)
         clear.fills.clear();
         return clear;
     }
-    if (backdrop_chain_.has_value() && !context.high_contrast) {
+    if (backdrop_chain_.present() && !context.high_contrast) {
         const BackdropChainResolution resolution =
-            resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, context.high_contrast);
+            resolve_backdrop_chain(*backdrop_chain_.value(), backdrop_grant_, context.high_contrast);
         // A chain without a tint leaves the base to the theme.
         if (resolution.tint.alpha != 0U) {
             const Color tint = resolution.solid ? Color::rgba(resolution.tint.red, resolution.tint.green,
@@ -191,15 +191,49 @@ SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context)
     return recipe;
 }
 
-std::optional<BackdropChainResolution> SurfaceRoot::backdrop_chain_resolution() const noexcept {
-    if (!backdrop_chain_.has_value()) return std::nullopt;
+SurfaceMaterial SurfaceRoot::backplane_material() const {
+    ControlVisualContext context;
+    context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
+    context.high_contrast = presentation_settings_.high_contrast;
+    context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
+    SurfaceMaterial material = backplane_base(context);
+    return material;
+}
+
+Color SurfaceRoot::backplane_colour() const {
+    const SurfaceMaterial material = backplane_material();
+    if (material.fills.empty()) return Color::rgba(0, 0, 0, 0);
+    const MaterialFillLayer& fill = material.fills.front();
+    switch (fill.kind) {
+    case MaterialFillKind::solid:
+        return fill.color;
+    case MaterialFillKind::linear_gradient:
+    case MaterialFillKind::radial_gradient:
+    case MaterialFillKind::conic_gradient:
+        if (fill.stops.empty()) return fill.color;
+        return fill.stops.front().color;
+    case MaterialFillKind::image:
+        // An image has no one colour: the layer's colour.
+        return fill.color;
+    case MaterialFillKind::procedural:
+        return fill.procedural.ground;
+    case MaterialFillKind::finish:
+        return fill.finish.paint;
+    }
+    // A kind outside the enumeration: the layer's colour.
+    return fill.color;
+}
+
+stxlib::Optional<BackdropChainResolution> SurfaceRoot::backdrop_chain_resolution() const noexcept {
+    if (backdrop_chain_.absent()) return stxlib::Optional<BackdropChainResolution>::none();
     const BackdropChainResolution resolution =
-        resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, presentation_settings_.high_contrast);
-    return resolution;
+        resolve_backdrop_chain(*backdrop_chain_.value(), backdrop_grant_, presentation_settings_.high_contrast);
+    const stxlib::Optional<BackdropChainResolution> result = stxlib::Optional<BackdropChainResolution>::of(resolution);
+    return result;
 }
 
 WindowBackdropRequest SurfaceRoot::implied_backdrop_request() const {
-    if (backdrop_chain_.has_value() && backdrop_chain_blur(*backdrop_chain_) > 0.0) {
+    if (backdrop_chain_.present() && backdrop_chain_blur(*backdrop_chain_.value()) > 0.0) {
         const WindowBackdropRequest material =
             WindowBackdropRequest::with_fallback(WindowBackdrop::window_material, WindowBackdrop::transparent);
         return material;

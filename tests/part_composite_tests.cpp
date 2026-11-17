@@ -345,9 +345,77 @@ void test_separable_blends() {
                 detail::part_composite_blend(PaintGroupComposite::plus) == detail::PartCompositeBlend::plus &&
                 detail::part_composite_blend(PaintGroupComposite::multiply) == detail::PartCompositeBlend::multiply &&
                 detail::part_composite_blend(PaintGroupComposite::screen) == detail::PartCompositeBlend::screen &&
-                detail::part_composite_blend(static_cast<PaintGroupComposite>(9U)) ==
+                detail::part_composite_blend(PaintGroupComposite::overlay) == detail::PartCompositeBlend::overlay &&
+                detail::part_composite_blend(PaintGroupComposite::color_dodge) ==
+                    detail::PartCompositeBlend::color_dodge &&
+                detail::part_composite_blend(PaintGroupComposite::soft_light) ==
+                    detail::PartCompositeBlend::soft_light &&
+                detail::part_composite_blend(PaintGroupComposite::exclusion) == detail::PartCompositeBlend::exclusion &&
+                detail::part_composite_blend(static_cast<PaintGroupComposite>(200U)) ==
                     detail::PartCompositeBlend::source_over,
             "each group composite has its blend; another value is source-over");
+}
+
+struct ExpectedBlend final {
+    detail::PartCompositeBlend blend{};
+    std::uint32_t pixel{};
+    const char* label{};
+};
+
+// The other separable modes (capability review, owner 2026-11-16): the
+// same half-covered source over the same translucent target, each byte
+// worked by hand from the integer formulas of PartCompositeBlend.
+void test_more_separable_blends() {
+    // Red 100, green 50, blue 0, alpha 128, as BGRA bytes.
+    const std::vector<std::uint8_t> half{0U, 50U, 100U, 128U};
+    const std::uint32_t beneath = pack(200U, 10U, 5U, 200U);
+    const std::array<ExpectedBlend, 9> expected{{
+        {detail::PartCompositeBlend::overlay, pack(222U, 20U, 2U, 228U), "overlay in bytes"},
+        {detail::PartCompositeBlend::darken, pack(200U, 21U, 2U, 228U), "darken in bytes"},
+        {detail::PartCompositeBlend::lighten, pack(222U, 55U, 5U, 228U), "lighten in bytes"},
+        {detail::PartCompositeBlend::color_dodge, pack(222U, 24U, 5U, 228U), "color-dodge in bytes"},
+        {detail::PartCompositeBlend::color_burn, pack(222U, 16U, 2U, 228U), "color-burn in bytes"},
+        {detail::PartCompositeBlend::hard_light, pack(222U, 20U, 2U, 228U), "hard-light in bytes"},
+        {detail::PartCompositeBlend::soft_light, pack(222U, 20U, 3U, 228U), "soft-light in bytes"},
+        {detail::PartCompositeBlend::difference, pack(143U, 50U, 5U, 228U), "difference in bytes"},
+        {detail::PartCompositeBlend::exclusion, pack(143U, 56U, 5U, 228U), "exclusion in bytes"},
+    }};
+    for (const ExpectedBlend& row : expected) {
+        PartRasterSource source = source_of(half, 1U, 1U, 0, 0);
+        source.blend = row.blend;
+        TestTarget target = make_target(1U, 1U, beneath, false);
+        require(detail::composite_part_raster(source, target.target, whole(1U, 1U), 255U) ==
+                    detail::TextCompositeStatus::success,
+                "a separable source composites");
+        require(target.pixels[0] == row.pixel, row.label);
+    }
+
+    // Over an opaque target that is the identity of each mode's function
+    // the source shows unchanged: darken over white, lighten over black.
+    // Red 90, green 140, blue 200, opaque, as BGRA bytes.
+    const std::vector<std::uint8_t> face{200U, 140U, 90U, 255U};
+    PartRasterSource darkened = source_of(face, 1U, 1U, 0, 0);
+    darkened.blend = detail::PartCompositeBlend::darken;
+    TestTarget white = make_target(1U, 1U, pack(255U, 255U, 255U, 255U), true);
+    static_cast<void>(detail::composite_part_raster(darkened, white.target, whole(1U, 1U), 255U));
+    require(white.pixels[0] == pack(90U, 140U, 200U, 255U), "darken over white is the source");
+    PartRasterSource lightened = source_of(face, 1U, 1U, 0, 0);
+    lightened.blend = detail::PartCompositeBlend::lighten;
+    TestTarget black = make_target(1U, 1U, pack(0U, 0U, 0U, 255U), true);
+    static_cast<void>(detail::composite_part_raster(lightened, black.target, whole(1U, 1U), 255U));
+    require(black.pixels[0] == pack(90U, 140U, 200U, 255U), "lighten over black is the source");
+    // Difference of a colour with itself is black.
+    PartRasterSource differed = source_of(face, 1U, 1U, 0, 0);
+    differed.blend = detail::PartCompositeBlend::difference;
+    TestTarget same = make_target(1U, 1U, pack(90U, 140U, 200U, 255U), true);
+    static_cast<void>(detail::composite_part_raster(differed, same.target, whole(1U, 1U), 255U));
+    require(same.pixels[0] == pack(0U, 0U, 0U, 255U), "difference with itself is black");
+
+    // soft_light_term in 1/65536: B(1/2, 1) = √(1/2), the root's floor of
+    // 2^31; B(1/4, 0) = 1/4 − 1/4 × 3/4 = 1/16; B(b, 1/2) = b.
+    require(detail::soft_light_term(32768U, 65536U) == 46340U, "soft-light's root is the exact integer root");
+    require(detail::soft_light_term(16384U, 0U) == 4096U, "soft-light darkens by b(1 − b)");
+    require(detail::soft_light_term(20000U, 32768U) == 20000U, "a half source leaves the backdrop");
 }
 
 void test_part_raster() {
@@ -562,9 +630,11 @@ void test_interior_shortcut_matches_coverage() {
         bytes.push_back(static_cast<std::uint8_t>(red));
         bytes.push_back(static_cast<std::uint8_t>(alpha));
     }
-    constexpr std::array<detail::PartCompositeBlend, 5> blends{
+    constexpr std::array<detail::PartCompositeBlend, 8> blends{
         detail::PartCompositeBlend::source_over, detail::PartCompositeBlend::plus,
-        detail::PartCompositeBlend::multiply, detail::PartCompositeBlend::screen, detail::PartCompositeBlend::copy};
+        detail::PartCompositeBlend::multiply,    detail::PartCompositeBlend::screen,
+        detail::PartCompositeBlend::copy,        detail::PartCompositeBlend::overlay,
+        detail::PartCompositeBlend::soft_light,  detail::PartCompositeBlend::color_burn};
     constexpr std::array<std::uint8_t, 2> opacities{255U, 128U};
     constexpr std::array<Rect, 3> clips{{{1.25, 0.5, 10.5, 7.75}, {0.0, 0.0, 15.0, 11.0}, {3.0, 2.0, 6.0, 4.0}}};
     for (const detail::PartCompositeBlend blend : blends) {
@@ -1042,6 +1112,82 @@ void test_opaque_rasters_copy_rows() {
     require(!(*raster).opaque(), "a raster with one translucent pixel is not recorded opaque");
 }
 
+// A source whose recorded opaque interior is copied writes the same bytes as
+// the same source blended throughout: a 12 x 8 raster with a translucent
+// two-pixel margin and an opaque centre, placed inside, across and off the
+// target's edges, under whole, fractional and rounded clips, at full and
+// half opacity. The raster then refuses an interior holding one translucent
+// pixel and one reaching outside it.
+void test_opaque_interior_copies_rows() {
+    const std::uint32_t width = 12U;
+    const std::uint32_t height = 8U;
+    const std::shared_ptr<PartRaster> raster = PartRaster::create(DeviceExtent{width, height}, DeviceScale{1.0});
+    require(raster != nullptr, "an interior raster is made");
+    const PartRasterView view = (*raster).view();
+    for (std::uint32_t row = 0U; row < height; ++row) {
+        for (std::uint32_t column = 0U; column < width; ++column) {
+            const std::size_t offset = (static_cast<std::size_t>(row) * width + column) * 4U;
+            const bool inside = row >= 2U && row < height - 2U && column >= 2U && column < width - 2U;
+            const std::uint8_t alpha = inside ? std::uint8_t{255U} : static_cast<std::uint8_t>(40U + row * 9U + column);
+            view.pixels[offset] = static_cast<std::uint8_t>((column * 37U + row * 11U) % (alpha + 1U));
+            view.pixels[offset + 1U] = static_cast<std::uint8_t>((column * 5U + row * 29U) % (alpha + 1U));
+            view.pixels[offset + 2U] = static_cast<std::uint8_t>((column * 13U + row * 3U) % (alpha + 1U));
+            view.pixels[offset + 3U] = alpha;
+        }
+    }
+    const PartRasterInterior centre{2U, 2U, width - 2U, height - 2U};
+    (*raster).record_opaque_interior(centre);
+    const PartRasterInterior recorded = (*raster).opaque_interior();
+    require(recorded.left == 2U && recorded.top == 2U && recorded.right == width - 2U &&
+                recorded.bottom == height - 2U,
+            "an opaque centre is recorded");
+    (*raster).record_opacity();
+    require(!(*raster).opaque(), "a raster with a translucent margin is not wholly opaque");
+
+    const std::vector<std::uint8_t> bytes((*raster).pixels().begin(), (*raster).pixels().end());
+    const std::array<std::int64_t, 3> lefts{3, -3, 9};
+    const std::array<std::int64_t, 3> tops{2, -2, 6};
+    const std::array<std::uint8_t, 2> opacities{255U, 128U};
+    for (std::size_t place = 0U; place < lefts.size(); ++place) {
+        PartRasterSource interior = source_of(bytes, width, height, lefts[place], tops[place]);
+        interior.opaque_left = recorded.left;
+        interior.opaque_top = recorded.top;
+        interior.opaque_right = recorded.right;
+        interior.opaque_bottom = recorded.bottom;
+        const PartRasterSource blended = source_of(bytes, width, height, lefts[place], tops[place]);
+        std::array<TextCompositeClip, 3> clips{};
+        clips[0] = whole(18U, 12U);
+        clips[1].rect = {4.5, 3.25, 13.75, 10.5};
+        clips[2] = whole(18U, 12U);
+        clips[2].rounded = true;
+        clips[2].rounded_rect = {3.0, 2.0, 15.0, 10.0};
+        clips[2].radius = 3.0;
+        for (const TextCompositeClip& clip : clips) {
+            for (const std::uint8_t opacity : opacities) {
+                TestTarget first = make_target(18U, 12U, pack(10U, 20U, 30U, 255U), true);
+                TestTarget second = make_target(18U, 12U, pack(10U, 20U, 30U, 255U), true);
+                require(detail::composite_part_raster(interior, first.target, clip, opacity) ==
+                            TextCompositeStatus::success,
+                        "the source with an interior composites");
+                require(detail::composite_part_raster(blended, second.target, clip, opacity) ==
+                            TextCompositeStatus::success,
+                        "the source without one composites");
+                require(first.pixels == second.pixels, "copied interior rows equal blended ones");
+            }
+        }
+    }
+
+    (*raster).record_opaque_interior(PartRasterInterior{1U, 2U, width - 2U, height - 2U});
+    require((*raster).opaque_interior().right == 0U, "an interior holding a translucent pixel is refused");
+    (*raster).record_opaque_interior(PartRasterInterior{2U, 2U, width + 1U, height - 2U});
+    require((*raster).opaque_interior().right == 0U, "an interior reaching outside the raster is refused");
+    (*raster).record_opaque_interior(centre);
+    require((*raster).opaque_interior().right == width - 2U, "the centre is recorded again");
+    const PartRasterView again = (*raster).view();
+    require((*raster).opaque_interior().right == 0U, "a new view clears the interior");
+    static_cast<void>(again);
+}
+
 int main() {
     test_opacity_quantization();
     test_blend_arithmetic();
@@ -1052,6 +1198,7 @@ int main() {
     test_scaled_sampling();
     test_plus_blend();
     test_separable_blends();
+    test_more_separable_blends();
     test_copy_blend();
     test_interior_shortcut_matches_coverage();
     test_scaled_steps_match_the_formula();
@@ -1059,6 +1206,7 @@ int main() {
     test_blocks_match_the_reference();
     test_text_blocks_match_the_reference();
     test_opaque_rasters_copy_rows();
+    test_opaque_interior_copies_rows();
     test_part_raster();
     test_command_is_recorded_replayed_and_inspected();
     std::cout << "part composite tests passed\n";

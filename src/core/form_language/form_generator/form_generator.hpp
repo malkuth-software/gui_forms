@@ -53,8 +53,6 @@
 
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../theme_language/source_text/theme_source_text.hpp"
-#include "../../theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include <cstdint>
 #include <string>
@@ -111,15 +109,12 @@ enum class FormGenerateOutcome : std::uint8_t {
 [[nodiscard]] bool form_qualified_name(std::string_view name);
 
 // Generates the header for `model`, which build_form_model built from
-// `tree` against `schema`; the source, tokens and lines are those of that
-// build and locate the diagnostics. Each type `model` names needs its
+// `source` against `schema`; the model's source positions locate the
+// diagnostics, and the source names the file. Each type `model` names needs its
 // FormSchemaType::cpp_type and header (E812 otherwise). Everything is
 // borrowed for the call. Throws std::invalid_argument when `options` names
 // no valid class or namespace, before anything is generated.
 [[nodiscard]] FormGenerateOutcome generate_form_cpp(const theme_language::ThemeSource& source,
-                                                    const theme_language::ThemeTokenBuffer& tokens,
-                                                    const theme_language::LineStartTable& lines,
-                                                    const theme_language::ThemeSyntaxTree& tree,
                                                     const FormSchema& schema, const FormModel& model,
                                                     const FormGeneratorOptions& options, std::string& generated,
                                                     theme_language::ThemeDiagnosticList& diagnostics);

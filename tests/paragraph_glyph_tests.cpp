@@ -108,7 +108,7 @@ void register_faces(render::SkiaRaster& raster, const std::filesystem::path& fon
     const std::string carlito = (fonts / "Carlito-Regular.ttf").string();
     const std::string emoji = (fonts / "NotoEmoji-Regular.ttf").string();
     const std::string hebrew_face = (fonts / "NotoSansHebrew-Regular.ttf").string();
-    const std::string arabic_face = (fonts / "NotoSansArabic-Regular.ttf").string();
+    const std::string arabic_face = (fonts / "NotoSansArabic-Minimal.ttf").string();
     require(raster.register_typeface_file(FontRole::content, 400, false, carlito.c_str()), "Carlito registers");
     require(raster.register_fallback_typeface_file(400, false, emoji.c_str()), "Noto Emoji registers");
     require(raster.register_fallback_typeface_file(400, false, hebrew_face.c_str()), "Noto Sans Hebrew registers");
@@ -120,7 +120,7 @@ constexpr Size canvas_size{260.0, 220.0};
 ParagraphStyle style_for(render::SkiaRaster& raster, const double width, const TextDirection direction) {
     ParagraphStyle style{};
     style.font = content_font();
-    style.line_box = paragraph_line_box(&raster, style.font, std::nullopt);
+    style.line_box = paragraph_line_box(&raster, style.font, stxlib::Optional<double>::none());
     style.width = width;
     style.direction = direction;
     style.glyph_output = ParagraphGlyphOutput::runs;
@@ -223,15 +223,15 @@ void test_glyph_runs_paint_like_text(render::SkiaRaster& raster, render::SkiaRas
 // one warm-up pass over every case. Counted over the 1000, on this thread:
 // - global operator new and operator new[] (replaced above): every C++
 //   allocation, the library's and the standard library's;
-// - HarfBuzzFontEngine::thread_native_allocations(): FreeType's heap calls
-//   through the engine's FT_Memory (a fallback face's glyph ink extents
-//   come from FT_Load_Glyph, which allocates for composite glyphs; the
-//   engine keeps them per glyph and size after the warm-up reads them), HarfBuzz's through its hb_malloc_impl
-//   hooks, and SheenBidi's calls that went to the C heap (all must stay
-//   zero), and SheenBidi's calls served by the workspace's arena (reported,
-//   not an allocation: the arena is reserved storage);
+// - shaping is STXlib's and the bidi analysis stxlib::textlayout's, so no
+//   foreign library allocates: STXlib's shapers keep their plans and working
+//   buffers, and a fallback face's ink boxes are kept per glyph and size
+//   after the warm-up reads them;
 // - AllocationScope: the counted text_layout subsystem (the buffers' and
-//   workspace's arrays), which must not change.
+//   workspace's arrays, and the workspace's bidi analysis, whose
+//   stxlib::textlayout Paragraph and Line count their bytes_held as it
+//   changes), which must not change: the analysis grew to the corpus's
+//   largest paragraph during the warm-up and is reused.
 // Not counted: Skia (layout does not reach it) and other threads (none run).
 void test_layout_allocates_nothing(render::SkiaRaster& raster) {
     const std::vector<std::string> texts = corpus();
@@ -257,9 +257,6 @@ void test_layout_allocates_nothing(render::SkiaRaster& raster) {
 
     std::size_t failures = 0U;
     std::size_t glyph_count = 0U;
-    using render::text::HarfBuzzFontEngine;
-    using render::text::NativeAllocationCounts;
-    const NativeAllocationCounts native_before = HarfBuzzFontEngine::thread_native_allocations();
     const AllocationScope counted_paths{};
     counted_allocations = 0U;
     counting_allocations = true;
@@ -277,20 +274,11 @@ void test_layout_allocates_nothing(render::SkiaRaster& raster) {
     counting_allocations = false;
     const std::uint64_t operator_new_calls = counted_allocations;
     const AllocationCounts text_layout = counted_paths.counted().of(AllocationSubsystem::text_layout);
-    const NativeAllocationCounts native_after = HarfBuzzFontEngine::thread_native_allocations();
 
     require(failures == 0U, "every paragraph lays out with glyphs");
     require(glyph_count != 0U, "glyphs are written");
     require(operator_new_calls == 0U, "no operator new; counted " + std::to_string(operator_new_calls));
     require(text_layout.allocations == 0U && text_layout.releases == 0U, "the text_layout arrays are not touched");
-    require(native_after.freetype == native_before.freetype,
-            "no FreeType allocation; counted " + std::to_string(native_after.freetype - native_before.freetype));
-    require(native_after.harfbuzz == native_before.harfbuzz,
-            "no HarfBuzz allocation; counted " + std::to_string(native_after.harfbuzz - native_before.harfbuzz));
-    require(native_after.sheenbidi_heap == native_before.sheenbidi_heap,
-            "SheenBidi stays in the workspace's arena; heap calls " +
-                std::to_string(native_after.sheenbidi_heap - native_before.sheenbidi_heap));
-    require(native_after.sheenbidi_arena > native_before.sheenbidi_arena, "SheenBidi ran from the arena");
 }
 
 } // namespace

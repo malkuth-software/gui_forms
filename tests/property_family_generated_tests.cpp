@@ -14,6 +14,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_overflow_panel.hpp"
@@ -32,6 +33,7 @@
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/controls/group_box.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
@@ -55,6 +57,7 @@
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
@@ -207,12 +210,12 @@ void test_block_panel_properties() {
         expect((*control).text_align.read() == sample, "BlockPanel.text_align: a write stores");
     }
     {
-        const std::optional<LineStrut> sample = LineStrut{4.0, 2.0, 1.0};
+        const stxlib::Optional<LineStrut> sample = stxlib::Optional<LineStrut>::of(LineStrut{4.0, 2.0, 1.0});
         (*control).line_strut = sample;
         expect((*control).line_strut.read() == sample, "BlockPanel.line_strut: a write stores");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "BlockPanel.font: a write stores");
     }
@@ -364,7 +367,7 @@ void test_button_base_properties() {
         expect((*control).use_mnemonic.read() == sample, "ButtonBase.use_mnemonic: a write stores");
     }
     {
-        const std::optional<bool> sample = std::optional<bool>{true};
+        const stxlib::Optional<bool> sample = stxlib::Optional<bool>::of(true);
         int raises = 0;
         const SubscriptionToken token = (*control).expanded_changed().subscribe(RaiseCounter{&raises});
         (*control).expanded_state = sample;
@@ -496,6 +499,32 @@ void test_choice_group_properties() {
                "ChoiceGroup.presentation: the table reads the cell");
     }
     // selected_index: no sample for int; give the property a "sample".
+}
+
+void test_color_picker_properties() {
+    std::shared_ptr<ColorPicker> control = make_control<ColorPicker>(StableId("generated.colorpicker"));
+    {
+        const Color sample = Color::rgba(10, 20, 30, 40);
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "ColorPicker.value: a write stores");
+        expect(raises == 1, "ColorPicker.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "ColorPicker.value: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<Color>::to_binding(sample),
+               "ColorPicker.value: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).alpha_enabled = sample;
+        expect((*control).alpha_enabled.read() == sample, "ColorPicker.alpha_enabled: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("alpha_enabled");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ColorPicker.alpha_enabled: the table reads the cell");
+    }
 }
 
 void test_color_value_editor_properties() {
@@ -632,7 +661,7 @@ void test_data_grid_view_properties() {
         expect((*control).row_order_policy.read() == sample, "DataGridView.row_order_policy: a write stores");
     }
     {
-        const DataGridViewRowOrderThresholds sample = DataGridViewRowOrderThresholds{};
+        const DataGridViewRowOrderThresholds sample = DataGridViewRowOrderThresholds{300000U, 100000U, 20000U, 1000U, 64U};
         (*control).row_order_thresholds = sample;
         expect((*control).row_order_thresholds.read() == sample, "DataGridView.row_order_thresholds: a write stores");
     }
@@ -640,6 +669,11 @@ void test_data_grid_view_properties() {
         const bool sample = false;
         (*control).allow_user_to_delete_rows = sample;
         expect((*control).allow_user_to_delete_rows.read() == sample, "DataGridView.allow_user_to_delete_rows: a write stores");
+    }
+    {
+        const bool sample = false;
+        (*control).show_cell_tool_tips = sample;
+        expect((*control).show_cell_tool_tips.read() == sample, "DataGridView.show_cell_tool_tips: a write stores");
     }
     {
         const bool sample = false;
@@ -657,27 +691,27 @@ void test_data_grid_view_properties() {
         expect((*control).show_editing_icon.read() == sample, "DataGridView.show_editing_icon: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).default_cell_style = sample;
         expect((*control).default_cell_style.read() == sample, "DataGridView.default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).rows_default_cell_style = sample;
         expect((*control).rows_default_cell_style.read() == sample, "DataGridView.rows_default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).alternating_rows_default_cell_style = sample;
         expect((*control).alternating_rows_default_cell_style.read() == sample, "DataGridView.alternating_rows_default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).column_headers_default_cell_style = sample;
         expect((*control).column_headers_default_cell_style.read() == sample, "DataGridView.column_headers_default_cell_style: a write stores");
     }
     {
-        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = true};
+        const DataGridViewCellStyle sample = DataGridViewCellStyle{.wrap_mode = stxlib::Optional<bool>::of(true)};
         (*control).row_headers_default_cell_style = sample;
         expect((*control).row_headers_default_cell_style.read() == sample, "DataGridView.row_headers_default_cell_style: a write stores");
     }
@@ -687,12 +721,12 @@ void test_data_grid_view_properties() {
         expect((*control).enable_headers_visual_styles.read() == sample, "DataGridView.enable_headers_visual_styles: a write stores");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U));
         (*control).grid_color = sample;
         expect((*control).grid_color.read() == sample, "DataGridView.grid_color: a write stores");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10U, 20U, 30U)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10U, 20U, 30U));
         (*control).background_color = sample;
         expect((*control).background_color.read() == sample, "DataGridView.background_color: a write stores");
     }
@@ -737,6 +771,11 @@ void test_data_grid_view_properties() {
         expect((*control).column_headers_height.read() == sample, "DataGridView.column_headers_height: a write stores");
     }
     {
+        const DataGridViewColumnHeadersHeightSizeMode sample = DataGridViewColumnHeadersHeightSizeMode::auto_size;
+        (*control).column_headers_height_size_mode = sample;
+        expect((*control).column_headers_height_size_mode.read() == sample, "DataGridView.column_headers_height_size_mode: a write stores");
+    }
+    {
         const double sample = 50.0;
         (*control).row_headers_width = sample;
         expect((*control).row_headers_width.read() == sample, "DataGridView.row_headers_width: a write stores");
@@ -745,6 +784,16 @@ void test_data_grid_view_properties() {
         const double sample = 30.0;
         (*control).row_height = sample;
         expect((*control).row_height.read() == sample, "DataGridView.row_height: a write stores");
+    }
+    {
+        const double sample = 20.0;
+        (*control).minimum_row_height = sample;
+        expect((*control).minimum_row_height.read() == sample, "DataGridView.minimum_row_height: a write stores");
+    }
+    {
+        const std::size_t sample = 2U;
+        (*control).frozen_row_count = sample;
+        expect((*control).frozen_row_count.read() == sample, "DataGridView.frozen_row_count: a write stores");
     }
     {
         const FontSpec sample = FontSpec{FontRole::content, 13.0, 600, false};
@@ -799,6 +848,16 @@ void test_data_grid_view_properties() {
         const bool sample = true;
         (*control).cells_on_sub_surface = sample;
         expect((*control).cells_on_sub_surface.read() == sample, "DataGridView.cells_on_sub_surface: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).auto_generate_columns = sample;
+        expect((*control).auto_generate_columns.read() == sample, "DataGridView.auto_generate_columns: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).standard_tab = sample;
+        expect((*control).standard_tab.read() == sample, "DataGridView.standard_tab: a write stores");
     }
 }
 
@@ -858,7 +917,7 @@ void test_date_time_picker_properties() {
         expect((*control).show_up_down.read() == sample, "DateTimePicker.show_up_down: a write stores");
     }
     {
-        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::right;
+        const DateTimeDropDownAlignment sample = DateTimeDropDownAlignment::end;
         (*control).drop_down_alignment = sample;
         expect((*control).drop_down_alignment.read() == sample, "DateTimePicker.drop_down_alignment: a write stores");
     }
@@ -1131,6 +1190,42 @@ void test_font_dialog_properties() {
     }
 }
 
+void test_form_layout_properties() {
+    std::shared_ptr<FormLayout> control = make_control<FormLayout>(StableId("generated.formlayout"));
+    {
+        const double sample = 120.0;
+        (*control).caption_width = sample;
+        expect((*control).caption_width.read() == sample, "FormLayout.caption_width: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption_width");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.caption_width: the table reads the cell");
+    }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::end;
+        (*control).caption_alignment = sample;
+        expect((*control).caption_alignment.read() == sample, "FormLayout.caption_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<HorizontalAlignment>::to_binding(sample),
+               "FormLayout.caption_alignment: the table reads the cell");
+    }
+    {
+        const double sample = 10.0;
+        (*control).row_spacing = sample;
+        expect((*control).row_spacing.read() == sample, "FormLayout.row_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("row_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.row_spacing: the table reads the cell");
+    }
+    {
+        const double sample = 12.0;
+        (*control).column_spacing = sample;
+        expect((*control).column_spacing.read() == sample, "FormLayout.column_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("column_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.column_spacing: the table reads the cell");
+    }
+}
+
 void test_grid_panel_properties() {
     std::shared_ptr<GridPanel> control = make_control<GridPanel>(StableId("generated.gridpanel"));
     {
@@ -1224,11 +1319,11 @@ void test_indicator_lamp_properties() {
                "IndicatorLamp.light_planes: the table reads the cell");
     }
     {
-        const std::optional<Color> sample = std::optional<Color>{Color::rgba(10, 20, 30)};
+        const stxlib::Optional<Color> sample = stxlib::Optional<Color>::of(Color::rgba(10, 20, 30));
         (*control).lamp_color = sample;
         expect((*control).lamp_color.read() == sample, "IndicatorLamp.lamp_color: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("lamp_color");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<Color>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<Color>>::to_binding(sample),
                "IndicatorLamp.lamp_color: the table reads the cell");
     }
 }
@@ -1290,7 +1385,7 @@ void test_label_properties() {
                "Label.text: the table reads the cell");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "Label.font: a write stores");
         expect((*control).property_value("font").has_value(), "Label.font: the table reads it");
@@ -1304,7 +1399,7 @@ void test_label_properties() {
                "Label.alignment: the table reads the cell");
     }
     {
-        const VerticalAlignment sample = VerticalAlignment::far;
+        const VerticalAlignment sample = VerticalAlignment::end;
         (*control).vertical_alignment = sample;
         expect((*control).vertical_alignment.read() == sample, "Label.vertical_alignment: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("vertical_alignment");
@@ -1387,21 +1482,33 @@ void test_list_view_properties() {
         const ListViewView sample = ListViewView::tile;
         (*control).view = sample;
         expect((*control).view.read() == sample, "ListView.view: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("view");
+        expect(by_name && *by_name == PropertyValueTraits<ListViewView>::to_binding(sample),
+               "ListView.view: the table reads the cell");
     }
     {
         const bool sample = !(*control).check_boxes.read();
         (*control).check_boxes = sample;
         expect((*control).check_boxes.read() == sample, "ListView.check_boxes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("check_boxes");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.check_boxes: the table reads the cell");
     }
     {
         const bool sample = !(*control).multi_select.read();
         (*control).multi_select = sample;
         expect((*control).multi_select.read() == sample, "ListView.multi_select: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("multi_select");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.multi_select: the table reads the cell");
     }
     {
         const bool sample = !(*control).full_row_select.read();
         (*control).full_row_select = sample;
         expect((*control).full_row_select.read() == sample, "ListView.full_row_select: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("full_row_select");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.full_row_select: the table reads the cell");
     }
     // small_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
     // large_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
@@ -1409,11 +1516,17 @@ void test_list_view_properties() {
         const FontSpec sample = FontSpec{FontRole::content, 12.0, 700, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "ListView.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<FontSpec>::to_binding(sample),
+               "ListView.font: the table reads the cell");
     }
     {
         const Size sample = Size{120.0, 48.0};
         (*control).tile_size = sample;
         expect((*control).tile_size.read() == sample, "ListView.tile_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("tile_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ListView.tile_size: the table reads the cell");
     }
     {
         const ItemDrawMode sample = ItemDrawMode::owner_draw;
@@ -1424,16 +1537,41 @@ void test_list_view_properties() {
         const bool sample = !(*control).show_groups.read();
         (*control).show_groups = sample;
         expect((*control).show_groups.read() == sample, "ListView.show_groups: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_groups");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.show_groups: the table reads the cell");
     }
     {
         const std::string sample = std::string{"Other"};
         (*control).default_group_header = sample;
         expect((*control).default_group_header.read() == sample, "ListView.default_group_header: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("default_group_header");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ListView.default_group_header: the table reads the cell");
     }
     {
         const bool sample = !(*control).label_edit.read();
         (*control).label_edit = sample;
         expect((*control).label_edit.read() == sample, "ListView.label_edit: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("label_edit");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.label_edit: the table reads the cell");
+    }
+    {
+        const ListViewActivation sample = ListViewActivation::one_click;
+        (*control).activation = sample;
+        expect((*control).activation.read() == sample, "ListView.activation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("activation");
+        expect(by_name && *by_name == PropertyValueTraits<ListViewActivation>::to_binding(sample),
+               "ListView.activation: the table reads the cell");
+    }
+    {
+        const ListViewHeaderStyle sample = ListViewHeaderStyle::none;
+        (*control).header_style = sample;
+        expect((*control).header_style.read() == sample, "ListView.header_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("header_style");
+        expect(by_name && *by_name == PropertyValueTraits<ListViewHeaderStyle>::to_binding(sample),
+               "ListView.header_style: the table reads the cell");
     }
 }
 
@@ -1700,7 +1838,7 @@ void test_numeric_up_down_properties() {
                "NumericUpDown.thousands_separator: the table reads the cell");
     }
     {
-        const HorizontalAlignment sample = HorizontalAlignment::far;
+        const HorizontalAlignment sample = HorizontalAlignment::end;
         (*control).text_alignment = sample;
         expect((*control).text_alignment.read() == sample, "NumericUpDown.text_alignment: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("text_alignment");
@@ -1862,6 +2000,50 @@ void test_picture_box_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("image_opacity");
         expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
                "PictureBox.image_opacity: the table reads the cell");
+    }
+}
+
+void test_plot3d_view_properties() {
+    std::shared_ptr<Plot3DView> control = make_control<Plot3DView>(StableId("generated.plot3dview"));
+    {
+        const bool sample = false;
+        (*control).show_panes = sample;
+        expect((*control).show_panes.read() == sample, "Plot3DView.show_panes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_panes");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.show_panes: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_grid = sample;
+        expect((*control).show_grid.read() == sample, "Plot3DView.show_grid: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_grid");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.show_grid: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_axes = sample;
+        expect((*control).show_axes.read() == sample, "Plot3DView.show_axes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_axes");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.show_axes: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).wheel_zoom = sample;
+        expect((*control).wheel_zoom.read() == sample, "Plot3DView.wheel_zoom: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wheel_zoom");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.wheel_zoom: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).labels_along_axis = sample;
+        expect((*control).labels_along_axis.read() == sample, "Plot3DView.labels_along_axis: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("labels_along_axis");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.labels_along_axis: the table reads the cell");
     }
 }
 
@@ -2093,7 +2275,7 @@ void test_progress_bar_properties() {
                "ProgressBar.effect: the table reads the cell");
     }
     {
-        const std::optional<std::uint64_t> sample = std::uint64_t{7U};
+        const stxlib::Optional<std::uint64_t> sample = stxlib::Optional<std::uint64_t>::of(7U);
         (*control).effect_seed = sample;
         expect((*control).effect_seed.read() == sample, "ProgressBar.effect_seed: a write stores");
         expect((*control).property_value("effect_seed").has_value(), "ProgressBar.effect_seed: the table reads it");
@@ -2133,6 +2315,14 @@ void test_progress_ring_properties() {
         const std::optional<BindingValue> by_name = (*control).property_value("indeterminate");
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "ProgressRing.indeterminate: the table reads the cell");
+    }
+    {
+        const ProgressRingStyle sample = ProgressRingStyle::arc;
+        (*control).ring_style = sample;
+        expect((*control).ring_style.read() == sample, "ProgressRing.ring_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("ring_style");
+        expect(by_name && *by_name == PropertyValueTraits<ProgressRingStyle>::to_binding(sample),
+               "ProgressRing.ring_style: the table reads the cell");
     }
 }
 
@@ -2289,6 +2479,11 @@ void test_ribbon_properties() {
         const bool sample = true;
         (*control).tabs_activate_on_release = sample;
         expect((*control).tabs_activate_on_release.read() == sample, "Ribbon.tabs_activate_on_release: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).help_button_visible = sample;
+        expect((*control).help_button_visible.read() == sample, "Ribbon.help_button_visible: a write stores");
     }
 }
 
@@ -2547,12 +2742,12 @@ void test_split_container_properties() {
         expect((*control).second_minimum.read() == sample, "SplitContainer.second_minimum: a write stores");
     }
     {
-        const std::optional<double> sample = std::optional<double>{400.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(400.0);
         (*control).first_maximum = sample;
         expect((*control).first_maximum.read() == sample, "SplitContainer.first_maximum: a write stores");
     }
     {
-        const std::optional<double> sample = std::optional<double>{400.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(400.0);
         (*control).second_maximum = sample;
         expect((*control).second_maximum.read() == sample, "SplitContainer.second_maximum: a write stores");
     }
@@ -2726,7 +2921,7 @@ void test_text_block_properties() {
                "TextBlock.text: the table reads the cell");
     }
     {
-        const std::optional<FontSpec> sample = FontSpec{FontRole::content, 14.0, 400, false};
+        const stxlib::Optional<FontSpec> sample = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::content, 14.0, 400, false});
         (*control).font = sample;
         expect((*control).font.read() == sample, "TextBlock.font: a write stores");
         expect((*control).property_value("font").has_value(), "TextBlock.font: the table reads it");
@@ -2740,7 +2935,7 @@ void test_text_block_properties() {
                "TextBlock.text_align: the table reads the cell");
     }
     {
-        const std::optional<double> sample = 18.0;
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(18.0);
         (*control).line_height = sample;
         expect((*control).line_height.read() == sample, "TextBlock.line_height: a write stores");
         expect((*control).property_value("line_height").has_value(), "TextBlock.line_height: the table reads it");
@@ -2758,12 +2953,14 @@ void test_text_box_properties() {
                "TextBox.placeholder_text: the table reads the cell");
     }
     {
-        const bool sample = false;
+        const bool before = (*control).multiline.read();
+        const bool sample = !(*control).multiline.read();
         (*control).multiline = sample;
         expect((*control).multiline.read() == sample, "TextBox.multiline: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("multiline");
         expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
                "TextBox.multiline: the table reads the cell");
+        (*control).multiline = before;
     }
     {
         const bool sample = !(*control).word_wrap.read();
@@ -2822,7 +3019,7 @@ void test_text_box_properties() {
         expect((*control).auto_complete_case_sensitive.read() == sample, "TextBox.auto_complete_case_sensitive: a write stores");
     }
     {
-        const HorizontalAlignment sample = HorizontalAlignment::far;
+        const HorizontalAlignment sample = HorizontalAlignment::end;
         (*control).text_alignment = sample;
         expect((*control).text_alignment.read() == sample, "TextBox.text_alignment: a write stores");
     }
@@ -3065,27 +3262,27 @@ void test_typography_specimen_properties() {
 void test_value_bar_properties() {
     std::shared_ptr<ValueBar> control = make_control<ValueBar>(StableId("generated.valuebar"));
     {
-        const std::optional<double> sample = std::optional<double>{10.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(10.0);
         (*control).soft_minimum = sample;
         expect((*control).soft_minimum.read() == sample, "ValueBar.soft_minimum: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("soft_minimum");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.soft_minimum: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{90.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(90.0);
         (*control).soft_maximum = sample;
         expect((*control).soft_maximum.read() == sample, "ValueBar.soft_maximum: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("soft_maximum");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.soft_maximum: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{5.0};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(5.0);
         (*control).snap_step = sample;
         expect((*control).snap_step.read() == sample, "ValueBar.snap_step: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("snap_step");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.snap_step: the table reads the cell");
     }
     {
@@ -3129,11 +3326,11 @@ void test_value_bar_properties() {
                "ValueBar.label: the table reads the cell");
     }
     {
-        const std::optional<double> sample = std::optional<double>{0.5};
+        const stxlib::Optional<double> sample = stxlib::Optional<double>::of(0.5);
         (*control).scrub_rate = sample;
         expect((*control).scrub_rate.read() == sample, "ValueBar.scrub_rate: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("scrub_rate");
-        expect(by_name && *by_name == PropertyValueTraits<std::optional<double>>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<stxlib::Optional<double>>::to_binding(sample),
                "ValueBar.scrub_rate: the table reads the cell");
     }
 }
@@ -3265,6 +3462,7 @@ int main() {
     test_check_box_properties();
     test_checked_list_box_properties();
     test_choice_group_properties();
+    test_color_picker_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
     test_command_overflow_panel_properties();
@@ -3285,6 +3483,7 @@ int main() {
     test_flex_panel_properties();
     test_flow_layout_panel_compat_properties();
     test_font_dialog_properties();
+    test_form_layout_properties();
     test_grid_panel_properties();
     test_group_box_properties();
     test_indicator_lamp_properties();
@@ -3309,6 +3508,7 @@ int main() {
     test_page_view_properties();
     test_panel_properties();
     test_picture_box_properties();
+    test_plot3d_view_properties();
     test_plot_annotation_item_properties();
     test_plot_axis_item_properties();
     test_plot_series_item_properties();

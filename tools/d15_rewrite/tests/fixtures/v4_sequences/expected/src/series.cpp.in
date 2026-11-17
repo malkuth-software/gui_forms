@@ -1,0 +1,15 @@
+#include <gui_forms/series.hpp>
+
+#include <stxlib/view.hpp>
+#include <cstddef>
+#include <span>
+
+namespace gui_forms {
+
+double total(const stxlib::View<double> values) noexcept {
+    double sum = 0.0;
+    for (std::size_t index = 0U; index < values.count(); ++index) sum += values[index];
+    return sum;
+}
+
+} // namespace gui_forms

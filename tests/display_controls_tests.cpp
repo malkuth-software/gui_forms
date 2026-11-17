@@ -52,6 +52,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <locale>
 #include <memory>
 #include <optional>
 #include <span>
@@ -63,6 +64,14 @@
 
 namespace {
 using namespace gui_forms;
+
+// A global C++ locale with a comma decimal mark and grouping by threes, which a
+// default std::ostringstream follows.
+struct CommaNumbers final : std::numpunct<char> {
+    char do_decimal_point() const override { return ','; }
+    char do_thousands_sep() const override { return '.'; }
+    std::string do_grouping() const override { return std::string("\3"); }
+};
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -134,11 +143,11 @@ void test_badge_semantics_parts_and_threads() {
     const Badge::Parts counted = (*badge).parts();
     require(counted.chip.present && counted.label.present, "a count badge publishes its chip and label");
 
-    const std::optional<CustomStateIndex> dot = find_custom_state((*badge).anatomy(), "dot");
-    require(dot && !(*badge).anatomy_states().contains(*dot), "count mode is not the dot state");
+    const stxlib::Optional<CustomStateIndex> dot = find_custom_state((*badge).anatomy(), "dot");
+    require(dot.present() && !(*badge).anatomy_states().contains(*dot.value()), "count mode is not the dot state");
     (*badge).mode = BadgeMode::dot;
     window.perform_layout();
-    require((*badge).anatomy_states().contains(*dot), "dot mode publishes the dot state");
+    require((*badge).anatomy_states().contains(*dot.value()), "dot mode publishes the dot state");
     const Badge::Parts dotted = (*badge).parts();
     require(dotted.chip.present && !dotted.label.present, "a dot publishes a chip without a label");
     require(!(*badge).hit_test_local(Point{4.0, 4.0}), "a badge takes no pointer input");
@@ -176,18 +185,18 @@ void test_info_banner_properties_and_states() {
             "a banner starts as closable information");
     require((*banner).focusable.read(), "a closable banner takes focus");
     const ControlAnatomy& anatomy = (*banner).anatomy();
-    const std::optional<CustomStateIndex> information = find_custom_state(anatomy, "information");
-    const std::optional<CustomStateIndex> warning = find_custom_state(anatomy, "warning");
-    const std::optional<CustomStateIndex> success = find_custom_state(anatomy, "success");
-    const std::optional<CustomStateIndex> error = find_custom_state(anatomy, "error");
-    require(information && warning && success && error, "the banner declares a custom state per severity");
+    const stxlib::Optional<CustomStateIndex> information = find_custom_state(anatomy, "information");
+    const stxlib::Optional<CustomStateIndex> warning = find_custom_state(anatomy, "warning");
+    const stxlib::Optional<CustomStateIndex> success = find_custom_state(anatomy, "success");
+    const stxlib::Optional<CustomStateIndex> error = find_custom_state(anatomy, "error");
+    require(information.present() && warning.present() && success.present() && error.present(), "the banner declares a custom state per severity");
     AnatomyStateSet states = (*banner).anatomy_states();
-    require(states.contains(*information) && !states.contains(*warning) && !states.contains(*success) &&
-                !states.contains(*error),
+    require(states.contains(*information.value()) && !states.contains(*warning.value()) && !states.contains(*success.value()) &&
+                !states.contains(*error.value()),
             "information is the one severity state at first");
     (*banner).severity = NoticeSeverity::error;
     states = (*banner).anatomy_states();
-    require(states.contains(*error) && !states.contains(*information), "a new severity replaces the old state");
+    require(states.contains(*error.value()) && !states.contains(*information.value()), "a new severity replaces the old state");
 
     bool refused = false;
     const std::string broken{"\xff\xfe"};
@@ -218,6 +227,20 @@ void test_info_banner_properties_and_states() {
             "the table reads the severity cell");
     (*banner).set_property_value("severity", BindingValue{PropertyEnumValue{"notice_severity", "success", 2}});
     require((*banner).severity.read() == NoticeSeverity::success, "the table writes the severity cell");
+
+    // A-gf-controls-05-F3: a severity outside the enumeration would be shifted by as a
+    // custom state index; it is refused and the severity kept.
+    refused = false;
+    try {
+        (*banner).severity = static_cast<NoticeSeverity>(40);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*banner).severity.read() == NoticeSeverity::success, "an unknown severity is refused");
+    AnatomyStateSet past{};
+    past.insert(CustomStateIndex{40U});
+    require(past.custom_bits() == 0U && !past.contains(CustomStateIndex{40U}),
+            "a custom index past sixteen names no state");
 }
 
 void test_info_banner_closing() {
@@ -407,15 +430,15 @@ void test_segmented_choice_group() {
     Window window(root, Size{400.0, 100.0});
     window.perform_layout();
 
-    const std::optional<CustomStateIndex> segmented = find_custom_state((*group).anatomy(), "segmented");
-    require(segmented && !(*group).anatomy_states().contains(*segmented), "buttons are not the segmented state");
+    const stxlib::Optional<CustomStateIndex> segmented = find_custom_state((*group).anatomy(), "segmented");
+    require(segmented.present() && !(*group).anatomy_states().contains(*segmented.value()), "buttons are not the segmented state");
     require((*group).item(0).committed_arranged_bounds().x == 0.0, "buttons start at the group's edge");
     require(!(*group).parts().track.present && !(*group).parts().selection.present,
             "the buttons presentation publishes no track or selection");
 
     (*group).presentation = ChoiceGroupPresentation::segmented;
     window.perform_layout();
-    require((*group).anatomy_states().contains(*segmented), "the segmented presentation publishes its state");
+    require((*group).anatomy_states().contains(*segmented.value()), "the segmented presentation publishes its state");
     const Rect first = (*group).item(0).committed_arranged_bounds();
     const Rect second = (*group).item(1).committed_arranged_bounds();
     require(first.x == 2.0 && first.y == 2.0 && first.width == 99.0 && first.height == 28.0 && second.x == 101.0,
@@ -511,6 +534,17 @@ void test_toast_content_and_semantics() {
         invalid_refused = true;
     }
     require(invalid_refused, "a message that is not UTF-8 is refused");
+    // A-gf-controls-14-F6: a severity outside the enumeration is refused at construction.
+    bool severity_refused = false;
+    try {
+        ToastContent unknown{};
+        unknown.message = "Shifted";
+        unknown.severity = static_cast<NoticeSeverity>(32);
+        static_cast<void>(make_control<Toast>(StableId("display.toast.severity"), std::move(unknown)));
+    } catch (const std::invalid_argument&) {
+        severity_refused = true;
+    }
+    require(severity_refused, "a severity outside NoticeSeverity is refused");
 
     const std::shared_ptr<Toast> plain = make_toast("display.toast.plain", "", false);
     require(!(*plain).action() && (*plain).children().empty(), "a toast without action text has no button");
@@ -554,7 +588,7 @@ void test_window_toasts() {
     window.perform_layout();
     require(first_id == 1U && window.toast_visible() && window.toast_content() == first,
             "the first toast shows with ID 1");
-    require(!window.next_wake().has_value(), "a toast without a duration arms no wake");
+    require(window.next_wake().absent(), "a toast without a duration arms no wake");
     const Rect placed = (*first).committed_arranged_bounds();
     require(placed.width > 0.0 && placed.y + placed.height == 400.0 - 16.0 &&
                 placed.x == std::floor((600.0 - placed.width) * 0.5),
@@ -617,21 +651,34 @@ void test_window_toasts() {
     gui_forms::detail::ControlInputAccess::on_pointer(*marked, release);
     require(release.handled && !window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::closed,
             "releasing over the close mark dismisses the toast");
+    // A press on the close mark whose capture is taken away is forgotten
+    // (A-gf-controls-14-F4).
+    static_cast<void>(window.show_toast(owner, marked, std::chrono::milliseconds{0}));
+    window.perform_layout();
+    PointerEvent second_press = press;
+    second_press.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, second_press);
+    (*marked).set_pointer_capture(false);
+    PointerEvent late_release = release;
+    late_release.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, late_release);
+    require(window.toast_visible(), "a release after the press lost its capture does not dismiss the toast");
+    window.hide_toast();
 
     const std::shared_ptr<Toast> timed = make_toast("display.toasts.timed", "", true);
     static_cast<void>(window.show_toast(owner, timed, std::chrono::milliseconds{50}));
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "a toast with a duration arms a wake");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "a toast with a duration arms a wake");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(!window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::timed_out &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "the wake closes the toast when its duration runs out");
 
     const std::shared_ptr<Toast> hidden = make_toast("display.toasts.hidden", "", true);
     static_cast<void>(window.show_toast(owner, hidden));
     window.hide_toast();
     require(!window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::hidden &&
-                !window.next_wake().has_value(),
+                window.next_wake().absent(),
             "hide_toast closes the toast and drops its wake");
     const std::size_t before_idle_hide = recorder.seen.size();
     window.hide_toast();
@@ -909,10 +956,10 @@ void test_search_field_in_window() {
     (*field).text = std::string{"r"};
     (*field).text = std::string{"ri"};
     require(recorder.seen.size() == 2U && recorder.seen[1] == "text:ri", "typing does not search before the pause");
-    const std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "a change arms the search delay");
-    static_cast<void>(window.poll_frame_schedule(*wake));
-    require(recorder.seen.size() == 3U && recorder.seen[2] == "search:ri" && !window.next_wake().has_value(),
+    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "a change arms the search delay");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
+    require(recorder.seen.size() == 3U && recorder.seen[2] == "search:ri" && window.next_wake().absent(),
             "once the pause is over the field searches once, for the latest text");
 
     (*field).busy = true;
@@ -959,6 +1006,19 @@ void test_search_field_in_window() {
     release.handled = false;
     gui_forms::detail::ControlInputAccess::on_pointer(*field, release);
     require(release.handled && (*field).text.read().empty(), "releasing over the clear mark clears the field");
+
+    // A press on the clear mark whose capture is taken away is forgotten
+    // (A-gf-controls-13-F3).
+    (*field).text = std::string{"x"};
+    window.perform_layout();
+    PointerEvent second_press = press;
+    second_press.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, second_press);
+    (*field).set_pointer_capture(false);
+    PointerEvent late_release = release;
+    late_release.handled = false;
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, late_release);
+    require((*field).text.read() == "x", "a release after the press lost its capture does not clear the field");
 }
 
 // Draws nothing: on_paint runs for its effects on the motion clock.
@@ -1006,13 +1066,13 @@ void test_toggle_switch_motion() {
 
     (*toggle).checked = true;
     require((*toggle).checked.read() && (*toggle).thumb_position() < 1.0 && clock.moving_count() == 1U &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "turning the switch on starts the thumb's travel; the state changes at once");
     advance(window, time, std::chrono::milliseconds(75));
     const double midway = (*toggle).thumb_position();
     require(midway == 0.5, "halfway through the 150 ms smoothstep the thumb is halfway");
     advance(window, time, std::chrono::milliseconds(75));
-    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && !window.next_wake().has_value(),
+    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && window.next_wake().absent(),
             "past the move's end the thumb settles and the window rests");
 
     (*toggle).checked = false;
@@ -1021,7 +1081,7 @@ void test_toggle_switch_motion() {
     require((*toggle).thumb_position() == 0.0 && clock.moving_count() == 0U,
             "turning reduced motion on puts the moving thumb at its end");
     (*toggle).checked = true;
-    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && !window.next_wake().has_value(),
+    require((*toggle).thumb_position() == 1.0 && clock.moving_count() == 0U && window.next_wake().absent(),
             "under reduced motion the thumb has no travel");
     window.perform_layout();
     const ToggleSwitch::Parts parts = (*toggle).parts();
@@ -1045,13 +1105,13 @@ void test_search_field_busy_motion() {
     const Rect bounds{0.0, 0.0, 300.0, 32.0};
     NullPainter idle_painter;
     (*field).on_paint(idle_painter, bounds);
-    require(!clock.control_ambient(*field) && !window.next_wake().has_value(), "an idle field is not on the clock");
+    require(!clock.control_ambient(*field) && window.next_wake().absent(), "an idle field is not on the clock");
 
     (*field).busy = true;
     NullPainter first;
     (*field).on_paint(first, bounds);
     const SearchField::Parts at_start = (*field).parts();
-    require(clock.control_ambient(*field) && window.next_wake().has_value() && at_start.activity.present &&
+    require(clock.control_ambient(*field) && window.next_wake().present() && at_start.activity.present &&
                 at_start.activity.bounds.width < 296.0,
             "a drawn busy field sweeps a segment on the motion clock");
     advance(window, time, std::chrono::milliseconds(300));
@@ -1104,7 +1164,7 @@ void test_spinner() {
             "a spinner is active and measures 24 units square");
     const SemanticDescriptor busy = (*loose).semantic_descriptor();
     require(busy.role == SemanticRole::progress_bar && busy.exposed && has_semantic_state(busy.states, SemanticState::busy) &&
-                !busy.numeric_value,
+                busy.numeric_value.absent(),
             "an active spinner is a busy progress bar without a value");
     require(!(*loose).hit_test_local(Point{4.0, 4.0}), "a spinner takes no pointer input");
 
@@ -1122,7 +1182,7 @@ void test_spinner() {
     const Rect bounds{0.0, 0.0, 48.0, 48.0};
     NullPainter first;
     (*spinner).on_paint(first, bounds);
-    require(clock.control_ambient(*spinner) && (*spinner).moving() && window.next_wake().has_value() &&
+    require(clock.control_ambient(*spinner) && (*spinner).moving() && window.next_wake().present() &&
                 (*spinner).phase() == 0U,
             "a drawn spinner turns on the motion clock from twelve o'clock");
     advance(window, time, std::chrono::milliseconds(100));
@@ -1193,10 +1253,22 @@ void test_progress_ring() {
     (*loose).maximum = 50.0;
     (*loose).value = 20.0;
     const SemanticDescriptor amount = (*loose).semantic_descriptor();
-    require(amount.role == SemanticRole::progress_bar && amount.exposed && amount.numeric_value == 20.0 &&
-                amount.minimum_value == 0.0 && amount.maximum_value == 50.0 && amount.value == "20" &&
+    require(amount.role == SemanticRole::progress_bar && amount.exposed &&
+                amount.numeric_value == stxlib::Optional<double>::of(20.0) &&
+                amount.minimum_value == stxlib::Optional<double>::of(0.0) &&
+                amount.maximum_value == stxlib::Optional<double>::of(50.0) && amount.value == "20" &&
                 !has_semantic_state(amount.states, SemanticState::busy),
             "a determinate ring publishes its value and range");
+    // A-gf-controls-10-F10: the published value does not follow the program's global locale.
+    // std::locale takes ownership of the facet (reference counted); the previous global
+    // locale is restored before the check, so a failure leaves the process as it was.
+    (*loose).maximum = 5000.0;
+    (*loose).value = 1234.5;
+    // std-rules: allow(locale-change) the test sets a comma-decimal global locale to prove the published value ignores it, and restores the previous one at once
+    const std::locale previous = std::locale::global(std::locale(std::locale::classic(), new CommaNumbers()));
+    const SemanticDescriptor localized = (*loose).semantic_descriptor();
+    static_cast<void>(std::locale::global(previous));  // std-rules: allow(locale-change) restores the locale the test replaced
+    require(localized.value == "1234.5", "the ring's value is written in the C locale's form");
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.ring.root"));
     const std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("display.ring"));
@@ -1225,7 +1297,7 @@ void test_progress_ring() {
     const ProgressRing::Parts spinning = (*ring).parts();
     require(spinning.activity.present && !spinning.fill.present, "an indeterminate ring publishes its activity part");
     const SemanticDescriptor busy = (*ring).semantic_descriptor();
-    require(has_semantic_state(busy.states, SemanticState::busy) && !busy.numeric_value,
+    require(has_semantic_state(busy.states, SemanticState::busy) && busy.numeric_value.absent(),
             "an indeterminate ring is busy without a value");
     NullPainter first;
     (*ring).on_paint(first, bounds);
@@ -1242,6 +1314,81 @@ void test_progress_ring() {
     NullPainter settled;
     (*ring).on_paint(settled, bounds);
     require(!clock.control_ambient(*ring) && (*ring).parts().fill.present, "turning determinate again leaves the clock");
+}
+
+// Keeps each stroked path's trim and width (the arc ring's parts reach the
+// painter as trimmed circles, claude/geometry-1).
+class TrimWatch final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void stroke_path(PaintPathView, const StrokeStyle& style) override { trims.push_back(style.trim); }
+
+    std::vector<StrokeTrim> trims;
+};
+
+bool near_trim(const StrokeTrim& trim, double start, double end, double offset) {
+    const bool close = std::abs(trim.start - start) < 1e-12 && std::abs(trim.end - end) < 1e-12 &&
+                       std::abs(trim.offset - offset) < 1e-12;
+    return close;
+}
+
+// ProgressRing's continuous arc (claude/geometry-1): the default (theme)
+// style under the built-in theme draws dots; `arc` draws the full track and
+// a value arc trimmed to the fraction, or a quarter-turn run from the phase
+// while indeterminate; the parts follow the style.
+void test_progress_ring_arc() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.arc.root"));
+    const std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("display.arc"));
+    (*ring).set_requested_bounds(Rect{0.0, 0.0, 64.0, 64.0});
+    (*ring).value = 40.0;
+    (*root).add_child(ring);
+    ManualTime time;
+    Window window(root, Size{100.0, 100.0});
+    window.motion_clock().set_time_source(&time);
+    window.perform_layout();
+    require((*ring).ring_style.read() == ProgressRingStyle::theme && !(*ring).draws_arc(),
+            "by default the ring follows the theme, and the built-in theme draws dots");
+    TrimWatch dotted;
+    (*ring).on_paint(dotted, Rect{0.0, 0.0, 64.0, 64.0});
+    require(dotted.trims.empty(), "a dotted ring strokes no arc");
+
+    (*ring).ring_style = ProgressRingStyle::arc;
+    window.perform_layout();
+    require((*ring).draws_arc(), "the arc style draws the arc");
+    const ProgressRing::Parts arc_parts = (*ring).parts();
+    require(arc_parts.arc_track.present && arc_parts.value_arc.present && !arc_parts.track.present &&
+                !arc_parts.fill.present,
+            "an arc ring publishes its arc track and value arc");
+    TrimWatch determinate;
+    (*ring).on_paint(determinate, Rect{0.0, 0.0, 64.0, 64.0});
+    require(determinate.trims.size() == 2U && near_trim(determinate.trims[0], 0.0, 1.0, 0.0) &&
+                near_trim(determinate.trims[1], 0.0, 0.4, 0.0),
+            "the track is the whole circle and the value arc 40 % of it from twelve o'clock");
+    (*ring).value = 0.0;
+    TrimWatch empty;
+    (*ring).on_paint(empty, Rect{0.0, 0.0, 64.0, 64.0});
+    require(empty.trims.size() == 1U && !(*ring).parts().value_arc.present, "an empty ring draws its track alone");
+
+    (*ring).indeterminate = true;
+    window.perform_layout();
+    TrimWatch turning;
+    (*ring).on_paint(turning, Rect{0.0, 0.0, 64.0, 64.0});
+    require(turning.trims.size() == 2U && near_trim(turning.trims[1], 0.0, 0.25, 0.0) &&
+                (*ring).parts().value_arc.present,
+            "indeterminate, a quarter-turn run starts at twelve o'clock");
+    advance(window, time, std::chrono::milliseconds(90));
+    TrimWatch moved;
+    (*ring).on_paint(moved, Rect{0.0, 0.0, 64.0, 64.0});
+    require((*ring).phase() == 3U && moved.trims.size() == 2U && near_trim(moved.trims[1], 0.0, 0.25, 0.075),
+            "the run turns a fortieth of the ring per step");
 }
 
 } // namespace
@@ -1265,6 +1412,7 @@ int main() {
     test_search_field_busy_motion();
     test_spinner();
     test_progress_ring();
+    test_progress_ring_arc();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

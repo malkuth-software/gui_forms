@@ -112,7 +112,9 @@ gf_schema_serialization serialization_of(PropertySerializationVisibility visibil
     return GF_SCHEMA_SERIALIZATION_HIDDEN;
 }
 
-SchemaProperty property_of(const PropertyDescriptor& descriptor) {
+} // namespace
+
+SchemaProperty schema_property_of(const PropertyDescriptor& descriptor) {
     SchemaProperty property;
     property.name = descriptor.name;
     property.kind = value_kind_of(descriptor.kind);
@@ -135,6 +137,8 @@ SchemaProperty property_of(const PropertyDescriptor& descriptor) {
     return property;
 }
 
+namespace {
+
 SchemaType type_of(const SchemaCatalogEntry& entry) {
     SchemaSample sample;
     (*entry.describe)(sample);
@@ -142,7 +146,11 @@ SchemaType type_of(const SchemaCatalogEntry& entry) {
     type.id = entry.id;
     type.type_name = entry.type_name;
     type.anatomy = sample.anatomy;
-    if (sample.anatomy != nullptr) {
+    if (entry.construction == CatalogConstruction::definition) {
+        // Listed, never created by id: a designer makes one through a
+        // definition (the custom controls table).
+        type.kind = GF_SCHEMA_KIND_DEFINED_CONTROL;
+    } else if (sample.anatomy != nullptr) {
         type.kind = GF_SCHEMA_KIND_CONTROL;
     } else if (sample.recorded) {
         type.kind = GF_SCHEMA_KIND_COMPONENT;
@@ -151,11 +159,11 @@ SchemaType type_of(const SchemaCatalogEntry& entry) {
     }
     type.properties.reserve(sample.properties.size());
     for (const PropertyDescriptor& descriptor : sample.properties) {
-        type.properties.push_back(property_of(descriptor));
+        type.properties.push_back(schema_property_of(descriptor));
     }
     type.child_properties.reserve(sample.child_properties.size());
     for (const PropertyDescriptor& descriptor : sample.child_properties) {
-        type.child_properties.push_back(property_of(descriptor));
+        type.child_properties.push_back(schema_property_of(descriptor));
     }
     type.interactions.reserve(sample.interactions.size());
     for (const InteractionDeclaration& declaration : sample.interactions) {
@@ -238,12 +246,10 @@ gf_value_kind value_kind_of(BindingValueKind kind) noexcept {
 
 const Schema& schema() {
     // Leaked on purpose: the text it lends lives until the process ends.
-    // Only the UI thread reaches here, so no two builds run at once, and the
-    // registry's lock orders this write before any later thread's read.
-    static Schema* built = nullptr;
-    if (built == nullptr) {
-        built = build_schema().release();
-    }
+    // The UI thread and, since 1.1, a sub-surface's thread reach here
+    // (A-gf-abi-02-F5), so the build is a function-local static: the
+    // language runs it once and makes a racing first caller wait for it.
+    static const Schema* const built = build_schema().release();
     return *built;
 }
 
@@ -283,6 +289,16 @@ std::string_view catalog_type_id(std::size_t index) {
 Component::Ptr create_catalog_type(std::size_t index, StableId stable_id) {
     const Component::Ptr object = (*schema_catalog.at(index).create)(std::move(stable_id));
     return object;
+}
+
+CatalogCreator catalog_type_creator(std::size_t index) {
+    const CatalogCreator create = schema_catalog.at(index).create;
+    return create;
+}
+
+bool catalog_type_made_from_definition(std::size_t index) {
+    const bool definition = schema_catalog.at(index).construction == CatalogConstruction::definition;
+    return definition;
 }
 
 std::string_view catalog_type_id_of(const Component& object) {

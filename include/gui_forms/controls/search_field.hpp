@@ -105,6 +105,9 @@ protected:
     void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    // A press on the clear mark whose capture is taken away is forgotten,
+    // so a later release over the mark does not clear the field.
+    void on_mouse_capture_changed() override;
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -172,9 +175,10 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_text_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_text_changed();
 
 private:
     bool over_clear(Point window_position) const;

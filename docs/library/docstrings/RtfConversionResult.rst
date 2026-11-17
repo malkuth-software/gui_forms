@@ -32,7 +32,8 @@ Importing an RTF document and listing what it lost:
    const gf::RtfConversionResult imported = gf::import_rtf(rtf, markdown);   // "**Bold** text\n"
    std::string summary;
    if (imported.succeeded()) {
-       const gf::MarkdownLossReport losses = *imported.losses();
+       const stxlib::Optional<gf::MarkdownLossReport> reported = imported.losses();
+       const gf::MarkdownLossReport losses = *reported.value();
        for (std::size_t kind = 0; kind < gf::markdown_loss_kind_count; ++kind) {
            const gf::MarkdownLoss loss = static_cast<gf::MarkdownLoss>(kind);
            summary += gf::describe_loss(loss, losses.count(loss));

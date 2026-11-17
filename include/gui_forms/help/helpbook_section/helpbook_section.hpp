@@ -5,6 +5,7 @@
 #include "gui_forms/help/help_records/help_records.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -109,20 +110,28 @@ struct GUI_FORMS_API HelpBookSection final {
     std::vector<HelpLinkEntry> links{};
 
     // The record holding `stable_id`, or none.
-    [[nodiscard]] std::optional<std::size_t> find(std::string_view stable_id) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> find(std::string_view stable_id) const noexcept;
     // The first keyword entry not before `folded_prefix`: the index tab's
     // type-ahead position.
     [[nodiscard]] std::size_t keyword_position(std::string_view folded_prefix) const noexcept;
 };
 
-// Case-folds help text for indexing and search: ASCII letters to lower
-// case; other bytes are kept (Unicode case folding is the text engine's and
-// comes with the language-file implementation). `folded` is replaced.
+// Folds help text for indexing and search (GAPS H2), code point by code
+// point: full Unicode case folding with compatibility decomposition,
+// diacritics of the Combining Diacritical Marks blocks dropped, separators
+// and punctuation to a space, then canonical composition (the table and
+// its rules: tools/unicode/generate_search_fold_tables.py, Unicode 17.0.0).
+// So "Résumé", "RESUME" and "resume" fold alike, as do "Straße" and
+// "STRASSE". Marks of other blocks (Indic vowel signs, Hebrew points) are
+// kept. A byte that starts no well-formed UTF-8 sequence is kept as it is.
+// Folding folded text changes nothing. `folded` is replaced; its storage is
+// reused.
 GUI_FORMS_API void fold_help_text(std::string_view text, std::string& folded);
 
 // Splits folded text into search words: maximal runs of ASCII letters and
-// digits and of non-ASCII bytes. Each word is a view into `text`; `words`
-// is cleared first.
+// digits and of non-ASCII bytes (folding has already turned non-ASCII
+// separators and punctuation into spaces). Each word is a view into `text`;
+// `words` is cleared first.
 GUI_FORMS_API void split_help_words(std::string_view text, std::vector<std::string_view>& words);
 
 // What a link destination is in a help body (study section 4): a valid

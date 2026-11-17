@@ -18,6 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -79,9 +80,9 @@ std::optional<double> amplitude(const CompiledThemeRules& theme, const CompiledT
     facts.forced_high_contrast = forced;
     const CompiledThemeRules::Resolution resolution = theme.resolve(facts);
     if (resolution.outcome != CompiledThemeRules::Outcome::primitive) return std::nullopt;
-    const std::optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
-    require(index.has_value(), "the bulge has an amplitude");
-    const double value = resolution.parameters.values[*index].number;
+    const stxlib::Optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
+    require(index.present(), "the bulge has an amplitude");
+    const double value = resolution.parameters.values[(*index.value())].number;
     return value;
 }
 
@@ -179,7 +180,7 @@ void test_opacity_floor() {
     PresentationState hot{};
     hot.when.push_back(AnatomyState::hot);
     hot.target = 0.8;
-    hot.enter_from = 0.2;
+    hot.enter_from.set(0.2);
     opacity.states.push_back(resting);
     opacity.states.push_back(hot);
     faded.transitions.push_back(opacity);
@@ -194,7 +195,7 @@ void test_opacity_floor() {
     const CompiledThemeRules::CompiledTransition& made = *resolution.transitions[0];
     require(made.states.size() == 2U && made.states[0].target == user_theme_minimum_opacity,
             "a target under the floor is raised to it");
-    require(made.states[1].target == 0.8 && made.states[1].enter_from == user_theme_minimum_opacity,
+    require(made.states[1].target == 0.8 && made.states[1].enter_from == stxlib::Optional<double>::of(user_theme_minimum_opacity),
             "an entry value under the floor is raised, a target above it kept");
     // The same transition in a program theme keeps its value.
     faded.level = CascadeLevel::theme_sheet;

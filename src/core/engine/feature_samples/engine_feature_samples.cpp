@@ -36,7 +36,7 @@ std::vector<GradientStop> three_stops() {
 SurfaceMaterial bordered() {
     SurfaceMaterial material{};
     material.fills.clear();
-    material.border = MaterialBorder{ink, 1.0};
+    material.border.set(MaterialBorder{ink, 1.0});
     material.corner_radius = feature_sample_corner_radius;
     return material;
 }
@@ -69,7 +69,7 @@ ThemeRule subject_rule(std::string_view label, PartRole role) {
     rule.label = std::string(label);
     rule.level = CascadeLevel::theme_sheet;
     rule.selector.stable_id = std::string(feature_sample_subject);
-    rule.selector.role = role;
+    rule.selector.role.set(role);
     return rule;
 }
 
@@ -166,6 +166,28 @@ void image_single(const FeatureSampleInputs& inputs, ThemeDefinition& definition
     draw_material(definition, material, "image_single");
 }
 
+// Tiles reflected in turn (theme language background-repeat: mirror), anchored at the
+// box's centre so a reflected tile meets the box's edge.
+void image_mirror(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
+    SurfaceMaterial material = pale_face();
+    MaterialFillLayer tiles = MaterialFillLayer::tiled_image(inputs.image, image_size, 1.0);
+    tiles.image_mode = MaterialImageMode::mirror;
+    tiles.image_anchor = Point{0.5, 0.5};
+    material.fills.push_back(tiles);
+    draw_material(definition, material, "image_mirror");
+}
+
+// One tile at the box's centre, its edge pixels drawn out to the box's edges
+// (theme language background-repeat: extend).
+void image_extend(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
+    SurfaceMaterial material = pale_face();
+    MaterialFillLayer tile = MaterialFillLayer::tiled_image(inputs.image, image_size, 1.0);
+    tile.image_mode = MaterialImageMode::extend;
+    tile.image_anchor = Point{0.5, 0.5};
+    material.fills.push_back(tile);
+    draw_material(definition, material, "image_extend");
+}
+
 void image_nine_patch(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
     material.fills.push_back(MaterialFillLayer::nine_patch(inputs.image, image_size, Insets{2.0, 2.0, 2.0, 2.0}, 1.0));
@@ -214,6 +236,12 @@ void procedural_fresco(const FeatureSampleInputs&, ThemeDefinition& definition) 
 
 void procedural_checker(const FeatureSampleInputs&, ThemeDefinition& definition) {
     draw_procedural(definition, ProceduralPattern::checker, 0x0E11F007U, "procedural_checker");
+}
+
+// The hatch (raster patterns, owner 2026-11-16) in its default style,
+// horizontal: a 32-unit tile, a whole number of its 8 × 8 squares.
+void procedural_hatch(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_procedural(definition, ProceduralPattern::hatch, 0x0E11F008U, "procedural_hatch");
 }
 
 // One surface finish (skeudoindustrial surfaces, phase 1), as the only
@@ -289,11 +317,47 @@ void fill_blend_screen(const FeatureSampleInputs&, ThemeDefinition& definition) 
     draw_fill_blend(definition, MaterialBlendMode::screen, "fill_blend_screen");
 }
 
+void fill_blend_overlay(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::overlay, "fill_blend_overlay");
+}
+
+void fill_blend_darken(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::darken, "fill_blend_darken");
+}
+
+void fill_blend_lighten(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::lighten, "fill_blend_lighten");
+}
+
+void fill_blend_color_dodge(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::color_dodge, "fill_blend_color_dodge");
+}
+
+void fill_blend_color_burn(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::color_burn, "fill_blend_color_burn");
+}
+
+void fill_blend_hard_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::hard_light, "fill_blend_hard_light");
+}
+
+void fill_blend_soft_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::soft_light, "fill_blend_soft_light");
+}
+
+void fill_blend_difference(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::difference, "fill_blend_difference");
+}
+
+void fill_blend_exclusion(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::exclusion, "fill_blend_exclusion");
+}
+
 // -- shapes, borders and keylines -------------------------------------------------
 
 void shape_corner_radii(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.corner_radii = MaterialCornerRadii{10.0, 0.0, 6.0, 2.0};
+    material.corner_radii.set(MaterialCornerRadii{10.0, 0.0, 6.0, 2.0});
     draw_material(definition, material, "shape_corner_radii");
 }
 
@@ -321,13 +385,13 @@ void shape_cap_end(const FeatureSampleInputs&, ThemeDefinition& definition) {
 
 void border_dashed(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
-    material.border = MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed};
+    material.border.set(MaterialBorder{ink, 2.0, MaterialBorderStyle::dashed});
     draw_material(definition, material, "border_dashed");
 }
 
 void border_dotted(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
-    material.border = MaterialBorder{ink, 2.0, MaterialBorderStyle::dotted};
+    material.border.set(MaterialBorder{ink, 2.0, MaterialBorderStyle::dotted});
     draw_material(definition, material, "border_dotted");
 }
 
@@ -336,8 +400,8 @@ void border_edges(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = pale_face();
     material.border.reset();
     material.corner_radius = 0.0;
-    material.border_edges.top = MaterialBorder{rose, 2.0};
-    material.border_edges.bottom = MaterialBorder{ink, 1.0};
+    material.border_edges.top.set(MaterialBorder{rose, 2.0});
+    material.border_edges.bottom.set(MaterialBorder{ink, 1.0});
     draw_material(definition, material, "border_edges");
 }
 
@@ -395,7 +459,7 @@ void filter_colour_matrix(const FeatureSampleInputs&, ThemeDefinition& definitio
 
 void filter_drop_shadow(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.drop_shadow = MaterialDropShadow{Point{2.0, 3.0}, 2.0, Color::rgba(0, 0, 0, 128)};
+    material.drop_shadow.set(MaterialDropShadow{Point{2.0, 3.0}, 2.0, Color::rgba(0, 0, 0, 128)});
     draw_material(definition, material, "filter_drop_shadow");
 }
 
@@ -423,6 +487,42 @@ void part_blend_screen(const FeatureSampleInputs&, ThemeDefinition& definition) 
     draw_part_blend(definition, "screen", "part_blend_screen");
 }
 
+void part_blend_overlay(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "overlay", "part_blend_overlay");
+}
+
+void part_blend_darken(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "darken", "part_blend_darken");
+}
+
+void part_blend_lighten(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "lighten", "part_blend_lighten");
+}
+
+void part_blend_color_dodge(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "color-dodge", "part_blend_color_dodge");
+}
+
+void part_blend_color_burn(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "color-burn", "part_blend_color_burn");
+}
+
+void part_blend_hard_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "hard-light", "part_blend_hard_light");
+}
+
+void part_blend_soft_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "soft-light", "part_blend_soft_light");
+}
+
+void part_blend_difference(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "difference", "part_blend_difference");
+}
+
+void part_blend_exclusion(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "exclusion", "part_blend_exclusion");
+}
+
 // The finish derived from the face (E9.6, owner option A1) at 0.75.
 void finish(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = bordered();
@@ -434,20 +534,21 @@ void finish(const FeatureSampleInputs&, ThemeDefinition& definition) {
 void mask_solid(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
     material.shadows.push_back(MaterialShadow{Point{0.0, 2.0}, 3.0, 0.0, Color::rgba(20, 30, 42, 96), false});
-    material.mask = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 144));
+    material.masks.push_back(MaterialMaskLayer{.source = MaterialFillLayer::solid(Color::rgba(0, 0, 0, 144))});
     draw_material(definition, material, "mask_solid");
 }
 
 void mask_linear(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.mask = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{1.0, 0.0},
-                                              two_stops(Color::rgba(0, 0, 0, 255), Color::rgba(0, 0, 0, 0)));
+    const MaterialFillLayer fade = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{1.0, 0.0},
+                                                             two_stops(Color::rgba(0, 0, 0, 255), Color::rgba(0, 0, 0, 0)));
+    material.masks.push_back(MaterialMaskLayer{.source = fade});
     draw_material(definition, material, "mask_linear");
 }
 
 void mask_image(const FeatureSampleInputs& inputs, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.mask = MaterialFillLayer::stretched_image(inputs.image, image_size);
+    material.masks.push_back(MaterialMaskLayer{.source = MaterialFillLayer::stretched_image(inputs.image, image_size)});
     draw_material(definition, material, "mask_image");
 }
 
@@ -455,7 +556,7 @@ void mask_image(const FeatureSampleInputs& inputs, ThemeDefinition& definition) 
 // fading from 0.6 to 0.
 void reflection_below(const FeatureSampleInputs&, ThemeDefinition& definition) {
     SurfaceMaterial material = lit_face();
-    material.reflection = MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0};
+    material.reflection.set(MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0});
     draw_material(definition, material, "reflection_below");
 }
 
@@ -617,6 +718,8 @@ constexpr EngineFeatureSample samples[] = {
     {"image_tiled_positioned", "material", PartRole::face, Drive::rest, image_tiled_positioned},
     {"image_nine_patch", "material", PartRole::face, Drive::rest, image_nine_patch},
     {"image_single", "material", PartRole::face, Drive::rest, image_single},
+    {"image_mirror", "material", PartRole::face, Drive::rest, image_mirror},
+    {"image_extend", "material", PartRole::face, Drive::rest, image_extend},
     {"procedural_felt", "material", PartRole::face, Drive::rest, procedural_felt},
     {"procedural_wood_grain", "material", PartRole::face, Drive::rest, procedural_wood_grain},
     {"procedural_paper_fibre", "material", PartRole::face, Drive::rest, procedural_paper_fibre},
@@ -624,6 +727,7 @@ constexpr EngineFeatureSample samples[] = {
     {"procedural_brushed_metal", "material", PartRole::face, Drive::rest, procedural_brushed_metal},
     {"procedural_fresco", "material", PartRole::face, Drive::rest, procedural_fresco},
     {"procedural_checker", "material", PartRole::face, Drive::rest, procedural_checker},
+    {"procedural_hatch", "material", PartRole::face, Drive::rest, procedural_hatch},
     {"finish_dusty_matte", "material", PartRole::face, Drive::rest, finish_dusty_matte},
     {"finish_orange_peel", "material", PartRole::face, Drive::rest, finish_orange_peel},
     {"finish_hammertone", "material", PartRole::face, Drive::rest, finish_hammertone},
@@ -635,6 +739,15 @@ constexpr EngineFeatureSample samples[] = {
     {"finish_glint", "material", PartRole::face, Drive::rest, finish_glint},
     {"fill_blend_multiply", "material", PartRole::face, Drive::rest, fill_blend_multiply},
     {"fill_blend_screen", "material", PartRole::face, Drive::rest, fill_blend_screen},
+    {"fill_blend_overlay", "material", PartRole::face, Drive::rest, fill_blend_overlay},
+    {"fill_blend_darken", "material", PartRole::face, Drive::rest, fill_blend_darken},
+    {"fill_blend_lighten", "material", PartRole::face, Drive::rest, fill_blend_lighten},
+    {"fill_blend_color_dodge", "material", PartRole::face, Drive::rest, fill_blend_color_dodge},
+    {"fill_blend_color_burn", "material", PartRole::face, Drive::rest, fill_blend_color_burn},
+    {"fill_blend_hard_light", "material", PartRole::face, Drive::rest, fill_blend_hard_light},
+    {"fill_blend_soft_light", "material", PartRole::face, Drive::rest, fill_blend_soft_light},
+    {"fill_blend_difference", "material", PartRole::face, Drive::rest, fill_blend_difference},
+    {"fill_blend_exclusion", "material", PartRole::face, Drive::rest, fill_blend_exclusion},
     {"shape_corner_radii", "material", PartRole::face, Drive::rest, shape_corner_radii},
     {"shape_pill", "material", PartRole::face, Drive::rest, shape_pill},
     {"shape_circle", "material", PartRole::face, Drive::rest, shape_circle},
@@ -653,6 +766,15 @@ constexpr EngineFeatureSample samples[] = {
     {"filter_blur", "material", PartRole::face, Drive::rest, filter_blur},
     {"part_blend_multiply", "material", PartRole::face, Drive::rest, part_blend_multiply},
     {"part_blend_screen", "material", PartRole::face, Drive::rest, part_blend_screen},
+    {"part_blend_overlay", "material", PartRole::face, Drive::rest, part_blend_overlay},
+    {"part_blend_darken", "material", PartRole::face, Drive::rest, part_blend_darken},
+    {"part_blend_lighten", "material", PartRole::face, Drive::rest, part_blend_lighten},
+    {"part_blend_color_dodge", "material", PartRole::face, Drive::rest, part_blend_color_dodge},
+    {"part_blend_color_burn", "material", PartRole::face, Drive::rest, part_blend_color_burn},
+    {"part_blend_hard_light", "material", PartRole::face, Drive::rest, part_blend_hard_light},
+    {"part_blend_soft_light", "material", PartRole::face, Drive::rest, part_blend_soft_light},
+    {"part_blend_difference", "material", PartRole::face, Drive::rest, part_blend_difference},
+    {"part_blend_exclusion", "material", PartRole::face, Drive::rest, part_blend_exclusion},
     {"finish", "material", PartRole::face, Drive::rest, finish},
     {"mask_solid", "material", PartRole::face, Drive::rest, mask_solid},
     {"mask_linear", "material", PartRole::face, Drive::rest, mask_linear},

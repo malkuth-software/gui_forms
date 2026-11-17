@@ -94,22 +94,22 @@ namespace {
 constexpr std::array<AnatomyState, 1> drop_down_segment_states{{AnatomyState::pressed}};
 
 constexpr std::array<PartField<DropDownButton::Parts>, 8> drop_down_button_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::face},
-    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::icon},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::label},
     {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = {},
                      .states = drop_down_segment_states},
      .member = &DropDownButton::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::disclosure},
-    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}},
+    {.declaration = {.name = "preselect", .role = PartRole::preselect, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::preselect},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DropDownButton::Parts::focus},
 }};
 
@@ -143,6 +143,7 @@ constexpr ControlAnatomy drop_down_button_anatomy{
     .parts = drop_down_button_parts,
     .states = drop_down_button_states,
     .custom_states = drop_down_button_custom_states,
+    .item_systems = {},
 };
 
 } // namespace
@@ -229,8 +230,8 @@ void DropDownButton::on_paint(Painter& painter, const Rect local_damage) {
     // engine draws in the button's anatomy states; a style override inks the
     // arrow (T4-1).
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (has_style_override()) ink = style().text;
+    stxlib::Optional<Color> ink{};
+    if (has_style_override()) ink.set(style().text);
     if (drop_down_mode.read() == DropDownButtonMode::split && start > 0.0 &&
         (hovered_visual() || pressed_visual() || drop_down_open_)) {
         PartPaint divider;
@@ -253,7 +254,7 @@ void DropDownButton::on_paint(Painter& painter, const Rect local_damage) {
     disclosure.states = states;
     disclosure.bounds = {std::floor(center_x) - 4.0, std::floor(center_y) - 4.0, 8.0, 8.0};
     disclosure.authored_foreground = ink;
-    disclosure.key = PartKey{"disclosure", {}, {}};
+    disclosure.key.set(PartKey{"disclosure", {}, {}});
     paint_part(painter, *this, disclosure);
     if (drop_down_open_) {
         PartPaint seam;
@@ -344,7 +345,9 @@ void DropDownButton::on_activate() {
         return;
     }
     pointer_drop_down_ = false;
-    ButtonBase::on_activate();
+    // Button's activation, so the primary segment hands dialog_result to the
+    // window as an ordinary button does (A-gf-controls-01-F4).
+    Button::on_activate();
 }
 
 namespace {

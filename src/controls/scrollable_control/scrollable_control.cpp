@@ -10,6 +10,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../range_control/scroll_bar/scroll_bar_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
@@ -667,7 +668,7 @@ void ScrollableControl::notify_scroll(ScrollOrientation orientation,
                                       double old_value,
                                       double new_value) {
     ScrollEvent event{type, old_value, new_value, orientation};
-    last_scroll_event_ = event;
+    last_scroll_event_.set(event);
     ++scroll_event_revision_;
     scroll_event_.emit(event);
 }
@@ -780,14 +781,23 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
         return false;
     }
     const Point local = point_from_window(event.position);
-    if (dragging_orientation_) {
+    // A thumb drag or held part whose capture was taken away (the sequence
+    // broken, the control made unavailable) ends before a move is read, so
+    // later moves neither scroll nor steer a repeat (A-gf-controls-13-F3). A
+    // release is not tested: the window frees a primary press's capture as
+    // the release arrives.
+    if (event.action == PointerAction::move && !has_pointer_capture() &&
+        (dragging_orientation_.present() || pressed_part_ != ScrollPart::none)) {
+        end_broken_scroll_press();
+    }
+    if (dragging_orientation_.present()) {
         if (event.pointer_id != 0U && dragging_pointer_id_ != 0U &&
             event.pointer_id != dragging_pointer_id_) return false;
-        const AxisGeometry geometry = axis_geometry(*dragging_orientation_);
-        const double track_extent = *dragging_orientation_ ==
+        const AxisGeometry geometry = axis_geometry((*dragging_orientation_.value()));
+        const double track_extent = (*dragging_orientation_.value()) ==
                 ScrollOrientation::horizontal
             ? geometry.track.width : geometry.track.height;
-        const double thumb_extent = *dragging_orientation_ ==
+        const double thumb_extent = (*dragging_orientation_.value()) ==
                 ScrollOrientation::horizontal
             ? geometry.thumb.width : geometry.thumb.height;
         const double travel = std::max(0.0, track_extent - thumb_extent);
@@ -795,20 +805,20 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
             // A right-to-left horizontal thumb runs from the right end.
             const double horizontal_movement = effective_layout_direction() == LayoutDirection::right_to_left
                 ? dragging_origin_.x - local.x : local.x - dragging_origin_.x;
-            const double movement = *dragging_orientation_ ==
+            const double movement = (*dragging_orientation_.value()) ==
                     ScrollOrientation::horizontal
                 ? horizontal_movement
                 : local.y - dragging_origin_.y;
             const double next = dragging_start_value_ + movement *
-                maximum_offset(*dragging_orientation_) / travel;
-            static_cast<void>(apply_axis_input(*dragging_orientation_, next,
+                maximum_offset((*dragging_orientation_.value())) / travel;
+            static_cast<void>(apply_axis_input((*dragging_orientation_.value()), next,
                                                ScrollEventType::thumb_track,
                                                true));
             event.handled = true;
             return true;
         }
         if (event.action == PointerAction::up) {
-            const ScrollOrientation orientation = *dragging_orientation_;
+            const ScrollOrientation orientation = (*dragging_orientation_.value());
             const double value = orientation == ScrollOrientation::horizontal
                 ? scroll_position_.x : scroll_position_.y;
             dragging_orientation_.reset();
@@ -865,7 +875,7 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
         // The thumb is direct manipulation: it takes the axis from a
         // smooth scroll where the position stands.
         stop_glide(orientation);
-        dragging_orientation_ = orientation;
+        dragging_orientation_.set(orientation);
         dragging_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
         dragging_origin_ = local;
         dragging_start_value_ = axis.value_;
@@ -975,8 +985,19 @@ void ScrollableControl::set_hot_part(ScrollPart part) {
     if (hscroll() || vscroll()) invalidate_scroll_bar_strips(viewport_rectangle_);
 }
 
+void ScrollableControl::end_broken_scroll_press() {
+    stop_press();
+    dragging_orientation_.reset();
+    dragging_pointer_id_ = 0U;
+    invalidate_scroll_bar_strips(viewport_rectangle_);
+}
+
 void ScrollableControl::on_detached_from_window() noexcept {
     stop_press();
+    // A thumb held as the control left its window is not held after it
+    // returns (A-gf-controls-13-F3).
+    dragging_orientation_.reset();
+    dragging_pointer_id_ = 0U;
     hot_part_ = ScrollPart::none;
     Control::on_detached_from_window();
 }
@@ -1029,8 +1050,22 @@ bool ScrollableControl::handle_wheel(PointerEvent& event) {
                              glide_base(ScrollOrientation::horizontal) + delta, type, false);
         }
     }
-    if (changed) event.handled = true;
-    return changed;
+    // Scroll latching's other half (WheelPhase): once this control has
+    // scrolled for a gesture, the gesture's later events stop here, so an
+    // edge reached mid-gesture or in momentum does not pass the rest of the
+    // gesture to a scrolling ancestor.
+    const WheelPhase gesture = event.wheel_phase;
+    const bool continuing = gesture == WheelPhase::changed || gesture == WheelPhase::ended ||
+        gesture == WheelPhase::momentum || gesture == WheelPhase::momentum_ended;
+    const bool absorbed = !changed && continuing && wheel_gesture_owner_;
+    if (gesture == WheelPhase::began || gesture == WheelPhase::changed) {
+        if (changed) wheel_gesture_owner_ = true;
+        if (gesture == WheelPhase::began && !changed) wheel_gesture_owner_ = false;
+    } else if (!continuing || gesture == WheelPhase::momentum_ended) {
+        wheel_gesture_owner_ = false;
+    }
+    if (changed || absorbed) event.handled = true;
+    return changed || absorbed;
 }
 
 // The wheel delta in logical pixels. A precise device's pixels are taken
@@ -1086,7 +1121,7 @@ void ScrollableControl::on_mouse_leave() {
 
 void ScrollableControl::on_pointer_bubble(PointerEvent& event) {
     // A move bubbling from a child is over the child, not over a bar.
-    if (event.action == PointerAction::move && !dragging_orientation_ &&
+    if (event.action == PointerAction::move && dragging_orientation_.absent() &&
         pressed_part_ == ScrollPart::none) {
         set_hot_part(ScrollPart::none);
     }
@@ -1153,7 +1188,7 @@ void ScrollableControl::paint_axis(Painter& painter,
     AnatomyStateSet bar_states{};
     bar_states.insert(axis.enabled_ ? AnatomyState::normal : AnatomyState::disabled);
     parts.states = bar_states;
-    const bool dragging = dragging_orientation_ == orientation;
+    const bool dragging = dragging_orientation_ == stxlib::Optional<ScrollOrientation>::of(orientation);
     if (dragging) {
         parts.pressed = ScrollBarPart::thumb;
     } else if (pressed_part_ == map.first) {
@@ -1203,7 +1238,7 @@ void ScrollableControl::on_paint_overlay(Painter& painter, Rect) {
         corner.role = PartRole::face;
         corner.bounds = {viewport_rectangle_.width, viewport_rectangle_.height,
                          scrollbar_thickness_, scrollbar_thickness_};
-        corner.corner_radius = 0.0;
+        corner.corner_radius.set(0.0);
         paint_part(painter, *this, corner);
     }
 }
@@ -1231,9 +1266,9 @@ void ScrollableControl::append_semantic_axis(
     node.role = SemanticRole::scroll_bar;
     node.name = orientation == ScrollOrientation::horizontal
         ? "Horizontal scroll bar" : "Vertical scroll bar";
-    node.numeric_value = axis.value_;
-    node.minimum_value = axis.minimum_;
-    node.maximum_value = axis.maximum_position();
+    node.numeric_value.set(axis.value_);
+    node.minimum_value.set(axis.minimum_);
+    node.maximum_value.set(axis.maximum_position());
     const Rect local = axis_geometry(orientation).bar;
     node.bounds = {absolute.x + local.x, absolute.y + local.y,
                    local.width, local.height};
@@ -1287,6 +1322,7 @@ constexpr ControlAnatomy scrollable_control_anatomy{
     .parts = scrollable_detail::grounded_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -1310,10 +1346,10 @@ ScrollableControl::Parts ScrollableControl::scrollable_parts() const {
     record.vertical_track = PartGeometry::from_bounds(vertical.track);
     record.vertical_thumb = PartGeometry::from_bounds(vertical.thumb);
     record.vertical_increment_arrow = PartGeometry::from_bounds(vertical.last_button);
-    if (dragging_orientation_ == ScrollOrientation::horizontal) {
+    if (dragging_orientation_ == stxlib::Optional<ScrollOrientation>::of(ScrollOrientation::horizontal)) {
         record.horizontal_thumb.states.insert(AnatomyState::pressed);
         record.horizontal_thumb.states.insert(AnatomyState::captured);
-    } else if (dragging_orientation_ == ScrollOrientation::vertical) {
+    } else if (dragging_orientation_ == stxlib::Optional<ScrollOrientation>::of(ScrollOrientation::vertical)) {
         record.vertical_thumb.states.insert(AnatomyState::pressed);
         record.vertical_thumb.states.insert(AnatomyState::captured);
     } else {
@@ -1403,14 +1439,14 @@ void ScrollableControl::on_paint(Painter& painter, Rect) {
     ground.role = PartRole::face;
     ground.bounds = Rect{0.0, 0.0, arranged.width, arranged.height};
     ground.states = anatomy_states();
-    ground.key = PartKey{"face", {}, {}};
+    ground.key.set(PartKey{"face", {}, {}});
     if (!ground_named_by_rule(*this, ground)) return;
     paint_part(painter, *this, ground);
 }
 
 AnatomyStateSet ScrollableControl::anatomy_states() const {
     AnatomyStateSet states = base_anatomy_states();
-    if (dragging_orientation_.has_value()) {
+    if (dragging_orientation_.present()) {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::pressed);
         states.insert(AnatomyState::captured);

@@ -109,7 +109,7 @@ TextBox::TextBox(StableId stable_id, std::string initial_text)
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
-    cursor = CursorKind::text;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
 }
 
@@ -695,7 +695,7 @@ PartPaint TextBox::text_part_template(FontSpec part_font, bool selected) const {
     part.states = text_states();
     if (selected) part.states.insert(AnatomyState::selected);
     part.font = part_font;
-    if (!themed) part.authored_foreground = selected ? style().highlight : style().text;
+    if (!themed) part.authored_foreground.set(selected ? style().highlight : style().text);
     return part;
 }
 
@@ -710,7 +710,7 @@ void TextBox::paint_selection_band(Painter& painter, Rect band) const {
     plate.states = text_states();
     plate.states.insert(AnatomyState::selected);
     plate.states.insert(AnatomyState::focused);
-    if (!themed) plate.authored_background = style().accent;
+    if (!themed) plate.authored_background.set(style().accent);
     paint_part(painter, *this, plate);
 }
 
@@ -720,7 +720,7 @@ void TextBox::paint_caret(Painter& painter, Rect caret) const {
     part.role = PartRole::caret;
     part.bounds = caret;
     part.states = text_states();
-    if (has_background_override() || has_style_override()) part.authored_foreground = style().text;
+    if (has_background_override() || has_style_override()) part.authored_foreground.set(style().text);
     paint_part(painter, *this, part);
 }
 
@@ -877,7 +877,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // Keyed by its part's name, so that `text-box::part(well)` styles
         // the field as `:family(editor)` does (a rule naming a part matches
         // only a keyed part).
-        well.key = PartKey{"well", {}, {}};
+        well.key.set(PartKey{"well", {}, {}});
         well.frame = border_style.read() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
         paint_part(painter, *this, well);
     } else {
@@ -897,26 +897,51 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         ? utf8_scalar(use_system_password_character.read() ? U'\u2022'
                                                      : password_character.read())
         : std::string{};
-    layout_positions_.clear();
-    layout_offsets_.clear();
-    layout_text_scale_ = effective_text_scale();
+    // The positions measure every grapheme prefix of the presentation, n
+    // measurements of up to n bytes, with this painter. They depend only on
+    // what the painter measures with (measurement_identity: the window's
+    // provider for the frames' recording painters, the painter itself
+    // otherwise), the text revision, the presentation, the font and the
+    // scales, so a paint that changes none of them (a caret blink, a
+    // selection or scroll change) reuses them instead of measuring again
+    // (A-gf-controls-09-F4).
+    const Window* const painted_window = window();
+    const std::uint64_t measured_with = painter.measurement_identity();
+    const double device_scale = painted_window == nullptr ? 1.0 : (*painted_window).scale();
+    const double text_scale = effective_text_scale();
     const std::size_t count = (*editing_).store().grapheme_count().value();
-    layout_positions_.reserve(count + 1U);
-    layout_offsets_.reserve(count + 1U);
-    const bool masked = password_protected();
-    const std::string_view presentation(presented);
-    // The last prefix is the whole presentation: its measurement serves the
-    // text parts, so the text is measured once.
-    Size presented_size{};
-    for (std::size_t index = 0U; index <= count; ++index) {
-        const Utf8Offset offset = (*editing_).store().utf8_offset(GraphemeIndex(index));
-        layout_offsets_.push_back(offset.value());
-        const std::size_t presentation_offset = masked
-            ? index * mask.size() : offset.value();
-        const std::string_view prefix = presentation.substr(0U, presentation_offset);
-        const Size prefix_size = painter.measure_text_utf8(prefix, content_font);
-        layout_positions_.push_back(prefix_size.width);
-        presented_size = prefix_size;
+    const std::uint64_t revision = (*editing_).store().revision();
+    const bool positions_current = !layout_positions_.empty() && layout_positions_.size() == count + 1U &&
+        layout_measurement_ == measured_with && layout_revision_ == revision &&
+        layout_offsets_.size() == count + 1U && layout_text_scale_ == text_scale && layout_font_ == content_font &&
+        layout_device_scale_ == device_scale && layout_presented_ == presented;
+    Size presented_size = layout_presented_size_;
+    if (!positions_current) {
+        layout_positions_.clear();
+        layout_offsets_.clear();
+        layout_text_scale_ = text_scale;
+        layout_positions_.reserve(count + 1U);
+        layout_offsets_.reserve(count + 1U);
+        const bool masked = password_protected();
+        const std::string_view presentation(presented);
+        // The last prefix is the whole presentation: its measurement serves
+        // the text parts, so the text is measured once.
+        for (std::size_t index = 0U; index <= count; ++index) {
+            const Utf8Offset offset = (*editing_).store().utf8_offset(GraphemeIndex(index));
+            layout_offsets_.push_back(offset.value());
+            const std::size_t presentation_offset = masked
+                ? index * mask.size() : offset.value();
+            const std::string_view prefix = presentation.substr(0U, presentation_offset);
+            const Size prefix_size = painter.measure_text_utf8(prefix, content_font);
+            layout_positions_.push_back(prefix_size.width);
+            presented_size = prefix_size;
+        }
+        layout_measurement_ = measured_with;
+        layout_revision_ = revision;
+        layout_presented_ = presented;
+        layout_font_ = content_font;
+        layout_device_scale_ = device_scale;
+        layout_presented_size_ = presented_size;
     }
     const double caret_content_x = boundary_x((*editing_).selection().caret);
     if (caret_content_x < horizontal_offset_) {
@@ -934,7 +959,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     const double slack = viewport - layout_positions_.back();
     const HorizontalAlignment placed_alignment =
         directed_alignment(text_alignment.read(), effective_layout_direction());
-    if (slack > 0.0 && placed_alignment != HorizontalAlignment::near) {
+    if (slack > 0.0 && placed_alignment != HorizontalAlignment::start) {
         horizontal_offset_ = placed_alignment == HorizontalAlignment::center ? -slack * 0.5 : -slack;
     }
 
@@ -955,7 +980,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     }
     PartPaint text_part = text_part_template(content_font, false);
     text_part.text = lend_paint_text(presented);
-    text_part.measured_text = presented_size;
+    text_part.measured_text.set(presented_size);
     if (!(*editing_).store().utf8().empty() && (!focused_ || (*editing_).selection().empty())) {
         paint_text_part_at(painter, *this, text_part, {origin_x, baseline}, 0.0);
     } else if (!(*editing_).store().utf8().empty()) {
@@ -963,7 +988,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         // in the text's ink to either side.
         PartPaint selected_part = text_part_template(content_font, true);
         selected_part.text = lend_paint_text(presented);
-        selected_part.measured_text = presented_size;
+        selected_part.measured_text.set(presented_size);
         const double band_width = std::max(0.0, selection_end_x - selection_x);
         const double band_right = selection_x + band_width;
         const double height = std::max(0.0, bounds.height - 4.0);
@@ -1360,7 +1385,8 @@ SemanticDescriptor TextBox::semantic_descriptor() const {
     // The selection and caret index the value (A-T1, 12.13); a password box
     // publishes neither its text nor where in it the caret is.
     if (!password_protected()) {
-        descriptor.text_selection = SemanticTextSelection{.anchor = (*editing_).selection().anchor, .caret = (*editing_).selection().caret};
+        descriptor.text_selection.set(
+            SemanticTextSelection{.anchor = (*editing_).selection().anchor, .caret = (*editing_).selection().caret});
     }
     descriptor.multiline = multiline.read();
     descriptor.actions = {SemanticAction::focus};
@@ -1476,17 +1502,17 @@ void TextBox::on_detached_from_window() noexcept {
 namespace {
 
 constexpr std::array<PartField<TextBox::Parts>, 6> text_box_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::edge},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::well},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::content},
-    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
+    {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::caret},
-    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
+    {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}, .states = {}},
      .member = &TextBox::Parts::selection},
 }};
 
@@ -1514,6 +1540,7 @@ constexpr ControlAnatomy text_box_anatomy{
     .parts = text_box_parts,
     .states = text_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -1811,7 +1838,7 @@ void TextBox::on_font_changed() {}
 
 void TextBox::prepare_write(const decltype(text_alignment)&, HorizontalAlignment& incoming) {
     require_mutable();
-    if (incoming > HorizontalAlignment::far) throw std::invalid_argument("TextBox text alignment is unknown");
+    if (incoming > HorizontalAlignment::end) throw std::invalid_argument("TextBox text alignment is unknown");
 }
 
 void TextBox::written(const decltype(text_alignment)&) {

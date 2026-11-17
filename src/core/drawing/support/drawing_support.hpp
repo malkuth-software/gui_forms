@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/drawing.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <array>
@@ -65,29 +67,30 @@ void require_finite(RectF rect, std::string_view field) {
 
 [[nodiscard]] PointF point_on_ellipse(RectF bounds,
                                       double angle_degrees) noexcept {
-    constexpr double degrees_to_radians =
-        0.01745329251994329576923690768489;
-    const double radians = angle_degrees * degrees_to_radians;
-    return {bounds.x + bounds.width * 0.5 +
-                bounds.width * 0.5 * std::cos(radians),
+    // The engine's deterministic sine and cosine, exact at quarter turns.
+    const gui_forms::EngineSineCosine turn =
+        gui_forms::engine_sine_cosine_degrees(angle_degrees);
+    return {bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn.cosine,
             bounds.y + bounds.height * 0.5 +
-                bounds.height * 0.5 * std::sin(radians)};
+                bounds.height * 0.5 * turn.sine};
 }
 
 [[nodiscard]] double ellipse_parameter_angle(
     double radius_x, double radius_y, double geometric_degrees) noexcept {
-    constexpr double degrees_to_radians =
-        0.01745329251994329576923690768489;
-    const double geometric = geometric_degrees * degrees_to_radians;
-    return std::atan2(radius_x * std::sin(geometric),
-                      radius_y * std::cos(geometric));
+    const gui_forms::EngineSineCosine geometric =
+        gui_forms::engine_sine_cosine_degrees(geometric_degrees);
+    const double parameter = gui_forms::engine_arctangent2(
+        radius_x * geometric.sine, radius_y * geometric.cosine);
+    return parameter;
 }
 
 [[nodiscard]] PointF ellipse_point(double center_x, double center_y,
                                    double radius_x, double radius_y,
                                    double parameter) noexcept {
-    return {center_x + radius_x * std::cos(parameter),
-            center_y + radius_y * std::sin(parameter)};
+    const gui_forms::EngineSineCosine turn =
+        gui_forms::engine_sine_cosine(parameter);
+    return {center_x + radius_x * turn.cosine,
+            center_y + radius_y * turn.sine};
 }
 
 class RectBoundsAccumulator final {
@@ -257,6 +260,7 @@ private:
     case CommandKind::draw_markers: return "draw_markers";
     case CommandKind::fill_grid_pattern: return "fill_grid_pattern";
     case CommandKind::fill_proportion: return "fill_proportion";
+    case CommandKind::fill_triangles: return "fill_triangles";
     }
     return "unknown";
 }
@@ -307,20 +311,19 @@ void require_blend_positions(std::span<const double> positions,
     }
 }
 
-[[nodiscard]] std::uint8_t interpolate_channel(
-    std::uint8_t left, std::uint8_t right, double amount) noexcept {
-    return static_cast<std::uint8_t>(std::lround(
-        static_cast<double>(left) +
-        (static_cast<double>(right) - left) * amount));
-}
-
+// A gradient blend's colour `amount` of the way from `first` to `second`
+// (LinearGradientBrush::set_blend), interpolated in linear light as every
+// gradient is (owner, 2026-11-16; gui_forms/types/linear_light/linear_light.hpp).
+// An empty colour is taken as transparent black.
 [[nodiscard]] Color interpolate_color(Color first, Color second,
                                       double amount) noexcept {
-    return Color::from_argb(
-        interpolate_channel(first.alpha(), second.alpha(), amount),
-        interpolate_channel(first.red(), second.red(), amount),
-        interpolate_channel(first.green(), second.green(), amount),
-        interpolate_channel(first.blue(), second.blue(), amount));
+    const gui_forms::Color from = first.is_empty() ? gui_forms::Color{0U, 0U, 0U, 0U}
+        : gui_forms::Color{first.red(), first.green(), first.blue(), first.alpha()};
+    const gui_forms::Color to = second.is_empty() ? gui_forms::Color{0U, 0U, 0U, 0U}
+        : gui_forms::Color{second.red(), second.green(), second.blue(), second.alpha()};
+    const gui_forms::Color mixed =
+        gui_forms::interpolate_linear_light(from, to, gui_forms::linear_light_weight(amount));
+    return Color::from_argb(mixed.alpha, mixed.red, mixed.green, mixed.blue);
 }
 
 [[nodiscard]] std::uint8_t premultiply(std::uint8_t channel,
@@ -414,6 +417,9 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
         result += ",join=" + std::to_string(static_cast<unsigned>(pen.join)) + "/" + number(pen.miter_limit);
     }
     if (pen.cap != LineCap::flat) result += ",cap=" + std::to_string(static_cast<unsigned>(pen.cap));
+    if (pen.trim_start != 0.0 || pen.trim_end != 1.0 || pen.trim_offset != 0.0) {
+        result += ",trim=" + number(pen.trim_start) + "/" + number(pen.trim_end) + "/" + number(pen.trim_offset);
+    }
     return result;
 }
 
@@ -443,6 +449,11 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
         if (index != 0U) result += ";";
         result += color_text(brush.colors[index]) + "@" +
                   number(brush.positions[index]);
+    }
+    if (brush.kind == BrushKind::radial_gradient) {
+        result += ",radius=" + number(brush.radius) + ",focus=" + point_text(brush.focus);
+        // An ellipse's second radius; a circle's trace is as before.
+        if (brush.radius_y != brush.radius) result += ",radius_y=" + number(brush.radius_y);
     }
     return result;
 }
@@ -533,8 +544,8 @@ void append_element_text(const PathElement& element, std::string& result) {
 [[nodiscard]] std::string image_attributes_text(
     const ImageAttributesSnapshot& attributes) {
     std::string result;
-    if (attributes.color_matrix.has_value()) {
-        const std::array<double, 25>& matrix = *attributes.color_matrix;
+    if (attributes.color_matrix.present()) {
+        const std::array<double, 25>& matrix = (*attributes.color_matrix.value());
         result = "matrix:";
         for (std::size_t index = 0; index < matrix.size(); ++index) {
             if (index != 0U) result += ",";
@@ -649,12 +660,17 @@ void include_element_visibility(const PathElement& element, PointF point, FillMo
         const PointF start =
             point_on_ellipse(element.rect, element.start_angle);
         if (figure.empty() || figure.back() != start) figure.push_back(start);
+        // One turn at most, as bounds, flattening and the raster draw it
+        // (A-gf-core-05-F3): a sweep traced twice round would cross every
+        // ray an even number of times and read an inside point as outside
+        // under the alternate fill.
+        const double sweep = std::clamp(element.sweep_angle, -360.0, 360.0);
         const int segments = std::max(
-            1, static_cast<int>(std::ceil(std::abs(element.sweep_angle) / 12.0)));
+            1, static_cast<int>(std::ceil(std::abs(sweep) / 12.0)));
         for (int index = 1; index <= segments; ++index) {
             const double ratio = static_cast<double>(index) / segments;
             figure.push_back(point_on_ellipse(element.rect,
-                element.start_angle + element.sweep_angle * ratio));
+                element.start_angle + sweep * ratio));
         }
         return;
     }

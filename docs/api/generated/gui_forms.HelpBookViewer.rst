@@ -288,7 +288,7 @@ gui_forms::HelpBookViewer
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 26 supported, 0 deferred, 0 excluded, 16 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 28 supported, 0 deferred, 0 excluded, 14 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -350,7 +350,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 26 s
    * - property
      - GUI.Forms-only
      - ``navigation_width``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``search_field``
@@ -374,7 +374,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 26 s
    * - event
      - GUI.Forms-only
      - ``bookmarks_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``built_in_language_requested``

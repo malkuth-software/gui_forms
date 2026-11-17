@@ -15,11 +15,12 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -133,7 +134,7 @@ public:
     // and the highlighted one.
     [[nodiscard]] bool auto_complete_open() const noexcept;
     [[nodiscard]] std::span<const std::string> auto_complete_suggestions() const noexcept;
-    [[nodiscard]] std::optional<std::size_t> auto_complete_highlighted() const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> auto_complete_highlighted() const noexcept;
     // Closes the suggestion list and ends a pending appended completion,
     // keeping the text as it is.
     void close_auto_complete();
@@ -302,7 +303,7 @@ private:
     void decorations_changed(const TextDecorationChange& change);
     // The text rectangle's part showing the rows of `range`, or none when
     // the rows are not current.
-    [[nodiscard]] std::optional<Rect> multiline_range_damage(Utf8Range range) const;
+    [[nodiscard]] stxlib::Optional<Rect> multiline_range_damage(Utf8Range range) const;
     // One visual row with decorations: grounds, then the selection band,
     // then each styled run's glyphs (the selection's ink inside the band),
     // then underlines.
@@ -334,7 +335,7 @@ private:
                                           std::vector<std::string>& matches);
     void open_auto_complete_list();
     void place_auto_complete_list();
-    void highlight_auto_complete(std::optional<std::size_t> index);
+    void highlight_auto_complete(stxlib::Optional<std::size_t> index);
     void accept_auto_complete(std::string accepted);
     void restore_auto_complete_typed_text();
     void end_auto_complete(bool restore_typed);
@@ -382,6 +383,18 @@ private:
     std::vector<double> layout_positions_{};
     std::vector<std::uint64_t> layout_offsets_{};
     double layout_text_scale_{};
+    // What the single-line positions above were measured for; a paint whose
+    // painter measures with the same source (measurement_identity), with the
+    // same text revision, presentation (a mask changes it), font, device
+    // scale and text scale, reuses them (A-gf-controls-09-F4).
+    // Valid only while layout_positions_ is not empty: every path that
+    // clears the positions invalidates them.
+    std::uint64_t layout_measurement_{};
+    std::uint64_t layout_revision_{};
+    std::string layout_presented_{};
+    FontSpec layout_font_{};
+    double layout_device_scale_{};
+    Size layout_presented_size_{};
     double horizontal_offset_{};
     bool reveal_pending_{true};
     // A paging key moved the caret: the next caret reveal scrolls smoothly
@@ -470,13 +483,14 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_text_changed();
-    virtual void on_read_only_changed();
-    virtual void on_multiline_changed();
-    virtual void on_accepts_tab_changed();
-    virtual void on_font_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_text_changed();
+    void on_read_only_changed();
+    void on_multiline_changed();
+    void on_accepts_tab_changed();
+    void on_font_changed();
 
 private:
     // The routed form of a key the raisers left unhandled.

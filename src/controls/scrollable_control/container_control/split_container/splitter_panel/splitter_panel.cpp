@@ -26,15 +26,15 @@ void SplitterPanel::on_paint(Painter& painter, Rect) {
     ground.family = ControlVisualRole::panel;
     ground.role = PartRole::fill;
     ground.bounds = {0.0, 0.0, bounds.width, bounds.height};
-    ground.corner_radius = 0.0;
-    ground.authored_background = background.read();
+    ground.corner_radius.set(0.0);
+    ground.authored_background.set(background.read());
     paint_part(painter, *this, ground);
 }
 
 namespace {
 
 constexpr std::array<PartField<SplitterPanel::Parts>, 1> splitter_panel_extra_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &SplitterPanel::Parts::face},
 }};
 
@@ -47,6 +47,7 @@ constexpr ControlAnatomy splitter_panel_anatomy{
     .parts = splitter_panel_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -24,7 +24,7 @@ enum class FontStyle : std::uint32_t {
 };
 
 enum class GraphicsUnit : std::uint8_t { world, display, pixel, point, inch, document, millimeter };
-enum class StringAlignment : std::uint8_t { near, center, far };
+enum class StringAlignment : std::uint8_t { start, center, end };
 enum class StringTrimming : std::uint8_t { none, character, word, ellipsis_character, ellipsis_word, ellipsis_path };
 enum class SmoothingMode : std::uint8_t { default_mode, high_speed, high_quality, none, anti_alias };
 enum class InterpolationMode : std::uint8_t { default_mode, low, high, nearest, bilinear, bicubic, high_quality_bilinear, high_quality_bicubic };
@@ -45,6 +45,7 @@ enum class BrushKind : std::uint8_t {
     texture,
     conic_gradient,
     checker,
+    radial_gradient,
 };
 
 // How a pen's segments meet (in the compatibility order: miter, bevel,
@@ -126,6 +127,13 @@ struct GUI_FORMS_API BrushSnapshot final {
     Matrix transform;
     // A checker brush's cell width; 0 for every other kind.
     double cell_size{};
+    // A radial gradient brush's radius about `center` and its focus (where
+    // position 0 lies); 0 and the origin for every other kind.
+    double radius{};
+    PointF focus;
+    // A radial gradient brush's radius down (equal to `radius`, the radius
+    // across, for a circle); 0 for every other kind.
+    double radius_y{};
 };
 
 } // namespace gui_drawing

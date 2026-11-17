@@ -1,0 +1,22 @@
+#include <gui_forms/api.hpp>
+#include <gui_forms/internal.hpp>
+
+#include <stxlib/optional.hpp>
+#include <optional>
+#include "platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+stxlib::Optional<int> read_limit(const Api& api) noexcept {
+    Cache cache;
+    store(cache, gui_forms::platform::standard_optional(api.limit));
+    const stxlib::Optional<int> local = api.limit;
+    cache.cached = gui_forms::platform::standard_optional(local);
+    return local;
+}
+
+void store(Cache& cache, const std::optional<int> value) noexcept {
+    cache.cached = value;
+}
+
+} // namespace gui_forms

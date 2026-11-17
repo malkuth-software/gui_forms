@@ -1,0 +1,22 @@
+#include <gui_forms/rows.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <string>
+#include <string_view>
+#include "platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+// A std::string direct-initialised from the text: one bridge, the copy
+// (text_use), not a second one from the initialiser's flow.
+std::string moved_row(const stxlib::TextView id) {
+    const std::string moved(gui_forms::platform::standard_text_copy(id));
+    return moved;
+}
+
+std::string owned_key(stxlib::TextView key) {
+    std::string owned(gui_forms::platform::standard_text_copy(key));
+    return owned;
+}
+
+} // namespace gui_forms

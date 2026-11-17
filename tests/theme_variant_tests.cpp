@@ -53,6 +53,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -283,13 +284,13 @@ void test_module_and_preview_grounds_follow_scheme() {
 void test_declaring_schemes() {
     const Compilation both = compile(":root { color-scheme: light dark }");
     require(both.outcome == CompileOutcome::compiled && both.diagnostics.empty(), "light dark compiles cleanly");
-    require(both.sheet.colour_schemes && (*both.sheet.colour_schemes).light && (*both.sheet.colour_schemes).dark,
+    require(both.sheet.colour_schemes.present() && ((*both.sheet.colour_schemes.value())).light && ((*both.sheet.colour_schemes.value())).dark,
             "light dark declares both variants");
     const Compilation dark = compile(":root { COLOR-SCHEME: Dark }");
-    require(dark.sheet.colour_schemes && !(*dark.sheet.colour_schemes).light && (*dark.sheet.colour_schemes).dark,
+    require(dark.sheet.colour_schemes.present() && !((*dark.sheet.colour_schemes.value())).light && ((*dark.sheet.colour_schemes.value())).dark,
             "dark alone, in any case");
     const Compilation none = compile("#pad { opacity: 0.5 }");
-    require(!none.sheet.colour_schemes, "a sheet that says nothing declares nothing");
+    require(none.sheet.colour_schemes.absent(), "a sheet that says nothing declares nothing");
 
     const char* const refused[] = {
         ":root { color-scheme: only light }",
@@ -300,7 +301,7 @@ void test_declaring_schemes() {
     };
     for (const char* const text : refused) {
         const Compilation compiled = compile(text);
-        require(compiled.outcome == CompileOutcome::refused && !compiled.sheet.colour_schemes,
+        require(compiled.outcome == CompileOutcome::refused && compiled.sheet.colour_schemes.absent(),
                 std::string("refused: ") + text);
     }
     const Compilation outside = compile("#pad { color-scheme: dark }");
@@ -318,6 +319,18 @@ ThemePackage package(std::string_view name, std::string_view sheet) {
     made.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"" + std::string(name) +
                     "\", \"version\": \"1.0.0\", \"engine\": \">=0.3\", \"sheet\": {\"path\": "
                     "\"theme.theme.css\", \"sha256\": \"" + hex_of(sheet) + "\"}}";
+    made.files.push_back(ThemePackageFile{"theme.theme.css", std::string(sheet)});
+    return made;
+}
+
+// A package named `name` importing `imported` (pinned by its manifest's
+// SHA-256), its sheet `sheet`.
+ThemePackage importer(std::string_view name, const ThemePackage& imported, std::string_view sheet) {
+    ThemePackage made{};
+    made.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"" + std::string(name) +
+                    "\", \"version\": \"1.0.0\", \"engine\": \">=0.3\", \"sheet\": {\"path\": "
+                    "\"theme.theme.css\", \"sha256\": \"" + hex_of(sheet) + "\"}, \"imports\": {\"dark-library\": \"" +
+                    hex_of(imported.manifest) + "\"}}";
     made.files.push_back(ThemePackageFile{"theme.theme.css", std::string(sheet)});
     return made;
 }
@@ -342,6 +355,46 @@ void test_dark_rules_without_variant() {
         package("unvaried", ":root { color-scheme: light } @media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"),
         library, images, professional);
     require(unvaried.succeeded() && warns(unvaried, "W402"), "dark rules without a dark variant warn");
+    // A light-only package of no dark rules of its own: the base's dark
+    // rules are not the package's, so it does not warn (conformance gap 3).
+    const ThemeCompileResult light_only = compile_theme_package(
+        package("light-only", ":root { color-scheme: light } #pad { opacity: 0.5 }"), library, images, professional);
+    require(light_only.succeeded() && !warns(light_only, "W402"),
+            "a light-only package over a base with dark rules does not warn");
+    // PlaySuite's shape (its themes/playsuite package): light only, its own
+    // custom properties at :root, part rules reading them, compiled the way
+    // Application::create compiles a configured theme (compile_theme_packages)
+    // over windows-professional, whose parts sheet has dark rules.
+    const std::vector<ThemePackage> configured{package(
+        "light-parts", ":root {\n  color-scheme: light;\n  --gloss-edge: #64728b;\n  --gloss-ink: #172b53;\n}\n"
+                       "button::part(face) {\n  background: linear-gradient(to bottom, var(--gloss-edge), "
+                       "var(--gloss-ink));\n  border-color: var(--gloss-edge);\n}\n"
+                       "#pad { opacity: 0.5 }\n")};
+    const ThemeCompileResult light_parts = compile_theme_packages(configured, library, images, professional);
+    require(light_parts.succeeded() && !warns(light_parts, "W402"),
+            "a light-only package of part rules, configured over a base with dark rules, does not warn");
+    // An imported library pack's dark rules are the library's, not the
+    // importing package's: a light-only importer does not warn, and an
+    // importer that writes its own dark rules still does.
+    ThemeLibrary imports{};
+    const std::string_view dark_library_sheet =
+        ":root { color-scheme: light dark } @media (prefers-color-scheme: dark) { #pad { opacity: 0.25 } }";
+    const ThemePackage dark_library = package("dark-library", dark_library_sheet);
+    require(imports.install(dark_library).empty() && imports.contains("dark-library"),
+            "the library pack with dark rules installs");
+    const ThemeCompileResult light_importer = compile_theme_package(
+        importer("light-importer", dark_library,
+                 "@import \"dark-library\";\n:root { color-scheme: light }\n#pad { opacity: 0.5 }\n"),
+        imports, images, professional);
+    require(light_importer.succeeded() && !warns(light_importer, "W402"),
+            "a light-only package importing a library pack with dark rules does not warn");
+    const ThemeCompileResult dark_importer = compile_theme_package(
+        importer("dark-importer", dark_library,
+                 "@import \"dark-library\";\n:root { color-scheme: light }\n"
+                 "@media (prefers-color-scheme: dark) { #pad { opacity: 0.75 } }\n"),
+        imports, images, professional);
+    require(dark_importer.succeeded() && warns(dark_importer, "W402"),
+            "an importer that writes its own dark rules without a dark variant still warns");
     const ThemeCompileResult varied = compile_theme_package(
         package("varied", ":root { color-scheme: light dark } @media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"),
         library, images, professional);
@@ -395,7 +448,7 @@ void test_fallback() {
     SubscriptionToken subscription = window.theme_changed().subscribe(RecordThemeChange{&changes});
     require(!window.theme_fallback() && window.theme().id() == "windows-professional",
             "a light window shows its light theme");
-    (*pad).back_color = Color::rgba(200, 30, 30);
+    (*pad).back_color = stxlib::Optional<Color>::of(Color::rgba(200, 30, 30));
     require((*pad).back_color_warned() && !(*pad).fore_color_warned(), "a colour set on a control is warned");
     require(!(*pad).application_colours_suspended(), "and applies under the application's theme");
 
@@ -469,7 +522,7 @@ void test_system_colour_hints() {
     }
     require(plain.outcome == CompileOutcome::compiled && only_unremappable, "env() compiles, warning as a literal");
     SystemColourHints hints{};
-    hints.accent = Color::rgba(1, 2, 3);
+    hints.accent.set(Color::rgba(1, 2, 3));
     const Compilation hinted = compile(sheet, hints);
     require(hinted.outcome == CompileOutcome::compiled && !(hinted.sheet == plain.sheet),
             "a hint changes what env() reads");
@@ -525,16 +578,16 @@ void test_window_backdrop() {
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
     Window window(root, Size{200.0, 100.0});
-    require(!window.backdrop_chain(), "a theme without window rules gives no chain");
+    require(window.backdrop_chain().absent(), "a theme without window rules gives no chain");
     window.set_theme(theme);
-    require(window.backdrop_chain() && *window.backdrop_chain() == light,
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(light),
             "the window rule's chain, its role tint in the light scheme");
     set_scheme(window, ColourScheme::dark);
-    require(window.backdrop_chain() && *window.backdrop_chain() == dark, "the dark scheme's rule wins in dark");
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(dark), "the dark scheme's rule wins in dark");
     set_scheme(window, ColourScheme::light);
-    require(window.backdrop_chain() && *window.backdrop_chain() == light, "and light again");
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(light), "and light again");
     window.set_theme(gui_forms_theme());
-    require(!window.backdrop_chain(), "another theme without window rules removes it");
+    require(window.backdrop_chain().absent(), "another theme without window rules removes it");
 
     // A root with the class: `backdrop: none` wins, and no chain is set.
     const std::shared_ptr<Panel> plain_root = make_control<Panel>(StableId("plain-root"));
@@ -543,18 +596,18 @@ void test_window_backdrop() {
     (*plain_root).classes = std::move(classes);
     Window plain(plain_root, Size{200.0, 100.0});
     plain.set_theme(theme);
-    require(!plain.backdrop_chain(), "backdrop: none on the root's class removes the chain");
+    require(plain.backdrop_chain().absent(), "backdrop: none on the root's class removes the chain");
 
     // The application's chain holds against the scheme and the theme.
     const BackdropChain own = chain_of({BackdropOperation::tint(Color::rgba(10, 20, 30, 40))});
     window.set_theme(theme);
-    window.set_backdrop_chain(own);
+    window.set_backdrop_chain(stxlib::Optional<BackdropChain>::of(own));
     set_scheme(window, ColourScheme::dark);
     window.set_theme(gui_forms_theme());
-    require(window.backdrop_chain() && *window.backdrop_chain() == own, "the application's chain holds");
-    window.set_backdrop_chain(std::nullopt);
+    require(window.backdrop_chain() == stxlib::Optional<BackdropChain>::of(own), "the application's chain holds");
+    window.set_backdrop_chain(stxlib::Optional<BackdropChain>::none());
     window.set_theme(theme);
-    require(!window.backdrop_chain(), "an application's removal holds too");
+    require(window.backdrop_chain().absent(), "an application's removal holds too");
 }
 
 } // namespace

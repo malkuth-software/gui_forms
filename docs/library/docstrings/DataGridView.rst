@@ -715,7 +715,8 @@ asks for the values it shows by row ID:
            gf::make_control<gf::DataGridView>(gf::StableId("radio.virtual"));
        (*grid).set_columns({{.name = "name", .header_text = "Station", .width = 160.0}});
        (*grid).set_virtual_rows(std::make_shared<Stations>(), {{"a"}, {"b"}, {"c"}});
-       (*grid).set_current_cell(gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U});
+       (*grid).set_current_cell(stxlib::Optional<gf::DataGridViewCellAddress>::of(
+           gf::DataGridViewCellAddress{gf::DataGridViewRowPosition{1U}, 0U}));
        (*grid).set_virtual_row_order({{"c"}, {"d"}, {"b"}, {"a"}});   // the application sorted and added
        // current_row_id() is still {"b"}, now at position 2
    }

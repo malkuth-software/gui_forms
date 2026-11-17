@@ -4,6 +4,7 @@
 
 #include "application_state.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cmath>
 #include <string>
 #include <utility>
@@ -178,7 +179,7 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     // content surface (a menu panel, a list, a tooltip bubble) draws every
     // surface itself, so the backplane under its shadow stays clear.
     if (opening.content_surface) static_cast<void>((*model).declare_content_surface());
-    if (opening.backdrop.has_value()) {
+    if (opening.backdrop.present()) {
         (*model).set_backdrop_chain(opening.backdrop);
     } else {
         static_cast<void>((*model).request_backdrop(WindowBackdropRequest::preferring(WindowBackdrop::transparent)));
@@ -200,7 +201,7 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     popup.kind = opening.kind;
     popup.focus = opening.focus;
     popup.origin = DesktopLogicalPoint{placed.x, placed.y};
-    entry.popup = popup;
+    entry.popup.set(popup);
     // Made before the window, so the window's closed callback can reach it.
     std::shared_ptr<NativePopupRecord> record = std::make_shared<NativePopupRecord>(borrowed);
     entry.options.closed = NativePopupClosed{record};

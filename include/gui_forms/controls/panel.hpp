@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 
 namespace gui_forms {
@@ -21,13 +22,13 @@ public:
     // theme recipe's material; a gradient or image reports its first colour.
     [[nodiscard]] Color background() const;
     [[nodiscard]] bool has_background_override() const noexcept {
-        return background_override_.has_value();
+        return background_override_.present();
     }
     void set_background(Color color);
     void clear_background();
     [[nodiscard]] const BasicControlStyle& style() const noexcept;
     [[nodiscard]] bool has_style_override() const noexcept {
-        return style_override_.has_value();
+        return style_override_.present();
     }
     void set_style(BasicControlStyle style);
     void clear_style();
@@ -70,7 +71,7 @@ private:
     // panel background (set_background), else the control's own back_color
     // outside high contrast (Control::paint_back_color's rule); none keeps
     // the material.
-    [[nodiscard]] std::optional<Color> face_colour() const noexcept;
+    [[nodiscard]] stxlib::Optional<Color> face_colour() const noexcept;
     // The face part paint_panel draws over `bounds`, keyed "face" so that a
     // theme rule can select it (G3).
     [[nodiscard]] PartPaint face_part(Rect bounds) const noexcept;
@@ -79,8 +80,8 @@ private:
     // fields select the face. Assembling allocates.
     [[nodiscard]] bool rule_face_material(SurfaceMaterial& material) const;
 
-    std::optional<BasicControlStyle> style_override_;
-    std::optional<Color> background_override_;
+    stxlib::Optional<BasicControlStyle> style_override_;
+    stxlib::Optional<Color> background_override_;
     // Whether the paint plane is the one on_attached_to_window derived (and
     // may derive again at the next attach), not a subclass's own choice.
     bool plane_derived_{};

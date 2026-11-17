@@ -1,4 +1,5 @@
 #include "gui_forms/controls/link_router.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -240,7 +241,7 @@ LinkRouteStatistics LinkRouter::route(const NodeGraph& graph, const LinkRouterOp
     }
     nudge(chosen, statistics);
     flatten(chosen);
-    statistics.crossings = count_crossings();
+    statistics.crossings = chosen.count_crossings ? count_crossings() : 0U;
     statistics.grid_columns = columns_.size();
     statistics.grid_rows = rows_.size();
     if (capacity_sum() != capacity_before) statistics.storage_growths = 1U;
@@ -854,8 +855,8 @@ void LinkRouter::flatten(const LinkRouterOptions& options) {
             const WorldPoint before = points_[first + index - 1U];
             const WorldPoint corner = points_[first + index];
             const WorldPoint after = points_[first + index + 1U];
-            const double in_length = std::hypot(corner.x - before.x, corner.y - before.y);
-            const double out_length = std::hypot(after.x - corner.x, after.y - corner.y);
+            const double in_length = engine_hypotenuse(corner.x - before.x, corner.y - before.y);
+            const double out_length = engine_hypotenuse(after.x - corner.x, after.y - corner.y);
             if (in_length <= 0.0 || out_length <= 0.0) continue;
             // Half of each leg at most, so neighbouring corners never overlap.
             const double radius = std::min(options.corner_radius, std::min(in_length, out_length) * 0.5);
@@ -870,7 +871,7 @@ void LinkRouter::flatten(const LinkRouterOptions& options) {
             // the tolerance.
             const double second_x = entry.x - 2.0 * corner.x + exit.x;
             const double second_y = entry.y - 2.0 * corner.y + exit.y;
-            const double magnitude = std::hypot(second_x, second_y);
+            const double magnitude = engine_hypotenuse(second_x, second_y);
             double wanted = std::ceil(std::sqrt(magnitude / (4.0 * options.flatten_tolerance)));
             wanted = std::max(1.0, std::min(wanted, static_cast<double>(maximum_corner_steps)));
             const std::uint32_t steps = static_cast<std::uint32_t>(wanted);

@@ -18,9 +18,19 @@ namespace gui_forms {
 // is transparent to input, so a click there reaches the layer and dismisses
 // the overlay. Interaction state lives in the ribbon: a command shows in the
 // plane or in the overlay, never both.
+//
+// The plane kind is the minimized ribbon's popup: the selected tab's whole
+// plane, as wide as the ribbon, placed below its tab row; its layout,
+// painting and pointer input are the ribbon's popup_* functions, and the
+// selected tab's hosted controls sit in it.
+enum class RibbonOverlayKind : std::uint8_t {
+    group,
+    plane,
+};
+
 class RibbonGroupOverlay final : public Control {
 public:
-    RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon);
+    RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon, RibbonOverlayKind kind = RibbonOverlayKind::group);
 
     // The panel's left edge in window coordinates, as the ribbon asks.
     void set_anchor_x(double x);
@@ -50,12 +60,14 @@ protected:
     void on_key_up(KeyEventArgs& arguments) override;
 
 private:
+    void arrange_plane(Rect final_bounds);
     // The ribbon's handling of the overlay's mouse and keys.
     void forward_mouse(MouseEventArgs& arguments);
     void forward_key(KeyEventArgs& arguments, KeyAction action);
     [[nodiscard]] bool ribbon_alive() const noexcept;
 
     Ribbon* ribbon_{};
+    RibbonOverlayKind kind_{RibbonOverlayKind::group};
     double anchor_x_{};
     Rect panel_{};
 };

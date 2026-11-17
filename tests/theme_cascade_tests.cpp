@@ -14,7 +14,10 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/optional.hpp>
+#include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -83,9 +86,9 @@ std::vector<RuleDeclaration> bulge(double amplitude) {
 }
 
 double amplitude_of(const CompiledThemeRules::Resolution& resolution) {
-    const std::optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
-    require(index.has_value(), "the bulge has an amplitude");
-    const double value = resolution.parameters.values[*index].number;
+    const stxlib::Optional<std::size_t> index = find_parameter((*resolution.primitive).descriptor(), "amplitude");
+    require(index.present(), "the bulge has an amplitude");
+    const double value = resolution.parameters.values[(*index.value())].number;
     return value;
 }
 
@@ -155,7 +158,7 @@ void specificity_and_ties() {
             "the ID and the classes count");
     RuleSelector many = by_class("a");
     many.classes.push_back("b");
-    many.role = PartRole::face;
+    many.role.set(PartRole::face);
     many.part = "face";
     many.states.push_back(AnatomyState::hot);
     const RuleSpecificity counted = rule_specificity(many);
@@ -188,7 +191,7 @@ void specificity_and_ties() {
     RuleSpecificity of_class{};
     of_class.classes = 2U;
     of_class.types = 1U;
-    lifted.specificity = of_class;
+    lifted.specificity.set(of_class);
     given.rules.push_back(lifted);
     RuleSelector loud_hot = by_class("loud");
     loud_hot.states.push_back(AnatomyState::hot);
@@ -199,7 +202,7 @@ void specificity_and_ties() {
     require(amplitude_of(given_rules.resolve(face_of("x", loud, hot_states))) == 0.3,
             "the given specificity orders the rule within its level");
     ThemeRule unlifted = rule("unlifted", CascadeLevel::stable_id_rule, by_type(), bulge(0.3));
-    unlifted.specificity = of_class;
+    unlifted.specificity.set(of_class);
     ThemeRuleSheet missing{};
     missing.rules.push_back(unlifted);
     const CompiledThemeRules missing_rules = CompiledThemeRules::compile(missing, builtin_primitive_registry());
@@ -217,9 +220,9 @@ void specificity_and_ties() {
     const CompiledThemeRules cascaded = CompiledThemeRules::compile(split, builtin_primitive_registry());
     const std::vector<std::string> tinted{"tinted"};
     const CompiledThemeRules::Resolution both = cascaded.resolve(face_of("x", tinted));
-    const std::optional<std::size_t> light = find_parameter((*both.primitive).descriptor(), "light_colour");
+    const stxlib::Optional<std::size_t> light = find_parameter((*both.primitive).descriptor(), "light_colour");
     require(both.level == CascadeLevel::class_rule && amplitude_of(both) == 0.6 &&
-                both.parameters.values[*light].colour == Color::rgba(10, 20, 30),
+                both.parameters.values[(*light.value())].colour == Color::rgba(10, 20, 30),
             "each parameter takes its winning declaration among the rules for the same primitive");
 }
 
@@ -263,7 +266,7 @@ void invalid_rules_are_dropped() {
     sheet.rules.push_back(rule("built in level", CascadeLevel::built_in, by_type(), bulge(0.5)));
     sheet.rules.push_back(rule("forced", CascadeLevel::forced_high_contrast, by_type(), bulge(0.5)));
     RuleSelector label = by_type();
-    label.role = PartRole::label;
+    label.role.set(PartRole::label);
     sheet.rules.push_back(rule("label bulge", CascadeLevel::theme_sheet, label, bulge(0.5)));
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
 
@@ -339,7 +342,7 @@ void newer_engine_rules_fall_back() {
     sheet.requires_engine = next;
     sheet.rules.push_back(rule("future", CascadeLevel::theme_sheet, by_type(), bulge(0.5)));
     ThemeRule today = rule("today", CascadeLevel::class_rule, by_class("loud"), bulge(0.7));
-    today.requires_engine = EngineVersion{0, 1};
+    today.requires_engine.set(EngineVersion{0, 1});
     sheet.rules.push_back(today);
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
     require(has_diagnostic(rules, RuleDiagnosticKind::needs_newer_engine, "future") && rules.rule_count() == 1U,
@@ -411,7 +414,7 @@ std::unique_ptr<ThemeDefinition> bulge_theme() {
     ThemeDefinition& definition = *held;
     definition.id = "cascade-test";
     RuleSelector faces{};
-    faces.role = PartRole::face;
+    faces.role.set(PartRole::face);
     definition.rules.rules.push_back(rule("faces", CascadeLevel::theme_sheet, faces, bulge(0.5)));
     return held;
 }
@@ -432,7 +435,7 @@ void paint_path() {
     face.role = PartRole::face;
     face.family = ControlVisualRole::button;
     face.bounds = {10.0, 20.0, 40.0, 24.0};
-    face.key = PartKey{"face", {}, {}};
+    face.key.set(PartKey{"face", {}, {}});
     CountingPainter painter{};
     (*theme).engine().paint(painter, *control, face);
     require(painter.composites == 1U && painter.fills == 0U && painter.last_raster &&
@@ -462,8 +465,11 @@ void paint_path() {
     require(large_plan.drawing == ThemeEngine::PartDrawing::over_frame_budget,
             "an animated part over the per-frame budget keeps the built-in recipe");
     const std::size_t composites = painter.composites;
+    const std::uint64_t fallbacks = window.metrics_snapshot().engine_built_in_fallbacks;
     (*theme).engine().paint(painter, *control, large);
     require(painter.composites == composites && painter.fills > 0U, "and is painted by it");
+    require(window.metrics_snapshot().engine_built_in_fallbacks == fallbacks + 1U,
+            "and the fallback is counted as a refused primitive's is");
 
     // Forced high contrast: the engine's last pass draws every part built in.
     PresentationSettings settings = window.presentation_settings();
@@ -495,21 +501,21 @@ void surface_rules() {
     chain.steps[1].kind = BackdropStepKind::tint;
     chain.steps[1].colour = Color::rgba(255, 255, 255, 128);
     chain.length = 2U;
-    backdrop_rule.backdrop = chain;
+    backdrop_rule.backdrop.set(chain);
     ThemeRuleSheet sheet{};
     sheet.rules.push_back(rule("any", CascadeLevel::theme_sheet, RuleSelector{}, bulge(0.4)));
     sheet.rules.push_back(backdrop_rule);
     // A backdrop on a control rule, and an invalid chain (two blurs, one out
     // of range), are dropped.
     ThemeRule on_control = rule("control", CascadeLevel::theme_sheet, by_type(), bulge(0.6));
-    on_control.backdrop = chain;
+    on_control.backdrop.set(chain);
     sheet.rules.push_back(on_control);
     BackdropDeclaration invalid = chain;
     invalid.steps[1].kind = BackdropStepKind::blur;
     invalid.steps[1].amount = 40.0;
     require(!backdrop_declaration_valid(invalid), "two blurs, one over 32, are no chain");
     ThemeRule invalid_rule = rule("invalid", CascadeLevel::theme_sheet, window, bulge(0.2));
-    invalid_rule.backdrop = invalid;
+    invalid_rule.backdrop.set(invalid);
     sheet.rules.push_back(invalid_rule);
     const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
     require(has_diagnostic(rules, RuleDiagnosticKind::backdrop_invalid, "control", "backdrop"),
@@ -680,6 +686,76 @@ void item_rules() {
             "an item class that is not a style class name is refused");
 }
 
+// A control rule's content effect (owner 2026-11-16) stands only on a rule
+// naming no part, role or surface, and only as fields a group effect takes;
+// each field resolves from the last matching rule that sets it.
+void content_effect_rules() {
+    const std::vector<std::string> none{};
+    MaterialDeclaration filter{};
+    filter.field = MaterialField::colour_filter;
+    filter.colour_filter = MaterialColourMatrix::grayscale(1.0);
+    MaterialDeclaration blur{};
+    blur.field = MaterialField::filter_blur;
+    blur.number = 2.0;
+    MaterialDeclaration later_blur = blur;
+    later_blur.number = 4.0;
+    MaterialDeclaration shadow{};
+    shadow.field = MaterialField::drop_shadow;
+    MaterialDeclaration image{};
+    image.field = MaterialField::mask;
+    image.masks.push_back(MaterialFillLayer::stretched_image(ImageId{1U}, Size{4.0, 4.0}));
+
+    ThemeRuleSheet sheet{};
+    ThemeRule control = rule("control", CascadeLevel::theme_sheet, by_type(), {});
+    control.content_effect = {filter, blur};
+    sheet.rules.push_back(control);
+    ThemeRule later = rule("later", CascadeLevel::theme_sheet, by_type(), {});
+    later.content_effect = {later_blur};
+    sheet.rules.push_back(later);
+    RuleSelector face = by_type();
+    face.part = "face";
+    ThemeRule on_part = rule("on_part", CascadeLevel::theme_sheet, face, {});
+    on_part.content_effect = {blur};
+    sheet.rules.push_back(on_part);
+    ThemeRule shadowed = rule("shadowed", CascadeLevel::theme_sheet, by_type(), {});
+    shadowed.content_effect = {shadow};
+    sheet.rules.push_back(shadowed);
+    ThemeRule imaged = rule("imaged", CascadeLevel::theme_sheet, by_type(), {});
+    imaged.content_effect = {image};
+    sheet.rules.push_back(imaged);
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.has_content_effects(), "the rules have a content effect");
+    require(has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "on_part", "content effect"),
+            "a content effect on a part is dropped");
+    require(has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "shadowed", "content effect"),
+            "a drop shadow is no content-effect field");
+    require(has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "imaged", "content effect"),
+            "an image mask is not admitted");
+    require(!has_diagnostic(rules, RuleDiagnosticKind::material_field_invalid, "control", "content effect"),
+            "a control rule's filter and blur stand");
+
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = "button";
+    facts.classes = none;
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    rules.resolve_content_effect(facts, fields);
+    const MaterialDeclaration* const resolved_filter = fields[static_cast<std::size_t>(MaterialField::colour_filter)];
+    const MaterialDeclaration* const resolved_blur = fields[static_cast<std::size_t>(MaterialField::filter_blur)];
+    require(resolved_filter != nullptr && (*resolved_filter).colour_filter.has_value(),
+            "the filter resolves from the rule setting it");
+    require(resolved_blur != nullptr && (*resolved_blur).number == 4.0, "the later rule's blur wins");
+    require(fields[static_cast<std::size_t>(MaterialField::drop_shadow)] == nullptr &&
+                fields[static_cast<std::size_t>(MaterialField::mask)] == nullptr,
+            "the dropped fields resolve to nothing");
+    CompiledThemeRules::PartFacts part = face_of("x", none);
+    rules.resolve_content_effect(part, fields);
+    require(fields[static_cast<std::size_t>(MaterialField::filter_blur)] == nullptr,
+            "a part's facts have no content effect");
+    require(content_effect_field(MaterialField::mask_modes) && !content_effect_field(MaterialField::mask_sizes) &&
+                !content_effect_field(MaterialField::drop_shadow),
+            "the content effect's fields are the filter's colour stages and blur and the mask's layers");
+}
+
 int main() {
     levels_in_order();
     families_and_exclusions();
@@ -691,6 +767,7 @@ int main() {
     style_classes();
     paint_path();
     surface_rules();
+    content_effect_rules();
     item_rules();
     std::cout << "theme cascade: levels, specificity, diagnostics, budgets, engine versions, classes and the paint "
                  "path, item rules passed\n";

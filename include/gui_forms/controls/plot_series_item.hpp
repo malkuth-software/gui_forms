@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/plot_series_item_custom.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
@@ -10,6 +11,7 @@
 #include "gui_forms/plots/signal_program/signal_program.hpp"
 #include "gui_forms/controls/plot_series_item_capabilities.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -69,6 +71,14 @@ public:
     [[nodiscard]] std::shared_ptr<plots::SeriesRingChannel> live_channel(std::size_t capacity);
     // Empties the series (copied-in columns stay reserved).
     void clear_points();
+    // A custom kind (PlotCustomSeries): while one is installed the plot
+    // draws, fits and picks through it instead of the item's points and
+    // `kind`; null removes it. The item shares ownership. custom_changed
+    // tells the plot that the installed series' content changed (it fits
+    // and repaints as for new points).
+    void set_custom(std::shared_ptr<PlotCustomSeries> custom);
+    [[nodiscard]] const std::shared_ptr<PlotCustomSeries>& custom() const noexcept { return custom_; }
+    void custom_changed();
 
     // What the plot reads.
     enum class DataSource : std::uint8_t { columns, borrowed };
@@ -81,7 +91,7 @@ public:
     // gap-free series of at least pyramid_threshold points), else null.
     [[nodiscard]] const plots::EnvelopePyramid* pyramid() const noexcept;
     // The parsed `source`, when one is set.
-    [[nodiscard]] const std::optional<plots::SignalProgram>& signal() const noexcept { return signal_; }
+    [[nodiscard]] const stxlib::Optional<plots::SignalProgram>& signal() const noexcept { return signal_; }
     [[nodiscard]] const std::shared_ptr<plots::SeriesRingChannel>& channel() const noexcept { return channel_; }
     // Bumped by every data change and property write.
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
@@ -126,8 +136,9 @@ private:
     plots::BorrowedSeries<double> borrowed_y_{};
     plots::EnvelopePyramid pyramid_{};
     bool pyramid_valid_{};
-    std::optional<plots::SignalProgram> signal_{};
+    stxlib::Optional<plots::SignalProgram> signal_{};
     std::shared_ptr<plots::SeriesRingChannel> channel_{};
+    std::shared_ptr<PlotCustomSeries> custom_{};
     std::uint64_t revision_{};
     std::uint64_t data_revision_{};
     // property_codemod begin PlotSeriesItem (tools/property_families/plot_series_item.json; generated, do not edit)

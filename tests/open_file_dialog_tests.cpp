@@ -170,8 +170,11 @@ void name_part() {
 void settings() {
     OpenFileDialog dialog;
     require(dialog.title.read().empty() && dialog.filter.read().empty() && dialog.filters().empty() && !dialog.multiselect.read() &&
-                dialog.file_name.read().empty() && dialog.file_names().empty() && dialog.status().accepted(),
-            "a new dialog has the defaults");
+                dialog.file_name.read().empty() && dialog.file_names().empty() && dialog.status().accepted() &&
+                dialog.check_file_exists.read() && dialog.check_path_exists.read(),
+            "a new dialog has the defaults, both existence checks on");
+    dialog.check_file_exists = false;
+    dialog.check_path_exists = false;
     dialog.title = "Open a recording";
     dialog.initial_directory = "/srv/recordings";
     dialog.filter = "Recordings|*.wav;*.flac";
@@ -210,7 +213,8 @@ void settings() {
     require(dialog.file_names().empty() && dialog.safe_file_names().empty(), "an empty name chooses nothing");
     dialog.reset();
     require(dialog.title.read().empty() && dialog.initial_directory.read().empty() && dialog.filter.read().empty() &&
-                dialog.filters().empty() && !dialog.multiselect.read() && dialog.file_names().empty(),
+                dialog.filters().empty() && !dialog.multiselect.read() && dialog.file_names().empty() &&
+                dialog.check_file_exists.read() && dialog.check_path_exists.read(),
             "reset restores the defaults");
 
     const std::vector<InteractionDeclaration> interactions = dialog.interactions();
@@ -270,19 +274,22 @@ void shown_through_host() {
     const HostOpenFileDialogRequest* const sent = open_request(script.requests[0]);
     require(sent != nullptr && (*sent).title == "Open a log" && (*sent).initial_directory == "/var/log" &&
                 (*sent).suggested_name == "system.log" && (*sent).filters.size() == 2U &&
-                (*sent).filters[1].extensions[0] == "*" && !(*sent).allow_multiple,
+                (*sent).filters[1].extensions[0] == "*" && !(*sent).allow_multiple && (*sent).check_file_exists &&
+                (*sent).check_path_exists,
             "the request carries the settings");
     require(dialog.file_name.read() == "/var/log/kernel.log" && dialog.safe_file_name() == "kernel.log" &&
                 log.seen.size() == 1U && log.seen[0].size() == 1U && log.seen[0][0] == "/var/log/kernel.log",
             "file_ok sees the chosen path and the dialog takes it");
 
     dialog.multiselect = true;
+    dialog.check_file_exists = false;
     script.answers.push_back(accepted({"/var/log/a.log", "/var/log/b.log"}));
     require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_names().size() == 2U &&
                 dialog.safe_file_names()[1] == "b.log",
             "several chosen paths are kept in order");
     const HostOpenFileDialogRequest* const multiple = open_request(script.requests[1]);
-    require(multiple != nullptr && (*multiple).allow_multiple && (*multiple).suggested_name == "/var/log/kernel.log" &&
+    require(multiple != nullptr && (*multiple).allow_multiple && !(*multiple).check_file_exists &&
+                (*multiple).check_path_exists && (*multiple).suggested_name == "/var/log/kernel.log" &&
                 script.requests[1].request_id != script.requests[0].request_id,
             "each request has its own identity and suggests the first chosen path");
 
@@ -416,7 +423,7 @@ void filter_index() {
     dialog.filter = "Logs|*.log|Text|*.txt|All files|*.*";
     dialog.filter_index = 1U;
     HostPathDialogResult answer = accepted({"/tmp/a.txt"});
-    answer.chosen_filter = 2U;
+    answer.chosen_filter.set(2U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
     const HostOpenFileDialogRequest* const first = open_request(script.requests[0]);
@@ -430,7 +437,7 @@ void filter_index() {
     require(second != nullptr && (*second).initial_filter == 0U && dialog.filter_index.read() == 7U,
             "an index past the filters starts on the first, and a host that does not tell keeps the index");
 
-    answer.chosen_filter = 3U;
+    answer.chosen_filter.set(3U);
     script.answers.push_back(answer);
     require(dialog.show_dialog(window) == DialogResult::none && !dialog.status().accepted() &&
                 dialog.filter_index.read() == 7U && dialog.file_name.read() == "/tmp/b.log",

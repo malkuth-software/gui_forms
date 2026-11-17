@@ -31,7 +31,10 @@ struct GUI_FORMS_API ThreadExceptionReport final {
 
 // The report for a caught exception: the message of a std::exception, or
 // "An exception of unknown type was thrown." for anything else, with no
-// details. A null `error` gives an empty message.
+// details. A null `error` gives an empty message. A message that is not
+// valid UTF-8 has each malformed byte replaced by U+FFFD; the dialog repairs
+// a caller-filled caption, message and details the same way, so reporting
+// never throws for its text.
 [[nodiscard]] GUI_FORMS_API ThreadExceptionReport describe_exception(const std::exception_ptr& error);
 
 // The dialog an application shows for an exception it did not handle
@@ -43,8 +46,8 @@ struct GUI_FORMS_API ThreadExceptionReport final {
 // DialogResult::abort for Quit, as Windows Forms' dialog returns them. The
 // dialog never ends the application: on abort the application closes itself.
 //
-// Report text must be valid UTF-8; anything else throws
-// std::invalid_argument from the constructor. The dialog is used on the UI
+// Report text that is not valid UTF-8 is shown with U+FFFD in place of each
+// malformed byte (report() keeps what the caller gave). The dialog is used on the UI
 // thread of the window it is shown over. Disposing or destroying a shown
 // dialog closes it without raising closed.
 class GUI_FORMS_API ThreadExceptionDialog final : public Component {

@@ -1,4 +1,5 @@
 #include "dark_variant.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
 
 #include "gui_forms/theme/types/theme_types.hpp"
 
@@ -101,9 +102,10 @@ struct LinearRgb final {
 };
 
 LinearRgb linear_of(const Lch& colour) noexcept {
-    const double radians = colour.hue_degrees * pi / 180.0;
-    const double a = colour.chroma * std::cos(radians);
-    const double b = colour.chroma * std::sin(radians);
+    // The engine's deterministic sine and cosine (the same bits on every host).
+    const EngineSineCosine turn = engine_sine_cosine_degrees(colour.hue_degrees);
+    const double a = colour.chroma * turn.cosine;
+    const double b = colour.chroma * turn.sine;
     const double l_root = colour.lightness + 0.3963377774 * a + 0.2158037573 * b;
     const double m_root = colour.lightness - 0.1055613458 * a - 0.0638541728 * b;
     const double s_root = colour.lightness - 0.0894841775 * a - 1.2914855480 * b;
@@ -220,8 +222,8 @@ Lch lch_of(Color colour) noexcept {
     const OklabColour lab = oklab_of(colour);
     Lch result{};
     result.lightness = lab.lightness;
-    result.chroma = std::hypot(lab.a, lab.b);
-    const double hue = std::atan2(lab.b, lab.a) * 180.0 / pi;
+    result.chroma = engine_hypotenuse(lab.a, lab.b);
+    const double hue = engine_arctangent2(lab.b, lab.a) * 180.0 / pi;
     result.hue_degrees = hue < 0.0 ? hue + 360.0 : hue;
     return result;
 }
@@ -330,14 +332,14 @@ constexpr double gold_chroma = 0.06;
 constexpr double default_face_lightness = 0.9;
 
 double hue_of(const detail::OklabColour& lab) noexcept {
-    const double hue = std::atan2(lab.b, lab.a) * 180.0 / 3.14159265358979323846;
+    const double hue = engine_arctangent2(lab.b, lab.a) * 180.0 / 3.14159265358979323846;
     const double result = hue < 0.0 ? hue + 360.0 : hue;
     return result;
 }
 
 bool gold(Color colour) noexcept {
     const detail::OklabColour lab = detail::oklab_of(colour);
-    const double chroma = std::hypot(lab.a, lab.b);
+    const double chroma = engine_hypotenuse(lab.a, lab.b);
     const double hue = hue_of(lab);
     const bool result = chroma >= gold_chroma && hue >= gold_hue_low && hue <= gold_hue_high;
     return result;
@@ -424,9 +426,10 @@ void darken_fill(MaterialFillLayer& layer, const DarkRecipePlan& plan) noexcept 
     }
 }
 
-void darken_border(std::optional<MaterialBorder>& border, const DarkRecipePlan& plan) noexcept {
-    if (!border) return;
-    (*border).color = detail::dark_colour((*border).color, plan.edge);
+void darken_border(stxlib::Optional<MaterialBorder>& border, const DarkRecipePlan& plan) noexcept {
+    MaterialBorder* const present = border.value();
+    if (present == nullptr) return;
+    (*present).color = detail::dark_colour((*present).color, plan.edge);
 }
 
 void darken_planned(SurfaceMaterial& material, const DarkRecipePlan& plan) noexcept {
@@ -446,8 +449,9 @@ void darken_planned(SurfaceMaterial& material, const DarkRecipePlan& plan) noexc
     for (MaterialKeyline& line : material.keylines) {
         line.color = detail::dark_colour(line.color, relief_class(line.color, plan));
     }
-    if (material.drop_shadow) {
-        (*material.drop_shadow).color = detail::dark_colour((*material.drop_shadow).color, DarkColourClass::shade);
+    if (material.drop_shadow.present()) {
+        (*material.drop_shadow.value()).color = detail::dark_colour((*material.drop_shadow.value()).color,
+                                                                    DarkColourClass::shade);
     }
 }
 
@@ -467,9 +471,10 @@ ControlVisualRecipe dark_recipe(const ControlVisualRecipe& light, ControlVisualR
     result.text = detail::dark_colour(light.text, text_class(light.text, plan, disabled));
     result.muted_text = detail::dark_colour(light.muted_text, text_class(light.muted_text, plan, disabled));
     result.glyph = detail::dark_colour(light.glyph, text_class(light.glyph, plan, disabled));
-    if (light.fill_text) {
-        const Color over_fill = *light.fill_text;
-        result.fill_text = detail::dark_colour(over_fill, text_class(over_fill, plan, disabled));
+    const Color* const light_over_fill = light.fill_text.value();
+    if (light_over_fill != nullptr) {
+        const Color over_fill = *light_over_fill;
+        result.fill_text.set(detail::dark_colour(over_fill, text_class(over_fill, plan, disabled)));
     }
     result.focus_ring = detail::dark_colour(light.focus_ring, DarkColourClass::cue);
     result.default_ring = detail::dark_colour(light.default_ring, DarkColourClass::cue);
@@ -478,8 +483,9 @@ ControlVisualRecipe dark_recipe(const ControlVisualRecipe& light, ControlVisualR
     // (a)). The dial geometry is the light theme's.
     const std::uint8_t deeper = static_cast<std::uint8_t>(std::min(255, static_cast<int>(light.scrim.alpha) + 64));
     result.scrim = Color::rgba(0, 0, 0, deeper);
-    if (result.text_shadow) {
-        ControlTextShadow& shadow = *result.text_shadow;
+    ControlTextShadow* const dark_shadow = result.text_shadow.value();
+    if (dark_shadow != nullptr) {
+        ControlTextShadow& shadow = *dark_shadow;
         shadow.color = detail::dark_colour(shadow.color, relief_class(shadow.color, plan));
     }
     return result;

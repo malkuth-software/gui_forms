@@ -91,10 +91,10 @@ void AnchoredOverlayLayer::arrange(Rect final_bounds) {
     // right edge (Windows Forms).
     AnchoredOverlayPlacement directed = placement.read();
     if ((*anchor).effective_layout_direction() == LayoutDirection::right_to_left) {
-        if (directed.horizontal_alignment == OverlayHorizontalAlignment::near) {
-            directed.horizontal_alignment = OverlayHorizontalAlignment::far;
-        } else if (directed.horizontal_alignment == OverlayHorizontalAlignment::far) {
-            directed.horizontal_alignment = OverlayHorizontalAlignment::near;
+        if (directed.horizontal_alignment == OverlayHorizontalAlignment::start) {
+            directed.horizontal_alignment = OverlayHorizontalAlignment::end;
+        } else if (directed.horizontal_alignment == OverlayHorizontalAlignment::end) {
+            directed.horizontal_alignment = OverlayHorizontalAlignment::start;
         }
     }
     resolved_ = resolve_anchored_overlay(
@@ -145,6 +145,7 @@ constexpr ControlAnatomy anchored_overlay_layer_anatomy{
     .parts = panel_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

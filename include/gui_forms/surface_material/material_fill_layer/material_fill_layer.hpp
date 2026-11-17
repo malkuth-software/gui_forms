@@ -30,11 +30,28 @@ namespace gui_forms {
 // one another. paint_surface_material blends them so too where it bakes
 // through the kernel; a minimal painter's layers draw every layer
 // source-over.
+//
+// The rest of CSS's separable modes (capability review, owner 2026-11-16)
+// follow screen, each joining as multiply does with its own function of
+// the straight colours (PaintGroupComposite gives the formula), in the
+// kernel's precision.
 enum class MaterialBlendMode : std::uint8_t {
     normal,
     multiply,
     screen,
+    overlay,
+    darken,
+    lighten,
+    color_dodge,
+    color_burn,
+    hard_light,
+    soft_light,
+    difference,
+    exclusion,
 };
+
+// The last enumerator of MaterialBlendMode, for range checks.
+inline constexpr MaterialBlendMode material_blend_mode_last = MaterialBlendMode::exclusion;
 
 enum class MaterialFillKind : std::uint8_t {
     solid, linear_gradient, radial_gradient, image, conic_gradient,
@@ -46,11 +63,15 @@ enum class MaterialFillKind : std::uint8_t {
     finish,
 };
 // How an image fill covers its box: stretched over it; tiled from one tile
-// (image_scale, image_anchor, image_offset); as a nine-patch; or `single`,
+// (image_scale, image_anchor, image_offset); as a nine-patch; `single`,
 // that one tile alone, placed as a tile is, with nothing around it (E9.6,
-// CSS `background-repeat: no-repeat`).
+// CSS `background-repeat: no-repeat`); `mirror`, tiled with every other
+// tile reflected so neighbours join without a seam; or `extend`, the one
+// tile with its edge pixels extended to the box's edges (theme language
+// `background-repeat: mirror | extend`, owner 2026-11-16). A mirrored or
+// extended tile's source pixels map as ImagePatternWrap's mirror and clamp.
 enum class MaterialImageMode : std::uint8_t {
-    stretch, tile, nine_patch, single,
+    stretch, tile, nine_patch, single, mirror, extend,
 };
 enum class MaterialCoordinateSpace : std::uint8_t {
     normalized, logical,
@@ -89,6 +110,14 @@ struct GUI_FORMS_API MaterialFillLayer final {
     Point image_anchor{};
     Point image_offset{};
     double period_degrees{360.0};
+    // A radial gradient's focus (owner, 2026-11-16: the focal radial
+    // gradient reaches the theme language), read when `focused`: position
+    // 0 lies at `focus`, in the layer's coordinate space, and offset t is
+    // the ellipse of radii t × radii centred at focus + t × (center −
+    // focus), as Painter::fill_focal_radial_gradient draws. The focus lies
+    // strictly inside the ellipse (focus_inside_ellipse).
+    bool focused{};
+    Point focus{0.5, 0.5};
     MaterialBlendMode blend{MaterialBlendMode::normal};
     // Read only by a procedural fill, with `opacity`.
     ProceduralFill procedural{};
@@ -166,6 +195,7 @@ struct GUI_FORMS_API MaterialFillLayer final {
         left.opacity == right.opacity && left.image_mode == right.image_mode &&
         left.image_anchor == right.image_anchor && left.image_offset == right.image_offset &&
         left.period_degrees == right.period_degrees &&
+        left.focused == right.focused && left.focus == right.focus &&
         left.blend == right.blend &&
         left.procedural == right.procedural &&
         left.finish == right.finish)) {
@@ -185,6 +215,7 @@ struct GUI_FORMS_API MaterialFillLayer final {
                left.image_anchor == right.image_anchor &&
                left.image_offset == right.image_offset &&
                left.period_degrees == right.period_degrees &&
+               left.focused == right.focused && left.focus == right.focus &&
                left.blend == right.blend &&
                left.procedural == right.procedural &&
                left.finish == right.finish;

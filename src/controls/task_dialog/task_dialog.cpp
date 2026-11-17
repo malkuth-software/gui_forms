@@ -3,7 +3,9 @@
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -11,6 +13,9 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <stxlib/optional.hpp>
 #include <unordered_set>
 #include <utility>
 
@@ -25,7 +30,6 @@ constexpr double content_padding = 16.0;
 constexpr double caption_height = 28.0;
 constexpr double icon_size = 32.0;
 constexpr double icon_gap = 12.0;
-constexpr double icon_glyph_size = 14.0;
 constexpr double paragraph_gap = 8.0;
 constexpr double progress_height = 16.0;
 constexpr double radio_height = 24.0;
@@ -39,30 +43,43 @@ constexpr double button_text_padding = 24.0;
 constexpr double button_gap = 8.0;
 constexpr double band_padding = 12.0;
 constexpr double footnote_icon_size = 16.0;
-constexpr double footnote_glyph_size = 8.0;
 constexpr double footnote_padding = 10.0;
 constexpr double heading_size = 14.0;
 constexpr double footnote_size = 10.0;
 
+// `stable_id` is the name results and events report (it matches
+// DialogResult's names); `segment` is the button control's stable-ID segment.
+// They differ only for Try Again, whose name has an underscore, which a
+// stable ID does not admit (A-gf-controls-13-F1).
 struct StandardButtonName final {
     TaskDialogStandardButton standard{TaskDialogStandardButton::ok};
     std::string_view stable_id{};
     std::string_view text{};
+    std::string_view segment{};
 };
 
 constexpr std::array<StandardButtonName, 11> standard_buttons{{
-    {TaskDialogStandardButton::ok, "ok", "OK"},
-    {TaskDialogStandardButton::cancel, "cancel", "Cancel"},
-    {TaskDialogStandardButton::yes, "yes", "Yes"},
-    {TaskDialogStandardButton::no, "no", "No"},
-    {TaskDialogStandardButton::retry, "retry", "Retry"},
-    {TaskDialogStandardButton::abort, "abort", "Abort"},
-    {TaskDialogStandardButton::ignore, "ignore", "Ignore"},
-    {TaskDialogStandardButton::try_again, "try_again", "Try Again"},
-    {TaskDialogStandardButton::continue_, "continue", "Continue"},
-    {TaskDialogStandardButton::close, "close", "Close"},
-    {TaskDialogStandardButton::help, "help", "Help"},
+    {TaskDialogStandardButton::ok, "ok", "OK", "ok"},
+    {TaskDialogStandardButton::cancel, "cancel", "Cancel", "cancel"},
+    {TaskDialogStandardButton::yes, "yes", "Yes", "yes"},
+    {TaskDialogStandardButton::no, "no", "No", "no"},
+    {TaskDialogStandardButton::retry, "retry", "Retry", "retry"},
+    {TaskDialogStandardButton::abort, "abort", "Abort", "abort"},
+    {TaskDialogStandardButton::ignore, "ignore", "Ignore", "ignore"},
+    {TaskDialogStandardButton::try_again, "try_again", "Try Again", "try-again"},
+    {TaskDialogStandardButton::continue_, "continue", "Continue", "continue"},
+    {TaskDialogStandardButton::close, "close", "Close", "close"},
+    {TaskDialogStandardButton::help, "help", "Help", "help"},
 }};
+
+// The stable-ID segment of the control for a button named `button_id`: a
+// standard name's segment, otherwise the name itself.
+std::string_view button_segment(std::string_view button_id) noexcept {
+    for (const StandardButtonName& name : standard_buttons) {
+        if (name.stable_id == button_id) return name.segment;
+    }
+    return button_id;
+}
 
 const StandardButtonName* standard_name(TaskDialogStandardButton standard) noexcept {
     for (const StandardButtonName& name : standard_buttons) {
@@ -76,37 +93,28 @@ bool valid_text(std::string_view text) {
     return result;
 }
 
-// The parts of one icon in `plate`: a standard icon is a chip with a mark or
-// a one-letter label; a custom image fills the plate's place.
-struct IconParts final {
-    PartGeometry plate{};
-    PartGeometry image{};
-    PartGeometry glyph{};
-    PartGeometry label{};
+// The stock icon that draws a standard icon, and the surface state whose
+// glyph colour it takes (the colours MessageBox's alert icons use).
+struct StandardIcon final {
+    std::string_view name{};
+    ControlSurfaceState surface{ControlSurfaceState::normal};
 };
 
-IconParts icon_parts(TaskDialogIcon icon, ImageId image, Rect plate, double glyph_side) {
-    IconParts parts;
-    if (image.value != 0U) {
-        parts.image = PartGeometry::from_bounds(plate);
-        return parts;
+StandardIcon standard_icon(TaskDialogIcon icon) noexcept {
+    switch (icon) {
+    case TaskDialogIcon::information:
+        return StandardIcon{stock_icon_information, ControlSurfaceState::normal};
+    case TaskDialogIcon::warning:
+        return StandardIcon{stock_icon_warning, ControlSurfaceState::pending};
+    case TaskDialogIcon::error:
+        return StandardIcon{"x-circle", ControlSurfaceState::invalid};
+    case TaskDialogIcon::shield:
+        return StandardIcon{"shield-check", ControlSurfaceState::normal};
+    case TaskDialogIcon::none:
+    default:
+        // Fallback: no icon, and a value outside the enumeration draws none.
+        return StandardIcon{};
     }
-    if (icon == TaskDialogIcon::none) return parts;
-    parts.plate = PartGeometry::from_bounds(plate);
-    if (icon == TaskDialogIcon::error) {
-        const Rect glyph{std::floor(plate.x + (plate.width - glyph_side) * 0.5),
-                         std::floor(plate.y + (plate.height - glyph_side) * 0.5), glyph_side, glyph_side};
-        parts.glyph = PartGeometry::from_bounds(glyph);
-    } else if (icon == TaskDialogIcon::information || icon == TaskDialogIcon::warning) {
-        parts.label = PartGeometry::from_bounds(plate);
-    }
-    return parts;
-}
-
-std::string_view icon_letter(TaskDialogIcon icon) noexcept {
-    if (icon == TaskDialogIcon::information) return "i";
-    if (icon == TaskDialogIcon::warning) return "!";
-    return {};
 }
 
 Rect bounds_union(Rect left, Rect right) noexcept {
@@ -172,7 +180,7 @@ public:
 
 TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    cursor = CursorKind::arrow;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
 }
 
 TaskDialog::~TaskDialog() {
@@ -203,12 +211,25 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog buttons require unique, non-empty IDs and valid UTF-8");
         }
     }
+    // Each button becomes a control named prefix.button.<segment>: the
+    // segment must be a stable ID and unique, checked here before page_ or
+    // the children change (A-gf-controls-13-F1).
+    identities.clear();
+    for (const TaskDialogButton& button : page.buttons) {
+        const std::string_view segment = button_segment(button.stable_id);
+        if (!valid_stable_id(segment) || !identities.insert(std::string(segment)).second) {
+            throw std::invalid_argument("TaskDialog button IDs must be stable-ID segments ([a-z0-9] runs joined by '-' or '.')");
+        }
+    }
     identities.clear();
     std::size_t checked = 0U;
     for (const TaskDialogRadioButton& radio : page.radio_buttons) {
         if (radio.stable_id.empty() || !valid_text(radio.stable_id) || !valid_text(radio.text) ||
             !identities.insert(radio.stable_id).second) {
             throw std::invalid_argument("TaskDialog radio buttons require unique, non-empty IDs and valid UTF-8");
+        }
+        if (!valid_stable_id(radio.stable_id)) {
+            throw std::invalid_argument("TaskDialog radio button IDs must be stable-ID segments ([a-z0-9] runs joined by '-' or '.')");
         }
         if (radio.checked) ++checked;
     }
@@ -230,8 +251,8 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog expander text must be valid UTF-8");
         }
     }
-    if (page.progress_bar) {
-        const TaskDialogProgressBar& progress = *page.progress_bar;
+    if (page.progress_bar.present()) {
+        const TaskDialogProgressBar& progress = (*page.progress_bar.value());
         if (!std::isfinite(progress.minimum) || !std::isfinite(progress.maximum) ||
             !std::isfinite(progress.value) || progress.minimum >= progress.maximum) {
             throw std::invalid_argument("TaskDialog progress bounds must be finite and ordered");
@@ -266,9 +287,9 @@ std::shared_ptr<Label> TaskDialog::make_paragraph(std::string_view suffix, const
     std::string identity(stable_id().value());
     identity.append(suffix);
     std::shared_ptr<Label> paragraph = make_control<Label>(StableId(std::move(identity)), text);
-    (*paragraph).font = font;
+    (*paragraph).font = stxlib::Optional<FontSpec>::of(font);
     (*paragraph).text_wrapping = TextWrapping::word;
-    (*paragraph).vertical_alignment = VerticalAlignment::near;
+    (*paragraph).vertical_alignment = VerticalAlignment::start;
     add_child(paragraph);
     return paragraph;
 }
@@ -284,8 +305,8 @@ void TaskDialog::rebuild_children() {
     footnote_font.size = footnote_size;
     if (!page_.heading.empty()) heading_ = make_paragraph(".heading", page_.heading, heading_font);
     if (!page_.text.empty()) text_ = make_paragraph(".text", page_.text, font_);
-    if (page_.progress_bar) {
-        const TaskDialogProgressBar& settings = *page_.progress_bar;
+    if (page_.progress_bar.present()) {
+        const TaskDialogProgressBar& settings = (*page_.progress_bar.value());
         progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
         (*progress_).set_range(settings.minimum, settings.maximum);
         (*progress_).value = std::clamp(settings.value, settings.minimum, settings.maximum);
@@ -324,7 +345,8 @@ void TaskDialog::rebuild_children() {
     const std::string preferred = default_button_id();
     for (const TaskDialogButton& definition : page_.buttons) {
         std::shared_ptr<Button> control =
-            make_control<Button>(StableId(prefix + ".button." + definition.stable_id), definition.text);
+            make_control<Button>(StableId(prefix + ".button." + std::string(button_segment(definition.stable_id))),
+                                 definition.text);
         (*control).enabled = definition.enabled;
         if (definition.stable_id == preferred) (*control).visual_style = ButtonVisualStyle::accent;
         add_child(control);
@@ -335,11 +357,11 @@ void TaskDialog::rebuild_children() {
     if (!page_.footnote.empty()) footnote_ = make_paragraph(".footnote", page_.footnote, footnote_font);
 }
 
-std::optional<std::size_t> TaskDialog::button_index(std::string_view button_id) const noexcept {
+stxlib::Optional<std::size_t> TaskDialog::button_index(std::string_view button_id) const noexcept {
     for (std::size_t index = 0; index < page_.buttons.size(); ++index) {
-        if (page_.buttons[index].stable_id == button_id) return index;
+        if (page_.buttons[index].stable_id == button_id) return stxlib::Optional<std::size_t>::of(index);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 std::string TaskDialog::default_button_id() const {
@@ -356,9 +378,9 @@ std::string TaskDialog::cancel_button_id() const {
 }
 
 std::shared_ptr<Button> TaskDialog::button(std::string_view button_id) const {
-    const std::optional<std::size_t> index = button_index(button_id);
-    if (!index || *index >= buttons_.size()) return nullptr;
-    return buttons_[*index];
+    const stxlib::Optional<std::size_t> index = button_index(button_id);
+    if (index.absent() || (*index.value()) >= buttons_.size()) return nullptr;
+    return buttons_[(*index.value())];
 }
 
 std::shared_ptr<RadioButton> TaskDialog::radio_button(std::string_view radio_id) const {
@@ -415,8 +437,8 @@ void TaskDialog::write_view(const decltype(verification_checked)&, bool incoming
 
 void TaskDialog::set_progress_value(double value) {
     require_mutable();
-    if (!page_.progress_bar || !progress_ || !std::isfinite(value)) return;
-    TaskDialogProgressBar& settings = *page_.progress_bar;
+    if (page_.progress_bar.absent() || !progress_ || !std::isfinite(value)) return;
+    TaskDialogProgressBar& settings = (*page_.progress_bar.value());
     settings.value = std::clamp(value, settings.minimum, settings.maximum);
     (*progress_).value = settings.value;
 }
@@ -435,9 +457,12 @@ void TaskDialog::on_child_button(ButtonBase& sender) {
 
 bool TaskDialog::click(std::string_view button_id) {
     require_mutable();
-    const std::optional<std::size_t> index = button_index(button_id);
-    if (!index || !page_.buttons[*index].enabled) return false;
-    TaskDialogButtonClick request{std::string(button_id), !page_.buttons[*index].allow_close};
+    const stxlib::Optional<std::size_t> index = button_index(button_id);
+    if (index.absent() || !page_.buttons[(*index.value())].enabled) return false;
+    TaskDialogButtonClick request{std::string(button_id), !page_.buttons[(*index.value())].allow_close};
+    // A handler may drop the dialog's last other reference; it stays alive
+    // for the checks below (A-gf-controls-13-F6).
+    const Control::Ptr lifetime = weak_from_this().lock();
     button_clicked_.emit(request);
     // A handler may have navigated to another page or closed the dialog.
     if (!is_alive() || request.keep_open || !shown_) return true;
@@ -470,7 +495,7 @@ void TaskDialog::on_key_preview(KeyEvent& event) {
     if (!shown_ || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape) {
         const std::string cancel = cancel_button_id();
-        if (button_index(cancel)) {
+        if (button_index(cancel).present()) {
             static_cast<void>(click(cancel));
         } else if (page_.allow_cancel) {
             finish(cancel);
@@ -511,12 +536,23 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     if (Event<>* revoked = overlay_.closed_event()) {
         overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
+    // begin_focus_scope moves the focus, running the previous control's
+    // focus and validation handlers; one may close the dialog, and then the
+    // scope it opened is ended here, since finish found none to end
+    // (A-gf-controls-13-F4). `lifetime` holds the dialog across them.
+    const Control::Ptr lifetime = shared_from_this();
+    FocusScopeId started{};
     if (surface_ == DialogSurface::native_popup && open_native(host, owner)) {
         // The empty layer keeps the owner's keys from its controls.
-        scope_ = host.begin_focus_scope(layer);
+        started = host.begin_focus_scope(layer);
     } else {
-        scope_ = host.begin_focus_scope(layer, button(default_button_id()));
+        started = host.begin_focus_scope(layer, button(default_button_id()));
     }
+    if (!is_alive() || !shown_) {
+        if (started) static_cast<void>(host.end_focus_scope(started));
+        return true;
+    }
+    scope_ = started;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
 }
@@ -641,12 +677,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
     double text_x = inset;
     const bool has_icon = page_.icon != TaskDialogIcon::none || page_.icon_image.value != 0U;
     if (has_icon) {
-        const Rect plate{inset, y, icon_size * scale, icon_size * scale};
-        const IconParts icon = icon_parts(page_.icon, page_.icon_image, plate, icon_glyph_size * scale);
-        parts.icon_plate = icon.plate;
-        parts.icon_image = icon.image;
-        parts.icon_glyph = icon.glyph;
-        parts.icon_label = icon.label;
+        parts.icon_image = PartGeometry::from_bounds({inset, y, icon_size * scale, icon_size * scale});
         text_x = inset + (icon_size + icon_gap) * scale;
     }
     const double text_width = std::max(0.0, width - text_x - inset);
@@ -728,11 +759,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
         const bool has_note_icon = page_.footnote_icon != TaskDialogIcon::none;
         if (has_note_icon) {
             const double side = footnote_icon_size * scale;
-            const IconParts icon = icon_parts(page_.footnote_icon, ImageId{}, {inset, y + note_inset, side, side},
-                                              footnote_glyph_size * scale);
-            parts.footnote_plate = icon.plate;
-            parts.footnote_glyph = icon.glyph;
-            parts.footnote_label = icon.label;
+            parts.footnote_icon = PartGeometry::from_bounds({inset, y + note_inset, side, side});
             note_x = inset + side + icon_gap * 0.5 * scale;
         }
         const double note_width = std::max(0.0, width - note_x - inset);
@@ -779,37 +806,19 @@ void TaskDialog::arrange(Rect final_bounds) {
 
 // -- paint ---------------------------------------------------------------------
 
-void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& plate,
-                            const PartGeometry& glyph, const PartGeometry& label) const {
-    PartPaint part;
-    // Standard icons are an accent chip with a mark or a letter: the
-    // vocabulary has no information, warning, error or shield mark.
-    part.family = ControlVisualRole::accent_button;
-    part.font = text_font(font_);
-    if (plate.present) {
-        part.role = PartRole::chip;
-        part.bounds = plate.bounds;
-        part.corner_radius = plate.bounds.width * 0.5;
-        paint_part(painter, *this, part);
-        part.corner_radius.reset();
-    }
-    if (glyph.present) {
-        part.role = PartRole::glyph;
-        part.bounds = glyph.bounds;
-        part.mark = PartMark::close;
-        paint_part(painter, *this, part);
-        part.mark = PartMark::none;
-    }
-    if (label.present) {
-        part.role = PartRole::label;
-        part.bounds = label.bounds;
-        part.text = lend_paint_text(icon_letter(icon));
-        part.alignment = PartTextAlignment::center;
-        FontSpec letter = part.font;
-        letter.weight = 700;
-        part.font = letter;
-        paint_part(painter, *this, part);
-    }
+void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const {
+    // A standard icon is a solid stock icon in the panel's glyph colour for
+    // the icon's surface state (pending for a warning, invalid for an
+    // error), so dark schemes, high contrast and a theme's replacement
+    // follow.
+    if (!place.present) return;
+    const StandardIcon standard = standard_icon(icon);
+    if (standard.name.empty()) return;
+    ControlVisualContext context = visual_context();
+    if (context.surface != ControlSurfaceState::disabled) context.surface = standard.surface;
+    const Color colour = effective_theme().resolve(ControlVisualRole::panel, context).glyph;
+    const ImageId image = stock_icon_image(standard.name, StockIconStyle::solid);
+    paint_stock_icon(painter, *this, image, place.bounds, colour);
 }
 
 void TaskDialog::on_paint(Painter& painter, Rect) {
@@ -832,14 +841,15 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, part);
         part.text = {};
     }
-    if (parts.icon_image.present) {
+    if (parts.icon_image.present && page_.icon_image.value != 0U) {
         part.role = PartRole::icon;
         part.bounds = parts.icon_image.bounds;
         part.image = page_.icon_image;
         paint_part(painter, *this, part);
         part.image = {};
+    } else {
+        paint_icon(painter, page_.icon, parts.icon_image);
     }
-    paint_icon(painter, page_.icon, parts.icon_plate, parts.icon_glyph, parts.icon_label);
     if (parts.expander_glyph.present) {
         part.role = PartRole::disclosure;
         part.bounds = parts.expander_glyph.bounds;
@@ -859,7 +869,7 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
         part.role = PartRole::face;
         part.bounds = parts.footnote_band.bounds;
         paint_part(painter, *this, part);
-        paint_icon(painter, page_.footnote_icon, parts.footnote_plate, parts.footnote_glyph, parts.footnote_label);
+        paint_icon(painter, page_.footnote_icon, parts.footnote_icon);
     }
 }
 
@@ -887,63 +897,53 @@ namespace {
 
 constexpr std::array<AnatomyState, 1> expander_glyph_states{{AnatomyState::open}};
 
-constexpr std::array<PartField<TaskDialog::Parts>, 26> task_dialog_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::edge},
-    {.declaration = {.name = "caption_band", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "caption_band", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::caption_band},
-    {.declaration = {.name = "caption", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::caption},
-    {.declaration = {.name = "icon_plate", .role = PartRole::chip, .composed_from = {}},
-     .member = &TaskDialog::Parts::icon_plate},
-    {.declaration = {.name = "icon_image", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "icon_image", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::icon_image},
-    {.declaration = {.name = "icon_glyph", .role = PartRole::glyph, .composed_from = {}},
-     .member = &TaskDialog::Parts::icon_glyph},
-    {.declaration = {.name = "icon_label", .role = PartRole::label, .composed_from = {}},
-     .member = &TaskDialog::Parts::icon_label},
-    {.declaration = {.name = "heading", .role = PartRole::label, .composed_from = "label"},
+    {.declaration = {.name = "heading", .role = PartRole::label, .composed_from = "label", .states = {}},
      .member = &TaskDialog::Parts::heading},
-    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = "label"},
+    {.declaration = {.name = "text", .role = PartRole::content, .composed_from = "label", .states = {}},
      .member = &TaskDialog::Parts::text},
-    {.declaration = {.name = "progress", .role = PartRole::track, .composed_from = "progress_bar"},
+    {.declaration = {.name = "progress", .role = PartRole::track, .composed_from = "progress_bar", .states = {}},
      .member = &TaskDialog::Parts::progress},
-    {.declaration = {.name = "radio_group", .role = PartRole::region, .composed_from = "radio_button"},
+    {.declaration = {.name = "radio_group", .role = PartRole::region, .composed_from = "radio_button", .states = {}},
      .member = &TaskDialog::Parts::radio_group},
     {.declaration = {.name = "expander_glyph", .role = PartRole::disclosure, .composed_from = {},
                      .states = expander_glyph_states},
      .member = &TaskDialog::Parts::expander_glyph},
-    {.declaration = {.name = "expander_button", .role = PartRole::face, .composed_from = "button"},
+    {.declaration = {.name = "expander_button", .role = PartRole::face, .composed_from = "button", .states = {}},
      .member = &TaskDialog::Parts::expander_button},
-    {.declaration = {.name = "expanded_text", .role = PartRole::content, .composed_from = "label"},
+    {.declaration = {.name = "expanded_text", .role = PartRole::content, .composed_from = "label", .states = {}},
      .member = &TaskDialog::Parts::expanded_text},
-    {.declaration = {.name = "verification", .role = PartRole::indicator, .composed_from = "check_box"},
+    {.declaration = {.name = "verification", .role = PartRole::indicator, .composed_from = "check_box", .states = {}},
      .member = &TaskDialog::Parts::verification},
-    {.declaration = {.name = "button_band", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "button_band", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::button_band},
-    {.declaration = {.name = "button_divider", .role = PartRole::divider, .composed_from = {}},
+    {.declaration = {.name = "button_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::button_divider},
-    {.declaration = {.name = "button_row", .role = PartRole::region, .composed_from = "button"},
+    {.declaration = {.name = "button_row", .role = PartRole::region, .composed_from = "button", .states = {}},
      .member = &TaskDialog::Parts::button_row},
-    {.declaration = {.name = "footnote_band", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "footnote_band", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::footnote_band},
-    {.declaration = {.name = "footnote_plate", .role = PartRole::chip, .composed_from = {}},
-     .member = &TaskDialog::Parts::footnote_plate},
-    {.declaration = {.name = "footnote_glyph", .role = PartRole::glyph, .composed_from = {}},
-     .member = &TaskDialog::Parts::footnote_glyph},
-    {.declaration = {.name = "footnote_label", .role = PartRole::label, .composed_from = {}},
-     .member = &TaskDialog::Parts::footnote_label},
-    {.declaration = {.name = "footnote", .role = PartRole::content, .composed_from = "label"},
+    {.declaration = {.name = "footnote_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
+     .member = &TaskDialog::Parts::footnote_icon},
+    {.declaration = {.name = "footnote", .role = PartRole::content, .composed_from = "label", .states = {}},
      .member = &TaskDialog::Parts::footnote},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::focus},
 }};
 
-constexpr std::array<PartDeclaration, 26> task_dialog_parts = part_declarations(task_dialog_part_fields);
+constexpr std::array<PartDeclaration, 21> task_dialog_parts = part_declarations(task_dialog_part_fields);
 constexpr std::array<AnatomyState, 5> task_dialog_states{
     AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled,
     AnatomyState::focused, AnatomyState::focus_visible,
@@ -954,6 +954,7 @@ constexpr ControlAnatomy task_dialog_anatomy{
     .parts = task_dialog_parts,
     .states = task_dialog_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events TaskDialog adds to those of Control, in declaration order.

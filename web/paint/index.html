@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan Paint</title>
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<!--
+  The page shell for malkuthsoft.com/paint (src/host/web/README.md). The
+  program draws every window into the canvas; shell.js loads it, its asset
+  packs and its font groups as page.json lists them.
+-->
+<main id="gui-forms-stage">
+  <canvas id="gui-forms-canvas"></canvas>
+  <div id="gui-forms-status" role="status" aria-live="polite">
+    <p id="gui-forms-status-text">Loading&hellip;</p>
+    <progress id="gui-forms-progress" max="1" value="0"></progress>
+  </div>
+  <noscript><p class="gui-forms-error">Plan Paint needs JavaScript.</p></noscript>
+</main>
+<script src="shell.js"></script>
+</body>
+</html>

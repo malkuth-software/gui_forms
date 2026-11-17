@@ -14,6 +14,7 @@ first-window
 application-and-windows
 consume-the-sdk
 c-abi-conformance-kit
+code-statistics
 ```
 
 ```{toctree}
@@ -30,6 +31,7 @@ properties
 forms
 input-and-focus
 mouse-events
+relative-pointer
 styled-text
 values-commands-and-binding
 rules
@@ -55,6 +57,11 @@ converting-an-app
 threading
 lifecycle
 hosts-and-capabilities
+presentation
+content-surfaces
+factory-bundle
+app-fonts
+window-band
 transparency
 audio
 localizable-literals

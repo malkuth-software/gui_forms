@@ -5,6 +5,7 @@
 #include "support/named_callbacks.hpp"
 #include "support/professional_theme.hpp"
 #include "../src/core/control/control/control_input_access.hpp"
+#include "support/frame_wake.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,6 +19,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+using gui_forms::test_support::armed_wake;
 
 namespace {
 
@@ -389,6 +392,49 @@ void test_tree_visibility_identity_and_navigation() {
             "TreeView expansion and selection events must be deterministic");
 }
 
+void test_tree_bulk_expansion() {
+    std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("tree.bulk"));
+    (*tree).set_requested_bounds({0.0, 0.0, 240.0, 40.0});
+    (*tree).set_items({
+        {.stable_id = "a", .text = "A", .depth = 0, .expandable = true, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "a.b", .text = "B", .depth = 1, .expandable = true, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "a.b.c", .text = "C", .depth = 2, .expandable = false, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "d", .text = "D", .depth = 0, .expandable = true, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "d.e", .text = "E", .depth = 1, .expandable = false, .expanded = false, .enabled = true, .image_key = {}},
+    });
+    Window window(tree, {240.0, 40.0});
+    window.perform_layout();
+    std::string trace{};
+    SubscriptionToken expansion = (*tree).expansion_changed().subscribe(AppendTreeExpansion(trace));
+    SubscriptionToken selection = (*tree).selection_changed().subscribe(AppendTreeSelection(trace));
+    (*tree).expand_to("a.b.c");
+    require((*tree).expanded("a") && (*tree).expanded("a.b") && !(*tree).expanded("d"),
+            "expand_to expands exactly the item's ancestors");
+    require(trace == "a:open\na.b:open\n", "expand_to raises one event per ancestor, outermost first");
+    require((*tree).top_row() > 0U, "expand_to scrolls the item's row into view");
+    trace.clear();
+    (*tree).expand_to("a.b.c");
+    require(trace.empty(), "expand_to of a revealed item raises nothing");
+    (*tree).selected_id = "a.b.c";
+    trace.clear();
+    (*tree).collapse_all();
+    require(!(*tree).expanded("a") && !(*tree).expanded("a.b"), "collapse_all collapses every item");
+    require(trace == "a:closed\na.b:closed\na:selected\n",
+            "collapse_all raises its events in model order, then moves the hidden selection to a visible ancestor");
+    trace.clear();
+    (*tree).expand_all();
+    require((*tree).expanded("a") && (*tree).expanded("a.b") && (*tree).expanded("d"),
+            "expand_all expands every expandable item");
+    require(trace == "a:open\na.b:open\nd:open\n", "expand_all raises one event per changed item");
+    bool rejected{};
+    try {
+        (*tree).expand_to("missing");
+    } catch (const std::out_of_range&) {
+        rejected = true;
+    }
+    require(rejected, "expand_to rejects an unknown ID");
+}
+
 void test_tree_model_validation() {
     std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("tree.invalid"));
     bool rejected{};
@@ -747,6 +793,17 @@ void test_object_multiselection_pointer_keyboard_and_semantics() {
                 (*objects).focused_id() == "multi.6",
             "range selection must preserve anchor and move independent focus");
 
+    // A-gf-controls-09-F3: Shift+Command extends from the anchor and keeps
+    // the existing selection; an item already selected is not repeated.
+    pointer_click(window, semantic_center(*objects, "multi.1"),
+                  PointerButton::primary, Modifier::meta | Modifier::shift);
+    require_selection(*objects, {"multi.1", "multi.2", "multi.3", "multi.4", "multi.5", "multi.6"},
+                      "Shift+Command range keeps the selection and adds the new items, in model order");
+    pointer_click(window, semantic_center(*objects, "multi.6"),
+                  PointerButton::primary, Modifier::shift);
+    require_selection(*objects, {"multi.3", "multi.4", "multi.5", "multi.6"},
+                      "a plain Shift range replaces the selection again");
+
     std::string context_id{};
     SubscriptionToken context = (*objects).context_requested().subscribe(
         RecordObjectContextId(context_id));
@@ -931,10 +988,10 @@ void test_correspondence_virtualization_and_anchor_stability() {
         {PointerAction::move, PointerButton::none, hover_center}));
     require((*records).hovered_id() == "correspondence.12" &&
                 !(*records).expanded("correspondence.12") &&
-                window.next_wake().has_value(),
+                window.next_wake().present(),
             "pointer arrival must schedule rather than immediately fake hover intent");
     const double before_expand = (*(*records).item_bounds("correspondence.12")).y;
-    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(armed_wake(window)));
     require((*records).expanded("correspondence.12") &&
                 (*records).pinned_id.read() == "correspondence.2" &&
                 std::abs((*(*records).item_bounds("correspondence.12")).y -
@@ -945,6 +1002,61 @@ void test_correspondence_virtualization_and_anchor_stability() {
     require(!(*records).expanded("correspondence.12") &&
                 (*records).expanded("correspondence.2"),
             "pointer leave must collapse only transient inspection");
+}
+
+// Replaces a CorrespondenceView's items with three, so every later item
+// goes, when it raises its selection or expansion change.
+struct ShrinkCorrespondenceOnSelection final {
+    CorrespondenceView* view{};
+    void operator()(const CorrespondenceSelectionChange&) const {
+        (*view).set_items(correspondence_fixture(3U));
+    }
+};
+struct ShrinkCorrespondenceOnExpansion final {
+    CorrespondenceView* view{};
+    void operator()(const CorrespondenceExpansionChange&) const {
+        if ((*view).focused_id() == "correspondence.11") (*view).set_items(correspondence_fixture(3U));
+    }
+};
+
+// B-gf-tests-misc-02-F2: a press selects, then focuses, its item; Down
+// focuses, then selects. A handler of the first may replace the items, and
+// the second step finds the item again by identity instead of reading the
+// index (or the cleared pressed index) taken before.
+void test_correspondence_handlers_replace_the_items() {
+    std::shared_ptr<gui_forms::CorrespondenceView> pressed = make_control<CorrespondenceView>(
+        StableId("correspondence.pressed"));
+    (*pressed).set_requested_bounds({0.0, 0.0, 820.0, 360.0});
+    (*pressed).set_items(correspondence_fixture(20U));
+    Window press_window(pressed, {820.0, 360.0});
+    press_window.perform_layout();
+    const std::optional<Rect> row = (*pressed).item_bounds("correspondence.5");
+    require(row.has_value(), "the pressed row is laid out");
+    const Rect absolute = (*pressed).absolute_bounds();
+    const Point on_row{absolute.x + (*row).x + (*row).width * .5, absolute.y + (*row).y + (*row).height * .5};
+    SubscriptionToken shrink_on_selection =
+        (*pressed).selection_changed().subscribe(ShrinkCorrespondenceOnSelection{pressed.get()});
+    require(press_window.dispatch_pointer({PointerAction::down, PointerButton::primary, on_row}),
+            "the press is handled");
+    shrink_on_selection.disconnect();
+    static_cast<void>(press_window.dispatch_pointer({PointerAction::up, PointerButton::primary, on_row}));
+    require((*pressed).focused_id() != "correspondence.5" && (*pressed).selected_id.read() != "correspondence.5",
+            "a pressed item a selection handler removed is neither focused nor selected");
+
+    std::shared_ptr<gui_forms::CorrespondenceView> keyed = make_control<CorrespondenceView>(
+        StableId("correspondence.keyed"));
+    (*keyed).set_requested_bounds({0.0, 0.0, 820.0, 360.0});
+    (*keyed).set_items(correspondence_fixture(20U));
+    (*keyed).selected_id = "correspondence.10";
+    Window key_window(keyed, {820.0, 360.0});
+    require(key_window.request_focus(keyed) && (*keyed).focused_id() == "correspondence.10",
+            "the keyed view takes the focus on its selection");
+    SubscriptionToken shrink_on_expansion =
+        (*keyed).expansion_changed().subscribe(ShrinkCorrespondenceOnExpansion{keyed.get()});
+    require(key_window.dispatch_key({KeyAction::down, PhysicalKey::down}), "Down is handled");
+    shrink_on_expansion.disconnect();
+    require((*keyed).selected_id.read() != "correspondence.11" && (*keyed).items().size() == 3U,
+            "Down selects nothing when an expansion handler removed its item");
 }
 
 void test_correspondence_keyboard_pin_semantics_and_activation() {
@@ -1835,6 +1947,61 @@ void test_details_cold_long_text_measurement_bound() {
     }
 }
 
+// Replaces an ObjectView's or TreeView's items when the control it watches
+// loses the focus, putting a new row first so every later index moves.
+struct ShiftObjectsOnFocusLoss final {
+    ObjectView* view{};
+    void operator()(bool focused) const {
+        if (focused) return;
+        (*view).set_items({{"shift.objects.new", "New"},
+                           {"shift.objects.a", "Alpha"},
+                           {"shift.objects.b", "Beta"}});
+    }
+};
+struct ShiftTreeOnFocusLoss final {
+    TreeView* tree{};
+    void operator()(bool focused) const {
+        if (focused) return;
+        (*tree).set_items({{"shift.tree.new", "New", 0},
+                           {"shift.tree.a", "Alpha", 0},
+                           {"shift.tree.b", "Beta", 0}});
+    }
+};
+
+// A-gf-controls-09-F8 and A-gf-controls-10-F6: a semantic select moves the
+// focus before it acts, and the control losing the focus may replace the
+// items in its handler. The select finds its row again by identity.
+void test_semantic_select_after_focus_handlers() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("shift.root"));
+    std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("shift.objects"));
+    std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("shift.tree"));
+    std::shared_ptr<gui_forms::Button> other = make_control<Button>(StableId("shift.other"), "Other");
+    (*objects).set_requested_bounds({0.0, 0.0, 300.0, 120.0});
+    (*tree).set_requested_bounds({0.0, 130.0, 300.0, 120.0});
+    (*other).set_requested_bounds({0.0, 260.0, 100.0, 28.0});
+    (*objects).set_items({{"shift.objects.a", "Alpha"}, {"shift.objects.b", "Beta"}});
+    (*tree).set_items({{"shift.tree.a", "Alpha", 0}, {"shift.tree.b", "Beta", 0}});
+    (*root).add_child(objects);
+    (*root).add_child(tree);
+    (*root).add_child(other);
+    Window window(root, {320.0, 300.0});
+    window.perform_layout();
+
+    require(window.request_focus(other), "the other control takes the focus");
+    SubscriptionToken shift_objects = (*other).focus_observed().subscribe(ShiftObjectsOnFocusLoss{objects.get()});
+    require((*objects).on_semantic_child_action("shift.objects.b", SemanticAction::select, {}) &&
+                (*objects).selected_id.read() == "shift.objects.b" && window.focused_control() == objects,
+            "ObjectView selects the named item after a focus handler moved it");
+    shift_objects.disconnect();
+
+    require(window.request_focus(other), "the other control takes the focus back");
+    SubscriptionToken shift_tree = (*other).focus_observed().subscribe(ShiftTreeOnFocusLoss{tree.get()});
+    require((*tree).on_semantic_child_action("shift.tree.b", SemanticAction::select, {}) &&
+                (*tree).selected_id.read() == "shift.tree.b" && window.focused_control() == tree,
+            "TreeView selects the named row after a focus handler moved it");
+    shift_tree.disconnect();
+}
+
 } // namespace
 
 int main() {
@@ -1843,9 +2010,11 @@ int main() {
         test_breadcrumb_readable_raised_geometry();
         test_tree_visibility_identity_and_navigation();
         test_tree_model_validation();
+        test_tree_bulk_expansion();
         test_tree_and_object_view_consume_keyed_image_list();
         test_object_label_wrapping_focus_and_full_name_inspection();
         test_object_virtualization_view_preservation_and_input();
+        test_semantic_select_after_focus_handlers();
         test_object_multiselection_pointer_keyboard_and_semantics();
         test_details_transaction_and_identity();
         test_details_model_with_accepted_sort();
@@ -1862,6 +2031,7 @@ int main() {
         test_shared_command_binding();
         test_correspondence_virtualization_and_anchor_stability();
         test_correspondence_keyboard_pin_semantics_and_activation();
+        test_correspondence_handlers_replace_the_items();
         test_correspondence_narrow_card_layout();
         test_correspondence_background_pointer_contract();
         std::cout << "gui_forms_collection_controls_tests: all tests passed\n";

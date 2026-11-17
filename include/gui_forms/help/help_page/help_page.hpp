@@ -4,6 +4,7 @@
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -41,7 +42,7 @@ struct GUI_FORMS_API HelpPageRun final {
     bool underline{};
     bool strikethrough{};
     bool line_break{};
-    std::optional<std::size_t> link{};
+    stxlib::Optional<std::size_t> link{};
 };
 
 // One block. `level` is a heading's level (1 to 6) or a list item's
@@ -58,9 +59,9 @@ struct GUI_FORMS_API HelpPageBlock final {
     std::uint32_t ordinal{};
     MarkdownAlignment alignment{MarkdownAlignment::left};
     HelpCalloutKind callout{HelpCalloutKind::none};
-    std::optional<std::size_t> section{};
+    stxlib::Optional<std::size_t> section{};
     std::string anchor{};
-    std::optional<std::size_t> image{};
+    stxlib::Optional<std::size_t> image{};
     // The block's runs: HelpPageModel::runs from first_run, run_count of them.
     std::size_t first_run{};
     std::size_t run_count{};
@@ -101,7 +102,7 @@ struct GUI_FORMS_API HelpPageModel final {
     std::vector<HelpPageSection> sections{};
 
     // The block whose anchor is `anchor`, or none.
-    [[nodiscard]] std::optional<std::size_t> find_anchor(std::string_view anchor) const noexcept;
+    [[nodiscard]] stxlib::Optional<std::size_t> find_anchor(std::string_view anchor) const noexcept;
     // Ends every element's lifetime; capacity remains.
     void clear() noexcept;
 };

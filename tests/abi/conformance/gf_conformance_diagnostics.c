@@ -5,6 +5,8 @@
 
 #include "gf_conformance_internal.h"
 
+#include <stddef.h>
+
 #include <string.h>
 
 static gf_shadow_stack_info stack_info(void) {
@@ -98,16 +100,23 @@ static void in_event(gf_kit* kit) {
     gf_kit_check(kit, probe.required >= 2u && probe.required == probe.info.depth, "the callback sees its frames");
     gf_kit_check(kit, probe.small_status == GF_STATUS_BUFFER_TOO_SMALL && probe.small_required == probe.required,
                  "a small buffer reports the frames needed");
-    const gf_shadow_frame* outer = &probe.frames[0];
-    gf_kit_check(kit, (*outer).kind == GF_SHADOW_FRAME_KIND_LIBRARY_CALL && (*outer).table_id == GF_TABLE_PROPERTIES &&
-                          (*outer).slot_index == 1u && (*outer).subject_size == 0u,
-                 "the outermost frame is the properties.set call");
-    const gf_shadow_frame* inner = &probe.frames[probe.required - 1u];
-    gf_kit_check(kit, (*inner).kind == GF_SHADOW_FRAME_KIND_EVENT_CALLBACK &&
-                          text_is((*inner).subject, (*inner).subject_size, "kit.diag.check") &&
-                          text_is((*inner).name, (*inner).name_size, "check_state_changed") && (*inner).flags == 0u,
-                 "the innermost frame is the event, with its sender and name");
-    gf_kit_check(kit, (*inner).subject[(*inner).subject_size] == 0u, "the bytes after a frame's text are zero");
+    /* The library under test may report no frames or more than the buffer
+     * holds; the checks above have failed then, and the frames are not read. */
+    if (probe.required >= 2u && probe.required <= GF_SHADOW_STACK_CAPACITY) {
+        const gf_shadow_frame* outer = &probe.frames[0];
+        gf_kit_check(kit, (*outer).kind == GF_SHADOW_FRAME_KIND_LIBRARY_CALL &&
+                              (*outer).table_id == GF_TABLE_PROPERTIES && (*outer).slot_index == 1u &&
+                              (*outer).subject_size == 0u,
+                     "the outermost frame is the properties.set call");
+        const gf_shadow_frame* inner = &probe.frames[probe.required - 1u];
+        gf_kit_check(kit, (*inner).kind == GF_SHADOW_FRAME_KIND_EVENT_CALLBACK &&
+                              text_is((*inner).subject, (*inner).subject_size, "kit.diag.check") &&
+                              text_is((*inner).name, (*inner).name_size, "check_state_changed") && (*inner).flags == 0u,
+                     "the innermost frame is the event, with its sender and name");
+        gf_kit_check(kit, (*inner).subject_size < sizeof((*inner).subject) &&
+                              (*inner).subject[(*inner).subject_size] == 0u,
+                     "the bytes after a frame's text are zero");
+    }
 
     gf_kit_status(kit, (*kit).events.disconnect(subscription), GF_STATUS_OK, "disconnect the frames probe");
     gf_kit_status(kit, (*kit).objects.release(probe.check), GF_STATUS_OK, "release the frames check box");
@@ -148,6 +157,32 @@ static void invalidation_overlay(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(NULL), GF_STATUS_INVALID_ARGUMENT,
                   "reading the overlay needs an output");
     gf_kit_status(kit, (*kit).diagnostics.set_invalidation_overlay(before), GF_STATUS_OK, "restore the overlay");
+}
+
+/* The diagnostic overlay (since 1.5): the invalidation outlines and the
+ * counters card, set and toggled, read back through the invalidation
+ * switch it sets, refused values, then restored. */
+static void diagnostic_overlay(gf_kit* kit) {
+    if ((*kit).diagnostics.struct_size < offsetof(gf_diagnostics_table, toggle_diagnostic_overlay) + sizeof(void*)) {
+        return;
+    }
+    uint32_t before = 7u;
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&before), GF_STATUS_OK, "read the switch first");
+    gf_kit_status(kit, (*kit).diagnostics.set_diagnostic_overlay(1u), GF_STATUS_OK, "turn the diagnostic overlay on");
+    uint32_t on = 0u;
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&on), GF_STATUS_OK, "read the switch on");
+    gf_kit_check(kit, on == 1u, "the diagnostic overlay is the invalidation switch");
+    gf_kit_status(kit, (*kit).diagnostics.set_diagnostic_overlay(2u), GF_STATUS_INVALID_ARGUMENT,
+                  "a diagnostic overlay switch other than 0 or 1 is refused");
+    uint32_t toggled = 7u;
+    gf_kit_status(kit, (*kit).diagnostics.toggle_diagnostic_overlay(&toggled), GF_STATUS_OK, "toggle it off");
+    gf_kit_check(kit, toggled == 0u, "a toggle from on reports off");
+    gf_kit_status(kit, (*kit).diagnostics.toggle_diagnostic_overlay(NULL), GF_STATUS_OK,
+                  "toggle takes a null output");
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&on), GF_STATUS_OK, "read the switch toggled");
+    gf_kit_check(kit, on == 1u, "the second toggle turned it on again");
+    gf_kit_status(kit, (*kit).diagnostics.set_diagnostic_overlay(before), GF_STATUS_OK,
+                  "restore the diagnostic overlay");
 }
 
 /* Failure snapshots (since 1.2): an empty one, the one a refused call
@@ -205,6 +240,7 @@ static void failure_snapshots(gf_kit* kit) {
                           read.snapshot.slot_index == 7u && first_sequence != 0u,
                  "the snapshot names the refused call and its status");
     gf_kit_check(kit, text_is(read.snapshot.site, read.snapshot.site_size, "c_abi") &&
+                          read.snapshot.site_size < sizeof(read.snapshot.site) &&
                           read.snapshot.site[read.snapshot.site_size] == 0u,
                  "the snapshot's site is the C ABI boundary");
     gf_kit_check(kit, read.message_required == 18u && read.snapshot.message_size == 18u &&
@@ -214,6 +250,22 @@ static void failure_snapshots(gf_kit* kit) {
                           read.frames[0].kind == GF_SHADOW_FRAME_KIND_LIBRARY_CALL &&
                           read.frames[0].table_id == GF_TABLE_DIAGNOSTICS && read.frames[0].slot_index == 7u,
                  "the snapshot holds the frame the exception unwound");
+
+    /* A message longer than an STXlib error record holds (200 bytes) comes
+     * back whole: the slot gate's classifier keeps the full text. */
+    char long_text[GF_FAILURE_MESSAGE_CAPACITY];
+    memset(long_text, 'm', sizeof(long_text));
+    gf_utf8_view long_view;
+    long_view.data = long_text;
+    long_view.size = sizeof(long_text);
+    gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(long_view), GF_STATUS_INTERNAL,
+                  "a long native exception is an internal failure");
+    read_snapshot(kit, &read);
+    gf_kit_check(kit, read.status == GF_STATUS_OK && read.message_required == GF_FAILURE_MESSAGE_CAPACITY &&
+                          memcmp(read.message, long_text, sizeof(long_text)) == 0,
+                 "a refused call keeps a message of the full capacity");
+    gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(gf_kit_text("kit native failure")),
+                  GF_STATUS_INTERNAL, "the short failure again, for the reads below");
 
     /* Too small: the sizes only, the caller's buffers untouched. */
     gf_failure_snapshot untouched;
@@ -245,7 +297,7 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(broken), GF_STATUS_INVALID_ARGUMENT,
                   "a message that is not UTF-8 is refused");
     read_snapshot(kit, &read);
-    gf_kit_check(kit, read.snapshot.sequence == first_sequence, "a refused raise leaves the snapshot as it was");
+    gf_kit_check(kit, read.snapshot.sequence == first_sequence + 2u, "a refused raise leaves the snapshot as it was");
 
     gf_kit_status(kit, (*kit).diagnostics.set_exception_reflection(2u), GF_STATUS_INVALID_ARGUMENT,
                   "a reflection switch other than 0 or 1 is refused");
@@ -263,7 +315,7 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, probe.raised, GF_STATUS_NATIVE_EXCEPTION, "with reflection on the call is a native exception");
     read_snapshot(kit, &read);
     gf_kit_check(kit, read.status == GF_STATUS_OK && read.snapshot.status == GF_STATUS_NATIVE_EXCEPTION &&
-                          read.snapshot.sequence == first_sequence + 1u,
+                          read.snapshot.sequence == first_sequence + 3u,
                  "the reflected failure left the next snapshot");
     gf_kit_check(kit, read.snapshot.frame_count == 3u && read.frames_required == 3u &&
                           read.frames[0].table_id == GF_TABLE_DISPATCH && read.frames[0].slot_index == 1u &&
@@ -276,12 +328,80 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear the failure snapshot again");
 }
 
+/* The failure detail (since 1.5, survey S4): the snapshot's exception type
+ * and trace, which a development build of the library keeps and a release
+ * build leaves empty; status and sequence are the snapshot's. */
+static int text_contains(const uint8_t* text, uint32_t size, const char* part) {
+    const size_t part_size = strlen(part);
+    if (part_size > size) return 0;
+    for (size_t start = 0u; start + part_size <= size; ++start) {
+        if (memcmp(text + start, part, part_size) == 0) return 1;
+    }
+    return 0;
+}
+
+static void failure_detail(gf_kit* kit) {
+    if ((*kit).diagnostics.struct_size < 80u) return;
+    gf_failure_detail detail;
+    memset(&detail, 0, sizeof(detail));
+    detail.struct_size = (uint32_t)sizeof(detail);
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "failure_detail needs an output");
+    gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear for the detail");
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&detail), GF_STATUS_OK, "read an empty failure detail");
+    gf_kit_check(kit, detail.status == GF_STATUS_OK && detail.sequence == 0u && detail.type_size == 0u &&
+                          detail.trace_count == 0u,
+                 "a cleared thread has no failure detail");
+    gf_kit_check(kit, detail.flags == GF_FAILURE_DETAIL_FLAGS_NONE && detail.reserved == 0u,
+                 "a cleared thread's detail has no flags");
+
+    gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(gf_kit_text("kit detail failure")),
+                  GF_STATUS_INTERNAL, "a native exception for the detail");
+    snapshot_read read;
+    read_snapshot(kit, &read);
+    memset(&detail, 0, sizeof(detail));
+    detail.struct_size = (uint32_t)sizeof(detail);
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&detail), GF_STATUS_OK, "read the failure detail");
+    gf_kit_check(kit, detail.status == GF_STATUS_INTERNAL && detail.sequence == read.snapshot.sequence,
+                 "the detail is the snapshot's failure");
+    gf_kit_check(kit, detail.type_size <= GF_FAILURE_TYPE_CAPACITY && detail.trace_count <= GF_FAILURE_TRACE_CAPACITY,
+                 "the detail's sizes fit its fields");
+    gf_kit_check(kit, detail.type_size == 0u || text_contains(detail.type, detail.type_size, "runtime_error"),
+                 "a kept type names the exception's type");
+    gf_kit_check(kit, detail.trace_count == 0u || detail.trace[0] != 0u, "a kept trace holds addresses");
+    /* A failure filed directly, never parked, lost no frames at a park. */
+    gf_kit_check(kit, (detail.flags & GF_FAILURE_DETAIL_FLAGS_FRAMES_LOST_AT_PARK) == 0u && detail.reserved == 0u,
+                 "an unparked failure is not marked as having lost frames at a park");
+
+    /* flags and reserved are provisional additions to 1.5's record: a caller
+     * of the first 1.5 size (536 bytes) is served the bytes that fit, and
+     * the bytes after them stay as it set them. */
+    gf_failure_detail first;
+    memset(&first, 0xA5, sizeof(first));
+    first.struct_size = 536u;
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&first), GF_STATUS_OK,
+                  "a record of the first 1.5 size is accepted");
+    gf_kit_check(kit, first.struct_size == 536u && first.status == GF_STATUS_INTERNAL &&
+                          first.sequence == read.snapshot.sequence,
+                 "the first 1.5 size receives the detail");
+    gf_kit_check(kit, first.flags == 0xA5A5A5A5u && first.reserved == 0xA5A5A5A5u,
+                 "the bytes after the first 1.5 size are not written");
+    gf_failure_detail small;
+    memset(&small, 0, sizeof(small));
+    small.struct_size = 528u;
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&small), GF_STATUS_INVALID_ARGUMENT,
+                  "a record smaller than the first 1.5 size is refused");
+    gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear after the detail");
+}
+
 void gf_kit_diagnostics(gf_kit* kit) {
     outside(kit);
     invalidation_overlay(kit);
+    diagnostic_overlay(kit);
     in_event(kit);
     in_posted(kit);
     failure_snapshots(kit);
+    failure_detail(kit);
     uint64_t required = 9u;
     gf_shadow_stack_info info = stack_info();
     gf_kit_status(kit, (*kit).diagnostics.shadow_frames(NULL, 0u, &required, &info), GF_STATUS_OK,

@@ -55,11 +55,12 @@ inline constexpr Rect glass_rect{10.0, 10.0, 220.0, 80.0};
 // SkiaRaster, the one CPU painter. First recorded through the Windows DIB
 // painter (Windows x64, 2026-10-26) and checked against SkiaRaster on macOS
 // and Linux; re-recorded through SkiaRaster on Windows x64 (clang 22.1.8),
-// 2026-11-02 (SK5), unchanged.
+// 2026-11-02 (SK5), unchanged. Re-recorded 2026-11-16 for linear light (macOS
+// arm64 and Linux agree).
 inline constexpr std::array<std::uint64_t, 3> expected{
-    0x14e91c188a71dda6ULL,
-    0xe31497238996ea16ULL,
-    0xfd9daabeb75fa8eeULL,
+    0x7409020174d47c0cULL,
+    0x080776a34439282aULL,
+    0x311f85bcdbdbbfc9ULL,
 };
 
 // The window's own paint: keeps the part rasters it is given, draws
@@ -106,8 +107,8 @@ public:
         part.role = PartRole::region;
         part.family = ControlVisualRole::card;
         part.bounds = glass_rect;
-        part.corner_radius = 0.0;
-        part.key = PartKey{"glass", {}, {}};
+        part.corner_radius.set(0.0);
+        part.key.set(PartKey{"glass", {}, {}});
         paint_part(painter, *this, part);
     }
 };
@@ -120,7 +121,7 @@ inline std::shared_ptr<const Theme> glass_theme() {
     definition.id = "backplane-replay-scene";
     ThemeRule rule{};
     rule.label = "glass";
-    rule.selector.role = PartRole::region;
+    rule.selector.role.set(PartRole::region);
     rule.declarations.push_back(RuleDeclaration::primitive("glass"));
     rule.declarations.push_back(RuleDeclaration::number_value("blur", 1.0));
     definition.rules.rules.push_back(rule);

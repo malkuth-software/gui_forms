@@ -56,8 +56,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -68,6 +70,43 @@
 
 namespace {
 using namespace gui_forms;
+
+// A cell style's alignment and padding, as the style records them.
+stxlib::Optional<DataGridViewContentAlignment> aligned(const DataGridViewContentAlignment alignment) noexcept {
+    const stxlib::Optional<DataGridViewContentAlignment> result =
+        stxlib::Optional<DataGridViewContentAlignment>::of(alignment);
+    return result;
+}
+
+stxlib::Optional<Insets> padded(const Insets padding) noexcept {
+    const stxlib::Optional<Insets> result = stxlib::Optional<Insets>::of(padding);
+    return result;
+}
+
+// D15 Q3: set_current_cell keeps its deprecated std::optional form for one
+// stage; a plain address or {} must not reach it silently. Each plain call
+// below is refused (a deleted overload or an ambiguity), and the stxlib form
+// is accepted.
+template <typename Grid>
+concept takes_plain_current_cell =
+    requires(Grid& grid) { grid.set_current_cell(DataGridViewCellAddress{DataGridViewRowPosition{0U}, 0U}); };
+template <typename Grid>
+concept takes_empty_current_cell = requires(Grid& grid) { grid.set_current_cell({}); };
+template <typename Grid>
+concept takes_optional_current_cell =
+    requires(Grid& grid) { grid.set_current_cell(stxlib::Optional<DataGridViewCellAddress>::none()); };
+static_assert(!takes_plain_current_cell<DataGridView> && !takes_empty_current_cell<DataGridView>);
+static_assert(takes_optional_current_cell<DataGridView>);
+// The same for set_column_sort_mode.
+template <typename Grid>
+concept takes_plain_sort_mode =
+    requires(Grid& grid) { grid.set_column_sort_mode(0U, DataGridViewColumnSortMode::automatic); };
+template <typename Grid>
+concept takes_empty_sort_mode = requires(Grid& grid) { grid.set_column_sort_mode(0U, {}); };
+template <typename Grid>
+concept takes_optional_sort_mode = requires(Grid& grid) { grid.set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::none()); };
+static_assert(!takes_plain_sort_mode<DataGridView> && !takes_empty_sort_mode<DataGridView>);
+static_assert(takes_optional_sort_mode<DataGridView>);
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -81,9 +120,34 @@ DataGridViewRowPosition row_at(std::size_t position) {
     return row;
 }
 
-DataGridViewCellAddress cell_at(std::size_t row, std::size_t column) {
+// A present row position, as row_position and new_row_index report it.
+stxlib::Optional<DataGridViewRowPosition> present_row(std::size_t position) {
+    const DataGridViewRowPosition row{position};
+    return stxlib::Optional<DataGridViewRowPosition>::of(row);
+}
+
+// The position of a row the test expects in the grid; a missing row fails
+// the test with `message` instead of reading an absent position.
+DataGridViewRowPosition shown_position(const DataGridView& grid, const DataGridViewRowId& row, const char* message) {
+    const stxlib::Optional<DataGridViewRowPosition> position = grid.row_position(row);
+    require(position.present(), message);
+    const DataGridViewRowPosition shown = *position.value();
+    return shown;
+}
+
+// A present cell address, as current_cell reports it and set_current_cell
+// takes it.
+stxlib::Optional<DataGridViewCellAddress> cell_at(std::size_t row, std::size_t column) {
     const DataGridViewCellAddress cell{DataGridViewRowPosition{row}, column};
-    return cell;
+    return stxlib::Optional<DataGridViewCellAddress>::of(cell);
+}
+
+// The current cell's row, or a position past every row when there is none.
+DataGridViewRowPosition current_row_of(const DataGridView& grid) {
+    const stxlib::Optional<DataGridViewCellAddress> cell = grid.current_cell();
+    const DataGridViewCellAddress none{DataGridViewRowPosition{std::numeric_limits<std::size_t>::max()}, 0U};
+    const DataGridViewRowPosition row = cell.value_or(none).row;
+    return row;
 }
 
 DataGridViewRowId id(std::string_view text) {
@@ -113,8 +177,8 @@ struct Counter final {
 };
 
 struct RecordCurrent final {
-    std::vector<std::optional<DataGridViewCellAddress>>* seen{};
-    void operator()(std::optional<DataGridViewCellAddress> cell) const { (*seen).push_back(cell); }
+    std::vector<stxlib::Optional<DataGridViewCellAddress>>* seen{};
+    void operator()(stxlib::Optional<DataGridViewCellAddress> cell) const { (*seen).push_back(cell); }
 };
 
 struct RecordCell final {
@@ -302,7 +366,11 @@ struct AddDuplicateRow final {
      };
      struct RemoveNewRow final {
          DataGridView* grid{};
-         void operator()() const { (*grid).rows.erase((*(*grid).new_row_index()).value, 1U); }
+         void operator()() const {
+             const stxlib::Optional<DataGridViewRowPosition> new_row = (*grid).new_row_index();
+             require(new_row.present(), "the handler finds the new row to remove");
+             (*grid).rows.erase((*new_row.value()).value, 1U);
+         }
      };
      struct SetCount final {
          DataGridView* grid{};
@@ -312,7 +380,7 @@ struct AddDuplicateRow final {
      struct SetSortMode final {
          DataGridView* grid{};
          DataGridViewColumnSortMode mode{};
-         void operator()() const { (*grid).set_column_sort_mode(0U, mode); }
+         void operator()() const { (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(mode)); }
      };
      struct SetVirtualRows final {
          DataGridView* grid{};
@@ -337,21 +405,21 @@ struct AddDuplicateRow final {
             "cells keep their binding values");
     require((*grid).cell_text(row_at(2U), 3U) == "Tune" && (*grid).cell_value(row_at(2U), 2U) == BindingValue{},
             "short rows are padded, and an empty button cell shows its column's text");
-    require((*grid).row_position(id("bravo")) == row_at(1U) && (*grid).row_id(row_at(2U)) == id("charlie"),
+    require((*grid).row_position(id("bravo")) == present_row(1U) && (*grid).row_id(row_at(2U)) == id("charlie"),
             "rows keep their stable IDs");
     (*grid).rows.append(DataGridViewRow{});
     const DataGridViewRowPosition generated{(*grid).rows.read().size() - 1U};
     require((*grid).row_id(generated).value.rfind("row.", 0U) == 0U, "an empty row ID is generated");
     (*grid).rows.insert(0U, {.stable_id = {"zulu"}});
-    require((*grid).row_position(id("alpha")) == row_at(1U), "inserting moves later rows");
+    require((*grid).row_position(id("alpha")) == present_row(1U), "inserting moves later rows");
     (*grid).rows.erase(0U, 1U);
-    require((*grid).row_position(id("alpha")) == row_at(0U) && (*grid).row_count() == 4U,
+    require((*grid).row_position(id("alpha")) == present_row(0U) && (*grid).row_count() == 4U,
             "removing moves them back");
-    require(!(*grid).row_position(id("zulu")), "a removed row's ID is gone");
+    require((*grid).row_position(id("zulu")).absent(), "a removed row's ID is gone");
     (*grid).set_row_count(6U);
     require((*grid).row_count() == 6U, "an unbound row count grows with generated rows");
     (*grid).set_row_count(3U);
-    require((*grid).row_count() == 3U && (*grid).row_position(id("charlie")) == row_at(2U),
+    require((*grid).row_count() == 3U && (*grid).row_position(id("charlie")) == present_row(2U),
             "and is cut from the end");
     std::shared_ptr<DataGridView> fresh = make_control<DataGridView>(StableId("grid.model.fresh"));
     (*fresh).set_columns(sample_columns());
@@ -448,7 +516,7 @@ void selection_and_navigation() {
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     int selection_changes = 0;
-    std::vector<std::optional<DataGridViewCellAddress>> currents;
+    std::vector<stxlib::Optional<DataGridViewCellAddress>> currents;
     SubscriptionToken selection_token = (*grid).selection_changed().subscribe(Counter{&selection_changes});
     SubscriptionToken current_token = (*grid).current_cell_changed().subscribe(RecordCurrent{&currents});
     require(window.request_focus(grid), "the grid takes focus");
@@ -688,8 +756,8 @@ void virtual_rows() {
     (*grid).on_paint(later, (*grid).client_rectangle());
     bool scrolled_only = !(*provider).asked_ids.empty();
     for (const std::string& asked : (*provider).asked_ids) {
-        const std::optional<DataGridViewRowPosition> position = (*grid).row_position(id(asked));
-        if (!position || (*position).value < 500000U || (*position).value >= 500000U + shown) scrolled_only = false;
+        const stxlib::Optional<DataGridViewRowPosition> position = (*grid).row_position(id(asked));
+        if (position.absent() || (*position.value()).value < 500000U || (*position.value()).value >= 500000U + shown) scrolled_only = false;
     }
     require(scrolled_only, "scrolled rows are asked for where they are, and no others");
     require((*grid).realized_rows()[0].stable_id == "v500000", "the realized window follows the scroll");
@@ -728,7 +796,7 @@ void virtual_row_identity() {
     require((*grid).selected_cells().size() == 2U && (*grid).current_row_id() == id("v3"),
             "v3 and v5 are selected, v3 current");
     int selection_changes = 0;
-    std::vector<std::optional<DataGridViewCellAddress>> currents;
+    std::vector<stxlib::Optional<DataGridViewCellAddress>> currents;
     SubscriptionToken selection_token = (*grid).selection_changed().subscribe(Counter{&selection_changes});
     SubscriptionToken current_token = (*grid).current_cell_changed().subscribe(RecordCurrent{&currents});
 
@@ -773,22 +841,25 @@ void virtual_row_identity() {
     // Sort: the application reverses its order.
     const std::vector<DataGridViewRowId> reversed(removed.rbegin(), removed.rend());
     (*grid).set_virtual_row_order(reversed);
-    const std::optional<DataGridViewRowPosition> v3 = (*grid).row_position(id("v3"));
-    require(v3 && (*grid).current_cell() == DataGridViewCellAddress{*v3, 0U} && (*grid).is_cell_selected(*v3, 0U) &&
+    const stxlib::Optional<DataGridViewRowPosition> v3 = (*grid).row_position(id("v3"));
+    require(v3.present() && (*grid).current_cell() == stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{*v3.value(), 0U}) && (*grid).is_cell_selected(*v3.value(), 0U) &&
                 (*grid).selected_cells().size() == 1U && currents.empty(),
             "a sort keeps the current cell and the selection on their IDs");
 
     // Full-row selection is kept by ID too.
     (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
-    (*grid).set_row_selected(*(*grid).row_position(id("v10")), true);
+    (*grid).set_row_selected(shown_position(*grid, id("v10"), "v10 is in the order"), true);
     (*grid).set_virtual_row_order(removed);
-    require((*grid).is_row_selected(*(*grid).row_position(id("v10"))) &&
-                (*grid).is_row_selected(*(*grid).row_position(id("v3"))) && (*grid).selected_rows().size() == 2U,
+    const DataGridViewRowPosition v10_after = shown_position(*grid, id("v10"), "v10 stays in the order");
+    const DataGridViewRowPosition v3_after = shown_position(*grid, id("v3"), "v3 stays in the order");
+    require((*grid).is_row_selected(v10_after) && (*grid).is_row_selected(v3_after) &&
+                (*grid).selected_rows().size() == 2U,
             "selected rows stay selected through a sort");
     (*grid).selection_mode = DataGridViewSelectionMode::cell_select;
 
     // An edit in progress stays on its row through a reorder and commits to it.
-    require((*grid).set_current_cell(DataGridViewCellAddress{*(*grid).row_position(id("v3")), 0U}) &&
+    const DataGridViewCellAddress v3_cell{shown_position(*grid, id("v3"), "v3 is in the order"), 0U};
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(v3_cell)) &&
                 (*grid).begin_edit(),
             "an edit begins on v3");
     (*(*grid).editing_control()).text = "edited";
@@ -829,7 +900,8 @@ void virtual_row_identity() {
     std::vector<DataGridViewRowId> above{id("n7"), id("n8"), id("n9")};
     above.insert(above.end(), without.begin(), without.end());
     (*grid).set_virtual_row_order(above);
-    require((*grid).first_displayed_row() == *(*grid).row_position(top), "the first displayed row follows its ID");
+    require((*grid).row_position(top) == stxlib::Optional<DataGridViewRowPosition>::of((*grid).first_displayed_row()),
+            "the first displayed row follows its ID");
 
     // Refusals leave the grid unchanged.
     const std::size_t count = (*grid).row_count();
@@ -877,7 +949,7 @@ void sorting_headers_and_resizing() {
     static_cast<void>((*grid).set_cell_value(row_at(2U), 0U, BindingValue{std::string("Able")}));
     // The header click here only raises the event; sort_modes covers the
     // automatic sort a text column's click makes by default.
-    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     std::vector<std::size_t> header_clicks;
@@ -895,7 +967,7 @@ void sorting_headers_and_resizing() {
             "rows are ordered by the column's text");
     require((*grid).current_cell() == cell_at(1U, 0U) && (*grid).current_row_id() == id("alpha") &&
                 (*grid).is_cell_selected(row_at(1U), 0U) && (*grid).is_cell_selected(row_at(2U), 0U) &&
-                (*grid).row_position(id("charlie")) == row_at(0U),
+                (*grid).row_position(id("charlie")) == present_row(0U),
             "the current cell and selection stay on their rows");
     window.perform_layout();
     columns = (*grid).realized_columns();
@@ -919,6 +991,18 @@ void sorting_headers_and_resizing() {
     require((*grid).columns()[0].width == 130.0 && !widths.empty() && widths.back() == 0U,
             "dragging the divider widens the column");
     require(header_clicks.size() == 1U, "a resize is not a header click");
+
+    // A NaN sorts before every other number (A-gf-controls-02-F8).
+    std::shared_ptr<DataGridView> numbers = make_grid("grid.sort.nan");
+    static_cast<void>((*numbers).set_cell_value(row_at(0U), 0U, BindingValue{2.0}));
+    static_cast<void>((*numbers).set_cell_value(row_at(1U), 0U,
+                                                BindingValue{std::numeric_limits<double>::quiet_NaN()}));
+    static_cast<void>((*numbers).set_cell_value(row_at(2U), 0U, BindingValue{1.0}));
+    require((*numbers).sort(0U, DataGridViewSortDirection::ascending) &&
+                (*numbers).row_position(id("bravo")) == present_row(0U) &&
+                (*numbers).row_position(id("charlie")) == present_row(1U) &&
+                (*numbers).row_position(id("alpha")) == present_row(2U),
+            "a NaN cell sorts before the column's numbers");
 
     std::shared_ptr<DataGridView> virtual_grid = make_control<DataGridView>(StableId("grid.sort.virtual"));
     (*virtual_grid).set_columns({{.name = "only"}});
@@ -965,10 +1049,10 @@ void bound_rows() {
                 (*grid).is_cell_selected(row_at(3U), 0U) && (*source).position() == 1,
             "an inserted record keeps the current cell and the selection on their records");
     // Audit N47: the row index is updated from the change's position.
-    require((*grid).row_position(id("person.0")) == row_at(0U) && (*grid).row_position(id("person.1")) == row_at(1U) &&
-                (*grid).row_position(id("person.3")) == row_at(3U),
+    require((*grid).row_position(id("person.0")) == present_row(0U) && (*grid).row_position(id("person.1")) == present_row(1U) &&
+                (*grid).row_position(id("person.3")) == present_row(3U),
             "an insert reindexes the rows from its position on");
-    require((*source).remove_at(1U) && (*grid).row_count() == 3U && (*grid).row_position(id("person.1")) == std::nullopt,
+    require((*source).remove_at(1U) && (*grid).row_count() == 3U && (*grid).row_position(id("person.1")).absent(),
             "a removed record leaves the grid");
     // As for unbound rows: the record that took the removed record's place
     // is current (the source's position agrees), and the selection keeps
@@ -978,8 +1062,8 @@ void bound_rows() {
             "the record that takes the removed current record's place becomes current");
     require((*grid).is_cell_selected(row_at(2U), 0U) && (*grid).selected_cells().size() == 1U,
             "the removed record leaves the selection and person.3 stays selected");
-    require((*grid).row_position(id("person.0")) == row_at(0U) && (*grid).row_position(id("person.2")) == row_at(1U) &&
-                (*grid).row_position(id("person.3")) == row_at(2U),
+    require((*grid).row_position(id("person.0")) == present_row(0U) && (*grid).row_position(id("person.2")) == present_row(1U) &&
+                (*grid).row_position(id("person.3")) == present_row(2U),
             "a removal reindexes the rows after it");
     // Audit N47: appends, inserts and removals keep the row index without
     // a rebuild; every record is still found at its position.
@@ -995,7 +1079,7 @@ void bound_rows() {
     bool indexed = (*grid).row_count() == (*source).count();
     for (std::size_t position = 0; indexed && position < (*source).count(); ++position) {
         const DataGridViewRowId row = id((*source).stable_id(position));
-        indexed = (*grid).row_position(row) == row_at(position);
+        indexed = (*grid).row_position(row) == present_row(position);
     }
     require(indexed, "the row index follows appends, inserts and removals");
     (*grid).data_source = nullptr;
@@ -1254,7 +1338,8 @@ void link_cells() {
         {.name = "site", .header_text = "Site", .kind = DataGridViewColumnKind::link, .width = 150.0,
          .link_text = "Open"},
         {.name = "plain", .header_text = "Plain", .kind = DataGridViewColumnKind::link, .width = 100.0,
-         .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}, .track_visited_state = false},
+         .default_cell_style = {.alignment = aligned(DataGridViewContentAlignment::middle_end)},
+         .track_visited_state = false},
     });
     Window window(grid, {420.0, 160.0});
     (*grid).rows.append({.stable_id = {"alpha"},
@@ -1304,10 +1389,10 @@ void link_cells() {
     const Rect beside{go_link.x + go_link.width + 20.0, go_link.y, 10.0, go_link.height};
     PointerEvent over_link{PointerAction::move, PointerButton::none, centre(*grid, go_link)};
     static_cast<void>(window.dispatch_pointer(over_link));
-    require((*grid).cursor.read() == CursorKind::hand, "the pointer over a link is the hand");
+    require((*grid).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::hand), "the pointer over a link is the hand");
     PointerEvent over_beside{PointerAction::move, PointerButton::none, centre(*grid, beside)};
     static_cast<void>(window.dispatch_pointer(over_beside));
-    require((*grid).cursor.read() == CursorKind::arrow, "the pointer beside a link is the arrow");
+    require((*grid).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::arrow), "the pointer beside a link is the arrow");
     click(window, centre(*grid, beside));
     require(clicked.empty() && (*grid).current_cell() == cell_at(0U, 1U) && !(*grid).link_visited(row_at(0U), 1U),
             "a click beside the link makes the cell current and follows nothing");
@@ -1380,7 +1465,7 @@ void link_cells() {
     require(!(*grid).link_visited(row_at(1U), 1U), "set_link_visited clears a visit");
     (*grid).set_link_visited(row_at(1U), 1U, true);
     require((*grid).sort(0U, DataGridViewSortDirection::descending) && (*grid).link_visited(row_at(0U), 1U) &&
-                (*grid).link_visited(row_at(1U), 1U) && (*grid).row_position(id("bravo")) == row_at(0U),
+                (*grid).link_visited(row_at(1U), 1U) && (*grid).row_position(id("bravo")) == present_row(0U),
             "visits stay on their rows when rows move");
     (*grid).rows.erase(0U, 1U);
     (*grid).rows.append({.stable_id = {"bravo"}});
@@ -1398,21 +1483,26 @@ void semantics() {
     window.perform_layout();
     const SemanticDescriptor descriptor = (*grid).semantic_descriptor();
     require(descriptor.role == SemanticRole::table && descriptor.name == "Stations" &&
-                descriptor.column_count == 4U && descriptor.row_count == (*grid).row_count() &&
+                descriptor.column_count == stxlib::Optional<std::size_t>::of(4U) &&
+                descriptor.row_count == stxlib::Optional<std::size_t>::of((*grid).row_count()) &&
                 has_semantic_state(descriptor.states, SemanticState::multiselectable),
             "the grid is a named multiple-selection table sized by its rows and columns");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
     require(nodes.size() == 7U && nodes[0].role == SemanticRole::column_header &&
-                nodes[0].stable_id == "grid.semantics.column.name" && nodes[0].column_index == 1U &&
-                nodes[3].column_index == 4U,
+                nodes[0].stable_id == "grid.semantics.column.name" &&
+                nodes[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                nodes[3].column_index == stxlib::Optional<std::size_t>::of(4U),
             "column headers carry their column, before the rows");
     const SemanticNode& row = nodes[4];
     require(row.role == SemanticRole::row && row.stable_id == "alpha" && row.children.size() == 5U &&
-                row.row_index == 1U && row.children[3].row_index == 1U && row.children[3].column_index == 3U,
+                row.row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[3].row_index == stxlib::Optional<std::size_t>::of(1U) &&
+                row.children[3].column_index == stxlib::Optional<std::size_t>::of(3U),
             "each row holds its header and its cells, and each cell carries its row and column");
     const SemanticNode& header = row.children[0];
     require(header.role == SemanticRole::row_header && header.stable_id == "grid.semantics.row-header.alpha" &&
-                header.row_index == 1U && !header.column_index && header.name == row.name &&
+                header.row_index == stxlib::Optional<std::size_t>::of(1U) && header.column_index.absent() &&
+                header.name == row.name &&
                 header.actions == std::vector<SemanticAction>{SemanticAction::press},
             "a drawn row header comes first in its row, carrying its row only");
     bool all_cells = true;
@@ -1486,7 +1576,7 @@ struct LogValidating final {
 };
 struct LogCurrent final {
     EventLog* log{};
-    void operator()(std::optional<DataGridViewCellAddress>) const { (*log).names.emplace_back("current"); }
+    void operator()(stxlib::Optional<DataGridViewCellAddress>) const { (*log).names.emplace_back("current"); }
 };
 struct RecordDataError final {
     std::vector<DataGridViewDataErrorEvent>* seen{};
@@ -1641,7 +1731,7 @@ void enter_leave_and_validation() {
             "a cancelled row_validating keeps the current row");
     cancel_row = false;
     log.names.clear();
-    require((*grid).set_current_cell(std::nullopt) && !(*grid).current_cell(), "no current cell");
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::none()) && (*grid).current_cell().absent(), "no current cell");
     require(log.names == std::vector<std::string>{"row_validating", "cell_leave", "row_leave", "row_validated",
                                                   "current"},
             "clearing the current cell validates and leaves its row");
@@ -1692,12 +1782,12 @@ void new_row_unbound() {
     require((*fresh).allow_user_to_add_rows.read() && (*fresh).allow_user_to_delete_rows.read(),
             "adding and deleting rows are on by default, as in Windows Forms");
     (*fresh).set_columns(sample_columns());
-    require((*fresh).row_count() == 1U && (*fresh).new_row_index() == row_at(0U),
+    require((*fresh).row_count() == 1U && (*fresh).new_row_index() == present_row(0U),
             "a fresh grid with columns shows only the new row");
-    require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row once turned off");
+    require((*grid).new_row_index().absent() && (*grid).row_count() == 3U, "no new row once turned off");
     (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
-    require((*grid).new_row_index() == row_at(3U) && (*grid).row_count() == 4U,
+    require((*grid).new_row_index() == present_row(3U) && (*grid).row_count() == 4U,
             "the new row follows the last row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(3U));
     const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
@@ -1716,14 +1806,14 @@ void new_row_unbound() {
     require(window.dispatch_text({"Delta"}) && (*grid).is_current_row_dirty(), "typing into the new row");
     require(key(window, PhysicalKey::tab), "Tab commits");
     require(added.size() == 1U && added[0].row_id == placeholder && (*grid).row_count() == 5U &&
-                (*grid).new_row_index() == row_at(4U) && (*grid).cell_text(row_at(3U), 0U) == "Delta" &&
+                (*grid).new_row_index() == present_row(4U) && (*grid).cell_text(row_at(3U), 0U) == "Delta" &&
                 (*grid).cell_text(row_at(3U), 2U) == "USB" && (*grid).row_id(row_at(3U)) == placeholder,
             "the commit adds the row with the new row's ID and its defaults; a new row follows");
     require((*grid).current_cell() == cell_at(3U, 1U) && (*grid).is_current_row_dirty(),
             "the added row stays current and dirty");
     require(key(window, PhysicalKey::escape) && cancelled.size() == 1U && (*grid).row_count() == 4U &&
-                !(*grid).row_position(placeholder) && (*grid).current_cell() == cell_at(3U, 1U) &&
-                (*grid).new_row_index() == row_at(3U),
+                (*grid).row_position(placeholder).absent() && (*grid).current_cell() == cell_at(3U, 1U) &&
+                (*grid).new_row_index() == present_row(3U),
             "Escape discards the added row; the new row takes its place");
     // Adding and leaving keeps the row.
     require((*grid).set_current_cell(cell_at(3U, 1U)), "the new row's check box");
@@ -1733,7 +1823,7 @@ void new_row_unbound() {
             "once left, the added row is kept");
     require(throws<std::out_of_range>(RemoveNewRow{grid.get()}), "the new row is not removed");
     (*grid).allow_user_to_add_rows = false;
-    require((*grid).row_count() == 4U && !(*grid).new_row_index(), "turning it off hides the new row");
+    require((*grid).row_count() == 4U && (*grid).new_row_index().absent(), "turning it off hides the new row");
 }
 
 void new_row_bound() {
@@ -1746,7 +1836,7 @@ void new_row_bound() {
     (*grid).data_source = source;
     (*grid).allow_user_to_add_rows = true;
     window.perform_layout();
-    require((*grid).row_count() == 2U && (*grid).new_row_index() == row_at(1U), "a bound grid shows the new row");
+    require((*grid).row_count() == 2U && (*grid).new_row_index() == present_row(1U), "a bound grid shows the new row");
     const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
     require((*grid).set_current_cell(cell_at(1U, 1U)) && (*grid).begin_edit(), "edit the new row");
     (*(*grid).editing_control()).text = "Paris";
@@ -1755,7 +1845,7 @@ void new_row_bound() {
             "the commit adds a record with the new row's ID and the value");
     (*source).set_allow_new(false);
     window.perform_layout();
-    require((*grid).row_count() == 2U && !(*grid).new_row_index(), "a source without additions has no new row");
+    require((*grid).row_count() == 2U && (*grid).new_row_index().absent(), "a source without additions has no new row");
 }
 
 void deleting_rows() {
@@ -1776,7 +1866,7 @@ void deleting_rows() {
     (*grid).set_row_selected(row_at(2U), true);
     require(key(window, PhysicalKey::delete_forward) && asked == 2 && deleted.size() == 1U &&
                 deleted[0].row_id == id("bravo") && deleted[0].row == row_at(1U) && (*grid).row_count() == 2U &&
-                (*grid).row_position(id("charlie")) == row_at(1U),
+                (*grid).row_position(id("charlie")) == present_row(1U),
             "Delete removes the selected rows a handler does not keep");
 
     std::shared_ptr<DataGridView> bound = make_control<DataGridView>(StableId("grid.delete-bound"));
@@ -1853,7 +1943,9 @@ struct SetBadFormat final {
 };
 struct SetNegativePadding final {
     DataGridView* grid{};
-    void operator()() const { (*grid).set_cell_style(row_at(0U), 0U, {.padding = Insets{-1.0, 0.0, 0.0, 0.0}}); }
+    void operator()() const {
+        (*grid).set_cell_style(row_at(0U), 0U, {.padding = padded(Insets{-1.0, 0.0, 0.0, 0.0})});
+    }
 };
 struct StyleCellPastEnd final {
     DataGridView* grid{};
@@ -1870,7 +1962,7 @@ struct FormatNames final {
             event.formatted_value = "B!";
             event.formatting_applied = true;
         }
-        if (event.row_id.value == "alpha") event.cell_style.alignment = DataGridViewContentAlignment::top_start;
+        if (event.row_id.value == "alpha") event.cell_style.alignment.set(DataGridViewContentAlignment::top_start);
     }
 };
 
@@ -1911,29 +2003,36 @@ void cell_styles() {
                 (*grid).inherited_column_header_style(0U) == empty,
             "every style is empty by default: an unstyled grid is the theme's");
     const FontSpec big{FontRole::content, 15.0, 700, false};
-    (*grid).default_cell_style = {.font = big, .alignment = DataGridViewContentAlignment::middle_start};
-    (*grid).set_column_default_cell_style(0U, {.alignment = DataGridViewContentAlignment::middle_end});
-    (*grid).rows_default_cell_style = {.wrap_mode = true};
-    (*grid).alternating_rows_default_cell_style = {.fore_color = Color{1, 2, 3, 255}};
-    (*grid).set_row_default_cell_style(row_at(2U), {.alignment = DataGridViewContentAlignment::bottom_center});
-    (*grid).set_cell_style(row_at(2U), 0U, {.padding = Insets{10.0, 2.0, 10.0, 2.0}});
+    (*grid).default_cell_style = {.font = stxlib::Optional<FontSpec>::of(big),
+                                  .alignment = aligned(DataGridViewContentAlignment::middle_start)};
+    (*grid).set_column_default_cell_style(0U, {.alignment = aligned(DataGridViewContentAlignment::middle_end)});
+    (*grid).rows_default_cell_style = {.wrap_mode = stxlib::Optional<bool>::of(true)};
+    (*grid).alternating_rows_default_cell_style = {.fore_color = stxlib::Optional<Color>::of(Color{1, 2, 3, 255})};
+    (*grid).set_row_default_cell_style(row_at(2U),
+                                       {.alignment = aligned(DataGridViewContentAlignment::bottom_center)});
+    (*grid).set_cell_style(row_at(2U), 0U, {.padding = padded(Insets{10.0, 2.0, 10.0, 2.0})});
     const DataGridViewCellStyle first = (*grid).inherited_cell_style(row_at(0U), 0U);
-    require(first.font == big && first.alignment == DataGridViewContentAlignment::middle_end &&
-                first.wrap_mode == true && !first.fore_color,
+    require(first.font == stxlib::Optional<FontSpec>::of(big) &&
+                first.alignment == aligned(DataGridViewContentAlignment::middle_end) &&
+                first.wrap_mode == stxlib::Optional<bool>::of(true) && first.fore_color.absent(),
             "a cell inherits the column's alignment over the grid's, the rows' wrap mode and the grid's font");
     const DataGridViewCellStyle second = (*grid).inherited_cell_style(row_at(1U), 1U);
-    require(second.fore_color == Color{1, 2, 3, 255} && second.alignment == DataGridViewContentAlignment::middle_start,
+    require(second.fore_color == stxlib::Optional<Color>::of(Color{1, 2, 3, 255}) &&
+                second.alignment == aligned(DataGridViewContentAlignment::middle_start),
             "odd positions take the alternating rows' style; another column the grid's alignment");
     const DataGridViewCellStyle third = (*grid).inherited_cell_style(row_at(2U), 0U);
-    require(third.alignment == DataGridViewContentAlignment::bottom_center && third.padding &&
-                (*third.padding).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding &&
-                !(*grid).cell_style(row_at(2U), 0U).alignment,
+    require(third.alignment == aligned(DataGridViewContentAlignment::bottom_center) && third.padding.present() &&
+                (*third.padding.value()).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding.present() &&
+                (*grid).cell_style(row_at(2U), 0U).alignment.absent(),
             "a row's style wins over the column's, a cell's own over its row's");
-    (*grid).column_headers_default_cell_style = {.alignment = DataGridViewContentAlignment::middle_center};
-    (*grid).set_column_header_cell_style(1U, {.alignment = DataGridViewContentAlignment::middle_end});
-    require((*grid).inherited_column_header_style(0U).alignment == DataGridViewContentAlignment::middle_center &&
-                (*grid).inherited_column_header_style(1U).alignment == DataGridViewContentAlignment::middle_end &&
-                (*grid).inherited_column_header_style(0U).font == big && (*grid).inherited_row_header_style().font == big,
+    (*grid).column_headers_default_cell_style = {.alignment = aligned(DataGridViewContentAlignment::middle_center)};
+    (*grid).set_column_header_cell_style(1U, {.alignment = aligned(DataGridViewContentAlignment::middle_end)});
+    require((*grid).inherited_column_header_style(0U).alignment ==
+                    aligned(DataGridViewContentAlignment::middle_center) &&
+                (*grid).inherited_column_header_style(1U).alignment ==
+                    aligned(DataGridViewContentAlignment::middle_end) &&
+                (*grid).inherited_column_header_style(0U).font == stxlib::Optional<FontSpec>::of(big) &&
+                (*grid).inherited_row_header_style().font == stxlib::Optional<FontSpec>::of(big),
             "headers inherit their own style, the headers', then the grid's");
     require(throws<std::invalid_argument>(SetBadFormat{grid.get()}) &&
                 throws<std::invalid_argument>(SetNegativePadding{grid.get()}) &&
@@ -1943,11 +2042,12 @@ void cell_styles() {
 
     // Styles are kept by row ID: they follow their rows and end with them.
     require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
-                (*grid).row_position(id("charlie")) == row_at(0U) &&
-                (*grid).cell_style(row_at(0U), 0U).padding && (*grid).row_default_cell_style(row_at(0U)).alignment,
+                (*grid).row_position(id("charlie")) == present_row(0U) &&
+                (*grid).cell_style(row_at(0U), 0U).padding.present() &&
+                (*grid).row_default_cell_style(row_at(0U)).alignment.present(),
             "sorting moves a row's and a cell's styles with the row");
     (*grid).rows.erase(0U, 1U);
-    require(!(*grid).row_default_cell_style(row_at(0U)).alignment, "a removed row's styles end with it");
+    require((*grid).row_default_cell_style(row_at(0U)).alignment.absent(), "a removed row's styles end with it");
 
     // Geometry: padding and alignment place the content part.
     std::shared_ptr<DataGridView> placed = make_grid("grid.styles.placed");
@@ -1958,8 +2058,8 @@ void cell_styles() {
     const DataGridView::Cell* plain = find_cell(before, 0U, 0U);
     require(plain != nullptr && (*plain).parts.cell_content.present, "a text cell's content");
     const Rect plain_content = (*plain).parts.cell_content.bounds;
-    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = DataGridViewContentAlignment::top_start,
-                                              .padding = Insets{12.0, 3.0, 12.0, 3.0}});
+    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = aligned(DataGridViewContentAlignment::top_start),
+                                              .padding = padded(Insets{12.0, 3.0, 12.0, 3.0})});
     placed_window.perform_layout();
     const std::vector<DataGridView::Cell> after = (*placed).realized_cells();
     const DataGridView::Cell* styled = find_cell(after, 0U, 0U);
@@ -2113,6 +2213,102 @@ void borders_and_owner_drawing() {
     require(replaced == 1 && (*grid).columns().size() == 1U, "a handler that changes the grid stops the paint");
 }
 
+// A column marked owner_draw raises draw_item_content for its own cells
+// while the grid draws the others (gap I4).
+void per_column_owner_drawing() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.column-draw"));
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    require(columns.size() >= 2U, "the fixture has two columns or more");
+    columns[1].owner_draw = true;
+    const std::string drawn_name = columns[1].name;
+    (*grid).set_columns(columns);
+    (*grid).rows.append({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{true},
+                                                           BindingValue{std::string("FM")}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{false},
+                                                           BindingValue{std::string("AM")}}});
+    (*grid).allow_user_to_add_rows = false;
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).draw_mode.read() == ItemDrawMode::normal, "the grid itself draws normally");
+    std::vector<std::string> drawn_ids;
+    SubscriptionToken draw_token = (*grid).draw_item_content().subscribe(DrawCells{&drawn_ids, false});
+    CountingPainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    require(drawn_ids.size() == 2U, "only the owner-drawn column's cells are raised");
+    const std::string suffix = "." + drawn_name;
+    for (const std::string& id : drawn_ids) {
+        require(id.size() > suffix.size() && id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0,
+                "each raised cell is in the owner-drawn column");
+    }
+    bool painted_alpha = false;
+    for (const std::string& text : painter.texts) {
+        if (text == "Alpha") painted_alpha = true;
+    }
+    require(painted_alpha, "the other columns keep their default content");
+    draw_token.disconnect();
+}
+
+// Counts the sparkline marks and the text a grid draws.
+class SparklinePainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view text, FontSpec, Color) override { texts.emplace_back(text); }
+    void draw_image(ImageId, Rect, double) override {}
+    void stroke_polyline(std::span<const Point>, const StrokeStyle&) override { polylines = polylines + 1; }
+    void draw_markers(std::span<const Point> centers, const MarkerStyle&) override {
+        markers = markers + centers.size();
+    }
+
+    std::vector<std::string> texts;
+    int polylines{};
+    std::size_t markers{};
+};
+
+void sparkline_column() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.sparkline"));
+    DataGridViewColumn name{};
+    name.name = "name";
+    name.header_text = "Name";
+    DataGridViewColumn trend{};
+    trend.name = "trend";
+    trend.header_text = "Trend";
+    trend.kind = DataGridViewColumnKind::sparkline;
+    (*grid).set_columns({name, trend});
+    // A number collection holds numbers only (make_property_collection
+    // converts each item to the declared kind and refuses text); the
+    // integer is converted to a number.
+    const std::vector<BindingValue> samples{BindingValue{1.0}, BindingValue{std::int64_t{3}}, BindingValue{2.5}};
+    const PropertyCollectionValue series = make_property_collection("number", BindingValueKind::number, samples);
+    (*grid).rows.append({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{series}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{}}});
+    (*grid).allow_user_to_add_rows = false;
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).cell_text(DataGridViewRowPosition{0U}, 1U) == "2.5",
+            "a sparkline cell's text is its newest finite value");
+    require((*grid).cell_text(DataGridViewRowPosition{1U}, 1U).empty(), "a cell without a series has no text");
+    SparklinePainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    require(painter.polylines >= 1 && painter.markers == 1U,
+            "the series cell draws its line and newest dot; the empty one draws nothing");
+    bool painted_value = false;
+    bool painted_alpha = false;
+    for (const std::string& text : painter.texts) {
+        if (text == "2.5") painted_value = true;
+        if (text == "Alpha") painted_alpha = true;
+    }
+    require(!painted_value && painted_alpha, "the sparkline replaces the cell's text; other columns keep theirs");
+    require((*grid).set_current_cell(cell_at(0U, 1U)),
+            "a sparkline cell can be current");
+    require(!(*grid).begin_edit(), "a sparkline cell is not edited");
+}
+
 // -- authored colours (owner decision T4-1) ------------------------------------
 
 // Records the colours fills, text and lines are drawn in.
@@ -2153,22 +2349,22 @@ void authored_colours() {
     const Color header_fore{240, 240, 240, 255};
     const Color empty{200, 200, 220, 255};
     std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
-    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background &&
-                !(*find_cell(cells, 1U, 0U)).parts.cell_content.authored_foreground &&
-                !(*grid).parts().well.authored_background,
+    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background.present() &&
+                !(*find_cell(cells, 1U, 0U)).parts.cell_content.authored_foreground.present() &&
+                !(*grid).parts().well.authored_background.present(),
             "an unstyled grid authors no colours");
 
-    (*grid).default_cell_style = {.back_color = back, .fore_color = fore};
-    (*grid).grid_color = line;
+    (*grid).default_cell_style = {.back_color = stxlib::Optional<Color>::of(back), .fore_color = stxlib::Optional<Color>::of(fore)};
+    (*grid).grid_color = stxlib::Optional<Color>::of(line);
     window.perform_layout();
     cells = (*grid).realized_cells();
     const DataGridView::Cell text = *find_cell(cells, 1U, 0U);
-    require(text.parts.cell_selection.authored_background == back &&
-                text.parts.cell_content.authored_foreground == fore &&
-                text.parts.cell_vertical_rule.authored_foreground == line &&
-                text.parts.cell_horizontal_rule.authored_foreground == line,
+    require(text.parts.cell_selection.authored_background == stxlib::Optional<Color>::of(back) &&
+                text.parts.cell_content.authored_foreground == stxlib::Optional<Color>::of(fore) &&
+                text.parts.cell_vertical_rule.authored_foreground == stxlib::Optional<Color>::of(line) &&
+                text.parts.cell_horizontal_rule.authored_foreground == stxlib::Optional<Color>::of(line),
             "a cell's background, text and lines take the inherited style's and the grid's colours");
-    require((*find_cell(cells, 1U, 3U)).parts.cell_button_label.authored_foreground == fore,
+    require((*find_cell(cells, 1U, 3U)).parts.cell_button_label.authored_foreground == stxlib::Optional<Color>::of(fore),
             "a button cell's label takes the fore colour");
     ColourPainter painter;
     (*grid).on_paint(painter, (*grid).client_rectangle());
@@ -2179,34 +2375,36 @@ void authored_colours() {
     (*grid).set_cell_selected(row_at(1U), 0U, true);
     window.perform_layout();
     cells = (*grid).realized_cells();
-    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background,
+    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background.present(),
             "a selected cell with no selection colour keeps the theme's selection look");
-    (*grid).default_cell_style = {.back_color = back, .fore_color = fore, .selection_back_color = highlight};
+    (*grid).default_cell_style = {.back_color = stxlib::Optional<Color>::of(back),
+                                  .fore_color = stxlib::Optional<Color>::of(fore),
+                                  .selection_back_color = stxlib::Optional<Color>::of(highlight)};
     window.perform_layout();
     cells = (*grid).realized_cells();
-    require((*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background == highlight,
+    require((*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background == stxlib::Optional<Color>::of(highlight),
             "a selected cell shows the selection back colour");
 
-    (*grid).column_headers_default_cell_style = {.back_color = header_back, .fore_color = header_fore};
-    (*grid).row_headers_default_cell_style = {.back_color = header_back, .fore_color = header_fore};
+    (*grid).column_headers_default_cell_style = {.back_color = stxlib::Optional<Color>::of(header_back), .fore_color = stxlib::Optional<Color>::of(header_fore)};
+    (*grid).row_headers_default_cell_style = {.back_color = stxlib::Optional<Color>::of(header_back), .fore_color = stxlib::Optional<Color>::of(header_fore)};
     window.perform_layout();
-    require(!(*grid).realized_columns()[0].parts.column_header.authored_background &&
-                !(*grid).realized_rows()[0].parts.row_header.authored_background,
+    require(!(*grid).realized_columns()[0].parts.column_header.authored_background.present() &&
+                !(*grid).realized_rows()[0].parts.row_header.authored_background.present(),
             "with header visual styles the theme draws the headers");
     (*grid).enable_headers_visual_styles = false;
     window.perform_layout();
     const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
     const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
-    require(columns[0].parts.column_header.authored_background == header_back &&
-                columns[0].parts.column_label.authored_foreground == header_fore &&
-                rows[0].parts.row_header.authored_background == header_back,
+    require(columns[0].parts.column_header.authored_background == stxlib::Optional<Color>::of(header_back) &&
+                columns[0].parts.column_label.authored_foreground == stxlib::Optional<Color>::of(header_fore) &&
+                rows[0].parts.row_header.authored_background == stxlib::Optional<Color>::of(header_back),
             "without them the header styles' colours stand on the headers");
 
-    (*grid).background_color = empty;
+    (*grid).background_color = stxlib::Optional<Color>::of(empty);
     window.perform_layout();
     ColourPainter background;
     (*grid).on_paint(background, (*grid).client_rectangle());
-    require((*grid).parts().well.authored_background == empty && contains_colour(background.fills, empty),
+    require((*grid).parts().well.authored_background == stxlib::Optional<Color>::of(empty) && contains_colour(background.fills, empty),
             "the background colour fills the area no cell covers");
 }
 
@@ -2271,7 +2469,7 @@ void wrapped_cells() {
     }
     require(whole, "without wrap_mode the text is one line");
 
-    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = stxlib::Optional<bool>::of(true)});
     window.perform_layout();
     CountingPainter wrapped;
     (*grid).on_paint(wrapped, (*grid).client_rectangle());
@@ -2450,7 +2648,8 @@ void column_visibility() {
                 !(*grid).columns()[1].visible,
             "a hidden column keeps its display index");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
-    require(nodes[1].role == SemanticRole::column_header && nodes[1].column_index == 2U,
+    require(nodes[1].role == SemanticRole::column_header &&
+                nodes[1].column_index == stxlib::Optional<std::size_t>::of(2U),
             "column headers count only shown columns");
     const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
     const DataGridView::Cell* const shown = find_cell(cells, 0U, 2U);
@@ -2481,7 +2680,7 @@ void column_visibility() {
     require((*grid).current_cell() == cell_at(0U, 0U), "past the last shown column it moves to the one before");
     (*grid).set_column_visible(0U, false);
     window.perform_layout();
-    require(!(*grid).current_cell() && (*grid).realized_columns().empty(),
+    require((*grid).current_cell().absent() && (*grid).realized_columns().empty(),
             "with no column shown there is no current cell and nothing realized");
     require(!key(window, PhysicalKey::right), "keys move nothing with no column shown");
     for (std::size_t column = 0U; column < 4U; ++column) (*grid).set_column_visible(column, true);
@@ -2536,8 +2735,9 @@ void column_order() {
     (*grid).set_cell_selected(row_at(0U), 1U, true);
     require((*grid).clipboard_content() == std::string("true\tAlpha\r\n"), "copied fields follow the display order");
     const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
-    require(nodes[0].role == SemanticRole::column_header && nodes[0].name == "On" && nodes[0].column_index == 1U &&
-                nodes[2].name == "Name" && nodes[2].column_index == 3U,
+    require(nodes[0].role == SemanticRole::column_header && nodes[0].name == "On" &&
+                nodes[0].column_index == stxlib::Optional<std::size_t>::of(1U) &&
+                nodes[2].name == "Name" && nodes[2].column_index == stxlib::Optional<std::size_t>::of(3U),
             "column headers are published in display order with their display indices");
 
     (*grid).remove_column_at(1U);
@@ -2560,7 +2760,7 @@ void column_order() {
     require(display_order(*grid) == std::vector<std::size_t>{3U, 0U, 1U, 2U}, "the last column is shown first");
     (*grid).insert_column(1U, {.name = "frequency", .header_text = "Frequency"});
     require((*grid).columns().size() == 5U && (*grid).columns()[1].name == "frequency" &&
-                (*grid).column_index("active") == std::optional<std::size_t>{2U},
+                (*grid).column_index("active") == stxlib::Optional<std::size_t>::of(2U),
             "an inserted column takes its index and the later columns move up one");
     require(display_order(*grid) == std::vector<std::size_t>{4U, 1U, 0U, 2U, 3U},
             "an inserted column takes its display index and the others are renumbered");
@@ -2570,7 +2770,7 @@ void column_order() {
                 (*grid).cell_value(row_at(0U), 3U) == BindingValue{std::string("FM")},
             "unbound values move with their columns and the new column starts empty");
     (*grid).insert_column(5U, {.name = "tail", .header_text = "Tail"});
-    require((*grid).column_index("tail") == std::optional<std::size_t>{5U} &&
+    require((*grid).column_index("tail") == stxlib::Optional<std::size_t>::of(5U) &&
                 (*grid).column_display_index(5U) == DataGridViewDisplayIndex{5U},
             "an insertion at the count appends");
     require(throws<std::out_of_range>(InsertColumnPastEnd{grid.get()}), "an insertion past the count is refused");
@@ -2589,7 +2789,7 @@ void column_order() {
     (*dragged).allow_user_to_order_columns = true;
     std::vector<std::size_t> clicks;
     SubscriptionToken click_token = (*dragged).column_header_click().subscribe(RecordIndex{&clicks});
-    (*dragged).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*dragged).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     const Point start = centre(*dragged, (*dragged).realized_columns()[0].parts.column_label.bounds);
     require(drag_window.dispatch_pointer({PointerAction::down, PointerButton::primary, start}),
             "a header press is taken");
@@ -2663,7 +2863,7 @@ void sort_modes() {
     require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::automatic &&
                 (*grid).column_sort_mode(1U) == DataGridViewColumnSortMode::not_sortable &&
                 (*grid).column_sort_mode(2U) == DataGridViewColumnSortMode::not_sortable &&
-                !(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none,
+                (*grid).sorted_column().absent() && (*grid).sort_order() == DataGridViewSortDirection::none,
             "text columns sort automatically by default, other kinds not at all, and nothing is sorted");
     int sorted_count = 0;
     std::vector<std::size_t> header_clicks;
@@ -2672,7 +2872,7 @@ void sort_modes() {
 
     static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Delta")}));
     click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
-    require(header_clicks.size() == 1U && sorted_count == 1 && (*grid).sorted_column() == 0U &&
+    require(header_clicks.size() == 1U && sorted_count == 1 && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U) &&
                 (*grid).sort_order() == DataGridViewSortDirection::ascending &&
                 row_ids(*grid) == std::vector<std::string>{"bravo", "charlie", "alpha"} &&
                 (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::ascending,
@@ -2684,16 +2884,16 @@ void sort_modes() {
             "a second click sorts descending");
     window.perform_layout();
     click(window, centre(*grid, (*grid).realized_columns()[1].parts.column_label.bounds));
-    require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == 0U,
+    require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "a not_sortable column's click raises the event and leaves the order");
-    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::programmatic));
     require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::programmatic,
             "the sort mode is the column's own once set");
     click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
     require(sorted_count == 2 && row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
             "a programmatic column's click leaves the order to the application");
-    (*grid).set_column_sort_mode(1U, DataGridViewColumnSortMode::automatic);
-    require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == 1U &&
+    (*grid).set_column_sort_mode(1U, stxlib::Optional<DataGridViewColumnSortMode>::of(DataGridViewColumnSortMode::automatic));
+    require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(1U) &&
                 row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"},
             "sort orders by any column whatever its mode: empty, false, true");
 
@@ -2718,7 +2918,7 @@ void sort_modes() {
 
     const IdDescending by_id{};
     require((*grid).sort(by_id) && row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"} &&
-                !(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none &&
+                (*grid).sorted_column().absent() && (*grid).sort_order() == DataGridViewSortDirection::none &&
                 (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::none,
             "sort(comparer) orders by the comparer and leaves no sorted column or glyph");
     const AlwaysBefore inconsistent{};
@@ -2727,11 +2927,11 @@ void sort_modes() {
     std::sort(ids.begin(), ids.end());
     require(ids == std::vector<std::string>{"alpha", "bravo", "charlie"}, "and the rows are all still there, once");
 
-    (*grid).set_column_sort_mode(0U, std::nullopt);
-    require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == 0U,
+    (*grid).set_column_sort_mode(0U, stxlib::Optional<DataGridViewColumnSortMode>::none());
+    require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == stxlib::Optional<std::size_t>::of(0U),
             "sorted again");
     (*grid).clear_rows();
-    require(!(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none &&
+    require((*grid).sorted_column().absent() && (*grid).sort_order() == DataGridViewSortDirection::none &&
                 (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::none,
             "replacing the rows ends an automatic sort and its glyph");
     require(throws<std::invalid_argument>(SetSortMode{grid.get(), static_cast<DataGridViewColumnSortMode>(7)}),
@@ -2898,7 +3098,7 @@ void row_heights() {
     require(cells_follow, "cells take their row's top and height");
     const Rect tall = rows[1].parts.row_header.bounds;
     click(window, {(*grid).parts().well.bounds.x + 120.0, tall.y + tall.height - 3.0});
-    require((*grid).current_cell() && (*(*grid).current_cell()).row == row_at(1U),
+    require(current_row_of(*grid) == row_at(1U),
             "a click low in a taller row hits that row");
 
     // The height stays with its row's ID.
@@ -2992,7 +3192,7 @@ void row_resizing() {
             "dragging the grip gives the row its own height");
     require(!(*grid).realized_rows()[0].states.captured && (*grid).row_height_at(row_at(1U)) == 22.0,
             "the release ends the drag, and other rows keep theirs");
-    require(!(*grid).current_cell() || (*(*grid).current_cell()).row == row_at(0U),
+    require((*grid).current_cell().absent() || current_row_of(*grid) == row_at(0U),
             "a resize selects no other row");
     const Rect lower = (*grid).realized_rows()[0].parts.row_grip.bounds;
     const Point up_start = centre(*grid, lower);
@@ -3009,7 +3209,7 @@ void row_auto_sizing() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.row.auto");
     Window window(grid, {360.0, 220.0});
     static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Kilo Lima Mike November")}));
-    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = stxlib::Optional<bool>::of(true)});
     window.perform_layout();
     require((*grid).auto_size_rows_mode.read() == DataGridViewAutoSizeRowsMode::none &&
                 (*grid).row_height_at(row_at(0U)) == 22.0,
@@ -3196,8 +3396,12 @@ void virtual_new_row() {
                 (*grid).row_id(row_at(3U)) == id("added-1"),
             "the application adds the row and names it; a new row follows");
     require((*grid).cell_text(row_at(3U), 0U) == "Yankee", "the committed value reaches the added row");
-    require((*grid).current_row_id() == id("added-1") || (*grid).current_row_id() != id("v0"),
-            "the current cell follows the added row's ID");
+    // The commit moves the current cell with the placeholder's ID to the
+    // added row's (position 3), and Enter then steps down to the new row
+    // that follows (position 4). A current cell left on the retired
+    // placeholder ID would be lost and Enter would not move it.
+    require((*grid).current_cell() == cell_at(4U, 0U) && (*grid).new_row_index() == present_row(4U),
+            "the current cell follows the added row's ID, and Enter moves it to the new row");
 }
 
 void error_glyph_tool_tips() {
@@ -3239,9 +3443,9 @@ void error_glyph_tool_tips() {
     window.perform_layout();
     const Point over_glyph{glyph.x + glyph.width / 2.0, glyph.y + glyph.height / 2.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_glyph}));
-    std::optional<FrameTime> wake = window.next_wake();
-    require(wake.has_value(), "resting over the glyph schedules its tooltip");
-    static_cast<void>(window.poll_frame_schedule(*wake));
+    stxlib::Optional<FrameTime> wake = window.next_wake();
+    require(wake.present(), "resting over the glyph schedules its tooltip");
+    static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(window.tool_tip_visible() && window.tool_tip_text() == "Name is required" &&
                 window.tool_tip_item_id() == (*cell_glyph).stable_id,
             "the glyph shows its error text");
@@ -3250,7 +3454,7 @@ void error_glyph_tool_tips() {
     const Point over_cell{plain.x + plain.width / 2.0, plain.y + plain.height / 2.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_cell}));
     wake = window.next_wake();
-    if (wake) static_cast<void>(window.poll_frame_schedule(*wake));
+    if (wake.present()) static_cast<void>(window.poll_frame_schedule(*wake.value()));
     require(window.tool_tip_visible() && window.tool_tip_text() == "Orders" && window.tool_tip_item_id().empty() &&
                 window.tool_tip_target() == grid,
             "a cell without an error shows the grid's own tooltip");
@@ -3332,8 +3536,8 @@ void require_index_agrees(const DataGridView& grid, const BindingSource& source,
     const std::size_t count = source.count();
     for (std::size_t position = 0U; position < count; ++position) {
         const DataGridViewRowId identity{source.stable_id(position)};
-        const std::optional<DataGridViewRowPosition> found = grid.row_position(identity);
-        if (!found || (*found).value != position) {
+        const stxlib::Optional<DataGridViewRowPosition> found = grid.row_position(identity);
+        if (found.absent() || (*found.value()).value != position) {
             throw std::runtime_error("the bound identity index disagrees with the source at step " +
                                      std::to_string(step));
         }
@@ -3401,12 +3605,12 @@ void bound_identity_follows_list_changes() {
             table.move(first, block, target);
         }
         require_index_agrees(*grid, *source, step);
-        const std::optional<DataGridViewCellAddress> cell = (*grid).current_cell();
-        const std::optional<std::size_t> current_row = table.find(current);
-        require(cell && current_row && (*cell).row.value == *current_row, "the current cell stays on its row");
-        require((*grid).is_row_selected(row_at(*current_row)) &&
-                    (*grid).is_row_selected(row_at(*table.find(first_selected))) &&
-                    (*grid).is_row_selected(row_at(*table.find(second_selected))) &&
+        const stxlib::Optional<DataGridViewCellAddress> cell = (*grid).current_cell();
+        const stxlib::Optional<std::size_t> current_row = table.find(current);
+        require(cell.present() && current_row.present() && (*cell.value()).row.value == (*current_row.value()), "the current cell stays on its row");
+        require((*grid).is_row_selected(row_at((*current_row.value()))) &&
+                    (*grid).is_row_selected(row_at(table.find(first_selected).take())) &&
+                    (*grid).is_row_selected(row_at(table.find(second_selected).take())) &&
                     (*grid).selected_rows().size() == 3U,
                 "the selection stays on its rows");
     }
@@ -3421,18 +3625,899 @@ void bound_identity_follows_list_changes() {
     }
     // A removal of the current row moves the current cell to the row now at
     // its position.
-    const std::size_t shown = (*(*grid).row_position(DataGridViewRowId{current})).value;
-    static_cast<void>(table.remove(*table.find(current), 1U));
-    const std::optional<DataGridViewCellAddress> after = (*grid).current_cell();
-    require(after && (*after).row.value == std::min(shown, (*source).count() - 1U),
+    const std::size_t shown = shown_position(*grid, DataGridViewRowId{current}, "the current row is bound").value;
+    static_cast<void>(table.remove(table.find(current).take(), 1U));
+    const stxlib::Optional<DataGridViewCellAddress> after = (*grid).current_cell();
+    require(after.present() && (*after.value()).row.value == std::min(shown, (*source).count() - 1U),
             "a removed current row leaves the current cell at its position");
     require_index_agrees(*grid, *source, 2000U);
 }
 
 } // namespace
 
+// Tips column 0 of each row with its row ID, and counts the calls.
+struct GiveCellTip final {
+    int* calls{};
+    void operator()(DataGridViewCellToolTipTextNeededEvent& event) const {
+        ++*calls;
+        if (event.column == 0U) event.tool_tip_text = "Tip " + event.row_id.value;
+    }
+};
+
+// The semantic node with `stable_id` among the grid's nodes and their
+// children, or null; it borrows from `nodes`.
+const SemanticNode* find_node(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == stable_id) return &node;
+        for (const SemanticNode& child : node.children) {
+            if (child.stable_id == stable_id) return &child;
+        }
+    }
+    return nullptr;
+}
+const SemanticNode* find_node(std::vector<SemanticNode>&& nodes, std::string_view stable_id) = delete;
+
+struct AddBadTipColumn final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).add_column({.name = "tipped", .tool_tip_text = std::string("\xff")}); }
+};
+
+// Windows Forms' CellClick, CellDoubleClick, RowHeaderMouseClick,
+// CellToolTipTextNeeded, column ToolTipText and HitTest.
+void clicks_tool_tips_and_hit_tests() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.clicks");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    std::vector<DataGridViewCellEvent> clicked;
+    std::vector<DataGridViewCellEvent> double_clicked;
+    std::vector<DataGridViewRowEvent> headers;
+    SubscriptionToken click_token = (*grid).cell_click().subscribe(RecordCell{&clicked});
+    SubscriptionToken double_token = (*grid).cell_double_click().subscribe(RecordCell{&double_clicked});
+    SubscriptionToken header_token = (*grid).row_header_click().subscribe(RecordRow{&headers});
+
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* first = find_cell(cells, 0U, 0U);
+    const DataGridView::Cell* second = find_cell(cells, 1U, 0U);
+    require(first != nullptr && second != nullptr, "the name cells are realized");
+    const Point first_point = centre(*grid, (*first).parts.cell.bounds);
+    const Point second_point = centre(*grid, (*second).parts.cell.bounds);
+    click(window, first_point);
+    require(clicked.size() == 1U && clicked.back().row_id == id("alpha") && clicked.back().column == 0U &&
+                double_clicked.empty() && (*grid).current_cell() == cell_at(0U, 0U),
+            "a press and release on a cell raises cell_click once");
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, first_point}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, second_point}));
+    require(clicked.size() == 1U, "a release over another cell raises no cell_click");
+
+    // Read-only, so that the second click opens no editor to take the release.
+    (*grid).read_only = true;
+    click(window, second_point, Modifier::none, 2U);
+    require(clicked.size() == 2U && clicked.back().row_id == id("bravo") && double_clicked.size() == 1U &&
+                double_clicked.back().row_id == id("bravo") && double_clicked.back().column == 0U,
+            "a second click raises cell_click, then cell_double_click");
+    (*grid).read_only = false;
+
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(rows.size() == 3U, "the three rows are realized");
+    click(window, centre(*grid, rows[2].parts.row_header.bounds));
+    require(headers.size() == 1U && headers.back().row_id == id("charlie") && headers.back().row == row_at(2U) &&
+                current_row_of(*grid) == row_at(2U) && clicked.size() == 2U,
+            "a row header press raises row_header_click and no cell_click");
+
+    // The grid is the window's root, so its own coordinates are the window's.
+    const DataGridViewHitTestInfo on_cell = (*grid).hit_test_at(second_point);
+    require(on_cell.type == DataGridViewHitTestType::cell && on_cell.row == present_row(1U) &&
+                on_cell.column == stxlib::Optional<std::size_t>::of(0U),
+            "hit_test_at finds a cell's row and column");
+    const DataGridViewHitTestInfo on_header = (*grid).hit_test_at(centre(*grid, rows[0].parts.row_header.bounds));
+    require(on_header.type == DataGridViewHitTestType::row_header && on_header.row == present_row(0U) &&
+                on_header.column.absent(),
+            "hit_test_at finds a row header's row and no column");
+    const DataGridViewHitTestInfo outside = (*grid).hit_test_at(Point{359.0, 199.0});
+    require(outside.type == DataGridViewHitTestType::none && outside.row.absent() && outside.column.absent(),
+            "hit_test_at finds nothing past the last row and column");
+
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns[0].tool_tip_text = "The station's name";
+    (*grid).set_columns(columns);
+    int calls = 0;
+    SubscriptionToken tip_token = (*grid).cell_tool_tip_text_needed().subscribe(GiveCellTip{&calls});
+    window.perform_layout();
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* header = find_node(nodes, "grid.clicks.column.name");
+    const SemanticNode* plain_header = find_node(nodes, "grid.clicks.column.active");
+    const SemanticNode* tipped = find_node(nodes, "alpha.name");
+    const SemanticNode* untipped = find_node(nodes, "alpha.active");
+    require(header != nullptr && (*header).tool_tip == "The station's name" && plain_header != nullptr &&
+                (*plain_header).tool_tip.empty(),
+            "a column's tooltip text tips its header");
+    require(tipped != nullptr && (*tipped).tool_tip == "Tip alpha" && untipped != nullptr &&
+                (*untipped).tool_tip.empty() && calls > 0,
+            "cell_tool_tip_text_needed tips cells in unbound rows");
+    (*grid).show_cell_tool_tips = false;
+    const int before = calls;
+    const std::vector<SemanticNode> hidden = (*grid).semantic_virtual_children();
+    const SemanticNode* hidden_header = find_node(hidden, "grid.clicks.column.name");
+    const SemanticNode* hidden_cell = find_node(hidden, "alpha.name");
+    require(hidden_header != nullptr && (*hidden_header).tool_tip.empty() && hidden_cell != nullptr &&
+                (*hidden_cell).tool_tip.empty() && calls == before,
+            "show_cell_tool_tips off publishes no tooltips and asks for none");
+    require(throws<std::invalid_argument>(AddBadTipColumn{grid.get()}), "a column's tooltip text must be valid UTF-8");
+}
+
+// Windows Forms' frozen columns and rows: a frozen column (and every
+// column before it) stays at the data area's start while the others scroll
+// under it; frozen rows stay at the top.
+void frozen_columns_and_rows() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.frozen");
+    for (std::size_t index = 0; index < 27U; ++index) {
+        (*grid).rows.append({.stable_id = {"extra" + std::to_string(index)},
+                             .cells = {BindingValue{std::string("Row ") + std::to_string(index)}}});
+    }
+    Window window(grid, {260.0, 200.0});
+    (*grid).set_column_frozen(0U, true);
+    require((*grid).columns()[0].frozen, "set_column_frozen freezes the column");
+    (*grid).set_horizontal_scroll_offset(60.0);
+    window.perform_layout();
+    const Rect band = (*grid).parts().column_header_band.bounds;
+    const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
+    require(!columns.empty() && columns[0].index == 0U, "the frozen column is realized first");
+    require(columns[0].parts.column_header.bounds.x == band.x, "the frozen column does not scroll");
+    bool passed_under = true;
+    for (const DataGridView::Column& column : columns) {
+        if (column.index == 1U) passed_under = false;
+        if (column.index != 0U && column.parts.column_header.present &&
+            column.parts.column_header.bounds.x < band.x + 100.0 - 0.001) {
+            passed_under = false;
+        }
+    }
+    require(passed_under, "a scrolling column under the frozen one is cut to its own pane or not shown");
+    const std::vector<DataGridView::Row> rows_shown = (*grid).realized_rows();
+    require(!rows_shown.empty(), "rows are shown");
+    const Rect first_header = rows_shown[0].parts.row_header.bounds;
+    // Column 1 (50 wide, scrolled 60) lies at band.x + 40 to + 90, under the
+    // frozen column: the point hits the frozen column.
+    const DataGridViewHitTestInfo under = (*grid).hit_test_at(Point{band.x + 60.0, first_header.y + 4.0});
+    require(under.type == DataGridViewHitTestType::cell && under.column == stxlib::Optional<std::size_t>::of(0U),
+            "a point over the frozen column hits it, not the column scrolled under it");
+
+    (*grid).set_horizontal_scroll_offset(0.0);
+    (*grid).frozen_row_count = 2U;
+    (*grid).set_first_displayed_row(row_at(10U));
+    window.perform_layout();
+    require((*grid).first_displayed_row() == row_at(10U), "the first scrolling row is kept past the frozen rows");
+    const std::vector<DataGridView::Row> frozen_rows = (*grid).realized_rows();
+    require(frozen_rows.size() > 3U && frozen_rows[0].position == row_at(0U) && frozen_rows[1].position == row_at(1U) &&
+                frozen_rows[2].position == row_at(10U),
+            "the frozen rows are realized first, then the scrolling rows");
+    const Rect top = frozen_rows[0].parts.row_header.bounds;
+    const Rect second = frozen_rows[1].parts.row_header.bounds;
+    const Rect scrolled = frozen_rows[2].parts.row_header.bounds;
+    require(top.y == (*grid).parts().row_header_band.bounds.y && second.y == top.y + top.height &&
+                scrolled.y == second.y + second.height,
+            "the first scrolling row starts under the frozen rows");
+    const DataGridViewHitTestInfo on_frozen = (*grid).hit_test_at(Point{band.x + 10.0, second.y + 2.0});
+    const DataGridViewHitTestInfo on_scrolled = (*grid).hit_test_at(Point{band.x + 10.0, scrolled.y + 4.0});
+    require(on_frozen.row == present_row(1U) && on_scrolled.row == present_row(10U),
+            "hit testing finds frozen and scrolling rows");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    require(find_node(nodes, "alpha") != nullptr && find_node(nodes, "extra7") != nullptr &&
+                find_node(nodes, "charlie") == nullptr,
+            "the semantic tree publishes the frozen rows and the scrolling ones, not those scrolled away");
+
+    (*grid).set_first_displayed_row(row_at(0U));
+    window.perform_layout();
+    require((*grid).first_displayed_row() == row_at(2U), "layout keeps the first scrolling row past the frozen rows");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).first_displayed_row() == row_at(2U),
+            "a frozen row becomes current without scrolling");
+    (*grid).frozen_row_count = 0U;
+    window.perform_layout();
+    require((*grid).first_displayed_row() == row_at(2U), "unfreezing keeps the scroll position");
+}
+
+struct SelectRowInColumnMode final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_row_selected(row_at(0U), true); }
+};
+struct SelectColumnInRowMode final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_column_selected(0U, true); }
+};
+
+// Windows Forms' FullColumnSelect, RowHeaderSelect and ColumnHeaderSelect.
+void column_selection_modes() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.column.select");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    (*grid).selection_mode = DataGridViewSelectionMode::full_column_select;
+    require((*grid).set_current_cell(cell_at(1U, 2U)), "a cell becomes current");
+    require((*grid).is_column_selected(2U) && (*grid).is_cell_selected(row_at(0U), 2U) &&
+                (*grid).is_cell_selected(row_at(2U), 2U) && !(*grid).is_cell_selected(row_at(1U), 0U),
+            "full column selection selects the current cell's column");
+    require((*grid).selected_columns() == std::vector<std::size_t>{2U} && (*grid).selected_cells().size() == 3U &&
+                (*grid).selected_rows().empty(),
+            "the selected column's cells are the selection");
+    require(throws<std::logic_error>(SelectRowInColumnMode{grid.get()}), "rows are not selected in full column mode");
+    (*grid).set_cell_selected(row_at(0U), 0U, true);
+    require((*grid).selected_columns() == std::vector<std::size_t>{0U, 2U}, "a cell's selection is its column's");
+
+    // A header click selects the column instead of sorting.
+    std::vector<std::size_t> header_clicks;
+    SubscriptionToken header_token = (*grid).column_header_click().subscribe(RecordIndex{&header_clicks});
+    const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
+    click(window, centre(*grid, headers[0].parts.column_label.bounds));
+    require(header_clicks.size() == 1U && (*grid).selected_columns() == std::vector<std::size_t>{0U} &&
+                (*grid).sorted_column().absent(),
+            "a column header click selects its column alone and does not sort");
+    click(window, centre(*grid, headers[1].parts.column_label.bounds), Modifier::control);
+    require((*grid).selected_columns() == std::vector<std::size_t>{0U, 1U}, "Control+click adds a column");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* selected_header = find_node(nodes, "grid.column.select.column.name");
+    require(selected_header != nullptr && has_semantic_state((*selected_header).states, SemanticState::selected),
+            "a selected column's header publishes selected");
+    (*grid).select_all();
+    require((*grid).selected_columns().size() == 4U && (*grid).selected_rows().size() == 3U,
+            "select_all selects every column, and so every row");
+
+    (*grid).selection_mode = DataGridViewSelectionMode::column_header_select;
+    require((*grid).selected_columns().empty() && (*grid).selected_cells().size() == 1U,
+            "changing the mode selects the current cell alone");
+    click(window, centre(*grid, headers[0].parts.column_label.bounds));
+    require((*grid).is_column_selected(0U) && (*grid).is_cell_selected(row_at(2U), 0U) && (*grid).sorted_column().absent(),
+            "column header selection: a header click selects the column");
+    require((*grid).set_current_cell(cell_at(2U, 3U)) && (*grid).selected_columns().empty() &&
+                (*grid).is_cell_selected(row_at(2U), 3U) && !(*grid).is_cell_selected(row_at(1U), 3U),
+            "a cell click selects the cell alone");
+
+    (*grid).selection_mode = DataGridViewSelectionMode::row_header_select;
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    click(window, centre(*grid, rows[1].parts.row_header.bounds));
+    require((*grid).is_row_selected(row_at(1U)) && !(*grid).is_row_selected(row_at(0U)),
+            "row header selection: a row header click selects the row");
+    require(throws<std::logic_error>(SelectColumnInRowMode{grid.get()}),
+            "columns are not selected outside the column modes");
+}
+
+// Records each cell_mouse_* event as "<label> <area> <row> <column>".
+struct RecordCellMouse final {
+    std::vector<std::string>* seen{};
+    const char* label{};
+    std::vector<DataGridViewCellMouseEvent>* events{};
+    void operator()(const DataGridViewCellMouseEvent& event) const {
+        std::string entry(label);
+        entry += event.area == DataGridViewHitTestType::cell ? " cell" : " other";
+        entry += " " + event.row_id.value;
+        entry += event.column.present() ? " " + std::to_string(*event.column.value()) : std::string(" -");
+        (*seen).push_back(entry);
+        (*events).push_back(event);
+    }
+};
+
+// Windows Forms' CellMouseEnter, CellMouseLeave, CellMouseMove,
+// CellMouseDown, CellMouseUp, CellMouseClick and CellMouseDoubleClick.
+void cell_mouse_events() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.cell.mouse");
+    (*grid).read_only = true;
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    std::vector<std::string> seen;
+    std::vector<DataGridViewCellMouseEvent> events;
+    SubscriptionToken enter = (*grid).cell_mouse_enter().subscribe(RecordCellMouse{&seen, "enter", &events});
+    SubscriptionToken leave = (*grid).cell_mouse_leave().subscribe(RecordCellMouse{&seen, "leave", &events});
+    SubscriptionToken move = (*grid).cell_mouse_move().subscribe(RecordCellMouse{&seen, "move", &events});
+    SubscriptionToken down = (*grid).cell_mouse_down().subscribe(RecordCellMouse{&seen, "down", &events});
+    SubscriptionToken up = (*grid).cell_mouse_up().subscribe(RecordCellMouse{&seen, "up", &events});
+    SubscriptionToken click_token = (*grid).cell_mouse_click().subscribe(RecordCellMouse{&seen, "click", &events});
+    SubscriptionToken twice = (*grid).cell_mouse_double_click().subscribe(RecordCellMouse{&seen, "double", &events});
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* first = find_cell(cells, 0U, 0U);
+    const DataGridView::Cell* second = find_cell(cells, 1U, 0U);
+    require(first != nullptr && second != nullptr, "the name cells are realized");
+    const Rect first_bounds = (*first).parts.cell.bounds;
+    const Point first_point = centre(*grid, Rect{first_bounds.x + 3.0, first_bounds.y + 4.0, 0.0, 0.0});
+    const Point second_point = centre(*grid, (*second).parts.cell.bounds);
+
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, first_point}));
+    require(seen == std::vector<std::string>{"enter cell alpha 0", "move cell alpha 0"},
+            "moving onto a cell raises enter, then move");
+    require(events.back().location.x == 3.0 && events.back().location.y == 4.0 && events.back().row == present_row(0U),
+            "the location is relative to the cell's corner");
+    seen.clear();
+    events.clear();
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, second_point}));
+    require(seen == std::vector<std::string>{"leave cell alpha 0", "enter cell bravo 0", "move cell bravo 0"},
+            "moving to another cell raises leave, enter, then move");
+    seen.clear();
+    events.clear();
+    click(window, second_point);
+    require(seen == std::vector<std::string>{"down cell bravo 0", "up cell bravo 0", "click cell bravo 0"},
+            "a click raises down, up, then click");
+    seen.clear();
+    events.clear();
+    click(window, second_point, Modifier::none, 2U);
+    require(seen == std::vector<std::string>{"down cell bravo 0", "up cell bravo 0", "click cell bravo 0",
+                                             "double cell bravo 0"},
+            "a second click adds double_click");
+    require(events[0].click_count == 2U && events[0].button == PointerButton::primary, "down carries its clicks");
+    seen.clear();
+    events.clear();
+    PointerEvent secondary_down{PointerAction::down, PointerButton::secondary, second_point};
+    static_cast<void>(window.dispatch_pointer(secondary_down));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, first_point}));
+    require(seen == std::vector<std::string>{"down cell bravo 0", "leave cell bravo 0", "enter cell alpha 0",
+                                             "up cell alpha 0"},
+            "every button raises the events, and a release elsewhere is no click");
+    seen.clear();
+    events.clear();
+    const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
+    static_cast<void>(window.dispatch_pointer(
+        {PointerAction::move, PointerButton::none, centre(*grid, headers[1].parts.column_label.bounds)}));
+    require(seen.size() == 3U && seen[1] == "enter other  1", "column headers raise the events with their column");
+    seen.clear();
+    events.clear();
+    const Rect corner = (*grid).parts().top_left_header.bounds;
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, centre(*grid, corner)}));
+    require(seen == std::vector<std::string>{"leave other  1", "enter other  -", "move other  -"} &&
+                events.back().area == DataGridViewHitTestType::top_left,
+            "the top-left header raises the events with neither row nor column");
+}
+
+struct AddBadDisplayStyle final {
+    DataGridView* grid{};
+    void operator()() const {
+        (*grid).add_column({.name = "styled",
+                            .kind = DataGridViewColumnKind::combo_box,
+                            .display_style = static_cast<DataGridViewComboBoxDisplayStyle>(7)});
+    }
+};
+
+// Windows Forms' ThreeState check box columns and the combo box
+// DisplayStyle and DisplayStyleForCurrentCellOnly.
+void three_state_and_display_style() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.three.state");
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns[1].three_state = true;
+    columns[2].display_style = DataGridViewComboBoxDisplayStyle::nothing;
+    (*grid).set_columns(columns);
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    // Charlie's row has no value for the check column: indeterminate.
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* empty = find_cell(cells, 2U, 1U);
+    const DataGridView::Cell* checked = find_cell(cells, 0U, 1U);
+    require(empty != nullptr && (*empty).states.indeterminate && !(*empty).states.checked && checked != nullptr &&
+                (*checked).states.checked && !(*checked).states.indeterminate,
+            "an empty three-state value is indeterminate");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* mixed = find_node(nodes, "charlie.active");
+    require(mixed != nullptr && has_semantic_state((*mixed).states, SemanticState::mixed),
+            "an indeterminate cell publishes mixed");
+    require((*grid).set_current_cell(cell_at(1U, 1U)), "an unchecked cell becomes current");
+    require(key(window, PhysicalKey::space) && (*grid).cell_value(row_at(1U), 1U) == BindingValue{true},
+            "unchecked toggles to checked");
+    require(key(window, PhysicalKey::space) && (*grid).cell_value(row_at(1U), 1U) == BindingValue{},
+            "checked toggles to indeterminate");
+    require(key(window, PhysicalKey::space) && (*grid).cell_value(row_at(1U), 1U) == BindingValue{false},
+            "indeterminate toggles to unchecked");
+
+    const DataGridView::Cell* text_only = find_cell(cells, 0U, 2U);
+    require(text_only != nullptr && !(*text_only).parts.cell_drop_down.present,
+            "display style nothing draws the choice as text alone");
+    columns[2].display_style = DataGridViewComboBoxDisplayStyle::drop_down_button;
+    columns[2].display_style_for_current_cell_only = true;
+    (*grid).set_columns(columns);
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(1U, 2U)), "a combo box cell becomes current");
+    window.perform_layout();
+    const std::vector<DataGridView::Cell> current_only = (*grid).realized_cells();
+    const DataGridView::Cell* current = find_cell(current_only, 1U, 2U);
+    const DataGridView::Cell* other = find_cell(current_only, 0U, 2U);
+    require(current != nullptr && (*current).parts.cell_drop_down.present && other != nullptr &&
+                !(*other).parts.cell_drop_down.present,
+            "for the current cell only, only the current cell shows its button");
+    require(throws<std::invalid_argument>(AddBadDisplayStyle{grid.get()}), "a display style outside the enumeration is refused");
+}
+
+struct SetMinimumRowHeight final {
+    DataGridView* grid{};
+    double height{};
+    void operator()() const { (*grid).minimum_row_height = height; }
+};
+
+// Windows Forms' column Resizable and RowTemplate.MinimumHeight.
+void column_resizable_and_minimum_row_height() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.resizable");
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns[0].resizable.set(false);
+    (*grid).set_columns(columns);
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
+    require(headers.size() >= 2U && !headers[0].parts.column_grip.present && headers[1].parts.column_grip.present,
+            "a column that is not resizable has no grip while the others keep theirs");
+    (*grid).allow_user_to_resize_columns = false;
+    columns[1].resizable.set(true);
+    (*grid).set_columns(columns);
+    window.perform_layout();
+    const std::vector<DataGridView::Column> overridden = (*grid).realized_columns();
+    require(overridden.size() >= 3U && overridden[1].parts.column_grip.present && !overridden[2].parts.column_grip.present,
+            "a resizable column overrides the grid's setting; the others inherit it");
+
+    (*grid).minimum_row_height = 30.0;
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(0U)) == 30.0, "rows shorter than the minimum are laid out at it");
+    (*grid).set_row_height_at(row_at(1U), 10.0);
+    require((*grid).row_height_at(row_at(1U)) == 30.0, "a height under the minimum is raised to it");
+    (*grid).set_row_height_at(row_at(1U), 50.0);
+    require((*grid).row_height_at(row_at(1U)) == 50.0, "taller heights stand");
+    require(throws<std::out_of_range>(SetMinimumRowHeight{grid.get(), 2.0}), "the minimum is at least 4");
+}
+
+// Records each editing_control_showing event with the editor's text then.
+struct RecordEditingControl final {
+    DataGridView* grid{};
+    std::vector<DataGridViewEditingControlShowingEvent>* seen{};
+    std::vector<std::string>* texts{};
+    void operator()(const DataGridViewEditingControlShowingEvent& event) const {
+        (*seen).push_back(event);
+        const std::shared_ptr<TextBox> editor = (*grid).editing_control();
+        (*texts).push_back(editor ? std::string((*editor).text.read()) : std::string());
+    }
+};
+
+// Windows Forms' EditingControlShowing.
+void editing_control_showing() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.editing.control");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    std::vector<DataGridViewEditingControlShowingEvent> seen;
+    std::vector<std::string> texts;
+    SubscriptionToken token =
+        (*grid).editing_control_showing().subscribe(RecordEditingControl{grid.get(), &seen, &texts});
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).begin_edit(true), "a text edit begins");
+    require(seen.size() == 1U && seen[0].kind == DataGridViewEditingControlKind::text_box &&
+                seen[0].row_id == id("bravo") && seen[0].column == 0U && texts[0] == "Bravo",
+            "a text edit shows the editor holding the cell's text");
+    (*grid).cancel_edit();
+    require((*grid).set_current_cell(cell_at(0U, 2U)) && (*grid).begin_edit(true), "a choice edit begins");
+    require(seen.size() == 2U && seen[1].kind == DataGridViewEditingControlKind::choice_list && seen[1].column == 2U,
+            "a choice edit shows its choice list");
+    (*grid).close_drop_down();
+}
+
+struct ScrollToFrozenColumn final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_first_displayed_scrolling_column(0U); }
+};
+
+// Answers row_pre_paint: the first row is handled, the second paints no
+// content, the third paints its background in a given colour.
+struct AnswerRowPrePaint final {
+    std::vector<DataGridViewRowPrePaintEvent>* seen{};
+    Color background{};
+    void operator()(DataGridViewRowPrePaintEvent& event) const {
+        (*seen).push_back(event);
+        if (event.row == row_at(0U)) event.handled = true;
+        if (event.row == row_at(1U)) event.parts.content = false;
+        if (event.row == row_at(2U)) event.background.set(background);
+    }
+};
+
+// Answers row_post_paint with one check glyph over the first row.
+struct AnswerRowPostPaint final {
+    std::vector<DataGridViewRowPostPaintEvent>* seen{};
+    void operator()(DataGridViewRowPostPaintEvent& event) const {
+        (*seen).push_back(event);
+        if (event.row != row_at(0U)) return;
+        const Rect glyph{event.bounds.x + 2.0, event.bounds.y + 2.0, 10.0, 10.0};
+        event.overlays.push_back(DataGridViewRowOverlayPart{glyph, PartRole::glyph, PartMark::check, stxlib::Optional<Color>::none()});
+    }
+};
+
+// Records the text written and the colours filled.
+class RowPaintPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color color) override { fills.push_back(color); }
+    void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view text, FontSpec, Color) override { texts.emplace_back(text); }
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::vector<Color> fills;
+    std::vector<std::string> texts;
+};
+
+bool contains_text(const std::vector<std::string>& texts, std::string_view wanted) {
+    for (const std::string& text : texts) {
+        if (text == wanted) return true;
+    }
+    return false;
+}
+
+// Windows Forms' RowPrePaint and RowPostPaint, as part hooks: the pre-paint
+// answer changes which of a row's parts paint, the post-paint answer asks
+// for overlay parts painted over the row.
+void row_paint_hooks() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.row.paint");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(1U, 0U)), "a cell becomes current");
+    window.perform_layout();
+    const Color background{30, 160, 90, 255};
+    std::vector<DataGridViewRowPrePaintEvent> pre;
+    std::vector<DataGridViewRowPostPaintEvent> post;
+    SubscriptionToken pre_token = (*grid).row_pre_paint().subscribe(AnswerRowPrePaint{&pre, background});
+    SubscriptionToken post_token = (*grid).row_post_paint().subscribe(AnswerRowPostPaint{&post});
+    RowPaintPainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(pre.size() == rows.size() && post.size() == rows.size(), "each shown row raises both hooks once");
+    require(pre[0].row == row_at(0U) && pre[0].row_id == id("alpha") && pre[1].row == row_at(1U) &&
+                pre[1].current && !pre[0].current,
+            "the hooks are raised in row order and name the current row");
+    require(pre[0].bounds.y == rows[0].parts.row_header.bounds.y &&
+                pre[0].bounds.height == rows[0].parts.row_header.bounds.height &&
+                pre[0].bounds.x <= rows[0].parts.row_header.bounds.x,
+            "a row's paint bounds cover its header and its height");
+    require(post[0].row == row_at(0U) && post[0].bounds.y == pre[0].bounds.y, "post-paint names the same rows");
+    require(!contains_text(painter.texts, "Alpha"), "a handled row paints none of its own parts");
+    require(!contains_text(painter.texts, "Bravo"), "a row without content paints no cell text");
+    require(contains_text(painter.texts, "Charlie"), "the other rows paint their content");
+    require(contains_colour(painter.fills, background), "a row's answered background is painted");
+    pre_token.disconnect();
+    post_token.disconnect();
+    RowPaintPainter plain;
+    (*grid).on_paint(plain, (*grid).client_rectangle());
+    require(contains_text(plain.texts, "Alpha") && contains_text(plain.texts, "Bravo") &&
+                !contains_colour(plain.fills, background),
+            "with no handlers every row paints as before");
+}
+
+// Windows Forms' StandardTab: Tab leaves the grid and Ctrl+Tab moves
+// between cells; off, the other way round.
+void standard_tab() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.standard.tab");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "a cell becomes current");
+    require(!(*grid).standard_tab.read(), "Tab moves between cells by default");
+    static_cast<void>(key(window, PhysicalKey::tab, Modifier::control));
+    require((*grid).current_cell() == cell_at(0U, 0U), "Ctrl+Tab leaves the cells alone by default");
+    (*grid).standard_tab = true;
+    static_cast<void>(key(window, PhysicalKey::tab));
+    require((*grid).current_cell() == cell_at(0U, 0U), "with standard_tab, Tab does not move between cells");
+    require(key(window, PhysicalKey::tab, Modifier::control) && (*grid).current_cell() == cell_at(0U, 1U),
+            "with standard_tab, Ctrl+Tab moves to the next cell");
+    require(key(window, PhysicalKey::tab, Modifier::control | Modifier::shift) &&
+                (*grid).current_cell() == cell_at(0U, 0U),
+            "with standard_tab, Ctrl+Shift+Tab moves to the previous cell");
+    require((*grid).begin_edit(true), "a text edit begins");
+    static_cast<void>(key(window, PhysicalKey::tab));
+    require(!(*grid).is_current_cell_in_edit_mode() && (*grid).current_cell() == cell_at(0U, 0U),
+            "with standard_tab, Tab commits the edit and does not move between cells");
+}
+
+// Windows Forms' ColumnHeadersHeightSizeMode and AutoResizeColumnHeadersHeight.
+void column_headers_height_size_mode() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.header.height");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    require((*grid).column_headers_height_size_mode.read() == DataGridViewColumnHeadersHeightSizeMode::enable_resizing,
+            "the user resizes the header band by default");
+    const Rect band = (*grid).parts().column_header_band.bounds;
+    const Point edge{(*grid).absolute_bounds().x + band.x + 30.0,
+                     (*grid).absolute_bounds().y + band.y + band.height - 1.0};
+    const DataGridViewHitTestInfo on_edge = (*grid).hit_test_at(Point{band.x + 30.0, band.y + band.height - 1.0});
+    require(on_edge.type == DataGridViewHitTestType::column_headers_divider, "the band's bottom edge is a divider");
+    require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, edge}), "the edge takes the press");
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, {edge.x, edge.y + 17.0}}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {edge.x, edge.y + 17.0}}));
+    window.perform_layout();
+    require((*grid).column_headers_height.read() == 40.0, "dragging the edge sets the header height");
+    require((*grid).current_cell().absent() || current_row_of(*grid) == row_at(0U), "a header resize moves no row");
+
+    (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::disable_resizing;
+    window.perform_layout();
+    const Rect fixed = (*grid).parts().column_header_band.bounds;
+    const DataGridViewHitTestInfo off_edge = (*grid).hit_test_at(Point{fixed.x + 30.0, fixed.y + fixed.height - 1.0});
+    require(off_edge.type == DataGridViewHitTestType::column_header, "without resizing the edge is header");
+
+    const double preferred = (*grid).preferred_column_headers_height();
+    require(preferred > 4.0 && preferred < 40.0, "the headers want a height of one text line");
+    (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::auto_size;
+    window.perform_layout();
+    require((*grid).column_headers_height.read() == preferred, "auto_size gives the band the preferred height");
+    // One layout pass settles: arrange's write restarts no layout, and the
+    // band is already placed at the new height.
+    const Dirty settled = (*grid).dirty();
+    require(!has_dirty(settled, Dirty::measure) && !has_dirty(settled, Dirty::arrange),
+            "the auto_size write leaves no layout pending after one pass");
+    require((*grid).parts().column_header_band.bounds.height == preferred,
+            "the band is placed at the auto_size height in the same pass");
+    window.perform_layout();
+    require((*grid).column_headers_height.read() == preferred, "a second pass keeps the height");
+    (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::disable_resizing;
+    (*grid).column_headers_height = 60.0;
+    (*grid).auto_resize_column_headers_height();
+    require((*grid).column_headers_height.read() == preferred, "auto_resize_column_headers_height fits the band once");
+}
+
+// Records rows_added or rows_removed as "+position:count" or "-position:count".
+struct RecordRowsChange final {
+    std::vector<std::string>* seen{};
+    char sign{};
+    void operator()(const DataGridViewRowsChangedEvent& event) const {
+        std::string entry(1U, sign);
+        entry += std::to_string(event.position.value);
+        entry += ":";
+        entry += std::to_string(event.count);
+        (*seen).push_back(std::move(entry));
+    }
+};
+
+// Records column_added or column_removed as "+index:name" or "-index:name".
+struct RecordColumnChange final {
+    std::vector<std::string>* seen{};
+    char sign{};
+    void operator()(const DataGridViewColumnChangedEvent& event) const {
+        std::string entry(1U, sign);
+        entry += std::to_string(event.column);
+        entry += ":";
+        entry += event.name;
+        (*seen).push_back(std::move(entry));
+    }
+};
+
+// Windows Forms' RowsAdded, RowsRemoved, ColumnAdded and ColumnRemoved.
+void rows_and_columns_events() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.change.events");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    std::vector<std::string> rows_seen;
+    std::vector<std::string> columns_seen;
+    SubscriptionToken added_token = (*grid).rows_added().subscribe(RecordRowsChange{&rows_seen, '+'});
+    SubscriptionToken removed_token = (*grid).rows_removed().subscribe(RecordRowsChange{&rows_seen, '-'});
+    SubscriptionToken column_added_token = (*grid).column_added().subscribe(RecordColumnChange{&columns_seen, '+'});
+    SubscriptionToken column_removed_token =
+        (*grid).column_removed().subscribe(RecordColumnChange{&columns_seen, '-'});
+
+    (*grid).rows.append({.stable_id = {"delta"}, .cells = {BindingValue{std::string("Delta")}}});
+    require(rows_seen == std::vector<std::string>{"+3:1"}, "an appended row raises rows_added at its position");
+    rows_seen.clear();
+    (*grid).rows.erase(1U, 1U);
+    require(rows_seen == std::vector<std::string>{"-1:1"}, "an erased row raises rows_removed at its former position");
+    rows_seen.clear();
+    (*grid).set_row_count(5U);
+    require(rows_seen == std::vector<std::string>{"+3:2"}, "growing the row count adds the rows at the end");
+    rows_seen.clear();
+    (*grid).allow_user_to_add_rows = true;
+    window.perform_layout();
+    require(rows_seen.empty(), "the new row's appearing raises no rows_added");
+    require(window.request_focus(grid), "the grid takes focus");
+    require((*grid).set_current_cell(cell_at(5U, 0U)), "the new row becomes current");
+    require(window.dispatch_text({"Echo"}) && key(window, PhysicalKey::tab), "typing into the new row and Tab");
+    require(rows_seen == std::vector<std::string>{"+5:1"}, "a row added through the new row raises rows_added");
+    rows_seen.clear();
+    (*grid).allow_user_to_add_rows = false;
+    const std::size_t before = (*grid).row_count();
+    (*grid).clear_rows();
+    require(rows_seen == std::vector<std::string>{"-0:" + std::to_string(before)},
+            "clear_rows raises rows_removed for every row");
+    rows_seen.clear();
+
+    (*grid).add_column({.name = "extra", .header_text = "Extra"});
+    require(columns_seen == std::vector<std::string>{"+4:extra"}, "add_column raises column_added");
+    columns_seen.clear();
+    (*grid).insert_column(0U, {.name = "first", .header_text = "First"});
+    require(columns_seen == std::vector<std::string>{"+0:first"}, "insert_column raises column_added at its index");
+    columns_seen.clear();
+    (*grid).remove_column_at(1U);
+    require(columns_seen == std::vector<std::string>{"-1:name"}, "remove_column_at raises column_removed");
+    columns_seen.clear();
+    (*grid).set_columns({{.name = "only", .header_text = "Only"}});
+    const std::vector<std::string> replaced{"-4:extra", "-3:tune", "-2:mode", "-1:active", "-0:first", "+0:only"};
+    require(columns_seen == replaced, "set_columns removes the former columns last first, then adds the new ones");
+    require(rows_seen.empty(), "column changes raise no row events");
+    added_token.disconnect();
+    removed_token.disconnect();
+    column_added_token.disconnect();
+    column_removed_token.disconnect();
+}
+
+// Windows Forms' AutoGenerateColumns.
+void auto_generated_columns() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.generated"));
+    (*grid).set_columns({{.name = "name", .header_text = "Name", .data_property_name = "Name"}});
+    (*grid).allow_user_to_add_rows = false;
+    Window window(grid, {360.0, 160.0});
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
+    const test_rows::NamedRow first{"person.1", {{"Name", std::string("Ada")}, {"City", std::string("London")}}};
+    const test_rows::NamedRow second{"person.2", {{"Name", std::string("Grace")}, {"City", std::string("Arlington")}}};
+    test_rows::fill_source(*source, {first, second});
+    (*grid).data_source = source;
+    require((*grid).columns().size() == 1U, "by default binding adds no columns");
+    (*grid).data_source = nullptr;
+    (*grid).auto_generate_columns = true;
+    (*grid).data_source = source;
+    window.perform_layout();
+    // The "name" column's "Name" names the field however it is spelled; the
+    // generated column keeps the source's spelling ("City").
+    require((*grid).columns().size() == 2U && (*grid).columns()[1].name == "city" &&
+                (*grid).columns()[1].header_text == "City" && (*grid).columns()[1].data_property_name == "City",
+            "binding adds a column for the field no column names");
+    require((*grid).cell_text(row_at(1U), 1U) == "Arlington", "the generated column shows its field");
+    (*grid).data_source = nullptr;
+    (*grid).data_source = source;
+    require((*grid).columns().size() == 2U, "a field a column already names adds none");
+}
+
+// Windows Forms' FirstDisplayedScrollingColumnIndex and
+// FirstDisplayedScrollingColumnHiddenWidth.
+void first_displayed_scrolling_column() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.first.column");
+    Window window(grid, {200.0, 160.0});
+    window.perform_layout();
+    require((*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(0U) &&
+                (*grid).first_displayed_scrolling_column_hidden_width() == 0.0,
+            "unscrolled, the first column is the first shown");
+    (*grid).set_first_displayed_scrolling_column(1U);
+    window.perform_layout();
+    require((*grid).horizontal_scroll_offset() == 100.0 &&
+                (*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(1U),
+            "a column can be scrolled to the start");
+    (*grid).set_horizontal_scroll_offset(110.0);
+    window.perform_layout();
+    require((*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(1U) &&
+                (*grid).first_displayed_scrolling_column_hidden_width() == 10.0,
+            "a column scrolled in part is first, with its hidden width");
+    (*grid).set_column_frozen(0U, true);
+    (*grid).set_first_displayed_scrolling_column(2U);
+    window.perform_layout();
+    require((*grid).horizontal_scroll_offset() == 50.0 &&
+                (*grid).first_displayed_scrolling_column() == stxlib::Optional<std::size_t>::of(2U),
+            "beside frozen columns the offset counts from their end");
+    require(throws<std::logic_error>(ScrollToFrozenColumn{grid.get()}), "a frozen column is not a scrolling column");
+}
+
+// A row_enter handler that erases the rows before the one entered, once,
+// moving that row to the top while the grid still holds its old position.
+struct EraseRowsBefore final {
+    DataGridView* grid{};
+    bool* erased{};
+    void operator()(const DataGridViewRowEvent&) const {
+        if (*erased || (*grid).row_count() < 3U) return;
+        *erased = true;
+        (*grid).rows.erase(0U, 2U);
+    }
+};
+
+// A-gf-controls-02-F6: a row header press, a row select and a cell press
+// whose handlers move or remove rows act on the row's present position, never
+// on the one taken before the handlers ran (past the rows here).
+void handlers_move_the_pressed_row() {
+    {
+        std::shared_ptr<DataGridView> grid = make_grid("grid.moved.header");
+        (*grid).selection_mode = DataGridViewSelectionMode::cell_select;
+        Window window(grid, {360.0, 160.0});
+        window.perform_layout();
+        bool erased = false;
+        SubscriptionToken token = (*grid).row_enter().subscribe(EraseRowsBefore{grid.get(), &erased});
+        require((*grid).on_semantic_child_action("grid.moved.header.row-header.charlie", SemanticAction::press, {}) &&
+                    erased && (*grid).row_count() == 1U && (*grid).current_row_id() == id("charlie") &&
+                    (*grid).is_cell_selected(row_at(0U), 0U),
+                "a row header press selects its row at the position the handlers left it");
+    }
+    {
+        std::shared_ptr<DataGridView> grid = make_grid("grid.moved.row");
+        Window window(grid, {360.0, 160.0});
+        window.perform_layout();
+        bool erased = false;
+        SubscriptionToken token = (*grid).row_enter().subscribe(EraseRowsBefore{grid.get(), &erased});
+        require((*grid).on_semantic_child_action("charlie", SemanticAction::select, {}) && erased &&
+                    (*grid).row_count() == 1U && (*grid).is_row_selected(row_at(0U)),
+                "a row select selects the row where the handlers left it");
+    }
+    {
+        std::shared_ptr<DataGridView> grid = make_grid("grid.moved.cell");
+        Window window(grid, {360.0, 160.0});
+        window.perform_layout();
+        bool erased = false;
+        SubscriptionToken token = (*grid).row_enter().subscribe(EraseRowsBefore{grid.get(), &erased});
+        const bool pressed = (*grid).on_semantic_child_action("charlie.active", SemanticAction::press, {});
+        require(erased && (*grid).row_count() == 1U && (*grid).current_row_id() == id("charlie") &&
+                    (!pressed || (*grid).cell_value(row_at(0U), 1U) == BindingValue{true}),
+                "a cell press acts on the cell where the handlers left it");
+    }
+}
+
+// Removes one named column of the grid the first time the current cell
+// changes, as a handler reacting to the row reset of a column change might.
+struct RemoveColumnOnce final {
+    DataGridView* grid{};
+    std::string name;
+    bool* done{};
+    void operator()(stxlib::Optional<DataGridViewCellAddress>) const {
+        if (*done) return;
+        *done = true;
+        const stxlib::Optional<std::size_t> column = (*grid).column_index(name);
+        if (column.present()) (*grid).remove_column_at(*column.value());
+    }
+};
+
+// A handler of the row reset that a column change raises removes a column
+// (A-gf-controls-02-F7): the removal finds its column again by name, and
+// an insertion the change made invalid is refused with the columns as the
+// handler left them, never erased or inserted past the end.
+void column_change_under_reset_handlers() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.column.reset");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "a current cell to reset");
+    bool removed = false;
+    SubscriptionToken token =
+        (*grid).current_cell_changed().subscribe(RemoveColumnOnce{grid.get(), "name", &removed});
+    (*grid).remove_column_at(3U);
+    require(removed && (*grid).columns().size() == 2U && (*grid).columns()[0].name == "active" &&
+                (*grid).columns()[1].name == "mode",
+            "the handler's removal and the asked one both happen, the asked one by name");
+    token.disconnect();
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "a current cell to reset again");
+    bool second = false;
+    SubscriptionToken again =
+        (*grid).current_cell_changed().subscribe(RemoveColumnOnce{grid.get(), "active", &second});
+    bool refused = false;
+    try {
+        (*grid).insert_column(2U, DataGridViewColumn{.name = "extra", .header_text = "Extra", .width = 40.0});
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(second && refused && (*grid).columns().size() == 1U && (*grid).columns()[0].name == "mode",
+            "an insertion past the columns the handler left is refused, and nothing is inserted");
+}
+
+// Removes one named column the first time a cell is formatted, breaking
+// the rule that formatting handlers leave the grid alone.
+struct RemoveColumnWhileFormatting final {
+    DataGridView* grid{};
+    std::string name;
+    bool* done{};
+    void operator()(DataGridViewCellFormattingEvent&) const {
+        if (*done) return;
+        *done = true;
+        const stxlib::Optional<std::size_t> column = (*grid).column_index(name);
+        if (column.present()) (*grid).remove_column_at(*column.value());
+    }
+};
+
+// A cell_formatting handler that changes the grid while its semantic tree
+// is built (A-gf-controls-02-F10): the walk stops at the change, as paint
+// does, and the next pass publishes the changed grid.
+void semantics_stop_when_a_handler_changes_the_grid() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.semantic.change");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    bool removed = false;
+    const SubscriptionToken token =
+        (*grid).cell_formatting().subscribe(RemoveColumnWhileFormatting{grid.get(), "mode", &removed});
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    require(removed && (*grid).columns().size() == 3U && (*grid).column_index("mode").absent(),
+            "the handler removed a column during the walk");
+    require(!snapshot.roots.empty(), "the snapshot is published");
+}
+
 int main() {
     columns_and_rows();
+    column_change_under_reset_handlers();
+    semantics_stop_when_a_handler_changes_the_grid();
     layout_and_parts();
     selection_and_navigation();
     text_editing();
@@ -3456,6 +4541,8 @@ int main() {
     cell_styles();
     formatting_and_parsing();
     borders_and_owner_drawing();
+    per_column_owner_drawing();
+    sparkline_column();
     sort_modes();
     clipboard();
     authored_colours();
@@ -3474,6 +4561,20 @@ int main() {
     error_glyph_tool_tips();
     million_row_heights();
     bound_identity_follows_list_changes();
+    clicks_tool_tips_and_hit_tests();
+    frozen_columns_and_rows();
+    column_selection_modes();
+    cell_mouse_events();
+    three_state_and_display_style();
+    column_resizable_and_minimum_row_height();
+    editing_control_showing();
+    auto_generated_columns();
+    first_displayed_scrolling_column();
+    row_paint_hooks();
+    standard_tab();
+    column_headers_height_size_mode();
+    rows_and_columns_events();
+    handlers_move_the_pressed_row();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

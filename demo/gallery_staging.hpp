@@ -44,7 +44,7 @@ namespace gui_forms::gallery {
     if (!program.scheme.empty()) {
         // parse_program_options admits only "light" and "dark".
         PresentationOverrides overrides{};
-        overrides.colour_scheme = program.scheme == "dark" ? ColourScheme::dark : ColourScheme::light;
+        overrides.colour_scheme.set(program.scheme == "dark" ? ColourScheme::dark : ColourScheme::light);
         window.set_presentation_overrides(overrides);
     }
     return true;

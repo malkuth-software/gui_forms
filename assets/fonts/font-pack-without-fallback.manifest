@@ -1,0 +1,12 @@
+# The embedded font pack's groups when the build leaves out the fallback faces
+# (GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF): font-pack.manifest without its
+# japanese, korean, minimal and emoji groups. Keep the two files' common groups identical.
+group interface eager
+Portsmouth*.ttf
+Carlito-*.ttf
+group monospace lazy
+Cousine-*.ttf
+group families lazy
+Selawik-*.ttf
+Arimo-*.ttf
+Tinos-*.ttf

@@ -1,0 +1,11 @@
+#pragma once
+
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::string moved_row(std::string_view id);
+[[nodiscard]] std::string owned_key(const std::string& key);
+
+} // namespace gui_forms

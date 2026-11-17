@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -270,7 +271,7 @@ struct DeclaredLoop final {
 struct DeclaredAnimations final {
     std::vector<DeclaredMove> moves{};
     std::vector<DeclaredLoop> loops{};
-    std::optional<AmbientEffect> ambient{};
+    stxlib::Optional<AmbientEffect> ambient{};
 };
 
 // The most `@keyframes` rules one sheet may have (a derived limit, R2-14).

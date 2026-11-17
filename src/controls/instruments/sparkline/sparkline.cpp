@@ -6,6 +6,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,6 +14,7 @@
 #include <cstdio>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -30,13 +32,13 @@ constexpr std::uint32_t smallest_capacity = 2U;
 constexpr std::uint32_t largest_capacity = 100000U;
 
 constexpr std::array<PartField<Sparkline::Parts>, 4> sparkline_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::plot},
-    {.declaration = {.name = "series", .role = PartRole::series, .composed_from = {}},
+    {.declaration = {.name = "series", .role = PartRole::series, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::series},
-    {.declaration = {.name = "marker", .role = PartRole::marker, .composed_from = {}},
+    {.declaration = {.name = "marker", .role = PartRole::marker, .composed_from = {}, .states = {}},
      .member = &Sparkline::Parts::marker},
 }};
 
@@ -54,6 +56,7 @@ constexpr ControlAnatomy sparkline_anatomy{
     .parts = sparkline_parts,
     .states = sparkline_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 [[nodiscard]] bool has_infinity(std::span<const double> values) noexcept {
@@ -63,13 +66,35 @@ constexpr ControlAnatomy sparkline_anatomy{
     return false;
 }
 
-// The values with x placed so that the newest lies at capacity - 1.
-[[nodiscard]] plots::ImplicitXSamples<double> placed_samples(const plots::SeriesColumn<double>& column) noexcept {
+// The values with x placed so that the newest lies at slots - 1.
+[[nodiscard]] plots::ImplicitXSamples<double> placed_samples(plots::SeriesSpans<double> values,
+                                                            std::size_t slots) noexcept {
     plots::ImplicitXSamples<double> samples{};
-    samples.ys = column.read();
-    samples.x_start = static_cast<double>(column.capacity() - column.length());
+    samples.ys = values;
+    samples.x_start = static_cast<double>(slots - values.size());
     samples.x_step = 1.0;
     return samples;
+}
+
+// The values' finite extent (invalid when none is finite).
+[[nodiscard]] plots::PlotRange finite_extent(plots::SeriesSpans<double> values) noexcept {
+    plots::PlotRange range{std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()};
+    for (std::size_t index = 0U; index < values.size(); ++index) {
+        const double value = values.at(plots::ElementIndex{index});
+        if (!std::isfinite(value)) continue;
+        range.minimum = std::min(range.minimum, value);
+        range.maximum = std::max(range.maximum, value);
+    }
+    return range;
+}
+
+// The newest finite value, if any.
+[[nodiscard]] stxlib::Optional<double> newest_finite(plots::SeriesSpans<double> values) noexcept {
+    for (std::size_t remaining = values.size(); remaining > 0U; --remaining) {
+        const double value = values.at(plots::ElementIndex{remaining - 1U});
+        if (std::isfinite(value)) return stxlib::Optional<double>::of(value);
+    }
+    return stxlib::Optional<double>::none();
 }
 
 // The source's y values held at `baseline`: the band's lower edge.
@@ -83,6 +108,55 @@ struct SparklineBaseline final {
 };
 
 } // namespace
+
+void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpans<double> values, std::size_t slots, double scale,
+                     const SparklineStyle& style, SparklineWorkspace& workspace) {
+    const plots::PlotRange range = finite_extent(values);
+    const bool drawable_slots = slots >= 2U && slots >= values.size();
+    if (!drawable_slots || !(range.minimum <= range.maximum) || plot.width <= 0.0 || plot.height <= 0.0) return;
+
+    // The axes: x over the slots, y over the values (a flat line sits in
+    // the middle).
+    plots::Axis x_axis{};
+    x_axis.range = plots::PlotRange{0.0, static_cast<double>(slots - 1U)};
+    plots::Axis y_axis{};
+    y_axis.side = plots::AxisSide::left;
+    y_axis.range = range.minimum < range.maximum ? range : plots::PlotRange{range.minimum - 1.0, range.maximum + 1.0};
+    const plots::PlotTransformResult made = plots::PlotTransform::make(x_axis, y_axis, plot, scale);
+    if (made.check != plots::PlotTransformCheck::valid) return;
+    const std::size_t columns = made.transform.column_count() + 2U;
+    if (columns > workspace.reserved_columns) {
+        workspace.reserved_columns = columns;
+        workspace.marks.reserve(workspace.reserved_columns, 0U);
+    }
+    const plots::ImplicitXSamples<double> samples = placed_samples(values, slots);
+    painter.save();
+    painter.clip_rect(plot);
+    if (style.fill) {
+        SparklineBaseline lower{};
+        lower.source = &samples;
+        lower.baseline = y_axis.range.minimum;
+        Color band = style.line;
+        band.alpha = style.band_alpha;
+        static_cast<void>(workspace.marks.paint_shaded(painter, samples, lower, made.transform, band));
+    }
+    StrokeStyle stroke{};
+    stroke.color = style.line;
+    stroke.width = style.line_width;
+    stroke.join = StrokeJoin::round;
+    static_cast<void>(workspace.marks.paint_line(painter, samples, plots::XOrder::monotone, made.transform, stroke,
+                                                 plots::LineDecimation::envelope, nullptr));
+    const stxlib::Optional<double> newest = newest_finite(values);
+    if (newest.present() && style.newest_marker_size > 0.0) {
+        const std::array<Point, 1> centre{made.transform.to_device(x_axis.range.maximum, *newest.value())};
+        MarkerStyle marker{};
+        marker.size = style.newest_marker_size;
+        marker.fill = style.line;
+        marker.edge = style.line;
+        painter.draw_markers(centre, marker);
+    }
+    painter.restore();
+}
 
 Sparkline::Sparkline(StableId stable_id)
     : Control(std::move(stable_id)),
@@ -111,25 +185,14 @@ void Sparkline::clear_values() {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<double> Sparkline::latest() const noexcept {
-    const plots::SeriesSpans<double> live = values_.read();
-    for (std::size_t remaining = live.size(); remaining > 0U; --remaining) {
-        const double value = live.at(plots::ElementIndex{remaining - 1U});
-        if (std::isfinite(value)) return value;
-    }
-    return std::nullopt;
+stxlib::Optional<double> Sparkline::latest() const noexcept {
+    const stxlib::Optional<double> result = newest_finite(values_.read());
+    return result;
 }
 
 plots::PlotRange Sparkline::extent() const noexcept {
-    const plots::SeriesSpans<double> live = values_.read();
-    plots::PlotRange range{std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity()};
-    for (std::size_t index = 0U; index < live.size(); ++index) {
-        const double value = live.at(plots::ElementIndex{index});
-        if (!std::isfinite(value)) continue;
-        range.minimum = std::min(range.minimum, value);
-        range.maximum = std::max(range.maximum, value);
-    }
-    return range;
+    const plots::PlotRange result = finite_extent(values_.read());
+    return result;
 }
 
 void Sparkline::resize_ring(std::size_t capacity) {
@@ -169,54 +232,15 @@ void Sparkline::on_paint(Painter& painter, Rect) {
     part.role = PartRole::plot;
     part.bounds = plot;
     paint_part(painter, *this, part);
-    const plots::PlotRange range = extent();
-    if (values_.length() == 0U || !(range.minimum <= range.maximum) || plot.width <= 0.0 || plot.height <= 0.0) return;
-
-    // The axes: x over the ring's slots, y over the values (a flat line
-    // sits in the middle).
-    plots::Axis x_axis{};
-    x_axis.range = plots::PlotRange{0.0, static_cast<double>(values_.capacity() - 1U)};
-    plots::Axis y_axis{};
-    y_axis.side = plots::AxisSide::left;
-    y_axis.range = range.minimum < range.maximum ? range : plots::PlotRange{range.minimum - 1.0, range.maximum + 1.0};
     const SurfaceRoot* const root = attached_surface_root();
     const double scale = root != nullptr ? (*root).scale() : 1.0;
-    const plots::PlotTransformResult made = plots::PlotTransform::make(x_axis, y_axis, plot, scale);
-    if (made.check != plots::PlotTransformCheck::valid) return;
-    const std::size_t columns = made.transform.column_count() + 2U;
-    if (columns > reserved_columns_) {
-        reserved_columns_ = columns;
-        marks_.reserve(reserved_columns_, 0U);
-    }
-    Color color = effective_theme().accent(line_accent);
-    color.alpha = 255U;
-    const plots::ImplicitXSamples<double> samples = placed_samples(values_);
-    painter.save();
-    painter.clip_rect(plot);
-    if (fill.read()) {
-        SparklineBaseline lower{};
-        lower.source = &samples;
-        lower.baseline = y_axis.range.minimum;
-        Color band = color;
-        band.alpha = band_alpha;
-        static_cast<void>(marks_.paint_shaded(painter, samples, lower, made.transform, band));
-    }
-    StrokeStyle stroke{};
-    stroke.color = color;
-    stroke.width = 1.0;
-    stroke.join = StrokeJoin::round;
-    static_cast<void>(marks_.paint_line(painter, samples, plots::XOrder::monotone, made.transform, stroke,
-                                        plots::LineDecimation::envelope, nullptr));
-    const std::optional<double> newest = latest();
-    if (newest.has_value()) {
-        const std::array<Point, 1> centre{made.transform.to_device(x_axis.range.maximum, *newest)};
-        MarkerStyle marker{};
-        marker.size = newest_marker_size;
-        marker.fill = color;
-        marker.edge = color;
-        painter.draw_markers(centre, marker);
-    }
-    painter.restore();
+    SparklineStyle style{};
+    style.line = effective_theme().accent(line_accent);
+    style.line.alpha = 255U;
+    style.fill = fill.read();
+    style.band_alpha = band_alpha;
+    style.newest_marker_size = newest_marker_size;
+    paint_sparkline(painter, plot, values_.read(), values_.capacity(), scale, style, workspace_);
 }
 
 bool Sparkline::hit_test_local(Point) const {
@@ -228,15 +252,19 @@ SemanticDescriptor Sparkline::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::figure;
     descriptor.name = accessible_name.read();
-    const std::optional<double> newest = latest();
+    const stxlib::Optional<double> newest = latest();
     const plots::PlotRange range = extent();
-    std::array<char, 96> text{};
-    if (newest.has_value()) {
-        const int written = std::snprintf(text.data(), text.size(), "%.6g", *newest);
-        if (written > 0) descriptor.value = std::string(text.data());
-        const int described = std::snprintf(text.data(), text.size(), "Trend of %zu values from %.6g to %.6g",
-                                            values_.length(), range.minimum, range.maximum);
-        if (described > 0) descriptor.description = std::string(text.data());
+    // Written in the C locale's form, as the gauges and Dial publish theirs
+    // (A-gf-controls-05-F5).
+    if (newest.present()) {
+        std::string value_text;
+        number_text::append_number_text(value_text, *newest.value(), std::chars_format::general, 6);
+        descriptor.value = value_text;
+        std::string described = "Trend of " + std::to_string(values_.length()) + " values from ";
+        number_text::append_number_text(described, range.minimum, std::chars_format::general, 6);
+        described += " to ";
+        number_text::append_number_text(described, range.maximum, std::chars_format::general, 6);
+        descriptor.description = described;
     }
     if (!accessible_description.read().empty()) descriptor.description = accessible_description.read();
     descriptor.exposed = true;
@@ -261,7 +289,7 @@ void Sparkline::publish_part_geometry(std::span<PartGeometry> geometry) const {
     record.series.present = values_.length() != 0U;
     // The newest value's dot sits on the plot's right edge.
     record.marker.bounds = Rect{plot.x + plot.width - newest_marker_size / 2.0, plot.y, newest_marker_size, plot.height};
-    record.marker.present = latest().has_value();
+    record.marker.present = latest().present();
     write_parts(anatomy(), sparkline_part_fields, record, geometry);
 }
 

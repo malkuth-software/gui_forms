@@ -122,6 +122,8 @@ struct PreparedClip final {
     bool outer_rounded{};
     FixedRect outer_rounded_rect{};
     std::int64_t outer_radius{};
+    bool masked{};
+    TextClipMask mask{};
 };
 
 // A rounded clip's radius in fixed point, held to half its shorter side.
@@ -147,18 +149,80 @@ PreparedClip prepare_clip(const TextCompositeClip clip) noexcept {
         result.outer_rounded_rect = fixed_rect(clip.outer_rounded_rect);
         result.outer_radius = prepared_radius(result.outer_rounded_rect, clip.outer_radius);
     }
+    result.masked = clip.masked;
+    if (clip.masked) result.mask = clip.mask;
     return result;
 }
 
+// The mask's entry at device pixel (x, y), held to a whole unit; 0 outside it.
+std::int64_t mask_coverage(const TextClipMask& mask, const std::int64_t x, const std::int64_t y) noexcept {
+    const std::int64_t column = x - mask.left;
+    const std::int64_t row = y - mask.top;
+    if (column < 0 || row < 0 || column >= static_cast<std::int64_t>(mask.width) ||
+        row >= static_cast<std::int64_t>(mask.height)) {
+        return 0;
+    }
+    const std::size_t index = static_cast<std::size_t>(row) * mask.width + static_cast<std::size_t>(column);
+    const std::int64_t entry = mask.coverage[index];
+    return std::min(entry, unit);
+}
+
+// The rectangle's, rounded clips' and mask's coverages of pixel (x, y),
+// joined in that order, each product rounded once.
 std::int64_t prepared_clip_coverage(const PreparedClip& clip, const std::int64_t x, const std::int64_t y) noexcept {
-    const std::int64_t rectangular = area_coverage(clip.rect, x, y);
-    if (!clip.rounded || rectangular == 0) return rectangular;
-    const std::int64_t rounded = rounded_coverage(clip.rounded_rect, clip.radius, x, y);
-    const std::int64_t combined = (rectangular * rounded + half_unit) / unit;
-    if (!clip.outer_rounded || combined == 0) return combined;
-    const std::int64_t outer = rounded_coverage(clip.outer_rounded_rect, clip.outer_radius, x, y);
-    const std::int64_t nested = (combined * outer + half_unit) / unit;
-    return nested;
+    std::int64_t combined = area_coverage(clip.rect, x, y);
+    if (combined != 0 && clip.rounded) {
+        const std::int64_t rounded = rounded_coverage(clip.rounded_rect, clip.radius, x, y);
+        combined = (combined * rounded + half_unit) / unit;
+        if (combined != 0 && clip.outer_rounded) {
+            const std::int64_t outer = rounded_coverage(clip.outer_rounded_rect, clip.outer_radius, x, y);
+            combined = (combined * outer + half_unit) / unit;
+        }
+    }
+    if (combined != 0 && clip.masked) {
+        const std::int64_t masked = mask_coverage(clip.mask, x, y);
+        combined = (combined * masked + half_unit) / unit;
+    }
+    return combined;
+}
+
+// The fixed-point rectangle no pixel outside of has clip coverage: the clip
+// rectangle within every rounded rectangle and the mask's pixels.
+FixedRect clip_limit(const PreparedClip& prepared) noexcept {
+    FixedRect limit = prepared.rect;
+    if (prepared.rounded) {
+        limit.left = std::max(limit.left, prepared.rounded_rect.left);
+        limit.top = std::max(limit.top, prepared.rounded_rect.top);
+        limit.right = std::min(limit.right, prepared.rounded_rect.right);
+        limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
+    }
+    if (prepared.outer_rounded) {
+        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
+        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
+        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
+        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
+    }
+    if (prepared.masked) {
+        const std::int64_t mask_left = prepared.mask.left * unit;
+        const std::int64_t mask_top = prepared.mask.top * unit;
+        limit.left = std::max(limit.left, mask_left);
+        limit.top = std::max(limit.top, mask_top);
+        limit.right = std::min(limit.right, mask_left + static_cast<std::int64_t>(prepared.mask.width) * unit);
+        limit.bottom = std::min(limit.bottom, mask_top + static_cast<std::int64_t>(prepared.mask.height) * unit);
+    }
+    return limit;
+}
+
+// Whether a clip's mask fits its entries and the coordinate limit; true for
+// an unmasked clip.
+bool valid_mask(const TextCompositeClip& clip) noexcept {
+    if (!clip.masked) return true;
+    const TextClipMask& mask = clip.mask;
+    const std::uint64_t area = static_cast<std::uint64_t>(mask.width) * static_cast<std::uint64_t>(mask.height);
+    const std::int64_t limit = static_cast<std::int64_t>(coordinate_limit);
+    const bool valid = area <= mask.coverage.size() && std::abs(mask.left) <= limit && std::abs(mask.top) <= limit &&
+                       mask.width <= static_cast<std::uint32_t>(limit) && mask.height <= static_cast<std::uint32_t>(limit);
+    return valid;
 }
 
 std::int64_t floor_pixel(const std::int64_t fixed) noexcept {
@@ -262,6 +326,21 @@ InteriorSpan interior_span(const ClipInterior& interior, const std::int64_t y) n
     span.from = whole_row ? interior.inner_left : interior.band_left;
     span.to = whole_row ? interior.inner_right : interior.band_right;
     return span;
+}
+
+// The first run of columns within [from, to) of row y whose mask entries
+// are a whole unit, which a masked clip's interior pixels need besides the
+// rectangle and corners (clip_interior); an empty run at `to` when there is
+// none.
+InteriorSpan full_mask_run(const TextClipMask& mask, const std::int64_t y, const std::int64_t from,
+                           const std::int64_t to) noexcept {
+    InteriorSpan run{to, to};
+    std::int64_t x = from;
+    while (x < to && mask_coverage(mask, x, y) != unit) ++x;
+    run.from = x;
+    while (x < to && mask_coverage(mask, x, y) == unit) ++x;
+    run.to = x;
+    return run;
 }
 
 // -- the interior's block kernels ---------------------------------------------------
@@ -491,12 +570,31 @@ void composite_text_interior_span(const TextCoverage& coverage, const TextCompos
     text_row(run, destination, pixels, colour_alpha, target.opaque, scratch);
 }
 
+// The floor of the square root of `value`, exactly, by bit-wise
+// restoration: no floating point, the same on every host.
+std::uint64_t integer_square_root(std::uint64_t value) noexcept {
+    std::uint64_t root = 0U;
+    std::uint64_t bit = std::uint64_t{1} << 62U;
+    while (bit > value) bit >>= 2U;
+    while (bit != 0U) {
+        if (value >= root + bit) {
+            value -= root + bit;
+            root = (root >> 1U) + bit;
+        } else {
+            root >>= 1U;
+        }
+        bit >>= 2U;
+    }
+    return root;
+}
+
 } // namespace
 
 std::uint32_t text_clip_coverage(const TextCompositeClip clip, const std::int64_t x, const std::int64_t y) noexcept {
     if (!valid_rect(clip.rect) || (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius))) ||
         (clip.rounded && clip.outer_rounded &&
-         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius)))) {
+         (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius))) ||
+        !valid_mask(clip)) {
         return 0U;
     }
     const PreparedClip prepared = prepare_clip(clip);
@@ -512,6 +610,7 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
         (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius) || clip.radius < 0.0)) ||
         (clip.rounded && clip.outer_rounded &&
          (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius) || clip.outer_radius < 0.0)) ||
+        !valid_mask(clip) ||
         std::abs(coverage.left) > static_cast<std::int64_t>(coordinate_limit) ||
         std::abs(coverage.top) > static_cast<std::int64_t>(coordinate_limit)) {
         return TextCompositeStatus::invalid_geometry;
@@ -520,19 +619,7 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
     if (coverage.width == 0 || coverage.height == 0 || (color.alpha == 0 && !source)) return TextCompositeStatus::success;
     if (coverage.height > coverage.pixels.size() / coverage.width) return TextCompositeStatus::invalid_geometry;
     const PreparedClip prepared = prepare_clip(clip);
-    FixedRect limit = prepared.rect;
-    if (prepared.rounded) {
-        limit.left = std::max(limit.left, prepared.rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
-    }
-    if (prepared.outer_rounded) {
-        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
-    }
+    const FixedRect limit = clip_limit(prepared);
     const std::int64_t left = std::max<std::int64_t>({0, floor_pixel(limit.left), coverage.left});
     const std::int64_t top = std::max<std::int64_t>({0, floor_pixel(limit.top), coverage.top});
     const std::int64_t right = std::min<std::int64_t>({static_cast<std::int64_t>(target.width), ceil_pixel(limit.right),
@@ -573,10 +660,46 @@ TextCompositeStatus composite_text_coverage(const TextCoverage coverage, const T
             continue;
         }
         composite_text_edge_span(coverage, target, prepared, blend, colour_alpha, y, left, span.from);
-        composite_text_interior_span(coverage, target, interior_alpha, y, span, scratch);
+        if (!prepared.masked) {
+            composite_text_interior_span(coverage, target, interior_alpha, y, span, scratch);
+        } else {
+            // Under a mask the interior is the runs of whole mask entries;
+            // the pixels between them take the per-pixel path.
+            std::int64_t cursor = span.from;
+            while (cursor < span.to) {
+                const InteriorSpan run = full_mask_run(prepared.mask, y, cursor, span.to);
+                composite_text_edge_span(coverage, target, prepared, blend, colour_alpha, y, cursor, run.from);
+                if (run.from < run.to) composite_text_interior_span(coverage, target, interior_alpha, y, run, scratch);
+                cursor = run.to;
+            }
+        }
         composite_text_edge_span(coverage, target, prepared, blend, colour_alpha, y, span.to, right);
     }
     return TextCompositeStatus::success;
+}
+
+std::uint32_t soft_light_term(const std::uint32_t backdrop, const std::uint32_t source) noexcept {
+    const std::int64_t unit = 65536;
+    const std::int64_t under = std::min<std::int64_t>(backdrop, unit);
+    const std::int64_t over = std::min<std::int64_t>(source, unit);
+    std::int64_t blended = 0;
+    if (2 * over <= unit) {
+        // b − (1 − 2s) × b × (1 − b), with b under and s over.
+        const std::int64_t spread = (under * (unit - under)) >> 16;
+        blended = under - (((unit - 2 * over) * spread) >> 16);
+    } else {
+        // b + (2s − 1) × (D(b) − b).
+        std::int64_t lifted = 0;
+        if (4 * under <= unit) {
+            const std::int64_t inner = ((16 * under - 12 * unit) * under) >> 16;
+            lifted = (((inner + 4 * unit) * under) >> 16);
+        } else {
+            lifted = static_cast<std::int64_t>(integer_square_root(static_cast<std::uint64_t>(under) << 16U));
+        }
+        blended = under + (((2 * over - unit) * (lifted - under)) >> 16);
+    }
+    const std::int64_t held = std::clamp<std::int64_t>(blended, 0, unit);
+    return static_cast<std::uint32_t>(held);
 }
 
 std::uint8_t part_composite_opacity(const double opacity) noexcept {
@@ -601,8 +724,78 @@ unsigned weighted_channel(const std::uint64_t channel, const std::uint64_t weigh
     return weighted;
 }
 
-// One channel by multiply or screen (PartCompositeBlend), in bytes:
+// A straight colour in 1/65536 from premultiplied `channel` under `alpha`
+// (alpha not 0), rounded and held at most 65536.
+std::uint32_t straight_fraction(const unsigned channel, const unsigned alpha) noexcept {
+    const std::uint64_t scaled = (static_cast<std::uint64_t>(channel) * 65536U + alpha / 2U) / alpha;
+    const std::uint32_t fraction = static_cast<std::uint32_t>(std::min<std::uint64_t>(scaled, 65536U));
+    return fraction;
+}
+
+// The mode's term T of one channel (see PartCompositeBlend), in units of
+// 255 × 255, for the modes past copy: `source` and `destination`
+// premultiplied bytes, `source_alpha` and `destination_alpha` their alphas.
+std::int64_t separable_term(const std::int64_t source, const std::int64_t source_alpha, const std::int64_t destination,
+                            const std::int64_t destination_alpha, const PartCompositeBlend blend) noexcept {
+    const std::int64_t source_scaled = source * destination_alpha;
+    const std::int64_t destination_scaled = destination * source_alpha;
+    const std::int64_t both = source_alpha * destination_alpha;
+    switch (blend) {
+    case PartCompositeBlend::darken: return std::min(source_scaled, destination_scaled);
+    case PartCompositeBlend::lighten: return std::max(source_scaled, destination_scaled);
+    case PartCompositeBlend::difference: {
+        const std::int64_t apart = source_scaled - destination_scaled;
+        return apart < 0 ? -apart : apart;
+    }
+    case PartCompositeBlend::exclusion: return source_scaled + destination_scaled - 2 * source * destination;
+    case PartCompositeBlend::hard_light:
+    case PartCompositeBlend::overlay: {
+        const bool hard = blend == PartCompositeBlend::hard_light;
+        const bool lower = hard ? 2 * source <= source_alpha : 2 * destination <= destination_alpha;
+        if (lower) return 2 * source * destination;
+        const std::int64_t upper = both - 2 * (destination_alpha - destination) * (source_alpha - source);
+        return upper;
+    }
+    case PartCompositeBlend::color_dodge: {
+        if (destination == 0) return 0;
+        if (source >= source_alpha) return both;
+        const std::int64_t room = source_alpha - source;
+        const std::int64_t dodged = (destination * source_alpha * source_alpha + room / 2) / room;
+        return std::min(both, dodged);
+    }
+    case PartCompositeBlend::color_burn: {
+        if (destination >= destination_alpha) return both;
+        if (source == 0) return 0;
+        const std::int64_t burned =
+            ((destination_alpha - destination) * source_alpha * source_alpha + source / 2) / source;
+        return both - std::min(both, burned);
+    }
+    case PartCompositeBlend::soft_light: {
+        if (source_alpha == 0 || destination_alpha == 0) return 0;
+        const std::uint32_t backdrop =
+            straight_fraction(static_cast<unsigned>(destination), static_cast<unsigned>(destination_alpha));
+        const std::uint32_t straight =
+            straight_fraction(static_cast<unsigned>(source), static_cast<unsigned>(source_alpha));
+        const std::int64_t blended = static_cast<std::int64_t>(soft_light_term(backdrop, straight));
+        const std::int64_t term = (both * blended + 32768) >> 16;
+        return term;
+    }
+    case PartCompositeBlend::source_over:
+    case PartCompositeBlend::plus:
+    case PartCompositeBlend::multiply:
+    case PartCompositeBlend::screen:
+    case PartCompositeBlend::copy: break;
+    default:
+        // A value outside the enumeration takes the fallback after the switch.
+        break;
+    }
+    // Any other mode joins as multiply.
+    return source * destination;
+}
+
+// One channel by a separable mode (PartCompositeBlend), in bytes:
 // `source` and `destination` premultiplied, with their pixels' alphas.
+// Multiply and screen keep their own forms.
 unsigned separable_channel(const unsigned source, const unsigned source_alpha, const unsigned destination,
                            const unsigned destination_alpha, const PartCompositeBlend blend) noexcept {
     const unsigned product = source * destination;
@@ -610,12 +803,25 @@ unsigned separable_channel(const unsigned source, const unsigned source_alpha, c
         const unsigned screened = source + destination - (product + 127U) / 255U;
         return std::min(255U, screened);
     }
-    const unsigned kept = source * (255U - destination_alpha) + destination * (255U - source_alpha) + product;
-    const unsigned multiplied = (kept + 127U) / 255U;
-    return std::min(255U, multiplied);
+    std::int64_t term = product;
+    if (blend != PartCompositeBlend::multiply) {
+        term = separable_term(source, source_alpha, destination, destination_alpha, blend);
+    }
+    const std::int64_t kept = static_cast<std::int64_t>(source * (255U - destination_alpha)) +
+                              static_cast<std::int64_t>(destination * (255U - source_alpha)) + term;
+    const std::int64_t joined = (std::max<std::int64_t>(kept, 0) + 127) / 255;
+    const unsigned clamped = static_cast<unsigned>(std::min<std::int64_t>(joined, 255));
+    return clamped;
 }
 
-// A target pixel joined by multiply or screen to the weighted premultiplied
+// Whether `blend` is one of the separable modes, joined per channel.
+bool separable_blend(const PartCompositeBlend blend) noexcept {
+    const bool separable =
+        blend != PartCompositeBlend::source_over && blend != PartCompositeBlend::plus && blend != PartCompositeBlend::copy;
+    return separable;
+}
+
+// A target pixel joined by a separable mode to the weighted premultiplied
 // `source` (red, green, blue, alpha).
 std::uint32_t separable_pixel(const std::uint32_t previous, const std::array<unsigned, 4>& source,
                               const ChannelShifts shifts, const bool opaque, const PartCompositeBlend blend) noexcept {
@@ -673,7 +879,7 @@ void blend_part_pixel(std::uint32_t& pixel, const std::array<std::uint64_t, 4>& 
     const unsigned green = weighted_channel(colour[1], weight);
     const unsigned blue = weighted_channel(colour[2], weight);
     const std::uint32_t previous = pixel;
-    if (blend == PartCompositeBlend::multiply || blend == PartCompositeBlend::screen) {
+    if (separable_blend(blend)) {
         const std::array<unsigned, 4> source{red, green, blue, alpha};
         pixel = separable_pixel(previous, source, shifts, opaque, blend);
         return;
@@ -1021,6 +1227,7 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
         (clip.rounded && (!valid_rect(clip.rounded_rect) || !valid_coordinate(clip.radius) || clip.radius < 0.0)) ||
         (clip.rounded && clip.outer_rounded &&
          (!valid_rect(clip.outer_rounded_rect) || !valid_coordinate(clip.outer_radius) || clip.outer_radius < 0.0)) ||
+        !valid_mask(clip) ||
         std::abs(source.left) > static_cast<std::int64_t>(coordinate_limit) ||
         std::abs(source.top) > static_cast<std::int64_t>(coordinate_limit) ||
         static_cast<double>(source.shown_width) > coordinate_limit ||
@@ -1031,19 +1238,7 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
     if (!part_source_fits(source)) return TextCompositeStatus::invalid_geometry;
     if (opacity == 0U) return TextCompositeStatus::success;
     const PreparedClip prepared = prepare_clip(clip);
-    FixedRect limit = prepared.rect;
-    if (prepared.rounded) {
-        limit.left = std::max(limit.left, prepared.rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.rounded_rect.bottom);
-    }
-    if (prepared.outer_rounded) {
-        limit.left = std::max(limit.left, prepared.outer_rounded_rect.left);
-        limit.top = std::max(limit.top, prepared.outer_rounded_rect.top);
-        limit.right = std::min(limit.right, prepared.outer_rounded_rect.right);
-        limit.bottom = std::min(limit.bottom, prepared.outer_rounded_rect.bottom);
-    }
+    const FixedRect limit = clip_limit(prepared);
     const bool scaled = (source.shown_width != 0U && source.shown_width != source.width) ||
                         (source.shown_height != 0U && source.shown_height != source.height);
     const std::uint32_t shown_width = source.shown_width != 0U ? source.shown_width : source.width;
@@ -1065,6 +1260,18 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
         // A raster recorded wholly opaque is, at full opacity, its own
         // source-over result.
         const bool copy_rows = over && source.opaque && opacity == 255U;
+        // A source not wholly opaque may carry a proved opaque interior
+        // (blend study, 2026-11-16): in its rows the span splits into a
+        // blended part, a copied part and a blended part. The rows and
+        // columns are target coordinates, decided once here.
+        const bool copy_interior = over && !copy_rows && opacity == 255U &&
+                                   source.opaque_left < source.opaque_right &&
+                                   source.opaque_top < source.opaque_bottom &&
+                                   source.opaque_right <= source.width && source.opaque_bottom <= source.height;
+        const std::int64_t opaque_top = source.top + static_cast<std::int64_t>(source.opaque_top);
+        const std::int64_t opaque_bottom = source.top + static_cast<std::int64_t>(source.opaque_bottom);
+        const std::int64_t opaque_left = source.left + static_cast<std::int64_t>(source.opaque_left);
+        const std::int64_t opaque_right = source.left + static_cast<std::int64_t>(source.opaque_right);
         for (std::int64_t y = top; y < bottom; ++y) {
             const InteriorSpan span = interior_span(interior, y);
             if (span.from >= span.to) {
@@ -1072,20 +1279,43 @@ TextCompositeStatus composite_part_raster(const PartRasterSource source, const T
                 continue;
             }
             composite_part_edge_span(source, target, prepared, y, left, span.from, opacity_weight);
-            if (over) {
-                composite_over_span(source, target, y, span, opacity, copy_rows, scratch);
-            } else {
-                composite_part_blend_span(source, target, y, span.from, span.to, opacity_weight);
+            // Under a mask the interior is the runs of whole mask entries,
+            // and the pixels between them take the per-pixel path; without
+            // one the run is the whole span. In a row of a proved opaque
+            // interior (blend study) each run splits into a blended part, a
+            // copied part and a blended part.
+            const bool interior_row = copy_interior && y >= opaque_top && y < opaque_bottom;
+            std::int64_t cursor = span.from;
+            while (cursor < span.to) {
+                InteriorSpan run = span;
+                if (prepared.masked) run = full_mask_run(prepared.mask, y, cursor, span.to);
+                composite_part_edge_span(source, target, prepared, y, cursor, run.from, opacity_weight);
+                if (run.from < run.to && interior_row) {
+                    const std::int64_t copy_from = std::clamp(opaque_left, run.from, run.to);
+                    const std::int64_t copy_to = std::clamp(opaque_right, copy_from, run.to);
+                    const InteriorSpan before{run.from, copy_from};
+                    const InteriorSpan copied{copy_from, copy_to};
+                    const InteriorSpan after{copy_to, run.to};
+                    if (before.from < before.to) composite_over_span(source, target, y, before, opacity, false, scratch);
+                    if (copied.from < copied.to) composite_over_span(source, target, y, copied, opacity, true, scratch);
+                    if (after.from < after.to) composite_over_span(source, target, y, after, opacity, false, scratch);
+                } else if (run.from < run.to && over) {
+                    composite_over_span(source, target, y, run, opacity, copy_rows, scratch);
+                } else if (run.from < run.to) {
+                    composite_part_blend_span(source, target, y, run.from, run.to, opacity_weight);
+                }
+                cursor = run.to;
             }
             composite_part_edge_span(source, target, prepared, y, span.to, right, opacity_weight);
         }
         return TextCompositeStatus::success;
     }
     // Scaled: each device pixel samples its four texels bilinearly. Under
-    // source-over the interior whose samples lie wholly inside the source
-    // takes the block kernels; every other pixel, and every pixel of the
-    // other blends, the per-pixel path.
-    if (source.blend == PartCompositeBlend::source_over) {
+    // source-over without a mask the interior whose samples lie wholly
+    // inside the source takes the block kernels; every other pixel, and
+    // every pixel of the other blends or under a mask, the per-pixel path.
+    // Under a mask too: its entries are read pixel by pixel.
+    if (source.blend == PartCompositeBlend::source_over && !prepared.masked) {
         keep_whole_samples(interior, source, shown_width, shown_height);
     } else {
         interior = ClipInterior{};
@@ -1111,6 +1341,15 @@ PartCompositeBlend part_composite_blend(const PaintGroupComposite composite) noe
     case PaintGroupComposite::multiply: return PartCompositeBlend::multiply;
     case PaintGroupComposite::screen: return PartCompositeBlend::screen;
     case PaintGroupComposite::copy: return PartCompositeBlend::copy;
+    case PaintGroupComposite::overlay: return PartCompositeBlend::overlay;
+    case PaintGroupComposite::darken: return PartCompositeBlend::darken;
+    case PaintGroupComposite::lighten: return PartCompositeBlend::lighten;
+    case PaintGroupComposite::color_dodge: return PartCompositeBlend::color_dodge;
+    case PaintGroupComposite::color_burn: return PartCompositeBlend::color_burn;
+    case PaintGroupComposite::hard_light: return PartCompositeBlend::hard_light;
+    case PaintGroupComposite::soft_light: return PartCompositeBlend::soft_light;
+    case PaintGroupComposite::difference: return PartCompositeBlend::difference;
+    case PaintGroupComposite::exclusion: return PartCompositeBlend::exclusion;
     }
     return PartCompositeBlend::source_over;
 }

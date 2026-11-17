@@ -9,6 +9,7 @@
 #include "../../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <atomic>
@@ -52,10 +53,10 @@ struct TargetHelpText final {
 // Refuses a value the target's field would refuse, before any entry is
 // made, so a refused write leaves the provider as it was.
 void require_help_value(LocaleField field, std::string_view value) {
-    const std::optional<LocaleRefusal> refusal = check_locale_value(field, value);
-    if (refusal.has_value()) {
+    const stxlib::Optional<LocaleRefusal> refusal = check_locale_value(field, value);
+    if (refusal.present()) {
         throw std::invalid_argument("GUI.Forms help " + std::string(locale_field_name(field)) +
-                                    " refused: " + std::string(locale_refusal_name(*refusal)));
+                                    " refused: " + std::string(locale_refusal_name((*refusal.value()))));
     }
 }
 

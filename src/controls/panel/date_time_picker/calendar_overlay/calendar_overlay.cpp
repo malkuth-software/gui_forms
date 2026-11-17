@@ -34,7 +34,7 @@ void CalendarOverlay::on_paint(Painter& painter, Rect) {
     surface.family = ControlVisualRole::panel;
     surface.role = PartRole::shadow;
     surface.bounds = body;
-    surface.corner_radius = 0.0;
+    surface.corner_radius.set(0.0);
     paint_part(painter, *this, surface);
     surface.role = PartRole::face;
     paint_part(painter, *this, surface);

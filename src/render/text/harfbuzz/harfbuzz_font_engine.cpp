@@ -1,23 +1,27 @@
 #include "harfbuzz_font_engine.hpp"
 #include "bounded_shape_workspace.hpp"
 #include "reusable_shape_workspace.hpp"
+#include "../../../core/resources/fonts/program_typefaces.hpp"
+#include "../textlayout/text_analysis.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 #include "../../../core/types/restrict/restrict.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_MODULE_H
-#include FT_TRUETYPE_TABLES_H
-#include <hb-ft.h>
-#include <hb.h>
-#include <SheenBidi/SheenBidi.h>
-#include <linebreak.h>
-#include <stx_text_allocation.h>
+#include <stxlib/font_file.hpp>
+#include <stxlib/glyph_face.hpp>
+#include <stxlib/glyph_shape.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/text.hpp>
+#include <stxlib/textlayout.hpp>
+#include <stxlib/view.hpp>
+#include <stxlib/optional.hpp>
 
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <limits>
 #include <new>
@@ -31,7 +35,7 @@ namespace {
 
 constexpr std::size_t maximum_face_bytes = 64U * 1024U * 1024U;
 constexpr std::size_t maximum_faces = 64U;
-constexpr FT_Long maximum_glyphs = 1'000'000L;
+constexpr std::uint32_t maximum_glyphs = 1'000'000U;
 
 void account_array(std::size_t count, std::size_t element_bytes,
                    std::size_t limit, std::size_t& used) {
@@ -65,100 +69,33 @@ std::size_t decode_scalars_to(std::string_view utf8, Utf8Range range,
     return written;
 }
 
-struct BidiOwner final {
-    SBAlgorithmRef algorithm = nullptr;
-    SBParagraphRef paragraph = nullptr;
-    SBLineRef line = nullptr;
-    BidiOwner() = default;
-    BidiOwner(const BidiOwner&) = delete;
-    BidiOwner& operator=(const BidiOwner&) = delete;
-    ~BidiOwner() {
-        if (line) { SBLineRelease(line); }
-        if (paragraph) { SBParagraphRelease(paragraph); }
-        if (algorithm) { SBAlgorithmRelease(algorithm); }
-    }
-    void clear_line() {
-        if (line) { SBLineRelease(line); line = nullptr; }
-        if (paragraph) { SBParagraphRelease(paragraph); paragraph = nullptr; }
-    }
-};
 struct DirectionRun final { Utf8Range range{}; bool rtl{}; };
+
+// Each paragraph of `utf8` (already validated) reordered as one line: the
+// runs of every paragraph in visual order, paragraph after paragraph. The
+// analysis is local: its storage is counted under text_layout while the
+// call holds it.
 std::vector<DirectionRun> visual_direction_runs(std::string_view utf8) {
     std::vector<DirectionRun> runs{};
-    const SBCodepointSequence sequence{SBStringEncodingUTF8, utf8.data(), utf8.size()};
-    BidiOwner owner{};
-    owner.algorithm = SBAlgorithmCreate(&sequence);
-    if (!owner.algorithm) { throw std::bad_alloc(); }
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::TextView* const text = validated.value();
+    if (text == nullptr) throw std::runtime_error("Bidi analysis of invalid UTF-8");
+    TextAnalysis analysis{};
     std::size_t offset = 0;
     while (offset < utf8.size()) {
-        owner.paragraph = SBAlgorithmCreateParagraph(owner.algorithm, offset, utf8.size() - offset, SBLevelDefaultLTR);
-        if (!owner.paragraph) { throw std::bad_alloc(); }
-        const std::size_t length = SBParagraphGetLength(owner.paragraph);
-        if (length == 0 || length > utf8.size() - offset) { throw std::runtime_error("Invalid bidi paragraph length"); }
-        owner.line = SBParagraphCreateLine(owner.paragraph, offset, length);
-        if (!owner.line) { throw std::bad_alloc(); }
-        const SBRun* values = SBLineGetRunsPtr(owner.line);
-        const std::size_t count = SBLineGetRunCount(owner.line);
-        for (std::size_t i = 0; i < count; ++i) {
-            runs.push_back({{Utf8Offset(values[i].offset), Utf8Offset(values[i].offset + values[i].length)}, (values[i].level & 1) != 0});
+        const std::size_t length = analyse_paragraph_line(*text, offset, analysis);
+        const stxlib::View<stxlib::textlayout::BidiRun> line_runs = analysis.line.runs();
+        const std::size_t count = line_runs.count();
+        for (std::size_t index = 0; index < count; ++index) {
+            const stxlib::textlayout::BidiRun& run = line_runs[index];
+            const Utf8Range range{Utf8Offset(run.offset), Utf8Offset(run.offset + run.length)};
+            const DirectionRun direction{range, (run.level & 1U) != 0U};
+            runs.push_back(direction);
         }
         offset += length;
-        owner.clear_line();
     }
     return runs;
 }
-
-// The engine's FreeType heap calls on this thread (allocations and
-// reallocations, not frees): HarfBuzzFontEngine::thread_native_allocations.
-thread_local std::uint64_t freetype_allocations = 0U;
-
-// The engine's FreeType memory: the C heap, as FreeType's default, with each
-// allocating call counted.
-void* counted_freetype_allocate(FT_Memory, long size) {
-    ++freetype_allocations;
-    void* const block = std::malloc(static_cast<std::size_t>(size));
-    return block;
-}
-
-void counted_freetype_release(FT_Memory, void* block) {
-    std::free(block);
-}
-
-void* counted_freetype_reallocate(FT_Memory, long, long new_size, void* block) {
-    ++freetype_allocations;
-    void* const moved = std::realloc(block, static_cast<std::size_t>(new_size));
-    return moved;
-}
-
-// The callbacks take their types from FreeType's declarations.
-static_assert(std::is_same_v<decltype(&counted_freetype_allocate), FT_Alloc_Func>);
-static_assert(std::is_same_v<decltype(&counted_freetype_release), FT_Free_Func>);
-static_assert(std::is_same_v<decltype(&counted_freetype_reallocate), FT_Realloc_Func>);
-
-// A FreeType library over the counted memory, set up as FT_Init_FreeType
-// sets one up (default modules, then properties from FREETYPE_PROPERTIES).
-// Not movable: the library keeps the address of `memory`.
-struct LibraryOwner final {
-    FT_MemoryRec_ memory{};
-    FT_Library value{};
-    LibraryOwner() {
-        memory.user = nullptr;
-        memory.alloc = counted_freetype_allocate;
-        memory.free = counted_freetype_release;
-        memory.realloc = counted_freetype_reallocate;
-        const FT_Error initialized = FT_New_Library(&memory, &value);
-        if (initialized != 0 || value == nullptr) {
-            throw std::runtime_error("FreeType initialization failed");
-        }
-        FT_Add_Default_Modules(value);
-        FT_Set_Default_Properties(value);
-    }
-    LibraryOwner(const LibraryOwner&) = delete;
-    LibraryOwner& operator=(const LibraryOwner&) = delete;
-    ~LibraryOwner() {
-        if (value != nullptr) FT_Done_Library(value);
-    }
-};
 
 // A process-unique identity for each engine (GlyphSource::engine): never
 // zero, never reused.
@@ -168,33 +105,86 @@ struct LibraryOwner final {
     return identity;
 }
 
-// Installs a SheenBidi arena for one bidi analysis (none: the C heap) and
-// restores the one installed before. Declared before the BidiOwner whose
-// objects it serves, so that they are released while it is installed.
-class SheenBidiArenaScope final {
-public:
-    explicit SheenBidiArenaScope(StxSheenBidiArena* arena) noexcept : active_(arena != nullptr) {
-        if (active_) previous_ = stx_sheenbidi_use_arena(arena);
-    }
-    ~SheenBidiArenaScope() {
-        if (active_) static_cast<void>(stx_sheenbidi_use_arena(previous_));
-    }
-    SheenBidiArenaScope(const SheenBidiArenaScope&) = delete;
-    SheenBidiArenaScope& operator=(const SheenBidiArenaScope&) = delete;
+// Throws for a failed STXlib call: std::bad_alloc when its storage ran out,
+// else std::runtime_error naming `what` (STXlib refused the font, the run or
+// one of its limits). Shaping's callers treat a runtime_error as the face's
+// failure (an application family is quarantined) and bad_alloc as the call's.
+void require_stxlib(const stxlib::OperationStatus& status, const char* const what) {
+    if (status.succeeded()) return;
+    const stxlib::ErrorRecord* const record = status.error();
+    if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
+    throw std::runtime_error(what);
+}
 
-private:
-    StxSheenBidiArena* previous_{};
-    bool active_{};
+// A shaping size: the font's size clamped to 1 to 4096 pixels, in 26.6.
+[[nodiscard]] std::int64_t shaping_size_of(const FontSpec& font) noexcept {
+    const double bounded_size = std::clamp(font.size, 1.0, 4096.0);
+    const long long fixed_size = std::llround(bounded_size * 64.0);
+    const std::int64_t size = static_cast<std::int64_t>(fixed_size);
+    return size;
+}
+
+// FreeType 2.14's 16.16 arithmetic, which its size metrics are made with:
+// FT_DivFix (a * 65536 / b, rounded half away from zero; 0x7FFFFFFF for
+// b = 0) and FT_MulFix (a * b / 65536, rounded half away from zero).
+[[nodiscard]] std::int64_t fixed_divide(const std::int64_t dividend, const std::int64_t divisor) noexcept {
+    const bool negative = (dividend < 0) != (divisor < 0);
+    const std::uint64_t magnitude = dividend < 0 ? static_cast<std::uint64_t>(-dividend) : static_cast<std::uint64_t>(dividend);
+    const std::uint64_t by = divisor < 0 ? static_cast<std::uint64_t>(-divisor) : static_cast<std::uint64_t>(divisor);
+    if (by == 0U) return 0x7FFFFFFF;
+    const std::uint64_t quotient = ((magnitude << 16U) + (by >> 1U)) / by;
+    const std::int64_t signed_quotient = static_cast<std::int64_t>(quotient);
+    const std::int64_t result = negative ? -signed_quotient : signed_quotient;
+    return result;
+}
+
+[[nodiscard]] std::int64_t fixed_multiply(const std::int64_t value, const std::int64_t scale) noexcept {
+    const bool negative = (value < 0) != (scale < 0);
+    const std::uint64_t magnitude = value < 0 ? static_cast<std::uint64_t>(-value) : static_cast<std::uint64_t>(value);
+    const std::uint64_t by = scale < 0 ? static_cast<std::uint64_t>(-scale) : static_cast<std::uint64_t>(scale);
+    const std::uint64_t product = (magnitude * by + 0x8000U) >> 16U;
+    const std::int64_t signed_product = static_cast<std::int64_t>(product);
+    const std::int64_t result = negative ? -signed_product : signed_product;
+    return result;
+}
+
+// A face's line metrics at a size, in 26.6 pixels, y upward (the descender
+// is negative).
+struct SizedLineMetrics final {
+    std::int64_t ascender{};
+    std::int64_t descender{};
+    std::int64_t height{};
 };
 
-struct ReleaseFace final {
-    void operator()(FT_Face face) const noexcept {
-        if (face != nullptr) FT_Done_Face(face);
-    }
-};
-using FreeTypeFaceOwner = std::unique_ptr<FT_FaceRec, ReleaseFace>;
-using HarfBuzzFontOwner = std::unique_ptr<hb_font_t, void (*)(hb_font_t*)>;
-using HarfBuzzBufferOwner = std::unique_ptr<hb_buffer_t, void (*)(hb_buffer_t*)>;
+// The line metrics FreeType 2.14 gave a scalable face at a nominal size of
+// `size` (26.6) at 72 dpi (FT_Request_Metrics, then
+// ft_recompute_scaled_metrics with GRID_FIT_METRICS, which every size of the
+// face's FT_Size_Metrics was): y_scale is size over units per em in 16.16
+// (fixed_divide); each of the font's ascender, descender and height (STXlib
+// picks them by FreeType's rule) times y_scale (fixed_multiply); then the
+// ascender rounded up to a whole pixel, the descender down and the height to
+// the nearest. Font units per em are never 0 in a shapeable font.
+[[nodiscard]] SizedLineMetrics sized_line_metrics_of(const stxlib::glyphs::Font& font, const std::int64_t size) noexcept {
+    const std::int64_t y_scale = fixed_divide(size, static_cast<std::int64_t>(font.units_per_em));
+    const std::int64_t ascender = fixed_multiply(static_cast<std::int64_t>(font.ascender), y_scale);
+    const std::int64_t descender = fixed_multiply(static_cast<std::int64_t>(font.descender), y_scale);
+    const std::int64_t height = fixed_multiply(static_cast<std::int64_t>(font.height), y_scale);
+    SizedLineMetrics result{};
+    result.ascender = (ascender + 63) & -64;
+    result.descender = descender & -64;
+    result.height = (height + 32) & -64;
+    return result;
+}
+
+// Whether the engine shapes with `font`: outlines STXlib reads, a glyph count
+// from 1 to maximum_glyphs, units per em, and a Unicode character map (the
+// faces FreeType's Unicode charmap selection admitted before).
+[[nodiscard]] bool shapeable_font(const stxlib::glyphs::Font& font) noexcept {
+    const bool shapeable = font.outlines != stxlib::glyphs::OutlineKind::none && font.glyph_count != 0U &&
+        font.glyph_count <= maximum_glyphs && font.units_per_em != 0U && font.character_map.length != 0U &&
+        font.character_map_kind == stxlib::glyphs::character_map_unicode;
+    return shapeable;
+}
 
 // utf8 is already validated; range contains complete scalars. The caller owns
 // scratch storage and reserves at least range.length bytes as a scalar bound.
@@ -235,11 +225,11 @@ void decode_scalars(std::string_view utf8, Utf8Range range,
     return ignorable;
 }
 
-// A face's nominal glyph map, read from its open native face.
-struct NativeGlyphMap final {
-    FT_Face face{};
-    [[nodiscard]] bool operator()(char32_t scalar) const {
-        const bool mapped = FT_Get_Char_Index(face, static_cast<FT_ULong>(scalar)) != 0U;
+// A face's nominal glyph map, read from its open font's character map.
+struct FontGlyphMap final {
+    const stxlib::glyphs::Font* font{};
+    [[nodiscard]] bool operator()(char32_t scalar) const noexcept {
+        const bool mapped = stxlib::glyphs::glyph_of(*font, static_cast<std::uint32_t>(scalar)) != 0U;
         return mapped;
     }
 };
@@ -253,38 +243,22 @@ struct TableGlyphMap final {
     }
 };
 
-// Whether a face whose nominal glyph map is `mapped` covers the cluster `scalars`.
+// Whether a face whose nominal glyph map is `mapped` has a glyph for every
+// scalar of the cluster `scalars` that coverage does not ignore.
 template <typename GlyphMap>
-[[nodiscard]] bool cluster_covered(const GlyphMap& mapped, std::span<const char32_t> scalars) {
-    bool nominal = true;
+[[nodiscard]] bool nominally_covered(const GlyphMap& mapped, std::span<const char32_t> scalars) {
     for (const char32_t scalar : scalars) {
         if (ignorable_for_coverage(scalar)) continue;
-        if (!mapped(scalar)) {
-            nominal = false;
-            break;
-        }
+        if (!mapped(scalar)) return false;
     }
-    if (nominal) { return true; }
-    // HarfBuzz can canonically compose a two-scalar cluster even when the
-    // face has no nominal glyph for its combining mark. Keep original text
-    // and offsets; this is only a bounded same-face coverage check.
-    if (scalars.size() != 2) { return false; }
-    const hb_codepoint_t first = static_cast<hb_codepoint_t>(scalars[0]);
-    const hb_codepoint_t second = static_cast<hb_codepoint_t>(scalars[1]);
-    hb_codepoint_t composed{};
-    hb_unicode_funcs_t* unicode = hb_unicode_funcs_get_default();
-    const hb_bool_t combined = hb_unicode_compose(unicode, first, second, &composed);
-    if (!combined) { return false; }
-    const bool covered = mapped(static_cast<char32_t>(composed));
-    return covered;
+    return true;
 }
 
-// One face's glyph ink extents at shaping sizes, as HarfBuzz reads them
-// from FreeType (hb-ft's glyph extents call FT_Load_Glyph, which allocates a
-// list node for every composite glyph it loads, so reading them per shaping
-// allocated in steady state). An open-addressed table keyed by glyph id and
-// FreeType size (26.6), probed linearly; it records refusals as well as
-// extents. Growth doubles the table while it is more than half full, up to
+// One face's glyph ink boxes at shaping sizes (Typeface::ink_box: the box of
+// the unfitted outline, as hb-ft's extents were; STXlib keeps nothing of
+// them, so a shaping that read them each time would read the glyph's outline
+// each time). An open-addressed table keyed by glyph id and size (26.6),
+// probed linearly; it records refusals as well as boxes. Growth doubles the table while it is more than half full, up to
 // maximum_entries; a full table at that size is emptied and refilled. find
 // never allocates; keep allocates only to grow, and a growth that fails
 // leaves the table as it was (the extents are then simply not kept). The
@@ -295,14 +269,14 @@ public:
     struct Entry final {
         // The glyph id plus one; zero marks an empty slot.
         std::uint32_t glyph_plus_one{};
-        FT_F26Dot6 size{};
+        std::int64_t size{};
         bool available{};
-        hb_glyph_extents_t extents{};
+        stxlib::glyphs::InkBox box{};
     };
 
     // The kept entry for `glyph` at `size`, or null.
-    [[nodiscard]] const Entry* find(const hb_codepoint_t glyph, const FT_F26Dot6 size) const noexcept {
-        if (entries_.empty() || glyph == std::numeric_limits<hb_codepoint_t>::max()) return nullptr;
+    [[nodiscard]] const Entry* find(const std::uint32_t glyph, const std::int64_t size) const noexcept {
+        if (entries_.empty() || glyph == std::numeric_limits<std::uint32_t>::max()) return nullptr;
         const std::uint32_t wanted = static_cast<std::uint32_t>(glyph) + 1U;
         const std::size_t mask = entries_.size() - 1U;
         std::size_t slot = slot_of(wanted, size, mask);
@@ -315,10 +289,10 @@ public:
         return nullptr;
     }
 
-    // Keeps `glyph`'s extents (or their refusal) at `size`; not already kept.
-    void keep(const hb_codepoint_t glyph, const FT_F26Dot6 size, const bool available,
-              const hb_glyph_extents_t extents) noexcept {
-        if (glyph == std::numeric_limits<hb_codepoint_t>::max()) return;
+    // Keeps `glyph`'s box (or its refusal) at `size`; not already kept.
+    void keep(const std::uint32_t glyph, const std::int64_t size, const bool available,
+              const stxlib::glyphs::InkBox box) noexcept {
+        if (glyph == std::numeric_limits<std::uint32_t>::max()) return;
         if ((count_ + 1U) * 2U > entries_.size()) {
             if (entries_.size() < maximum_entries) {
                 if (!grow()) return;
@@ -331,7 +305,7 @@ public:
         entry.glyph_plus_one = static_cast<std::uint32_t>(glyph) + 1U;
         entry.size = size;
         entry.available = available;
-        entry.extents = extents;
+        entry.box = box;
         place(entries_, entry);
         ++count_;
     }
@@ -342,7 +316,7 @@ private:
     // 8192 entries of 40 bytes: 320 KiB a face at most.
     static constexpr std::size_t maximum_entries = 8192U;
 
-    [[nodiscard]] static std::size_t slot_of(const std::uint32_t glyph_plus_one, const FT_F26Dot6 size,
+    [[nodiscard]] static std::size_t slot_of(const std::uint32_t glyph_plus_one, const std::int64_t size,
                                              const std::size_t mask) noexcept {
         const std::uint64_t size_bits = static_cast<std::uint64_t>(size);
         const std::uint64_t mixed = (static_cast<std::uint64_t>(glyph_plus_one) * 0x9E3779B97F4A7C15ULL) ^
@@ -403,56 +377,93 @@ public:
         bool fallback{};
         std::string family;
         std::shared_ptr<const void> encoded;
-        FT_Face face{};
-        // The HarfBuzz font shaping this face, kept across calls so HarfBuzz
-        // keeps the face's parsed tables and shape plans. It references face;
-        // its scale is the one set at shaping_size.
-        HarfBuzzFontOwner shaping_font{nullptr, hb_font_destroy};
-        FT_F26Dot6 shaping_size{};
-        // A lazy face: face stays null until coverage first covers a needed cluster, when
-        // loader runs and is then released. A lazy face with neither face nor loader could
-        // not be opened and covers nothing.
+        // The program's typeface of the face's bytes (program_typeface: the
+        // registry's when the bytes are a registered face's, else one shared
+        // by every holder of these bytes), with what keeps it. Null until the
+        // face is open. Declared before the shaper, which holds its typeface.
+        gui_forms::detail::TypefaceBorrow typeface{};
+        // The encoded face the typeface reads (kept alive by `encoded`).
+        std::span<const std::byte> bytes{};
+        std::uint32_t face_index{};
+        // The shaper over the typeface, opened at the face's first shaping and
+        // kept so it keeps the face's plans. One thread: the engine's.
+        stxlib::glyphs::Shaper shaper{};
+        bool shaper_open{};
+        // A lazy face: typeface stays null until coverage first covers a needed cluster, when
+        // loader runs and is then released. A lazy face with neither typeface nor loader
+        // could not be opened and covers nothing.
         std::span<const gui_forms::detail::CodepointRange> coverage{};
         LazyFaceLoader loader{};
-        // The numbered bundled family (FontSpec::family) this face belongs to, or zero for a
-        // role or fallback face. A family face serves only text that names its family.
-        std::uint8_t named_family{};
-        // A fallback face's glyph ink extents at shaping sizes (append_run).
+        // The family (FontSpec::family or a stack's) this face is registered for, or zero for
+        // a role or fallback face. A family face serves only text whose family order lists its
+        // family. A role face's family is its role's (family_of).
+        FontFamilyId named_family{};
+        // The language a fallback face is drawn for first (set_face_language), or none.
+        TextLanguage language{};
+        // A fallback face's glyph ink boxes at shaping sizes (append_run).
         GlyphInkCache ink_cache{};
 
         Face(FontFaceId id_value, std::optional<FontRole> role_value,
              std::uint16_t weight_value, bool italic_value,
              bool fallback_value, std::string family_value,
-             std::shared_ptr<const void> bytes, FT_Face face_value)
+             std::shared_ptr<const void> bytes_owner)
             : id(id_value), role(role_value), weight(weight_value),
               italic(italic_value), fallback(fallback_value),
-              family(std::move(family_value)), encoded(std::move(bytes)),
-              face(face_value) {}
-        ~Face() {
-            shaping_font.reset();
-            if (face != nullptr) FT_Done_Face(face);
-        }
+              family(std::move(family_value)), encoded(std::move(bytes_owner)) {}
+        ~Face() = default;
         Face(const Face&) = delete;
         Face& operator=(const Face&) = delete;
         Face(Face&& other) noexcept
             : id(other.id), role(other.role), weight(other.weight),
               italic(other.italic), fallback(other.fallback),
               family(std::move(other.family)), encoded(std::move(other.encoded)),
-              face(std::exchange(other.face, nullptr)), shaping_font(std::move(other.shaping_font)),
-              shaping_size(other.shaping_size), coverage(other.coverage),
-              loader(std::move(other.loader)), named_family(other.named_family),
-              ink_cache(std::move(other.ink_cache)) {}
+              typeface(std::move(other.typeface)), bytes(other.bytes), face_index(other.face_index),
+              shaper(std::move(other.shaper)), shaper_open(std::exchange(other.shaper_open, false)),
+              coverage(other.coverage), loader(std::move(other.loader)), named_family(other.named_family),
+              language(other.language), ink_cache(std::move(other.ink_cache)) {
+            other.typeface.typeface = nullptr;
+        }
         Face& operator=(Face&&) = delete;
+
+        [[nodiscard]] bool open() const noexcept { return typeface.typeface != nullptr; }
+        // The open face's font: its numbers and character map. Requires open().
+        [[nodiscard]] const stxlib::glyphs::Font& font() const noexcept {
+            const stxlib::Shared<stxlib::glyphs::Typeface>& shared = (*typeface.typeface).typeface();
+            const stxlib::glyphs::Font& result = *(*shared).font();
+            return result;
+        }
     };
 
+    // The family a face belongs to: its registered family, its role's family, or zero for a
+    // fallback face.
+    [[nodiscard]] static FontFamilyId family_of(const Face& face) noexcept {
+        if (face.named_family.value != 0U) return face.named_family;
+        if (face.role) return role_font_family(*face.role);
+        return FontFamilyId{};
+    }
+
+    // Candidate order: the families of the font's order first (font_family_order: its family,
+    // then its stack's), in that order; then the role's faces, the content faces and the
+    // fallback faces. Within a tier the face nearest the weight and slant comes first
+    // (font_face_nearer); a stable sort keeps registration order among equals.
     struct FacePreference final {
         FontSpec font{};
+        FontFamilyOrder order{};
 
+        explicit FacePreference(const FontSpec& requested) noexcept
+            : font(requested), order(font_family_order(requested)) {}
+
+        // Fallback faces drawn for the font's language (set_face_language) come before the
+        // other fallback faces.
         [[nodiscard]] int tier(const Face& face) const noexcept {
-            if (face.named_family != 0U && face.named_family == font.family.value) return -1;
+            const stxlib::Optional<std::size_t> position = font_family_position(order, family_of(face));
+            if (position.present()) return static_cast<int>((*position.value())) - static_cast<int>(order.families.size());
+            if (face.named_family.value != 0U) return 4;
             if (face.role && *face.role == font.role) return 0;
             if (face.role && *face.role == FontRole::content) return 1;
-            return 2;
+            const bool language_face = font.language.tag != 0U && face.language == font.language;
+            if (language_face) return 2;
+            return 3;
         }
 
         [[nodiscard]] bool operator()(const Face* left,
@@ -463,51 +474,82 @@ public:
                 const bool preferred = left_tier < right_tier;
                 return preferred;
             }
-            const int left_italic = (*left).italic == font.italic ? 0 : 1;
-            const int right_italic = (*right).italic == font.italic ? 0 : 1;
-            if (left_italic != right_italic) {
-                const bool preferred = left_italic < right_italic;
-                return preferred;
-            }
-            const int left_distance = std::abs(static_cast<int>((*left).weight) - font.weight);
-            const int right_distance = std::abs(static_cast<int>((*right).weight) - font.weight);
-            const bool preferred = left_distance < right_distance;
-            return preferred;
+            const bool nearer = font_face_nearer((*left).weight, (*left).italic, (*right).weight, (*right).italic,
+                                                 font.weight, font.italic);
+            return nearer;
         }
     };
 
-    LibraryOwner library{};
     std::vector<Face> faces{};
+    // The scratch coverage's composition checks shape in (covers), reused.
+    ShapeScratch coverage_scratch{};
     std::uint64_t next_face_id{1U};
     std::size_t bounded_face_limit{};
+    // The application families (app_fonts.hpp) open_app_families has met, opened or not: each
+    // is registered once per engine.
+    std::vector<FontFamilyId> app_families{};
     // This engine's GlyphSource::engine.
     std::uint64_t identity{next_engine_identity()};
 
+    // Whether `face` takes part in shaping text in `font`, whose family order is `order`. A
+    // family face takes part only when the order lists its family, and only once it is open,
+    // so the front candidate always has a face; one that cannot be loaded leaves the next
+    // family or the role's faces in charge. A role face takes part for its own role, as the
+    // house text fallback (the content faces serve the control and monospace roles too: this
+    // keeps Portsmouth the preferred control voice without turning punctuation, arrows or
+    // localized text it does not own into missing-glyph boxes), or when the order lists its
+    // role's family. Fallback faces (CJK, emoji) always take part, in the last tier.
+    [[nodiscard]] bool admits(Face& face, const FontSpec& font, const FontFamilyOrder& order) {
+        if (face.named_family.value != 0U) {
+            if (font_family_position(order, face.named_family).absent()) return false;
+            if (!face.open() && (!face.loader || !open_lazy(face))) return false;
+            return true;
+        }
+        if (!face.role) return true;
+        if (*face.role == font.role) return true;
+        if (font.role != FontRole::content && *face.role == FontRole::content) return true;
+        const bool listed = font_family_position(order, role_font_family(*face.role)).present();
+        return listed;
+    }
+
+    // Registers the faces of each live application family in `font`'s family order the first
+    // time this engine meets the family, as family faces holding the registry's owner of the
+    // bytes (which defers an unload until this engine goes). A face STXlib cannot open
+    // quarantines the family, so the next family or the role's faces draw; faces already
+    // registered for it stay out of every order from then on. Bounded engines never register
+    // application families (prepared text draws bundled families only).
+    void open_app_families(const FontSpec& font) {
+        if (bounded_face_limit != 0U) return;
+        const FontFamilyOrder order = font_family_order(font);
+        for (std::size_t position = 0U; position < order.count; ++position) {
+            const FontFamilyId family = order.families[position];
+            if (!app_font_family_number(family)) continue;
+            if (std::find(app_families.begin(), app_families.end(), family) != app_families.end()) continue;
+            app_families.push_back(family);
+            std::array<AppFontFaceSource, maximum_app_font_faces> sources{};
+            const std::size_t count = app_font_family_faces(family, sources);
+            bool opened = count != 0U;
+            for (std::size_t index = 0U; index < count && opened; ++index) {
+                // A full engine is not the font's failure: the family is left unregistered.
+                if (faces.size() >= maximum_faces) return;
+                const AppFontFaceSource& source = sources[index];
+                const std::optional<FontFaceId> id =
+                    register_family_face(family, source.weight, source.italic, source.bytes, source.owner, 0U);
+                opened = id.has_value();
+            }
+            if (count != 0U && !opened) quarantine_app_font_family(family, AppFontQuarantine::open_failed);
+        }
+    }
+
     [[nodiscard]] std::vector<Face*> candidates(FontSpec font) {
+        open_app_families(font);
         std::vector<Face*> result{};
         result.reserve(faces.size());
+        const FacePreference preference{font};
         for (Face& face : faces) {
-            // A family face takes part only when the font names its family, and only once it
-            // is open, so the front candidate always has a face; one that cannot be loaded
-            // leaves the role's faces in charge.
-            if (face.named_family != 0U) {
-                if (face.named_family != font.family.value) continue;
-                if (face.face == nullptr && (!face.loader || !open_lazy(face))) continue;
-                result.push_back(&face);
-                continue;
-            }
-            // The body face is the house text fallback for control and
-            // monospace roles. This keeps Portsmouth as the preferred control
-            // voice without turning punctuation, arrows, or localized text
-            // it does not own into missing-glyph boxes. Global CJK/emoji faces
-            // remain the last tier.
-            if (!face.role || *face.role == font.role ||
-                (font.role != FontRole::content &&
-                 *face.role == FontRole::content)) {
-                result.push_back(&face);
-            }
+            if (admits(face, font, preference.order)) result.push_back(&face);
         }
-        std::stable_sort(result.begin(), result.end(), FacePreference{font});
+        std::stable_sort(result.begin(), result.end(), preference);
         return result;
     }
 
@@ -517,19 +559,11 @@ public:
     // family as candidates() does. Returns the count; std::length_error when
     // `output` is too short.
     [[nodiscard]] std::size_t fill_candidates(FontSpec font, std::span<Face*> output) {
+        open_app_families(font);
         std::size_t count = 0U;
         const FacePreference preference{font};
         for (Face& face : faces) {
-            bool candidate = false;
-            if (face.named_family != 0U) {
-                if (face.named_family != font.family.value) continue;
-                if (face.face == nullptr && (!face.loader || !open_lazy(face))) continue;
-                candidate = true;
-            } else {
-                candidate = !face.role || *face.role == font.role ||
-                            (font.role != FontRole::content && *face.role == FontRole::content);
-            }
-            if (!candidate) continue;
+            if (!admits(face, font, preference.order)) continue;
             if (count == output.size()) throw std::length_error("Face candidate capacity exceeded");
             std::size_t position = count;
             while (position != 0U && preference(&face, output[position - 1U])) {
@@ -551,57 +585,101 @@ public:
 
     // Whether `face` covers the cluster. A lazy face answers from its table and is opened
     // the first time the table covers a cluster; one that cannot be opened covers nothing.
+    // Whether `face` covers the cluster: a glyph for every scalar coverage does not ignore,
+    // or, for a cluster of two scalars, one the face's shaping composes them into (a base and
+    // a combining mark the face has only precomposed). A lazy face answers from its table
+    // and is opened the first time the table covers a cluster, or the base of a two-scalar
+    // one; a face that cannot be opened covers nothing.
     [[nodiscard]] bool covers(Face& face, std::span<const char32_t> scalars) {
-        if (face.face == nullptr) {
+        if (!face.open()) {
             if (!face.loader) return false;
-            if (!cluster_covered(TableGlyphMap{face.coverage}, scalars)) return false;
+            const TableGlyphMap table{face.coverage};
+            const bool tabled = nominally_covered(table, scalars) ||
+                (scalars.size() == 2U && table(scalars[0]));
+            if (!tabled) return false;
             if (!open_lazy(face)) return false;
         }
-        const bool covered = cluster_covered(NativeGlyphMap{face.face}, scalars);
-        return covered;
+        const FontGlyphMap mapped{&face.font()};
+        if (nominally_covered(mapped, scalars)) return true;
+        if (scalars.size() != 2U) return false;
+        const bool composed = composes(face, scalars);
+        return composed;
     }
 
-    // Opens `bytes` as a face the engine can shape with, or returns null.
-    [[nodiscard]] FreeTypeFaceOwner open_native(std::span<const std::byte> bytes,
-                                                std::uint32_t face_index) const {
-        FT_Face native{};
-        const FT_Error opened = FT_New_Memory_Face(
-            library.value, reinterpret_cast<const FT_Byte*>(bytes.data()),
-            static_cast<FT_Long>(bytes.size()), static_cast<FT_Long>(face_index),
-            &native);
-        FreeTypeFaceOwner owner{native};
-        if (opened != 0 || native == nullptr || (*native).num_glyphs <= 0 ||
-            (*native).num_glyphs > maximum_glyphs ||
-            ((*native).face_flags & FT_FACE_FLAG_SCALABLE) == 0) {
-            owner.reset();
-            return owner;
+    // Whether shaping the two scalars in `face` gives no missing glyph (STXlib composes a
+    // canonical pair where the face has the composed character). Keeps the original text and
+    // offsets: only a bounded same-face coverage check.
+    [[nodiscard]] bool composes(Face& face, std::span<const char32_t> scalars) {
+        open_shaper(face);
+        coverage_scratch.characters.resize(scalars.size());
+        for (std::size_t index = 0U; index < scalars.size(); ++index) {
+            coverage_scratch.characters[index] = static_cast<std::uint32_t>(scalars[index]);
         }
-        const FT_Error charmap_selected = FT_Select_Charmap(native, FT_ENCODING_UNICODE);
-        if (charmap_selected != 0) owner.reset();
-        return owner;
+        stxlib::glyphs::TextRun run{};
+        run.characters = stxlib::View<std::uint32_t>(coverage_scratch.characters.data(), coverage_scratch.characters.size());
+        const stxlib::OperationStatus shaped = face.shaper.shape(run, coverage_scratch.glyphs);
+        require_stxlib(shaped, "STXlib refused a coverage shaping");
+        for (const stxlib::glyphs::ShapedGlyph& glyph : coverage_scratch.glyphs) {
+            if (glyph.glyph == 0U) return false;
+        }
+        return true;
+    }
+
+    // Opens the face's shaper if it is not open. Throws as require_stxlib does.
+    void open_shaper(Face& face) {
+        if (face.shaper_open) return;
+        const stxlib::OperationStatus opened = face.shaper.open((*face.typeface.typeface).typeface());
+        require_stxlib(opened, "STXlib refused a face's shaper");
+        face.shaper_open = true;
+    }
+
+    // The program's typeface of face `face_index` of `bytes`, kept alive by `owner`, when
+    // the engine can shape with it; an empty borrow when STXlib refuses the face or its font
+    // is not one the engine shapes with (shapeable_font). std::bad_alloc when the typeface
+    // table's storage runs out.
+    [[nodiscard]] static gui_forms::detail::TypefaceBorrow open_typeface(
+        std::span<const std::byte> bytes, const std::shared_ptr<const void>& owner, std::uint32_t face_index) {
+        gui_forms::detail::TypefaceBorrow borrow = gui_forms::detail::program_typeface(bytes, owner, face_index);
+        if (borrow.typeface == nullptr) return borrow;
+        const stxlib::glyphs::Font* const font = (*(*borrow.typeface).typeface()).font();
+        if (font == nullptr || !shapeable_font(*font)) {
+            gui_forms::detail::TypefaceBorrow refused{};
+            return refused;
+        }
+        return borrow;
+    }
+
+    // A face's name for resolve(): its registry family's name (a role face's role family, a
+    // family face's family). STXlib does not yet read a font's name table, so a fallback
+    // face, which has no registry family, is named by the empty string.
+    [[nodiscard]] static std::string registry_family_name(const Face& face) {
+        const FontFamilyRecord* const record = font_family_record(family_of(face));
+        std::string name{};
+        if (record != nullptr) name = std::string((*record).name);
+        return name;
     }
 
     // Loads and opens a lazy face. The loader is released once it has answered, so a face
     // that cannot be opened is not loaded again; a throwing loader is kept for a retry.
     [[nodiscard]] bool open_lazy(Face& face) {
         LazyFaceBytes loaded = face.loader();
-        FreeTypeFaceOwner native{};
+        gui_forms::detail::TypefaceBorrow typeface{};
         if (loaded.owner && !loaded.bytes.empty() && loaded.bytes.size() <= maximum_face_bytes) {
-            native = open_native(loaded.bytes, 0U);
+            typeface = open_typeface(loaded.bytes, loaded.owner, 0U);
         }
-        if (!native) {
+        if (typeface.typeface == nullptr) {
             face.loader = nullptr;
             return false;
         }
         std::string family{};
-        if (bounded_face_limit == 0) {
-            family = (*native).family_name != nullptr ? (*native).family_name : "unknown bundled face";
-        }
+        if (bounded_face_limit == 0) family = registry_family_name(face);
         // Nothing below throws.
         face.loader = nullptr;
         face.family = std::move(family);
         face.encoded = std::move(loaded.owner);
-        face.face = native.release();
+        face.bytes = loaded.bytes;
+        face.face_index = 0U;
+        face.typeface = std::move(typeface);
         return true;
     }
 
@@ -614,19 +692,18 @@ public:
             faces.size() >= maximum_faces || face_index > 255U) {
             return std::nullopt;
         }
-        FreeTypeFaceOwner pending_face = open_native(bytes, face_index);
-        if (!pending_face) return std::nullopt;
-        FT_Face native = pending_face.get();
-        // Retain native cleanup until the owning Face has been constructed.
-        // Family-name allocation and vector growth can both throw.
+        gui_forms::detail::TypefaceBorrow typeface = open_typeface(bytes, owned, face_index);
+        if (typeface.typeface == nullptr) return std::nullopt;
+        // Family-name allocation and vector growth can both throw; the borrow
+        // is released with this frame until the face holds it.
         const FontFaceId id{next_face_id++};
-        std::string family{};
-        if (bounded_face_limit == 0) {
-            family = (*native).family_name != nullptr ? (*native).family_name : "unknown bundled face";
-        }
-        faces.emplace_back(id, role, weight, italic, !role.has_value(),
-                           std::move(family), std::move(owned), native);
-        static_cast<void>(pending_face.release());
+        Face& face = faces.emplace_back(id, role, weight, italic, !role.has_value(), std::string{}, std::move(owned));
+        // Nothing below throws but the name's allocation, which leaves an
+        // unnamed face.
+        face.bytes = bytes;
+        face.face_index = face_index;
+        face.typeface = std::move(typeface);
+        if (bounded_face_limit == 0) face.family = registry_family_name(face);
         return id;
     }
 
@@ -637,59 +714,74 @@ public:
         if (!load || coverage.empty() || faces.size() >= maximum_faces) return std::nullopt;
         const FontFaceId id{next_face_id++};
         Face& face = faces.emplace_back(id, std::nullopt, weight, italic, true, std::string{},
-                                        std::shared_ptr<const void>{}, nullptr);
+                                        std::shared_ptr<const void>{});
         face.coverage = coverage;
         face.loader = std::move(load);
         return id;
     }
 
     [[nodiscard]] std::optional<FontFaceId> register_lazy_family_face(
-        BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
+        FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
         if (bounded_face_limit != 0) return std::nullopt;
-        if (family.value == 0U || !load || faces.size() >= maximum_faces) return std::nullopt;
+        if (family.value == 0U || !valid_font_family(family) || !load || faces.size() >= maximum_faces) {
+            return std::nullopt;
+        }
         const FontFaceId id{next_face_id++};
         Face& face = faces.emplace_back(id, std::nullopt, weight, italic, false, std::string{},
-                                        std::shared_ptr<const void>{}, nullptr);
+                                        std::shared_ptr<const void>{});
         face.loader = std::move(load);
-        face.named_family = family.value;
+        face.named_family = family;
         return id;
     }
 
-    struct CallFont final {
-        Face* face{};
-        hb_font_t* font{};
-    };
-    // Face and font borrows live for one synchronous shape call.
-    // Registration cannot run concurrently; the face vector stays unchanged.
+    // An open face of `family`, admitted by bounded engines too (prepared text's font banks),
+    // except for an application family, which only an unbounded engine registers.
+    [[nodiscard]] std::optional<FontFaceId> register_family_face(
+        FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> bytes,
+        std::shared_ptr<const void> owned, std::uint32_t face_index) {
+        if (family.value == 0U || !known_font_family(family)) return std::nullopt;
+        if (app_font_family_number(family) && bounded_face_limit != 0U) return std::nullopt;
+        const std::optional<FontFaceId> id =
+            register_face(std::nullopt, weight, italic, bytes, std::move(owned), face_index);
+        if (!id) return id;
+        // Nothing below throws: the face register_face appended becomes a family face.
+        Face& face = faces.back();
+        face.fallback = false;
+        face.named_family = family;
+        if (bounded_face_limit == 0) face.family = registry_family_name(face);
+        return id;
+    }
+
+    // One synchronous shape call's working storage: the scratch each run is shaped in (a
+    // reusable workspace lends its own). Registration cannot run concurrently; the face
+    // vector stays unchanged for the call.
     struct ShapeCall final {
-        std::array<CallFont, maximum_faces> fonts{};
-        std::size_t font_count{};
-        HarfBuzzBufferOwner buffer{nullptr, hb_buffer_destroy};
+        ShapeScratch scratch{};
     };
+
+    // A face's ink box of `glyph` at `size`: from the face's cache, or read once from its
+    // typeface (Typeface::ink_box) and kept. False when the typeface has no box for the
+    // glyph.
+    static bool glyph_ink_box(Face& face, const std::uint32_t glyph, const std::int64_t size,
+                              stxlib::glyphs::InkBox& box) {
+        const GlyphInkCache::Entry* const kept = face.ink_cache.find(glyph, size);
+        if (kept != nullptr) {
+            box = (*kept).box;
+            return (*kept).available;
+        }
+        stxlib::glyphs::Typeface& typeface = *(*face.typeface.typeface).typeface();
+        const stxlib::OperationStatus measured = typeface.ink_box(glyph, size, box);
+        const stxlib::ErrorRecord* const record = measured.error();
+        if (record != nullptr && (*record).kind() == stxlib::ErrorKind::out_of_memory) throw std::bad_alloc();
+        const bool available = measured.succeeded();
+        if (!available) box = stxlib::glyphs::InkBox{};
+        face.ink_cache.keep(glyph, size, available, box);
+        return available;
+    }
 
     // Bounded: the run is written into `bounded`'s arrays (Output is
     // BoundedShapedText or StagedShaping, which share these members) and
     // never grows them.
-    // A face's ink extents of `glyph` at its shaping size: from the face's
-    // cache, or read once through `font` (hb-ft, FT_Load_Glyph) and kept.
-    // A font other than the face's kept one (a diagnostic substitute) is
-    // read directly. False when HarfBuzz has no extents for the glyph.
-    static bool glyph_ink_extents(Face& face, hb_font_t* font, const hb_codepoint_t glyph,
-                                  hb_glyph_extents_t& extents) {
-        if (font != face.shaping_font.get()) {
-            const bool direct = hb_font_get_glyph_extents(font, glyph, &extents) != 0;
-            return direct;
-        }
-        const GlyphInkCache::Entry* const kept = face.ink_cache.find(glyph, face.shaping_size);
-        if (kept != nullptr) {
-            extents = (*kept).extents;
-            return (*kept).available;
-        }
-        const bool available = hb_font_get_glyph_extents(font, glyph, &extents) != 0;
-        face.ink_cache.keep(glyph, face.shaping_size, available, extents);
-        return available;
-    }
-
     template <bool Bounded = false, typename Output = BoundedShapedText>
     void append_run(ShapeCall& call, ShapedText& result, Face& face, std::string_view utf8,
                     Utf8Range range, FontSpec font, double run_origin,
@@ -703,131 +795,65 @@ public:
         ++diagnostics.append_calls;
         TextLayoutPhaseTimer append_timer(diagnostics, TextLayoutPhase::append_total);
 #endif
-        hb_font_t* hb_font = nullptr;
-        const std::size_t font_count = call.font_count;
-        for (std::size_t index = 0; index < font_count; ++index) {
-            const CallFont& entry = call.fonts[index];
-            if (entry.face == &face) {
-                hb_font = entry.font;
-                break;
-            }
-        }
-        if (hb_font == nullptr) {
-            if (font_count >= maximum_faces) { throw std::runtime_error("Shape face bound exceeded"); }
+        const std::int64_t size = shaping_size_of(font);
+        {
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-            TextLayoutPhaseTimer size_timer(diagnostics, TextLayoutPhase::ft_size);
+            TextLayoutPhaseTimer open_timer(diagnostics, TextLayoutPhase::shaper_open);
+            if (take_failure(TextLayoutFailure::shaper_open)) throw std::bad_alloc();
 #endif
-            const double bounded_size = std::clamp(font.size, 1.0, 4096.0);
-            const long long fixed_size = std::llround(bounded_size * 64.0);
-            const FT_F26Dot6 size = static_cast<FT_F26Dot6>(fixed_size);
-            const FT_Error size_set = FT_Set_Char_Size(face.face, 0, size, 72U, 72U);
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-            size_timer.stop();
-#endif
-            if (size_set != 0) { throw std::runtime_error("FreeType size setup failed"); }
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-            TextLayoutPhaseTimer font_timer(diagnostics, TextLayoutPhase::hb_font);
-#endif
-            // A diagnostic acquisition failure replaces the font this call
-            // binds, kept or not, and is never kept.
-            HarfBuzzFontOwner font_owner{nullptr, hb_font_destroy};
-            bool injected = false;
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-            if (take_failure(TextLayoutFailure::empty_font)) {
-                font_owner.reset(hb_font_get_empty());
-                injected = true;
-            } else if (take_failure(TextLayoutFailure::unbound_font)) {
-                font_owner.reset(hb_font_create(hb_face_get_empty()));
-                injected = true;
-            }
-#endif
-            if (injected || !face.shaping_font) {
-                if (!injected) font_owner.reset(hb_ft_font_create_referenced(face.face));
-                hb_font_t* const created = font_owner.get();
-                if (created == nullptr || created == hb_font_get_empty() ||
-                    hb_ft_font_get_ft_face(created) != face.face) { throw std::bad_alloc(); }
-                // ADR-004: advances are the outlines' own, unhinted at the logical
-                // size, so glyph positions agree with the light-hinted glyphs drawn
-                // at any device scale. Hinted logical-size advances drifted lines by
-                // up to 12 logical px. Vertical metrics are unchanged.
-                hb_ft_font_set_load_flags(created, FT_LOAD_NO_HINTING | FT_LOAD_NO_BITMAP);
-                face.shaping_font = std::move(font_owner);
-                face.shaping_size = size;
-            } else if (face.shaping_size != size) {
-                // The kept font takes its scale and advance cache from the
-                // FreeType size, which was just set.
-                hb_ft_font_changed(face.shaping_font.get());
-                face.shaping_size = size;
-            }
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-            font_timer.stop();
-#endif
-            hb_font = face.shaping_font.get();
-            CallFont& entry = call.fonts[font_count];
-            entry.face = &face;
-            entry.font = hb_font;
-            ++call.font_count;
+            open_shaper(face);
         }
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
         TextLayoutPhaseTimer buffer_timer(diagnostics, TextLayoutPhase::buffer_setup);
+        if (take_failure(TextLayoutFailure::glyph_storage)) throw std::bad_alloc();
 #endif
-        if (!call.buffer) {
-            hb_buffer_t* acquired = nullptr;
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-            if (take_failure(TextLayoutFailure::empty_buffer)) {
-                acquired = hb_buffer_get_empty();
-            } else
-#endif
-            {
-                acquired = hb_buffer_create();
+        // The run's characters and, for each, its cluster: the byte offset of its first byte
+        // in `utf8` (graphemes keep their offsets in either direction).
+        ShapeScratch& scratch = call.scratch;
+        scratch.characters.clear();
+        scratch.clusters.clear();
+        std::size_t offset = range.start.value();
+        while (offset < range.end.value()) {
+            const unsigned char first = static_cast<unsigned char>(utf8[offset]);
+            std::uint32_t value{};
+            std::size_t count{};
+            if (first < 0x80U) { value = first; count = 1U; }
+            else if ((first & 0xe0U) == 0xc0U) { value = first & 0x1fU; count = 2U; }
+            else if ((first & 0xf0U) == 0xe0U) { value = first & 0x0fU; count = 3U; }
+            else { value = first & 0x07U; count = 4U; }
+            for (std::size_t index = 1U; index < count; ++index) {
+                value = (value << 6U) | (static_cast<unsigned char>(utf8[offset + index]) & 0x3fU);
             }
-            call.buffer.reset(acquired);
+            scratch.characters.push_back(value);
+            scratch.clusters.push_back(static_cast<std::uint32_t>(offset));
+            offset += count;
         }
-        hb_buffer_t* buffer = call.buffer.get();
-        if (buffer == nullptr || !hb_buffer_allocation_successful(buffer)) { throw std::bad_alloc(); }
-        // Full reset restores flags, script/language, context and Unicode
-        // functions to newly-created defaults before establishing this run.
-        hb_buffer_reset(buffer);
-        hb_buffer_set_cluster_level(buffer,
-            HB_BUFFER_CLUSTER_LEVEL_MONOTONE_GRAPHEMES);
-        hb_buffer_add_utf8(buffer, utf8.data(), static_cast<int>(utf8.size()),
-                           static_cast<unsigned>(range.start.value()),
-                           static_cast<int>(range.end.value() -
-                                            range.start.value()));
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-        if (take_failure(TextLayoutFailure::after_add)) { throw std::bad_alloc(); }
-#endif
-        if (!hb_buffer_allocation_successful(buffer)) { throw std::bad_alloc(); }
-        hb_buffer_set_direction(buffer, rtl ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
-        hb_buffer_guess_segment_properties(buffer);
+        stxlib::glyphs::TextRun run_text{};
+        run_text.characters = stxlib::View<std::uint32_t>(scratch.characters.data(), scratch.characters.size());
+        run_text.clusters = stxlib::View<std::uint32_t>(scratch.clusters.data(), scratch.clusters.size());
+        run_text.direction = rtl ? stxlib::glyphs::TextDirection::right_to_left
+                                 : stxlib::glyphs::TextDirection::left_to_right;
+        // The script is the first character's that has one (as HarfBuzz guessed it); the
+        // language is the paragraph's.
+        run_text.script = 0U;
+        run_text.language = font.language.tag;
+        // ADR-004: advances are the outlines' own, unhinted at the logical size, so glyph
+        // positions agree with the light-hinted glyphs drawn at any device scale. Hinted
+        // logical-size advances drifted lines by up to 12 logical px.
+        run_text.size = size;
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
         buffer_timer.stop();
-        TextLayoutPhaseTimer shape_timer(diagnostics, TextLayoutPhase::hb_shape);
+        TextLayoutPhaseTimer shape_timer(diagnostics, TextLayoutPhase::shape);
+        if (take_failure(TextLayoutFailure::shape_refused)) throw std::runtime_error("Diagnostic shaping refusal");
 #endif
-        const char* const* shapers = nullptr;
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-        constexpr const char* unavailable_shapers[]{"diagnostic-unavailable-shaper", nullptr};
-        if (take_failure(TextLayoutFailure::no_shaper)) { shapers = unavailable_shapers; }
-#endif
-        const hb_bool_t shaped = hb_shape_full(hb_font, buffer, nullptr, 0U, shapers);
+        const stxlib::OperationStatus shaped = face.shaper.shape(run_text, scratch.glyphs);
+        require_stxlib(shaped, "STXlib shaping failed");
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
         if (take_failure(TextLayoutFailure::after_shape)) { throw std::bad_alloc(); }
-#endif
-        if (!hb_buffer_allocation_successful(buffer)) { throw std::bad_alloc(); }
-        if (!shaped) { throw std::runtime_error("HarfBuzz shaping failed"); }
-#if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
         shape_timer.stop();
         TextLayoutPhaseTimer output_timer(diagnostics, TextLayoutPhase::glyph_output);
 #endif
-
-        unsigned count{};
-        const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, &count);
-        unsigned position_count{};
-        const hb_glyph_position_t* positions =
-            hb_buffer_get_glyph_positions(buffer, &position_count);
-        if (position_count != count || (count != 0U && (infos == nullptr || positions == nullptr))) {
-            throw std::runtime_error("Incomplete HarfBuzz glyph records");
-        }
+        const std::size_t count = scratch.glyphs.count();
         ShapedFontRun run{};
         run.face = face.id;
         run.source_range = range;
@@ -843,21 +869,22 @@ public:
         }
         double pen_x = run_origin;
         double pen_y{};
-        double ink_ascent = font.size * 0.8, ink_descent = font.size * 0.2;
-        for (unsigned index = 0U; index < count; ++index) {
-            const float offset_x = static_cast<float>(positions[index].x_offset) / 64.0F;
-            const std::int64_t inverted_y_offset = -static_cast<std::int64_t>(positions[index].y_offset);
+        double ink_ascent = font.size * 0.8;
+        double ink_descent = font.size * 0.2;
+        for (std::size_t index = 0U; index < count; ++index) {
+            const stxlib::glyphs::ShapedGlyph& shaped_glyph = scratch.glyphs[index];
+            const float offset_x = static_cast<float>(shaped_glyph.x_offset) / 64.0F;
+            const std::int64_t inverted_y_offset = -static_cast<std::int64_t>(shaped_glyph.y_offset);
             const float offset_y = static_cast<float>(inverted_y_offset) / 64.0F;
-            float advance_x = static_cast<float>(positions[index].x_advance) / 64.0F;
-            const std::int64_t inverted_y_advance = -static_cast<std::int64_t>(positions[index].y_advance);
+            float advance_x = static_cast<float>(shaped_glyph.x_advance) / 64.0F;
+            const std::int64_t inverted_y_advance = -static_cast<std::int64_t>(shaped_glyph.y_advance);
             const float advance_y = static_cast<float>(inverted_y_advance) / 64.0F;
-            const bool cluster_end = index + 1U == count ||
-                infos[index + 1U].cluster != infos[index].cluster;
+            const bool cluster_end = index + 1U == count || scratch.glyphs[index + 1U].cluster != shaped_glyph.cluster;
             if (cluster_end && (index + 1U != count || add_trailing_spacing)) {
                 advance_x += static_cast<float>(font.letter_spacing);
             }
-            const ShapedGlyph glyph{GlyphId{infos[index].codepoint},
-                                  Utf8Offset(infos[index].cluster),
+            const ShapedGlyph glyph{GlyphId{shaped_glyph.glyph},
+                                  Utf8Offset(shaped_glyph.cluster),
                                   static_cast<float>(pen_x) + offset_x,
                                   static_cast<float>(pen_y) + offset_y,
                                   advance_x, advance_y};
@@ -866,10 +893,12 @@ public:
             } else {
                 run.glyphs.push_back(glyph);
             }
-            hb_glyph_extents_t extents{};
-            if (!face.role && glyph_ink_extents(face, hb_font, infos[index].codepoint, extents)) {
-                const double top = pen_y + offset_y - extents.y_bearing / 64.0;
-                const double bottom = top - extents.height / 64.0;
+            // A fallback face's line takes the glyphs' ink: the box is y upward from the
+            // baseline, the line y downward.
+            stxlib::glyphs::InkBox box{};
+            if (!face.role && glyph_ink_box(face, shaped_glyph.glyph, size, box)) {
+                const double top = pen_y + offset_y - static_cast<double>(box.top) / 64.0;
+                const double bottom = pen_y + offset_y - static_cast<double>(box.bottom) / 64.0;
                 ink_ascent = std::max(ink_ascent, -top);
                 ink_descent = std::max(ink_descent, bottom);
             }
@@ -877,16 +906,19 @@ public:
             pen_y += advance_y;
         }
         result.width = std::max(result.width, pen_x);
-        if ((*face.face).size != nullptr) {
-            // Fallback families reserve space for every mark in their repertoire.
-            // Use the actual shaped ink (including positioned marks) so an Arabic
-            // or CJK fallback does not double a compact control's line box.
-            const double ascent = face.role ? (*(*face.face).size).metrics.ascender / 64.0 : ink_ascent;
-            const double descent = face.role ? -(*(*face.face).size).metrics.descender / 64.0 : ink_descent;
-            result.ascent = std::max(result.ascent, ascent);
-            result.descent = std::max(result.descent, descent);
-            result.height = result.ascent + result.descent;
+        // Fallback families reserve space for every mark in their repertoire. Use the actual
+        // shaped ink (including positioned marks) so an Arabic or CJK fallback does not double
+        // a compact control's line box; a role face takes its sized line metrics.
+        double ascent = ink_ascent;
+        double descent = ink_descent;
+        if (face.role) {
+            const SizedLineMetrics sized = sized_line_metrics_of(face.font(), size);
+            ascent = static_cast<double>(sized.ascender) / 64.0;
+            descent = -static_cast<double>(sized.descender) / 64.0;
         }
+        result.ascent = std::max(result.ascent, ascent);
+        result.descent = std::max(result.descent, descent);
+        result.height = result.ascent + result.descent;
         if constexpr (Bounded) {
             (*bounded).runs[(*bounded).run_count] = BoundedFontRun{
                 .face = face.id, .source_range = range,
@@ -907,7 +939,7 @@ public:
         account_array(faces.capacity(), sizeof(Face), limit, bytes);
         account_array(maximum_faces, sizeof(Face*), limit, bytes);
         account_array(1U, sizeof(ShapeCall), limit, bytes);
-        account_array(1U, sizeof(BidiOwner), limit, bytes);
+        account_array(1U, sizeof(TextAnalysis), limit, bytes);
         account_array(1U, sizeof(ShapedText), limit, bytes);
         return bytes;
     }
@@ -916,20 +948,17 @@ public:
         std::size_t count = 0U;
         const FacePreference preference{font};
         for (Face& face : faces) {
-            // Bounded (prepared) engines shape with the role's faces only; family faces are
-            // never registered with them.
-            if (face.named_family != 0U) continue;
-            if (!face.role || *face.role == font.role ||
-                (font.role != FontRole::content && *face.role == FontRole::content)) {
-                if (count == candidates.size()) throw std::length_error("Face candidate capacity exceeded");
-                std::size_t position = count;
-                while (position != 0U && preference(&face, candidates[position - 1U])) {
-                    candidates[position] = candidates[position - 1U];
-                    --position;
-                }
-                candidates[position] = &face;
-                ++count;
+            // Bounded (prepared) engines hold open faces only, family faces among them
+            // (register_family_face), so admission opens nothing here.
+            if (!admits(face, font, preference.order)) continue;
+            if (count == candidates.size()) throw std::length_error("Face candidate capacity exceeded");
+            std::size_t position = count;
+            while (position != 0U && preference(&face, candidates[position - 1U])) {
+                candidates[position] = candidates[position - 1U];
+                --position;
             }
+            candidates[position] = &face;
+            ++count;
         }
         return count;
     }
@@ -941,12 +970,12 @@ public:
     // Overlap rule: the text, edges and the four scratch arrays share no
     // element (asserted in debug and sanitizer builds), the promise
     // fill_bounded_parts's restricted parameters make. `call` holds the
-    // call's fonts and HarfBuzz buffer (a buffer lent to it is reused);
-    // `arena`, when not null, serves the bidi analysis's SheenBidi
-    // allocations. Output is BoundedShapedText or StagedShaping.
+    // call's fonts and shaping scratch (a scratch lent to it is reused);
+    // `analysis` is the bidi analysis to reuse (the workspace's, or the
+    // bounded call's own). Output is BoundedShapedText or StagedShaping.
     template <typename Output>
     void fill_bounded_runs(const std::string_view utf8, const FontSpec font, ShapeCall& call,
-        StxSheenBidiArena* const arena,
+        TextAnalysis& analysis,
         const std::span<Face* const> candidates, const std::span<const std::size_t> edges,
         const std::span<char32_t> scalar_scratch, const std::span<WorkspaceFontSegment> segments,
         const std::span<WorkspaceDirectionRun> directions, const std::span<WorkspaceVisualSegment> visual,
@@ -957,7 +986,7 @@ public:
         const std::array<overlap::ByteRange, 2> read{
             overlap::ByteRange{utf8.data(), utf8.size()}, overlap::byte_range(edges)};
         overlap::require_disjoint_writes(written, read);
-        fill_bounded_parts(utf8.data(), utf8.size(), font, call, arena, candidates, edges.data(), edges.size(),
+        fill_bounded_parts(utf8.data(), utf8.size(), font, call, analysis, candidates, edges.data(), edges.size(),
             scalar_scratch.data(), scalar_scratch.size(), segments.data(), segments.size(), directions.data(),
             directions.size(), visual.data(), visual.size(), output);
     }
@@ -966,7 +995,7 @@ public:
     // through two of them (fill_bounded_runs checks it).
     template <typename Output>
     void fill_bounded_parts(const char* GUI_FORMS_RESTRICT text, const std::size_t text_size, const FontSpec font,
-        ShapeCall& call, StxSheenBidiArena* const arena, const std::span<Face* const> candidates, const std::size_t* GUI_FORMS_RESTRICT edge_data,
+        ShapeCall& call, TextAnalysis& analysis, const std::span<Face* const> candidates, const std::size_t* GUI_FORMS_RESTRICT edge_data,
         const std::size_t edge_count, char32_t* GUI_FORMS_RESTRICT scalar_data, const std::size_t scalar_size,
         WorkspaceFontSegment* GUI_FORMS_RESTRICT segment_data, const std::size_t segment_size,
         WorkspaceDirectionRun* GUI_FORMS_RESTRICT direction_data, const std::size_t direction_size,
@@ -1001,34 +1030,25 @@ public:
             }
         }
 
-        const SheenBidiArenaScope arena_scope(arena);
-        BidiOwner bidi{};
-        const SBCodepointSequence sequence{SBStringEncodingUTF8, utf8.data(), utf8.size()};
-        bidi.algorithm = SBAlgorithmCreate(&sequence);
-        if (bidi.algorithm == nullptr) throw std::bad_alloc();
+        // Each paragraph reordered as one line (stxlib::textlayout); the runs'
+        // offsets are bytes of the whole text.
+        const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+        const stxlib::TextView* const validated_text = validated.value();
+        if (validated_text == nullptr) throw std::runtime_error("Bounded bidi analysis of invalid UTF-8");
         std::size_t offset = 0;
         std::size_t direction_count = 0;
         while (offset < utf8.size()) {
-            bidi.paragraph = SBAlgorithmCreateParagraph(bidi.algorithm, offset, utf8.size() - offset, SBLevelDefaultLTR);
-            if (bidi.paragraph == nullptr) throw std::bad_alloc();
-            const std::size_t length = SBParagraphGetLength(bidi.paragraph);
-            if (length == 0 || length > utf8.size() - offset) throw std::runtime_error("Invalid bounded bidi paragraph");
-            bidi.line = SBParagraphCreateLine(bidi.paragraph, offset, length);
-            if (bidi.line == nullptr) throw std::bad_alloc();
-            const std::size_t count = SBLineGetRunCount(bidi.line);
+            const std::size_t length = analyse_paragraph_line(*validated_text, offset, analysis);
+            const stxlib::View<stxlib::textlayout::BidiRun> runs = analysis.line.runs();
+            const std::size_t count = runs.count();
             if (count > scalar_capacity - direction_count) throw std::length_error("Direction capacity exceeded");
-            const SBRun* runs = SBLineGetRunsPtr(bidi.line);
             for (std::size_t index = 0; index < count; ++index) {
-                const SBRun& run = runs[index];
-                if (run.offset > utf8.size() || run.length > utf8.size() - run.offset) {
-                    throw std::runtime_error("Invalid bounded bidi run");
-                }
+                const stxlib::textlayout::BidiRun& run = runs[index];
                 directions[direction_count] = WorkspaceDirectionRun{
                     .range = {Utf8Offset(run.offset), Utf8Offset(run.offset + run.length)}, .rtl = (run.level & 1U) != 0};
                 ++direction_count;
             }
             offset += length;
-            bidi.clear_line();
         }
         std::size_t visual_count = 0;
         for (std::size_t index = 0; index < direction_count; ++index) {
@@ -1109,16 +1129,34 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_fallback_typeface(
 }
 
 std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_family_typeface(
-    BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
+    FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
     const std::optional<FontFaceId> id =
         (*impl_).register_lazy_family_face(family, weight, italic, std::move(load));
     return id;
 }
 
+std::optional<FontFaceId> HarfBuzzFontEngine::register_owned_family_typeface(
+    FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> encoded,
+    std::shared_ptr<const void> owner, std::uint32_t face_index) {
+    const std::optional<FontFaceId> id =
+        (*impl_).register_family_face(family, weight, italic, encoded, std::move(owner), face_index);
+    return id;
+}
+
+bool HarfBuzzFontEngine::set_face_language(const FontFaceId id, const TextLanguage language) noexcept {
+    for (Impl::Face& face : (*impl_).faces) {
+        if (face.id != id) continue;
+        if (face.role || face.named_family.value != 0U) return false;
+        face.language = language;
+        return true;
+    }
+    return false;
+}
+
 std::size_t HarfBuzzFontEngine::opened_face_count() const noexcept {
     std::size_t count = 0U;
     for (const Impl::Face& face : (*impl_).faces) {
-        if (face.face != nullptr) ++count;
+        if (face.open()) ++count;
     }
     return count;
 }
@@ -1247,12 +1285,25 @@ ShapedText HarfBuzzFontEngine::shape(std::string_view utf8, FontSpec font) {
 #endif
     double origin{};
     Impl::ShapeCall call{};
-    for (std::size_t index = 0U; index < visual.size(); ++index) {
-        const VisualSegment& segment = visual[index];
-        const double before = result.width;
-        (*impl_).append_run(call, result, *segment.face, utf8, segment.range, font, origin,
-                          index + 1U != visual.size(), segment.rtl);
-        origin += std::max(0.0, result.width - before);
+    std::size_t index = 0U;
+    try {
+        for (; index < visual.size(); ++index) {
+            const VisualSegment& segment = visual[index];
+            const double before = result.width;
+            (*impl_).append_run(call, result, *segment.face, utf8, segment.range, font, origin,
+                              index + 1U != visual.size(), segment.rtl);
+            origin += std::max(0.0, result.width - before);
+        }
+    } catch (const std::runtime_error&) {
+        // A run an application family's face failed to shape (STXlib refused it)
+        // quarantines that family, and the text is shaped again without it. Each retry
+        // quarantines one more family of the font's order, so retries end; a failure in a
+        // bundled face is the engine's and propagates.
+        const FontFamilyId failed = Impl::family_of(*visual[index].face);
+        if (!app_font_family_number(failed)) throw;
+        quarantine_app_font_family(failed, AppFontQuarantine::shaping_failed);
+        ShapedText retried = shape(utf8, font);
+        return retried;
     }
     return result;
 }
@@ -1335,7 +1386,8 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_bounded(
     const std::span<WorkspaceVisualSegment> visual_scratch(visual.get(), visual_capacity);
     const std::span<Impl::Face* const> selected_faces(candidates.data(), candidate_count);
     Impl::ShapeCall call{};
-    (*impl_).fill_bounded_runs(utf8, font, call, nullptr, selected_faces, edges, scalar_scratch,
+    TextAnalysis analysis{};
+    (*impl_).fill_bounded_runs(utf8, font, call, analysis, selected_faces, edges, scalar_scratch,
         segment_scratch, direction_scratch, visual_scratch, output);
     return owner;
 }
@@ -1345,6 +1397,29 @@ void HarfBuzzFontEngine::prepare_workspace(BoundedShapeWorkspace& workspace,
     const std::size_t external_bytes = (*impl_).workspace_external_bytes(limits.workspace_bytes);
     workspace.prepare(limits, external_bytes);
 }
+
+namespace {
+
+// Lends a reusable or bounded workspace's shaping scratch to one shape call and takes
+// it back when the call ends, also when shaping throws. Moving a scratch
+// moves its storage: nothing is allocated.
+class ScratchLoan final {
+public:
+    ScratchLoan(ShapeScratch& home, ShapeScratch& borrower) noexcept
+        : home_(home), borrower_(borrower) {
+        borrower_ = std::move(home_);
+    }
+    ~ScratchLoan() { home_ = std::move(borrower_); }
+    ScratchLoan(const ScratchLoan&) = delete;
+    ScratchLoan& operator=(const ScratchLoan&) = delete;
+
+private:
+    ShapeScratch& home_;
+    ShapeScratch& borrower_;
+};
+
+
+} // namespace
 
 std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
     const std::string_view utf8, const FontSpec font, const ShapeStorageLimits& limits,
@@ -1395,9 +1470,13 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
             staged.run_capacity = limits.runs;
             staged.glyph_capacity = limits.glyphs;
             try {
+                // The workspace's scratch and analysis, lent for the call
+                // (back with the loan's end, also on a throw): a prepared,
+                // warmed workspace allocates nothing here.
                 Impl::ShapeCall call{};
-                (*impl_).fill_bounded_runs(utf8, font, call, nullptr, selected, edges, scalars, segments, directions,
-                                           visual, staged);
+                const ScratchLoan loan(workspace.scratch_, call.scratch);
+                (*impl_).fill_bounded_runs(utf8, font, call, workspace.analysis_, selected, edges, scalars, segments,
+                                           directions, visual, staged);
             } catch (...) {
                 staged.run_capacity = run_capacity;
                 staged.glyph_capacity = glyph_capacity;
@@ -1427,24 +1506,7 @@ GlyphSource HarfBuzzFontEngine::glyph_source() const noexcept {
 namespace {
 
 // Defined with the line metrics below.
-PrimaryLineMetrics sized_line_metrics(FT_Face face, FontFaceId id, FontSpec font);
-
-// Lends a reusable workspace's HarfBuzz buffer to one shape call and takes
-// it back when the call ends, also when shaping throws.
-class BufferLoan final {
-public:
-    BufferLoan(HarfBuzzBufferOwner& home, HarfBuzzBufferOwner& borrower) noexcept
-        : home_(home), borrower_(borrower) {
-        borrower_ = std::move(home_);
-    }
-    ~BufferLoan() { home_ = std::move(borrower_); }
-    BufferLoan(const BufferLoan&) = delete;
-    BufferLoan& operator=(const BufferLoan&) = delete;
-
-private:
-    HarfBuzzBufferOwner& home_;
-    HarfBuzzBufferOwner& borrower_;
-};
+PrimaryLineMetrics sized_line_metrics(const stxlib::glyphs::Font& font, FontFaceId id, FontSpec font_spec);
 
 [[nodiscard]] TextExtent refused_extent() noexcept {
     TextExtent refused{};
@@ -1491,9 +1553,9 @@ TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, c
         const std::span<WorkspaceVisualSegment> visual(workspace.visual_.data(), scalar_count * 2U);
         const std::span<Impl::Face* const> selected(candidates.data(), candidate_count);
         Impl::ShapeCall call{};
-        const BufferLoan loan(workspace.buffer_, call.buffer);
+        const ScratchLoan loan(workspace.scratch_, call.scratch);
         try {
-            (*impl_).fill_bounded_runs(utf8, font, call, workspace.arena_.get(), selected, edges, scalars, segments,
+            (*impl_).fill_bounded_runs(utf8, font, call, workspace.analysis_, selected, edges, scalars, segments,
                                        directions, visual, staged);
         } catch (const std::length_error&) {
             // More runs or glyphs than the workspace stages.
@@ -1508,7 +1570,7 @@ TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, c
     extent.logical_size = {staged.width, staged.height};
     extent.ascent = staged.ascent;
     extent.descent = staged.descent;
-    extent.line_gap = sized_line_metrics(primary.face, primary.id, font).line_gap_device;
+    extent.line_gap = sized_line_metrics(primary.font(), primary.id, font).line_gap_device;
     extent.status = staged.missing_primary_face
         ? TextResolutionStatus::missing_primary_face
         : staged.missing_clusters != 0U
@@ -1516,15 +1578,6 @@ TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, c
             : TextResolutionStatus::exact;
     workspace.keep_shaping(utf8.size(), generation);
     return extent;
-}
-
-NativeAllocationCounts HarfBuzzFontEngine::thread_native_allocations() noexcept {
-    NativeAllocationCounts counts{};
-    counts.freetype = freetype_allocations;
-    counts.harfbuzz = stx_text_harfbuzz_allocations();
-    counts.sheenbidi_heap = stx_text_sheenbidi_heap_allocations();
-    counts.sheenbidi_arena = stx_text_sheenbidi_arena_allocations();
-    return counts;
 }
 
 std::size_t HarfBuzzFontEngine::face_count() const noexcept {
@@ -1535,14 +1588,12 @@ std::size_t HarfBuzzFontEngine::face_count() const noexcept {
 std::optional<FontFaceSource> HarfBuzzFontEngine::face_source(const FontFaceId id) const {
     for (const Impl::Face& face : (*impl_).faces) {
         if (face.id != id) continue;
-        const FT_Face native = face.face;
-        // Every face is opened from memory, so its stream base is the bytes.
-        if (native == nullptr || (*native).stream == nullptr || (*(*native).stream).base == nullptr) return std::nullopt;
+        if (!face.open()) return std::nullopt;
         FontFaceSource source{};
-        source.bytes = std::span<const std::byte>(reinterpret_cast<const std::byte*>((*(*native).stream).base),
-                                                  static_cast<std::size_t>((*(*native).stream).size));
+        source.bytes = face.bytes;
         source.owner = face.encoded;
-        source.face_index = static_cast<std::uint32_t>((*native).face_index & 0xFFFF);
+        source.face_index = face.face_index;
+        source.family = face.named_family;
         return source;
     }
     return std::nullopt;
@@ -1564,20 +1615,15 @@ void HarfBuzzFontEngine::set_diagnostic_failure(TextLayoutFailure failure, std::
 
 namespace {
 
-// The one line-height rule's inputs for a face at `font`'s size: its
-// ascender, descender and line gap from FreeType's size metrics, which round
-// the face's hhea values to whole pixels (ascender up, descender down, line
-// height to nearest). The gap is what the rounded line height adds to the
-// rounded ascender and descender, never negative. Prepared text and
+// The one line-height rule's inputs for a face at `font_spec`'s size: its
+// ascender, descender and line gap from the face's sized line metrics
+// (sized_line_metrics_of: FreeType's, ascender rounded up, descender down,
+// line height to nearest). The gap is what the rounded line height adds to
+// the rounded ascender and descender, never negative. Prepared text and
 // resolve() (TextBox's line box) both read it, so they agree for faces with
-// a line gap. Throws when FreeType cannot size the face.
-PrimaryLineMetrics sized_line_metrics(FT_Face face, FontFaceId id, const FontSpec font) {
-    const double bounded_size = std::clamp(font.size, 1.0, 4096.0);
-    const long long fixed_size = std::llround(bounded_size * 64.0);
-    const FT_F26Dot6 size = static_cast<FT_F26Dot6>(fixed_size);
-    const FT_Error sized = FT_Set_Char_Size(face, 0, size, 72U, 72U);
-    if (sized != 0 || (*face).size == nullptr) throw std::runtime_error("Primary line size setup failed");
-    const FT_Size_Metrics& metrics = (*(*face).size).metrics;
+// a line gap.
+PrimaryLineMetrics sized_line_metrics(const stxlib::glyphs::Font& font, FontFaceId id, const FontSpec font_spec) {
+    const SizedLineMetrics metrics = sized_line_metrics_of(font, shaping_size_of(font_spec));
     PrimaryLineMetrics result{};
     result.face = id;
     result.ascent_device = static_cast<double>(metrics.ascender) / 64.0;
@@ -1592,19 +1638,28 @@ PrimaryLineMetrics sized_line_metrics(FT_Face face, FontFaceId id, const FontSpe
 
 std::optional<PrimaryLineMetrics> HarfBuzzFontEngine::primary_line_metrics(const FontSpec font) {
     if (!valid_font_spec(font)) throw std::invalid_argument("Invalid primary line font");
-    // A named family's exact face first, opened if it has not been; otherwise the role's.
-    if (font.family.value != 0U) {
+    // The first family of the font's order with an openable face: its face nearest the weight
+    // and slant (stage F decision 7), opened if it has not been. Otherwise the role's exact face.
+    const FontFamilyOrder order = font_family_order(font);
+    for (std::size_t index = 0U; index < order.count; ++index) {
+        Impl::Face* nearest = nullptr;
         for (Impl::Face& face : (*impl_).faces) {
-            if (face.named_family != font.family.value || face.weight != font.weight ||
-                face.italic != font.italic) continue;
-            if (face.face == nullptr && (!face.loader || !(*impl_).open_lazy(face))) continue;
-            const PrimaryLineMetrics result = sized_line_metrics(face.face, face.id, font);
-            return result;
+            if (!(Impl::family_of(face) == order.families[index])) continue;
+            if (!face.open() && (!face.loader || !(*impl_).open_lazy(face))) continue;
+            if (nearest == nullptr ||
+                font_face_nearer(face.weight, face.italic, (*nearest).weight, (*nearest).italic, font.weight,
+                                 font.italic)) {
+                nearest = &face;
+            }
         }
+        if (nearest == nullptr) continue;
+        const PrimaryLineMetrics result = sized_line_metrics((*nearest).font(), (*nearest).id, font);
+        return result;
     }
     for (Impl::Face& face : (*impl_).faces) {
         if (!face.role || *face.role != font.role || face.weight != font.weight || face.italic != font.italic) continue;
-        const PrimaryLineMetrics result = sized_line_metrics(face.face, face.id, font);
+        if (!face.open()) continue;
+        const PrimaryLineMetrics result = sized_line_metrics(face.font(), face.id, font);
         return result;
     }
     return std::nullopt;
@@ -1612,34 +1667,35 @@ std::optional<PrimaryLineMetrics> HarfBuzzFontEngine::primary_line_metrics(const
 
 namespace {
 
-// The face's design metrics at `font`'s size: FreeType's face ascender,
-// descender and height (from hhea, or OS/2's typographic values where hhea
-// has none) and OS/2's x-height, in font units, scaled by size over units
-// per em, unrounded. The gap is what the height adds to the ascender and
-// descender, never negative.
-FontVerticalMetrics design_line_metrics(FT_Face face, const FontSpec font) {
-    const double units_per_em = static_cast<double>((*face).units_per_EM);
+// The face's design metrics at `font_spec`'s size: the font's ascender,
+// descender and height (STXlib picks them by FreeType's rule: OS/2's
+// typographic values when the font says to use them, else hhea's, else
+// OS/2's) and OS/2's x-height (0 before version 2), in font units, scaled by
+// size over units per em, unrounded. The gap is what the height adds to the
+// ascender and descender, never negative.
+FontVerticalMetrics design_line_metrics(const stxlib::glyphs::Font& font, const FontSpec font_spec) {
+    const double units_per_em = static_cast<double>(font.units_per_em);
     FontVerticalMetrics result{};
     if (units_per_em <= 0.0) return result;
-    const double scale = std::clamp(font.size, 1.0, 4096.0) / units_per_em;
-    const double ascent = static_cast<double>((*face).ascender);
-    const double descent = -static_cast<double>((*face).descender);
-    const double height = static_cast<double>((*face).height);
+    const double scale = std::clamp(font_spec.size, 1.0, 4096.0) / units_per_em;
+    const double ascent = static_cast<double>(font.ascender);
+    const double descent = -static_cast<double>(font.descender);
+    const double height = static_cast<double>(font.height);
     result.ascent = ascent * scale;
     result.descent = descent * scale;
     result.line_gap = std::max(0.0, height - ascent - descent) * scale;
-    const TT_OS2* const os2 = static_cast<const TT_OS2*>(FT_Get_Sfnt_Table(face, FT_SFNT_OS2));
-    if (os2 != nullptr && (*os2).version != 0xFFFFU && (*os2).version >= 2U) {
-        result.x_height = std::max(0.0, static_cast<double>((*os2).sxHeight) * scale);
-    }
+    result.x_height = std::max(0.0, static_cast<double>(font.x_height) * scale);
     return result;
 }
 
-[[nodiscard]] LineBreakOpportunity line_break_opportunity(unsigned char decision) noexcept {
+// The opportunity a stxlib::textlayout decision names (compared by name:
+// the two enumerations need not share values).
+[[nodiscard]] LineBreakOpportunity line_break_opportunity(const stxlib::textlayout::LineBreak decision) noexcept {
     switch (decision) {
-    case LINEBREAK_MUSTBREAK: return LineBreakOpportunity::mandatory;
-    case LINEBREAK_ALLOWBREAK: return LineBreakOpportunity::allowed;
-    case LINEBREAK_INSIDEACHAR: return LineBreakOpportunity::inside_character;
+    case stxlib::textlayout::LineBreak::mandatory: return LineBreakOpportunity::mandatory;
+    case stxlib::textlayout::LineBreak::allowed: return LineBreakOpportunity::allowed;
+    case stxlib::textlayout::LineBreak::inside_character: return LineBreakOpportunity::inside_character;
+    case stxlib::textlayout::LineBreak::prohibited:
     default: return LineBreakOpportunity::prohibited;
     }
 }
@@ -1648,25 +1704,41 @@ FontVerticalMetrics design_line_metrics(FT_Face face, const FontSpec font) {
 
 TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept {
-    if (opportunities.size() != utf8.size() || !validate_utf8(utf8).valid()) {
-        return TextResolutionStatus::invalid_request;
-    }
+    if (opportunities.size() != utf8.size()) return TextResolutionStatus::invalid_request;
+    const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
+    const stxlib::TextView* const text = validated.value();
+    if (text == nullptr) return TextResolutionStatus::invalid_request;
     if (utf8.empty()) return TextResolutionStatus::exact;
-    // libunibreak writes one char per input byte. The caller's storage is
-    // one byte per entry, so it takes the decisions in place, and each is
-    // then read back as a byte and replaced by its opportunity.
-    static_assert(sizeof(LineBreakOpportunity) == sizeof(char));
-    char* const decisions = reinterpret_cast<char*>(opportunities.data());
-    const utf8_t* const source = reinterpret_cast<const utf8_t*>(utf8.data());
-    set_linebreaks_utf8(source, utf8.size(), "-strict", decisions);
+    // The caller's storage holds the library's decisions during the call
+    // (no allocation): its bytes are reused as LineBreak objects, which
+    // find_line_breaks writes, and each is then read and replaced by the
+    // LineBreakOpportunity it names. Both are one byte, trivially
+    // destructible, so the reuse ends no lifetime that needed ending; the
+    // replacements transparently replace the caller's objects.
+    using Decision = stxlib::textlayout::LineBreak;
+    static_assert(sizeof(Decision) == sizeof(LineBreakOpportunity));
+    static_assert(alignof(Decision) == alignof(LineBreakOpportunity));
+    static_assert(std::is_trivially_destructible_v<Decision>);
+    static_assert(std::is_trivially_destructible_v<LineBreakOpportunity>);
     const std::size_t size = utf8.size();
+    std::byte* const storage = reinterpret_cast<std::byte*>(opportunities.data());
+    Decision* const decisions = ::new (static_cast<void*>(storage)) Decision[size];
+    const stxlib::MutableView<Decision> output(decisions, size);
+    // The whole text is one piece, as libunibreak read it: its end is
+    // mandatory (LB3), so no forcing is needed. CJ is NS, which is what
+    // libunibreak's "-strict" gave.
+    const stxlib::OperationStatus found = stxlib::textlayout::find_line_breaks(output, *text);
+    // find_line_breaks fails only when the counts differ, which they do not;
+    // were it to fail, nothing it wrote is read and every entry is
+    // prohibited.
+    const bool written = !found.failed();
     for (std::size_t index = 0U; index < size; ++index) {
-        const unsigned char decision = static_cast<unsigned char>(decisions[index]);
-        opportunities[index] = line_break_opportunity(decision);
+        Decision decision = Decision::prohibited;
+        if (written) decision = decisions[index];
+        const LineBreakOpportunity opportunity = line_break_opportunity(decision);
+        ::new (static_cast<void*>(storage + index)) LineBreakOpportunity(opportunity);
     }
-    // The end of the text ends its last line, whether or not it ends in a
-    // line terminator (libunibreak reports LINEBREAK_INDETERMINATE there).
-    opportunities[size - 1U] = LineBreakOpportunity::mandatory;
+    if (!written) return TextResolutionStatus::invalid_request;
     return TextResolutionStatus::exact;
 }
 
@@ -1715,6 +1787,7 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
         return result;
     }
     result.primary_family = (*candidates.front()).family;
+    const FontFamilyOrder order = font_family_order(font);
     const ShapedText shaped = shape(utf8, font);
     result.logical_size = {shaped.width, shaped.height};
     result.ascent = shaped.ascent;
@@ -1722,8 +1795,8 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
     // The line gap is the preferred primary face's, by the rule prepared
     // text uses (sized_line_metrics); the shaped height carries none.
     const Impl::Face& primary = *candidates.front();
-    result.line_gap = sized_line_metrics(primary.face, primary.id, font).line_gap_device;
-    result.design_metrics = design_line_metrics(primary.face, font);
+    result.line_gap = sized_line_metrics(primary.font(), primary.id, font).line_gap_device;
+    result.design_metrics.set(design_line_metrics(primary.font(), font));
     result.missing_clusters = shaped.missing_clusters;
     result.status = shaped.missing_primary_face
         ? TextResolutionStatus::missing_primary_face
@@ -1740,8 +1813,7 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
             }
         }
         if (resolved == nullptr) continue;
-        const bool family_face =
-            (*resolved).named_family != 0U && (*resolved).named_family == font.family.value;
+        const bool family_face = font_family_position(order, Impl::family_of(*resolved)).present();
         result.runs.push_back({
             run.source_range.start.value(),
             run.source_range.end.value() - run.source_range.start.value(),

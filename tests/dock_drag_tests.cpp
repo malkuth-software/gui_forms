@@ -22,6 +22,7 @@
 #include "gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp"
 #include "gui_forms/docking/dock_layout/dock_layout.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -35,6 +36,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/fake_framebuffer.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -283,13 +285,13 @@ void geometry() {
     const std::array<DockDropPane, 1> panes{DockDropPane{DockNodeId{7U}, pane}};
     const Rect site{0.0, 0.0, 400.0, 300.0};
     const DockDropHit tile_hit = hit_dock_drop(centre(tiles[static_cast<std::size_t>(DockDropZone::top)]), site, panes, 1.0);
-    require(tile_hit.pane == 0U && tile_hit.zone == DockDropZone::top, "a tile wins over the band it lies in");
+    require(tile_hit.pane == stxlib::Optional<std::size_t>::of(0U) && tile_hit.zone == DockDropZone::top, "a tile wins over the band it lies in");
     const DockDropHit edge = hit_dock_drop({3.0, 150.0}, site, panes, 1.0);
     require(edge.edge && edge.zone == DockDropZone::left, "the window's edge band is a global target");
     const DockDropHit tile_edge = hit_dock_drop(centre(dock_edge_tiles(site, 1.0)[0]), site, panes, 1.0);
     require(tile_edge.edge && tile_edge.zone == DockDropZone::top, "an edge's tile is its global target");
     const DockDropHit gap = hit_dock_drop({50.0, 50.0}, site, panes, 1.0);
-    require(gap.over_site && !gap.edge && !gap.pane, "a point between panes is over the site, on no target");
+    require(gap.over_site && !gap.edge && gap.pane.absent(), "a point between panes is over the site, on no target");
     require(!hit_dock_drop({500.0, 50.0}, site, panes, 1.0).over_site, "outside the site there is nothing");
 }
 
@@ -551,7 +553,7 @@ std::size_t run_frames(Window& window, ManualTime& time) {
         require(result.motion_clock_ticks <= 1U,
                 "the drag's motion runs on the clock's one request");
         frames += result.motion_clock_ticks;
-        if (!result.next_wake) break;
+        if (result.next_wake.absent()) break;
     }
     return frames;
 }
@@ -561,10 +563,12 @@ std::size_t run_frames(Window& window, ManualTime& time) {
 // shrink's on the same request; afterwards nothing is scheduled. Under
 // reduced motion and in an occluded window there are none at all.
 void stamp_frames() {
+    // Declared before the fixture: the window's clock reads it until the
+    // window is gone (B-gf-tests-04-F2).
+    ManualTime time{};
     std::unique_ptr<Fixture> fixture = make_fixture();
     DockSite& site = *(*fixture).site;
     Window& window = *(*fixture).window;
-    ManualTime time{};
     window.motion_clock().set_time_source(&time);
     // The press arms a request of its own (not the clock's); count from
     // after it.
@@ -706,8 +710,8 @@ void keyboard_reaches_every_target() {
     for (double y = 0.5; y < 500.0; y += 2.0) {
         for (double x = 0.5; x < 800.0; x += 2.0) {
             const DockDropHit hit = hit_dock_drop({x, y}, surface, pane_copy, 1.0);
-            const std::optional<std::size_t> found = find_dock_drop_target(targets, pane_copy, hit);
-            if (found) pointer.insert(key_of(targets[*found]));
+            const stxlib::Optional<std::size_t> found = find_dock_drop_target(targets, pane_copy, hit);
+            if (found.present()) pointer.insert(key_of(targets[(*found.value())]));
         }
     }
     // The keyboard: from every Tab stop, every arrow.
@@ -912,6 +916,54 @@ void stamp_picture() {
     window.set_framebuffer_painter(nullptr);
 }
 
+// The drop-cue pulse (roadmap row 2.6): painted over a selected target, it
+// is enlisted on the motion clock; a frame after the target goes drops it;
+// under reduced motion it is painted still and never enlisted.
+void drop_pulse() {
+    // Declared before the fixture: the window's clock reads it until the
+    // window is gone (B-gf-tests-04-F2).
+    ManualTime time{};
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockSite& site = *(*fixture).site;
+    Window& window = *(*fixture).window;
+    window.motion_clock().set_time_source(&time);
+    require(!site.drop_pulse_running(), "no drag, no pulse");
+    const Rect pane = stack_bounds(site, stack_of(*(*fixture).workspace, "properties"));
+    drag_caption(*fixture, "output", centre(pane));
+    require(site.drag_target().has_value(), "the pane's middle is a target");
+    test_support::CountingPainter painter{};
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 800.0, 500.0}));
+    require(site.drop_pulse_effect() != nullptr && (*site.drop_pulse_effect()).entry() != nullptr,
+            "the target's paint attaches the pulse");
+    require(site.drop_pulse_running(), "and enlists it on the motion clock");
+    const Rect documents = stack_bounds(site, stack_of(*(*fixture).workspace, "doc.second"));
+    move(window, centre(documents));
+    require(!site.drag_target().has_value(), "Output is no document: no target there");
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 800.0, 500.0}));
+    for (int frame = 0; frame < 4; ++frame) {
+        time.time += std::chrono::milliseconds(40);
+        static_cast<void>(window.poll_frame_schedule(time.time));
+    }
+    require(!site.drop_pulse_running(), "with no target the pulse leaves the clock");
+    cancel_after(*fixture);
+
+    std::unique_ptr<Fixture> reduced = make_fixture();
+    Window& calm = *(*reduced).window;
+    PresentationSettings settings = calm.presentation_settings();
+    settings.reduced_motion = true;
+    calm.set_presentation_settings(settings);
+    calm.perform_layout();
+    const Rect calm_pane = stack_bounds(*(*reduced).site, stack_of(*(*reduced).workspace, "properties"));
+    drag_caption(*reduced, "output", centre(calm_pane));
+    test_support::CountingPainter still{};
+    static_cast<void>(calm.paint(still, Rect{0.0, 0.0, 800.0, 500.0}));
+    const EffectInstance* const calm_pulse = (*(*reduced).site).drop_pulse_effect();
+    require(calm_pulse != nullptr && (*calm_pulse).entry() != nullptr && (*calm_pulse).counters().ticks == 0U,
+            "under reduced motion the pulse is painted still");
+    require(!(*(*reduced).site).drop_pulse_running(), "and never enlisted");
+    require(key(calm, PhysicalKey::escape), "Escape is taken");
+}
+
 } // namespace
 
 // Audit N76: a workspace that goes away while the stamp settles leaves no
@@ -950,9 +1002,10 @@ int main() {
     documents_by_recent_use();
     auto_hide_meets_dragging();
     stamp_picture();
+    drop_pulse();
     settling_ends_without_a_workspace();
     std::cout << "DockSite dragging: geometry, the target table, threshold, Escape, capture loss, deactivation, "
                  "layout changes, invalid drops, Ctrl, one transaction per drop, the stamp and its frames, tab drags, the "
-                 "keyboard move mode and restrictions passed\n";
+                 "keyboard move mode, restrictions and the drop pulse passed\n";
     return EXIT_SUCCESS;
 }

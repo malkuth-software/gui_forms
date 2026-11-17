@@ -1,0 +1,14 @@
+compiled
+rule 0 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material mask masks=2 colours=[#000000ff]
+  material mask_modes mode(1) mode(2) colours=[#000000ff]
+  material mask_composites composite(1) colours=[#000000ff]
+rule 1 theme_sheet type=track_bar part=track
+  label track-bar::part(track)
+  decl primitive = name material
+  material mask mask colours=[#000000ff]
+  material mask_sizes sizes=1 size(1) lengths=[8] colours=[#000000ff]
+  material mask_repeats repeats=1 repeat(2) colours=[#000000ff]
+  material mask_positions positions=1 lengths=[0 0] colours=[#000000ff]

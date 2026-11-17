@@ -79,7 +79,12 @@ void test_shared_font_lifetime() {
         weak = bytes;
         require(engine.register_shared_typeface(FontRole::content, 400, false, bytes).has_value(),
                 "shared immutable font registers");
-        require(bytes.use_count() == 2, "font engine shares caller bytes without a copy");
+        // The engine keeps the caller's vector, never a copy of it: the face
+        // holds one reference, and the program's typeface of those bytes
+        // (program_typeface, shared by every executor that draws them, so it
+        // keeps its bytes alive itself) holds another. A copy would leave the
+        // caller's reference the only one.
+        require(bytes.use_count() > 1, "font engine shares caller bytes without a copy");
         bytes.reset();
         require(!weak.expired() && engine.shape("office", {FontRole::content, 16, 400, false}).width > 0,
                 "shared font remains valid after caller releases ownership");
@@ -99,7 +104,9 @@ void test_owned_font_view_lifetime() {
                     (*owner).bytes, {}).has_value(), "borrowed bytes require a lifetime owner");
         require(engine.register_owned_typeface(FontRole::content, 400, false,
                     (*owner).bytes, owner).has_value(), "owned immutable view registers");
-        require(owner.use_count() == 2, "engine retains owner without copying the font");
+        // The face and the program's typeface of the bytes each hold the
+        // owner, as in test_shared_font_lifetime.
+        require(owner.use_count() > 1, "engine retains owner without copying the font");
         owner.reset();
         require(!weak.expired() && engine.shape("office", {FontRole::content, 16, 400, false}).width > 0,
                 "owned view stays valid after the caller drops it");
@@ -343,8 +350,11 @@ void test_public_resolution_record_names_actual_bundled_runs() {
     bool emoji_fallback = false;
     for (const ResolvedFontRun& run : resolved.runs) {
         if (!run.fallback) continue;
-        if (run.family == "Noto Sans CJK JP") cjk_fallback = true;
-        if (run.family == "Noto Emoji") emoji_fallback = true;
+        // STXlib reads no name table yet: a fallback face has no registry family and is
+        // named by the empty string; its run is told apart by the text it draws.
+        if (!run.family.empty()) continue;
+        if (run.utf8_start == sample.find("日本語")) cjk_fallback = true;
+        if (run.utf8_start == sample.find("🚀")) emoji_fallback = true;
     }
     require(resolved.status == TextResolutionStatus::exact &&
                 resolved.primary_family == "Carlito" &&
@@ -459,7 +469,7 @@ void test_lazy_fallback_matches_eager_and_loads_once() {
     const std::vector<std::byte> cousine = read_file(GUI_FORMS_TEST_COUSINE_REGULAR);
     const std::array<const char*, 4> paths{GUI_FORMS_TEST_NOTO_CJK_REGULAR, GUI_FORMS_TEST_NOTO_ARABIC_REGULAR,
                                            GUI_FORMS_TEST_NOTO_HEBREW_REGULAR, GUI_FORMS_TEST_NOTO_EMOJI};
-    const std::array<const char*, 4> names{"NotoSansCJKjp-Regular.otf", "NotoSansArabic-Regular.ttf",
+    const std::array<const char*, 4> names{"NotoSansCJKjp-Subset.otf", "NotoSansArabic-Minimal.ttf",
                                            "NotoSansHebrew-Regular.ttf", "NotoEmoji-Regular.ttf"};
     HarfBuzzFontEngine eager;
     HarfBuzzFontEngine lazy;
@@ -543,11 +553,12 @@ void test_lazy_fallback_matches_eager_and_loads_once() {
             "a lazy face needs coverage and a loader");
 }
 
-// A numbered bundled family (theme-language `font-family: Selawik`): its faces are read only
-// when text names the family, then draw before every role face, by weight, with the role's
-// faces and the fallbacks still covering what the family lacks. Text that names no family,
-// or another family, never reaches them; a family face that cannot be opened leaves the
-// role's faces in charge.
+// A family with faces of its own (theme-language `font-family: Selawik`): its faces are read
+// only when text names the family, then draw before every role face, the face nearest the
+// weight first, with the role's faces and the fallbacks still covering what the family lacks.
+// Text that names no family, or an unknown one, never reaches them; a family face that cannot
+// be opened leaves the role's faces in charge. A role's family named by a font of another
+// role draws that role's faces first, and a stack's families draw after the font's family.
 void test_named_family_draws_first_and_loads_on_demand() {
     const std::vector<std::byte> rapids = read_file(GUI_FORMS_TEST_RAPIDS_REGULAR);
     const std::vector<std::byte> carlito = read_file(GUI_FORMS_TEST_CARLITO_REGULAR);
@@ -556,7 +567,7 @@ void test_named_family_draws_first_and_loads_on_demand() {
     register_primaries(engine, rapids, carlito, cousine);
     require(engine.register_fallback_typeface(400, false, read_file(GUI_FORMS_TEST_NOTO_CJK_REGULAR)).has_value(),
             "CJK fallback registers");
-    const BundledFontFamily selawik{1U};
+    const FontFamilyId selawik = selawik_font_family;
     CountingLoader regular = counting_loader(GUI_FORMS_TEST_SELAWIK_REGULAR);
     CountingLoader bold = counting_loader(GUI_FORMS_TEST_SELAWIK_BOLD);
     const std::optional<FontFaceId> regular_id = engine.register_lazy_family_typeface(selawik, 400, false, regular);
@@ -569,8 +580,8 @@ void test_named_family_draws_first_and_loads_on_demand() {
     require(plain.status == TextResolutionStatus::exact && plain.primary_family == "Carlito",
             "text that names no family draws the role's face");
     FontSpec other = content;
-    other.family = BundledFontFamily{2U};
-    require(engine.resolve("Plain text", other).primary_family == "Carlito", "another family draws the role's face");
+    other.family = FontFamilyId{200U};
+    require(engine.resolve("Plain text", other).primary_family == "Carlito", "an unknown family draws the role's face");
     require(*regular.calls + *bold.calls == 0, "no family face is read for text that does not name it");
 
     FontSpec named = content;
@@ -597,6 +608,38 @@ void test_named_family_draws_first_and_loads_on_demand() {
     require(metrics && regular_id && (*metrics).face == *regular_id, "the family's face gives the primary line metrics");
     require(*regular.calls == 1 && *bold.calls == 1, "an opened family face is not read again");
 
+    // Nearest, never synthesized (stage F decision 7): 600 is nearer 700, 500 nearer 400, and
+    // 550, equally far, takes the heavier face above 500.
+    FontSpec semibold = named;
+    semibold.weight = 600;
+    FontSpec medium = named;
+    medium.weight = 500;
+    FontSpec between = named;
+    between.weight = 550;
+    require(engine.resolve("Near", semibold).runs.front().registered_weight == 700 &&
+                engine.resolve("Near", medium).runs.front().registered_weight == 400 &&
+                engine.resolve("Near", between).runs.front().registered_weight == 700,
+            "the family's face nearest the weight draws");
+    FontSpec slanted = named;
+    slanted.italic = true;
+    require(engine.resolve("Slant", slanted).primary_family == "Selawik",
+            "a family without an italic draws its nearest upright face, not the role's italic");
+
+    // A role's family by number: Cousine before the content role's Carlito.
+    FontSpec monospace_family = content;
+    monospace_family.family = cousine_font_family;
+    require(engine.resolve("Code", monospace_family).primary_family == "Cousine",
+            "a role's family named by another role draws that role's faces first");
+    // A stack after the family, and alone.
+    const std::array<FontFamilyId, 2> listed{cousine_font_family, selawik};
+    const FontFamilyStackId stack = register_font_family_stack(listed);
+    require(stack.value != 0U, "the stack registers");
+    FontSpec stacked = content;
+    stacked.stack = stack;
+    require(engine.resolve("Stack", stacked).primary_family == "Cousine", "a stack's first family draws first");
+    stacked.family = selawik;
+    require(engine.resolve("Stack", stacked).primary_family == "Selawik", "the font's family draws before its stack");
+
     HarfBuzzFontEngine unreadable;
     register_primaries(unreadable, rapids, carlito, cousine);
     CountingLoader missing = counting_loader(nullptr);
@@ -608,7 +651,8 @@ void test_named_family_draws_first_and_loads_on_demand() {
     static_cast<void>(unreadable.resolve("Plain text", named));
     require(*missing.calls == 1, "a family face that cannot be opened is read once");
 
-    require(!engine.register_lazy_family_typeface(BundledFontFamily{}, 400, false, regular).has_value() &&
+    require(!engine.register_lazy_family_typeface(FontFamilyId{}, 400, false, regular).has_value() &&
+                !engine.register_lazy_family_typeface(FontFamilyId{200U}, 400, false, regular).has_value() &&
                 !engine.register_lazy_family_typeface(selawik, 400, false, LazyFaceLoader{}).has_value(),
             "a family face needs a family and a loader");
 }
@@ -634,13 +678,11 @@ void test_call_failure_preserves_caller_and_recovers() {
         std::uint64_t run{};
         bool allocation_failure{};
     };
-    constexpr std::array<FailureCase, 6> failures{
-        FailureCase{TextLayoutFailure::empty_font, 1, true},
-        FailureCase{TextLayoutFailure::unbound_font, 1, true},
-        FailureCase{TextLayoutFailure::empty_buffer, 1, true},
-        FailureCase{TextLayoutFailure::after_add, 2, true},
+    constexpr std::array<FailureCase, 4> failures{
+        FailureCase{TextLayoutFailure::shaper_open, 1, true},
+        FailureCase{TextLayoutFailure::glyph_storage, 1, true},
         FailureCase{TextLayoutFailure::after_shape, 2, true},
-        FailureCase{TextLayoutFailure::no_shaper, 2, false}};
+        FailureCase{TextLayoutFailure::shape_refused, 2, false}};
     const std::size_t failure_count = failures.size();
     for (std::size_t index = 0; index < failure_count; ++index) {
         const FailureCase failure = failures[index];
@@ -731,8 +773,58 @@ void test_advances_are_unhinted_and_scale_linearly() {
     }
 }
 
+// The paragraph's language (FontSpec::language) reaches fallback and shaping:
+// Korean text takes the Han character 韓 (U+97D3, in KS X 1001 and in JIS X
+// 0208, so both bundled CJK faces have it) from the Korean face, which is
+// registered after the Japanese one; text in no language, or in Japanese,
+// keeps the registered order. Only fallback faces take a language.
+void test_language_selects_the_korean_face() {
+    HarfBuzzFontEngine engine;
+    const std::vector<std::byte> carlito = read_file(GUI_FORMS_TEST_CARLITO_REGULAR);
+    const std::vector<std::byte> japanese = read_file(GUI_FORMS_TEST_NOTO_CJK_REGULAR);
+    const std::vector<std::byte> korean = read_file(GUI_FORMS_TEST_NOTO_CJK_KOREAN);
+    const std::optional<FontFaceId> content = engine.register_typeface(FontRole::content, 400, false, carlito);
+    const std::optional<FontFaceId> japanese_face = engine.register_fallback_typeface(400, false, japanese);
+    const std::optional<FontFaceId> korean_face = engine.register_fallback_typeface(400, false, korean);
+    require(content && japanese_face && korean_face, "Korean fixture registers");
+    const TextLanguage japanese_language = text_language('J', 'A', 'N', ' ');
+    const TextLanguage korean_language = text_language('K', 'O', 'R', ' ');
+    require(!engine.set_face_language(*content, korean_language), "a role face takes no language");
+    require(engine.set_face_language(*japanese_face, japanese_language) &&
+                engine.set_face_language(*korean_face, korean_language),
+            "fallback faces take their languages");
+    const std::string text = "\xed\x95\x9c \xe9\x9f\x93";
+    FontSpec plain{FontRole::content, 16.0, 400, false};
+    FontSpec in_korean = plain;
+    in_korean.language = korean_language;
+    FontSpec in_japanese = plain;
+    in_japanese.language = japanese_language;
+    require(!(plain == in_korean), "the language is part of the font");
+    const ShapedText unmarked = engine.shape(text, plain);
+    const ShapedText marked = engine.shape(text, in_korean);
+    const ShapedText japanese_text = engine.shape(text, in_japanese);
+    require(unmarked.missing_clusters == 0U && marked.missing_clusters == 0U, "Korean text is covered");
+    const std::size_t han = text.find("\xe9\x9f\x93");
+    FontFaceId unmarked_han{};
+    FontFaceId marked_han{};
+    FontFaceId japanese_han{};
+    for (const ShapedFontRun& run : unmarked.runs) {
+        if (run.source_range.start.value() <= han && han < run.source_range.end.value()) unmarked_han = run.face;
+    }
+    for (const ShapedFontRun& run : marked.runs) {
+        if (run.source_range.start.value() <= han && han < run.source_range.end.value()) marked_han = run.face;
+    }
+    for (const ShapedFontRun& run : japanese_text.runs) {
+        if (run.source_range.start.value() <= han && han < run.source_range.end.value()) japanese_han = run.face;
+    }
+    require(unmarked_han == *japanese_face, "with no language the Japanese face draws Han first");
+    require(japanese_han == *japanese_face, "Japanese text draws Han from the Japanese face");
+    require(marked_han == *korean_face, "Korean text draws Han from the Korean face");
+}
+
 int main() {
     try {
+        test_language_selects_the_korean_face();
         test_advances_are_unhinted_and_scale_linearly();
         test_canonical_pair_coverage_preserves_source();
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)

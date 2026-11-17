@@ -290,7 +290,32 @@ class Linker:
 
     def prose(self, text: str, owner: str = "", members: frozenset[str] = frozenset()) -> str:
         pattern = re.compile(r"(?<![`:\\\w])`([^`\n]+)`(?![`_\w])")
-        return pattern.sub(lambda match: self.span(match.group(1), owner, members), text)
+        # Outside the code spans and literal blocks a comment's | (an absolute
+        # value, |x|) is text, not a reStructuredText substitution reference.
+        # A literal block (after a line ending "::", or a code-block
+        # directive) is code and keeps its | as written.
+        out: list[str] = []
+        literal: bool = False
+        line: str
+        for line in text.split("\n"):
+            stripped: str = line.strip()
+            if literal and stripped and not line[:1].isspace():
+                literal = False
+            if literal:
+                out.append(line)
+                continue
+            pieces: list[str] = []
+            last: int = 0
+            match: re.Match[str]
+            for match in pattern.finditer(line):
+                pieces.append(line[last:match.start()].replace("|", "\\|"))
+                pieces.append(self.span(match.group(1), owner, members))
+                last = match.end()
+            pieces.append(line[last:].replace("|", "\\|"))
+            out.append("".join(pieces))
+            if stripped.endswith("::") or stripped.startswith(".. code-block::"):
+                literal = True
+        return "\n".join(out)
 
 
 # --- C++ domain declarations ---------------------------------------------------------
@@ -339,6 +364,10 @@ def member_directive(item: Declaration) -> tuple[str, str]:
     elif "=" in text:
         text, _, default = (part.strip() for part in text.partition("="))
     text = re.sub(r"^(?:inline\s+|static\s+)*", "", text)
+    # An initializer continued over several lines joins with a space after
+    # its opening brace and a trailing comma before its closing one.
+    default = re.sub(r"\{\s+", "{", default)
+    default = re.sub(r",?\s+\}", "}", default)
     if default in {"{}", ""}:
         default = ""
     return f".. cpp:member:: {text}", default

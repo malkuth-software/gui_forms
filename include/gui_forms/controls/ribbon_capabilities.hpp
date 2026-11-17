@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -120,16 +121,16 @@ struct RibbonFocusRegionCapability {
 // The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 template <typename Declaring>
 struct RibbonSelectedTabCapability {
-    PropertyView<std::optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab;
+    PropertyView<stxlib::Optional<std::size_t>, RibbonSelectedTabCapability<Declaring>> selected_tab;
 
-    static void assign(RibbonSelectedTabCapability& capability, std::optional<std::size_t> incoming) {
+    static void assign(RibbonSelectedTabCapability& capability, stxlib::Optional<std::size_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.selected_tab), std::move(incoming));
     }
 
-    static std::optional<std::size_t> read(const RibbonSelectedTabCapability& capability) {
+    static stxlib::Optional<std::size_t> read(const RibbonSelectedTabCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<std::size_t> current = control.read_view(capability.selected_tab);
+        stxlib::Optional<std::size_t> current = control.read_view(capability.selected_tab);
         return current;
     }
 };
@@ -147,6 +148,19 @@ struct RibbonTabsActivateOnReleaseCapability {
     }
 };
 
+// Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+template <typename Declaring>
+struct RibbonHelpButtonVisibleCapability {
+    PropertyCell<bool, RibbonHelpButtonVisibleCapability<Declaring>> help_button_visible{false};
+
+    static void assign(RibbonHelpButtonVisibleCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.help_button_visible), incoming);
+        if (!capability.help_button_visible.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.help_button_visible));
+    }
+};
+
 // Every Ribbon capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
@@ -158,7 +172,8 @@ struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
                             public RibbonFocusRegionCapability<Declaring>,
                             public FontCapability<Declaring>,
                             public RibbonSelectedTabCapability<Declaring>,
-                            public RibbonTabsActivateOnReleaseCapability<Declaring> {
+                            public RibbonTabsActivateOnReleaseCapability<Declaring>,
+                            public RibbonHelpButtonVisibleCapability<Declaring> {
     RibbonCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::control, 10.5, 400, false, 0.12}) {}
 };
 

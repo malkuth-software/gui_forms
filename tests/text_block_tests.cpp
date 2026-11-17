@@ -18,6 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -34,6 +35,14 @@ void require(bool condition, const std::string& message) {
 
 bool near(double left, double right) {
     return std::abs(left - right) <= 1.0e-9;
+}
+
+// A baseline the test expects; none fails the test instead of reading an
+// absent value.
+double present_baseline(const stxlib::Optional<double>& baseline, const std::string& what) {
+    require(baseline.present(), what + ": a baseline");
+    const double value = *baseline.value();
+    return value;
 }
 
 void require_near(double actual, double expected, const std::string& what) {
@@ -57,7 +66,7 @@ public:
         design.ascent = 1950.0 / 2048.0 * font.size;
         design.descent = 550.0 / 2048.0 * font.size;
         design.x_height = 0.5 * font.size;
-        layout.design_metrics = design;
+        layout.design_metrics.set(design);
         layout.ascent = std::ceil(design.ascent);
         layout.descent = std::ceil(design.descent);
         layout.status = TextResolutionStatus::exact;
@@ -117,7 +126,7 @@ FontSpec carlito(double size) {
 
 std::shared_ptr<TextBlock> text_block(const std::string& id, const std::string& text) {
     std::shared_ptr<TextBlock> made = make_control<TextBlock>(StableId(id), text);
-    (*made).font = carlito(13.0);
+    (*made).font = stxlib::Optional<FontSpec>::of(carlito(13.0));
     (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
@@ -152,9 +161,9 @@ void test_wrapping_and_line_height() {
     const Size overflow = measured_at(*block, width_query(20.0));
     require_near(overflow.height, 30.0, "a word wider than the line overflows on a line of its own");
 
-    (*block).line_height = 20.0;
+    (*block).line_height = stxlib::Optional<double>::of(20.0);
     require_near(measured_at(*block, width_query(20.0)).height, 40.0, "a set line height is each line's height");
-    (*block).line_height = std::nullopt;
+    (*block).line_height = stxlib::Optional<double>::none();
     require_near(measured_at(*block, width_query(20.0)).height, 30.0, "clearing it resumes normal");
 }
 
@@ -171,7 +180,7 @@ void test_white_space_collapses() {
     const Size empty = measured_at(*block, widest);
     require_near(empty.width, 0.0, "white space only has no width");
     require_near(empty.height, 0.0, "and no line box");
-    require(!(*block).first_baseline(100.0).has_value(), "and no baseline");
+    require((*block).first_baseline(100.0).absent(), "and no baseline");
 }
 
 void test_intrinsic_sizes_and_padding() {
@@ -188,24 +197,25 @@ void test_intrinsic_sizes_and_padding() {
     require_near(maximum.height, 15.0 + 8.0, "one line");
     const Size narrowed = measured_at(*block, width_query(minimum.width));
     require_near(narrowed.height, 45.0 + 8.0, "handed back its min-content width it keeps every word whole");
-    require_near((*block).first_baseline(100.0).value(), 3.0 + 12.0, "the first baseline is below the top padding");
-    require_near((*block).last_baseline(minimum.width).value(), 3.0 + 30.0 + 12.0,
+    require_near(present_baseline((*block).first_baseline(100.0), "the first baseline is below the top padding"), 3.0 + 12.0, "the first baseline is below the top padding");
+    require_near(present_baseline((*block).last_baseline(minimum.width), "the last baseline is on the third line"),
+                 3.0 + 30.0 + 12.0,
                  "the last baseline is on the third line");
 }
 
 void test_text_scale() {
     CarlitoProportions metrics{};
     std::shared_ptr<TextBlock> block = text_block("text.scale", "aaa bbb");
-    (*block).line_height = 20.0;
+    (*block).line_height = stxlib::Optional<double>::of(20.0);
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
     (*held).set_text_scale(1.5);
     const Size measured = measured_at(*block, LayoutConstraint{max_content_extent(), max_content_extent()});
     require_near(measured.width, 73.5, "the font scales: 10.5 px a byte");
     require_near(measured.height, 30.0, "a set line height scales with it");
-    (*block).line_height = std::nullopt;
+    (*block).line_height = stxlib::Optional<double>::none();
     require_near(measured_at(*block, width_query(200.0)).height, 24.0, "19.5 px's line box is 19 + 5");
-    require_near((*block).first_baseline(200.0).value(), 19.0, "its baseline is its rounded ascent");
+    require_near(present_baseline((*block).first_baseline(200.0), "its baseline is its rounded ascent"), 19.0, "its baseline is its rounded ascent");
 }
 
 // A set line height's leading goes half above the text, rounded down.
@@ -214,12 +224,12 @@ void test_half_leading() {
     std::shared_ptr<TextBlock> block = text_block("text.leading", "aaa");
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
-    (*block).line_height = 20.0;
-    require_near((*block).first_baseline(100.0).value(), 14.0, "5 px of leading puts 2 above");
-    (*block).line_height = 21.0;
-    require_near((*block).first_baseline(100.0).value(), 15.0, "6 px puts 3 above");
-    (*block).line_height = 12.0;
-    require_near((*block).first_baseline(100.0).value(), 10.0, "-3 px puts -2 above");
+    (*block).line_height = stxlib::Optional<double>::of(20.0);
+    require_near(present_baseline((*block).first_baseline(100.0), "5 px of leading puts 2 above"), 14.0, "5 px of leading puts 2 above");
+    (*block).line_height = stxlib::Optional<double>::of(21.0);
+    require_near(present_baseline((*block).first_baseline(100.0), "6 px puts 3 above"), 15.0, "6 px puts 3 above");
+    (*block).line_height = stxlib::Optional<double>::of(12.0);
+    require_near(present_baseline((*block).first_baseline(100.0), "-3 px puts -2 above"), 10.0, "-3 px puts -2 above");
 }
 
 void test_breaks_come_from_the_provider() {
@@ -271,7 +281,7 @@ void test_properties_and_validation() {
     std::shared_ptr<TextBlock> block = make_control<TextBlock>(StableId("text.properties"), "Hello");
     bool refused = false;
     try {
-        (*block).line_height = 0.0;
+        (*block).line_height = stxlib::Optional<double>::of(0.0);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -283,13 +293,13 @@ void test_properties_and_validation() {
         refused = true;
     }
     require(refused, "an unknown alignment is refused");
-    require(!(*block).font.read().has_value(), "the font is the theme's until set");
+    require((*block).font.read().absent(), "the font is the theme's until set");
     (*block).set_property_value("text_align", BindingValue{PropertyEnumValue{"text_alignment", "end", 1}});
     require((*block).text_align.read() == TextAlignment::end, "the text_align property sets the alignment");
     (*block).set_property_value("line_height", BindingValue{18.0});
-    require((*block).line_height.read() == std::optional<double>{18.0}, "the line_height property sets it");
+    require((*block).line_height.read() == stxlib::Optional<double>::of(18.0), "the line_height property sets it");
     (*block).set_property_value("line_height", BindingValue{0.0});
-    require(!(*block).line_height.read().has_value(), "a zero line_height is normal");
+    require((*block).line_height.read().absent(), "a zero line_height is normal");
     std::string changed;
     std::size_t changes = 0U;
     const SubscriptionToken token = (*block).text_changed().subscribe(TextChangedRecorder{changed, changes});
@@ -309,7 +319,7 @@ void test_containers_align_by_baselines() {
     (*row).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> small = text_block("text.flex.small", "aaa");
     std::shared_ptr<TextBlock> large = text_block("text.flex.large", "bbb");
-    (*large).font = carlito(19.5);
+    (*large).font = stxlib::Optional<FontSpec>::of(carlito(19.5));
     (*row).add_child(small);
     (*row).add_child(large);
     const std::unique_ptr<Window> held = std::make_unique<Window>(row, Size{400.0, 300.0});
@@ -322,7 +332,7 @@ void test_containers_align_by_baselines() {
     (*grid).align_items = LayoutAlignment::baseline;
     std::shared_ptr<TextBlock> left = text_block("text.grid.small", "aaa");
     std::shared_ptr<TextBlock> right = text_block("text.grid.large", "bbb");
-    (*right).font = carlito(19.5);
+    (*right).font = stxlib::Optional<FontSpec>::of(carlito(19.5));
     GridTrackList columns{};
     columns.tracks.push_back(GridTrackSize{});
     columns.tracks.push_back(GridTrackSize{});
@@ -341,7 +351,7 @@ void test_containers_align_by_baselines() {
 void test_block_panel_strut_and_inline_baseline() {
     CarlitoProportions metrics{};
     std::shared_ptr<BlockPanel> flow = make_control<BlockPanel>(StableId("text.block"));
-    (*flow).font = carlito(19.5);
+    (*flow).font = stxlib::Optional<FontSpec>::of(carlito(19.5));
     std::shared_ptr<TextBlock> words = text_block("text.block.words", "aaa bbb");
     (*flow).add_child(words);
     BlockFlowItemLayout inline_layout{};
@@ -356,11 +366,11 @@ void test_block_panel_strut_and_inline_baseline() {
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 19.0 - 12.0, "the block's baseline is on the strut's");
     require_near((*words).arranged_bounds().height, 15.0, "the block keeps its own line box");
-    (*flow).line_strut = LineStrut{};
+    (*flow).line_strut = stxlib::Optional<LineStrut>::of(LineStrut{});
     (*held).perform_layout();
     require_near((*words).arranged_bounds().y, 0.0, "a zero strut leaves the line as tall as the item");
-    (*flow).line_strut = std::nullopt;
-    require(!(*flow).line_strut.read().has_value(), "clearing it resumes the font's");
+    (*flow).line_strut = stxlib::Optional<LineStrut>::none();
+    require((*flow).line_strut.read().absent(), "clearing it resumes the font's");
 }
 
 } // namespace

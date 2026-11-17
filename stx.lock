@@ -1,12 +1,26 @@
 # The stx commit GUI.Forms builds with, in lockstep (owner ruling 2026-11-03,
-# decision 3(a)): stx_zlib, stx_png, stx_conv (with stx_auxlib::simd),
-# stx_rtf2md and stx_vorbis; since 2026-11-08 also stx_skia and every
-# third-party source (stx third_party/). cmake/Stx.cmake builds this commit
-# once into the stx package (<build>/stx-package, or
-# -DGUI_FORMS_STX_PACKAGE_DIR=<dir>), reused while its stamp matches, and the
-# build links it; a local checkout replaces the commit with
-# -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
+# decision 3(a)): stx_zlib, stx_png, stx_conv, stx_raster3d (since cp33), stx_rtf2md and stx_vorbis;
+# since 2026-11-08 also stx_skia and every third-party source (stx
+# third_party/); since cp33 also STXlib, which stx pins in its stxlib.lock
+# and installs beside its packages (stxlib::algorithms: stx_conv's SIMD level
+# and the controls' row height index), so this is GUI.Forms' only pin for
+# both. cmake/Stx.cmake builds this commit once into the stx package
+# (<build>/stx-package, or -DGUI_FORMS_STX_PACKAGE_DIR=<dir>), reused while
+# its stamp matches, and the build links it; a local checkout replaces the
+# commit with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
 # -DGUI_FORMS_STX_PREFIX=<dir> links a package built elsewhere.
+#
+# 7db7b4f is stx claude/stx-cp33: 6bc7dc5 (pushed with checkpoint 32, STXlib
+# e549318, state layout 12), then coder D's claude/audit-stx-1 68bdfa2 (the
+# Vorbis recovery's leading discard, the raster3d triangle budget, and the
+# RTF reader's and Markdown parser's bounded work), then audit-stx-3 897f130
+# (14 stx Lows; LineStream::begin returns a result), then stxlib.lock at
+# STXlib main 03a7630 (the 2026-11-15 audit: 40 findings fixed, layout 12),
+# then the integrator's stx_raster3d compile fix for audit-stx-3's views_overlap,
+# then audit-stx-5 7db7b4f (the ISA workload reader bounded before multiplying).
+# Not on GitHub until the owner pushes claude/stx-cp33 (a fast-forward of
+# 6bc7dc5); push it before this commit, or build with
+# -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<that checkout>.
 [stx]
 repository = "malkuth-software/stx"
-commit = "1f5c6f54ef474c3abfc2db2aa4331aaf1ba807f6"
+commit = "0fc2a32b393b0d6fca8f69026a2a84adc3ed5012"

@@ -39,6 +39,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -452,9 +453,9 @@ void test_control_family() {
     expect((*probe).reset_property("margin") && (*probe).margin.read() == Insets{3.0, 3.0, 3.0, 3.0},
            "reset writes margin's default");
 
-    (*probe).back_color = Color::rgba(10, 20, 30);
+    (*probe).back_color = stxlib::Optional<Color>::of(Color::rgba(10, 20, 30));
     expect((*probe).should_serialize_property("back_color"), "an own back colour serializes");
-    expect((*probe).reset_property("back_color") && !(*probe).back_color.read(), "reset clears the back colour");
+    expect((*probe).reset_property("back_color") && (*probe).back_color.read().absent(), "reset clears the back colour");
 }
 
 // G11: a themed Panel's face takes its own back_color (outside high
@@ -464,9 +465,9 @@ void test_panel_back_color_when_themed() {
     Window window(root, Size{120.0, 80.0});
     const Color themed = (*root).background();
     const Color own = Color::rgba(200, 30, 30);
-    (*root).back_color = own;
+    (*root).back_color = stxlib::Optional<Color>::of(own);
     expect((*root).background() == own, "a themed panel's face is its back colour");
-    (*root).back_color = std::nullopt;
+    (*root).back_color = stxlib::Optional<Color>::none();
     expect((*root).background() == themed, "clearing the back colour returns the material's ground");
 }
 
@@ -515,9 +516,9 @@ void test_setters_store() {
     (*control).layout_direction = LayoutDirection::right_to_left;
     (*control).minimum_size = Size{4.0, 4.0};
     (*control).maximum_size = Size{40.0, 40.0};
-    (*control).cursor = CursorKind::hand;
-    (*control).back_color = Color::rgba(1, 2, 3);
-    (*control).fore_color = Color::rgba(4, 5, 6);
+    (*control).cursor = stxlib::Optional<CursorKind>::of(CursorKind::hand);
+    (*control).back_color = stxlib::Optional<Color>::of(Color::rgba(1, 2, 3));
+    (*control).fore_color = stxlib::Optional<Color>::of(Color::rgba(4, 5, 6));
     (*control).accessible_name = "a";
     (*control).accessible_description = "d";
     (*control).tool_tip_text = "t";
@@ -531,8 +532,8 @@ void test_setters_store() {
                (*control).layout_direction.read() == LayoutDirection::right_to_left &&
                (*control).minimum_size.read() == Size{4.0, 4.0} &&
                (*control).maximum_size.read() == Size{40.0, 40.0} &&
-               (*control).cursor.read() == CursorKind::hand && (*control).back_color.read() &&
-               (*control).fore_color.read() && (*control).accessible_name.read() == "a" &&
+               (*control).cursor.read() == stxlib::Optional<CursorKind>::of(CursorKind::hand) && (*control).back_color.read().present() &&
+               (*control).fore_color.read().present() && (*control).accessible_name.read() == "a" &&
                (*control).accessible_description.read() == "d" && (*control).tool_tip_text.read() == "t",
            "every named setter stores its value");
 }
@@ -608,6 +609,26 @@ void test_property_type() {
     static_assert(!total_read<decltype((*panel).tab_index), std::int32_t>, "narrowing has no tag read");
 }
 
+// D15: an stxlib::Optional property value is its value's type, nullable;
+// absent is null both ways, and a present value round-trips.
+void test_owned_optional_traits() {
+    using OwnedColour = stxlib::Optional<Color>;
+    const PropertyType described = PropertyValueTraits<OwnedColour>::type();
+    expect(described.kind == BindingValueKind::color && described.nullable, "an owned optional colour is nullable");
+    const BindingValue absent = PropertyValueTraits<OwnedColour>::to_binding(OwnedColour::none());
+    expect(std::holds_alternative<std::monostate>(absent), "an absent owned optional reads as null");
+    const OwnedColour from_null = PropertyValueTraits<OwnedColour>::from_binding(absent);
+    expect(from_null.absent(), "null reads back as absent");
+    const Color colour = Color::rgba(10U, 20U, 30U);
+    const BindingValue present = PropertyValueTraits<OwnedColour>::to_binding(OwnedColour::of(colour));
+    expect(std::holds_alternative<Color>(present) && std::get<Color>(present) == colour,
+           "a present owned optional reads as its value");
+    const OwnedColour back = PropertyValueTraits<OwnedColour>::from_binding(present);
+    expect(back == OwnedColour::of(colour), "a present value round-trips");
+    const stxlib::Optional<double> number = PropertyValueTraits<stxlib::Optional<double>>::from_binding(BindingValue{2.5});
+    expect(number == stxlib::Optional<double>::of(2.5), "a number round-trips");
+}
+
 // justify_self and align_self (owner-approved, study 10.9 Q4 (a)): ordinary
 // Control properties over SelfAlignment, automatic by default, written by
 // cell or by name; an out-of-range value is refused and changes nothing; a
@@ -664,6 +685,7 @@ int main() {
     test_setters_store();
     test_hidden_is_not_painted_or_hit();
     test_property_type();
+    test_owned_optional_traits();
     test_self_alignment();
     std::cout << "property capability tests passed\n";
     return EXIT_SUCCESS;

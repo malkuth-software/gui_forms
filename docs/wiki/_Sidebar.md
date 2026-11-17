@@ -16,4 +16,4 @@
 **Reference**
 
 - [Documentation](https://gui-forms.readthedocs.io/)
-- [API reference](https://gui-forms.readthedocs.io/api/index.html)
+- [API reference](https://gui-forms.readthedocs.io/en/latest/api/index.html)

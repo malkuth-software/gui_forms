@@ -11,7 +11,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -158,17 +157,17 @@ private:
     static const std::string& authored_text(BackstageItemSpec&& item) = delete;
     [[nodiscard]] std::string item_text(const BackstageItemSpec& item) const;
     [[nodiscard]] bool item_enabled(const BackstageItemSpec& item) const;
-    [[nodiscard]] std::optional<std::size_t> item_at(Point local) const;
+    [[nodiscard]] stxlib::Optional<std::size_t> item_at(Point local) const;
     void activate_item(std::size_t item);
     void select_topic(std::size_t item);
     void move_focus(bool forward);
 
     detail::LendingVector<BackstageItemSpec> items_{};
     std::vector<SubscriptionToken> watches_{};
-    std::optional<std::size_t> selected_{};
-    std::optional<std::size_t> hot_{};
-    std::optional<std::size_t> pressed_{};
-    std::optional<std::size_t> focus_item_{};
+    stxlib::Optional<std::size_t> selected_{};
+    stxlib::Optional<std::size_t> hot_{};
+    stxlib::Optional<std::size_t> pressed_{};
+    stxlib::Optional<std::size_t> focus_item_{};
     bool focused_{};
     FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
     Event<const BackstageTopicChange&> topic_changed_{};
@@ -180,8 +179,8 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(column_width)& cell, double& incoming);
     void written(const decltype(column_width)& cell);
-    void write_view(const decltype(selected_topic)& cell, std::optional<std::size_t> incoming);
-    [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_topic)& cell) const;
+    void write_view(const decltype(selected_topic)& cell, stxlib::Optional<std::size_t> incoming);
+    [[nodiscard]] stxlib::Optional<std::size_t> read_view(const decltype(selected_topic)& cell) const;
     // property_codemod end BackstageView
 };
 

@@ -148,7 +148,7 @@ void check_focused_state(FocusedCpuProbe& probe, const std::size_t index) {
     const bool expect_focus = primary && focused_mode(probe.phase);
     focused_require(static_cast<bool>(model.focused_control()) == expect_focus,
                     "model focus changed");
-    focused_require(model.next_wake().has_value() == expect_focus,
+    focused_require(model.next_wake().present() == expect_focus,
                     "unexpected autonomous deadline state");
     if (primary) {
         focused_require(window.isKeyWindow && NSApp.isActive,
@@ -232,7 +232,7 @@ void capture_focused_windows(FocusedCpuProbe& probe) {
             observation.visible = static_cast<bool>(window.isVisible);
             observation.occluded = model.occluded();
             observation.focused = static_cast<bool>(model.focused_control());
-            observation.deadline = model.next_wake().has_value();
+            observation.deadline = model.next_wake().present();
             observation.key = static_cast<bool>(window.isKeyWindow);
             observation.application_active = static_cast<bool>(NSApp.isActive);
             observation.captured = true;

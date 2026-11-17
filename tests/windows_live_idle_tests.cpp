@@ -6,14 +6,17 @@
 //   WM_TIMER (audit N63), far ones on WM_TIMER;
 // - inline input method composition (audit N61);
 // - a dialog path that cannot be converted is a failure, not an empty path
-//   (audit N65).
+//   (audit N65);
+// - the common item dialog's check and create flags follow the request
+//   (docs/user/hosts-and-capabilities.md, "File dialog settings"), on the
+//   computed options and on real dialog objects (never shown).
 // The window is a hidden popup driven message by message; nothing takes the
 // foreground.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -146,6 +149,102 @@ struct LiveIdleHostFixture final {
         require(plain.has_value() && *plain == "C:\\folder\\file.txt", "a plain path converts");
     }
 
+    // The FOS_* check flags a request controls.
+    static constexpr FILEOPENDIALOGOPTIONS check_flags =
+        FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_CREATEPROMPT | FOS_OVERWRITEPROMPT | FOS_ALLOWMULTISELECT;
+
+    static bool has(const FILEOPENDIALOGOPTIONS options, const FILEOPENDIALOGOPTIONS flag) {
+        return (options & flag) == flag;
+    }
+
+    // Each flag is set exactly when its setting holds, whatever the shell's
+    // defaults: none, or every check flag.
+    static void dialog_option_values() {
+        const FILEOPENDIALOGOPTIONS defaults[] = {0U, check_flags};
+        for (const FILEOPENDIALOGOPTIONS shell_defaults : defaults) {
+            HostOpenFileDialogRequest open{};
+            FILEOPENDIALOGOPTIONS options = open_dialog_options(shell_defaults, open);
+            require(has(options, FOS_FILEMUSTEXIST) && has(options, FOS_PATHMUSTEXIST),
+                    "open defaults check the file and its folder");
+            require(!has(options, FOS_ALLOWMULTISELECT), "open selects one file by default");
+            require(has(options, FOS_FORCEFILESYSTEM) && has(options, FOS_NOCHANGEDIR),
+                    "open keeps file system items and the working directory");
+            open.check_file_exists = false;
+            options = open_dialog_options(shell_defaults, open);
+            require(!has(options, FOS_FILEMUSTEXIST) && has(options, FOS_PATHMUSTEXIST),
+                    "ALLOW_MISSING_FILE clears only FOS_FILEMUSTEXIST");
+            open.check_path_exists = false;
+            open.allow_multiple = true;
+            options = open_dialog_options(shell_defaults, open);
+            require(!has(options, FOS_PATHMUSTEXIST) && has(options, FOS_ALLOWMULTISELECT),
+                    "ALLOW_MISSING_FOLDER clears FOS_PATHMUSTEXIST");
+
+            HostSaveFileDialogRequest save{};
+            options = save_dialog_options(shell_defaults, save);
+            require(!has(options, FOS_FILEMUSTEXIST) && has(options, FOS_PATHMUSTEXIST),
+                    "save defaults check the folder only");
+            require(!has(options, FOS_CREATEPROMPT) && has(options, FOS_OVERWRITEPROMPT),
+                    "save defaults ask before replacing, not before creating");
+            save.check_file_exists = true;
+            save.create_prompt = true;
+            options = save_dialog_options(shell_defaults, save);
+            require(has(options, FOS_FILEMUSTEXIST) && has(options, FOS_CREATEPROMPT),
+                    "REQUIRE_EXISTING_FILE and CREATE_PROMPT set their flags");
+            save.check_path_exists = false;
+            save.confirm_overwrite = false;
+            options = save_dialog_options(shell_defaults, save);
+            require(!has(options, FOS_PATHMUSTEXIST) && !has(options, FOS_OVERWRITEPROMPT),
+                    "ALLOW_MISSING_FOLDER and no overwrite prompt clear their flags");
+        }
+    }
+
+    // The shell's dialogs take the computed options as they are: what
+    // GetOptions reads back after SetOptions carries the same check flags.
+    static void dialog_options_on_shell_dialogs() {
+        const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        require(SUCCEEDED(com), "COM initializes for the dialog objects");
+        HostOpenFileDialogRequest open{};
+        HostSaveFileDialogRequest save{};
+        const bool settings[] = {false, true};
+        for (const bool setting : settings) {
+            open.check_file_exists = setting;
+            open.check_path_exists = !setting;
+            open.allow_multiple = setting;
+            ComReference<IFileOpenDialog> open_dialog;
+            require(SUCCEEDED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                               IID_IFileOpenDialog,
+                                               reinterpret_cast<void**>(&open_dialog.pointer))) &&
+                        open_dialog.pointer != nullptr,
+                    "an open dialog object is created");
+            FILEOPENDIALOGOPTIONS shell_defaults = 0U;
+            require(SUCCEEDED((*open_dialog.pointer).GetOptions(&shell_defaults)), "the open dialog's defaults");
+            const FILEOPENDIALOGOPTIONS open_options = open_dialog_options(shell_defaults, open);
+            require(SUCCEEDED((*open_dialog.pointer).SetOptions(open_options)), "the open dialog takes the options");
+            FILEOPENDIALOGOPTIONS read_back = 0U;
+            require(SUCCEEDED((*open_dialog.pointer).GetOptions(&read_back)) &&
+                        (read_back & check_flags) == (open_options & check_flags),
+                    "the open dialog keeps the request's check flags");
+
+            save.check_file_exists = setting;
+            save.check_path_exists = !setting;
+            save.create_prompt = setting;
+            save.confirm_overwrite = !setting;
+            ComReference<IFileSaveDialog> save_dialog;
+            require(SUCCEEDED(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER,
+                                               IID_IFileSaveDialog,
+                                               reinterpret_cast<void**>(&save_dialog.pointer))) &&
+                        save_dialog.pointer != nullptr,
+                    "a save dialog object is created");
+            require(SUCCEEDED((*save_dialog.pointer).GetOptions(&shell_defaults)), "the save dialog's defaults");
+            const FILEOPENDIALOGOPTIONS save_options = save_dialog_options(shell_defaults, save);
+            require(SUCCEEDED((*save_dialog.pointer).SetOptions(save_options)), "the save dialog takes the options");
+            require(SUCCEEDED((*save_dialog.pointer).GetOptions(&read_back)) &&
+                        (read_back & check_flags) == (save_options & check_flags),
+                    "the save dialog keeps the request's check flags");
+        }
+        CoUninitialize();
+    }
+
     static void run() {
         WNDCLASSEXW native_class{};
         native_class.cbSize = sizeof(native_class);
@@ -158,6 +257,8 @@ struct LiveIdleHostFixture final {
         require(UnregisterClassW(native_class.lpszClassName, native_class.hInstance) != FALSE,
                 "fixture class release");
         dialog_paths();
+        dialog_option_values();
+        dialog_options_on_shell_dialogs();
     }
 };
 

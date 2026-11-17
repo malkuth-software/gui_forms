@@ -5,9 +5,12 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/typography/types/typography_types.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -57,11 +60,11 @@ struct LayoutRun final {
 }
 
 constexpr std::array<PartField<HelpBook::Parts>, 5> help_book_extra_fields{{
-    {.declaration = {.name = "paper", .role = PartRole::face, .composed_from = {}}, .member = &HelpBook::Parts::paper},
-    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}}, .member = &HelpBook::Parts::title},
-    {.declaration = {.name = "rule", .role = PartRole::divider, .composed_from = {}}, .member = &HelpBook::Parts::rule},
-    {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}}, .member = &HelpBook::Parts::close},
-    {.declaration = {.name = "body", .role = PartRole::content, .composed_from = {}}, .member = &HelpBook::Parts::body},
+    {.declaration = {.name = "paper", .role = PartRole::face, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::paper},
+    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::title},
+    {.declaration = {.name = "rule", .role = PartRole::divider, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::rule},
+    {.declaration = {.name = "close", .role = PartRole::glyph, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::close},
+    {.declaration = {.name = "body", .role = PartRole::content, .composed_from = {}, .states = {}}, .member = &HelpBook::Parts::body},
 }};
 
 constexpr std::array<PartDeclaration, scrollable_detail::part_count + 5> help_book_parts =
@@ -73,13 +76,13 @@ constexpr std::array<AnatomyState, 3> link_states{{AnatomyState::hot, AnatomySta
                                                    AnatomyState::focus_visible}};
 
 constexpr std::array<PartField<HelpBook::TopicParts>, 2> topic_part_fields{{
-    {.declaration = {.name = "topic_bar", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "topic_bar", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &HelpBook::TopicParts::topic_bar},
-    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &HelpBook::TopicParts::expander},
 }};
 constexpr std::array<PartField<HelpBook::LinkParts>, 1> link_part_fields{{
-    {.declaration = {.name = "link_text", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "link_text", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &HelpBook::LinkParts::link_text},
 }};
 constexpr std::array<PartDeclaration, 2> topic_parts = part_declarations(topic_part_fields);
@@ -134,31 +137,32 @@ void HelpBook::show_page(HelpPageModel page, std::string_view anchor) {
 }
 
 bool HelpBook::show_record(const HelpBookSection& section, std::string_view stable_id, std::string_view anchor) {
-    const std::optional<std::size_t> record = section.find(stable_id);
-    if (!record.has_value()) return false;
+    const stxlib::Optional<std::size_t> record = section.find(stable_id);
+    if (record.absent()) return false;
     HelpPageModel page{};
-    static_cast<void>(build_help_page(section, *record, page));
+    static_cast<void>(build_help_page(section, (*record.value()), page));
     show_page(std::move(page), anchor);
     return true;
 }
 
 bool HelpBook::scroll_to_anchor(std::string_view anchor) {
-    const std::optional<std::size_t> block = page_.find_anchor(anchor);
-    if (!block.has_value()) return false;
+    const stxlib::Optional<std::size_t> block = page_.find_anchor(anchor);
+    if (block.absent()) return false;
     // Open every section around the block, innermost outward.
     bool opened = false;
-    std::optional<std::size_t> section = page_.blocks[*block].section;
-    while (section.has_value()) {
-        if (open_sections_[*section] == 0U) {
-            open_sections_[*section] = 1U;
+    stxlib::Optional<std::size_t> section = page_.blocks[(*block.value())].section;
+    while (section.present()) {
+        if (open_sections_[(*section.value())] == 0U) {
+            open_sections_[(*section.value())] = 1U;
             opened = true;
         }
-        const std::size_t heading = page_.sections[*section].heading;
+        const std::size_t heading = page_.sections[(*section.value())].heading;
         section = page_.blocks[heading].section;
     }
     if (opened) relayout();
-    const std::optional<double> top = block_top(*block);
-    if (!top.has_value()) return false;
+    const stxlib::Optional<double> found_top = block_top((*block.value()));
+    const double* const top = found_top.value();
+    if (top == nullptr) return false;
     static_cast<void>(scroll_to(Point{0.0, std::max(0.0, *top - paper_top)}));
     invalidate(Dirty::paint);
     return true;
@@ -261,10 +265,10 @@ const HelpBookImage* HelpBook::find_image(std::string_view name) const noexcept 
 
 bool HelpBook::block_shown(std::size_t block, LayoutMode mode) const noexcept {
     if (mode.print) return true;
-    std::optional<std::size_t> section = page_.blocks[block].section;
-    while (section.has_value()) {
-        if (open_sections_[*section] == 0U) return false;
-        section = page_.blocks[page_.sections[*section].heading].section;
+    stxlib::Optional<std::size_t> section = page_.blocks[block].section;
+    while (section.present()) {
+        if (open_sections_[(*section.value())] == 0U) return false;
+        section = page_.blocks[page_.sections[(*section.value())].heading].section;
     }
     return true;
 }
@@ -296,13 +300,13 @@ void HelpBook::lay_out_runs(std::size_t block_index, double left, double width, 
         layout_run.font = run_font(run, base);
         layout_run.run = run.line_break ? no_text : run_index;
         layout_run.joined_start = joined.size();
-        layout_run.link = run.link.has_value();
+        layout_run.link = run.link.present();
         joined.append(layout_run.text);
         runs.push_back(layout_run);
-        const bool link_ends = run.link.has_value() &&
+        const bool link_ends = run.link.present() &&
                                (index + 1U == block.run_count || page_.runs[run_index + 1U].link != run.link);
         if (mode.print && link_ends) {
-            const HelpPageLink& link = page_.links[*run.link];
+            const HelpPageLink& link = page_.links[(*run.link.value())];
             if (!link.target_title.empty()) {
                 LayoutRun suffix{};
                 // The bracketed title is the layout's own text.
@@ -330,7 +334,7 @@ void HelpBook::lay_out_runs(std::size_t block_index, double left, double width, 
         if (line_end_byte(joined[index])) opportunities[index] = LineBreakOpportunity::mandatory;
     }
     const bool wraps = block.kind != HelpPageBlockKind::code;
-    const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), std::nullopt);
+    const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), stxlib::Optional<double>::none());
     std::string folded;
     std::vector<std::string_view> words;
     double line_x = 0.0;
@@ -459,9 +463,9 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
     const double indent = static_cast<double>(block.quote_depth) * quote_indent;
     double content_left = left + indent;
     double content_width = std::max(0.0, width - indent);
-    std::optional<std::size_t> collapsible{};
+    stxlib::Optional<std::size_t> collapsible{};
     for (std::size_t index = 0U; index < page_.sections.size(); ++index) {
-        if (page_.sections[index].heading == block_index) collapsible = index;
+        if (page_.sections[index].heading == block_index) collapsible.set(index);
     }
     laid_block.section = collapsible;
     laid.blocks.push_back(laid_block);
@@ -472,8 +476,8 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
         top += 1.0;
         return;
     }
-    if (block.kind == HelpPageBlockKind::image && block.image.has_value()) {
-        const HelpPageImage& page_image = page_.images[*block.image];
+    if (block.kind == HelpPageBlockKind::image && block.image.present()) {
+        const HelpPageImage& page_image = page_.images[(*block.image.value())];
         const HelpBookImage* image = find_image(page_image.source);
         if (image != nullptr && (*image).size.width > 0.0 && (*image).size.height > 0.0) {
             const double scale = std::min(1.0, content_width / (*image).size.width);
@@ -490,7 +494,7 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
     if (block.kind == HelpPageBlockKind::heading) base = heading_font(block.level);
     if (block.kind == HelpPageBlockKind::code) base.role = FontRole::monospace;
 
-    if (collapsible.has_value() && !mode.print) {
+    if (collapsible.present() && !mode.print) {
         // The heading is the text of a topic bar: the expander, then the
         // heading's runs, at least topic_bar_minimum tall.
         const double bar_top = top;
@@ -530,7 +534,7 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
         if (block.callout == HelpCalloutKind::caution) label = labels_.caution;
         FontSpec label_font = body_font();
         label_font.weight = 700;
-        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", label_font), std::nullopt);
+        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", label_font), stxlib::Optional<double>::none());
         laid.marker_texts.push_back(std::string(label));
         LaidPiece piece{};
         piece.kind = PieceKind::label;
@@ -548,7 +552,7 @@ void HelpBook::lay_out_block(std::size_t block_index, double left, double width,
         // The marker hangs in the indent: a bullet, or the item's number.
         const double item_indent = list_indent * static_cast<double>(block.level + 1U);
         std::string marker = block.marker == MarkdownListMarker::ordered ? std::to_string(block.ordinal) + "." : "\xE2\x80\xA2";
-        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), std::nullopt);
+        const LineBoxMetrics metrics = line_box_metrics(resolve_text_layout_utf8(" ", base), stxlib::Optional<double>::none());
         const double marker_width = text_width(marker, base);
         laid.marker_texts.push_back(std::move(marker));
         LaidPiece piece{};
@@ -593,7 +597,7 @@ void HelpBook::lay_out(double width, LayoutMode mode, LaidOut& laid) const {
     const double title_left = close_shown ? close_title_left : paper_left;
     FontSpec title_font = text_font(FontSpec{FontRole::control, title_size, 400, false});
     const LineBoxMetrics title_metrics =
-        line_box_metrics(resolve_text_layout_utf8(" ", title_font), std::nullopt);
+        line_box_metrics(resolve_text_layout_utf8(" ", title_font), stxlib::Optional<double>::none());
     laid.close = close_shown ? Rect{paper_left, top, close_size, close_size} : Rect{};
     const double title_height = std::max(title_metrics.height, close_shown ? close_size : 0.0);
     laid.title = Rect{title_left, top, std::max(0.0, width - paper_right - title_left), title_height};
@@ -614,14 +618,15 @@ void HelpBook::lay_out(double width, LayoutMode mode, LaidOut& laid) const {
     // (once, at its first piece).
     std::vector<std::size_t> seen_links;
     for (const LaidBlock& laid_block : laid.blocks) {
-        if (laid_block.section.has_value() && !mode.print) {
-            laid.stops.push_back(FocusStop{true, *laid_block.section});
+        const std::size_t* const section = laid_block.section.value();
+        if (section != nullptr && !mode.print) {
+            laid.stops.push_back(FocusStop{true, *section});
         }
         for (std::size_t piece = laid_block.first_piece; piece < laid_block.first_piece + laid_block.piece_count;
              ++piece) {
             const LaidPiece& laid_piece = laid.pieces[piece];
             if (laid_piece.kind != PieceKind::link) continue;
-            const std::size_t link = *page_.runs[laid_piece.run].link;
+            const std::size_t link = (*page_.runs[laid_piece.run].link.value());
             if (std::find(seen_links.begin(), seen_links.end(), link) != seen_links.end()) continue;
             seen_links.push_back(link);
             laid.stops.push_back(FocusStop{false, link});
@@ -633,7 +638,8 @@ void HelpBook::relayout() {
     const Rect viewport = viewport_rectangle();
     const double width = viewport.width > 0.0 ? viewport.width : client_rectangle().width;
     lay_out(width, LayoutMode{false}, layout_);
-    if (focused_stop_.has_value() && *focused_stop_ >= layout_.stops.size()) focused_stop_.reset();
+    const std::size_t* const focused = focused_stop_.value();
+    if (focused != nullptr && *focused >= layout_.stops.size()) focused_stop_.reset();
 }
 
 void HelpBook::arrange(Rect final_bounds) {
@@ -656,11 +662,11 @@ Size HelpBook::measure(Size available) {
     return result;
 }
 
-std::optional<double> HelpBook::block_top(std::size_t block) const noexcept {
+stxlib::Optional<double> HelpBook::block_top(std::size_t block) const noexcept {
     for (const LaidBlock& laid_block : layout_.blocks) {
-        if (laid_block.block == block) return laid_block.bounds.y;
+        if (laid_block.block == block) return stxlib::Optional<double>::of(laid_block.bounds.y);
     }
-    return std::nullopt;
+    return stxlib::Optional<double>::none();
 }
 
 Point HelpBook::content_offset() const noexcept {
@@ -669,37 +675,40 @@ Point HelpBook::content_offset() const noexcept {
     return Point{viewport.x - scrolled.x, viewport.y - scrolled.y};
 }
 
-std::optional<Rect> HelpBook::link_bounds(std::size_t link) const noexcept {
+stxlib::Optional<Rect> HelpBook::link_bounds(std::size_t link) const noexcept {
     const Point offset = content_offset();
-    std::optional<Rect> result{};
+    stxlib::Optional<Rect> result{};
     for (const LaidPiece& piece : layout_.pieces) {
-        if (piece.kind != PieceKind::link || page_.runs[piece.run].link != link) continue;
+        if (piece.kind != PieceKind::link || page_.runs[piece.run].link != stxlib::Optional<std::size_t>::of(link)) continue;
         const Rect moved{piece.bounds.x + offset.x, piece.bounds.y + offset.y, piece.bounds.width,
                          piece.bounds.height};
-        result = result.has_value() ? Rect::united(*result, moved) : moved;
+        const Rect* const so_far = result.value();
+        const Rect united = so_far != nullptr ? Rect::united(*so_far, moved) : moved;
+        result.set(united);
     }
     return result;
 }
 
-std::optional<Rect> HelpBook::topic_bar_bounds(std::size_t section) const noexcept {
+stxlib::Optional<Rect> HelpBook::topic_bar_bounds(std::size_t section) const noexcept {
     const Point offset = content_offset();
     for (const LaidBlock& laid_block : layout_.blocks) {
-        if (laid_block.section != section) continue;
+        if (!holds(laid_block.section, section)) continue;
         const Rect bar{laid_block.bar.x + offset.x, laid_block.bar.y + offset.y, laid_block.bar.width,
                        laid_block.bar.height};
-        return bar;
+        return stxlib::Optional<Rect>::of(bar);
     }
-    return std::nullopt;
+    return stxlib::Optional<Rect>::none();
 }
 
 // --- Paint ----------------------------------------------------------------------------
 
 void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, LayoutMode mode) const {
-    const std::size_t focused_link = focused_stop_.has_value() && !layout_.stops[*focused_stop_].section
-                                         ? layout_.stops[*focused_stop_].index
+    const std::size_t* const focused = focused_stop_.value();
+    const std::size_t focused_link = focused != nullptr && !layout_.stops[*focused].section
+                                         ? layout_.stops[*focused].index
                                          : static_cast<std::size_t>(-1);
-    const std::size_t focused_section = focused_stop_.has_value() && layout_.stops[*focused_stop_].section
-                                            ? layout_.stops[*focused_stop_].index
+    const std::size_t focused_section = focused != nullptr && layout_.stops[*focused].section
+                                            ? layout_.stops[*focused].index
                                             : static_cast<std::size_t>(-1);
     // The title and its rule.
     if (!page_.title.empty()) {
@@ -711,7 +720,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         // A fallback page's title is drawn in the secondary tone: the page
         // came, at least in part, from the program's built-in language.
         title.tone = page_.fallback ? PartTextTone::secondary : PartTextTone::ordinary;
-        title.key = PartKey{"title", {}, {}};
+        title.key.set(PartKey{"title", {}, {}});
         paint_text_part_at(painter, *this, title, Point{laid.title.x + offset.x, laid.title_baseline + offset.y},
                            laid.title.width);
     }
@@ -719,7 +728,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
     rule.family = ControlVisualRole::tool_tip;
     rule.role = PartRole::divider;
     rule.bounds = Rect{laid.rule.x + offset.x, laid.rule.y + offset.y, laid.rule.width, laid.rule.height};
-    rule.key = PartKey{"rule", {}, {}};
+    rule.key.set(PartKey{"rule", {}, {}});
     paint_part(painter, *this, rule);
     if (!mode.print && close_visible_) {
         PartPaint close{};
@@ -728,25 +737,26 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         close.mark = PartMark::close;
         close.bounds = Rect{laid.close.x + offset.x, laid.close.y + offset.y, laid.close.width, laid.close.height};
         if (close_hovered_) close.states.insert(AnatomyState::hot);
-        close.key = PartKey{"close", {}, {}};
+        close.key.set(PartKey{"close", {}, {}});
         paint_part(painter, *this, close);
     }
     for (const LaidBlock& laid_block : laid.blocks) {
         const HelpPageBlock& block = page_.blocks[laid_block.block];
-        if (laid_block.bar.width > 0.0 && laid_block.section.has_value()) {
-            const std::size_t section = *laid_block.section;
+        const std::size_t* const laid_section = laid_block.section.value();
+        if (laid_block.bar.width > 0.0 && laid_section != nullptr) {
+            const std::size_t section = *laid_section;
             AnatomyStateSet states{};
             states.insert(section_open(section) ? AnatomyState::open : AnatomyState::closed);
-            if (hovered_section_ == section) states.insert(AnatomyState::hot);
-            if (pressed_section_ == section) states.insert(AnatomyState::pressed);
+            if (holds(hovered_section_, section)) states.insert(AnatomyState::hot);
+            if (holds(pressed_section_, section)) states.insert(AnatomyState::pressed);
             PartPaint bar{};
             bar.family = ControlVisualRole::menu_item;
             bar.role = PartRole::face;
             bar.bounds = Rect{laid_block.bar.x + offset.x, laid_block.bar.y + offset.y, laid_block.bar.width,
                               laid_block.bar.height};
             bar.states = states;
-            bar.corner_radius = 0.0;
-            bar.key = PartKey{"topic_bar", "topic", section};
+            bar.corner_radius.set(0.0);
+            bar.key.set(PartKey{"topic_bar", "topic", stxlib::Optional<std::size_t>::of(section)});
             paint_part(painter, *this, bar);
             PartPaint expander{};
             expander.family = ControlVisualRole::menu_item;
@@ -755,7 +765,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             expander.bounds = Rect{laid_block.expander.x + offset.x, laid_block.expander.y + offset.y,
                                    laid_block.expander.width, laid_block.expander.height};
             expander.states = states;
-            expander.key = PartKey{"expander", "topic", section};
+            expander.key.set(PartKey{"expander", "topic", stxlib::Optional<std::size_t>::of(section)});
             paint_part(painter, *this, expander);
             if (focused_section == section && focused_) {
                 PartPaint ring{};
@@ -789,7 +799,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                 callout.family = ControlVisualRole::card;
                 callout.role = PartRole::face;
                 callout.bounds = face;
-                callout.corner_radius = 0.0;
+                callout.corner_radius.set(0.0);
                 paint_part(painter, *this, callout);
             }
         }
@@ -801,8 +811,8 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
                                   laid_block.bounds.width, laid_block.bounds.height};
             paint_part(painter, *this, divider);
         }
-        if (laid_block.image.width > 0.0 && block.image.has_value()) {
-            const HelpBookImage* image = find_image(page_.images[*block.image].source);
+        if (laid_block.image.width > 0.0 && block.image.present()) {
+            const HelpBookImage* image = find_image(page_.images[(*block.image.value())].source);
             if (image != nullptr) {
                 PartPaint picture{};
                 picture.family = ControlVisualRole::tool_tip;
@@ -833,16 +843,16 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
             part.text = lend_paint_text(text);
             part.family = ControlVisualRole::tool_tip;
             if (piece.kind == PieceKind::link) {
-                const std::size_t link = *page_.runs[piece.run].link;
+                const std::size_t link = (*page_.runs[piece.run].link.value());
                 const bool was_visited = visited(page_.links[link].target);
                 part.family = was_visited ? ControlVisualRole::visited_link : ControlVisualRole::link;
-                if (hovered_link_ == link) part.states.insert(AnatomyState::hot);
-                if (pressed_link_ == link) part.states.insert(AnatomyState::pressed);
-                part.key = PartKey{"link_text", "link", link};
+                if (holds(hovered_link_, link)) part.states.insert(AnatomyState::hot);
+                if (holds(pressed_link_, link)) part.states.insert(AnatomyState::pressed);
+                part.key.set(PartKey{"link_text", "link", stxlib::Optional<std::size_t>::of(link)});
             }
             paint_text_part_at(painter, *this, part, Point{bounds.x, piece.baseline + offset.y}, bounds.width);
             if (piece.kind == PieceKind::link) {
-                const std::size_t link = *page_.runs[piece.run].link;
+                const std::size_t link = (*page_.runs[piece.run].link.value());
                 PartPaint underline{};
                 underline.family = part.family;
                 underline.role = PartRole::glyph;
@@ -881,15 +891,15 @@ void HelpBook::on_paint(Painter& painter, Rect) {
     paper.family = ControlVisualRole::tool_tip;
     paper.role = PartRole::face;
     paper.bounds = bounds;
-    paper.corner_radius = 0.0;
-    paper.key = PartKey{"paper", {}, {}};
+    paper.corner_radius.set(0.0);
+    paper.key.set(PartKey{"paper", {}, {}});
     paint_part(painter, *this, paper);
     const Rect viewport = viewport_rectangle();
     painter.save();
     painter.clip_rect(viewport);
     paint_laid(painter, layout_, content_offset(), LayoutMode{false});
     painter.restore();
-    if (focused_ && !focused_stop_.has_value() && bounds.width > 4.0 && bounds.height > 4.0) {
+    if (focused_ && focused_stop_.absent() && bounds.width > 4.0 && bounds.height > 4.0) {
         PartPaint ring{};
         ring.family = ControlVisualRole::tool_tip;
         ring.role = PartRole::focus;
@@ -923,24 +933,33 @@ void HelpBook::paint_print_band(Painter& painter, Point origin, double top, doub
 
 // --- Input ------------------------------------------------------------------------------
 
-std::optional<std::size_t> HelpBook::link_at(Point local) const noexcept {
+stxlib::Optional<std::size_t> HelpBook::link_at(Point local) const noexcept {
     const Point offset = content_offset();
     const Point content{local.x - offset.x, local.y - offset.y};
-    if (!viewport_rectangle().contains(local)) return std::nullopt;
+    if (!viewport_rectangle().contains(local)) return stxlib::Optional<std::size_t>::none();
     for (const LaidPiece& piece : layout_.pieces) {
-        if (piece.kind == PieceKind::link && piece.bounds.contains(content)) return page_.runs[piece.run].link;
+        if (piece.kind != PieceKind::link || !piece.bounds.contains(content)) continue;
+        // A link piece's run always names its link (lay_out_runs).
+        const std::size_t link = (*page_.runs[piece.run].link.value());
+        return stxlib::Optional<std::size_t>::of(link);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
-std::optional<std::size_t> HelpBook::section_bar_at(Point local) const noexcept {
+stxlib::Optional<std::size_t> HelpBook::section_bar_at(Point local) const noexcept {
     const Point offset = content_offset();
     const Point content{local.x - offset.x, local.y - offset.y};
-    if (!viewport_rectangle().contains(local)) return std::nullopt;
+    if (!viewport_rectangle().contains(local)) return stxlib::Optional<std::size_t>::none();
     for (const LaidBlock& laid_block : layout_.blocks) {
-        if (laid_block.section.has_value() && laid_block.bar.contains(content)) return laid_block.section;
+        if (laid_block.section.present() && laid_block.bar.contains(content)) return laid_block.section;
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
+}
+
+bool HelpBook::holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept {
+    const std::size_t* const current = held.value();
+    const bool result = current != nullptr && *current == index;
+    return result;
 }
 
 void HelpBook::toggle_section(std::size_t section) {
@@ -955,8 +974,9 @@ bool HelpBook::activate_link(std::size_t link) {
     activation.kind = page_link.kind;
     activation.target = page_link.target;
     activation.fragment = page_link.fragment;
-    const std::optional<Rect> local = link_bounds(link);
-    if (local.has_value()) {
+    const stxlib::Optional<Rect> found_local = link_bounds(link);
+    const Rect* const local = found_local.value();
+    if (local != nullptr) {
         const Rect absolute = absolute_bounds();
         activation.bounds = Rect{absolute.x + (*local).x, absolute.y + (*local).y, (*local).width, (*local).height};
     }
@@ -985,20 +1005,22 @@ void HelpBook::reveal_rect(Rect content_rect) {
 bool HelpBook::move_focus(bool forward) {
     if (layout_.stops.empty()) return false;
     std::size_t next = 0U;
-    if (!focused_stop_.has_value()) {
+    const std::size_t* const focused = focused_stop_.value();
+    if (focused == nullptr) {
         next = forward ? 0U : layout_.stops.size() - 1U;
     } else if (forward) {
-        if (*focused_stop_ + 1U >= layout_.stops.size()) return false;
-        next = *focused_stop_ + 1U;
+        if (*focused + 1U >= layout_.stops.size()) return false;
+        next = *focused + 1U;
     } else {
-        if (*focused_stop_ == 0U) return false;
-        next = *focused_stop_ - 1U;
+        if (*focused == 0U) return false;
+        next = *focused - 1U;
     }
-    focused_stop_ = next;
+    focused_stop_.set(next);
     const FocusStop& stop = layout_.stops[next];
     const Point offset = content_offset();
-    const std::optional<Rect> local = stop.section ? topic_bar_bounds(stop.index) : link_bounds(stop.index);
-    if (local.has_value()) {
+    const stxlib::Optional<Rect> found_local = stop.section ? topic_bar_bounds(stop.index) : link_bounds(stop.index);
+    const Rect* const local = found_local.value();
+    if (local != nullptr) {
         reveal_rect(Rect{(*local).x - offset.x, (*local).y - offset.y, (*local).width, (*local).height});
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -1029,11 +1051,11 @@ void HelpBook::on_mouse_wheel(MouseEventArgs& arguments) {
 
 void HelpBook::on_mouse_leave() {
     scroll_pointer_left();
-    if (hovered_link_.has_value() || hovered_section_.has_value() || close_hovered_) {
+    if (hovered_link_.present() || hovered_section_.present() || close_hovered_) {
         hovered_link_.reset();
         hovered_section_.reset();
         close_hovered_ = false;
-        cursor = std::optional<CursorKind>();
+        cursor = stxlib::Optional<CursorKind>::none();
         invalidate(Dirty::paint);
     }
     Control::on_mouse_leave();
@@ -1044,8 +1066,9 @@ void HelpBook::handle_mouse(MouseEventArgs& arguments) {
     if (arguments.handled) return;
     const Point local = arguments.window_position;
     if (arguments.action == PointerAction::move) {
-        const std::optional<std::size_t> link = link_at(local);
-        const std::optional<std::size_t> section = link.has_value() ? std::nullopt : section_bar_at(local);
+        const stxlib::Optional<std::size_t> link = link_at(local);
+        const stxlib::Optional<std::size_t> section =
+            link.present() ? stxlib::Optional<std::size_t>::none() : section_bar_at(local);
         const bool over_close = close_visible_ && Rect{layout_.close.x + content_offset().x,
                                                        layout_.close.y + content_offset().y, layout_.close.width,
                                                        layout_.close.height}
@@ -1054,8 +1077,8 @@ void HelpBook::handle_mouse(MouseEventArgs& arguments) {
             hovered_link_ = link;
             hovered_section_ = section;
             close_hovered_ = over_close;
-            cursor = (link.has_value() || section.has_value() || over_close) ? std::optional<CursorKind>(CursorKind::hand)
-                                                                             : std::optional<CursorKind>();
+            cursor = (link.present() || section.present() || over_close) ? stxlib::Optional<CursorKind>::of(CursorKind::hand)
+                                                                             : stxlib::Optional<CursorKind>::none();
             invalidate(Dirty::paint);
         }
         return;
@@ -1063,27 +1086,29 @@ void HelpBook::handle_mouse(MouseEventArgs& arguments) {
     if (arguments.button != PointerButton::primary) return;
     if (arguments.action == PointerAction::down) {
         pressed_link_ = link_at(local);
-        pressed_section_ = pressed_link_.has_value() ? std::nullopt : section_bar_at(local);
-        if (pressed_link_.has_value() || pressed_section_.has_value() || close_hovered_) {
+        pressed_section_ = pressed_link_.present() ? stxlib::Optional<std::size_t>::none() : section_bar_at(local);
+        if (pressed_link_.present() || pressed_section_.present() || close_hovered_) {
             arguments.handled = true;
             invalidate(Dirty::paint);
         }
         return;
     }
     if (arguments.action == PointerAction::up) {
-        const std::optional<std::size_t> link = link_at(local);
-        const std::optional<std::size_t> section = section_bar_at(local);
-        const std::optional<std::size_t> pressed_link = pressed_link_;
-        const std::optional<std::size_t> pressed_section = pressed_section_;
+        const stxlib::Optional<std::size_t> link = link_at(local);
+        const stxlib::Optional<std::size_t> section = section_bar_at(local);
+        const stxlib::Optional<std::size_t> held_link = pressed_link_;
+        const stxlib::Optional<std::size_t> held_section = pressed_section_;
         pressed_link_.reset();
         pressed_section_.reset();
         invalidate(Dirty::paint);
-        if (pressed_link.has_value() && link == pressed_link) {
+        const std::size_t* const pressed_link = held_link.value();
+        if (pressed_link != nullptr && link == held_link) {
             arguments.handled = true;
             static_cast<void>(activate_link(*pressed_link));
             return;
         }
-        if (pressed_section.has_value() && section == pressed_section) {
+        const std::size_t* const pressed_section = held_section.value();
+        if (pressed_section != nullptr && section == held_section) {
             arguments.handled = true;
             toggle_section(*pressed_section);
             return;
@@ -1106,10 +1131,11 @@ void HelpBook::on_key_down(KeyEventArgs& arguments) {
         if (move_focus(!shift)) arguments.handled = true;
         return;
     }
+    const std::size_t* const focused = focused_stop_.value();
     if ((arguments.physical_key == PhysicalKey::enter || arguments.physical_key == PhysicalKey::space) &&
-        focused_stop_.has_value()) {
+        focused != nullptr) {
         arguments.handled = true;
-        const FocusStop stop = layout_.stops[*focused_stop_];
+        const FocusStop stop = layout_.stops[*focused];
         activate_stop(stop);
         return;
     }
@@ -1138,9 +1164,9 @@ void HelpBook::on_focus_changed(bool focused) {
 
 SemanticDescriptor HelpBook::semantic_descriptor() const {
     SemanticDescriptor descriptor;
-    // There is no document role: the book is a pane named by its title,
-    // whose children are its headings (static text with a level) and links.
-    descriptor.role = SemanticRole::pane;
+    // A document (GAPS H3) named by its title, whose children are its
+    // headings (with their level), images and links.
+    descriptor.role = SemanticRole::document;
     descriptor.name = accessible_name.read().empty() ? page_.title : accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.exposed = true;
@@ -1156,23 +1182,27 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
         if (block.kind == HelpPageBlockKind::heading) {
             SemanticNode heading{};
             heading.stable_id = prefix + ".heading-" + std::to_string(laid_block.block);
-            heading.role = laid_block.section.has_value() ? SemanticRole::button : SemanticRole::static_text;
+            // A collapsible section's heading is still a heading; it takes
+            // expand or collapse and reports expanded while open.
+            heading.role = SemanticRole::heading;
             for (std::size_t run = 0U; run < block.run_count; ++run) heading.name.append(page_.runs[block.first_run + run].text);
-            heading.level = block.level;
+            heading.level.set(block.level);
             heading.bounds = Rect{laid_block.bounds.x + offset.x, laid_block.bounds.y + offset.y,
                                   laid_block.bounds.width, laid_block.bounds.height};
             heading.states = SemanticState::enabled | SemanticState::visible;
-            if (laid_block.section.has_value()) {
-                heading.actions.push_back(section_open(*laid_block.section) ? SemanticAction::collapse
-                                                                            : SemanticAction::expand);
+            const std::size_t* const section = laid_block.section.value();
+            if (section != nullptr) {
+                const bool open = section_open(*section);
+                if (open) heading.states = heading.states | SemanticState::expanded;
+                heading.actions.push_back(open ? SemanticAction::collapse : SemanticAction::expand);
             }
             children.push_back(std::move(heading));
         }
-        if (block.kind == HelpPageBlockKind::image && block.image.has_value()) {
+        if (block.kind == HelpPageBlockKind::image && block.image.present()) {
             SemanticNode image{};
             image.stable_id = prefix + ".image-" + std::to_string(laid_block.block);
             image.role = SemanticRole::image;
-            image.name = page_.images[*block.image].alternative;
+            image.name = page_.images[(*block.image.value())].alternative;
             image.bounds = Rect{laid_block.bounds.x + offset.x, laid_block.bounds.y + offset.y,
                                 laid_block.bounds.width, laid_block.bounds.height};
             image.states = SemanticState::enabled | SemanticState::visible;
@@ -1185,13 +1215,14 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
         link.stable_id = prefix + ".link-" + std::to_string(stop.index);
         link.role = SemanticRole::link;
         for (const LaidPiece& piece : layout_.pieces) {
-            if (piece.kind == PieceKind::link && page_.runs[piece.run].link == stop.index) {
+            if (piece.kind == PieceKind::link && page_.runs[piece.run].link == stxlib::Optional<std::size_t>::of(stop.index)) {
                 link.name.append(page_.runs[piece.run].text.substr(piece.begin, piece.end - piece.begin));
             }
         }
         link.value = page_.links[stop.index].target;
-        const std::optional<Rect> bounds = link_bounds(stop.index);
-        if (bounds.has_value()) link.bounds = *bounds;
+        const stxlib::Optional<Rect> found_bounds = link_bounds(stop.index);
+        const Rect* const bounds = found_bounds.value();
+        if (bounds != nullptr) link.bounds = *bounds;
         link.states = SemanticState::enabled | SemanticState::visible;
         link.actions.push_back(SemanticAction::press);
         children.push_back(std::move(link));
@@ -1280,7 +1311,7 @@ std::size_t HelpBook::realized_item_count() const {
 }
 
 std::string HelpBook::realized_item_stable_id(std::size_t item) const {
-    if (item >= layout_.stops.size()) return {};
+    if (item >= layout_.stops.size()) throw std::out_of_range("HelpBook realized item is past the focus stops");
     const FocusStop& stop = layout_.stops[item];
     const std::string id = (stop.section ? "topic-" : "link-") + std::to_string(stop.index);
     return id;
@@ -1293,17 +1324,17 @@ ItemSystemIndex HelpBook::publish_realized_item_system(std::size_t item) const {
 }
 
 AnatomyStateSet HelpBook::realized_item_anatomy_states(std::size_t item) const {
+    if (item >= layout_.stops.size()) throw std::out_of_range("HelpBook realized item is past the focus stops");
     AnatomyStateSet states{};
-    if (item >= layout_.stops.size()) return states;
     const FocusStop& stop = layout_.stops[item];
     if (stop.section) {
         states.insert(section_open(stop.index) ? AnatomyState::open : AnatomyState::closed);
-        if (hovered_section_ == stop.index) states.insert(AnatomyState::hot);
-        if (pressed_section_ == stop.index) states.insert(AnatomyState::pressed);
+        if (holds(hovered_section_, stop.index)) states.insert(AnatomyState::hot);
+        if (holds(pressed_section_, stop.index)) states.insert(AnatomyState::pressed);
     } else {
-        if (hovered_link_ == stop.index) states.insert(AnatomyState::hot);
-        if (pressed_link_ == stop.index) states.insert(AnatomyState::pressed);
-        if (focused_ && focused_stop_ == item) states.insert(AnatomyState::focus_visible);
+        if (holds(hovered_link_, stop.index)) states.insert(AnatomyState::hot);
+        if (holds(pressed_link_, stop.index)) states.insert(AnatomyState::pressed);
+        if (focused_ && holds(focused_stop_, item)) states.insert(AnatomyState::focus_visible);
     }
     return states;
 }
@@ -1315,7 +1346,7 @@ void HelpBook::publish_realized_item_geometry(std::size_t item, std::span<PartGe
         TopicParts record;
         const Point offset = content_offset();
         for (const LaidBlock& laid_block : layout_.blocks) {
-            if (laid_block.section != stop.index) continue;
+            if (!holds(laid_block.section, stop.index)) continue;
             record.topic_bar = PartGeometry::from_bounds(Rect{laid_block.bar.x + offset.x, laid_block.bar.y + offset.y,
                                                               laid_block.bar.width, laid_block.bar.height});
             record.expander = PartGeometry::from_bounds(
@@ -1326,8 +1357,9 @@ void HelpBook::publish_realized_item_geometry(std::size_t item, std::span<PartGe
         return;
     }
     LinkParts record;
-    const std::optional<Rect> bounds = link_bounds(stop.index);
-    if (bounds.has_value()) record.link_text = PartGeometry::from_bounds(*bounds);
+    const stxlib::Optional<Rect> found_bounds = link_bounds(stop.index);
+    const Rect* const bounds = found_bounds.value();
+    if (bounds != nullptr) record.link_text = PartGeometry::from_bounds(*bounds);
     write_item_parts(help_book_item_systems[1], link_part_fields, record, geometry);
 }
 

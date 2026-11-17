@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <memory>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Native popups (gui_forms/window/native_popup/native_popup.hpp).
@@ -75,8 +77,8 @@ public:
     void set_scale(double scale);
 
     // The window outer band (owner, 2026-11-08; gui_forms/window/band/
-    // window_band.hpp). declare_band reserves the band on every side at
-    // once: the root is measured against the client size less the band and
+    // window_band.hpp). declare_band reserves the band on each side (one
+    // width, or one per edge) at once: the root is measured against the client size less the band and
     // arranged inside it, and the window is laid out again. Declaring again
     // lays it out only when the reserved width changes. std::invalid_argument
     // for options window_band_options_valid refuses, changing nothing. UI
@@ -91,6 +93,12 @@ public:
     // nothing. UI thread.
     void set_band_appearance(const WindowBandAppearance& appearance);
     [[nodiscard]] WindowBandSnapshot band_snapshot() const noexcept;
+    // What the attached host lets the band rely on (WindowShapingReport):
+    // its corner and state reports, the corner shapes it may give, and the
+    // window's preference, corners and full-screen state now. Without a
+    // host, host_attached is false and only the window's own fields are
+    // filled. UI thread.
+    [[nodiscard]] WindowShapingReport shaping_report() const;
     // Host-only: the native window entered or left full screen. A band
     // declared WindowBandFullScreen::hides gives up its reservation in full
     // screen (a layout each way). UI thread.
@@ -120,6 +128,12 @@ public:
 
     [[nodiscard]] bool queue_live_surface_presentation(
         const Control::Ptr& control, std::shared_ptr<LiveSurface> surface);
+    // Withdraws the registration queue_live_surface_presentation made for
+    // `control`, while it still holds `surface`: the window stops placing
+    // that surface over the control and lets it go. False when there is no
+    // such registration. Never throws; does nothing off the root's thread.
+    bool withdraw_live_surface_presentation(const Control::Ptr& control,
+                                            const std::shared_ptr<LiveSurface>& surface) noexcept;
     // A host presented `presented` (window logical units) of `presentation`'s
     // frame: recorded for the invalidation overlay while it is on, as a live
     // surface's presentation, or external content's for a compatibility
@@ -215,7 +229,7 @@ public:
     // reason: the user, the program, the session ending, a quit), once it
     // has; empty until then. Readable from the window's closed callback
     // (ApplicationWindowOptions::closed). Set only by HostSession.
-    [[nodiscard]] std::optional<HostCloseReason> host_close_reason() const noexcept;
+    [[nodiscard]] stxlib::Optional<HostCloseReason> host_close_reason() const noexcept;
     // The slot drop-downs and pickers lift their lists and panels into
     // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
     // slots below it, one per depth.
@@ -225,13 +239,19 @@ public:
     // that leaves it unhandled; none ends the forwarding. The control whose
     // Popup has the keyboard sets it (PopupLift does) and clears it when the
     // Popup hides. std::out_of_range for a slot out of range. UI thread.
-    void forward_input_to_popup_window(std::optional<std::size_t> slot);
+    void forward_input_to_popup_window(stxlib::Optional<std::size_t> slot);
+    [[deprecated("pass stxlib::Optional<std::size_t>")]] void forward_input_to_popup_window(std::optional<std::size_t> slot) {
+        stxlib::Optional<std::size_t> owned{};
+        if (slot.has_value()) owned.set(*slot);
+        forward_input_to_popup_window(owned);
+    }
+    void forward_input_to_popup_window(std::size_t slot) = delete;
     // The work area of the monitor under `client_point` (this window's
     // client coordinates), in client coordinates: the region a Popup window
     // may cover, which reaches past the client area onto the desktop. None
     // when the run cannot say (no run, no frame, no monitors). Reads the
     // monitor table into storage the window keeps. UI thread.
-    [[nodiscard]] std::optional<Rect> popup_work_area(Point client_point);
+    [[nodiscard]] stxlib::Optional<Rect> popup_work_area(Point client_point);
 
     // The application this window joined, or null (none was current, or it
     // was destroyed first).
@@ -354,7 +374,7 @@ private:
     std::shared_ptr<detail::PopupStandby> popup_standby_{};
     // host_close_reason(): written by HostSession when it accepts the
     // closed event.
-    std::optional<HostCloseReason> host_close_reason_{};
+    stxlib::Optional<HostCloseReason> host_close_reason_{};
     [[nodiscard]] detail::PopupStandby& popup_standby();
     // Sends the corner preference to the attached host, if any, and takes
     // its report; changed corners repaint the band's strips. Called by
@@ -363,6 +383,10 @@ private:
     // Called by HostSession: seeds the window's bindings with the host's
     // defaults unless they are seeded already.
     void install_host_key_map(const KeyMap& defaults);
+    // Called by HostSession when the host reports HostCapability::locale:
+    // seeds the window's application resources with the host's locale
+    // unless the program set one or an earlier session seeded it.
+    void install_host_locale(const HostLocale& locale);
     void initialize_cursor_identity() noexcept;
     void invalidate_cursor_interaction(CursorError cause) noexcept;
     std::uint64_t cursor_window_id_{};

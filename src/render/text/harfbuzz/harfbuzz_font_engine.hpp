@@ -42,12 +42,17 @@ struct ShapedText final {
     bool missing_primary_face{};
 };
 
-// The encoded font a registered face was opened from. A rasterizer opens its
-// own FreeType face from these bytes, at its own size, while owner lives.
+// The encoded font a registered face was opened from. A rasterizer draws it
+// through the program's typeface of these bytes (program_typeface), at its
+// own size, while owner lives.
 struct FontFaceSource final {
     std::span<const std::byte> bytes{};
     std::shared_ptr<const void> owner{};
     std::uint32_t face_index{};
+    // The family the face was registered for (zero for a role or fallback
+    // face): a rasterizer quarantines an application family whose glyphs it
+    // cannot draw.
+    FontFamilyId family{};
 };
 
 // The encoded font a lazily registered face opens from; `owner` keeps `bytes` alive. Empty
@@ -66,24 +71,6 @@ struct ShapeStorageLimits final {
     std::size_t workspace_bytes{16U * 1024U * 1024U};
 };
 
-// The text stack's heap calls on the calling thread since it started, never
-// reset (HarfBuzzFontEngine::thread_native_allocations): read before and
-// after a piece of work and subtract.
-// - freetype: allocations and reallocations through the FreeType library of
-//   every engine (its faces, sizes and glyph loading); not the glyph
-//   rasterizer's own library (GlyphRunRasterizer).
-// - harfbuzz: HarfBuzz's hb_malloc, hb_calloc and hb_realloc calls, from any
-//   caller.
-// - sheenbidi_heap: SheenBidi allocations that reached the C heap (every one
-//   outside a reusable workspace's shaping, and those its arena had no room
-//   for); sheenbidi_arena: those a workspace's arena served.
-struct NativeAllocationCounts final {
-    std::uint64_t freetype{};
-    std::uint64_t harfbuzz{};
-    std::uint64_t sheenbidi_heap{};
-    std::uint64_t sheenbidi_arena{};
-};
-
 struct PrimaryLineMetrics final {
     FontFaceId face{};
     double ascent_device{};
@@ -91,9 +78,12 @@ struct PrimaryLineMetrics final {
     double line_gap_device{};
 };
 
-// Private portable text engine. It owns every encoded face and never consults
-// a host font catalog. The renderer maps returned face IDs to its own private
-// raster objects; HarfBuzz/FreeType objects never cross this boundary.
+// Private portable text engine over STXlib's shaper (stxlib::glyphs). It owns
+// every encoded face and never consults a host font catalog. The renderer
+// maps returned face IDs to its own private raster objects; STXlib objects
+// never cross this boundary. Shaping matches HarfBuzz 14.6 for a FreeType
+// font at the same size, unhinted, for the scripts STXlib shapes; Arabic and
+// the Indic scripts are drawn unshaped (stxlib/glyph_shape.hpp).
 class HarfBuzzFontEngine final {
 public:
     HarfBuzzFontEngine();
@@ -135,23 +125,36 @@ public:
     [[nodiscard]] std::optional<FontFaceId> register_lazy_fallback_typeface(
         std::uint16_t weight, bool italic, std::span<const gui_forms::detail::CodepointRange> coverage,
         LazyFaceLoader load);
-    // A face of the numbered bundled family `family` (FontSpec::family, never zero), loaded and
-    // opened the first time text names its family. It is preferred over every role face for
-    // such text and takes no part in any other; fallback through the role's faces and the
-    // fallback faces still covers what it lacks. `load` runs on the shaping thread, at most
-    // once unless it throws; a face that does not open is left out from then on. Refused by
-    // a bounded engine (configure_bounded_registration).
+    // A face of the family `family` (a FontFamilyId the registry has, never zero), loaded and
+    // opened the first time text whose family order (font_family_order: FontSpec::family, then
+    // its stack's) lists the family. Such text prefers it over every role face, its family's
+    // face nearest the weight and slant first; it takes no part in other text. Fallback
+    // through the role's faces and the fallback faces still covers what it lacks. `load` runs
+    // on the shaping thread, at most once unless it throws; a face that does not open is left
+    // out from then on. Refused by a bounded engine (configure_bounded_registration).
     [[nodiscard]] std::optional<FontFaceId> register_lazy_family_typeface(
-        BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load);
+        FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load);
+    // An open face of `family`, as register_owned_typeface takes bytes and their owner, taking
+    // part as register_lazy_family_typeface's faces do. Admitted by a bounded engine: prepared
+    // text's font banks register their family faces this way.
+    [[nodiscard]] std::optional<FontFaceId> register_owned_family_typeface(
+        FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> encoded,
+        std::shared_ptr<const void> owner, std::uint32_t face_index = 0U);
+    // Marks the fallback face `id` as drawn first for text in `language`
+    // (FontSpec::language): such text tries it before the other fallback
+    // faces. False, changing nothing, for an unknown ID or a role or family
+    // face. Confined to the engine's executor, as registration is.
+    [[nodiscard]] bool set_face_language(FontFaceId id, TextLanguage language) noexcept;
     // Faces opened so far: eager faces and lazy faces that have been needed.
     [[nodiscard]] std::size_t opened_face_count() const noexcept;
     // Native setup/allocation failures throw; a call-owned partial result never
     // becomes a successful return. Callers retain old state until return succeeds.
     [[nodiscard]] ShapedText shape(std::string_view utf8, FontSpec font);
-    // Exact role/weight/italic only, first registered matching primary. No
-    // fallback or text shaping. Sets that owned FT face's size once using the
-    // same 26.6 rounding as shape; caller confines native mutation to executor.
-    // Nullopt means no exact primary. Invalid font/native failures throw.
+    // The first family of the font's order with a face: its face nearest the
+    // weight and slant. Otherwise exact role/weight/italic only, first registered matching primary. No
+    // fallback or text shaping. The face's sized line metrics at the same
+    // 26.6 size as shape; the caller confines the engine to its executor.
+    // Nullopt means no exact primary. An invalid font throws.
     [[nodiscard]] std::optional<PrimaryLineMetrics> primary_line_metrics(const FontSpec font);
     // Throws length_error before a controlled allocation would exceed limits;
     // invalid input and native/resource failures also throw. The caller's old
@@ -178,23 +181,23 @@ public:
     // of `utf8` into `workspace`, the shaping shape() does (the same faces,
     // grapheme clusters, bidi runs and glyph positions), answered with the
     // extent resolve() reports. It allocates nothing once the workspace
-    // holds utf8.size() bytes, except what HarfBuzz, FreeType and SheenBidi
-    // do on their own (counted by thread_native_allocations: the HarfBuzz
-    // buffer and the SheenBidi arena are the workspace's, a face's font and
-    // shape plans are made at its first use) and the first loading of a
-    // lazy face. The status is invalid_request, with no shaping kept, for a
-    // workspace of another engine or too small, invalid UTF-8, an invalid
-    // font, or more runs or glyphs than the workspace stages. Native
+    // holds utf8.size() bytes, except what STXlib does on its own (a face's
+    // shaper, its plans and its working buffer are made at its first use and
+    // kept), the first loading of a lazy face, and the growth of the
+    // workspace's bidi analysis to the largest paragraph it has held (counted
+    // in bytes under text_layout; it is reused, so a text it has held before,
+    // or a smaller one of the same form, grows nothing). The status is
+    // invalid_request, with no shaping kept, for a workspace of another
+    // engine or too small, invalid UTF-8, an invalid font, or more runs or
+    // glyphs than the workspace stages. Native
     // failures throw, as shape() does, with no shaping kept.
     [[nodiscard]] TextExtent shape_in_workspace(std::string_view utf8, FontSpec font,
                                                 ReusableShapeWorkspace& workspace);
     // This engine's identity and current face table (GlyphSource): the
     // source of what shape_in_workspace shapes now.
     [[nodiscard]] GlyphSource glyph_source() const noexcept;
-    // The calling thread's text stack heap calls (NativeAllocationCounts).
-    [[nodiscard]] static NativeAllocationCounts thread_native_allocations() noexcept;
-    // UAX #14 line-break opportunities (libunibreak 8.0, Unicode 17, the
-    // locale-independent "-strict" tailoring), one per input byte, under
+    // UAX #14 line-break opportunities (stxlib::textlayout, Unicode 18.0.0,
+    // no tailoring; CJ is NS), one per input byte, under
     // TextMetricsProvider::fill_line_break_opportunities_utf8's contract.
     // Returns exact, or invalid_request with `opportunities` unchanged. It
     // reads no face and allocates nothing.

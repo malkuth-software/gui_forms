@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- toggle-pill.control: a toggle switch with an animated, draggable thumb
+     (design note 6.2). A click toggles at once; a drag in commit mode moves
+     only the presentational drag-position until it ends. -->
+<control xmlns="urn:gui-forms:control:1" name="toggle-pill" version="1.0"
+         base="user-control" family="choice">
+
+  <property name="checked" kind="boolean" default="false" bindable="two-way" category="Behavior"
+            changed="checked-changed" affects="paint semantics"/>
+  <property name="text" kind="text" default="" category="Appearance" localizable="yes"
+            affects="layout paint semantics"/>
+  <!-- The thumb's centre while it is dragged; paint only. -->
+  <property name="drag-position" kind="number" presentational="yes"/>
+
+  <event name="checked-changed" payload="boolean"/>
+  <command name="toggle" enabled="enabled(self)" run="toggle(checked)" semantic-action="press"/>
+
+  <publish state="checked" when="property(checked)"/>
+
+  <part name="track" role="track" shape="pill" states="hot pressed"
+        box="inset(region, 0) width(40) height(22) align-inline(start) align-block(center)"/>
+  <!-- The track and the label toggle on a click, as a check box's label does.
+       Declared before the thumb: a later part is on top for the pointer,
+       so the thumb takes its own press (its drag). -->
+  <part name="hit-area" role="region" box="union(track, label)" hit="box" press="click" activates="toggle"/>
+  <part name="thumb" role="thumb" shape="circle" states="hot pressed captured"
+        box="inset(track, 3) square
+             align-inline(choose(present(drag-position), at(drag-position), choose(checked, end, start)))"
+        hit="shape" press="click drag" activates="toggle">
+    <drag kind="value" mode="commit" axis="inline" range="start-of(track) end-of(track)"
+          maps-to="checked" settles="yes" keyboard="none"
+          preview="set(drag-position, frame-value)"/>
+  </part>
+  <part name="label" role="label" present="not(equal(text, ''))"
+        box="inset(region, 0) after-inline(track, 8) text-extent(text) align-block(center)"/>
+
+  <focus target="self" tab-stop="yes" visible-cue="part(focus)" mnemonic="property(text)"/>
+  <key gesture="space" phase="key-up"><run command="toggle"/></key>
+
+  <semantics role="toggle-switch" name="property(accessible-name) or property(text)"
+             states="checked(property(checked))" actions="press(toggle)" children="hidden"/>
+
+  <look>
+    toggle-pill::part(thumb) { transition: translate spring(150ms, 0.8); }
+    toggle-pill::part(track) { transition: face 150ms ease; }
+    toggle-pill::part(track):checked { background: #2f69be; }
+    toggle-pill:active::part(thumb) { scale: 1.08; transition: scale 90ms ease-out; }
+  </look>
+</control>

@@ -4,7 +4,9 @@
 // realizing each stack, and the drag layer.
 
 #include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -77,7 +79,12 @@ private:
 // The layer the drag paints on: a child of the site kept above the stacks,
 // covering the site, transparent to hit testing, taking no focus and
 // publishing nothing (its parts are the site's). The site's motion values
-// move what it paints; the site invalidates it.
+// move what it paints; the site invalidates it. The layer hosts the
+// drop-cue pulse itself (dock_site_drag.cpp), since its paint is what the
+// pulse's frames must invalidate: the site calls paint_drop_pulse after it
+// painted the drop part, and the layer enlists itself on the motion clock
+// while the pulse may move. A frame that finds no selected target, or no
+// paint of the pulse since the last frame, drops it from the clock.
 class DockSite::DragLayer final : public Control {
 public:
     DragLayer(StableId stable_id, DockSite& site) : Control(std::move(stable_id)), site_(&site) {
@@ -86,6 +93,14 @@ public:
     }
 
     void release_site() noexcept { site_ = nullptr; }
+
+    // Draws the pulse over the drop part at `highlight` (layer and site
+    // coordinates are the same) and enlists or withdraws its frames.
+    void paint_drop_pulse(Painter& painter, Rect highlight);
+    [[nodiscard]] const EffectInstance& drop_pulse() const noexcept { return pulse_; }
+    // A pulse frame: advances the pulse and invalidates the drop part.
+    bool on_ambient_frame(FrameTime now) override;
+    void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
 
     [[nodiscard]] bool hit_test_local(Point) const override { return false; }
 
@@ -101,7 +116,18 @@ public:
     }
 
 private:
+    // Whether the pulse may move: attached, ambient motion on and motion
+    // not reduced.
+    [[nodiscard]] bool pulse_moves() const noexcept;
+
     DockSite* site_{};
+    EffectInstance pulse_{};
+    // The drop part the pulse last painted over, in layer coordinates.
+    Rect pulse_bounds_{};
+    // Paints of the pulse, and the count the last frame saw: equal at a
+    // frame means the pulse was not painted since, so it is not shown.
+    std::uint64_t pulse_paints_{};
+    std::uint64_t pulse_paints_seen_{};
 };
 
 } // namespace gui_forms

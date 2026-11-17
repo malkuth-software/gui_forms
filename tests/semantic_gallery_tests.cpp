@@ -36,8 +36,11 @@
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/callout.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/binding/property_type/property_type.hpp"
@@ -64,6 +67,7 @@
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <array>
@@ -97,7 +101,7 @@ constexpr std::string_view off_tree_page = "off-tree-controls";
 
 // Registry entries that are not controls (nonvisual components and the
 // LiveSurface service type), as the anatomy coverage test lists them.
-constexpr std::array<std::string_view, 33> nonvisual_entries{
+constexpr std::array<std::string_view, 34> nonvisual_entries{
     "command", "gallery_command", "font_command", "color_command", "context_menu",
     "tool_tip", "ribbon_tool_tip", "timer", "background_worker", "notify_icon",
     "thread_exception_dialog", "image_list", "error_provider", "help_provider", "semantic_feedback", "binding",
@@ -105,6 +109,8 @@ constexpr std::array<std::string_view, 33> nonvisual_entries{
     "save_file_dialog",
     "color_dialog",
     "folder_browser_dialog",
+    // Links the axes of PlotViews; it shows nothing of its own.
+    "plot_link_group",
     // A PlotView's item children, which it paints as its own parts; the
     // About box and the help system, components shown through their
     // dialog and viewer; and the abstract bases: GaugeBase, the gauges',
@@ -345,6 +351,9 @@ std::string node_control_type(const PageWalk& walk, const SemanticNode& node, st
     if (control_backed(node)) {
         const Control::Ptr control = walk.window.find(node.stable_id);
         if (!control) return std::string("(control not found)");
+        // A composite's anatomy is named for its composite type; it is the
+        // registry's composite_control, made only from a definition.
+        if (dynamic_cast<const CompositeControl*>(control.get()) != nullptr) return std::string("composite_control");
         const std::string type((*control).anatomy().control_id);
         return type;
     }
@@ -420,14 +429,14 @@ void walk_node(PageWalk& walk, const SemanticNode& node, const SemanticNode* sco
         fail(walk.report, walk.page, node.stable_id, "two nodes share one runtime ID in one scope");
     }
     // A position is published with its set size or not at all (RB-22).
-    if (node.position_in_set.has_value() != node.set_size.has_value()) {
+    if (node.position_in_set.present() != node.set_size.present()) {
         fail(walk.report, walk.page, node.stable_id, "a position in set without a set size, or the reverse");
-    } else if (node.position_in_set.has_value()) {
+    } else if (node.position_in_set.present()) {
         ++walk.report.positioned;
-        if (*node.position_in_set < 1U || *node.position_in_set > *node.set_size) {
+        if (*node.position_in_set.value() < 1U || *node.position_in_set.value() > *node.set_size.value()) {
             fail(walk.report, walk.page, node.stable_id,
-                 "position " + std::to_string(*node.position_in_set) + " outside a set of " +
-                     std::to_string(*node.set_size));
+                 "position " + std::to_string(*node.position_in_set.value()) + " outside a set of " +
+                     std::to_string(*node.set_size.value()));
         }
     }
     if (node.role == SemanticRole::tab) walk.tabs.push_back(&node);
@@ -516,6 +525,17 @@ void place(Panel& root, const Control::Ptr& control, Rect bounds) {
 // The off-tree fixture, as both Windows clients build it: each registry
 // control the Gallery does not attach to its root tree, in a cell of its
 // own.
+// A composite type for CompositeControl's registry entry, which is made
+// only from a definition.
+constexpr std::string_view coverage_chip_document = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="coverage-chip" version="1.0" base="user-control" family="card">
+  <property name="text" kind="text" default="Coverage chip" category="Appearance"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <focus target="none"/>
+  <semantics role="group" name="property(text)" children="hidden"/>
+</control>
+)xml";
+
 std::unique_ptr<Window> make_off_tree_fixture() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("off-tree"));
     const std::shared_ptr<ButtonBase> button_base =
@@ -537,8 +557,9 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<TaskDialog>(StableId("off-tree.task-dialog")), Rect{330.0, 130.0, 420.0, 240.0});
     place(*root, make_control<FontDialog>(StableId("off-tree.font-dialog")), Rect{10.0, 390.0, 640.0, 400.0});
     // The visual registry controls no Gallery page attaches: the instruments
-    // and the plot, and the wizard, callout, modal layer and help viewer
-    // controls, each placed bare (a callout and a modal layer not shown).
+    // and the plots, and the wizard, callout, modal layer, help viewer,
+    // business card and window capsule controls, each placed bare (a callout
+    // and a modal layer not shown).
     place(*root, make_control<Sparkline>(StableId("off-tree.sparkline")), Rect{670.0, 390.0, 160.0, 30.0});
     place(*root, make_control<ValueBar>(StableId("off-tree.value-bar")), Rect{850.0, 390.0, 160.0, 24.0});
     place(*root, make_control<PlotView>(StableId("off-tree.plot-view")), Rect{670.0, 430.0, 300.0, 150.0});
@@ -546,6 +567,24 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     place(*root, make_control<Callout>(StableId("off-tree.callout")), Rect{670.0, 600.0, 200.0, 80.0});
     place(*root, make_control<ModalLayer>(StableId("off-tree.modal-layer")), Rect{890.0, 600.0, 160.0, 80.0});
     place(*root, make_control<HelpBookViewer>(StableId("off-tree.help-book-viewer")), Rect{1060.0, 600.0, 200.0, 190.0});
+    place(*root, make_control<BusinessCard>(StableId("off-tree.business-card")), Rect{990.0, 60.0, 272.0, 164.0});
+    // The 3D plot, bare, and the window capsule as the surface window
+    // manager's title strip shows it: not interactive, so its group and its
+    // three section buttons publish but offer no action. An interactive
+    // capsule's presses only raise requests to its program, which change
+    // nothing the semantic tree shows (window_capsule_tests covers them).
+    place(*root, make_control<Plot3DView>(StableId("off-tree.plot3d-view")), Rect{990.0, 240.0, 270.0, 170.0});
+    const std::shared_ptr<WindowCapsule> capsule = make_control<WindowCapsule>(StableId("off-tree.window-capsule"));
+    (*capsule).set_interactive(false);
+    place(*root, capsule, Rect{1060.0, 10.0, 80.0, 20.0});
+    // CompositeControl, made only from a definition: a composite made from
+    // one publishes the registry entry's node.
+    const std::span<const CompositeChildType> no_child_types{};
+    const CompositeLoadResult chip =
+        load_composite_definition("coverage-chip.control", coverage_chip_document, no_child_types);
+    if (!chip) throw std::runtime_error("the coverage composite is refused");
+    place(*root, make_control<CompositeControl>(StableId("off-tree.composite"), chip.definition),
+          Rect{1060.0, 545.0, 160.0, 40.0});
     const Size size{1280.0, 820.0};
     std::unique_ptr<Window> window = std::make_unique<Window>(root, size);
     return window;

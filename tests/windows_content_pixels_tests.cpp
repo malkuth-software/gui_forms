@@ -8,7 +8,7 @@
 // icon (chrome) change.
 #include "gui_forms/control.hpp"
 #include "gui_forms/theme.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 
 #include <array>
 #include <cstdint>
@@ -98,7 +98,7 @@ Scene paint_control(const std::shared_ptr<gui_forms::detail::BundledFontSet>& fo
     PartPaint swatch{};
     swatch.role = PartRole::fill;
     swatch.bounds = {4.0, 0.0, 2.0, 2.0};
-    swatch.content_color = Color::rgba(200, 40, 90, 255);
+    swatch.content_color.set(Color::rgba(200, 40, 90, 255));
     swatch.states = states;
     paint_part(painter, *control, swatch);
 
@@ -134,7 +134,8 @@ int main(int argc, char** argv) {
         std::cerr << "pass the fixture font directory\n";
         return 1;
     }
-    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(
+        gui_forms::detail::BundledFontLocation{gui_forms::BundledFontSource::environment, std::filesystem::path(argv[1])});
     require(fonts != nullptr, "the fixture fonts load");
 
     // A 2 x 2 opaque picture, premultiplied BGRA rows.

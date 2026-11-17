@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
+#include "gui_forms/window.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "drag_engine.hpp"
@@ -176,17 +177,15 @@ public:
     Point velocity{};
 
 private:
-    // The scroll timer's target. The timer is the session's member and
-    // skips the ticks of a destroyed timer, all on the window's thread, so
-    // `session` is valid whenever it calls. A tick reports unchanged: the
-    // tracker cannot see the owner's paints (the timer's paint gate needs
-    // note_painted from on_paint), so it paces at the display interval and
-    // the owner's scroll invalidates what moved.
+    // The scroll repeat's target. Its request is the session's member
+    // (scroll_frames_), revoked by stop_scroll and on destruction, and a
+    // revoked request is never called, all on the window's thread, so
+    // `session` is valid whenever it calls. The owner's scroll invalidates
+    // what moved.
     struct ScrollTick final {
         DragTrackerSession* session;
-        AnimationTickResult operator()(FrameTime now) const {
+        void operator()(FrameTime now) const {
             (*session).scroll_tick(now);
-            return AnimationTickResult::unchanged;
         }
     };
 
@@ -221,6 +220,9 @@ private:
     void announce_withdrawn(DragEngine& engine, std::uint32_t id);
     void update_scroll(Point pointer);
     void stop_scroll() noexcept;
+    // A live session's update of `frame` (DragUpdates::live): counted and
+    // handed to the owner's update callback; nothing for an on_release one.
+    void apply_live(const DragTrackerFrame& frame);
 
     DragTracker* tracker_;
     // Borrowed until a start; observed from then on (observed_).
@@ -231,6 +233,12 @@ private:
     // The session's terms, set at its start and its first plan.
     std::uint64_t key_{};
     DragKind kind_{DragKind::placement};
+    // How the model follows (the last plan's DragPlan::updates).
+    DragUpdates updates_{DragUpdates::on_release};
+    // The last frame previewed in this session, for a live update of a move
+    // that changed no hit (the engine previews only changes and continuous
+    // hits).
+    DragTrackerFrame last_frame_{};
     // The placement's lock as the first plan resolved it (never dominant).
     DragAxisLock lock_{DragAxisLock::none};
     DragAutoScroll scroll_{};
@@ -253,11 +261,15 @@ private:
     // maximum_withdrawn_drag_targets, live count withdrawn_count_.
     std::array<std::uint32_t, maximum_withdrawn_drag_targets> withdrawn_{};
     std::size_t withdrawn_count_{};
-    // Auto-scroll's frames: started when the pointer enters a band, stopped
-    // when it leaves, at the content's end, at every session end, on detach
-    // and destruction. A window that cancels its frame requests stops it
-    // too; the next pointer move in a band starts it again.
-    AnimationTimer scroll_timer_{};
+    // Auto-scroll's repeat: a UI timer on the owner's window
+    // (SurfaceRoot::schedule_ui_timer, Timer's path), not an animation:
+    // auto-scroll is input behaviour, so it runs where motion is not
+    // compiled (cmake/HighIntegrity.cmake) and is not gated on the owner's
+    // paints. Started when the pointer enters a band, revoked when it
+    // leaves, at the content's end, at every session end, on detach and
+    // destruction. A window that cancels its frame requests ends it too;
+    // the next pointer move in a band starts it again.
+    FrameRequestToken scroll_frames_{};
     FrameTime last_tick_{};
 };
 
@@ -293,6 +305,7 @@ DragTrackerFrame DragTrackerSession::frame_of(DragPhase phase, DragInputMode mod
     frame.epoch = epoch;
     frame.pointer = pointer;
     frame.modifiers = modifiers_;
+    frame.live = updates_ == DragUpdates::live;
     switch (selection.kind) {
     case DragSelectionKind::candidate:
         if (kind_ == DragKind::reorder) {
@@ -375,6 +388,7 @@ DragPlanRefusal DragTrackerSession::plan_drag(DragPlanBuilder& builder, const Dr
     if (plan.container != nullptr) builder.group_container(DragGroup{}, *plan.container);
     builder.drop_motion(plan.settles);
     kind_ = plan.kind;
+    updates_ = plan.updates;
     const bool scrolls = subject.mode == DragInputMode::pointer;
     scroll_ = scrolls ? plan.auto_scroll : DragAutoScroll{};
     const DragPlanRefusal refusal = builder.finish(root);
@@ -527,9 +541,24 @@ void DragTrackerSession::preview_drag(const DragFrame& frame) {
     ++statistics.previews;
     const DragTrackerFrame shown = frame_of(frame.phase, frame.mode, frame.epoch.value, frame.pointer,
                                             frame.selection, frame.landing);
+    last_frame_ = shown;
+    {
+        const CallbackScope scope(depth_);
+        const Delegate<const DragTrackerFrame&> callback = (*tracker_).callbacks.preview;
+        callback(shown);
+    }
+    // The preview may have cancelled the session: a cancelled session
+    // applies nothing more.
+    if (running_engine() == nullptr) return;
+    apply_live(shown);
+}
+
+void DragTrackerSession::apply_live(const DragTrackerFrame& frame) {
+    if (updates_ != DragUpdates::live) return;
+    ++statistics.live_updates;
     const CallbackScope scope(depth_);
-    const Delegate<const DragTrackerFrame&> callback = (*tracker_).callbacks.preview;
-    callback(shown);
+    const Delegate<const DragTrackerFrame&> callback = (*tracker_).callbacks.update;
+    if (callback) callback(frame);
 }
 
 void DragTrackerSession::announce_drag(const DragFrame& frame, DragAnnouncement& announcement) {
@@ -595,7 +624,7 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     } else if (mode == DragInputMode::pointer) {
         const bool down = press != nullptr && (*press).action == PointerAction::down && finite_point((*press).position);
         const bool threshold = std::isfinite(start.threshold) && start.threshold >= 0.0;
-        const bool source = !start.source || finite_rect(*start.source);
+        const bool source = start.source.absent() || finite_rect((*start.source.value()));
         if (!down || !threshold || !source) problem = DragStartResult::bad_input;
     }
     Control& subject = start.subject != nullptr ? *start.subject : *owner_;
@@ -618,6 +647,8 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     stop_scroll();
     key_ = start.key;
     kind_ = DragKind::placement;
+    updates_ = DragUpdates::on_release;
+    last_frame_ = DragTrackerFrame{};
     lock_ = DragAxisLock::none;
     scroll_ = DragAutoScroll{};
     planned_ = false;
@@ -630,7 +661,7 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
     if (mode == DragInputMode::pointer) {
         pointer_ = (*press).position;
         modifiers_ = (*press).modifiers;
-        const Rect source = start.source ? *start.source : subject.absolute_bounds();
+        const Rect source = start.source.present() ? (*start.source.value()) : subject.absolute_bounds();
         begun = engine.arm(*this, *owner_, subject, start.key, pointer_, source, start.threshold);
     } else {
         modifiers_ = Modifier::none;
@@ -648,6 +679,8 @@ DragStartResult DragTrackerSession::start(const DragStart& start, DragInputMode 
 
 bool DragTrackerSession::pointer(const PointerEvent& event) {
     if (depth_ > 0) return false;
+    // Refused before it is kept as the session's pointer (A-gf-core-04-F2).
+    if (!finite_point(event.position)) return false;
     DragEngine* engine = running_engine();
     if (engine == nullptr) return false;
     if (event.action == PointerAction::move || event.action == PointerAction::up) {
@@ -660,8 +693,25 @@ bool DragTrackerSession::pointer(const PointerEvent& event) {
         // The redone plan was refused: the session ended, and took this event.
         if (engine == nullptr) return true;
     }
+    const std::uint64_t previews_before = statistics.previews;
     const bool taken = (*engine).pointer(event);
-    if (event.action == PointerAction::move) update_scroll(event.position);
+    if (event.action == PointerAction::move) {
+        // A live session applies every move of its dragging phase: a move
+        // the engine previewed was applied with its preview; one that kept
+        // the hit (a target or slot held) is applied here, from the last
+        // frame with the pointer and modifiers now.
+        DragEngine* const after = running_engine();
+        const bool unpreviewed = statistics.previews == previews_before;
+        if (after != nullptr && unpreviewed && (*after).phase() == DragPhase::dragging &&
+            updates_ == DragUpdates::live) {
+            DragTrackerFrame moved = last_frame_;
+            moved.pointer = pointer_;
+            moved.modifiers = modifiers_;
+            last_frame_ = moved;
+            apply_live(moved);
+        }
+        if (running_engine() != nullptr) update_scroll(event.position);
+    }
     return taken;
 }
 
@@ -784,17 +834,18 @@ void DragTrackerSession::update_scroll(Point pointer) {
         stop_scroll();
         return;
     }
-    if (scroll_timer_.started()) return;
+    if (scroll_frames_.connected()) return;
     const Control::Ptr owner = observed_.lock();
     if (!owner) return;
+    const BorrowedPointer<Window> window = (*owner).attached_window();
+    if (window == nullptr) return;
     last_tick_ = FrameClock::now();
-    // The interval is the display's and the target is set, so start does
-    // not refuse them.
-    scroll_timer_.start(*owner, display_frame_interval, ScrollTick{this});
+    const FrameTime first_tick = last_tick_ + display_frame_interval;
+    scroll_frames_ = (*window).schedule_ui_timer(*owner, display_frame_interval, first_tick, ScrollTick{this});
 }
 
 void DragTrackerSession::stop_scroll() noexcept {
-    scroll_timer_.stop();
+    scroll_frames_.disconnect();
     velocity = Point{};
 }
 

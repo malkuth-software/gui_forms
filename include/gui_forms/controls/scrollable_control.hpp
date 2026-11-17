@@ -6,6 +6,7 @@
 #include "gui_forms/controls/scroll_bar_metrics.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -57,7 +58,7 @@ public:
     [[nodiscard]] bool get_scroll_state(std::uint32_t bit) const noexcept;
     void set_scroll_state(std::uint32_t bit, bool value);
     [[nodiscard]] Event<ScrollEvent&>& scroll() noexcept { return scroll_event_; }
-    [[nodiscard]] std::optional<ScrollEvent> last_scroll_event() const noexcept {
+    [[nodiscard]] stxlib::Optional<ScrollEvent> last_scroll_event() const noexcept {
         return last_scroll_event_;
     }
     [[nodiscard]] std::uint64_t scroll_event_revision() const noexcept {
@@ -292,6 +293,8 @@ private:
     [[nodiscard]] bool track_press_continues() const noexcept;
     // Ends a press of an arrow or the track. Never fails.
     void stop_press() noexcept;
+    // Ends a thumb drag or held part the window broke without a release.
+    void end_broken_scroll_press();
     // Moves the hover onto `part`, repainting the bars when it changes.
     void set_hot_part(ScrollPart part);
     void append_semantic_axis(std::vector<SemanticNode>& nodes,
@@ -306,13 +309,13 @@ private:
     ScrollProperties horizontal_scroll_;
     ScrollProperties vertical_scroll_;
     Event<ScrollEvent&> scroll_event_;
-    std::optional<ScrollEvent> last_scroll_event_;
+    stxlib::Optional<ScrollEvent> last_scroll_event_;
     std::uint64_t scroll_event_revision_{};
     Size content_extent_{};
     Point scroll_position_{};
     Rect viewport_rectangle_{};
     std::uint32_t scroll_state_{scroll_state_full_drag};
-    std::optional<ScrollOrientation> dragging_orientation_;
+    stxlib::Optional<ScrollOrientation> dragging_orientation_;
     std::uint64_t dragging_pointer_id_{};
     Point dragging_origin_{};
     double dragging_start_value_{};
@@ -327,6 +330,12 @@ private:
     std::uint64_t pressed_pointer_id_{};
     Point repeat_pointer_{};
     FrameRequestToken repeat_frames_;
+    // This control scrolled for the current scroll gesture (WheelPhase): its
+    // later events, momentum included, stop here even where the position
+    // can move no further, so they do not chain to an ancestor that
+    // scrolls, as on macOS. Set by the gesture's first scroll, cleared by
+    // a new gesture, an event outside one and the gesture's end.
+    bool wheel_gesture_owner_{};
     bool arranging_scroll_{};
     // The scroll copy (SurfaceRoot::request_scroll_copy). Children are placed
     // at the scroll position rounded to whole device pixels, so that a

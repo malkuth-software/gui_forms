@@ -26,6 +26,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include "../src/core/binding/binding_view/binding_order_tree.hpp"
+#include "../src/platform/stxlib_bridge.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -34,6 +35,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -81,6 +83,13 @@ struct ListCounter final : Component {
         if (change.kind == BindingListChangeKind::reset) ++resets;
         if (change.kind == BindingListChangeKind::item_added) ++additions;
     }
+};
+
+// Counts a source's current-row announcements.
+struct CurrentCounter final : Component {
+    std::size_t changes{};
+
+    void on_current() { ++changes; }
 };
 
 // ---------------------------------------------------------------------------
@@ -359,6 +368,10 @@ void test_revocation_on_replacement_and_disposal() {
     (*other).set_provider(second);
     (*other).dispose();
     require((*second).link.revoked() && (*second).detached == 1U, "disposing the source revokes the link");
+    // A-gf-core-01-F5: the currency manager outlives disposal with its source.
+    CurrencyManager& manager = (*other).currency_manager();
+    require(manager.count() == 0U && manager.position() == -1 && &manager.source() == other.get(),
+            "a disposed source's currency manager still answers, through its source");
 }
 
 // Reports an insertion from another thread.
@@ -386,6 +399,60 @@ void test_cross_thread_notifications_apply_at_a_safe_point() {
             "the posted notification applies on the UI thread, in order");
 }
 
+// Reports three changes from another thread in one posted batch.
+struct ChangeThriceFromThread final {
+    SharedProvider* provider{};
+    void operator()() const {
+        (*provider).count = 13U;
+        (*provider).link.inserted(10U, 1U);
+        (*provider).link.inserted(11U, 1U);
+        (*provider).link.inserted(12U, 1U);
+    }
+};
+
+// Replaces the source's provider at the first list change it hears, then
+// counts the changes raised after the replacement returned.
+struct ReplaceAtFirstChange final : Component {
+    BindingSource* source{};
+    std::shared_ptr<BindingProvider> next;
+    bool replacing{};
+    bool replaced{};
+    std::size_t changes_after{};
+
+    void on_change(const BindingListChange& change) {
+        static_cast<void>(change);
+        if (replacing) return;
+        if (replaced) {
+            ++changes_after;
+            return;
+        }
+        replacing = true;
+        (*source).set_provider(next);
+        replacing = false;
+        replaced = true;
+    }
+};
+
+// A-gf-core-01-F6: a posted batch stops once a handler replaced the provider.
+void test_posted_batch_stops_at_a_replaced_provider() {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    std::shared_ptr<SharedProvider> first = std::make_shared<SharedProvider>();
+    std::shared_ptr<SharedProvider> second = std::make_shared<SharedProvider>();
+    (*source).set_provider(first);
+    ReplaceAtFirstChange replacer;
+    replacer.source = source.get();
+    replacer.next = second;
+    on((*source).list_changed(), replacer, &ReplaceAtFirstChange::on_change);
+    std::thread worker(ChangeThriceFromThread{first.get()});
+    worker.join();
+    static_cast<void>(host.window.drain_posted_work());
+    require(replacer.replaced && (*first).link.revoked() && !(*second).link.revoked(),
+            "the first posted change replaced the provider");
+    require(replacer.changes_after == 0U && (*source).count() == 10U,
+            "the rest of the old provider's batch is not applied to the new provider");
+}
+
 // ---------------------------------------------------------------------------
 // The built-in table.
 
@@ -394,8 +461,16 @@ void test_binding_table_checks_whole_and_keeps_errors_by_id() {
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
     BindingTable& table = *(*source).table();
     const std::size_t name = table.add_column(BindingColumn{"Name", BindingValueKind::text});
-    require(table.find_or_add_column(" NAME ") == name && (*source).column_of("name") == std::optional<std::size_t>{name},
+    require(table.find_or_add_column(" NAME ") == name && (*source).column_of("name") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{name}),
             "column names fold");
+    require((*source).schema().column(name).name == "name" && (*source).schema().spelling(name) == "Name" &&
+                table.table_schema().spelling(name) == "Name",
+            "the schema keeps the provider's spelling beside the folded name");
+    const BindingSchema respelled(std::vector<BindingColumn>{BindingColumn{" City ", BindingValueKind::text}});
+    const BindingSchema folded(std::vector<BindingColumn>{BindingColumn{"city", BindingValueKind::text}});
+    require(respelled.spelling(0U) == "City" && respelled.find("CITY") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{0U}) &&
+                !(respelled == folded),
+            "a spelling is trimmed, found by any folding, and a respelling changes the schema");
     table.assign({BindingRow{"a", {std::string("Alpha")}}, BindingRow{"b", {std::string("Beta")}}});
     bool refused = false;
     try {
@@ -417,9 +492,16 @@ void test_binding_table_checks_whole_and_keeps_errors_by_id() {
     require(table.error(2U, name) == "Check the name." && (*source).error(2U, name) == "Check the name." &&
                 (*source).error(2U, binding_whole_row) == "Check the row." && table.error(0U, name).empty(),
             "errors follow their row's stable ID");
-    require((*source).count() == 3U && (*source).find_stable_id("b") == std::optional<std::size_t>{2U} &&
-                (*source).find("name", std::string("Zeta")) == std::optional<std::size_t>{0U},
+    require((*source).count() == 3U && (*source).find_stable_id("b") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{2U}) &&
+                (*source).find("name", std::string("Zeta")) == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{0U}),
             "the source shows the table's rows in its order");
+    // A-gf-core-01-F4: a removed row's errors go with it, and a later row
+    // given the same stable ID starts without them.
+    require(table.remove(2U, 1U) == 1U && table.count() == 2U, "the row with errors is removed");
+    static_cast<void>(table.append(BindingRow{"b", {std::string("Beta again")}}));
+    require(table.error(2U, name).empty() && table.error(2U, binding_whole_row).empty() &&
+                (*source).error(2U, name).empty(),
+            "a removed row's errors do not reach a new row of the same stable ID");
 }
 
 // ---------------------------------------------------------------------------
@@ -747,6 +829,38 @@ void test_add_rows_is_all_or_none() {
     require((*fixed).values.size() == 3U, "one row needs no undo");
 }
 
+// Removing the current row when its ID has left the row cache
+// (A-gf-core-01-F2): by the time the source hears of the removal the table
+// has changed, so the ID read at the old position is the next row's. The
+// source compares with the ID it kept when the position was placed, and
+// announces the new current row.
+void test_removing_an_uncached_current_row_announces_the_next() {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    BindingTable& table = *(*source).table();
+    static_cast<void>(table.add_column(BindingColumn{"Name", BindingValueKind::text}));
+    constexpr std::size_t rows = BindingSource::row_cache_rows + 1U;
+    std::vector<BindingRow> written;
+    written.reserve(rows);
+    for (std::size_t row = 0U; row < rows; ++row) {
+        BindingRow made;
+        made.stable_id = "r." + std::to_string(row);
+        made.values.push_back(std::string("row"));
+        written.push_back(std::move(made));
+    }
+    table.assign(std::move(written));
+    static_cast<void>((*source).set_position(0));
+    require((*source).position() == 0 && (*source).current_stable_id() == "r.0", "r.0 is current");
+    // Every other row read once: whatever the cache's capacity, row 0's
+    // place in it is taken.
+    for (std::size_t row = 1U; row < rows; ++row) static_cast<void>((*source).stable_id(row));
+    CurrentCounter counter;
+    on((*source).current_changed(), counter, &CurrentCounter::on_current);
+    require((*source).remove_current(), "the current row is removed");
+    require((*source).position() == 0 && (*source).current_stable_id() == "r.1", "r.1 is current");
+    require(counter.changes == 1U, "the change of current row from r.0 to r.1 is announced once");
+}
+
 void test_text_compares_ignoring_case_by_code_point() {
     require(compare_binding_keys(std::string("apple"), std::string("APPLE")) == 0 &&
                 compare_binding_keys(std::string("apple"), std::string("Banana")) < 0 &&
@@ -755,6 +869,20 @@ void test_text_compares_ignoring_case_by_code_point() {
                 compare_binding_keys(std::uint64_t{18446744073709551615ULL}, std::int64_t{-1}) > 0 &&
                 compare_binding_keys(BindingValue{}, std::int64_t{0}) < 0,
             "keys compare text ignoring case and numbers across their kinds");
+    // A-gf-core-01-F7: an integer against a double is exact above 2^53, so
+    // equivalence stays transitive (the sort's strict weak order).
+    const std::int64_t above = 9007199254740993LL;
+    const double near = 9007199254740992.0;
+    require(compare_binding_keys(above, near) > 0 && compare_binding_keys(near, above) < 0 &&
+                compare_binding_keys(std::int64_t{9007199254740992LL}, near) == 0 &&
+                compare_binding_keys(std::uint64_t{18446744073709551615ULL}, 18446744073709551616.0) < 0 &&
+                compare_binding_keys(std::int64_t{-9223372036854775807LL - 1LL}, -9223372036854775808.0) == 0 &&
+                compare_binding_keys(std::int64_t{-9223372036854775807LL - 1LL}, -9223372036854777856.0) > 0 &&
+                compare_binding_keys(std::int64_t{-1}, -0.5) < 0 && compare_binding_keys(std::int64_t{0}, -0.5) > 0 &&
+                compare_binding_keys(std::int64_t{0}, -0.0) == 0 &&
+                compare_binding_keys(std::int64_t{0}, std::numeric_limits<double>::infinity()) < 0 &&
+                compare_binding_keys(std::int64_t{0}, -std::numeric_limits<double>::infinity()) > 0,
+            "integers and doubles compare exactly at every magnitude");
 }
 
 // ---------------------------------------------------------------------------
@@ -843,10 +971,12 @@ int main() {
         test_hostile_provider_answers_become_cell_errors();
         test_revocation_on_replacement_and_disposal();
         test_cross_thread_notifications_apply_at_a_safe_point();
+        test_posted_batch_stops_at_a_replaced_provider();
         test_binding_table_checks_whole_and_keeps_errors_by_id();
         test_sort_and_filter_views_match_brute_force_under_changes();
         test_list_changes_replay_to_the_view_and_moves_are_not_resets();
         test_add_rows_is_all_or_none();
+        test_removing_an_uncached_current_row_announces_the_next();
         test_text_compares_ignoring_case_by_code_point();
         test_order_tree_matches_a_vector();
         test_order_tree_depth_follows_the_count();

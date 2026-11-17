@@ -29,6 +29,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -204,7 +205,7 @@ void test_reparenting_past_the_limit_is_refused() {
     std::shared_ptr<Panel> sibling = make_control<Panel>(StableId("depth.move.sibling"));
     (*tall_root).add_child(sibling);
     const Control::Ptr moving = tall[1];
-    const std::optional<std::size_t> index_before = (*tall_root).child_index_from_top((*moving).runtime_id());
+    const stxlib::Optional<std::size_t> index_before = (*tall_root).child_index_from_top((*moving).runtime_id());
 
     // 40 levels plus 30 is past 64.
     bool refused = false;

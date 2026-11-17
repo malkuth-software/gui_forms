@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -68,9 +69,9 @@ struct IndicatorLampLightPlanesCapability {
 // The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
 template <typename Declaring>
 struct IndicatorLampLampColorCapability {
-    PropertyCell<std::optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color{};
+    PropertyCell<stxlib::Optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color{};
 
-    static void assign(IndicatorLampLampColorCapability& capability, std::optional<Color> incoming) {
+    static void assign(IndicatorLampLampColorCapability& capability, stxlib::Optional<Color> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.lamp_color), incoming);
         if (!capability.lamp_color.replace(std::move(incoming))) return;

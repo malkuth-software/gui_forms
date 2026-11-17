@@ -1,16 +1,19 @@
 #include "drawing_test_trace.hpp"
 #include "gui_forms/drawing.hpp"
 
-#include <atomic>
+#include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -270,6 +273,13 @@ void extended_vocabulary_snapshots_resources() {
     CHECK(path.is_visible({0.0, 0.0}));
     CHECK(!path.is_visible({100.0, 100.0}));
     CHECK(path.path_points().size() == 23U);
+    // A-gf-core-05-F3: an arc of two turns is tested as the one turn it
+    // draws, so the alternate fill still holds its inside point.
+    GraphicsPath twice(FillMode::alternate);
+    twice.add_arc({0.0, 0.0, 20.0, 20.0}, 0.0, 720.0);
+    twice.close_figure();
+    CHECK(twice.is_visible({10.0, 10.0}));
+    CHECK(!twice.is_visible({30.0, 10.0}));
     std::unique_ptr<GraphicsPath> copied_path = path.clone();
     (*copied_path).transform(Matrix::translation(4.0, 5.0));
     CHECK((*copied_path).bounds() == (RectF{3.0, 3.0, 29.0, 27.0}));
@@ -312,7 +322,7 @@ void extended_vocabulary_snapshots_resources() {
     attributes.reset_color_matrix();
     CHECK(recorder.commands()[3].path.elements.size() == 6U);
     CHECK(recorder.commands()[5].image.stable_id == 42U);
-    CHECK(recorder.commands()[5].image_attributes.color_matrix.has_value());
+    CHECK(recorder.commands()[5].image_attributes.color_matrix.present());
     CHECK(recorder.commands()[5].image_attributes.remap_table.size() == 1U);
     recorder.close();
     const std::string trace = recorder.deterministic_trace();
@@ -363,6 +373,39 @@ bool trace_has(const std::string& trace, std::string_view entry) {
 
 // The batched commands: one command per call, its span copied, and a
 // display-trace entry naming every field.
+// Pen trims (claude/geometry-1): in range in either order, any finite
+// offset; a refusal changes nothing; the trace names a trim only when its
+// values are not the defaults.
+void pen_trims_are_checked_and_traced() {
+    Pen pen(Color::from_name("red"), 2.0);
+    CHECK(pen.snapshot().trim_start == 0.0 && pen.snapshot().trim_end == 1.0 && pen.snapshot().trim_offset == 0.0);
+    pen.set_trim(0.75, 0.25, -0.5);
+    CHECK(pen.snapshot().trim_start == 0.75 && pen.snapshot().trim_end == 0.25 && pen.snapshot().trim_offset == -0.5);
+    bool refused = false;
+    try {
+        pen.set_trim(0.0, 1.5, 0.0);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    CHECK(refused && pen.snapshot().trim_end == 0.25);
+    refused = false;
+    try {
+        pen.set_trim(0.0, 0.5, std::numeric_limits<double>::infinity());
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    CHECK(refused && pen.snapshot().trim_offset == -0.5);
+    GraphicsRecorder recorder;
+    recorder.draw_ellipse(pen, RectF{0, 0, 10, 10});
+    CHECK(recorder.deterministic_trace().find(",trim=0.75/0.25/-0.5") != std::string::npos);
+    pen.set_trim(1.0, 0.0, 0.0);
+    GraphicsRecorder whole;
+    whole.draw_ellipse(pen, RectF{0, 0, 10, 10});
+    // Reversed, it keeps the whole figure, but the trace keeps the pen's
+    // own values.
+    CHECK(whole.deterministic_trace().find(",trim=1/0/0") != std::string::npos);
+}
+
 void batched_marks_record_one_command_each() {
     Pen pen(Color::from_name("red"), 2.0);
     pen.set_line_join(LineJoin::round, 4.0);
@@ -446,6 +489,74 @@ void batched_marks_record_one_command_each() {
     CHECK(refusing.commands().empty());
 }
 
+// The gapped and per-element marks (gd_* ABI 0.4): runs between NaN breaks
+// become the batched commands, runs of one draw nothing, refusals record
+// nothing.
+void gapped_marks_record_runs() {
+    const double gap = std::numeric_limits<double>::quiet_NaN();
+    const double infinity = std::numeric_limits<double>::infinity();
+    Pen pen(Color::from_name("red"), 1.0);
+    SolidBrush brush(Color::from_name("blue"));
+    GraphicsRecorder recorder;
+    const PointF upper[] = {{0, 2}, {1, 3}, {2, gap}, {3, 3}, {4, 2}, {5, 2}};
+    const PointF lower[] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, gap}};
+    recorder.fill_band(brush, upper, lower);
+    // Indices 0..1 and 3..4; index 5 breaks in `lower`.
+    CHECK(recorder.commands().size() == 2U);
+    CHECK(recorder.commands()[0].kind == CommandKind::fill_polygon);
+    CHECK(recorder.commands()[0].path.fill_mode == FillMode::winding);
+    CHECK(recorder.commands()[0].points.size() == 4U);
+    CHECK(recorder.commands()[0].points[1] == (PointF{1, 3}));
+    CHECK(recorder.commands()[0].points[2] == (PointF{1, 0}));
+    CHECK(recorder.commands()[1].points[0] == (PointF{3, 3}));
+    CHECK(recorder.commands()[1].points[3] == (PointF{3, 0}));
+
+    const PointF runs[] = {{0, 0}, {1, 1}, {2, 0}, {gap, 0}, {4, 4}, {0, gap}, {6, 6}, {7, 7}};
+    recorder.draw_polyline_runs(pen, runs);
+    CHECK(recorder.commands().size() == 4U);
+    CHECK(recorder.commands()[2].kind == CommandKind::draw_lines);
+    CHECK(recorder.commands()[2].points.size() == 3U);
+    CHECK(recorder.commands()[3].points[0] == (PointF{6, 6}));
+
+    const RectF cells[] = {{0, 0, 1, 1}, {1, 0, 1, 1}, {2, 0, 1, 1}};
+    const Color colours[] = {Color::from_name("red"), Color::from_name("blue"), Color::from_name("blue")};
+    recorder.fill_rectangles_each(cells, colours);
+    CHECK(recorder.commands().size() == 6U);
+    CHECK(recorder.commands()[4].rects.size() == 1U);
+    CHECK(recorder.commands()[4].brush.kind == BrushKind::solid);
+    CHECK(recorder.commands()[4].color == Color::from_name("red"));
+    CHECK(recorder.commands()[5].rects.size() == 2U);
+    CHECK(recorder.commands()[5].brush.primary == Color::from_name("blue"));
+    recorder.close();
+    const std::string trace = recorder.deterministic_trace();
+    CHECK(trace_has(trace, "0|fill_polygon|"));
+    CHECK(trace_has(trace, "|fill=1|points=0,2;1,3;1,0;0,0|brush=ff0000ff"));
+    CHECK(trace_has(trace, "2|draw_lines|points=0,0;1,1;2,0|"));
+    CHECK(trace_has(trace, "5|fill_rectangles|rects=1,0,1,1;2,0,1,1|brush=ff0000ff|"));
+
+    // A band or polyline made only of breaks and lone points records nothing.
+    GraphicsRecorder sparse;
+    const PointF lonely[] = {{0, 0}, {gap, gap}, {2, 2}};
+    sparse.draw_polyline_runs(pen, lonely);
+    sparse.fill_band(brush, lonely, lonely);
+    CHECK(sparse.commands().empty());
+
+    // Refusals leave the recorder unchanged.
+    GraphicsRecorder refusing;
+    const PointF short_lower[] = {{0, 0}, {1, 0}};
+    CHECK_THROWS(std::invalid_argument, refusing.fill_band(brush, upper, short_lower));
+    const PointF infinite[] = {{0, 0}, {infinity, 0}, {2, 0}};
+    CHECK_THROWS(std::invalid_argument, refusing.fill_band(brush, infinite, lonely));
+    CHECK_THROWS(std::invalid_argument, refusing.draw_polyline_runs(pen, infinite));
+    CHECK_THROWS(std::invalid_argument, refusing.draw_polyline_runs(pen, std::span<const PointF>(runs, 1U)));
+    CHECK_THROWS(std::invalid_argument,
+                 refusing.fill_rectangles_each(cells, std::span<const Color>(colours, 2U)));
+    const RectF not_finite[] = {{0, 0, gap, 1}};
+    CHECK_THROWS(std::invalid_argument,
+                 refusing.fill_rectangles_each(not_finite, std::span<const Color>(colours, 1U)));
+    CHECK(refusing.commands().empty());
+}
+
 // The conic and checker brushes, the contrast rule, rounded path
 // rectangles and text over a fill.
 void primitive_brushes_contrast_and_text_over_fill() {
@@ -458,6 +569,35 @@ void primitive_brushes_contrast_and_text_over_fill() {
     CHECK(conic.snapshot().positions[1] == 0.5);
     CHECK_THROWS(std::invalid_argument, ConicGradientBrush({std::numeric_limits<double>::infinity(), 0}, 0.0,
                                                            Color::from_name("red"), Color::from_name("blue")));
+    RadialGradientBrush radial({8, 8}, 8.0, Color::from_name("red"), Color::from_name("blue"));
+    CHECK(radial.snapshot().kind == BrushKind::radial_gradient);
+    CHECK(radial.snapshot().radius == 8.0 && radial.snapshot().focus == (PointF{8, 8}));
+    CHECK(radial.snapshot().wrap_mode == WrapMode::clamp && radial.snapshot().colors.size() == 2U);
+    radial.set_focus({4, 8});
+    CHECK(radial.snapshot().focus == (PointF{4, 8}));
+    CHECK_THROWS(std::invalid_argument, radial.set_focus({16, 8}));
+    CHECK(radial.snapshot().focus == (PointF{4, 8}));
+    radial.set_wrap_mode(WrapMode::tile_flip_y);
+    CHECK(radial.snapshot().wrap_mode == WrapMode::tile_flip_y);
+    CHECK_THROWS(std::invalid_argument, RadialGradientBrush({8, 8}, 0.0, Color::from_name("red"),
+                                                            Color::from_name("blue")));
+    GraphicsRecorder radial_trace;
+    radial_trace.fill_rectangle(radial, {0, 0, 16, 16});
+    CHECK(trace_has(radial_trace.deterministic_trace(), ",radius=8,focus=4,8"));
+    CHECK(!trace_has(radial_trace.deterministic_trace(), "radius_y="));
+    CHECK(radial.snapshot().radius_y == 8.0);
+    // An ellipse: the focus (4, 8) stays inside 8 across and 4 down, and a
+    // radius out of range or a focus left outside is refused unchanged.
+    radial.set_radii(8.0, 4.0);
+    CHECK(radial.snapshot().radius == 8.0 && radial.snapshot().radius_y == 4.0);
+    CHECK_THROWS(std::invalid_argument, radial.set_radii(2.0, 4.0));
+    CHECK_THROWS(std::invalid_argument, radial.set_radii(8.0, 0.0));
+    CHECK_THROWS(std::invalid_argument, radial.set_radii(std::numeric_limits<double>::infinity(), 4.0));
+    CHECK(radial.snapshot().radius == 8.0 && radial.snapshot().radius_y == 4.0);
+    CHECK_THROWS(std::invalid_argument, radial.set_focus({4, 12}));
+    GraphicsRecorder ellipse_trace;
+    ellipse_trace.fill_rectangle(radial, {0, 0, 16, 16});
+    CHECK(trace_has(ellipse_trace.deterministic_trace(), ",radius=8,focus=4,8,radius_y=4"));
     CheckerBrush checker(4.0, Color::from_name("white"), Color::from_name("silver"));
     CHECK(checker.snapshot().kind == BrushKind::checker);
     CHECK(checker.snapshot().cell_size == 4.0);
@@ -494,20 +634,20 @@ void primitive_brushes_contrast_and_text_over_fill() {
     text.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {10, 0, 20, 10});
     CHECK(text.commands().size() == 5U);
     CHECK(text.commands()[0].kind == CommandKind::draw_string);
-    CHECK(*text.commands()[0].state.clip == (RectF{10, 0, 20, 10}));
+    CHECK((*text.commands()[0].state.clip.value()) == (RectF{10, 0, 20, 10}));
     CHECK(text.commands()[0].color == Color::from_name("white"));
     CHECK(text.commands()[1].color == Color::from_name("black"));
     // The left band ends exactly where the fill starts, the right band
     // starts exactly where it ends.
-    CHECK((*text.commands()[3].state.clip).right() == 10.0);
-    CHECK((*text.commands()[4].state.clip).x == 30.0);
+    CHECK(((*text.commands()[3].state.clip.value())).right() == 10.0);
+    CHECK(((*text.commands()[4].state.clip.value())).x == 30.0);
     // A fill outside the clip leaves one draw in the plain colour.
     GraphicsRecorder clipped;
     clipped.set_clip({0, 0, 5, 5});
     clipped.draw_string_over_fill("50%", font, text_brush, on_fill, {0, 0}, format, {10, 10, 5, 5});
     CHECK(clipped.commands().size() == 2U);
     CHECK(clipped.commands()[1].color == Color::from_name("black"));
-    CHECK(*clipped.commands()[1].state.clip == (RectF{0, 0, 5, 5}));
+    CHECK((*clipped.commands()[1].state.clip.value()) == (RectF{0, 0, 5, 5}));
     // A fill covering the whole clip leaves one draw in the fill colour.
     GraphicsRecorder covered;
     covered.set_clip({0, 0, 5, 5});
@@ -718,6 +858,209 @@ void bounded_bitmap_edits_publish_local_damage_and_cancel_atomically() {
     CHECK((damage.rectangles == std::vector<RectI>{{0, 0, 1, 1}}));
 }
 
+// The distance from `point` to the segment from `from` to `to`.
+double distance_to_segment(PointF point, PointF from, PointF to) {
+    const double dx = to.x - from.x;
+    const double dy = to.y - from.y;
+    const double length_squared = dx * dx + dy * dy;
+    double t = 0.0;
+    if (length_squared > 0.0) {
+        t = ((point.x - from.x) * dx + (point.y - from.y) * dy) / length_squared;
+        t = std::clamp(t, 0.0, 1.0);
+    }
+    const double x = from.x + t * dx - point.x;
+    const double y = from.y + t * dy - point.y;
+    const double distance = std::sqrt(x * x + y * y);
+    return distance;
+}
+
+// The distance from `point` to the polyline `points`.
+double distance_to_polyline(PointF point, std::span<const PointF> points) {
+    double nearest = std::numeric_limits<double>::infinity();
+    for (std::size_t index = 1U; index < points.size(); ++index) {
+        nearest = std::min(nearest, distance_to_segment(point, points[index - 1U], points[index]));
+    }
+    return nearest;
+}
+
+void flattened_paths_stay_within_tolerance_in_caller_storage() {
+    // A quadratic: second difference (0, 20), so Wang's formula asks for
+    // ceil(sqrt(1/4 * 20 / 0.25)) = 5 chords, six points.
+    GraphicsPath quadratic;
+    quadratic.add_quadratic({0, 10}, {5, 0}, {10, 10});
+    const PathFlattening size = quadratic.flattened_size(0.25);
+    CHECK(size.status == PathFlatteningStatus::complete);
+    CHECK(size.point_count == 6U);
+    CHECK(size.figure_count == 1U);
+    std::vector<PointF> points(size.point_count);
+    std::vector<FlattenedFigure> figures(size.figure_count);
+    const PathFlattening written = quadratic.flatten(0.25, points, figures);
+    CHECK(written.status == PathFlatteningStatus::complete);
+    CHECK(written.point_count == 6U && written.figure_count == 1U);
+    CHECK(figures[0].end == 6U && !figures[0].closed);
+    CHECK(points.front() == (PointF{0, 10}));
+    CHECK(points.back() == (PointF{10, 10}));
+    for (int step = 0; step <= 1000; ++step) {
+        const double t = static_cast<double>(step) / 1000.0;
+        const double u = 1.0 - t;
+        const PointF on_curve{2.0 * u * t * 5.0 + t * t * 10.0, u * u * 10.0 + t * t * 10.0};
+        CHECK(distance_to_polyline(on_curve, points) <= 0.25 + 1e-9);
+    }
+
+    // Storage one point short: nothing written, the counts needed returned.
+    std::vector<PointF> short_points(5U, PointF{-7, -7});
+    const PathFlattening refused = quadratic.flatten(0.25, short_points, figures);
+    CHECK(refused.status == PathFlatteningStatus::storage_too_small);
+    CHECK(refused.point_count == 6U && refused.figure_count == 1U);
+    for (const PointF point : short_points) CHECK(point == (PointF{-7, -7}));
+    std::vector<FlattenedFigure> no_figures;
+    CHECK(quadratic.flatten(0.25, points, no_figures).status == PathFlatteningStatus::storage_too_small);
+
+    // A tighter tolerance needs more chords; the tolerance is in path units.
+    CHECK(quadratic.flattened_size(0.01).point_count > size.point_count);
+
+    // A rectangle: clockwise from the top-left corner, closed, the first
+    // point repeated last.
+    GraphicsPath box;
+    box.add_rectangle({1, 2, 3, 4});
+    std::array<PointF, 5> box_points{};
+    std::array<FlattenedFigure, 1> box_figures{};
+    const PathFlattening box_written = box.flatten(0.5, box_points, box_figures);
+    CHECK(box_written.point_count == 5U && box_written.figure_count == 1U);
+    CHECK(box_figures[0].closed);
+    CHECK(box_points[0] == (PointF{1, 2}));
+    CHECK(box_points[1] == (PointF{4, 2}));
+    CHECK(box_points[2] == (PointF{4, 6}));
+    CHECK(box_points[3] == (PointF{1, 6}));
+    CHECK(box_points[4] == (PointF{1, 2}));
+
+    // An ellipse: from the right middle, closed exactly, within tolerance.
+    GraphicsPath ellipse;
+    ellipse.add_ellipse({0, 0, 20, 10});
+    const PathFlattening ellipse_size = ellipse.flattened_size(0.1);
+    CHECK(ellipse_size.figure_count == 1U && ellipse_size.point_count >= 5U);
+    std::vector<PointF> ellipse_points(ellipse_size.point_count);
+    std::vector<FlattenedFigure> ellipse_figures(1U);
+    CHECK(ellipse.flatten(0.1, ellipse_points, ellipse_figures).status == PathFlatteningStatus::complete);
+    CHECK(ellipse_figures[0].closed);
+    CHECK(ellipse_points.front() == (PointF{20, 5}));
+    CHECK(ellipse_points.back() == ellipse_points.front());
+    for (int step = 0; step < 720; ++step) {
+        const double angle = static_cast<double>(step) * 3.14159265358979323846 / 360.0;
+        const PointF on_curve{10.0 + 10.0 * std::cos(angle), 5.0 + 5.0 * std::sin(angle)};
+        CHECK(distance_to_polyline(on_curve, ellipse_points) <= 0.1 + 1e-9);
+    }
+
+    // Figure rules: joined lines stay one figure; a line elsewhere starts
+    // another; close_figure closes it; start_figure ends one open.
+    GraphicsPath figures_path;
+    figures_path.add_line({0, 0}, {10, 0});
+    figures_path.add_line({10, 0}, {10, 10});
+    figures_path.add_line({20, 0}, {30, 0});
+    figures_path.add_line({30, 0}, {30, 10});
+    figures_path.close_figure();
+    figures_path.add_line({40, 0}, {50, 0});
+    figures_path.start_figure();
+    figures_path.add_line({50, 0}, {60, 0});
+    std::array<PointF, 16> rule_points{};
+    std::array<FlattenedFigure, 8> rule_figures{};
+    const PathFlattening rules = figures_path.flatten(0.25, rule_points, rule_figures);
+    CHECK(rules.status == PathFlatteningStatus::complete);
+    CHECK(rules.figure_count == 4U);
+    CHECK(rule_figures[0].end == 3U && !rule_figures[0].closed);
+    CHECK(rule_figures[1].end == 7U && rule_figures[1].closed);
+    CHECK(rule_points[6] == (PointF{20, 0}));
+    CHECK(rule_figures[2].end == 9U && !rule_figures[2].closed);
+    CHECK(rule_figures[3].end == 11U && !rule_figures[3].closed);
+    CHECK(rules.point_count == 11U);
+
+    // An arc joins the figure with a straight edge to its start.
+    GraphicsPath joined;
+    joined.add_line({0, 0}, {5, 0});
+    joined.add_arc({10, -5, 10, 10}, 180.0, 180.0);
+    const PathFlattening joined_size = joined.flattened_size(0.05);
+    CHECK(joined_size.figure_count == 1U);
+    std::vector<PointF> joined_points(joined_size.point_count);
+    std::vector<FlattenedFigure> joined_figures(1U);
+    CHECK(joined.flatten(0.05, joined_points, joined_figures).status == PathFlatteningStatus::complete);
+    CHECK(std::abs(joined_points[2].x - 10.0) < 1e-9 && std::abs(joined_points[2].y) < 1e-9);
+    CHECK(std::abs(joined_points.back().x - 20.0) < 1e-9);
+
+    // An empty path flattens to nothing; a bad tolerance is refused; a
+    // tolerance tiny against the path's size exceeds the point limit.
+    GraphicsPath empty;
+    const PathFlattening nothing = empty.flattened_size(1.0);
+    CHECK(nothing.status == PathFlatteningStatus::complete && nothing.point_count == 0U && nothing.figure_count == 0U);
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(0.0));
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(-1.0));
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(std::numeric_limits<double>::quiet_NaN()));
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(std::numeric_limits<double>::infinity()));
+    GraphicsPath huge;
+    huge.add_ellipse({0, 0, 1e9, 1e9});
+    const PathFlattening over = huge.flattened_size(1e-9);
+    CHECK(over.status == PathFlatteningStatus::limit_exceeded);
+    CHECK(over.point_count == 0U && over.figure_count == 0U);
+    CHECK(huge.flatten(1e-9, points, figures).status == PathFlatteningStatus::limit_exceeded);
+}
+
+// Shaded triangles (owner, 2026-11-17): a malformed list is refused by its
+// status and records nothing; a whole list records one command whose
+// points and colours trace and frame exactly.
+void shaded_triangles_refuse_malformed_lists_and_trace() {
+    GraphicsRecorder recorder;
+    const PointF quad[] = {{0, 0}, {10, 0}, {10, 10}, {0, 0}, {10, 10}, {0, 10}};
+    const Color corners[] = {Color::from_argb(0xffff0000U), Color::from_argb(0xff00ff00U),
+                             Color::from_argb(0xff0000ffU), Color::from_argb(0xffff0000U),
+                             Color::from_argb(0xff0000ffU), Color::from_argb(0x80000000U)};
+    const std::string before = recorder.deterministic_trace();
+    // Counts that differ, that are not whole triangles, or none at all.
+    CHECK(recorder.fill_triangles(std::span<const PointF>(quad, 6U), std::span<const Color>(corners, 5U)) ==
+          TriangleFillStatus::count_mismatch);
+    CHECK(recorder.fill_triangles(std::span<const PointF>(quad, 4U), std::span<const Color>(corners, 4U)) ==
+          TriangleFillStatus::not_whole_triangles);
+    CHECK(recorder.fill_triangles(std::span<const PointF>(), std::span<const Color>()) ==
+          TriangleFillStatus::not_whole_triangles);
+    // A point that is not finite, anywhere in the list.
+    const PointF broken[] = {{0, 0}, {10, 0}, {10, 10},
+                             {0, 0}, {std::numeric_limits<double>::quiet_NaN(), 10}, {0, 10}};
+    CHECK(recorder.fill_triangles(broken, corners) == TriangleFillStatus::non_finite_point);
+    const PointF far[] = {{0, 0}, {std::numeric_limits<double>::infinity(), 0}, {10, 10}};
+    CHECK(recorder.fill_triangles(far, std::span<const Color>(corners, 3U)) == TriangleFillStatus::non_finite_point);
+    // More points than a batch holds.
+    const std::vector<PointF> many(GraphicsRecorder::maximum_batch_elements + 2U, PointF{1, 1});
+    const std::vector<Color> many_colors(many.size(), Color::from_argb(0xff000000U));
+    CHECK(recorder.fill_triangles(many, many_colors) == TriangleFillStatus::too_many_points);
+    CHECK(recorder.commands().empty());
+    CHECK(recorder.deterministic_trace() == before);
+
+    // A whole list: one command, the corners and colours as given.
+    recorder.translate(5, 5);
+    CHECK(recorder.fill_triangles(quad, corners) == TriangleFillStatus::recorded);
+    CHECK(recorder.commands().size() == 2U);
+    const DrawingCommand& shaded = recorder.commands()[1];
+    CHECK(shaded.kind == CommandKind::fill_triangles);
+    CHECK(shaded.points.size() == 6U && shaded.colors.size() == 6U);
+    CHECK(shaded.points[2] == (PointF{10, 10}));
+    CHECK(shaded.colors[5] == Color::from_argb(0x80000000U));
+    CHECK(shaded.state.transform == Matrix::translation(5, 5));
+    const std::string trace = recorder.deterministic_trace();
+    CHECK(trace_has(trace, "1|fill_triangles|points=0,0;10,0;10,10;0,0;10,10;0,10|"
+                           "colors=ffff0000;ff00ff00;ff0000ff;ffff0000;ff0000ff;80000000|"));
+
+    // Framing keeps the triangles and their colours; only the state is
+    // scaled and clipped.
+    GraphicsRecorder framed;
+    recorder.frame_into(framed, 2.0, RectF{0, 0, 64, 64});
+    CHECK(framed.commands().size() == 2U);
+    CHECK(framed.commands()[1].points == shaded.points);
+    CHECK(framed.commands()[1].colors == shaded.colors);
+
+    // A closed recorder refuses by its status too.
+    recorder.close();
+    CHECK(recorder.fill_triangles(quad, corners) == TriangleFillStatus::closed);
+    CHECK(recorder.commands().size() == 2U);
+}
+
 } // namespace
 
 int main() {
@@ -726,7 +1069,11 @@ int main() {
     transforms_resources_and_metrics_obey_contracts();
     extended_vocabulary_snapshots_resources();
     curve_polygon_and_pie_paths_are_retained_and_bounded();
+    flattened_paths_stay_within_tolerance_in_caller_storage();
     batched_marks_record_one_command_each();
+    pen_trims_are_checked_and_traced();
+    gapped_marks_record_runs();
+    shaded_triangles_refuse_malformed_lists_and_trace();
     primitive_brushes_contrast_and_text_over_fill();
     bitmap_storage_and_leases_are_generation_safe();
     bounded_bitmap_edits_publish_local_damage_and_cancel_atomically();

@@ -9,9 +9,11 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -91,6 +93,8 @@ void DateTimePicker::prepare_write(const decltype(format_provider)&, DateTimeFor
 }
 
 void DateTimePicker::written(const decltype(format_provider)&) {
+    // A program's own provider replaces the locale's.
+    follows_host_locale_ = false;
     if (dropped_down_) close_drop_down();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
@@ -147,8 +151,22 @@ std::string_view format_pattern(DateTimePickerFormat format, const DateTimeForma
 } // namespace
 
 std::string DateTimePicker::formatted_value() const {
-    const std::string_view pattern = format_pattern(format.read(), format_provider.read(), custom_format.read());
-    return format_date_time(value.read(), pattern, format_provider.read());
+    const DateTimeFormatProvider& provider = effective_format_provider();
+    const std::string_view pattern = format_pattern(format.read(), provider, custom_format.read());
+    return format_date_time(value.read(), pattern, provider);
+}
+
+const DateTimeFormatProvider& DateTimePicker::effective_format_provider() const {
+    if (!follows_host_locale_) return format_provider.read();
+    return locale_format_provider(*this, locale_provider_generation_, locale_provider_);
+}
+
+void DateTimePicker::follow_host_locale() {
+    require_mutable();
+    if (follows_host_locale_) return;
+    follows_host_locale_ = true;
+    if (dropped_down_) close_drop_down();
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
 DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
@@ -182,8 +200,8 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     // at the left and the check box at the right (Windows Forms).
     const LayoutDirection direction = effective_layout_direction();
     const AnatomyStateSet states = anatomy_states();
-    std::optional<Color> ink{};
-    if (style_authored_) ink = style_.text;
+    stxlib::Optional<Color> ink{};
+    if (style_authored_) ink.set(style_.text);
     const FontSpec field_font = text_font(font.read());
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);
@@ -287,7 +305,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     const double baseline = std::max(field_font.size, (bounds.height + field_font.size) * 0.5 - 1.0);
     content.bounds = {text_left, baseline - box_ascent, std::max(0.0, button_x - text_left - 3.0), box_height};
     content.bounds = directed_rect(content.bounds, bounds, direction);
-    content.measured_text = measured;
+    content.measured_text.set(measured);
     paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
         PartPaint ring;
@@ -369,17 +387,30 @@ void DateTimePicker::step_days(int days) {
     value = std::clamp(candidate, minimum.read(), maximum.read());
 }
 
+namespace {
+// Clears an open-in-progress flag when it goes, also when the call that set
+// it throws.
+struct ClearOpeningOnExit final {
+    bool* flag{};
+    explicit ClearOpeningOnExit(bool* cleared) noexcept : flag(cleared) {}
+    ClearOpeningOnExit(const ClearOpeningOnExit&) = delete;
+    ClearOpeningOnExit& operator=(const ClearOpeningOnExit&) = delete;
+    ~ClearOpeningOnExit() { *flag = false; }
+};
+} // namespace
+
 void DateTimePicker::open_drop_down() {
-    if (dropped_down_ || show_up_down.read() || !attached() || window() == nullptr) return;
+    if (dropped_down_ || opening_drop_down_ || show_up_down.read() || !attached() || window() == nullptr) return;
     const Control::Ptr owner = shared_from_this();
     const Size client = (*window()).client_size();
     const Rect picker = absolute_bounds();
     const double width = 286.0 * effective_text_scale();
     const double height = 260.0 * effective_text_scale();
-    // DropDownAlign mirrors under RightToLeft (Windows Forms): Left lines
-    // the calendar up with the picker's right edge.
-    const bool authored_right = drop_down_alignment.read() == DateTimeDropDownAlignment::right;
-    const bool right_aligned = authored_right != (effective_layout_direction() == LayoutDirection::right_to_left);
+    // DropDownAlign mirrors under RightToLeft (Windows Forms), as CSS's
+    // logical values do: `start` lines the calendar up with the picker's
+    // right edge in right to left.
+    const bool authored_end = drop_down_alignment.read() == DateTimeDropDownAlignment::end;
+    const bool right_aligned = authored_end != (effective_layout_direction() == LayoutDirection::right_to_left);
     const double requested_x = right_aligned ? picker.x + picker.width - width : picker.x;
     const double x = std::clamp(
         requested_x, 0.0, std::max(0.0, client.width - width));
@@ -391,12 +422,12 @@ void DateTimePicker::open_drop_down() {
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<gui_forms::CalendarOverlay> calendar = make_control<CalendarOverlay>(
         StableId(prefix + ".overlay.calendar"), value.read(), minimum.read(), maximum.read(),
-        format_provider.read());
+        effective_format_provider());
     (*calendar).set_requested_bounds({x, y, width, height});
     OverlayToken token = (*window()).open_overlay(owner, layer);
-    const std::optional<Rect> face =
+    const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), picker, Size{width, height}, requested_x);
-    const bool lifted = face.has_value() && lift_.lift(*window(), calendar, *face);
+    const bool lifted = face.present() && lift_.lift(*window(), calendar, (*face.value()));
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(calendar);
 
@@ -429,7 +460,27 @@ void DateTimePicker::open_drop_down() {
                 weak, &DateTimePicker::on_popup_window_closed));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(calendar);
-    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    const Control::Ptr lifetime = shared_from_this();
+    // An open is in progress until the scope has begun: a handler reached
+    // from the focus move that asks to open again is served by this open
+    // (a second layer would repeat this one's stable IDs). Cleared on every
+    // way out; lifetime keeps the control while the guard writes it.
+    opening_drop_down_ = true;
+    const ClearOpeningOnExit opening{&opening_drop_down_};
+    const std::uint64_t scope = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    // Beginning the scope moves focus into the drop-down and runs the
+    // field's lost-focus and validation handlers before it returns; one may
+    // close the drop-down (or close it and open another). The scope is kept
+    // only for this call's layer still open; otherwise it is ended and the
+    // control stays closed, having published nothing (A-gf-controls-08-F3).
+    if (!is_alive()) return;
+    if (overlay_layer_ != layer || overlay_scope_ != 0U) {
+        if (window() != nullptr && scope != 0U) {
+            static_cast<void>((*window()).end_focus_scope(FocusScopeId{scope}));
+        }
+        return;
+    }
+    overlay_scope_ = scope;
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
@@ -560,15 +611,15 @@ namespace {
 constexpr std::array<AnatomyState, 1> date_time_picker_pressable_states{{AnatomyState::pressed}};
 
 constexpr std::array<PartField<DateTimePicker::Parts>, 9> date_time_picker_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::edge},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::content},
-    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button"},
+    {.declaration = {.name = "drop_down", .role = PartRole::actuator, .composed_from = "button", .states = {}},
      .member = &DateTimePicker::Parts::drop_down},
-    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}},
+    {.declaration = {.name = "disclosure", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::disclosure},
     {.declaration = {.name = "increment_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = date_time_picker_pressable_states},
@@ -579,7 +630,7 @@ constexpr std::array<PartField<DateTimePicker::Parts>, 9> date_time_picker_extra
     {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {},
                      .states = date_time_picker_pressable_states},
      .member = &DateTimePicker::Parts::well},
-    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "indicator", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &DateTimePicker::Parts::indicator},
 }};
 
@@ -607,6 +658,7 @@ constexpr ControlAnatomy date_time_picker_anatomy{
     .parts = date_time_picker_parts,
     .states = date_time_picker_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -773,7 +825,7 @@ void DateTimePicker::written(const decltype(checked)&) {
 
 void DateTimePicker::prepare_write(const decltype(drop_down_alignment)&, DateTimeDropDownAlignment& incoming) {
     require_mutable();
-    if (incoming != DateTimeDropDownAlignment::left && incoming != DateTimeDropDownAlignment::right) {
+    if (incoming != DateTimeDropDownAlignment::start && incoming != DateTimeDropDownAlignment::end) {
         throw std::invalid_argument("DateTimePicker drop-down alignment is invalid");
     }
 }

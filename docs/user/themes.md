@@ -133,7 +133,10 @@ A selector names one part of one control:
   (`#settings\.ok`, with the dots escaped) or a class (`.heading`).
 - **Parts.** A part (`::part(face)`) or a part role (`::role(face)`).
 - **States.** A state (`:hover`, `:checked`, `:disabled`,
-  `:state(drag-proximate)`).
+  `:state(drag-proximate)`), or a custom state the control type declares
+  for itself (`button::part(face):state(danger)`,
+  `indicator-lamp::part(lens):state(on)`). See
+  [Theme language](theme-language.md) for the custom states.
 - **Ancestors.** Up to eight ancestors, joined by whitespace or `>`. An
   ancestor names only a type, an ID and classes.
 - **Grouping.** `:is()`, `:where()` and `:not()`.
@@ -249,7 +252,7 @@ A control uses the first theme it finds in this order:
 1. its own override (`Control::set_theme_override`);
 2. its window's (`SurfaceRoot::set_theme`);
 3. the application's resources (`ApplicationResources::set_theme`);
-4. the built-in default theme, GUI.Forms' own (`gui-forms`) from 0.5.
+4. the built-in default theme, GUI.Forms' own (`gui-forms`).
 
 A user theme the program allows replaces or extends the program's theme in
 the resources ([The theme language](theme-language.md#user-themes)).

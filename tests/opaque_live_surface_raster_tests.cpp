@@ -268,7 +268,7 @@ void retained_overlay(const LiveSurfacePixelFormat format) {
     DamageRegion damage{};
     damage.add({0.0, 0.0, 8.0, 8.0});
     raster.begin_frame(damage);
-    require(window.paint(raster).has_value(), "retained overlay painted");
+    require(window.paint(raster).present(), "retained overlay painted");
     const std::vector<LiveSurfacePresentation> updates = window.take_live_surface_presentations();
     require(updates.size() == 4U, "overlay subtracted from live clips");
     for (const LiveSurfacePresentation& update : updates) {

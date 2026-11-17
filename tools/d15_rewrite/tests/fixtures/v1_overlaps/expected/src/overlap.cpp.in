@@ -1,0 +1,4 @@
+int main() {
+    const long value = 1 + 2;
+    return value;
+}

@@ -589,6 +589,24 @@ void background_commands() {
     paint_canvas_background(panned, *attached, look, area, view);
     require(panned.rasters.size() == 4U && panned.rasters[3] == baked.rasters[3],
             "a pan by one block leaves the lattice where it was");
+    // A-gf-core-13-F1: a far view origin keeps the lattice near the area.
+    // Felt at 48 units makes a 240-unit block (five tiles), not a power of
+    // two; world (0, 0) at 1e22 (which is 160 modulo 240) puts the lattice
+    // 80 units before the area's left, and 7 units down puts it 233 above.
+    // Rebuilt from the anchor, the corner once rounded to millions of blocks
+    // before the area.
+    CanvasLook far_look = look;
+    far_look.texture.items[0].tile = 48.0;
+    CanvasView far_view = view;
+    far_view.origin = Point{1e22, 7.0};
+    RecordingPainter far;
+    paint_canvas_background(far, *attached, far_look, area, far_view);
+    require(far.rasters.size() == 2U, "a far origin draws only the blocks meeting the area");
+    if (far.rasters.size() == 2U) {
+        require(far.rasters[0] == Point{-80.0 - outsets.left, -233.0 - outsets.top} &&
+                    far.rasters[1] == Point{-80.0 - outsets.left, 7.0 - outsets.top},
+                "the far lattice is reduced exactly modulo the block");
+    }
 
     // A finish layer: the world's finish tiles, 128 device pixels square
     // on the lattice through world (0, 0). In no window it draws nothing;

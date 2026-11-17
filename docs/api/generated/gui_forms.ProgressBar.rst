@@ -60,7 +60,7 @@ gui_forms::ProgressBar
       **effect** : ``std::string``
          The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
 
-      **effect_seed** : ``std::optional<std::uint64_t>``
+      **effect_seed** : ``stxlib::Optional<std::uint64_t>``
          The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 
       **effect_input** : ``EffectInputKind``
@@ -221,7 +221,7 @@ gui_forms::ProgressBar
 
       The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
 
-   .. cpp:member:: std::optional<std::uint64_t> effect_seed
+   .. cpp:member:: stxlib::Optional<std::uint64_t> effect_seed
 
       The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 

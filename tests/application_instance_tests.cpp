@@ -27,6 +27,7 @@
 #include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -121,7 +122,7 @@ void test_windows_join_and_close() {
     ApplicationConfig config{};
     PresentationSettings presentation{};
     presentation.text_scale = 1.5;
-    config.presentation = presentation;
+    config.presentation.set(presentation);
     ApplicationCreateResult created = Application::create(std::move(config));
     require(static_cast<bool>(created), "the application is made");
     Application& application = *created.application;
@@ -243,7 +244,7 @@ void test_presentation_and_overrides() {
                 order == std::vector<int>{1, 2},
             "the application's presentation reaches every joined window in joining order");
 
-    first.set_presentation_overrides(PresentationOverrides{.text_scale = 1.25});
+    first.set_presentation_overrides(PresentationOverrides{.text_scale = stxlib::Optional<double>::of(1.25)});
     require(first.presentation_overrides() != nullptr && first.presentation_settings().text_scale == 1.25 &&
                 first.presentation_settings().high_contrast && first.presentation_base() == settings,
             "an override wins over its field only");
@@ -256,7 +257,7 @@ void test_presentation_and_overrides() {
 
     bool refused = false;
     try {
-        first.set_presentation_overrides(PresentationOverrides{.text_scale = 9.0});
+        first.set_presentation_overrides(PresentationOverrides{.text_scale = stxlib::Optional<double>::of(9.0)});
     } catch (const std::invalid_argument&) {
         refused = true;
     }
@@ -331,7 +332,7 @@ void test_window_overrides() {
         require((*application.key_bindings()).map() == pc_key_map() && second.key_map() == pc_key_map(),
                 "the application's table and its other windows are unchanged");
 
-        first.set_presentation_overrides(PresentationOverrides{.text_scale = 1.5});
+        first.set_presentation_overrides(PresentationOverrides{.text_scale = stxlib::Optional<double>::of(1.5)});
         first.clear_key_bindings();
         require(first.overrides() != nullptr && first.key_bindings() == application.key_bindings(),
                 "the record stays while another field is overridden");

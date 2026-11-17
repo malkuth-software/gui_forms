@@ -88,7 +88,8 @@ std::optional<std::size_t> find_match(const Item& source, const std::vector<Item
     for (std::size_t index = 0U; index < target.size(); ++index) {
         if (equal_ignoring_ascii_case(displayed_text(target[index]), wanted)) return index;
     }
-    if (source.merge_index && *source.merge_index < target.size()) return *source.merge_index;
+    const std::size_t* const position = source.merge_index.value();
+    if (position != nullptr && *position < target.size()) return *position;
     return std::nullopt;
 }
 
@@ -164,10 +165,12 @@ bool merge_item(const CollectionPair<Item>& pair, std::size_t position, std::vec
     case MergeAction::append:
         move_item(pair, position, target.size(), steps);
         return true;
-    case MergeAction::insert:
-        if (!item.merge_index) return false;
-        move_item(pair, position, std::min(*item.merge_index, target.size()), steps);
+    case MergeAction::insert: {
+        const std::size_t* const index = item.merge_index.value();
+        if (index == nullptr) return false;
+        move_item(pair, position, std::min(*index, target.size()), steps);
         return true;
+    }
     case MergeAction::replace: {
         const std::optional<std::size_t> match = find_match(item, target);
         if (!match) return false;

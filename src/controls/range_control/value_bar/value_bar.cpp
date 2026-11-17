@@ -81,8 +81,8 @@ bool ValueBarScrub::begin_scrub(ScrubRange& range) {
     range.minimum = bar.effective_soft_minimum();
     range.maximum = bar.effective_soft_maximum();
     range.rate = bar.scrub_rate_in_force();
-    const std::optional<double> snap = bar.snap_step.read();
-    range.snap_step = snap ? *snap : bar.small_change.read();
+    const stxlib::Optional<double>& snap = bar.snap_step.read();
+    range.snap_step = snap.value_or(bar.small_change.read());
     range.keyboard_step = bar.small_change.read();
     // Right to left the fill grows from the right, so dragging left raises.
     range.reversed = bar.effective_layout_direction() == LayoutDirection::right_to_left;
@@ -115,7 +115,7 @@ std::size_t ValueBarScrub::describe_scrub(double value, std::span<char> out) con
 
 ValueBar::ValueBar(StableId stable_id) : RangeControl(std::move(stable_id)) {
     focusable = true;
-    cursor = CursorKind::resize_horizontal;
+    cursor = stxlib::Optional<CursorKind>::of(CursorKind::resize_horizontal);
     scrub_ = std::make_unique<ValueBarScrub>(*this);
 }
 
@@ -149,10 +149,10 @@ void ValueBar::EditorValidatingCallback::operator()(ControlValidationEvent&) con
 double ValueBar::effective_soft_minimum() const noexcept {
     const double low = minimum.read();
     const double high = maximum.read();
-    const std::optional<double> soft_low = soft_minimum.read();
-    const std::optional<double> soft_high = soft_maximum.read();
-    const double first = std::clamp(soft_low ? *soft_low : low, low, high);
-    const double second = std::clamp(soft_high ? *soft_high : high, low, high);
+    const double soft_low = soft_minimum.read().value_or(low);
+    const double soft_high = soft_maximum.read().value_or(high);
+    const double first = std::clamp(soft_low, low, high);
+    const double second = std::clamp(soft_high, low, high);
     const double result = std::min(first, second);
     return result;
 }
@@ -160,10 +160,10 @@ double ValueBar::effective_soft_minimum() const noexcept {
 double ValueBar::effective_soft_maximum() const noexcept {
     const double low = minimum.read();
     const double high = maximum.read();
-    const std::optional<double> soft_low = soft_minimum.read();
-    const std::optional<double> soft_high = soft_maximum.read();
-    const double first = std::clamp(soft_low ? *soft_low : low, low, high);
-    const double second = std::clamp(soft_high ? *soft_high : high, low, high);
+    const double soft_low = soft_minimum.read().value_or(low);
+    const double soft_high = soft_maximum.read().value_or(high);
+    const double first = std::clamp(soft_low, low, high);
+    const double second = std::clamp(soft_high, low, high);
     const double result = std::max(first, second);
     return result;
 }
@@ -194,8 +194,8 @@ std::string ValueBar::formatted_value() const {
 // range; an empty soft range scrubs by a tenth of the small change per
 // unit.
 double ValueBar::scrub_rate_in_force() const noexcept {
-    const std::optional<double> authored = scrub_rate.read();
-    if (authored) return *authored;
+    const double* authored = scrub_rate.read().value();
+    if (authored != nullptr) return *authored;
     const double span = effective_soft_maximum() - effective_soft_minimum();
     if (span <= 0.0) return small_change.read() * scrub_fine_factor;
     const double width = std::max(1.0, content_bounds().width);
@@ -402,15 +402,15 @@ namespace {
 constexpr std::array<AnatomyState, 2> value_bar_arrow_states{{AnatomyState::hot, AnatomyState::pressed}};
 
 constexpr std::array<PartField<ValueBar::Parts>, 12> value_bar_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::region},
-    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}},
+    {.declaration = {.name = "track", .role = PartRole::track, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::track},
-    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "fill", .role = PartRole::fill, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::fill},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::label},
-    {.declaration = {.name = "value", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "value", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::value},
     {.declaration = {.name = "decrement_arrow", .role = PartRole::actuator, .composed_from = "button",
                      .states = value_bar_arrow_states},
@@ -424,11 +424,11 @@ constexpr std::array<PartField<ValueBar::Parts>, 12> value_bar_part_fields{{
     {.declaration = {.name = "increment_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = value_bar_arrow_states},
      .member = &ValueBar::Parts::increment_glyph},
-    {.declaration = {.name = "overrange", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "overrange", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::overrange},
-    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}},
+    {.declaration = {.name = "validation", .role = PartRole::validation, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::validation},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &ValueBar::Parts::focus},
 }};
 
@@ -452,6 +452,7 @@ constexpr ControlAnatomy value_bar_anatomy{
     .parts = value_bar_parts,
     .states = value_bar_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events ValueBar adds to those of RangeControl, in declaration order.
@@ -519,8 +520,8 @@ Color ValueBar::over_fill_text_colour(AnatomyStateSet states) const {
     const Theme& theme = effective_theme();
     const ControlVisualContext context = part_visual_context(*this, states);
     const ResolvedControlRecipe label_recipe = theme.resolve(*this, ControlVisualRole::editor, context, states, "label");
-    const std::optional<Color> authored = label_recipe.recipe().fill_text;
-    if (authored) return *authored;
+    const stxlib::Optional<Color> authored = label_recipe.recipe().fill_text;
+    if (authored.present()) return *authored.value();
     AnatomyStateSet fill_states = states;
     fill_states.insert(AnatomyState::selected);
     const ControlVisualContext fill_context = part_visual_context(*this, fill_states);
@@ -534,7 +535,7 @@ Color ValueBar::over_fill_text_colour(AnatomyStateSet states) const {
 // centred without a label. The half over the track is keyed (the theme's
 // `::part(label)` and `::part(value)` rules style it); the half over the
 // fill is drawn unkeyed in `over_fill`, as an authored foreground.
-void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, std::optional<Color> over_fill) const {
+void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, stxlib::Optional<Color> over_fill) const {
     const FontSpec font = text_font(effective_theme().structure().typography.field);
     const std::string shown = formatted_value();
     const Rect content = content_bounds();
@@ -549,13 +550,13 @@ void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, std::option
     if (!name.empty()) {
         text.text = lend_paint_text(name);
         text.alignment = PartTextAlignment::start;
-        if (!over_fill) text.key = PartKey{"label", {}, {}};
+        if (over_fill.absent()) text.key.set(PartKey{"label", {}, {}});
         paint_part(painter, *this, text);
     }
     text.text = lend_paint_text(shown);
     text.alignment = name.empty() ? PartTextAlignment::center : PartTextAlignment::end;
-    text.key = std::nullopt;
-    if (!over_fill) text.key = PartKey{"value", {}, {}};
+    text.key.reset();
+    if (over_fill.absent()) text.key.set(PartKey{"value", {}, {}});
     paint_part(painter, *this, text);
 }
 
@@ -572,7 +573,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
     track_part.role = PartRole::track;
     track_part.bounds = track;
     track_part.states = states;
-    track_part.key = PartKey{"track", {}, {}};
+    track_part.key.set(PartKey{"track", {}, {}});
     paint_part(painter, *this, track_part);
     const Rect fill = fill_bounds();
     if (!field) {
@@ -582,7 +583,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         fill_part.bounds = fill;
         fill_part.states = states;
         fill_part.states.insert(AnatomyState::selected);
-        fill_part.key = PartKey{"fill", {}, {}};
+        fill_part.key.set(PartKey{"fill", {}, {}});
         paint_part(painter, *this, fill_part);
         const Rect marker = overrange_bounds();
         if (!marker.empty()) {
@@ -591,7 +592,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
             overrange_part.role = PartRole::indicator;
             overrange_part.bounds = marker;
             overrange_part.states = states;
-            overrange_part.key = PartKey{"overrange", {}, {}};
+            overrange_part.key.set(PartKey{"overrange", {}, {}});
             paint_part(painter, *this, overrange_part);
         }
     }
@@ -599,12 +600,12 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         const double split = field ? track.x : fill.right();
         painter.save();
         painter.clip_rect(Rect{split, track.y, std::max(0.0, track.right() - split), track.height});
-        paint_texts(painter, states, std::nullopt);
+        paint_texts(painter, states, stxlib::Optional<Color>::none());
         painter.restore();
         if (!field && !fill.empty()) {
             painter.save();
             painter.clip_rect(fill);
-            paint_texts(painter, states, over_fill_text_colour(states));
+            paint_texts(painter, states, stxlib::Optional<Color>::of(over_fill_text_colour(states)));
             painter.restore();
         }
     }
@@ -620,11 +621,11 @@ void ValueBar::on_paint(Painter& painter, Rect) {
             arrow.role = PartRole::actuator;
             arrow.bounds = arrows[index];
             arrow.states = states;
-            arrow.key = PartKey{arrow_names[index], {}, {}};
+            arrow.key.set(PartKey{arrow_names[index], {}, {}});
             paint_part(painter, *this, arrow);
             arrow.role = PartRole::glyph;
             arrow.mark = marks[index];
-            arrow.key = PartKey{glyph_names[index], {}, {}};
+            arrow.key.set(PartKey{glyph_names[index], {}, {}});
             paint_part(painter, *this, arrow);
         }
     }
@@ -634,7 +635,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         validation.role = PartRole::validation;
         validation.bounds = track;
         validation.states = states;
-        validation.key = PartKey{"validation", {}, {}};
+        validation.key.set(PartKey{"validation", {}, {}});
         paint_part(painter, *this, validation);
     }
     if (focused_ && !editing_) {
@@ -644,7 +645,7 @@ void ValueBar::on_paint(Painter& painter, Rect) {
         focus.bounds = track;
         focus.states = states;
         focus.states.insert(AnatomyState::focus_visible);
-        focus.key = PartKey{"focus", {}, {}};
+        focus.key.set(PartKey{"focus", {}, {}});
         paint_part(painter, *this, focus);
     }
 }
@@ -835,11 +836,11 @@ SemanticDescriptor ValueBar::semantic_descriptor() const {
     descriptor.name = authored_name.empty() ? label.read() : authored_name;
     descriptor.description = accessible_description.read();
     descriptor.value = formatted_value();
-    descriptor.numeric_value = value.read();
-    descriptor.minimum_value = minimum.read();
-    descriptor.maximum_value = maximum.read();
-    descriptor.small_step = small_change.read();
-    descriptor.large_step = large_change.read();
+    descriptor.numeric_value.set(value.read());
+    descriptor.minimum_value.set(minimum.read());
+    descriptor.maximum_value.set(maximum.read());
+    descriptor.small_step.set(small_change.read());
+    descriptor.large_step.set(large_change.read());
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment, SemanticAction::decrement,
                           SemanticAction::set_value};
     descriptor.exposed = true;
@@ -1138,29 +1139,32 @@ std::span<const PropertyEntry> ValueBar::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void ValueBar::prepare_write(const decltype(soft_minimum)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(soft_minimum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) require_finite(*incoming, "soft minimum must be finite");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) require_finite(*incoming_value, "soft minimum must be finite");
 }
 
 void ValueBar::written(const decltype(soft_minimum)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ValueBar::prepare_write(const decltype(soft_maximum)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(soft_maximum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) require_finite(*incoming, "soft maximum must be finite");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) require_finite(*incoming_value, "soft maximum must be finite");
 }
 
 void ValueBar::written(const decltype(soft_maximum)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ValueBar::prepare_write(const decltype(snap_step)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(snap_step)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite(*incoming, "snap step must be finite");
-        if (*incoming <= 0.0) throw std::invalid_argument("snap step must be positive");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite(*incoming_value, "snap step must be finite");
+        if (*incoming_value <= 0.0) throw std::invalid_argument("snap step must be positive");
     }
 }
 
@@ -1212,11 +1216,12 @@ void ValueBar::written(const decltype(label)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ValueBar::prepare_write(const decltype(scrub_rate)&, std::optional<double>& incoming) {
+void ValueBar::prepare_write(const decltype(scrub_rate)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite(*incoming, "scrub rate must be finite");
-        if (*incoming <= 0.0) throw std::invalid_argument("scrub rate must be positive");
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite(*incoming_value, "scrub rate must be finite");
+        if (*incoming_value <= 0.0) throw std::invalid_argument("scrub rate must be positive");
     }
 }
 

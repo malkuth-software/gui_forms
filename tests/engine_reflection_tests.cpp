@@ -186,7 +186,7 @@ std::array<std::uint8_t, 4> pixel_of(const PartRaster& raster, std::size_t colum
 void mirrors_the_face() {
     const SurfaceMaterial plain = striped_face();
     SurfaceMaterial reflected = plain;
-    reflected.reflection = MaterialReflection{MaterialEdge::bottom, 1.0, 5.0, 1.0, 1.0};
+    reflected.reflection.set(MaterialReflection{MaterialEdge::bottom, 1.0, 5.0, 1.0, 1.0});
     const TestRaster without = draw(plain, face_size, 1.0);
     const TestRaster with = draw(reflected, face_size, 1.0);
     const std::uint32_t bottom = 8U + 20U;
@@ -208,7 +208,7 @@ void mirrors_the_face() {
 
     // The right edge mirrors columns.
     SurfaceMaterial sideways = plain;
-    sideways.reflection = MaterialReflection{MaterialEdge::right, 0.0, 4.0, 1.0, 1.0};
+    sideways.reflection.set(MaterialReflection{MaterialEdge::right, 0.0, 4.0, 1.0, 1.0});
     const TestRaster right = draw(sideways, face_size, 1.0);
     const std::uint32_t edge = 8U + 40U;
     for (std::uint32_t line = 0U; line < 4U; ++line) {
@@ -223,7 +223,7 @@ void fades_linearly() {
     SurfaceMaterial material{};
     material.fills.clear();
     material.fills.push_back(MaterialFillLayer::solid(Color::rgba(255, 255, 255)));
-    material.reflection = MaterialReflection{MaterialEdge::top, 0.0, 6.0, 0.6, 0.0};
+    material.reflection.set(MaterialReflection{MaterialEdge::top, 0.0, 6.0, 0.6, 0.0});
     const TestRaster raster = draw(material, face_size, 1.0);
     for (std::uint32_t line = 0U; line < 6U; ++line) {
         const double opacity = 0.6 - 0.6 * (static_cast<double>(line) + 0.5) / 6.0;
@@ -245,7 +245,7 @@ void lies_beneath_the_glow() {
     glow.spread = 1.0;
     glowing.glows.push_back(glow);
     SurfaceMaterial reflected = glowing;
-    reflected.reflection = MaterialReflection{MaterialEdge::bottom, 0.0, 6.0, 0.8, 0.8};
+    reflected.reflection.set(MaterialReflection{MaterialEdge::bottom, 0.0, 6.0, 0.8, 0.8});
     const TestRaster glow_only = draw(glowing, face_size, 1.0);
     const TestRaster both = draw(reflected, face_size, 1.0);
     const std::array<std::uint8_t, 4> under = glow_only.pixel(20U, 29U);
@@ -261,9 +261,9 @@ void lies_beneath_the_glow() {
 
 void is_validated() {
     SurfaceMaterial material{};
-    material.reflection = MaterialReflection{};
+    material.reflection.set(MaterialReflection{});
     require(valid_surface_material(material), "the default reflection is valid");
-    MaterialReflection& reflection = *material.reflection;
+    MaterialReflection& reflection = (*material.reflection.value());
     reflection.gap = 3.0;
     reflection.reach = 5.0;
     require(valid_surface_material(material), "gap and reach may meet the cap");
@@ -285,7 +285,7 @@ void is_validated() {
     require(!valid_surface_material(material), "an unknown edge is refused");
 
     SurfaceMaterial reaching{};
-    reaching.reflection = MaterialReflection{MaterialEdge::left, 2.0, 5.0, 0.5, 0.0};
+    reaching.reflection.set(MaterialReflection{MaterialEdge::left, 2.0, 5.0, 0.5, 0.0});
     const Insets outsets = surface_material_visual_outsets(reaching);
     require(outsets.left == 7.0 && outsets.top == 0.0 && outsets.right == 0.0 && outsets.bottom == 0.0,
             "the reflection reaches past its own edge alone");
@@ -298,10 +298,10 @@ void is_validated() {
 // The face source's eight (each edge at scale 1 and 2), then the backplane
 // source's, over patterned_backplane.
 constexpr std::array<std::uint64_t, 16> expected_hashes{
-    0x14f6df20874ffb59ULL, 0xc0016f6217ae8cb1ULL, 0xcf14e0c08c5a00edULL, 0x609c71740c7337bdULL,
-    0xed29a0a1274f5c72ULL, 0x8d671a9348b478e9ULL, 0xcdb7b05fb073f935ULL, 0xa31f888b4da48ef1ULL,
-    0x3cfe0a7f4484184bULL, 0x77dd80e5b6105d0fULL, 0xad821fc38c59fceaULL, 0xf341facffc10fb1cULL,
-    0x7429dee566514386ULL, 0x4c532192dccb4dfaULL, 0xf42982ffd70af2f4ULL, 0xd4bd48380959c0d5ULL,
+    0xb8a3af512147130fULL, 0x6738bd9437e4e5fcULL, 0xbc478a28a446dd97ULL, 0x6dc028cd1e380100ULL,
+    0xfe46738bbc7e6f2eULL, 0xd5fadc31fc2eab65ULL, 0x3d0f71b1dd70aeb0ULL, 0x4811826f0f537800ULL,
+    0xaa4ba2fb5baf3759ULL, 0x5b24b8e61b9f33f5ULL, 0xbe4cfcaa9c1974a0ULL, 0xdb6760d805555dc6ULL,
+    0x14b31c6a0de71194ULL, 0xc1d88f6d58bbf138ULL, 0x553c6db90f3562b2ULL, 0x3f511f55bc1e4e57ULL,
 };
 
 void matches_references() {
@@ -318,7 +318,7 @@ void matches_references() {
             for (const double scale : scales) {
                 SurfaceMaterial material = striped_face();
                 material.corner_radius = 4.0;
-                material.reflection = MaterialReflection{edges[edge], 1.0, 6.0, 0.6, 0.05, source};
+                material.reflection.set(MaterialReflection{edges[edge], 1.0, 6.0, 0.6, 0.05, source});
                 const bool from_backplane = source == MaterialReflectionSource::backplane;
                 const std::shared_ptr<PartRaster> backplane =
                     from_backplane ? patterned_backplane(destination_of(face_size, scale), scale) : nullptr;
@@ -344,8 +344,8 @@ void matches_references() {
 void mirrors_the_backplane() {
     const SurfaceMaterial plain = striped_face();
     SurfaceMaterial reflected = plain;
-    reflected.reflection =
-        MaterialReflection{MaterialEdge::bottom, 0.0, 6.0, 1.0, 1.0, MaterialReflectionSource::backplane};
+    reflected.reflection.set(
+        MaterialReflection{MaterialEdge::bottom, 0.0, 6.0, 1.0, 1.0, MaterialReflectionSource::backplane});
     const std::shared_ptr<PartRaster> backplane = patterned_backplane(destination_of(face_size, 1.0), 1.0);
     const TestRaster drawn = draw(reflected, face_size, 1.0, backplane.get());
     // The box lies at 8 to 48 across and 8 to 28 down.
@@ -396,7 +396,7 @@ public:
         face.role = PartRole::face;
         face.family = ControlVisualRole::button;
         face.bounds = Rect{20.0, 20.0, 40.0, 20.0};
-        face.key = PartKey{"face", {}, {}};
+        face.key.set(PartKey{"face", {}, {}});
         paint_part(painter, *this, face);
     }
 };
@@ -409,13 +409,13 @@ std::unique_ptr<ThemeDefinition> face_theme(bool reflecting) {
     definition.id = reflecting ? "engine-reflection" : "engine-reflection-plain";
     ThemeRule face{};
     face.label = "face";
-    face.selector.role = PartRole::face;
+    face.selector.role.set(PartRole::face);
     face.declarations.push_back(RuleDeclaration::primitive("material"));
     definition.rules.rules.push_back(face);
     if (reflecting) {
         ControlRoleRecipes& button = definition.roles[static_cast<std::size_t>(ControlVisualRole::button)];
         for (ControlVisualRecipe& recipe : button.ordinary) {
-            recipe.material.reflection = MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0};
+            recipe.material.reflection.set(MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0});
         }
     }
     return held;
@@ -485,8 +485,8 @@ std::unique_ptr<ThemeDefinition> backplane_theme() {
     definition.id = "engine-reflection-backplane";
     ControlRoleRecipes& button = definition.roles[static_cast<std::size_t>(ControlVisualRole::button)];
     for (ControlVisualRecipe& recipe : button.ordinary) {
-        recipe.material.reflection =
-            MaterialReflection{MaterialEdge::bottom, 0.0, 6.0, 1.0, 1.0, MaterialReflectionSource::backplane};
+        recipe.material.reflection.set(
+            MaterialReflection{MaterialEdge::bottom, 0.0, 6.0, 1.0, 1.0, MaterialReflectionSource::backplane});
     }
     return held;
 }

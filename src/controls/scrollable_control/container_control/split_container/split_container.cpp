@@ -312,11 +312,18 @@ void SplitContainer::set_first_collapsed(bool collapsed,
     if (collapsed && second_collapsed_) {
         throw std::logic_error("both split panels may not be collapsed");
     }
+    if (collapsed) {
+        // The focus move runs focus handlers, which may collapse the other
+        // panel or drop the container: the refusal is checked again after
+        // it, before anything changes (A-gf-controls-12-F8).
+        const Control::Ptr lifetime = shared_from_this();
+        transfer_focus_from(first_panel_);
+        if (!is_alive() || first_collapsed_ || second_collapsed_) return;
+    }
     const double old = effective_distance_;
     const SplitCollapseOrigin previous_origin = first_collapse_origin_;
     if (collapsed) {
         if (effective_distance_ > 0.0) remembered_distance_ = effective_distance_;
-        transfer_focus_from(first_panel_);
     } else if (remembered_distance_ >= 0.0) {
         requested_distance_ = remembered_distance_;
     }
@@ -347,11 +354,18 @@ void SplitContainer::set_second_collapsed(bool collapsed,
     if (collapsed && first_collapsed_) {
         throw std::logic_error("both split panels may not be collapsed");
     }
+    if (collapsed) {
+        // The focus move runs focus handlers, which may collapse the other
+        // panel or drop the container: the refusal is checked again after
+        // it, before anything changes (A-gf-controls-12-F8).
+        const Control::Ptr lifetime = shared_from_this();
+        transfer_focus_from(second_panel_);
+        if (!is_alive() || second_collapsed_ || first_collapsed_) return;
+    }
     const double old = effective_distance_;
     const SplitCollapseOrigin previous_origin = second_collapse_origin_;
     if (collapsed) {
         if (effective_distance_ > 0.0) remembered_distance_ = effective_distance_;
-        transfer_focus_from(second_panel_);
     } else if (remembered_distance_ >= 0.0) {
         requested_distance_ = remembered_distance_;
     }
@@ -569,7 +583,10 @@ void SplitContainer::on_key_preview(KeyEvent& event) {
          static_cast<std::uint8_t>(Modifier::shift)) != 0U) {
         delta *= 10.0;
     }
-    set_distance(effective_distance_ + delta, SplitChangeReason::keyboard);
+    // A step past the near edge asks for zero, which the panel limits then
+    // clamp; set_distance refuses a negative request with an exception,
+    // which must not leave key handling (A-gf-controls-12-F1).
+    set_distance(std::max(0.0, effective_distance_ + delta), SplitChangeReason::keyboard);
     event.handled = true;
 }
 
@@ -578,11 +595,15 @@ SemanticDescriptor SplitContainer::semantic_descriptor() const {
     descriptor.role = SemanticRole::split_pane;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.value = std::to_string(effective_distance_);
-    descriptor.numeric_value = effective_distance_;
+    // "%f" in the C locale's form, which on_semantic_value parses back
+    // (A-gf-controls-12-F9).
+    std::string distance_text;
+    number_text::append_number_text(distance_text, effective_distance_, std::chars_format::fixed, 6);
+    descriptor.value = distance_text;
+    descriptor.numeric_value.set(effective_distance_);
     const double total = axis_extent(committed_arranged_bounds());
-    descriptor.minimum_value = constrained_distance(0.0, total);
-    descriptor.maximum_value = constrained_distance(total, total);
+    descriptor.minimum_value.set(constrained_distance(0.0, total));
+    descriptor.maximum_value.set(constrained_distance(total, total));
     descriptor.actions = {SemanticAction::focus};
     if (!splitter_fixed.read() && !first_collapsed_ && !second_collapsed_) {
         descriptor.actions.push_back(SemanticAction::decrement);
@@ -729,16 +750,16 @@ double SplitContainer::constrained_distance(double requested,
             : available * 0.5;
         lower = upper = compromise;
     }
-    if (first_maximum.read()) upper = std::min(upper, *first_maximum.read());
-    if (second_maximum.read()) {
-        lower = std::max(lower, std::max(0.0, available - *second_maximum.read()));
+    const double* first_limit = first_maximum.read().value();
+    const double* second_limit = second_maximum.read().value();
+    if (first_limit != nullptr) upper = std::min(upper, *first_limit);
+    if (second_limit != nullptr) {
+        lower = std::max(lower, std::max(0.0, available - *second_limit));
     }
     if (lower > upper) {
         double compromise = available * 0.5;
-        if (first_maximum.read() && second_maximum.read() &&
-            *first_maximum.read() + *second_maximum.read() > 0.0) {
-            compromise = available * *first_maximum.read() /
-                         (*first_maximum.read() + *second_maximum.read());
+        if (first_limit != nullptr && second_limit != nullptr && *first_limit + *second_limit > 0.0) {
+            compromise = available * *first_limit / (*first_limit + *second_limit);
         }
         lower = upper = std::clamp(compromise, 0.0, available);
     }
@@ -924,6 +945,7 @@ constexpr ControlAnatomy split_container_anatomy{
     .parts = split_container_parts,
     .states = split_container_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -938,7 +960,7 @@ void SplitContainer::publish_part_geometry(std::span<PartGeometry> geometry) con
 
     const SplitSeamSnapshot seam = splitter_seam_snapshot();
     record.seam = PartGeometry::from_bounds(seam.visible_bounds);
-    if (seam.state == SplitSeamState::near || seam.state == SplitSeamState::hot) {
+    if (seam.state == SplitSeamState::nearby || seam.state == SplitSeamState::hot) {
         record.seam.states.insert(AnatomyState::hot);
     } else if (seam.state == SplitSeamState::dragging) {
         record.seam.states.insert(AnatomyState::pressed);
@@ -972,7 +994,7 @@ SplitContainer::Parts SplitContainer::parts() const {
 AnatomyStateSet SplitContainer::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
     const SplitSeamSnapshot seam = splitter_seam_snapshot();
-    if (seam.state == SplitSeamState::near || seam.state == SplitSeamState::hot) {
+    if (seam.state == SplitSeamState::nearby || seam.state == SplitSeamState::hot) {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::hot);
     } else if (seam.state == SplitSeamState::dragging) {
@@ -1019,8 +1041,8 @@ void SplitContainer::append_interactions(std::vector<InteractionDeclaration>& in
 void SplitContainer::prepare_write(const decltype(first_minimum)&, double& incoming) {
     require_mutable();
     require_finite_nonnegative(incoming, "first panel minimum must be finite and nonnegative");
-    const std::optional<double>& maximum = first_maximum.read();
-    if (maximum && incoming > *maximum) {
+    const double* maximum = first_maximum.read().value();
+    if (maximum != nullptr && incoming > *maximum) {
         throw std::invalid_argument("first panel minimum may not exceed its maximum");
     }
 }
@@ -1032,8 +1054,8 @@ void SplitContainer::written(const decltype(first_minimum)&) {
 void SplitContainer::prepare_write(const decltype(second_minimum)&, double& incoming) {
     require_mutable();
     require_finite_nonnegative(incoming, "second panel minimum must be finite and nonnegative");
-    const std::optional<double>& maximum = second_maximum.read();
-    if (maximum && incoming > *maximum) {
+    const double* maximum = second_maximum.read().value();
+    if (maximum != nullptr && incoming > *maximum) {
         throw std::invalid_argument("second panel minimum may not exceed its maximum");
     }
 }
@@ -1042,11 +1064,12 @@ void SplitContainer::written(const decltype(second_minimum)&) {
     invalidate(invalidation::bounds);
 }
 
-void SplitContainer::prepare_write(const decltype(first_maximum)&, std::optional<double>& incoming) {
+void SplitContainer::prepare_write(const decltype(first_maximum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite_nonnegative(*incoming, "first panel maximum must be finite and nonnegative");
-        if (*incoming < first_minimum.read()) {
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite_nonnegative(*incoming_value, "first panel maximum must be finite and nonnegative");
+        if (*incoming_value < first_minimum.read()) {
             throw std::invalid_argument("first panel maximum may not be below its minimum");
         }
     }
@@ -1056,11 +1079,12 @@ void SplitContainer::written(const decltype(first_maximum)&) {
     invalidate(invalidation::bounds);
 }
 
-void SplitContainer::prepare_write(const decltype(second_maximum)&, std::optional<double>& incoming) {
+void SplitContainer::prepare_write(const decltype(second_maximum)&, stxlib::Optional<double>& incoming) {
     require_mutable();
-    if (incoming) {
-        require_finite_nonnegative(*incoming, "second panel maximum must be finite and nonnegative");
-        if (*incoming < second_minimum.read()) {
+    const double* incoming_value = incoming.value();
+    if (incoming_value != nullptr) {
+        require_finite_nonnegative(*incoming_value, "second panel maximum must be finite and nonnegative");
+        if (*incoming_value < second_minimum.read()) {
             throw std::invalid_argument("second panel maximum may not be below its minimum");
         }
     }

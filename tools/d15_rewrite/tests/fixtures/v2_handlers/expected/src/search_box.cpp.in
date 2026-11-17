@@ -1,0 +1,36 @@
+#include <gui_forms/search_box.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <string>
+#include <string_view>
+#include "platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+void SearchBox::attach() {
+    const Delegate committed = Delegate::bind<SearchBox, &SearchBox::editor_committed>(*this);
+    static_cast<void>(committed);
+    const CancelHandler cancelled = &SearchBox::editor_cancelled;
+    ((*this).*cancelled)("stop");
+    const ChangeCallback callback{this};
+    callback("go");
+    editor_changed("go");
+}
+
+void SearchBox::editor_committed(const std::string& text) {
+    last_ = text;
+}
+
+void SearchBox::editor_cancelled(const std::string& text) {
+    last_ = text;
+}
+
+void SearchBox::editor_changed(const stxlib::TextView text) {
+    last_ = gui_forms::platform::standard_text_copy(text);
+}
+
+void SearchBox::ChangeCallback::operator()(const std::string& text) const {
+    (*owner).editor_committed(text);
+}
+
+} // namespace gui_forms

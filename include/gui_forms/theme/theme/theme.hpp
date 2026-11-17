@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -22,6 +23,7 @@
 namespace gui_forms {
 
 class Control;
+struct PaintGroupEffect;
 namespace detail { class ThemeImageLease; struct ThemeAccess; struct ThemeSourceRecord; }
 
 // An application colour role's colours where some media facts hold
@@ -141,13 +143,21 @@ public:
     // matching rules give it under the window's scheme. Nullopt where no rule
     // declares one or the winner is `none`. `popup` rules are not read here:
     // they wait for native popup windows (stage T5).
-    [[nodiscard]] std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
+    [[nodiscard]] stxlib::Optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
     // The band the rules selecting `window` declare (`window { band-width:
     // ...; band-color: ...; band-lit-color: ...; band-effect: ... }`; owner,
     // 2026-11-08): each field from the last matching rule that sets it,
     // among the theme's and the user theme's rules, matched as
     // window_backdrop_chain matches. Empty where no rule sets one.
     [[nodiscard]] BandDeclaration window_band(const Window& window) const noexcept;
+    // The content effect the rules give `control` (a rule with no part
+    // writing `filter` or `mask-*`; owner 2026-11-16), among the theme's,
+    // the window's user theme's, the control's inline style's and its
+    // look's rules (CompiledThemeRules::resolve_content_effect), with its
+    // gradient masks resolved for the control's arranged size. Null where
+    // no rule sets one, where the fields give no filter, blur or mask, or
+    // where the result is not a valid group effect. Allocates the effect.
+    [[nodiscard]] std::shared_ptr<const PaintGroupEffect> control_content_effect(const Control& control) const;
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }
@@ -177,14 +187,18 @@ public:
     // nullopt where it gives none (T3 user themes). Whether the program
     // lets the icon be replaced is the application's (ApplicationResources::
     // icon).
-    [[nodiscard]] std::optional<ImageId> icon_override(std::string_view identifier) const noexcept;
+    [[nodiscard]] stxlib::Optional<ImageId> icon_override(std::string_view identifier) const noexcept;
+    // The theme's own drawing of the stock icon variant `icon`
+    // (ThemeDefinition::stock_icons), shared with the theme; null where the
+    // theme keeps the built-in drawing.
+    [[nodiscard]] std::shared_ptr<const StockIconVectors> stock_icon_replacement(const StockIcon& icon) const noexcept;
     // The colours of the application colour role `name` (lowercase, as the
     // sheet's `color-roles` declares it) where `facts` hold: its last
     // declaration whose condition holds. Under forced colours with no
     // `forced-colors` declaration of its own, its fallback role's
-    // high-contrast pair. Nullopt where the theme declares no such role.
-    [[nodiscard]] std::optional<ThemeRoleColours> application_role(std::string_view name,
-                                                                   const MediaFacts& facts) const noexcept;
+    // high-contrast pair. None where the theme declares no such role.
+    [[nodiscard]] stxlib::Optional<ThemeRoleColours> application_role(std::string_view name,
+                                                                      const MediaFacts& facts) const noexcept;
 
 private:
     // The six-argument resolve() without the control's kept results; sets

@@ -2,9 +2,11 @@
 
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <limits>
@@ -24,12 +26,14 @@ struct HelpBookWindowState final {
 
 // What Shift+F1 lays over the window: an input layer the size of the client
 // that takes the next click (the control under it gets its help) or Escape
-// (the mode ends). It paints nothing.
+// (the mode ends). It paints nothing; over it the pointer is the help cursor
+// (GAPS H3), an arrow with a question mark where the host has one.
 class HelpPickLayer final : public Control {
 public:
     HelpPickLayer(StableId stable_id, HelpBookSystem& system, Window& window)
         : Control(std::move(stable_id)), system_(&system), window_(&window) {
         focusable = true;
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::help);
     }
 
     void on_mouse_down(MouseEventArgs& arguments) override {
@@ -332,6 +336,10 @@ void HelpBookSystem::attach_ribbon_tool_tip(RibbonToolTip& tool_tip) {
     on(tool_tip.help_requested(), *this, &HelpBookSystem::on_ribbon_help);
 }
 
+void HelpBookSystem::attach_ribbon(Ribbon& ribbon) {
+    on(ribbon.help_button_clicked(), *this, &HelpBookSystem::on_ribbon_button_help);
+}
+
 void HelpBookSystem::wire_viewer(HelpBookViewer& viewer) {
     on(viewer.external_link(), *this, &HelpBookSystem::on_viewer_external);
     on(viewer.popup_requested(), *this, &HelpBookSystem::on_viewer_popup);
@@ -375,9 +383,9 @@ HelpTarget HelpBookSystem::resolve(const Control& control) {
     std::size_t steps = 0U;
     while (current != nullptr && steps < maximum_resolve_depth) {
         const std::string id((*current).stable_id().value());
-        const std::optional<std::size_t> record = book.find(id);
-        if (record.has_value()) {
-            const HelpBookRecord& found = book.records[*record];
+        const stxlib::Optional<std::size_t> record = book.find(id);
+        if (record.present()) {
+            const HelpBookRecord& found = book.records[(*record.value())];
             if (!found.help.empty()) {
                 target.page = id;
                 return target;
@@ -391,12 +399,12 @@ HelpTarget HelpBookSystem::resolve(const Control& control) {
     // Nothing had a page: home.
     target.home = true;
     target.anchor.clear();
-    if (!options_.home.empty() && book.find(options_.home).has_value()) {
+    if (!options_.home.empty() && book.find(options_.home).present()) {
         target.page = options_.home;
         return target;
     }
     for (const HelpContentsNode& node : book.contents.nodes) {
-        if (book.find(node.stable_id).has_value()) {
+        if (book.find(node.stable_id).present()) {
             target.page = node.stable_id;
             return target;
         }
@@ -445,24 +453,26 @@ bool HelpBookSystem::show_search(std::string_view text) {
 bool HelpBookSystem::show_popup(std::string_view stable_id, const Control::Ptr& anchor) {
     const std::shared_ptr<const HelpBookSection> held = section();
     if (!held || !anchor) return false;
-    const std::optional<std::size_t> record = (*held).find(stable_id);
-    if (!record.has_value()) return false;
+    const stxlib::Optional<std::size_t> record = (*held).find(stable_id);
+    if (record.absent()) return false;
     HelpPageModel page{};
-    static_cast<void>(build_help_page(*held, *record, page));
+    static_cast<void>(build_help_page(*held, (*record.value()), page));
     return open_popup(std::move(page), anchor);
 }
 
-bool HelpBookSystem::show_card(const Control::Ptr& anchor) {
+bool HelpBookSystem::show_card(const Control::Ptr& anchor) { return show_card_for(anchor, anchor); }
+
+bool HelpBookSystem::show_card_for(const Control::Ptr& subject, const Control::Ptr& anchor) {
     const std::shared_ptr<const HelpBookSection> held = section();
-    if (!held || !anchor) return false;
-    const HelpTarget target = resolve(*anchor);
-    // The help line: the control's own, else the nearest one above it.
+    if (!held || !subject || !anchor) return false;
+    const HelpTarget target = resolve(*subject);
+    // The help line: the subject's own, else the nearest one above it.
     const HelpBookRecord* line_record = nullptr;
-    Control::Ptr current = anchor;
+    Control::Ptr current = subject;
     std::size_t steps = 0U;
     while (current && steps < maximum_resolve_depth && line_record == nullptr) {
-        const std::optional<std::size_t> record = (*held).find((*current).stable_id().value());
-        if (record.has_value() && !(*held).records[*record].help_line.empty()) line_record = &(*held).records[*record];
+        const stxlib::Optional<std::size_t> record = (*held).find((*current).stable_id().value());
+        if (record.present() && !(*held).records[(*record.value())].help_line.empty()) line_record = &(*held).records[(*record.value())];
         current = (*current).parent();
         ++steps;
     }
@@ -491,7 +501,7 @@ bool HelpBookSystem::show_card(const Control::Ptr& anchor) {
         page.runs.push_back(std::move(space));
         HelpPageRun link{};
         link.text = options_.more;
-        link.link = 0U;
+        link.link.set(0U);
         page.runs.push_back(std::move(link));
     }
     block.run_count = page.runs.size();
@@ -659,6 +669,16 @@ void HelpBookSystem::on_ribbon_help(const RibbonToolTipHelpRequest& request) {
     show(request.target_stable_id);
 }
 
+void HelpBookSystem::on_ribbon_button_help(const RibbonHelpRequest& request) {
+    ++counters_.requests;
+    for (const Attachment& attachment : attachments_) {
+        const Control::Ptr ribbon = (*attachment.window).find(request.ribbon_id);
+        if (!ribbon) continue;
+        static_cast<void>(show_card_for((*attachment.window).root(), ribbon));
+        return;
+    }
+}
+
 // --- Viewer events ---------------------------------------------------------------------------------------
 
 void HelpBookSystem::on_viewer_external(HelpLinkActivation& activation) {
@@ -676,7 +696,10 @@ void HelpBookSystem::on_viewer_print(HelpPrintRequest& request) { print_requeste
 
 void HelpBookSystem::on_viewer_bookmarks(const std::vector<std::string>& bookmarks) {
     bookmarks_ = bookmarks;
-    bookmarks_changed_.emit(bookmarks_);
+    // A copy (A-gf-abi-02-F7): the C ABI's collection field borrows the
+    // argument for the whole callback, and a handler may change bookmarks_.
+    const std::vector<std::string> published = bookmarks_;
+    bookmarks_changed_.emit(published);
 }
 
 void HelpBookSystem::on_viewer_built_in_language() { use_built_in_language(true); }

@@ -13,6 +13,8 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
 
    * - :cpp:class:`DockWorkspace <gui_forms::DockWorkspace>`
      - A docking workspace: the layout, the panels and their factories, and which panel and document are active.
+   * - :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
+     - Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.
    * - :cpp:class:`Timer <gui_forms::Timer>`
      - A component that raises ``tick`` at a fixed interval on a window's UI thread.
    * - :cpp:class:`BackgroundWorker <gui_forms::BackgroundWorker>`
@@ -42,6 +44,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    :hidden:
 
    generated/gui_forms.DockWorkspace
+   generated/gui_forms.PlotLinkGroup
    generated/gui_forms.Timer
    generated/gui_forms.BackgroundWorker
    generated/gui_forms.NotifyIcon
@@ -78,6 +81,8 @@ Related types
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
      -  
+   * - :cpp:class:`DockPanelsAdded <gui_forms::DockPanelsAdded>`
+     - What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
    * - :cpp:class:`DockWorkspaceCapabilities <gui_forms::DockWorkspaceCapabilities>`
      - Every DockWorkspace capability, in the order the declaring class takes them.
    * - :cpp:class:`DockWorkspaceClosePromptCapability <gui_forms::DockWorkspaceClosePromptCapability>`
@@ -142,6 +147,10 @@ Related types
      - Whether the application wants the icon shown.
    * - :cpp:class:`OpenFileDialogCapabilities <gui_forms::OpenFileDialogCapabilities>`
      - Every OpenFileDialog capability, in the order the declaring class takes them.
+   * - :cpp:class:`OpenFileDialogCheckFileExistsCapability <gui_forms::OpenFileDialogCheckFileExistsCapability>`
+     - Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default).
+   * - :cpp:class:`OpenFileDialogCheckPathExistsCapability <gui_forms::OpenFileDialogCheckPathExistsCapability>`
+     - Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default).
    * - :cpp:class:`OpenFileDialogFileNameCapability <gui_forms::OpenFileDialogFileNameCapability>`
      - The first chosen path, or empty.
    * - :cpp:class:`OpenFileDialogFilterCapability <gui_forms::OpenFileDialogFilterCapability>`
@@ -291,6 +300,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DockPanelsAdded final
+
+   ``#include <gui_forms/controls/dock_workspace.hpp>``
+
+   What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
+
+   .. cpp:member:: std::size_t registered
+
+   .. cpp:member:: std::size_t shown
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DockWorkspaceCapabilities : public DockWorkspaceClosePromptCapability<Declaring>, public DockWorkspaceFlyoutOpeningCapability<Declaring>
 
    ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>``
@@ -427,7 +448,7 @@ Related types
 
       Whether icon alignments are mirrored. A change raises right_to_left_changed.
 
-   .. cpp:member:: std::optional<ImageId> icon
+   .. cpp:member:: stxlib::Optional<ImageId> icon
 
       The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
 
@@ -500,9 +521,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ErrorProviderIconCapability& capability, std::optional<ImageId> incoming)
+   .. cpp:function:: static void assign(ErrorProviderIconCapability& capability, stxlib::Optional<ImageId> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon
+   .. cpp:member:: PropertyCell<stxlib::Optional<ImageId>, ErrorProviderIconCapability<Declaring>> icon
 
 .. cpp:namespace:: gui_forms
 
@@ -918,7 +939,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>, public OpenFileDialogCheckFileExistsCapability<Declaring>, public OpenFileDialogCheckPathExistsCapability<Declaring>
 
    ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
 
@@ -937,7 +958,7 @@ Related types
 
    .. cpp:member:: std::string filter
 
-      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+      The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
    .. cpp:member:: std::size_t filter_index
 
@@ -950,6 +971,48 @@ Related types
    .. cpp:member:: std::string file_name
 
       The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
+
+   .. cpp:member:: bool check_file_exists
+
+      Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+
+   .. cpp:member:: bool check_path_exists
+
+      Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCheckFileExistsCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogCheckFileExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, OpenFileDialogCheckFileExistsCapability<Declaring>> check_file_exists
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> OpenFileDialogCheckPathExistsCapability
+
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+
+   Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(OpenFileDialogCheckPathExistsCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, OpenFileDialogCheckPathExistsCapability<Declaring>> check_path_exists
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -974,7 +1037,7 @@ Related types
 
    ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
 
-   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
+   The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
 
    .. rubric:: Methods
@@ -1217,6 +1280,18 @@ Enumerations
    .. cpp:enumerator:: selected
 
    .. cpp:enumerator:: disabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotLinkAxes
+
+   ``#include <gui_forms/controls/plot_view_links.hpp>``
+
+   .. cpp:enumerator:: x
+
+   .. cpp:enumerator:: y
+
+   .. cpp:enumerator:: both
 
 Functions, constants and aliases
 --------------------------------

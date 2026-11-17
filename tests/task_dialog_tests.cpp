@@ -13,6 +13,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
@@ -24,6 +25,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <stxlib/optional.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -52,8 +54,13 @@ public:
     void draw_line(Point, Point, Color, double) override {}
     void draw_text_utf8(Point, std::string_view text, FontSpec, Color) override { texts.emplace_back(text); }
     void draw_image(ImageId, Rect, double) override {}
+    // A stock icon on an attached control is drawn as its baked raster.
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double) override {
+        if (raster) raster_origins.push_back(origin);
+    }
 
     std::vector<std::string> texts;
+    std::vector<Point> raster_origins;
 };
 
 struct Recorder final {
@@ -118,7 +125,7 @@ TaskDialogPage full_page() {
     page.expander = TaskDialogExpander{.text = "Hand-saved stations: 7. Scanned: 42."};
     page.footnote = "The previous list is kept as a backup.";
     page.footnote_icon = TaskDialogIcon::information;
-    page.progress_bar = TaskDialogProgressBar{.value = 40.0};
+    page.progress_bar.set(TaskDialogProgressBar{.value = 40.0});
     return page;
 }
 
@@ -169,7 +176,7 @@ void validation() {
     missing.default_button = "nowhere";
     require(throws_invalid(SetPage{dialog.get(), missing}), "a default button the page lacks is refused");
     TaskDialogPage progress;
-    progress.progress_bar = TaskDialogProgressBar{.minimum = 5.0, .maximum = 5.0};
+    progress.progress_bar.set(TaskDialogProgressBar{.minimum = 5.0, .maximum = 5.0});
     require(throws_invalid(SetPage{dialog.get(), progress}), "empty progress bounds are refused");
     TaskDialogPage done;
     done.heading = "Done";
@@ -177,11 +184,70 @@ void validation() {
     require((*dialog).page().buttons.size() == 1U && (*dialog).page().buttons[0].stable_id == "ok" &&
                 (*dialog).page().buttons[0].text == "OK",
             "a page without buttons gets an OK button");
+    // A-gf-controls-13-F1: the standard Try Again button builds (its result
+    // name stays "try_again"; its control segment is "try-again"), and an ID
+    // that is not a stable-ID segment is refused before the page changes.
+    TaskDialogPage retry;
+    retry.buttons = {{.standard = TaskDialogStandardButton::try_again}, {.standard = TaskDialogStandardButton::cancel}};
+    (*dialog).set_page(retry);
+    require((*dialog).page().buttons.size() == 2U && (*dialog).page().buttons[0].stable_id == "try_again" &&
+                (*dialog).button("try_again") != nullptr && (*dialog).button("cancel") != nullptr &&
+                (*(*dialog).button("try_again")).stable_id().value() == "dialog.check.button.try-again",
+            "the standard Try Again button is built with a stable-ID segment");
+    TaskDialogPage spaced;
+    spaced.buttons = {{.stable_id = "Save", .text = "Save"}, {.stable_id = "dont save", .text = "Don't Save"}};
+    require(throws_invalid(SetPage{dialog.get(), spaced}), "a button ID that is not a stable-ID segment is refused");
+    TaskDialogPage clashing;
+    clashing.buttons = {{.standard = TaskDialogStandardButton::try_again}, {.stable_id = "try-again", .text = "Again"}};
+    require(throws_invalid(SetPage{dialog.get(), clashing}), "two buttons that would share a control segment are refused");
+    TaskDialogPage bad_radio;
+    bad_radio.radio_buttons = {{.stable_id = "FM only", .checked = true}};
+    require(throws_invalid(SetPage{dialog.get(), bad_radio}), "a radio ID that is not a stable-ID segment is refused");
+    require((*dialog).page().buttons.size() == 2U && (*dialog).button("try_again") != nullptr &&
+                (*dialog).button("cancel") != nullptr,
+            "a refused page leaves the previous page and its buttons in place");
+    (*dialog).set_page(done);
     (*dialog).expanded = true;
     require(!(*dialog).expanded.read(), "a page without an expander ignores an expanded write and reads false");
     (*dialog).verification_checked = true;
     require((*dialog).verification_checked.read() && (*dialog).page().verification_checked,
             "on a page without a check box a verification write stores the page's state");
+}
+
+// A validating handler that closes the dialog as it opens.
+class CloseOnValidating final {
+public:
+    CloseOnValidating(TaskDialog& dialog, bool& ran) noexcept : dialog_(&dialog), ran_(&ran) {}
+    void operator()(ControlValidationEvent&) const {
+        if ((*dialog_).shown()) {
+            *ran_ = true;
+            (*dialog_).close("cancel");
+        }
+    }
+
+private:
+    TaskDialog* dialog_;
+    bool* ran_;
+};
+
+// A handler run by show's focus move that closes the dialog leaves no focus
+// scope behind (A-gf-controls-13-F4).
+void closed_while_opening() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("dialog.opening.root"));
+    std::shared_ptr<Button> owner = make_control<Button>(StableId("dialog.opening.owner"), "Scan");
+    (*root).add_child(owner);
+    (*owner).set_requested_bounds({20.0, 20.0, 120.0, 32.0});
+    Window window(root, {720.0, 560.0});
+    window.perform_layout();
+    require(window.request_focus(owner), "the owner takes the focus");
+    const std::size_t depth_before = window.focus_scope_depth();
+    std::shared_ptr<TaskDialog> dialog = make_control<TaskDialog>(StableId("dialog.opening"));
+    (*dialog).set_page(full_page());
+    bool ran = false;
+    SubscriptionToken closing = (*owner).validating().subscribe(CloseOnValidating(*dialog, ran));
+    require((*dialog).show(owner), "show reports the dialog it showed");
+    require(!ran || (!(*dialog).shown() && window.focus_scope_depth() == depth_before),
+            "a dialog closed while it opens ends its focus scope");
 }
 
 void modal_presentation() {
@@ -207,13 +273,12 @@ void modal_presentation() {
     const TaskDialog::Parts parts = (*dialog).parts();
     require(parts.caption_band.present && parts.caption.present && parts.heading.present && parts.text.present,
             "the caption, heading and text are laid out");
-    require(parts.icon_plate.present && parts.icon_label.present && !parts.icon_glyph.present,
-            "a warning icon is a plate with a letter");
+    require(parts.icon_image.present, "a warning icon is the stock icon image");
     require(parts.progress.present && parts.radio_group.present && parts.expander_glyph.present &&
                 parts.expander_button.present && !parts.expanded_text.present && parts.verification.present,
             "progress, radio buttons, the collapsed expander and the check box are laid out");
     require(parts.button_band.present && parts.button_row.present && parts.footnote_band.present &&
-                parts.footnote_plate.present && parts.footnote.present,
+                parts.footnote_icon.present && parts.footnote.present,
             "the button band and the footnote are laid out");
     require(parts.heading.bounds.y < parts.text.bounds.y && parts.text.bounds.y < parts.button_band.bounds.y &&
                 parts.button_band.bounds.y < parts.footnote_band.bounds.y,
@@ -230,7 +295,16 @@ void modal_presentation() {
         if (text == "Station scan") caption = true;
         if (text == "!") letter = true;
     }
-    require(caption && letter, "the caption and the icon letter are painted by role");
+    // The warning is the stock icon's raster inside the icon part, no
+    // longer a letter.
+    const Rect icon = parts.icon_image.bounds;
+    bool icon_raster = false;
+    for (const Point origin : painter.raster_origins) {
+        const bool inside = origin.x >= icon.x && origin.y >= icon.y && origin.x < icon.x + icon.width &&
+                            origin.y < icon.y + icon.height;
+        icon_raster = icon_raster || inside;
+    }
+    require(caption && !letter && icon_raster, "the caption and the icon are painted by role");
 
     click_at(window, centre(*owner));
     require(owner_clicks == 0 && (*dialog).shown(), "the window behind the dialog takes no clicks");
@@ -264,7 +338,7 @@ void modal_presentation() {
     require((*(*dialog).verification_check_box()).checked.read() && recorder.verifications.size() == 3U,
             "the verification state is checked again for the result below");
     (*dialog).set_progress_value(250.0);
-    require((*dialog).page().progress_bar && (*(*dialog).page().progress_bar).value == 100.0,
+    require((*dialog).page().progress_bar.present() && ((*(*dialog).page().progress_bar.value())).value == 100.0,
             "a progress value is clamped to the bounds");
 
     static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::escape}));
@@ -304,8 +378,10 @@ void navigation_and_cancel() {
     (*dialog).set_page(first);
     require((*dialog).show(root), "the first page shows");
     window.perform_layout();
-    require((*dialog).parts().icon_glyph.present && !(*dialog).parts().icon_label.present,
-            "an error icon is a plate with a mark");
+    require((*dialog).parts().icon_image.present && nearest_stock_icon("x-circle", StockIconStyle::solid, 32.0).has_value() &&
+                nearest_stock_icon("shield-check", StockIconStyle::solid, 32.0).has_value() &&
+                !(*dialog).parts().footnote_icon.present,
+            "an error icon takes the icon place and is a stock icon");
     require((*dialog).click("next") && (*dialog).shown() && recorder.navigations == 1 &&
                 (*dialog).page().heading == "Step two",
             "a button handler navigates to another page");
@@ -347,6 +423,7 @@ void navigation_and_cancel() {
 int main() {
     validation();
     modal_presentation();
+    closed_while_opening();
     navigation_and_cancel();
     std::cout << "TaskDialog: validation, modal presentation, parts, buttons, Enter and Escape, radio buttons, "
                  "verification, expander, progress, navigation, semantics and disposal passed\n";

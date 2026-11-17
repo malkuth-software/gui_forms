@@ -6,6 +6,7 @@
 
 #include "../support/binding_support.hpp"
 
+#include <stxlib/optional.hpp>
 #include <array>
 #include <algorithm>
 #include <bit>
@@ -173,6 +174,11 @@ bool Binding::update_control(bool automatic) {
                         BindingCompleteState::data_error,
                         "GUI.Forms binding source field is unavailable: " + data_member_);
     }
+    // format_'s handlers may dispose the binding or retarget it, or destroy
+    // its control (A-gf-core-01-F1): the control is held across them and
+    // checked again before it is written.
+    Control* const target = target_;
+    const Control::Ptr target_lifetime = (*target).weak_from_this().lock();
     try {
         updating_ = true;
         BindingValue proposed = *source_value;
@@ -195,7 +201,15 @@ bool Binding::update_control(bool automatic) {
         if (!converted) {
             throw std::invalid_argument("binding value cannot convert to target kind");
         }
-        (*target_).set_property_value(property_name_, *converted);
+        if (!active_ || target_ != target || !(*target).is_alive()) {
+            updating_ = false;
+            ++failed_updates_;
+            return complete(BindingCompleteContext::control_update,
+                            BindingCompleteState::data_error,
+                            detail::binding_failure_text(
+                                "control update", property_name_, data_member_));
+        }
+        (*target).set_property_value(property_name_, *converted);
         ++control_reads_;
         ++successful_updates_;
         updating_ = false;
@@ -259,9 +273,9 @@ bool Binding::update_source(bool automatic) {
                                      desired == BindingValueKind::signed_integer ||
                                      desired == BindingValueKind::unsigned_integer;
             if (!handled && shown != nullptr && number_kind && !options_.format_string.empty()) {
-                const std::optional<NumberFormat> format = parse_number_format(options_.format_string);
+                const stxlib::Optional<NumberFormat> format = parse_number_format(options_.format_string);
                 const std::optional<std::string> plain =
-                    format ? plain_number_text(*shown, *format) : std::optional<std::string>{};
+                    format.present() ? plain_number_text(*shown, (*format.value())) : std::optional<std::string>{};
                 if (plain) proposed = *plain;
             }
         }

@@ -60,13 +60,13 @@ constexpr double padding_share = 0.125;
 constexpr double natural_height = 32.0;
 
 constexpr std::array<PartField<SevenSegmentDisplay::Parts>, 4> seven_segment_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::region},
-    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
+    {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::plot},
-    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}},
+    {.declaration = {.name = "trace", .role = PartRole::trace, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::trace},
-    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}},
+    {.declaration = {.name = "graticule", .role = PartRole::graticule, .composed_from = {}, .states = {}},
      .member = &SevenSegmentDisplay::Parts::graticule},
 }};
 
@@ -81,6 +81,7 @@ constexpr ControlAnatomy seven_segment_anatomy{
     .parts = seven_segment_parts,
     .states = seven_segment_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The bars of a digit cell at `cell` with bars `thickness` thick, in the
@@ -264,7 +265,7 @@ void SevenSegmentDisplay::on_paint(Painter& painter, Rect) {
     const Rect client = client_rectangle();
     const AnatomyStateSet states = anatomy_states();
     PartPaint plot{.role = PartRole::plot, .bounds = client, .states = states, .family = ControlVisualRole::editor};
-    plot.key = PartKey{"plot", {}, {}};
+    plot.key.set(PartKey{"plot", {}, {}});
     paint_part(painter, *this, plot);
 
     const std::vector<SevenSegmentCell> shown = cells();
@@ -274,9 +275,9 @@ void SevenSegmentDisplay::on_paint(Painter& painter, Rect) {
     AnatomyStateSet lit_states = states;
     lit_states.insert(AnatomyState::selected);
     PartPaint bar{.role = PartRole::trace, .states = lit_states, .family = ControlVisualRole::progress};
-    bar.corner_radius = metrics.thickness * 0.5;
+    bar.corner_radius.set(metrics.thickness * 0.5);
     PartPaint ghost{.role = PartRole::graticule, .states = states, .family = ControlVisualRole::progress};
-    ghost.corner_radius = metrics.thickness * 0.5;
+    ghost.corner_radius.set(metrics.thickness * 0.5);
     double x = metrics.left;
     for (const SevenSegmentCell& cell : shown) {
         if (cell.colon) {

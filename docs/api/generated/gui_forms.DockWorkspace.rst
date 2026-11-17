@@ -54,7 +54,7 @@ gui_forms::DockWorkspace
 
       **auto_hide_opens_on_hover** : ``bool``
 
-      **area_background** : ``std::optional<Color>``
+      **area_background** : ``stxlib::Optional<Color>``
 
       **closable_documents** : ``std::vector<DockPanelId>``, read-only
          The placed documents that may close, the main site's in tree and tab
@@ -143,6 +143,8 @@ gui_forms::DockWorkspace
         - The layout.
       * - :cpp:func:`register_panel <gui_forms::DockWorkspace::register_panel>`
         - Registers a panel's descriptor with the layout and keeps its title and factory; registering places nothing.
+      * - :cpp:func:`add_panels <gui_forms::DockWorkspace::add_panels>`
+        - Registers each panel, then shows each in the list's order (register_panel, then show_panel with the program origin): a tool panel goes to its descriptor's default placement, a document to the document area, and the last panel shown is active.
       * - :cpp:func:`find_registration <gui_forms::DockWorkspace::find_registration>`
         - The registration of a panel, or null.
       * - :cpp:func:`update_panel <gui_forms::DockWorkspace::update_panel>`
@@ -353,11 +355,15 @@ gui_forms::DockWorkspace
 
       Whether resting the pointer on an auto-hidden panel's side tab opens its flyout; off, a press opens it.
 
-   .. cpp:function:: std::optional<Color> area_background() const noexcept
+   .. cpp:function:: stxlib::Optional<Color> area_background() const noexcept
+
+   .. cpp:function:: void set_area_background(stxlib::Optional<Color> colour)
+
+      The colour the sites paint their document area with in place of the theme's well (DockPanel Suite's DockBackColor); none: the theme's.
 
    .. cpp:function:: void set_area_background(std::optional<Color> colour)
 
-      The colour the sites paint their document area with in place of the theme's well (DockPanel Suite's DockBackColor); none: the theme's.
+      The standard form, kept for one stage (D15 Q3).
 
    .. cpp:function:: std::vector<DockPanelId> closable_documents() const
 
@@ -469,6 +475,10 @@ gui_forms::DockWorkspace
       Registers a panel's descriptor with the layout and keeps its title and
       factory; registering places nothing. False, changing nothing, for an
       empty or repeated identity.
+
+   .. cpp:function:: DockPanelsAdded add_panels(std::vector<DockPanelRegistration> panels)
+
+      Registers each panel, then shows each in the list's order (register_panel, then show_panel with the program origin): a tool panel goes to its descriptor's default placement, a document to the document area, and the last panel shown is active. The list is checked first: an empty identity, one repeated within the list or one already registered refuses the whole list, changing nothing and returning zeroes. A show the layout refuses (a default placement the panel's own restrictions forbid) leaves that panel registered and not placed, and the rest go on.
 
    .. cpp:function:: const DockPanelRegistration* find_registration(const DockPanelId& panel) const noexcept
 
@@ -621,7 +631,7 @@ gui_forms::DockWorkspace
       Retitles a panel's caption, tab and navigator row; false for an
       unregistered panel.
 
-   .. cpp:function:: void set_floating_window_shown_while_inactive(DockSiteId site, std::optional<bool> shown)
+   .. cpp:function:: void set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown)
 
       One floating site's override of the option above (none: the workspace's). Kept for the site while it exists, through a window opened again for it.
 
@@ -638,7 +648,7 @@ gui_forms::DockWorkspace
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 39 supported, 0 deferred, 0 excluded, 16 unclassified; 55 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 42 supported, 0 deferred, 0 excluded, 14 unclassified; 56 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -660,7 +670,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 39 s
    * - property
      - GUI.Forms-only
      - ``area_background``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``auto_hide_opens_on_hover``
@@ -751,6 +761,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 39 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``add_panels``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``answer_close``
      - supported
    * - method
@@ -808,7 +822,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 39 s
    * - method
      - GUI.Forms-only
      - ``find_registration``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``float_subject``

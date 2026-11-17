@@ -17,7 +17,9 @@ Inputs:
   ``"kind": "interaction"``;
 - the public headers (``tools/api_docs_parse.py``): the class hierarchy, and the
   raiser's declaration: a property raiser is a protected ``virtual void
-  on_x_changed()``, an interaction raiser a protected ``virtual void on_x()``
+  on_x_changed()`` (a plain ``void on_x_changed()`` in a final class, which no
+  bridge derives from and whose segment has no layer), an interaction raiser a
+  protected ``virtual void on_x()``
   with no parameter or one (``KeyEventArgs& arguments``, ``const
   MouseEventArgs& arguments``, ``bool visible``);
 - ``src/``: the raiser's body, which says which interaction its base emits
@@ -326,8 +328,17 @@ def read_raisers(members: dict, classes: dict[str, ClassInfo]) -> dict[str, Rais
             property_name: str = ""
             parameter: Parameter | None = None
             if kind == "property":
-                if declared.access != "protected" or declared.signature != f"virtual void {method}()":
-                    raise TableError(f"{qualified}: a raiser is a protected `virtual void {method}()`, "
+                # A final class's raiser may be a plain member: no C++ class can
+                # derive from it, so no layer overrides it (render_segments
+                # writes none), and C and C# reach it through the class table.
+                # Once the class stops being final its raisers must be virtual
+                # again for its bridge's layer.
+                allowed: set[str] = {f"virtual void {method}()"}
+                if classes[cpp_class].final:
+                    allowed.add(f"void {method}()")
+                if declared.access != "protected" or declared.signature not in allowed:
+                    raise TableError(f"{qualified}: a raiser is a protected `virtual void {method}()` "
+                                     f"(or `void {method}()` in a final class), "
                                      f"the header has {declared.access} `{declared.signature}`")
                 match: re.Match[str] | None = re.fullmatch(r"on_(\w+)_changed", method)
                 if match is None:
@@ -688,8 +699,10 @@ HEADER_PREAMBLE: str = """/*
 
 
 def render_header(model: Model) -> str:
+    # The C consumer-macro shield (tools/consumer_shield.py): its opening half
+    # inside the include guard, its closing half before the #endif.
     lines: list[str] = [GENERATED_C, "", "#ifndef GUI_FORMS_C_GF_ABI_CLASSES_H", "#define GUI_FORMS_C_GF_ABI_CLASSES_H",
-                        "", HEADER_PREAMBLE.rstrip("\n"), ""]
+                        "#include \"gui_forms/c/gf_c_shield_begin.h\"", "", HEADER_PREAMBLE.rstrip("\n"), ""]
     lines.append("/* gf_class_id: a class that has a segment or a class table. */")
     lines.append("typedef uint32_t gf_class_id;")
     entry: dict
@@ -783,6 +796,7 @@ def render_header(model: Model) -> str:
         "    gf_status (GF_CALL* base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser);",
         "} gf_classes_table;",
         "",
+        "#include \"gui_forms/c/gf_c_shield_end.h\"",
         "#endif",
         "",
     ]
@@ -815,6 +829,14 @@ def render_segments(model: Model) -> str:
     for name, raisers in model.raisers.items():
         snake: str = model.classes[name].snake
         layer: str = f"{name}HooksLayer"
+        if model.classes[name].final:
+            # No bridge can derive from a final class, so its segment has no
+            # layer (its raisers may be plain members); its base functions
+            # above stay, as the sealed segment's entries name them.
+            lines += [f"// {name}'s raisers ({constant(model, name)}): {name} is final, so no bridge",
+                      "// derives from it and its segment has no layer until it becomes derivable.",
+                      ""]
+            continue
         lines += [f"// {name}'s raisers ({constant(model, name)}).",
                   "template <typename Base>",
                   f"class {layer} : public Base {{",
@@ -1282,7 +1304,7 @@ C_TEST_PREAMBLE: str = """/* Kit part: the class tables (GF_TABLE_CLASSES, since
 
 #include "gf_conformance_internal.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <string.h>
 
 /* What an entry does with base. */

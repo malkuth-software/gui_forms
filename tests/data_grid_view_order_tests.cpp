@@ -25,8 +25,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <stxlib/optional.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -50,6 +52,14 @@ DataGridViewRowId id(std::string_view text) {
 
 DataGridViewRowPosition row_at(std::size_t position) {
     const DataGridViewRowPosition row{position};
+    return row;
+}
+
+// The current cell's row, or a position past every row when there is none.
+DataGridViewRowPosition current_row_of(const DataGridView& grid) {
+    const stxlib::Optional<DataGridViewCellAddress> cell = grid.current_cell();
+    const DataGridViewCellAddress none{DataGridViewRowPosition{std::numeric_limits<std::size_t>::max()}, 0U};
+    const DataGridViewRowPosition row = cell.value_or(none).row;
     return row;
 }
 
@@ -83,12 +93,12 @@ public:
         ++requests;
         for (std::size_t index = 0; index < out.size(); ++index) out[index] = order[first.value + index];
     }
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
         ++position_queries;
         for (std::size_t index = 0; index < order.size(); ++index) {
-            if (order[index] == row) return row_at(index);
+            if (order[index] == row) return stxlib::Optional<DataGridViewRowPosition>::of(row_at(index));
         }
-        return std::nullopt;
+        return stxlib::Optional<DataGridViewRowPosition>::none();
     }
 
     std::vector<DataGridViewRowId> order;
@@ -109,11 +119,11 @@ public:
             out[index].value = "r" + std::to_string(first.value + index);
         }
     }
-    [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
-        if (row.value.size() < 2U || row.value[0] != 'r') return std::nullopt;
+    [[nodiscard]] stxlib::Optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const override {
+        if (row.value.size() < 2U || row.value[0] != 'r') return stxlib::Optional<DataGridViewRowPosition>::none();
         const std::size_t position = static_cast<std::size_t>(std::stoull(row.value.substr(1U)));
-        if (position >= rows) return std::nullopt;
-        return row_at(position);
+        if (position >= rows) return stxlib::Optional<DataGridViewRowPosition>::none();
+        return stxlib::Optional<DataGridViewRowPosition>::of(row_at(position));
     }
 
     mutable std::size_t requests{};
@@ -163,8 +173,8 @@ void check_same(const DataGridViewRowOrder& order, const std::vector<DataGridVie
     require(order.count() == reference.size(), what);
     for (std::size_t position = 0; position < reference.size(); ++position) {
         if (order.id_at(position) != reference[position].value) require(false, what);
-        const std::optional<std::size_t> found = order.position_of(reference[position].value);
-        if (!found || *found != position) require(false, what);
+        const stxlib::Optional<std::size_t> found = order.position_of(reference[position].value);
+        if (found.absent() || *found.value() != position) require(false, what);
     }
 }
 
@@ -206,6 +216,8 @@ void chunked_index_matches_a_vector() {
     require(order.count() == 0U, "removing every row empties the order");
     order.insert(0U, ids(3U, 0U, "again"));
     require(order.count() == 3U && order.id_at(1U) == "again1", "an emptied order takes rows again");
+    require(order.id_at(3U).empty() && order.id_at(1000U).empty(),
+            "a position at or past the count is no row's ID (A-gf-controls-03-F1)");
 
     // Refused reports change nothing.
     const std::vector<DataGridViewRowId> repeated{id("again0")};
@@ -223,7 +235,7 @@ void chunked_index_matches_a_vector() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && order.count() == 3U && order.position_of("again0") == 0U,
+    require(refused && order.count() == 3U && order.position_of("again0") == stxlib::Optional<std::size_t>::of(0U),
             "removing an absent ID is refused before anything is removed");
     refused = false;
     try {
@@ -317,8 +329,16 @@ void window_mode_is_bounded() {
     const DataGridViewRowOrderStatistics statistics = (*grid).row_order_statistics();
     require(statistics.full_builds == 0U && statistics.index_writes == 0U,
             "window mode never builds an index of the rows");
-    require((*grid).row_position(id("r9999999")) == row_at(9999999U) && (*grid).row_id(row_at(42U)) == id("r42"),
+    require((*grid).row_position(id("r9999999")) == stxlib::Optional<DataGridViewRowPosition>::of(row_at(9999999U)) && (*grid).row_id(row_at(42U)) == id("r42"),
             "IDs outside the window are asked of the source one at a time");
+    // A-gf-controls-03-F1: a position past the rows is no row's ID, and the
+    // source is never asked for it.
+    DataGridViewRowOrder windowed{};
+    windowed.switch_to_window(source);
+    const std::size_t requests = (*source).requests;
+    require(windowed.id_at(SyntheticSource::rows).empty() && windowed.id_at(SyntheticSource::rows + 5U).empty() &&
+                (*source).requests == requests,
+            "a window-mode position past the count asks the source nothing");
 }
 
 // -- switching by count and by rate, identity kept --------------------------------------------
@@ -343,9 +363,9 @@ void switches_keep_identity() {
             "a thousand rows stay in edit mode with a source available");
     Window window(grid, {300.0, 200.0});
     window.perform_layout();
-    require((*grid).set_current_cell(DataGridViewCellAddress{row_at(10U), 0U}), "row r10 is current");
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{row_at(10U), 0U})), "row r10 is current");
     (*grid).selection_mode = DataGridViewSelectionMode::full_row_select;
-    require((*grid).set_current_cell(DataGridViewCellAddress{row_at(10U), 0U}), "row r10 is current");
+    require((*grid).set_current_cell(stxlib::Optional<DataGridViewCellAddress>::of(DataGridViewCellAddress{row_at(10U), 0U})), "row r10 is current");
     (*grid).set_row_selected(row_at(20U), true);
     (*grid).set_first_displayed_row(row_at(5U));
     window.perform_layout();
@@ -359,7 +379,7 @@ void switches_keep_identity() {
                 switches[0].reason == DataGridViewRowOrderSwitchReason::row_count && switches[0].row_count == 1600U,
             "crossing window_rows switches to window mode, reported with the count");
     window.perform_layout();
-    require((*grid).current_row_id() == id("r10") && (*(*grid).current_cell()).row == row_at(610U) &&
+    require((*grid).current_row_id() == id("r10") && current_row_of(*grid) == row_at(610U) &&
                 (*grid).is_row_selected(row_at(620U)) && (*grid).first_displayed_row() == row_at(605U),
             "the current row, the selection and the first displayed row follow their IDs into window mode");
 
@@ -370,7 +390,7 @@ void switches_keep_identity() {
     (*source).order.erase((*source).order.begin(), (*source).order.begin() + 900);
     (*grid).remove_virtual_rows(gone);
     require((*grid).row_count() == 700U && (*grid).current_row_id() == id("r910") &&
-                (*(*grid).current_cell()).row == row_at(610U),
+                current_row_of(*grid) == row_at(610U),
             "the removed current row hands over to the row now at its position");
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::window,
             "700 rows are few, but 900 changes in this pass are not quiet: still window mode");
@@ -386,7 +406,7 @@ void switches_keep_identity() {
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit && switches.size() == 2U &&
                 switches[1].reason == DataGridViewRowOrderSwitchReason::row_count,
             "few rows and quiet passes return to edit mode, for the reason it left");
-    require((*grid).current_row_id() == id("r910") && (*(*grid).current_cell()).row == row_at(610U) &&
+    require((*grid).current_row_id() == id("r910") && current_row_of(*grid) == row_at(610U) &&
                 (*grid).row_id(row_at(701U)) == id("late1"),
             "the current row keeps its ID back in edit mode");
 
@@ -416,7 +436,7 @@ void switches_keep_identity() {
     require((*grid).row_order_mode() == DataGridViewRowOrderMode::edit && switches.size() == 4U &&
                 switches[3].reason == DataGridViewRowOrderSwitchReason::policy,
             "new thresholds are applied at once, reported as the policy's");
-    require((*grid).current_row_id() == id("r910") && (*(*grid).current_cell()).row == row_at(1010U),
+    require((*grid).current_row_id() == id("r910") && current_row_of(*grid) == row_at(1010U),
             "after the burst the current row is still r910, 400 rows lower");
 
     // Pinning.

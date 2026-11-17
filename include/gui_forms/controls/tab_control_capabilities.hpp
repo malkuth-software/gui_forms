@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -113,16 +114,16 @@ struct TabControlDrawModeCapability {
 // The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
 template <typename Declaring>
 struct TabControlSelectedIndexCapability {
-    PropertyView<std::optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index;
+    PropertyView<stxlib::Optional<std::size_t>, TabControlSelectedIndexCapability<Declaring>> selected_index;
 
-    static void assign(TabControlSelectedIndexCapability& capability, std::optional<std::size_t> incoming) {
+    static void assign(TabControlSelectedIndexCapability& capability, stxlib::Optional<std::size_t> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.write_view(std::as_const(capability.selected_index), std::move(incoming));
     }
 
-    static std::optional<std::size_t> read(const TabControlSelectedIndexCapability& capability) {
+    static stxlib::Optional<std::size_t> read(const TabControlSelectedIndexCapability& capability) {
         const Declaring& control = static_cast<const Declaring&>(capability);
-        std::optional<std::size_t> current = control.read_view(capability.selected_index);
+        stxlib::Optional<std::size_t> current = control.read_view(capability.selected_index);
         return current;
     }
 };

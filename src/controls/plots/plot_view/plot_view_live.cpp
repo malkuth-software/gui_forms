@@ -41,9 +41,9 @@ void PlotLiveFrame::take_state(PlotLiveState state) {
         // keeps its ring; anything else takes the new data.
         const bool same_feed = index < state_.series.size() && index < data_.size() &&
                                ((incoming.channel && incoming.channel == state_.series[index].channel) ||
-                                (!incoming.channel && incoming.signal.has_value() &&
+                                (!incoming.channel && incoming.signal.present() &&
                                  incoming.signal_source == state_.series[index].signal_source &&
-                                 state_.series[index].signal.has_value()));
+                                 state_.series[index].signal.present()));
         if (same_feed) {
             data = std::move(data_[index]);
             continue;
@@ -53,7 +53,7 @@ void PlotLiveFrame::take_state(PlotLiveState state) {
             data.ys = plots::SeriesColumn<double>(plots::SeriesMode::ring, (*incoming.channel).capacity(), plots::XOrder::unordered);
             continue;
         }
-        if (incoming.signal.has_value()) {
+        if (incoming.signal.present()) {
             data.xs = plots::SeriesColumn<double>(plots::SeriesMode::ring, live_signal_capacity, plots::XOrder::monotone);
             data.ys = plots::SeriesColumn<double>(plots::SeriesMode::ring, live_signal_capacity, plots::XOrder::unordered);
             continue;
@@ -106,11 +106,11 @@ void PlotLiveFrame::gather() {
         series.hidden = state.hidden;
         series.x_axis = state.x_axis;
         series.y_axis = state.y_axis;
-        series.borrowed = state.borrowed && !state.channel && !state.signal.has_value();
+        series.borrowed = state.borrowed && !state.channel && state.signal.absent();
         series.borrowed_x = &state.borrowed_x;
         series.borrowed_y = &state.borrowed_y;
-        series.order = state.channel || state.signal.has_value() ? plots::XOrder::monotone : state.order;
-        const bool copied = !state.channel && !state.signal.has_value() && !state.borrowed && state.columns;
+        series.order = state.channel || state.signal.present() ? plots::XOrder::monotone : state.order;
+        const bool copied = !state.channel && state.signal.absent() && !state.borrowed && state.columns;
         if (copied) {
             // Borrowed from state_, which holds the columns until the next
             // take_state, and gather runs again after each.
@@ -146,7 +146,7 @@ void PlotLiveFrame::update_ambient() {
     MotionClock& clock = (*root).motion_clock();
     bool produced = false;
     for (std::size_t index = 0U; index < state_.series.size(); ++index) {
-        produced = produced || static_cast<bool>(state_.series[index].channel) || state_.series[index].signal.has_value();
+        produced = produced || static_cast<bool>(state_.series[index].channel) || state_.series[index].signal.present();
     }
     if (!produced) {
         clock.withdraw_control_ambient(*this);
@@ -170,14 +170,19 @@ bool PlotLiveFrame::on_ambient_frame(FrameTime now) {
             changed = (*series.channel).consume(columns, channel_scratch_) != 0U || changed;
             continue;
         }
-        if (!series.signal.has_value() || frame.tick_count == 0U) continue;
+        if (series.signal.absent() || frame.tick_count == 0U) continue;
         plots::SignalFrame own = frame;
-        own.samples_per_tick = (*series.signal).samples_per_tick;
+        own.samples_per_tick = ((*series.signal.value())).samples_per_tick;
         (*signal_sink_).clear();
-        plots::run_signal(*series.signal, own, *signal_sink_);
+        plots::run_signal((*series.signal.value()), own, *signal_sink_);
         if ((*signal_sink_).count == 0U) continue;
         const std::span<const double> times((*signal_sink_).times.data(), (*signal_sink_).count);
         const std::span<const double> values((*signal_sink_).values.data(), (*signal_sink_).count);
+        // Both columns take the block or neither does (A-gf-controls-10-F3).
+        if (data.xs.check_push_overwrite(times) != plots::SeriesEditOutcome::applied ||
+            data.ys.check_push_overwrite(values) != plots::SeriesEditOutcome::applied) {
+            continue;
+        }
         static_cast<void>(data.xs.push_overwrite(times));
         static_cast<void>(data.ys.push_overwrite(values));
         changed = true;

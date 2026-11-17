@@ -226,6 +226,28 @@ jobs:
           fi
           python gui_forms/tools/macos_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
           python gui_forms/tools/audit_macos_minimum.py "$GUI_FORMS_LLVM_RUNTIME/lib"
+      # Linux links the harness's static position-independent C++ runtime
+      # (template_harness build_linux_runtimes.py), the same on every
+      # distribution; the packages above are only the bootstrap compiler.
+      - name: Select the Linux runtime prefix
+        id: linux-runtime
+        if: runner.os == 'Linux'
+        run: |
+          directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
+          echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: runner.os == 'Linux'
+        with:
+          path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
+          key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
+      - name: Build the static Linux runtimes
+        if: runner.os == 'Linux'
+        run: |
+          if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
+          fi
+          python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
       - name: Configure compiler cache
         run: |
           cache_dir="$PWD/.ccache"
@@ -335,9 +357,12 @@ jobs:
         id: stx-package
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/stx_text_allocation/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       - name: Configure the programs
         run: |
+          # A deployment build: GUI_FORMS_REFERENCE_ARITHMETIC=OFF, so what ships
+          # contracts floating point as the compiler chooses (owner, 2026-11-16).
+          # ci_build.py's reference trees turn it on.
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
           miniaudio="$BUILD_DIR/_deps/gui_forms_miniaudio-src"
           if [ -f "$miniaudio/miniaudio.h" ]; then renderer="$renderer -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_MINIAUDIO=$PWD/$miniaudio"; fi
@@ -346,8 +371,9 @@ jobs:
             -DGUI_FORMS_ENABLE_MACOS_HOST=$([ "${{ matrix.host }}" = MACOS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=$([ "${{ matrix.host }}" = WINDOWS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
-            -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON $renderer \
-            -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
+            $renderer \
+            -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_REFERENCE_ARITHMETIC=OFF \
+            -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
             -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
       # A pull request builds only what the tests it runs need: the tests its
@@ -406,7 +432,13 @@ jobs:
           elif [ "$NARROW" = true ]; then
             selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR" | tr -d '\r')
           fi
-          set -- --test-dir "$BUILD_DIR" --output-on-failure --timeout 120 --output-junit "$PWD/dist/ctest-${{ matrix.platform }}.xml"
+          # What ships is a deployment build (GUI_FORMS_REFERENCE_ARITHMETIC=OFF, owner
+          # 2026-11-16: contraction stays on "for actual deployment"), tested by every
+          # test except the byte-exact ones (label reference_arithmetic: pinned pixel
+          # hashes and cross-host comparisons), which the native, sanitizer and
+          # engine gate jobs run in reference builds.
+          set -- --test-dir "$BUILD_DIR" --output-on-failure --timeout 120 --output-junit "$PWD/dist/ctest-${{ matrix.platform }}.xml" \
+            -LE reference_arithmetic
           case "$selection" in
             ALL) echo "Running every test" ;;
             NONE) echo "The native job passed every test of this build; nothing left to run"; exit 0 ;;

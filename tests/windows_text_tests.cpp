@@ -1,7 +1,7 @@
 // Exercise the actual Windows measurement and retained-button rendering path.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "../src/host/windows/application/windows_host.cpp"
+#include "../src/surface/windows/application/windows_host.cpp"
 #include "text_identity_scene.hpp"
 #include <filesystem>
 #include <fstream>
@@ -42,7 +42,7 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     window.set_text_metrics_provider(&painter.painter());
     window.perform_layout();
     painter.begin_frame();
-    require_text(window.paint(painter.painter()).has_value(), "Retained caption did not paint");
+    require_text(window.paint(painter.painter()).present(), "Retained caption did not paint");
     require_text(painter.save_bmp(L"windows-text-test.bmp"), "Capture failed");
     if (text == "Главная" && scale == 1.5 && weight == 700) {
         require_text(painter.save_bmp(L"windows-russian-tab.bmp"), "Russian evidence capture failed");
@@ -55,7 +55,7 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     fresh.set_bundled_fonts(fixture_fonts);
     fresh.begin_frame();
     (*button).invalidate(Dirty::paint);
-    require_text(window.paint(fresh.painter()).has_value(), "Cold caption did not paint");
+    require_text(window.paint(fresh.painter()).present(), "Cold caption did not paint");
     GdiFlush();
     require_text(fresh.save_bmp(L"windows-text-cold.bmp"), "Cold capture failed");
     std::ifstream cold_stream("windows-text-cold.bmp", std::ios::binary);
@@ -210,7 +210,8 @@ static void benchmark_captions() {
 int main(int argc, char** argv) {
     try {
         require_text(argc == 2 || argc == 3, "Pass fixture font directory");
-        fixture_fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+        fixture_fonts = host::load_bundled_fonts(
+            gui_forms::detail::BundledFontLocation{gui_forms::BundledFontSource::environment, std::filesystem::path(argv[1])});
         require_text(fixture_fonts != nullptr, "Could not load fixture fonts");
         if (argc == 3 && std::string_view(argv[2]) == "--benchmark") {
             benchmark_captions();

@@ -89,7 +89,7 @@ private:
     // The DomainUpDown below the numeric rows: demodulation modes, wrapping.
     void build_domain() {
         (*domain_).wrap = true;
-        (*domain_).selected_index = 1U;
+        (*domain_).selected_index = stxlib::Optional<std::size_t>::of(1U);
         on((*domain_).selected_index_changed(), *this, &ValuesPage::domain_changed);
     }
 
@@ -176,8 +176,8 @@ private:
                             " · event emitted after value and editor synchronization";
     }
 
-    void domain_changed(const std::optional<std::size_t> index) {
-        (*status_).text = index ? "Domain selected " + (*domain_).items[*index]
+    void domain_changed(const stxlib::Optional<std::size_t> index) {
+        (*status_).text = index.present() ? "Domain selected " + (*domain_).items[*index.value()]
                                   : std::string("Domain text matches no item");
     }
 

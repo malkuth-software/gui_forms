@@ -70,7 +70,7 @@ void BackstageView::set_items(std::vector<BackstageItemSpec> items) {
         }
     }
     std::string selected_id;
-    if (selected_) selected_id = items_[*selected_].stable_id;
+    if (selected_.present()) selected_id = items_[*selected_.value()].stable_id;
     // Pages that leave are removed; pages that stay keep their place.
     for (const BackstageItemSpec& old : items_) {
         if (old.page && pages.count(old.page.get()) == 0U && (*old.page).parent().get() == this) {
@@ -86,10 +86,10 @@ void BackstageView::set_items(std::vector<BackstageItemSpec> items) {
     }
     selected_.reset();
     for (std::size_t item = 0; item < items_.size(); ++item) {
-        if (items_[item].kind == BackstageItemKind::topic && items_[item].stable_id == selected_id) selected_ = item;
+        if (items_[item].kind == BackstageItemKind::topic && items_[item].stable_id == selected_id) selected_.set(item);
     }
-    for (std::size_t item = 0; item < items_.size() && !selected_; ++item) {
-        if (items_[item].kind == BackstageItemKind::topic) selected_ = item;
+    for (std::size_t item = 0; item < items_.size() && selected_.absent(); ++item) {
+        if (items_[item].kind == BackstageItemKind::topic) selected_.set(item);
     }
     hot_.reset();
     pressed_.reset();
@@ -101,14 +101,14 @@ void BackstageView::CommandWatch::operator()(const CommandState&) const {
     if (view != nullptr && (*view).is_alive()) (*view).invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> BackstageView::read_view(const decltype(selected_topic)&) const {
+stxlib::Optional<std::size_t> BackstageView::read_view(const decltype(selected_topic)&) const {
     return selected_;
 }
 
-void BackstageView::write_view(const decltype(selected_topic)&, std::optional<std::size_t> incoming) {
+void BackstageView::write_view(const decltype(selected_topic)&, stxlib::Optional<std::size_t> incoming) {
     require_mutable();
-    if (!incoming) throw std::invalid_argument("BackstageView selection cannot be cleared");
-    const std::size_t item = *incoming;
+    if (incoming.absent()) throw std::invalid_argument("BackstageView selection cannot be cleared");
+    const std::size_t item = *incoming.value();
     if (item >= items_.size()) throw std::out_of_range("BackstageView item index is past the end");
     if (items_[item].kind != BackstageItemKind::topic) throw std::invalid_argument("BackstageView item is not a topic");
     select_topic(item);
@@ -130,8 +130,8 @@ bool BackstageView::item_enabled(const BackstageItemSpec& item) const {
 }
 
 void BackstageView::select_topic(std::size_t item) {
-    if (selected_ == item) return;
-    selected_ = item;
+    if (selected_ == stxlib::Optional<std::size_t>::of(item)) return;
+    selected_.set(item);
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     const BackstageTopicChange change{std::string(stable_id().value()), item, items_[item].stable_id};
     publish_change(topic_changed_, change);
@@ -152,7 +152,7 @@ bool BackstageView::activate(std::string_view item_id) {
 // topic is selected.
 void BackstageView::activate_item(std::size_t item) {
     if (item >= items_.size() || !item_enabled(items_[item])) return;
-    focus_item_ = item;
+    focus_item_.set(item);
     if (items_[item].kind == BackstageItemKind::topic) {
         select_topic(item);
         return;
@@ -196,7 +196,7 @@ void BackstageView::arrange(Rect final_bounds) {
     for (std::size_t item = 0; item < items_.size(); ++item) {
         const Control::Ptr& control = items_[item].page;
         if (!control || !is_current_layout_child(control)) continue;
-        const bool shown = selected_ == item && !page.empty();
+        const bool shown = selected_ == stxlib::Optional<std::size_t>::of(item) && !page.empty();
         set_child_layout_collapsed(control, !shown);
         if (shown) set_child_layout(control, page);
     }
@@ -224,11 +224,12 @@ AnatomyStateSet BackstageView::item_states(std::size_t item) const {
     AnatomyStateSet states;
     const bool enabled = item_enabled(items_[item]);
     if (!enabled) states.insert(AnatomyState::disabled);
-    if (enabled && hot_ == item) states.insert(AnatomyState::hot);
-    if (pressed_ == item) states.insert(AnatomyState::pressed);
-    if (selected_ == item) states.insert(AnatomyState::selected);
+    const stxlib::Optional<std::size_t> index = stxlib::Optional<std::size_t>::of(item);
+    if (enabled && hot_ == index) states.insert(AnatomyState::hot);
+    if (pressed_ == index) states.insert(AnatomyState::pressed);
+    if (selected_ == index) states.insert(AnatomyState::selected);
     const Window* const host = attached_window();
-    if (focused_ && focus_item_ == item && host != nullptr && (*host).focus_cue_visible()) {
+    if (focused_ && focus_item_ == index && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
     }
     return states;
@@ -246,11 +247,11 @@ void BackstageView::on_paint(Painter& painter, Rect) {
     part.role = PartRole::face;
     part.family = ControlVisualRole::window;
     part.bounds = placed.page;
-    part.key = PartKey{"page", {}, {}};
+    part.key.set(PartKey{"page", {}, {}});
     paint_part(painter, *this, part);
     part.family = ControlVisualRole::card;
     part.bounds = placed.column;
-    part.key = PartKey{"column", {}, {}};
+    part.key.set(PartKey{"column", {}, {}});
     paint_part(painter, *this, part);
     for (std::size_t item = 0; item < items_.size(); ++item) {
         const ItemParts parts = item_parts(placed, item);
@@ -260,13 +261,13 @@ void BackstageView::on_paint(Painter& painter, Rect) {
         part.states = states;
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;
-        part.key = PartKey{"item_face", id, {}};
+        part.key.set(PartKey{"item_face", id, {}});
         paint_part(painter, *this, part);
         if (parts.item_icon.present) {
             part.role = PartRole::icon;
             part.bounds = parts.item_icon.bounds;
             part.image = items_[item].image;
-            part.key = PartKey{"item_icon", id, {}};
+            part.key.set(PartKey{"item_icon", id, {}});
             paint_part(painter, *this, part);
             part.image = {};
         }
@@ -274,12 +275,12 @@ void BackstageView::on_paint(Painter& painter, Rect) {
         part.role = PartRole::label;
         part.bounds = parts.item_label.bounds;
         part.text = lend_paint_text(label);
-        part.key = PartKey{"item_label", id, {}};
+        part.key.set(PartKey{"item_label", id, {}});
         paint_part(painter, *this, part);
         part.text = {};
         part.role = PartRole::focus;
         part.bounds = parts.item_focus.bounds;
-        part.key = PartKey{"item_focus", id, {}};
+        part.key.set(PartKey{"item_focus", id, {}});
         paint_part(painter, *this, part);
     }
     part.key.reset();
@@ -287,20 +288,20 @@ void BackstageView::on_paint(Painter& painter, Rect) {
 
 // -- input ---------------------------------------------------------------------
 
-std::optional<std::size_t> BackstageView::item_at(Point local) const {
+stxlib::Optional<std::size_t> BackstageView::item_at(Point local) const {
     const Geometry placed = geometry();
-    if (!placed.column.contains(local)) return std::nullopt;
+    if (!placed.column.contains(local)) return stxlib::Optional<std::size_t>::none();
     for (std::size_t item = 0; item < placed.items.size(); ++item) {
-        if (placed.items[item].contains(local)) return item;
+        if (placed.items[item].contains(local)) return stxlib::Optional<std::size_t>::of(item);
     }
-    return std::nullopt;
+    return stxlib::Optional<std::size_t>::none();
 }
 
 // The hot item follows the pointer's moves (the move that enters the view
 // sets it) and clears on leaving.
 void BackstageView::on_mouse_move(MouseEventArgs& arguments) {
     if (eligible_for_input()) {
-        const std::optional<std::size_t> hit = item_at(arguments.location);
+        const stxlib::Optional<std::size_t> hit = item_at(arguments.location);
         if (hot_ != hit) {
             hot_ = hit;
             invalidate(Dirty::paint);
@@ -310,7 +311,7 @@ void BackstageView::on_mouse_move(MouseEventArgs& arguments) {
 }
 
 void BackstageView::on_mouse_leave() {
-    if (eligible_for_input() && hot_) {
+    if (eligible_for_input() && hot_.present()) {
         hot_.reset();
         invalidate(Dirty::paint);
     }
@@ -319,9 +320,9 @@ void BackstageView::on_mouse_leave() {
 
 void BackstageView::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
-        const std::optional<std::size_t> hit = item_at(arguments.location);
-        pressed_ = hit && item_enabled(items_[*hit]) ? hit : std::nullopt;
-        arguments.handled = hit.has_value();
+        const stxlib::Optional<std::size_t> hit = item_at(arguments.location);
+        pressed_ = hit.present() && item_enabled(items_[*hit.value()]) ? hit : stxlib::Optional<std::size_t>::none();
+        arguments.handled = hit.present();
         invalidate(Dirty::paint);
     }
     Control::on_mouse_down(arguments);
@@ -329,14 +330,14 @@ void BackstageView::on_mouse_down(MouseEventArgs& arguments) {
 
 void BackstageView::on_mouse_up(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
-        const std::optional<std::size_t> hit = item_at(arguments.location);
-        const std::optional<std::size_t> pressed = pressed_;
+        const stxlib::Optional<std::size_t> hit = item_at(arguments.location);
+        const stxlib::Optional<std::size_t> pressed = pressed_;
         pressed_.reset();
         invalidate(Dirty::paint);
         // A click is a press and release on the same item.
-        if (pressed && hit == pressed) {
+        if (pressed.present() && hit == pressed) {
             arguments.handled = true;
-            activate_item(*pressed);
+            activate_item(*pressed.value());
         }
     }
     Control::on_mouse_up(arguments);
@@ -346,19 +347,19 @@ void BackstageView::on_mouse_up(MouseEventArgs& arguments) {
 // one; with none focused, to the first (or last) enabled item. It stops at
 // the column's ends.
 void BackstageView::move_focus(bool forward) {
-    std::optional<std::size_t> found{};
+    stxlib::Optional<std::size_t> found{};
     if (forward) {
-        const std::size_t start = focus_item_ ? *focus_item_ + 1U : 0U;
-        for (std::size_t item = start; item < items_.size() && !found; ++item) {
-            if (item_enabled(items_[item])) found = item;
+        const std::size_t start = focus_item_.present() ? *focus_item_.value() + 1U : 0U;
+        for (std::size_t item = start; item < items_.size() && found.absent(); ++item) {
+            if (item_enabled(items_[item])) found.set(item);
         }
     } else {
-        const std::size_t end = focus_item_ ? *focus_item_ : items_.size();
-        for (std::size_t item = end; item > 0U && !found; --item) {
-            if (item_enabled(items_[item - 1U])) found = item - 1U;
+        const std::size_t end = focus_item_.present() ? *focus_item_.value() : items_.size();
+        for (std::size_t item = end; item > 0U && found.absent(); --item) {
+            if (item_enabled(items_[item - 1U])) found.set(item - 1U);
         }
     }
-    if (!found) return;
+    if (found.absent()) return;
     focus_item_ = found;
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -380,8 +381,8 @@ void BackstageView::on_key_down(KeyEventArgs& arguments) {
     } else if (key == PhysicalKey::end) {
         focus_item_.reset();
         move_focus(false);
-    } else if ((key == PhysicalKey::enter || key == PhysicalKey::space) && focus_item_) {
-        activate_item(*focus_item_);
+    } else if ((key == PhysicalKey::enter || key == PhysicalKey::space) && focus_item_.present()) {
+        activate_item(*focus_item_.value());
     } else if (key == PhysicalKey::escape) {
         close_requested_.emit();
     } else {
@@ -392,8 +393,8 @@ void BackstageView::on_key_down(KeyEventArgs& arguments) {
 
 void BackstageView::on_focus_changed(bool focused) {
     focused_ = focused;
-    if (focused && !focus_item_) focus_item_ = selected_;
-    if (focused && !focus_item_ && !items_.empty()) focus_item_ = 0U;
+    if (focused && focus_item_.absent()) focus_item_ = selected_;
+    if (focused && focus_item_.absent() && !items_.empty()) focus_item_.set(0U);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -442,14 +443,14 @@ std::vector<SemanticNode> BackstageView::semantic_virtual_children() const {
         node.name = item_text(spec);
         node.access_key = mnemonic_access_key(authored_text(spec));
         if (spec.command) node.description = (*spec.command).state().description;
-        node.position_in_set = item + 1U;
-        node.set_size = items_.size();
+        node.position_in_set.set(item + 1U);
+        node.set_size.set(items_.size());
         const Rect bounds = placed.items[item];
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable;
         if (item_enabled(spec)) node.states |= SemanticState::enabled;
-        if (selected_ == item) node.states |= SemanticState::selected;
-        if (focused_ && focus_item_ == item) node.states |= SemanticState::focused;
+        if (selected_ == stxlib::Optional<std::size_t>::of(item)) node.states |= SemanticState::selected;
+        if (focused_ && focus_item_ == stxlib::Optional<std::size_t>::of(item)) node.states |= SemanticState::focused;
         node.actions = {spec.kind == BackstageItemKind::topic ? SemanticAction::select : SemanticAction::press};
         nodes.push_back(std::move(node));
     }
@@ -475,24 +476,24 @@ bool BackstageView::on_semantic_child_action(std::string_view id, SemanticAction
 namespace {
 
 constexpr std::array<PartField<BackstageView::Parts>, 4> backstage_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::region},
-    {.declaration = {.name = "column", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "column", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::column},
-    {.declaration = {.name = "page", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "page", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::page},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &BackstageView::Parts::focus},
 }};
 
 constexpr std::array<PartField<BackstageView::ItemParts>, 4> backstage_item_part_fields{{
-    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "item_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_face},
-    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}},
+    {.declaration = {.name = "item_icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_icon},
-    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "item_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_label},
-    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "item_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &BackstageView::ItemParts::item_focus},
 }};
 
@@ -557,7 +558,7 @@ std::size_t BackstageView::realized_item_count() const {
 }
 
 std::string BackstageView::realized_item_stable_id(std::size_t item) const {
-    if (item >= items_.size()) return {};
+    if (item >= items_.size()) throw std::out_of_range("BackstageView realized item is past the items");
     return node_id(stable_id().value(), items_[item].stable_id);
 }
 
@@ -572,7 +573,7 @@ void BackstageView::publish_realized_item_geometry(std::size_t item, std::span<P
 }
 
 AnatomyStateSet BackstageView::realized_item_anatomy_states(std::size_t item) const {
-    if (item >= items_.size()) return AnatomyStateSet{};
+    if (item >= items_.size()) throw std::out_of_range("BackstageView realized item is past the items");
     return item_states(item);
 }
 

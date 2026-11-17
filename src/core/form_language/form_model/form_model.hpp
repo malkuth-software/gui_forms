@@ -1,19 +1,23 @@
 #pragma once
 
 // A form document's model (stage FD, phase FD2): the objects, properties
-// and bindings a parsed `.form` document describes, checked against a form
-// schema before anything is built. Internal until stage D
-// (owner decision FD-6).
+// and bindings a read `.form` document (XML, form_xml.hpp) describes,
+// checked against a form schema before anything is built. Internal until
+// stage D (owner decision FD-6).
 //
 // Spelling: a document writes the registry's names in kebab-case
-// (`check-box`, `tab-index`); the schema holds them as registered
-// (`check_box`, `tab_index`). A written name holding '_' names nothing.
+// (`check-box`, `tab-index`): an object's element is its type, an attribute
+// its property. The schema holds them as registered (`check_box`,
+// `tab_index`). A written name holding '_' names nothing.
 //
-// Values, by the property's kind:
+// Values are attribute values, decoded by XML. By the property's kind:
 // - boolean: `true` or `false`;
 // - signed and unsigned integers: one integer number;
 // - number: one number;
-// - text: one string (see Strings below);
+// - text: the whole attribute value, as XML decodes it (a line feed is
+//   `&#10;`: XML turns a literal one into a space). A text that begins
+//   with `bind(` would be a binding: it is written with one more leading
+//   backslash (`\bind(x)`), which the reader removes;
 // - point and size: two numbers (x y, width height);
 // - rectangle: four numbers (x y width height);
 // - insets: one, two or four numbers in CSS order (all; vertical and
@@ -24,12 +28,18 @@
 // - font (owner decision FD6-3): `<role> <size> <weight> [italic]
 //   [spacing <n>]`, the role control, content or monospace, a positive
 //   size, a weight from 1 to 1000, a letter spacing in logical pixels
-//   (`font: control 12 700 italic;`, `font: control 12 700 spacing 0.24;`);
-// - collection (owner decision FD6-4): one or more strings, for a property
-//   whose default is a text collection (`items: "AM" "FM";`);
+//   (`font="control 12 700 italic"`, `font="control 12 700 spacing 0.24"`);
+// - collection (owner decision FD6-4): items separated by whitespace, for
+//   a property whose default is a text collection (`items="AM FM"`); an
+//   item that holds whitespace or begins with a quote is a string (see
+//   Strings below): `items="AM 'Wide FM'"`;
 // - image, object and other collections: not yet expressible (E999).
+// The other kinds' words and numbers are separated by whitespace, as
+// before: `bounds="16 16 300 28"`, `anchor="top right"`.
 //
-// Strings: a string is written between double or single quotes on one line.
+// Strings (a collection's quoted items, a binding's field): a string is
+// written between double or single quotes on one line (single quotes in a
+// double-quoted attribute).
 // A backslash begins an escape, and these are the only ones:
 // - `\n` a line feed, `\r` a carriage return, `\t` a tab;
 // - `\"`, `\'` and `\\` the quote or the backslash itself;
@@ -42,7 +52,7 @@
 // Bindings (owner rulings FD-6 R1 and R2, 2026-11-07): a bindable
 // property may be bound in its own slot instead of set:
 //
-//   `<property>: bind(<source>[, "<field>"][, <option>]...);`
+//   `<property>="bind(<source>[, '<field>'][, <option>]...)"`
 //
 // - `<source>` is one C++ identifier: the owner's member the generated code
 //   reads (`owner.<source>`), or the name a run-time load's FormSources
@@ -67,22 +77,26 @@
 // admitted E818.
 //
 // A form never names program code (owner ruling FD-6 R6): an
-// `on-<interaction>:` declaration is refused (E816); behaviour is attached
-// from program logic.
+// `on-<interaction>` attribute is refused (E816); behaviour is attached
+// from program logic. An element named `style` is refused (E810): the look
+// belongs to the theme, reached by `classes`.
 //
 // Spans (study 10.9): directly inside an object whose type holds spans
-// (FormSchemaType::holds_spans), `span [name] { anchor: <row> <column>;
-// rows: <n>; columns: <n>; }` declares one region of its grid. The reserved
-// type `span` is no object: its name is the span's, in the container's
-// namespace and not a stable ID, and it may be omitted (an anonymous span,
-// placed into by its anchor). `rows` and `columns` default to 1; `anchor`
-// is required. The children write `area: "<name>"` or `cell: <row>
-// <column>`, the child properties such a type provides.
+// (FormSchemaType::holds_spans), `<span name="<name>" anchor="<row>
+// <column>" rows="<n>" columns="<n>"/>` declares one region of its grid.
+// The reserved element `span` is no object: its name is the span's, in the
+// container's namespace and not a stable ID, and it may be omitted (an
+// anonymous span, placed into by its anchor). `rows` and `columns` default
+// to 1; `anchor` is required. The children write `area="<name>"` or
+// `cell="<row> <column>"`, the child properties such a type provides.
+//
+// The root declares the vocabulary, `xmlns="urn:gui-forms:form:1"`
+// (form_namespace); a missing or other namespace, or any other `xmlns`
+// attribute, is E821. Every object has an `id`; one without is E801.
 
+#include "../form_xml/form_xml.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../theme_language/source_text/theme_source_text.hpp"
-#include "../../theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/binding/form_binding/form_binding.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
@@ -92,6 +106,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/layout/grid_span/grid_span.hpp"
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -101,6 +116,11 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+namespace gui_forms {
+// A composite control's compiled definition (control_language).
+class CompositeDefinition;
+} // namespace gui_forms
 
 namespace gui_forms::form_language {
 
@@ -116,6 +136,27 @@ using FormSpanDefiner = GridSpanOutcome (*)(Component& owner, const GridSpan& sp
 // bind(Command&)), for the loader: a named function per type, made from
 // the template below.
 using FormCommandBinder = void (*)(Component& owner, Command& command);
+
+// Makes a composite control from a definition loaded at run time (cp34):
+// one function for every such type, the definition its context.
+using FormCompositeCreator = Component::Ptr (*)(const std::shared_ptr<const CompositeDefinition>& definition,
+                                                StableId stable_id);
+
+// The control a document's child objects go into, for a type whose
+// children go into a slot (FormChildPlacement::slot); null when the object
+// has none.
+using FormSlotFinder = Control::Ptr (*)(Control& owner);
+
+// Where a document's child objects of an object go (cp34).
+enum class FormChildPlacement : std::uint8_t {
+    // Into the object itself (every control type but a composite's).
+    self,
+    // Into the control the type's find_slot gives: a composite control's
+    // slot, in document order.
+    slot,
+    // Nowhere: a composite without a slot refuses children (E809).
+    refused,
+};
 
 // The name of the slot a document binds a type's Command in (Bindings).
 inline constexpr std::string_view form_command_slot_name = "command";
@@ -154,6 +195,15 @@ struct FormSchemaType final {
     // How the loader makes one; none for a type a document may describe
     // but the loader cannot make.
     FormObjectCreator create{};
+    // A composite type loaded at run time (cp34) is made from its
+    // definition instead: by create_composite, when both are set.
+    std::shared_ptr<const CompositeDefinition> composite{};
+    FormCompositeCreator create_composite{};
+    // Where a document's children of an object of the type go, and, for
+    // a slot, how the loader and the generated code find it (the
+    // generator writes `slot()`).
+    FormChildPlacement child_placement{FormChildPlacement::self};
+    FormSlotFinder find_slot{};
     // For the generator (FD5): the C++ class, qualified from the global
     // namespace without a leading `::` (`gui_forms::CheckBox`, or an
     // application's `my_app::NoteCard`), and the header that declares it
@@ -215,6 +265,22 @@ inline constexpr bool form_takes_command = requires(ControlType& control, Comman
     control.bind(command);
 };
 
+// The slot finder of a type with a slot (a composite control's class).
+template <typename ControlType>
+[[nodiscard]] Control::Ptr find_form_slot(Control& owner) {
+    ControlType& control = static_cast<ControlType&>(owner);
+    Control::Ptr found = control.slot();
+    return found;
+}
+
+// Whether objects of a type have a slot a document's children go into:
+// they have `Control::Ptr slot() const` (a composite control's class,
+// generated or not). Whether one object has one is its own answer.
+template <typename ControlType>
+inline constexpr bool form_has_slot = requires(const ControlType& control) {
+    requires std::convertible_to<decltype(control.slot()), Control::Ptr>;
+};
+
 // Lists the `command` slot of a type that takes a Command, unless the type
 // already describes a property of that name.
 void add_form_command_slot(FormSchemaType& type);
@@ -235,6 +301,13 @@ template <typename ControlType>
     if constexpr (form_takes_command<ControlType>) {
         type.bind_command = &bind_form_command<ControlType>;
         add_form_command_slot(type);
+    }
+    // A composite's children go into its slot, or are refused without
+    // one; every object of the class has the same definition.
+    if constexpr (form_has_slot<ControlType>) {
+        const bool slotted = (*prototype).slot() != nullptr;
+        type.child_placement = slotted ? FormChildPlacement::slot : FormChildPlacement::refused;
+        type.find_slot = &find_form_slot<ControlType>;
     }
     return type;
 }
@@ -281,7 +354,10 @@ struct FormObject final {
     std::optional<ObjectIndex> parent{};
     // In document order, which is child order (owner decision FD-2).
     std::vector<ObjectIndex> children{};
-    theme_language::NodeIndex node{};
+    // Its element's position in FormSyntax::locations (document order of
+    // the start tags), and where its start tag begins.
+    std::uint32_t element{};
+    theme_language::SourcePosition position{};
 };
 
 // Which type declares a written property.
@@ -310,7 +386,10 @@ struct FormProperty final {
     FormPropertyProvider provider{FormPropertyProvider::object_type};
     // The property's position in its provider's list (see provider).
     std::size_t schema_property{};
-    theme_language::NodeIndex node{};
+    // Its attribute: the position in its object's element's attributes
+    // (FormSyntax::locations), and where its name begins.
+    std::uint32_t attribute{};
+    theme_language::SourcePosition position{};
     // Of the property's kind, normalized by its descriptor; empty when the
     // property is bound.
     BindingValue value{};
@@ -322,7 +401,10 @@ struct FormProperty final {
 struct FormSpan final {
     ObjectIndex owner{};
     GridSpan span{};
-    theme_language::NodeIndex node{};
+    // Its `span` element's position in FormSyntax::locations, and where its
+    // start tag begins.
+    std::uint32_t element{};
+    theme_language::SourcePosition position{};
 };
 
 // Caller-owned: replaced whole by a build that succeeds, left as it was by
@@ -368,15 +450,19 @@ struct FormStringReading final {
 [[nodiscard]] const PropertyDescriptor& form_property_descriptor(const FormSchema& schema, const FormModel& model,
                                                                  const FormProperty& property);
 
-// Builds the model of the document `tree` describes. `tree` must be a
-// complete parse of `source` as ThemeSheetForm::form_document, from
-// `tokens` and `lines`; all of them and `schema` are borrowed for the call.
+// Builds the model of the document `syntax` holds, which read_form_syntax
+// read from `source`; both and `schema` are borrowed for the call.
 // Diagnostics are appended to `diagnostics`, with the object's stable ID as
 // their rule and the property as their property.
-[[nodiscard]] FormModelOutcome build_form_model(const theme_language::ThemeSource& source,
-                                                const theme_language::ThemeTokenBuffer& tokens,
-                                                const theme_language::LineStartTable& lines,
-                                                const theme_language::ThemeSyntaxTree& tree, const FormSchema& schema,
-                                                FormModel& model, theme_language::ThemeDiagnosticList& diagnostics);
+[[nodiscard]] FormModelOutcome build_form_model(const theme_language::ThemeSource& source, const FormSyntax& syntax,
+                                                const FormSchema& schema, FormModel& model,
+                                                theme_language::ThemeDiagnosticList& diagnostics);
+
+// read_form_syntax, then build_form_model: the model of the document
+// `source` holds, read into `syntax` (caller-owned, reused). refused when
+// either refuses.
+[[nodiscard]] FormModelOutcome read_form_model(const theme_language::ThemeSource& source, FormSyntax& syntax,
+                                               const FormSchema& schema, FormModel& model,
+                                               theme_language::ThemeDiagnosticList& diagnostics);
 
 } // namespace gui_forms::form_language

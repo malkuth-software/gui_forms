@@ -1,10 +1,18 @@
 #!/bin/sh
-# Moved to template_harness: harness/install_linux_ci_packages.sh, whose
-# package sets are the [linux_packages.*] tables of projects/gui_forms.toml
-# (harness.lock pins the commit). A forwarding shim, kept so the commands
-# that name this path (File Manager's among them) keep working; it fails
-# clearly when the harness is not beside this checkout
-# (docs/building/template-harness.md).
+# Installs a CI profile's Ubuntu packages through template_harness:
+# harness/install_linux_ci_packages.sh, whose package sets are the
+# [linux_packages.*] tables of projects/gui_forms.toml (harness.lock pins the
+# commit). It fails clearly when the harness is not beside this checkout
+# (docs/building/template-harness.md). Every GUI.Forms Linux job calls this
+# script, as do the commands that name this path (File Manager's among them).
+#
+# Then LLVM's libc++ 22, libc++abi and libunwind, which every Linux build
+# compiles against and links statically (cmake/llvm22.cmake: their .a
+# archives; owner decisions, 2026-11-15), from the
+# apt.llvm.org repository the harness script has just added. They are here
+# rather than in the harness's package tables until the next harness.lock
+# bump moves them there. Like the harness's other apt.llvm.org packages
+# they are fetched each run, not kept in the archive cache.
 #
 #   sh tools/install_linux_ci_packages.sh <profile> <archive-directory>
 set -eu
@@ -20,4 +28,5 @@ fi
 HARNESS_PROJECT=${HARNESS_PROJECT:-$harness/projects/gui_forms.toml}
 HARNESS_WORKSPACE=${HARNESS_WORKSPACE:-$workspace}
 export HARNESS_PROJECT HARNESS_WORKSPACE
-exec sh "$harness/harness/install_linux_ci_packages.sh" "$@"
+sh "$harness/harness/install_linux_ci_packages.sh" "$@"
+sudo apt-get install -y --no-install-recommends libc++-22-dev libc++abi-22-dev libunwind-22-dev

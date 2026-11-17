@@ -7,9 +7,16 @@
 #include "dock_site_children.hpp"
 #include "../../drag_gesture/drag_gesture.hpp"
 
+#include "gui_forms/controls/dock_site_effects.hpp"
 #include "gui_forms/delegate.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/window.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
+#include <stxlib/optional.hpp>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -27,6 +34,12 @@ constexpr double tear_off_distance = 16.0;
 constexpr double cue_side = 14.0;
 constexpr double cue_offset_x = 14.0;
 constexpr double cue_offset_y = 16.0;
+
+// Whether two drags move the same panel or stack.
+bool same_subject(const DockSubject& left, const DockSubject& right) noexcept {
+    const bool same = left.kind == right.kind && left.panel == right.panel && left.stack == right.stack;
+    return same;
+}
 
 DockShapeRegion region_of(DockDropZone zone) noexcept {
     switch (zone) {
@@ -115,10 +128,10 @@ std::span<const DockDropPane> DockSite::drag_panes() const noexcept {
 }
 
 std::optional<DockDropTarget> DockSite::drag_target() const {
-    if (drag_.phase != DockDragPhase::dragging || !drag_.target || *drag_.target >= drag_.targets.size()) {
+    if (drag_.phase != DockDragPhase::dragging || drag_.target.absent() || (*drag_.target.value()) >= drag_.targets.size()) {
         return std::nullopt;
     }
-    const DockDropTarget target = drag_.targets[*drag_.target];
+    const DockDropTarget target = drag_.targets[(*drag_.target.value())];
     return target;
 }
 
@@ -127,13 +140,33 @@ Rect DockSite::drag_stamp() const noexcept {
     return drag_.stamp;
 }
 
+// The drag of this site ends without an edit: the guest showing it (of a
+// drag or a window move) stops, the capture goes when asked, the layer hides
+// and the session clears (A-gf-controls-04-F2).
+void DockSite::abandon_drag(bool release_capture) noexcept {
+    DockSite* const guest = drag_.guest ? nullptr : remote_guest();
+    drag_.remote.reset();
+    if (guest != nullptr) (*guest).leave_guest_drag();
+    leave_window_move_guest();
+    const bool dragging = drag_.phase != DockDragPhase::idle;
+    // Reset first: the capture change below then finds no drag to end.
+    reset_drag();
+    if (!dragging) return;
+    try {
+        if (release_capture && has_pointer_capture()) set_pointer_capture(false);
+        if (drag_layer_) (*drag_layer_).visible = false;
+        if (is_alive()) invalidate(Dirty::paint | Dirty::semantics);
+    } catch (...) {
+    }
+}
+
 void DockSite::reset_drag() noexcept {
-    if (drag_.picture && !drag_.guest) {
+    if (drag_.picture.present() && !drag_.guest) {
         Window* const host = attached_window();
         // A release that fails (allocation while marking the repaint) leaves
         // the image to the window's end.
         try {
-            if (host != nullptr) static_cast<void>((*host).release_control_snapshot((*drag_.picture).image));
+            if (host != nullptr) static_cast<void>((*host).release_control_snapshot((*drag_.picture.value()).image));
         } catch (...) {
         }
     }
@@ -333,18 +366,18 @@ void DockSite::plan_drag_targets() {
     plan_dock_drop_targets((*workspace_).layout(), drag_.subject, own, site_surface(*this), drag_.panes,
                            drag_.targets, edges);
     if (drag_.keyboard) {
-        std::optional<std::size_t> kept{};
+        stxlib::Optional<std::size_t> kept{};
         for (std::size_t index = 0; index < drag_.targets.size() && previous; ++index) {
             const DockDropTarget& target = drag_.targets[index];
             if (target.kind == (*previous).kind && target.pane == (*previous).pane && target.zone == (*previous).zone) {
-                kept = index;
+                kept.set(index);
             }
         }
-        if (!kept && !drag_.targets.empty()) kept = 0U;
-        std::optional<std::size_t> pane{};
-        if (kept && drag_.targets[*kept].kind == DockDropTargetKind::pane) {
+        if (kept.absent() && !drag_.targets.empty()) kept.set(0U);
+        stxlib::Optional<std::size_t> pane{};
+        if (kept.present() && drag_.targets[(*kept.value())].kind == DockDropTargetKind::pane) {
             for (std::size_t index = 0; index < drag_.panes.size(); ++index) {
-                if (drag_.panes[index].node == drag_.targets[*kept].pane) pane = index;
+                if (drag_.panes[index].node == drag_.targets[(*kept.value())].pane) pane.set(index);
             }
         }
         select_drag_target(kept, pane);
@@ -380,32 +413,32 @@ void DockSite::update_drag_pointer(Point local, Modifier modifiers) {
     const DockDropEdges edges = floating() ? DockDropEdges::none : DockDropEdges::global;
     const DockDropHit hit = hit_dock_drop(local, site_surface(*this), drag_.panes, effective_text_scale(), edges);
     drag_.over_site = hit.over_site;
-    std::optional<std::size_t> target{};
-    std::optional<std::size_t> pane{};
+    stxlib::Optional<std::size_t> target{};
+    stxlib::Optional<std::size_t> pane{};
     if (!drag_.suppressed) {
         target = find_dock_drop_target(drag_.targets, drag_.panes, hit);
-        pane = hit.edge ? std::nullopt : hit.pane;
+        pane = hit.edge ? stxlib::Optional<std::size_t>::none() : hit.pane;
     }
     // Across windows the topmost site under the desktop pointer shows the
     // targets; this one shows none while that is another (phase D4).
-    std::optional<Point> desktop{};
+    stxlib::Optional<Point> desktop{};
     if (!drag_.guest && workspace_ != nullptr && (*workspace_).windows_attached()) desktop = to_desktop(local);
     DockSite* under = this;
-    if (desktop) under = remote_site(*desktop, nullptr);
+    if (desktop.present()) under = remote_site((*desktop.value()), nullptr);
     if (under != this) {
         target.reset();
         pane.reset();
         drag_.over_site = false;
     }
     select_drag_target(target, pane);
-    if (desktop) route_drag(*desktop, modifiers, nullptr);
+    if (desktop.present()) route_drag((*desktop.value()), modifiers, nullptr);
     if (drag_layer_) {
         (*drag_layer_).invalidate(before);
         (*drag_layer_).invalidate(drag_paint_extent());
     }
 }
 
-void DockSite::select_drag_target(std::optional<std::size_t> target, std::optional<std::size_t> hovered_pane) {
+void DockSite::select_drag_target(stxlib::Optional<std::size_t> target, stxlib::Optional<std::size_t> hovered_pane) {
     const bool pane_changed = drag_.hovered_pane != hovered_pane;
     const bool target_changed = drag_.target != target;
     drag_.target = target;
@@ -413,7 +446,7 @@ void DockSite::select_drag_target(std::optional<std::size_t> target, std::option
         drag_.hovered_pane = hovered_pane;
         // A newly hovered pane's cross fades in (at once under reduced
         // motion or in an occluded window).
-        if (hovered_pane) {
+        if (hovered_pane.present()) {
             tile_fade_.jump_to(0.0);
             static_cast<void>(tile_fade_.animate_to(1.0));
         } else {
@@ -449,8 +482,8 @@ Rect DockSite::drag_paint_extent() const {
     Rect extent = drag_.stamp;
     const std::optional<DockDropTarget> target = drag_target();
     if (target) extent = Rect::united(extent, (*target).highlight);
-    if (drag_.hovered_pane && *drag_.hovered_pane < drag_.panes.size()) {
-        extent = Rect::united(extent, drag_.panes[*drag_.hovered_pane].bounds);
+    if (drag_.hovered_pane.present() && (*drag_.hovered_pane.value()) < drag_.panes.size()) {
+        extent = Rect::united(extent, drag_.panes[(*drag_.hovered_pane.value())].bounds);
     }
     const Rect cue = drop_cue_bounds();
     if (!cue.empty()) extent = Rect::united(extent, cue);
@@ -497,7 +530,7 @@ void DockSite::end_drag(DockDragEnd end) {
     }
     // Released where nothing accepts: it floats at the pointer when it may
     // (D4-1).
-    std::optional<Rect> float_frame{};
+    stxlib::Optional<Rect> float_frame{};
     if (ending == DockDragEnd::rejected && end == DockDragEnd::dropped && drag_.may_float) {
         float_frame = float_frame_at(drag_.pointer);
     }
@@ -526,8 +559,8 @@ void DockSite::end_drag(DockDragEnd end) {
         transaction.edits.push_back((*target).edit);
         result = (*workspace_).apply(transaction);
         if (!result.applied) ending = DockDragEnd::rejected;
-    } else if (float_frame) {
-        result = (*workspace_).float_subject(subject, *float_frame);
+    } else if (float_frame.present()) {
+        result = (*workspace_).float_subject(subject, (*float_frame.value()));
         if (result.applied) ending = DockDragEnd::floated;
     }
     if (!is_alive()) return;
@@ -561,7 +594,7 @@ void DockSite::end_drag(DockDragEnd end) {
     if (ending == DockDragEnd::dropped) {
         outcome = DockDragOutcome::dropped(subject, *target, result, across_windows);
     } else if (ending == DockDragEnd::floated) {
-        outcome = DockDragOutcome::floated(subject, result, *float_frame);
+        outcome = DockDragOutcome::floated(subject, result, (*float_frame.value()));
     }
     drag_ended_.emit(outcome);
 }
@@ -686,7 +719,7 @@ std::size_t DockSite::tile_count() const noexcept {
     if (drag_.phase != DockDragPhase::dragging) return 0U;
     // A floating site has no window-edge targets.
     std::size_t count = floating() ? 0U : edge_order.size();
-    if (drag_.hovered_pane && *drag_.hovered_pane < drag_.panes.size()) count += dock_drop_zone_count;
+    if (drag_.hovered_pane.present() && (*drag_.hovered_pane.value()) < drag_.panes.size()) count += dock_drop_zone_count;
     return count;
 }
 
@@ -702,10 +735,10 @@ DockSite::TileSlot DockSite::tile_at(std::size_t tile) const {
     TileSlot slot{};
     const double scale = effective_text_scale();
     std::size_t index = tile;
-    const bool cross = drag_.hovered_pane && *drag_.hovered_pane < drag_.panes.size();
+    const bool cross = drag_.hovered_pane.present() && (*drag_.hovered_pane.value()) < drag_.panes.size();
     const std::optional<DockDropTarget> chosen = drag_target();
     if (cross && index < dock_drop_zone_count) {
-        const DockDropPane& pane = drag_.panes[*drag_.hovered_pane];
+        const DockDropPane& pane = drag_.panes[(*drag_.hovered_pane.value())];
         slot.kind = DockDropTargetKind::pane;
         slot.pane = pane.node;
         slot.zone = cross_order[index];
@@ -762,7 +795,7 @@ Rect DockSite::drag_label_bounds() const noexcept {
 Rect DockSite::drop_cue_bounds() const noexcept {
     // Shown only where a release snaps back: a subject that may float floats
     // there instead (D4-1).
-    if (drag_.phase != DockDragPhase::dragging || drag_.keyboard || !drag_.over_site || drag_.target ||
+    if (drag_.phase != DockDragPhase::dragging || drag_.keyboard || !drag_.over_site || drag_.target.present() ||
         drag_.may_float) {
         return {};
     }
@@ -787,10 +820,12 @@ void DockSite::paint_drag_layer(Painter& painter) {
         part.states.insert(AnatomyState::drop_accepted);
         // The translucent blue tint with its edge (T3-1) is the theme's;
         // today's accent ramp gives the tint.
-        part.accent = AccentIndex{0U};
+        part.accent.set(AccentIndex{0U});
         paint_part(painter, *this, part);
         part.accent.reset();
         part.states = {};
+        // The pulse over it (roadmap row 2.6), painted on the layer.
+        if (drag_layer_) (*drag_layer_).paint_drop_pulse(painter, (*target).highlight);
     }
     if (!drag_.stamp.empty() && !drag_.stamp_hidden) {
         part.family = ControlVisualRole::card;
@@ -812,11 +847,11 @@ void DockSite::paint_drag_layer(Painter& painter) {
         paint_part(painter, *this, part);
         part.text = {};
         part.bounds = drag_image_bounds();
-        if (drag_.picture) {
+        if (drag_.picture.present()) {
             // The panel's picture, scaled with the stamp: content, drawn as
             // given (the image role, T2 GIVEN H1-1).
             part.role = PartRole::image;
-            part.image = (*drag_.picture).image;
+            part.image = (*drag_.picture.value()).image;
             paint_part(painter, *this, part);
             part.image = {};
         } else {
@@ -840,13 +875,13 @@ void DockSite::paint_drag_layer(Painter& painter) {
         part.states = tile_states(tile);
         part.role = PartRole::actuator;
         part.bounds = tile.bounds;
-        part.key = PartKey{"tile", identity, {}};
+        part.key.set(PartKey{"tile", identity, {}});
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.mark = PartMark::dock_shape;
         part.dock_region = region_of(tile.zone);
         part.bounds = tile_glyph_bounds(tile.bounds);
-        part.key = PartKey{"tile_glyph", identity, {}};
+        part.key.set(PartKey{"tile_glyph", identity, {}});
         paint_part(painter, *this, part);
         part.key.reset();
         part.mark = PartMark::none;
@@ -969,24 +1004,24 @@ void DockSite::step_keyboard_target(int direction) {
         }
     }
     std::size_t current = 0U;
-    const std::optional<std::size_t> at = drag_.target;
-    for (std::size_t stop = 0; stop < stops.size() && at; ++stop) {
-        const DockDropTarget& held = drag_.targets[*at];
+    const stxlib::Optional<std::size_t> at = drag_.target;
+    for (std::size_t stop = 0; stop < stops.size() && at.present(); ++stop) {
+        const DockDropTarget& held = drag_.targets[(*at.value())];
         const DockDropTarget& candidate = drag_.targets[stops[stop]];
         const bool same_pane = held.kind == DockDropTargetKind::pane && candidate.kind == DockDropTargetKind::pane &&
                                held.pane == candidate.pane;
-        if (same_pane || stops[stop] == *at) current = stop;
+        if (same_pane || stops[stop] == (*at.value())) current = stop;
     }
     const std::size_t count = stops.size();
     const std::size_t next = direction >= 0 ? (current + 1U) % count : (current + count - 1U) % count;
     const std::size_t chosen = stops[next];
-    std::optional<std::size_t> pane{};
+    stxlib::Optional<std::size_t> pane{};
     if (drag_.targets[chosen].kind == DockDropTargetKind::pane) {
         for (std::size_t index = 0; index < drag_.panes.size(); ++index) {
-            if (drag_.panes[index].node == drag_.targets[chosen].pane) pane = index;
+            if (drag_.panes[index].node == drag_.targets[chosen].pane) pane.set(index);
         }
     }
-    select_drag_target(chosen, pane);
+    select_drag_target(stxlib::Optional<std::size_t>::of(chosen), pane);
 }
 
 // Within the current pane: Left and Right along left, centre, right; Up and
@@ -1014,7 +1049,7 @@ void DockSite::step_keyboard_zone(std::uint32_t key) {
             const DockDropTarget& target = drag_.targets[index];
             if (target.kind != DockDropTargetKind::pane || !(target.pane == (*current).pane)) continue;
             if (target.zone != wanted[choice]) continue;
-            select_drag_target(index, drag_.hovered_pane);
+            select_drag_target(stxlib::Optional<std::size_t>::of(index), drag_.hovered_pane);
             return;
         }
     }
@@ -1029,12 +1064,12 @@ std::uint64_t DockSite::now_nanoseconds() noexcept {
     return value;
 }
 
-std::optional<Point> DockSite::to_desktop(Point local) const {
-    if (workspace_ == nullptr) return std::nullopt;
-    const std::optional<Point> origin = (*workspace_).desktop_origin(*this);
-    if (!origin) return std::nullopt;
-    const Point desktop{(*origin).x + local.x, (*origin).y + local.y};
-    return desktop;
+stxlib::Optional<Point> DockSite::to_desktop(Point local) const {
+    if (workspace_ == nullptr) return stxlib::Optional<Point>::none();
+    const stxlib::Optional<Point> origin = (*workspace_).desktop_origin(*this);
+    if (origin.absent()) return stxlib::Optional<Point>::none();
+    const Point desktop{((*origin.value())).x + local.x, ((*origin.value())).y + local.y};
+    return stxlib::Optional<Point>::of(desktop);
 }
 
 DockSite* DockSite::remote_site(Point desktop, const DockSite* excluded) const {
@@ -1056,8 +1091,14 @@ void DockSite::show_guest_drag(const DragSession& source, const MotionValue* sou
                                Modifier modifiers) {
     if (workspace_ == nullptr || !drag_layer_ || !is_alive()) return;
     if (drag_.guest && drag_.phase == DockDragPhase::dragging) {
-        update_drag_pointer(local, modifiers);
-        return;
+        if (same_subject(drag_.subject, source.subject)) {
+            update_drag_pointer(local, modifiers);
+            return;
+        }
+        // A session left behind by an abandoned drag gives way to this one,
+        // so its drop never reads the stale subject's targets
+        // (A-gf-controls-04-F2).
+        leave_guest_drag();
     }
     if (drag_.phase != DockDragPhase::idle || window_move_.active) return;
     DragSession session{};
@@ -1115,23 +1156,23 @@ void DockSite::route_drag(Point desktop, Modifier modifiers, const DockSite* exc
         drag_.remote.reset();
         return;
     }
-    const std::optional<Point> origin = (*workspace_).desktop_origin(*under);
-    if (!origin) {
+    const stxlib::Optional<Point> origin = (*workspace_).desktop_origin(*under);
+    if (origin.absent()) {
         drag_.remote.reset();
         return;
     }
     drag_.remote = (*under).weak_from_this();
-    const Point local{desktop.x - (*origin).x, desktop.y - (*origin).y};
+    const Point local{desktop.x - ((*origin.value())).x, desktop.y - ((*origin.value())).y};
     (*under).show_guest_drag(drag_, &stamp_motion_, local, modifiers);
 }
 
-std::optional<Rect> DockSite::float_frame_at(Point local) const {
-    const std::optional<Point> desktop = to_desktop(local);
-    if (!desktop) return std::nullopt;
+stxlib::Optional<Rect> DockSite::float_frame_at(Point local) const {
+    const stxlib::Optional<Point> desktop = to_desktop(local);
+    if (desktop.absent()) return stxlib::Optional<Rect>::none();
     const double width = std::max(1.0, drag_.source.width);
     const double height = std::max(1.0, drag_.source.height);
-    const Rect frame{(*desktop).x - drag_.grab.x * width, (*desktop).y - drag_.grab.y * height, width, height};
-    return frame;
+    const Rect frame{((*desktop.value())).x - drag_.grab.x * width, ((*desktop.value())).y - drag_.grab.y * height, width, height};
+    return stxlib::Optional<Rect>::of(frame);
 }
 
 // -- moving a floating window by its caption (phase D4) ------------------------
@@ -1177,8 +1218,8 @@ void DockSite::continue_window_move(Modifier modifiers) {
         window_move_.remote.reset();
         return;
     }
-    const std::optional<Point> origin = (*workspace_).desktop_origin(*under);
-    if (!origin) return;
+    const stxlib::Optional<Point> origin = (*workspace_).desktop_origin(*under);
+    if (origin.absent()) return;
     DragSession source{};
     source.subject = window_move_.subject;
     source.source_stack = window_move_.subject.stack;
@@ -1187,7 +1228,7 @@ void DockSite::continue_window_move(Modifier modifiers) {
     source.grab = {0.5, 0.0};
     source.stamp_hidden = true;
     window_move_.remote = (*under).weak_from_this();
-    const Point local{pointer.position.x - (*origin).x, pointer.position.y - (*origin).y};
+    const Point local{pointer.position.x - ((*origin.value())).x, pointer.position.y - ((*origin.value())).y};
     (*under).show_guest_drag(source, nullptr, local, modifiers);
 }
 
@@ -1231,6 +1272,88 @@ void DockSite::end_window_move(bool cancelled) {
     DockDragOutcome outcome = DockDragOutcome::ended(DockDragEnd::rejected, subject);
     if (result.applied) outcome = DockDragOutcome::dropped(subject, *target, result, true);
     drag_ended_.emit(outcome);
+}
+
+// -- the drop-cue pulse ---------------------------------------------------------
+
+const EffectInstance* DockSite::drop_pulse_effect() const noexcept {
+    if (!drag_layer_) return nullptr;
+    const EffectInstance* const pulse = &(*drag_layer_).drop_pulse();
+    return pulse;
+}
+
+bool DockSite::drop_pulse_running() const noexcept {
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr || !drag_layer_) return false;
+    const bool enlisted = (*root).motion_clock().control_ambient(*drag_layer_);
+    return enlisted;
+}
+
+bool DockSite::DragLayer::pulse_moves() const noexcept {
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr || pulse_.entry() == nullptr) return false;
+    const PresentationSettings& settings = (*root).presentation_settings();
+    const bool moves = settings.ambient_motion && !settings.reduced_motion;
+    return moves;
+}
+
+void DockSite::DragLayer::paint_drop_pulse(Painter& painter, Rect highlight) {
+    if (highlight.empty()) return;
+    const EffectEntry* const entry = built_in_effect_registry().find(DropPulse::declaration.name);
+    if (entry == nullptr) return;
+    if (pulse_.entry() != entry) {
+        pulse_.attach(*entry, effect_default_seed(stable_id().value(), DropPulse::declaration.name),
+                      FrameClock::now());
+    }
+    pulse_paints_ = pulse_paints_ + 1U;
+    pulse_bounds_ = highlight;
+    SurfaceRoot* const root = attached_surface_root();
+    bool suppressed = true;
+    if (root != nullptr) {
+        MotionClock& clock = (*root).motion_clock();
+        suppressed = clock.ambient_suppressed();
+        if (!pulse_moves()) {
+            clock.withdraw_control_ambient(*this);
+        } else if (!clock.control_ambient(*this)) {
+            const FrameInterval interval = std::chrono::ceil<FrameInterval>(
+                std::chrono::duration<double>(1.0 / DropPulse::declaration.frames_per_second));
+            // Refused while ambient motion is suppressed (an occluded
+            // window): the pulse then stands still.
+            if (clock.enlist_control_ambient(*this, interval)) {
+                // The pulse starts: its time restarts, with no catch-up.
+                pulse_.rebase(clock.now());
+                pulse_paints_seen_ = ~std::uint64_t{0};
+            }
+        }
+    }
+    // The theme's accent edges the part and tints it.
+    const Color accent = effective_theme().basic_style().accent;
+    EffectColours colours{};
+    colours.primary = accent;
+    colours.secondary = accent;
+    pulse_.set_colours(colours);
+    const bool still = !pulse_moves() || suppressed;
+    const Window* const host = attached_window();
+    const double scale = host != nullptr ? (*host).scale() : 1.0;
+    const EffectView<DockSite> view{};
+    pulse_.paint(painter, highlight, scale, still, view);
+}
+
+bool DockSite::DragLayer::on_ambient_frame(FrameTime now) {
+    // Not painted since the last frame (the layer hidden, or no target
+    // shown), the target gone, or motion now reduced: the clock drops the
+    // pulse, and the next paint over a target enlists it again.
+    if (pulse_paints_ == pulse_paints_seen_ || site_ == nullptr) return false;
+    if (!(*site_).drag_target() || !pulse_moves()) return false;
+    pulse_paints_seen_ = pulse_paints_;
+    static_cast<void>(pulse_.advance(now));
+    invalidate(pulse_bounds_);
+    return true;
+}
+
+void DockSite::DragLayer::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    former_window.motion_clock().withdraw_control_ambient(*this);
+    Control::on_detaching_from_window(former_window);
 }
 
 } // namespace gui_forms

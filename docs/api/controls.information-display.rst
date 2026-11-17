@@ -39,6 +39,8 @@ Labels, images, progress and review cards.
      - Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.
    * - :cpp:class:`PlotView <gui_forms::PlotView>`
      - Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
+   * - :cpp:class:`Plot3DView <gui_forms::Plot3DView>`
+     - Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout.
    * - :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
      - Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.
    * - :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
@@ -77,6 +79,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.SweepScope
    generated/gui_forms.Sparkline
    generated/gui_forms.PlotView
+   generated/gui_forms.Plot3DView
    generated/gui_forms.PlotAxisItem
    generated/gui_forms.PlotSeriesItem
    generated/gui_forms.PlotAnnotationItem
@@ -256,7 +259,7 @@ Related types
    * - :cpp:class:`Label::Parts <gui_forms::Label::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
    * - :cpp:class:`LabelAlignmentCapability <gui_forms::LabelAlignmentCapability>`
-     - Horizontal placement of the text: near, center or far.
+     - Horizontal placement of the text: start, center or end.
    * - :cpp:class:`LabelCapabilities <gui_forms::LabelCapabilities>`
      - Every Label capability, in the order the declaring class takes them.
    * - :cpp:class:`LabelFontCapability <gui_forms::LabelFontCapability>`
@@ -274,7 +277,7 @@ Related types
    * - :cpp:class:`LabelUseMnemonicCapability <gui_forms::LabelUseMnemonicCapability>`
      - Whether an ampersand in the text marks the access key (UseMnemonic).
    * - :cpp:class:`LabelVerticalAlignmentCapability <gui_forms::LabelVerticalAlignmentCapability>`
-     - Vertical placement of the text: near, center or far.
+     - Vertical placement of the text: start, center or end.
    * - :cpp:class:`LinearGauge::Parts <gui_forms::LinearGauge::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`PictureBox::Parts <gui_forms::PictureBox::Parts>`
@@ -287,6 +290,22 @@ Related types
      - The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
    * - :cpp:class:`PictureBoxSizeModePropertyCapability <gui_forms::PictureBoxSizeModePropertyCapability>`
      - How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+   * - :cpp:class:`Plot3DView::Parts <gui_forms::Plot3DView::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`Plot3DView::States <gui_forms::Plot3DView::States>`
+     -  
+   * - :cpp:class:`Plot3DViewCapabilities <gui_forms::Plot3DViewCapabilities>`
+     - Every Plot3DView capability, in the order the declaring class takes them.
+   * - :cpp:class:`Plot3DViewLabelsAlongAxisCapability <gui_forms::Plot3DViewLabelsAlongAxisCapability>`
+     - Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+   * - :cpp:class:`Plot3DViewShowAxesCapability <gui_forms::Plot3DViewShowAxesCapability>`
+     - Whether the axis lines, ticks, tick labels and axis titles are drawn.
+   * - :cpp:class:`Plot3DViewShowGridCapability <gui_forms::Plot3DViewShowGridCapability>`
+     - Whether the grid is drawn on the back panes at the ticks.
+   * - :cpp:class:`Plot3DViewShowPanesCapability <gui_forms::Plot3DViewShowPanesCapability>`
+     - Whether the three back panes of the box are filled.
+   * - :cpp:class:`Plot3DViewWheelZoomCapability <gui_forms::Plot3DViewWheelZoomCapability>`
+     - Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
    * - :cpp:class:`PlotAnnotationItemCapabilities <gui_forms::PlotAnnotationItemCapabilities>`
      - Every PlotAnnotationItem capability, in the order the declaring class takes them.
    * - :cpp:class:`PlotAnnotationItemTextCapability <gui_forms::PlotAnnotationItemTextCapability>`
@@ -311,6 +330,20 @@ Related types
      - The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
    * - :cpp:class:`PlotAxisItemScaleCapability <gui_forms::PlotAxisItemScaleCapability>`
      - How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+   * - :cpp:class:`PlotCustomExtent <gui_forms::PlotCustomExtent>`
+     - The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
+   * - :cpp:class:`PlotCustomSeries <gui_forms::PlotCustomSeries>`
+     - A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks.
+   * - :cpp:class:`PlotHandle <gui_forms::PlotHandle>`
+     - One handle, in the data coordinates of the plot's first axes: ``x`` and ``y`` for a point, ``x`` for a vertical line and ``y`` for a horizontal one (the other is kept and ignored).
+   * - :cpp:class:`PlotHandleMove <gui_forms::PlotHandleMove>`
+     - A handle's position during or after a drag (PlotView::handle_moved and handle_committed): ``end`` is DragEnd::none while dragging, the commit's end (dropped or free) in handle_committed, and the end that restored the handle (escaped, capture_lost and the rest) in the last handle_moved, whose position is then the position before the drag.
+   * - :cpp:class:`PlotHeatmapSeries <gui_forms::PlotHeatmapSeries>`
+     - A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over ``domain`` (the finite values' extent unless set).
+   * - :cpp:class:`PlotHistogramSeries <gui_forms::PlotHistogramSeries>`
+     - A histogram (P2): ``samples`` counted into ``bins`` fixed bins over their finite extent (or a set range), drawn as bars in the series colour.
+   * - :cpp:class:`PlotPalette <gui_forms::PlotPalette>`
+     - The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots.
    * - :cpp:class:`PlotPointPick <gui_forms::PlotPointPick>`
      - A point the pointer or the keyboard cursor picked (PlotView::point_picked).
    * - :cpp:class:`PlotQuery <gui_forms::PlotQuery>`
@@ -389,6 +422,8 @@ Related types
      - Whether the ring shows activity without an amount: a turning arc instead of the value.
    * - :cpp:class:`ProgressRingMaximumCapability <gui_forms::ProgressRingMaximumCapability>`
      - The value of a full ring (100 by default).
+   * - :cpp:class:`ProgressRingStyleCapability <gui_forms::ProgressRingStyleCapability>`
+     - How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
    * - :cpp:class:`ProgressRingValueCapability <gui_forms::ProgressRingValueCapability>`
      - The progress, from 0 to maximum; a value outside that range is drawn clamped to it.
    * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
@@ -425,6 +460,10 @@ Related types
      - How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
    * - :cpp:class:`SparklineFillCapability <gui_forms::SparklineFillCapability>`
      - Whether the band under the line is shaded.
+   * - :cpp:class:`SparklineStyle <gui_forms::SparklineStyle>`
+     - The look of one sparkline drawn by paint_sparkline.
+   * - :cpp:class:`SparklineWorkspace <gui_forms::SparklineWorkspace>`
+     - The storage paint_sparkline reuses from paint to paint: one per drawn sparkline (a grid cell keeps one per column, reused across rows).
    * - :cpp:class:`Spinner::Parts <gui_forms::Spinner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SpinnerActiveCapability <gui_forms::SpinnerActiveCapability>`
@@ -684,11 +723,11 @@ Related types
 
       Whether the value is shown as text beside the scale.
 
-   .. cpp:member:: std::optional<double> low_alarm
+   .. cpp:member:: stxlib::Optional<double> low_alarm
 
       The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
-   .. cpp:member:: std::optional<double> high_alarm
+   .. cpp:member:: stxlib::Optional<double> high_alarm
 
       The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
@@ -720,9 +759,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(GaugeBaseHighAlarmCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(GaugeBaseHighAlarmCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, GaugeBaseHighAlarmCapability<Declaring>> high_alarm
 
 .. cpp:namespace:: gui_forms
 
@@ -735,9 +774,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(GaugeBaseLowAlarmCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(GaugeBaseLowAlarmCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, GaugeBaseLowAlarmCapability<Declaring>> low_alarm
 
 .. cpp:namespace:: gui_forms
 
@@ -968,7 +1007,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> find(std::string_view stable_id) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> find(std::string_view stable_id) const noexcept
 
       The record holding ``stable_id``, or none.
 
@@ -1403,11 +1442,11 @@ Related types
 
       Default: ``{HelpCalloutKind::none}``.
 
-   .. cpp:member:: std::optional<std::size_t> section
+   .. cpp:member:: stxlib::Optional<std::size_t> section
 
    .. cpp:member:: std::string anchor
 
-   .. cpp:member:: std::optional<std::size_t> image
+   .. cpp:member:: stxlib::Optional<std::size_t> image
 
    .. cpp:member:: std::size_t first_run
 
@@ -1452,7 +1491,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::optional<std::size_t> find_anchor(std::string_view anchor) const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> find_anchor(std::string_view anchor) const noexcept
 
       The block whose anchor is ``anchor``, or none.
 
@@ -1500,7 +1539,7 @@ Related types
 
    .. cpp:member:: bool line_break
 
-   .. cpp:member:: std::optional<std::size_t> link
+   .. cpp:member:: stxlib::Optional<std::size_t> link
 
 .. cpp:namespace:: gui_forms
 
@@ -1688,7 +1727,7 @@ Related types
 
    .. cpp:member:: std::string text
 
-   .. cpp:member:: std::optional<HelpLayer> origin
+   .. cpp:member:: stxlib::Optional<HelpLayer> origin
 
    .. cpp:member:: bool fallback
 
@@ -1910,7 +1949,7 @@ Related types
 
       The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
 
-   .. cpp:member:: std::optional<Color> lamp_color
+   .. cpp:member:: stxlib::Optional<Color> lamp_color
 
       The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
 
@@ -1925,9 +1964,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, std::optional<Color> incoming)
+   .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, stxlib::Optional<Color> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
 
 .. cpp:namespace:: gui_forms
 
@@ -2109,7 +2148,7 @@ Related types
 
    ``#include <gui_forms/controls/label_capabilities.hpp>``
 
-   Horizontal placement of the text: near, center or far.
+   Horizontal placement of the text: start, center or end.
 
 
    .. rubric:: Methods
@@ -2118,7 +2157,7 @@ Related types
 
    .. cpp:member:: PropertyCell<HorizontalAlignment, LabelAlignmentCapability<Declaring>> alignment
 
-      Default: ``{HorizontalAlignment::near}``.
+      Default: ``{HorizontalAlignment::start}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2135,17 +2174,17 @@ Related types
 
       The text the control shows (Text).
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
 
    .. cpp:member:: HorizontalAlignment alignment
 
-      Horizontal placement of the text: near, center or far.
+      Horizontal placement of the text: start, center or end.
 
    .. cpp:member:: VerticalAlignment vertical_alignment
 
-      Vertical placement of the text: near, center or far.
+      Vertical placement of the text: start, center or end.
 
    .. cpp:member:: TextWrapping text_wrapping
 
@@ -2182,9 +2221,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(LabelFontCapability& capability, std::optional<FontSpec> incoming)
+   .. cpp:function:: static void assign(LabelFontCapability& capability, stxlib::Optional<FontSpec> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<FontSpec>, LabelFontCapability<Declaring>> font
+   .. cpp:member:: PropertyCell<stxlib::Optional<FontSpec>, LabelFontCapability<Declaring>> font
 
 .. cpp:namespace:: gui_forms
 
@@ -2294,7 +2333,7 @@ Related types
 
    ``#include <gui_forms/controls/label_capabilities.hpp>``
 
-   Vertical placement of the text: near, center or far.
+   Vertical placement of the text: start, center or end.
 
 
    .. rubric:: Methods
@@ -2412,6 +2451,160 @@ Related types
    .. cpp:member:: PropertyCell<PictureBoxSizeMode, PictureBoxSizeModePropertyCapability<Declaring>> size_mode
 
       Default: ``{PictureBoxSizeMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Plot3DView::Parts final
+
+   ``#include <gui_forms/controls/plot3d_view.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry picture
+
+   .. cpp:member:: PartGeometry x_axis
+
+   .. cpp:member:: PartGeometry y_axis
+
+   .. cpp:member:: PartGeometry z_axis
+
+   .. cpp:member:: PartGeometry readout
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Plot3DView::States final
+
+   ``#include <gui_forms/controls/plot3d_view.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewCapabilities : public Plot3DViewShowPanesCapability<Declaring>, public Plot3DViewShowGridCapability<Declaring>, public Plot3DViewShowAxesCapability<Declaring>, public Plot3DViewWheelZoomCapability<Declaring>, public Plot3DViewLabelsAlongAxisCapability<Declaring>
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Every Plot3DView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool show_panes
+
+      Whether the three back panes of the box are filled.
+
+   .. cpp:member:: bool show_grid
+
+      Whether the grid is drawn on the back panes at the ticks.
+
+   .. cpp:member:: bool show_axes
+
+      Whether the axis lines, ticks, tick labels and axis titles are drawn.
+
+   .. cpp:member:: bool wheel_zoom
+
+      Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
+
+   .. cpp:member:: bool labels_along_axis
+
+      Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewLabelsAlongAxisCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewLabelsAlongAxisCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewLabelsAlongAxisCapability<Declaring>> labels_along_axis
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewShowAxesCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the axis lines, ticks, tick labels and axis titles are drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewShowAxesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewShowAxesCapability<Declaring>> show_axes
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewShowGridCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the grid is drawn on the back panes at the ticks.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewShowGridCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewShowGridCapability<Declaring>> show_grid
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewShowPanesCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the three back panes of the box are filled.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewShowPanesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewShowPanesCapability<Declaring>> show_panes
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewWheelZoomCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewWheelZoomCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewWheelZoomCapability<Declaring>> wheel_zoom
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2640,6 +2833,203 @@ Related types
    .. cpp:member:: PropertyCell<PlotAxisScale, PlotAxisItemScaleCapability<Declaring>> scale
 
       Default: ``{PlotAxisScale::linear}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotCustomExtent final
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
+
+   .. cpp:member:: plots::PlotRange x
+
+      Default: ``{1.0, 0.0}``.
+
+   .. cpp:member:: plots::PlotRange y
+
+      Default: ``{1.0, 0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks. While installed, the item's points and ``kind`` are not drawn. The plot calls it on its UI thread, during its layout, paint and input: extent when it fits, mark_capacity before it paints, paint when the series is visible, pick on a click or crosshair move. A live plot (``live``) draws no custom series: its frame runs on another thread. After its content changes, the owner calls PlotSeriesItem::custom_changed so that the plot fits and repaints.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual PlotCustomExtent extent() const = 0
+
+      The data it covers, for fitting the axes.
+
+   .. cpp:function:: virtual std::size_t mark_capacity() const noexcept
+
+      The most points, rectangles or colours one paint writes through ``marks`` (the plot reserves them before painting, so the paint does not allocate). The default is none beyond the plot's own.
+
+   .. cpp:function:: virtual plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) = 0
+
+      Draws the marks through ``painter`` under the plot's clip, mapping data through ``transform``. ``color`` is the series' theme colour (plot_series_color); ``marks`` is the plot's reused mark painter.
+
+   .. cpp:function:: virtual plots::PickResult pick(Point device, const plots::PlotTransform& transform) const
+
+      The nearest element to ``device`` (the plot's local coordinates), or found false. The plot keeps a result only within its pick radius and sets its series identity itself. The default finds nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotHandle final
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   One handle, in the data coordinates of the plot's first axes: ``x`` and ``y`` for a point, ``x`` for a vertical line and ``y`` for a horizontal one (the other is kept and ignored). ``id`` is the program's name for it, unique in the plot. A disabled handle is drawn but not dragged.
+
+   .. cpp:member:: std::uint32_t id
+
+   .. cpp:member:: PlotHandleKind kind
+
+      Default: ``{PlotHandleKind::point}``.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: bool enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotHandleMove final
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   A handle's position during or after a drag (PlotView::handle_moved and handle_committed): ``end`` is DragEnd::none while dragging, the commit's end (dropped or free) in handle_committed, and the end that restored the handle (escaped, capture_lost and the rest) in the last handle_moved, whose position is then the position before the drag.
+
+   .. cpp:member:: std::uint32_t id
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: DragEnd end
+
+      Default: ``{DragEnd::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotHeatmapSeries final : public PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over :cpp:func:`domain <gui_forms::PlotHeatmapSeries::domain>` (the finite values' extent unless set). Its extent is the area; a pick names the cell under the pointer (element row * columns + column, y its value).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: plots::BuiltInColormap colormap() const noexcept
+
+   .. cpp:function:: void set_colormap(plots::BuiltInColormap colormap) noexcept
+
+   .. cpp:function:: plots::PlotRange domain() const noexcept
+
+   .. cpp:function:: void set_domain(stxlib::Optional<plots::PlotRange> domain)
+
+      A fixed colour domain (valid), or none to follow the values.
+
+   .. cpp:function:: std::size_t rows() const noexcept
+
+   .. cpp:function:: std::size_t columns() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_grid(std::span<const double> values, std::size_t rows, std::size_t columns, plots::PlotRange area_x, plots::PlotRange area_y)
+
+      Copies ``values``. Throws std::invalid_argument, changing nothing, unless rows × columns equals values.size() (without overflow) and both ranges are valid. An empty grid draws nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: PlotCustomExtent extent() const override
+
+   .. cpp:function:: std::size_t mark_capacity() const noexcept override
+
+   .. cpp:function:: plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) override
+
+   .. cpp:function:: plots::PickResult pick(Point device, const plots::PlotTransform& transform) const override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotHistogramSeries final : public PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A histogram (P2): ``samples`` counted into :cpp:func:`bins <gui_forms::PlotHistogramSeries::bins>` fixed bins over their finite extent (or a set range), drawn as bars in the series colour. Its extent is the bins' range by [0, the largest count]; a pick names the bin under the pointer (element its index, y its count).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const std::uint64_t> counts() const& noexcept
+
+   .. cpp:function:: const plots::BinSpec& bins() const noexcept
+
+   .. cpp:function:: const plots::BinTally& tally() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_samples(std::span<const double> samples, std::size_t bins)
+
+      Copies ``samples`` and counts them. Throws std::invalid_argument, changing nothing, for bins of 0 or above maximum_bins.
+
+   .. cpp:function:: void set_range(stxlib::Optional<plots::PlotRange> range)
+
+      A fixed bin range (valid), or none for the samples' finite extent; the samples are counted again.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: PlotCustomExtent extent() const override
+
+   .. cpp:function:: std::size_t mark_capacity() const noexcept override
+
+   .. cpp:function:: plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) override
+
+   .. cpp:function:: plots::PickResult pick(Point device, const plots::PlotTransform& transform) const override
+
+   .. cpp:member:: constexpr std::size_t maximum_bins
+
+      Default: ``65536U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotPalette final
+
+   ``#include <gui_forms/controls/plot_view_palette.hpp>``
+
+   The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots. The rules come from the editor recipe's border (its top edge, else its text), the selection from its focus ring.
+
+   .. cpp:member:: Color grid_major
+
+      The grid's major and minor lines (the rule colour at reduced alpha).
+
+   .. cpp:member:: Color grid_minor
+
+   .. cpp:member:: Color axis
+
+      The axis lines and ticks.
+
+   .. cpp:member:: Color text
+
+      Tick labels, readouts and other plot text (the recipe's text).
+
+   .. cpp:member:: Color selection_fill
+
+      A zoom box or kept selection: its fill and its edge.
+
+   .. cpp:member:: Color selection_edge
 
 .. cpp:namespace:: gui_forms
 
@@ -3140,7 +3530,7 @@ Related types
 
       The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
 
-   .. cpp:member:: std::optional<std::uint64_t> effect_seed
+   .. cpp:member:: stxlib::Optional<std::uint64_t> effect_seed
 
       The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 
@@ -3197,11 +3587,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ProgressBarEffectSeedCapability& capability, std::optional<std::uint64_t> incoming)
+   .. cpp:function:: static void assign(ProgressBarEffectSeedCapability& capability, stxlib::Optional<std::uint64_t> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
-
-      Default: ``{std::nullopt}``.
+   .. cpp:member:: PropertyCell<stxlib::Optional<std::uint64_t>, ProgressBarEffectSeedCapability<Declaring>> effect_seed
 
 .. cpp:namespace:: gui_forms
 
@@ -3300,6 +3688,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_bubbles", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 12000U, .per_device_pixel = 8U}, .state_budget = 2048U, .outsets = {.left = 0.0, .top = steam_outset, .right = 0.0, .bottom = 0.0}, .input = EffectInputKind::pointer}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ProgressLaser final
@@ -3316,6 +3706,8 @@ Related types
    .. cpp:type:: parent_type = ProgressBar
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "progress_laser", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 3000U, .per_device_pixel = 12U}, .state_budget = 16U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3334,13 +3726,15 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_pulse", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 400U, .per_device_pixel = 4U}, .state_budget = 16U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ProgressRing::Parts final
 
    ``#include <gui_forms/controls/progress_ring.hpp>``
 
-   Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate.
+   Stage T1 anatomy, as dot members (see Control::Parts). Drawn as dots, ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate. Drawn as an arc, ``arc_track`` is the ring's square and ``value_arc`` the same square while determinate with a positive fraction or indeterminate; the dot parts are then absent.
 
    .. cpp:member:: PartGeometry region
 
@@ -3350,9 +3744,13 @@ Related types
 
    .. cpp:member:: PartGeometry activity
 
+   .. cpp:member:: PartGeometry arc_track
+
+   .. cpp:member:: PartGeometry value_arc
+
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>, public ProgressRingStyleCapability<Declaring>
 
    ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
 
@@ -3372,6 +3770,10 @@ Related types
    .. cpp:member:: bool indeterminate
 
       Whether the ring shows activity without an amount: a turning arc instead of the value.
+
+   .. cpp:member:: ProgressRingStyle ring_style
+
+      How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
 
 .. cpp:namespace:: gui_forms
 
@@ -3406,6 +3808,23 @@ Related types
    .. cpp:member:: PropertyCell<double, ProgressRingMaximumCapability<Declaring>> maximum
 
       Default: ``{100.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ProgressRingStyleCapability
+
+   ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
+
+   How the ring is drawn: as the theme says (the default; every built-in theme draws dots), as forty dots, or as one continuous arc.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ProgressRingStyleCapability& capability, ProgressRingStyle incoming)
+
+   .. cpp:member:: PropertyCell<ProgressRingStyle, ProgressRingStyleCapability<Declaring>> ring_style
+
+      Default: ``{ProgressRingStyle::theme}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3444,6 +3863,8 @@ Related types
       Default: ``256U``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "progress_stripes", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 40000U, .per_device_pixel = 6U}, .state_budget = 16U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3520,6 +3941,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_woven_stripes", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 6000U, .per_device_pixel = 8U}, .setup_cost = 8000U, .setup_on_geometry = true, .state_budget = 1600U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RadialGauge::Parts final
@@ -3586,6 +4009,8 @@ Related types
       Default: ``1.0``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "scope_sweep", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 400U, .per_device_pixel = 4U}, .state_budget = 16U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3767,6 +4192,46 @@ Related types
    .. cpp:function:: static void assign(SparklineFillCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, SparklineFillCapability<Declaring>> fill
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SparklineStyle final
+
+   ``#include <gui_forms/controls/sparkline.hpp>``
+
+   The look of one sparkline drawn by paint_sparkline.
+
+   .. cpp:member:: Color line
+
+      The line's colour; the band and the newest dot take it too.
+
+   .. cpp:member:: double line_width
+
+      The line's width in local units (finite and positive). Default: ``{1.0}``.
+
+   .. cpp:member:: bool fill
+
+      Whether the band under the line is shaded, and its alpha.
+
+   .. cpp:member:: std::uint8_t band_alpha
+
+      Default: ``{72U}``.
+
+   .. cpp:member:: double newest_marker_size
+
+      The dot on the newest finite value; 0 draws none. Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SparklineWorkspace final
+
+   ``#include <gui_forms/controls/sparkline.hpp>``
+
+   The storage paint_sparkline reuses from paint to paint: one per drawn sparkline (a grid cell keeps one per column, reused across rows). It grows when a wider plot is drawn and never shrinks.
+
+   .. cpp:member:: plots::SeriesMarkPainter marks
+
+   .. cpp:member:: std::size_t reserved_columns
 
 .. cpp:namespace:: gui_forms
 
@@ -3976,7 +4441,7 @@ Related types
 
       The text the control shows (Text).
 
-   .. cpp:member:: std::optional<FontSpec> font
+   .. cpp:member:: stxlib::Optional<FontSpec> font
 
       The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -3984,7 +4449,7 @@ Related types
 
       CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
 
-   .. cpp:member:: std::optional<double> line_height
+   .. cpp:member:: stxlib::Optional<double> line_height
 
       CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
 
@@ -3999,9 +4464,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TextBlockFontCapability& capability, std::optional<FontSpec> incoming)
+   .. cpp:function:: static void assign(TextBlockFontCapability& capability, stxlib::Optional<FontSpec> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<FontSpec>, TextBlockFontCapability<Declaring>> font
+   .. cpp:member:: PropertyCell<stxlib::Optional<FontSpec>, TextBlockFontCapability<Declaring>> font
 
 .. cpp:namespace:: gui_forms
 
@@ -4014,9 +4479,9 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TextBlockLineHeightCapability& capability, std::optional<double> incoming)
+   .. cpp:function:: static void assign(TextBlockLineHeightCapability& capability, stxlib::Optional<double> incoming)
 
-   .. cpp:member:: PropertyCell<std::optional<double>, TextBlockLineHeightCapability<Declaring>> line_height
+   .. cpp:member:: PropertyCell<stxlib::Optional<double>, TextBlockLineHeightCapability<Declaring>> line_height
 
 .. cpp:namespace:: gui_forms
 
@@ -4296,11 +4761,11 @@ Enumerations
 
    ``#include <gui_forms/controls/label_values.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 .. cpp:namespace:: gui_forms
 
@@ -4369,6 +4834,18 @@ Enumerations
    .. cpp:enumerator:: time
 
    .. cpp:enumerator:: category
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotHandleKind
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   .. cpp:enumerator:: point
+
+   .. cpp:enumerator:: vertical_line
+
+   .. cpp:enumerator:: horizontal_line
 
 .. cpp:namespace:: gui_forms
 
@@ -4446,6 +4923,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ProgressRingStyle
+
+   ``#include <gui_forms/controls/progress_ring_values.hpp>``
+
+   .. cpp:enumerator:: theme
+
+   .. cpp:enumerator:: dots
+
+   .. cpp:enumerator:: arc
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: TextCaseTransform
 
    ``#include <gui_forms/controls/label_values.hpp>``
@@ -4490,11 +4979,11 @@ Enumerations
 
    ``#include <gui_forms/controls/label_values.hpp>``
 
-   .. cpp:enumerator:: near
+   .. cpp:enumerator:: start
 
    .. cpp:enumerator:: center
 
-   .. cpp:enumerator:: far
+   .. cpp:enumerator:: end
 
 Functions, constants and aliases
 --------------------------------
@@ -4517,15 +5006,43 @@ Functions, constants and aliases
 
 .. cpp:function:: constexpr HorizontalAlignment directed_alignment(HorizontalAlignment alignment, LayoutDirection direction) noexcept
 
-   The alignment a control resolving ``direction`` places: Windows Forms mirrors a horizontal alignment under RightToLeft, so ``near`` is the right edge and ``far`` the left in right to left (Control:: effective_layout_direction). A value outside the enumeration is kept.
+   The alignment a control resolving ``direction`` places. ``start`` and ``end`` are CSS's logical values (text-align, box alignment): under right to left ``start`` is the right edge and ``end`` the left (Control:: effective_layout_direction), as Windows Forms mirrors a horizontal alignment under RightToLeft. A value outside the enumeration is kept.
 
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/controls/notice_values.hpp>``
 
+.. cpp:function:: constexpr bool notice_severity_known(NoticeSeverity severity) noexcept
+
+   Whether a severity is one of the four values. A severity read from an integer (a binding, a file) can be any byte, and InfoBanner and Toast use it as a custom state index, so both refuse an unknown one.
+
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
 
    A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/plot_values.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_plot_handles
+
+   The most handles a PlotView holds. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/plot_view_palette.hpp>``
+
+.. cpp:function:: PlotPalette resolve_plot_palette(const Control& owner)
+
+   The palette for ``owner`` in its current anatomy states. Reads only.
+
+.. cpp:function:: Color plot_series_color(const Control& owner, std::size_t position) noexcept
+
+   The opaque colour PlotView gives the series at ``position`` among its series items (the series cycle through the theme's accents). Reads only.
+
+.. cpp:function:: Color plot_category_color(const Control& owner, std::uint64_t key) noexcept
+
+   The theme accent for the category ``key`` (plots::category_key of a name, or the application's own identity; the flame graph demonstrator's F7): plot_series_color at plots::category_position(key, 256), so a key keeps its colour in a theme and follows a theme change. Reads only.
 
 .. cpp:namespace:: gui_forms
 
@@ -4542,6 +5059,14 @@ Functions, constants and aliases
 .. cpp:function:: std::uint8_t seven_segment_pattern(char32_t character) noexcept
 
    The segments ``character`` lights (a Unicode scalar value): the digits, the hexadecimal letters and the other letters a seven-segment cell can form (in whichever case it can), '-', '_', '=', the degree sign (U+00B0) and space; zero for anything else.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/sparkline.hpp>``
+
+.. cpp:function:: void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpans<double> values, std::size_t slots, double scale, const SparklineStyle& style, SparklineWorkspace& workspace)
+
+   Draws ``values`` (oldest first; NaN is a gap) the way Sparkline draws its ring, inside ``plot`` (local units, clipped to it), so that a grid cell, a list item or an owner-drawn control can draw a word-sized trend without a Sparkline control (the D3 demonstrator's I5). The x axis spans ``slots`` positions with the newest value at the right; ``slots`` is at least 2 and at least values.size(), otherwise nothing is drawn. The y axis is the values' finite extent (a flat run sits in the middle). ``scale`` is the paint scale (device pixels per local unit, finite and positive). Draws nothing when no value is finite or the plot is empty. Allocates only when the workspace grows; the painter is saved and restored around it.
 
 .. cpp:namespace:: gui_forms
 
@@ -4663,11 +5188,11 @@ Functions, constants and aliases
 
 .. cpp:function:: void fold_help_text(std::string_view text, std::string& folded)
 
-   Case-folds help text for indexing and search: ASCII letters to lower case; other bytes are kept (Unicode case folding is the text engine's and comes with the language-file implementation). ``folded`` is replaced.
+   Folds help text for indexing and search (GAPS H2), code point by code point: full Unicode case folding with compatibility decomposition, diacritics of the Combining Diacritical Marks blocks dropped, separators and punctuation to a space, then canonical composition (the table and its rules: tools/unicode/generate_search_fold_tables.py, Unicode 17.0.0). So "Résumé", "RESUME" and "resume" fold alike, as do "Straße" and "STRASSE". Marks of other blocks (Indic vowel signs, Hebrew points) are kept. A byte that starts no well-formed UTF-8 sequence is kept as it is. Folding folded text changes nothing. ``folded`` is replaced; its storage is reused.
 
 .. cpp:function:: void split_help_words(std::string_view text, std::vector<std::string_view>& words)
 
-   Splits folded text into search words: maximal runs of ASCII letters and digits and of non-ASCII bytes. Each word is a view into ``text``; ``words`` is cleared first.
+   Splits folded text into search words: maximal runs of ASCII letters and digits and of non-ASCII bytes (folding has already turned non-ASCII separators and punctuation into spaces). Each word is a view into ``text``; ``words`` is cleared first.
 
 .. cpp:function:: HelpLinkTarget classify_help_link(std::string_view destination, std::string_view title)
 

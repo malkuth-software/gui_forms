@@ -201,13 +201,13 @@ SemanticDescriptor TypographySpecimen::semantic_descriptor() const {
 namespace {
 
 constexpr std::array<PartField<TypographySpecimen::Parts>, 4> typography_specimen_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TypographySpecimen::Parts::region},
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TypographySpecimen::Parts::face},
-    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}},
+    {.declaration = {.name = "edge", .role = PartRole::edge, .composed_from = {}, .states = {}},
      .member = &TypographySpecimen::Parts::edge},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &TypographySpecimen::Parts::focus},
 }};
 
@@ -229,6 +229,7 @@ constexpr ControlAnatomy typography_specimen_anatomy{
     .parts = typography_specimen_parts,
     .states = typography_specimen_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

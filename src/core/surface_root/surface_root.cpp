@@ -17,6 +17,16 @@
 
 namespace gui_forms {
 
+// The layout marker of the SurfaceRoot this library compiles
+// (detail::SurfaceRootLayout, surface_root.hpp): a unit that sees another
+// layout refers to a marker that is defined nowhere, and does not link.
+// The member is defined for the primary template here only and instantiated
+// for this library's layout; an explicit specialization would come after the
+// header's own use of the marker has instantiated it.
+template <std::size_t Size, std::size_t Alignment>
+const int detail::SurfaceRootLayout<Size, Alignment>::marker = 1;
+template struct detail::SurfaceRootLayout<sizeof(SurfaceRoot), alignof(SurfaceRoot)>;
+
 SurfaceRoot::SurfaceRoot(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources)
     : root_thread_(std::this_thread::get_id()),
       dispatcher_state_(std::make_shared<detail::DispatcherState>(root_thread_)),

@@ -75,7 +75,7 @@ gui_forms::DockSite
          The smallest size that shows every stack: the panels' minimum sizes,
          the captions, the tab strips and the seams.
 
-      **focused_seam** : ``std::optional<std::size_t>``, default none, read-only
+      **focused_seam** : ``stxlib::Optional<std::size_t>``, default none, read-only
          The seam the keyboard is on while the site has focus.
 
       **position_menu_open** : ``bool``, read-only
@@ -106,6 +106,11 @@ gui_forms::DockSite
 
       **drag_target** : ``std::optional<DockDropTarget>``, default none, read-only
          The target a drop would use now.
+
+      **drop_pulse_effect** : ``EffectInstance*``, read-only
+         The drop-cue pulse over the selected target's drop part (the effect program drop_pulse, dock_site_effects.hpp), hosted by the drag layer: its instance, null before the site has a drag layer (attached only once the pulse is first painted), and whether it is enlisted on the motion clock. It is enlisted while a shown target may pulse (ambient motion on, motion not reduced) and leaves the clock at the first frame after the target goes; a still frame draws a steady edge.
+
+      **drop_pulse_running** : ``bool``, read-only
 
       **showing_remote_drag** : ``bool``, default ``false``, read-only
          Whether the site shows a drag that runs in another site's window: the
@@ -496,7 +501,7 @@ gui_forms::DockSite
 
    .. cpp:function:: DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floating_site)
 
-      Realizes the floating site :cpp:func:`floating_site <gui_forms::DockSite::floating_site>` (phase D4). A second site made for the same floating site replaces the first in the workspace.
+      Realizes the floating site :cpp:func:`floating_site <gui_forms::DockSite::floating_site>` (phase D4). A second site made for the same floating site replaces the first in the workspace, which unbinds the first (it then shows nothing); a second main site replaces the first main site the same way.
 
 
    .. rubric:: Properties
@@ -547,7 +552,7 @@ gui_forms::DockSite
       The smallest size that shows every stack: the panels' minimum sizes,
       the captions, the tab strips and the seams.
 
-   .. cpp:function:: std::optional<std::size_t> focused_seam() const noexcept
+   .. cpp:function:: stxlib::Optional<std::size_t> focused_seam() const noexcept
 
       The seam the keyboard is on while the site has focus.
 
@@ -587,6 +592,12 @@ gui_forms::DockSite
    .. cpp:function:: std::optional<DockDropTarget> drag_target() const
 
       The target a drop would use now.
+
+   .. cpp:function:: const EffectInstance* drop_pulse_effect() const noexcept
+
+      The drop-cue pulse over the selected target's drop part (the effect program drop_pulse, dock_site_effects.hpp), hosted by the drag layer: its instance, null before the site has a drag layer (attached only once the pulse is first painted), and whether it is enlisted on the motion clock. It is enlisted while a shown target may pulse (ambient motion on, motion not reduced) and leaves the clock at the first frame after the target goes; a still frame draws a steady edge.
+
+   .. cpp:function:: bool drop_pulse_running() const noexcept
 
    .. cpp:function:: bool showing_remote_drag() const noexcept
 
@@ -886,7 +897,7 @@ gui_forms::DockSite
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 44 supported, 0 deferred, 0 excluded, 7 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 7 unclassified; 53 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -936,6 +947,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 44 s
    * - property
      - GUI.Forms-only
      - ``drag_targets``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drop_pulse_effect``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drop_pulse_running``
      - supported
    * - property
      - GUI.Forms-only

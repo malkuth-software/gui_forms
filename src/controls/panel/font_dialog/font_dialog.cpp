@@ -205,8 +205,8 @@ void FontDialog::show_selection() {
 }
 
 void FontDialog::on_face_selected(const ListSelectionChange& change) {
-    if (synchronizing_ || !change.active_index) return;
-    const std::size_t index = *change.active_index;
+    if (synchronizing_ || change.active_index.absent()) return;
+    const std::size_t index = *change.active_index.value();
     if (index >= bundled_faces.size()) return;
     FontSpec next = selection_;
     next.role = bundled_faces[index].role;
@@ -215,8 +215,8 @@ void FontDialog::on_face_selected(const ListSelectionChange& change) {
 }
 
 void FontDialog::on_style_selected(const ListSelectionChange& change) {
-    if (synchronizing_ || !change.active_index || *change.active_index >= styles_.size()) return;
-    const FontStyle style = styles_[*change.active_index];
+    if (synchronizing_ || change.active_index.absent() || *change.active_index.value() >= styles_.size()) return;
+    const FontStyle style = styles_[*change.active_index.value()];
     const bool bold = style == FontStyle::bold || style == FontStyle::bold_italic;
     selection_.weight = static_cast<std::uint16_t>(bold ? 700U : 400U);
     selection_.italic = style == FontStyle::italic || style == FontStyle::bold_italic;
@@ -510,13 +510,13 @@ bool FontDialog::on_semantic_action(SemanticAction action, std::string_view valu
 namespace {
 
 constexpr std::array<PartField<FontDialog::Parts>, 4> font_dialog_extra_part_fields{{
-    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::face},
-    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "title", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::title},
-    {.declaration = {.name = "preview_well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "preview_well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::preview_well},
-    {.declaration = {.name = "preview_text", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "preview_text", .role = PartRole::content, .composed_from = {}, .states = {}},
      .member = &FontDialog::Parts::preview_text},
 }};
 
@@ -532,6 +532,7 @@ constexpr ControlAnatomy font_dialog_anatomy{
     .parts = font_dialog_parts,
     .states = font_dialog_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events FontDialog adds to those of Panel, in declaration order.

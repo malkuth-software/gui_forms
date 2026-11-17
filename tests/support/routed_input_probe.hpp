@@ -11,7 +11,8 @@
 // key raiser raises the event first; a key the subscribers left unhandled
 // reaches the handler, and a key released by deactivation does not (as
 // before). Enter and leave come from the window's hover tracking
-// (on_mouse_enter, on_mouse_leave) with no position.
+// (on_mouse_enter, on_mouse_leave), at the crossing's window position
+// (Control::pointer_location).
 
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
@@ -69,8 +70,10 @@ private:
         arguments.handled = event.handled;
     }
     void route_crossing(PointerAction action) {
+        const PointerLocation crossing = (*this).pointer_location();
         PointerEvent event{};
         event.action = action;
+        event.position = crossing.window_position;
         event.phase = EventPhase::target;
         routed_pointer(event);
     }
