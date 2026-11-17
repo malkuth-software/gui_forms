@@ -36,7 +36,8 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
+from collections.abc import Sequence
+from pathlib import Path, PurePath
 
 import consumer_macros
 
@@ -69,11 +70,14 @@ def read_roots(arguments: argparse.Namespace) -> list[Path]:
     return roots
 
 
-def display_path(path: Path, roots: list[Path]) -> str:
+def display_path(path: PurePath, roots: Sequence[PurePath]) -> str:
+    # The report is compared across hosts, so every path is spelled with '/'
+    # whatever the host's separator (a Windows build would otherwise write
+    # gui_forms\label.hpp).
     for root in roots:
         if path.is_relative_to(root):
-            return str(path.relative_to(root))
-    return str(path)
+            return path.relative_to(root).as_posix()
+    return path.as_posix()
 
 
 def render_header(translation_unit: Path, closure: consumer_macros.Closure,

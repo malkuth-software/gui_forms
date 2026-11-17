@@ -14,7 +14,7 @@ import contextlib
 import io
 import tempfile
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import consumer_macros
 import consumer_shield
@@ -152,6 +152,13 @@ class HostileGeneratorTests(unittest.TestCase):
                     defined.append(line.split()[1])
             self.assertEqual(defined, ['HorizontalAlignment', 'f', 'far', 'near'])
             self.assertIn('gui_forms/label.hpp:3\tnear', report.read_text(encoding='utf-8'))
+
+    def test_report_paths_use_forward_slashes_on_every_host(self) -> None:
+        root: PureWindowsPath = PureWindowsPath('D:/a/gui_forms/include')
+        header: PureWindowsPath = PureWindowsPath('D:/a/gui_forms/include/gui_forms/label.hpp')
+        outside: PureWindowsPath = PureWindowsPath('D:/b/other.hpp')
+        self.assertEqual(generate_hostile_macros.display_path(header, [root]), 'gui_forms/label.hpp')
+        self.assertEqual(generate_hostile_macros.display_path(outside, [root]), 'D:/b/other.hpp')
 
     def test_translation_unit_must_name_the_generated_header(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
