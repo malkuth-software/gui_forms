@@ -532,9 +532,10 @@ void banding() {
 // The banding bakes' hashes, BGRA bytes row by row (no padding: the width
 // is a multiple of every row alignment), from an emulation of the kernel's
 // arithmetic (stop_colour, premultiply, to_byte_dithered) in Python's IEEE
-// doubles, 2026-11-12.
-constexpr std::array<std::uint64_t, 3> banding_hashes{0x11ef8013f7242325ULL, 0xffd6d52740c9fb25ULL,
-                                                      0x0eb20c3012b03db5ULL};
+// doubles, 2026-11-12; recorded again from the kernel for linear light with
+// the level kept between bytes (fc14638bb), macOS arm64, 2026-11-16.
+constexpr std::array<std::uint64_t, 3> banding_hashes{0xa2719e5f5b5d2925ULL, 0x1e6eaa424a3e3225ULL,
+                                                      0xec03baa440ae8995ULL};
 
 std::uint64_t packed_hash(const PartRaster& raster) {
     const DeviceExtent extent = raster.extent();
