@@ -670,9 +670,14 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 changes.back().origin == PropertyValueOrigin::local,
             "committing a PropertyGrid text editor must use the target's registered setter and event");
 
+    // The commit publishes the committed property first, then the
+    // properties its setter moved (A-gf-controls-09-F2): CheckBox's checked
+    // writes check_state, which follows.
+    const std::size_t checked_mark = changes.size();
     (*checked).checked = true;
-    require((*target).checked.read() && changes.back().property_name == "checked" &&
-                std::get<bool>(changes.back().current_value),
+    require((*target).checked.read() && changes.size() > checked_mark &&
+                changes[checked_mark].property_name == "checked" &&
+                std::get<bool>(changes[checked_mark].current_value),
             "Boolean PropertyGrid edits must use a retained CheckBox and commit immediately");
 
     (*target).text = "Programmatic update";
@@ -689,10 +694,11 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 failures.back().property_name == "tab_index",
             "invalid scalar edits must preserve the target and publish inline diagnostic state");
 
+    const std::size_t reset_mark = changes.size();
     require((*grid).reset_property("Text") && (*target).text.read().empty() &&
                 (*grid).selected_origin("Text") ==
                     stxlib::Optional<gui_forms::PropertyValueOrigin>::of(PropertyValueOrigin::defaulted) &&
-                changes.back().reset,
+                changes.size() > reset_mark && changes[reset_mark].reset,
             "PropertyGrid reset must use the registered reset/default path and refresh origin state");
 
     const std::shared_ptr<gui_forms::NumericUpDown> bounds_x = std::dynamic_pointer_cast<NumericUpDown>(
@@ -702,11 +708,13 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 (*grid).set_property_expanded("Bounds", true) &&
                 (*bounds_x).visible.read(),
             "compound properties must retain stable hidden field editors and reveal them through an explicit expansion state");
+    const std::size_t bounds_mark = changes.size();
     require((*grid).try_set_property_value(
                 "Bounds.X", BindingValue{std::string("31.5")}) &&
                 (*target).requested_bounds().x == 31.5 &&
-                changes.back().property_name == "bounds.x" &&
-                std::get<double>(changes.back().current_value) == 31.5 &&
+                changes.size() > bounds_mark &&
+                changes[bounds_mark].property_name == "bounds.x" &&
+                std::get<double>(changes[bounds_mark].current_value) == 31.5 &&
                 (*(*grid).selected_descriptor("Bounds.X")).kind ==
                     BindingValueKind::number,
             "editing a compound field path must rebuild and validate the owning typed value through its real setter");
