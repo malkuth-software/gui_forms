@@ -4,6 +4,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp"
 #include "gui_forms/window.hpp"
+#include <stxlib/optional.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -92,7 +93,7 @@ struct GUI_FORMS_API WindowsApplicationWindow final {
     HostWindowFloating floating{HostWindowFloating::none};
     // A native popup window (ApplicationWindow::popup); none for every
     // other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs: the same entry, ownership
