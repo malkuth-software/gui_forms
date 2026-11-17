@@ -77,6 +77,9 @@ public:
     [[nodiscard]] bool danger_glowing() const noexcept;
 
 protected:
+    // Protected so DropDownButton's primary segment activates as a Button does
+    // (A-gf-controls-01-F4).
+    void on_activate() override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     // The button's parts computed for its current style.
@@ -103,7 +106,6 @@ private:
 
     Event<bool> selected_changed_{};
     void notify_default(bool value) override;
-    void on_activate() override;
     [[nodiscard]] DialogResult command_dialog_result() const noexcept override {
         return dialog_result.read();
     }
