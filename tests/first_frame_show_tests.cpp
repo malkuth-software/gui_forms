@@ -50,7 +50,8 @@ void test_first_frame_before_the_deadline_shows() {
     const FirstFrameShowStep requested = gate.request_show(at(std::chrono::milliseconds(1000)));
     require(!requested.show, "a request without a frame waits");
     require(gate.waiting(), "the gate waits after the request");
-    require(gate.deadline().present() && *gate.deadline().value() == at(std::chrono::milliseconds(1300)),
+    const stxlib::Optional<FrameTime> requested_deadline = gate.deadline();
+    require(requested_deadline.present() && *requested_deadline.value() == at(std::chrono::milliseconds(1300)),
             "the deadline is the request plus the ceiling");
     const FirstFrameShowStep early = gate.poll(at(std::chrono::milliseconds(1299)));
     require(!early.show, "a wake before the deadline shows nothing");
@@ -116,7 +117,8 @@ void test_hide_then_show_again_waits_anew() {
     require(gate.cancel(), "a hide during the wait cancels it");
     const FirstFrameShowStep again = gate.request_show(at(std::chrono::milliseconds(1000)));
     require(!again.show, "a show after the hide waits again");
-    require(*gate.deadline().value() == at(std::chrono::milliseconds(1300)),
+    const stxlib::Optional<FrameTime> deadline = gate.deadline();
+    require(*deadline.value() == at(std::chrono::milliseconds(1300)),
             "the new wait has its own deadline");
     const FirstFrameShowStep fired = gate.poll(at(std::chrono::milliseconds(1300)));
     require(fired.show && fired.cause == FirstFrameShowCause::deadline, "the new deadline shows");
@@ -155,7 +157,8 @@ void test_repeated_request_keeps_the_first_deadline() {
     static_cast<void>(gate.request_show(at(std::chrono::milliseconds(0))));
     const FirstFrameShowStep repeated = gate.request_show(at(std::chrono::milliseconds(200)));
     require(!repeated.show, "a repeated request while waiting shows nothing");
-    require(*gate.deadline().value() == at(std::chrono::milliseconds(300)),
+    const stxlib::Optional<FrameTime> deadline = gate.deadline();
+    require(*deadline.value() == at(std::chrono::milliseconds(300)),
             "the first deadline stands");
 }
 
@@ -178,7 +181,8 @@ void test_ceiling_is_clamped() {
     FirstFrameShowGate gate{};
     static_cast<void>(gate.request_show(at(std::chrono::milliseconds(0))));
     gate.set_ceiling(interval(std::chrono::milliseconds(50)));
-    require(*gate.deadline().value() == at(std::chrono::milliseconds(300)),
+    const stxlib::Optional<FrameTime> deadline = gate.deadline();
+    require(*deadline.value() == at(std::chrono::milliseconds(300)),
             "a new ceiling leaves the wait under way");
 }
 
