@@ -1,0 +1,84 @@
+#include <gui_forms/names.hpp>
+
+#include <stxlib/text_view.hpp>
+#include <cstddef>
+#include <functional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include "platform/stxlib_bridge.hpp"
+
+namespace gui_forms {
+
+namespace {
+
+[[nodiscard]] std::size_t standard_length(const std::string_view text) noexcept {
+    return text.size();
+}
+
+} // namespace
+
+// A functional cast to std::string (pattern 1), from a view and from a
+// const std::string&.
+std::string copied_name(const stxlib::TextView name) {
+    const std::string copy = gui_forms::platform::standard_text_copy(name);
+    return copy;
+}
+
+std::string copied_label(stxlib::TextView label) {
+    return gui_forms::platform::standard_text_copy(label);
+}
+
+// A standard hash fed the text (pattern 5).
+std::size_t name_hash(const stxlib::TextView name) {
+    return std::hash<std::string_view>{}(gui_forms::platform::standard_text(name));
+}
+
+// An ordering comparison (pattern 2): each side reads a standard view.
+bool sorts_before(const stxlib::TextView name, const stxlib::TextView other) {
+    return gui_forms::platform::standard_text(name) < gui_forms::platform::standard_text(other);
+}
+
+// A range-based for (pattern 3).
+std::size_t dots(const stxlib::TextView name) {
+    std::size_t count = 0U;
+    for (const char character : gui_forms::platform::standard_text(name)) {
+        if (character == '.') ++count;
+    }
+    return count;
+}
+
+char first_letter(const stxlib::TextView name) {
+    return name.empty() ? '\0' : gui_forms::platform::standard_text(name)[0];
+}
+
+// std::string::substr returns std::string: a standard copy.
+std::string prefix(stxlib::TextView label) {
+    return gui_forms::platform::standard_text_copy(label).substr(0U, 3U);
+}
+
+bool starts_with_item(const stxlib::TextView name) {
+    return gui_forms::platform::standard_text(name).starts_with("item") || name == "item";
+}
+
+// A const std::string& passed as a view to converted text: no bridge.
+bool label_starts_with_item(stxlib::TextView label) {
+    return starts_with_item(label);
+}
+
+// Passed as a view to an unconverted function: a standard view.
+std::size_t measured(stxlib::TextView label) {
+    return label.count() + standard_length(gui_forms::platform::standard_text(label));
+}
+
+// A standard exception's std::string parameter: a standard copy.
+void refuse_wrong(stxlib::TextView message) {
+    throw std::logic_error(gui_forms::platform::standard_text_copy(message));
+}
+
+// c_str() has no counterpart: the parameter stays standard.
+const char* terminated(const std::string& label) {
+    return label.c_str();
+}
+
+} // namespace gui_forms

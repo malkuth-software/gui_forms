@@ -1,0 +1,7 @@
+parameter gui_forms::valid_id not converted: V2:
+parameter gui_forms::WrongThread::WrongThread not converted: V2: converted text flows into standard
+parameter gui_forms::Place::Place not converted: V2:
+parameter gui_forms::Registry::holds not converted: V2: converted text flows into standard
+parameter gui_forms::id_hash not converted: V2: converted text an operand of a standard operator in a public header
+parameter gui_forms::same_family not converted: V2: receives standard text in a public header
+parameter gui_forms::find_family not converted: tied to

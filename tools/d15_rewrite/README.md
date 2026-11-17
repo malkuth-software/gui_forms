@@ -73,7 +73,48 @@ Eligibility, by rule (each refusal is a residue line):
   is residue;
 - a declaration with a deprecated D15 compatibility overload (Q3), or one
   whose rewrite would collide with a sibling overload, stays as it is;
-- ordering comparisons (`<` on an optional) are reported, not guessed.
+- ordering comparisons (`<` on an optional) are reported, not guessed;
+- V2 text boundaries (below): a converted parameter whose use needs the
+  private bridge where the bridge cannot be written (a public header, a
+  macro body) stays standard.
+
+### V2 text boundaries
+
+V2 converts parameters only and has no flow edges, so a converted
+parameter meets standard text wherever its body or its callers still use
+it. Outside `include/` each such site goes through
+`src/platform/stxlib_bridge.hpp`:
+
+| use of a converted parameter `name` | rewritten as |
+|---|---|
+| `std::string(name)` (one argument, parenthesised) | `gui_forms::platform::standard_text_copy(name)` |
+| any other standard text made from it, a cast to standard text | `standard_text(name)` inside the construction or cast |
+| an ordering comparison, a range-based for, a subscript, `std::hash<std::string_view>{}(name)`, any other standard operator | `standard_text(name)` (`standard_text_copy(name)` where the operator takes `std::string`, as `operator+`) |
+| `==` / `!=` with a literal, a TextView or converted text | unchanged |
+| `==` / `!=` with other standard text | `standard_text(name) == other` |
+| `size()`, `length()` | `count()` |
+| `empty()`, `data()` | unchanged |
+| a `std::string_view` method; a `std::string` method returning `std::string` (`substr`) | `standard_text(name).method(...)`; `standard_text_copy(name).method(...)` |
+| a `const std::string&` passed where a view is taken | the view conversion denotes `name`: converted text needs nothing, standard text gets `standard_text(name)` |
+| an argument, initialiser, member initialiser or return into standard text (`std::logic_error(name)`, `map.find(name)`) | `standard_text_copy(name)` for a `std::string` parameter, else `standard_text(name)` |
+| an empty default spelled with its type (`= std::string_view()`) | `= stxlib::TextView()` |
+| `static_cast<void>(name)`, a lambda capture | unchanged |
+
+A public header cannot include the bridge. There the plan phase keeps the
+parameter standard instead of leaving a site that does not compile: a use
+or flow that would need the bridge *refuses* the parameter, and the
+refusal becomes its ineligibility, which the closure reports as residue
+(`parameter X not converted: V2: ... (path:line)`). A header flow or `==`
+between two candidate parameters ties them strictly, so they change
+together or not at all. Standard text passed to a header candidate
+(`valid_stable_id(value_)` from `StableIdLiteral`'s consteval constructor,
+`HelpPlace(kind, anchor.value())`) refuses that candidate, so a consteval
+or constexpr caller stays a constant expression. These also refuse, in
+any file: `c_str()` and the `std::string` methods a view lacks, an
+assignment to the parameter, its address, a forwarding factory
+(`std::make_unique<T>(name)`), an unresolved or variadic callee, a
+template-dependent value passed to a candidate, and any use with no
+rule above. A conditional's branch is judged by the conditional's use.
 
 Implicit copies of text and vectors need no rewriting (STXlib `claude/vocab-copy`
 6e4f66b gives them ordinary noexcept copies); only `Unique` and `OperationResult` sites
@@ -295,6 +336,8 @@ They cover the D15 V1 queue entry's miss list:
 | overlapping, crossing and duplicated edits from merged edits files (defect 5) | v1_overlaps |
 | a stale precompiled header in the compile commands (defect 6) | v1_precompiled |
 | the consumer surface, by exports and by headers | v1_surface, v1_surface_headers |
+| V2 bridges: `std::string(text)`, ordering, range-for, subscript, `std::hash`, methods, view conversions, standard parameters (V2 run patterns 1, 2, 3, 5) | v2_text_uses |
+| V2 public-header boundaries: consteval literal check, standard exceptions, members and maps, hash, tied candidates, spelled empty default (V2 run patterns 3 to 7) | v2_header_boundaries |
 | sources the M4 does not compile (Windows host) | the textual scan, run in the real tree |
 | benchmarks and fuzz | the default `--scope` |
 

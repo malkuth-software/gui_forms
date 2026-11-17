@@ -1,0 +1,10 @@
+#include <gui_forms/names.hpp>
+
+#include <string>
+
+int main() {
+    const std::string owned = "a.b";
+    const std::string copy = gui_forms::copied_name(owned);
+    const std::size_t count = gui_forms::dots("a.b.c");
+    return copy.empty() || count != 2U ? 1 : 0;
+}

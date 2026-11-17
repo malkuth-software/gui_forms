@@ -1,0 +1,12 @@
+#include <gui_forms/names.hpp>
+
+#include <stxlib/fail_fast.hpp>
+#include <string>
+#include "../src/platform/stxlib_bridge.hpp"
+
+int main() {
+    const std::string owned = "a.b";
+    const std::string copy = gui_forms::copied_name(stxlib::take_or_fail_fast(gui_forms::platform::validated_text(owned)));
+    const std::size_t count = gui_forms::dots("a.b.c");
+    return copy.empty() || count != 2U ? 1 : 0;
+}

@@ -97,6 +97,9 @@ struct Destination final {
     bool dependent{false};
     bool ambiguous_braces{false};
     bool result_return{false};
+    // V2: a first-party parameter the stage could convert (a by-value
+    // std::string_view or a const std::string&), whether or not it does.
+    bool candidate{false};
 };
 
 [[nodiscard]] bool directory_contains(const std::string& relative, const std::string& directory) {
@@ -207,6 +210,21 @@ struct Destination final {
     return false;
 }
 
+// The std::string whose implicit conversion to std::string_view
+// `expression` is (`const std::string& name` passed where a view is
+// taken), or null. V2 converts both to stxlib::TextView, so the
+// conversion denotes its object (the 2026-11-16 V2 run's "conversion
+// operator" residue).
+[[nodiscard]] const clang::Expr* standard_text_conversion_object(const clang::Expr* expression) {
+    const clang::CXXMemberCallExpr* const call = llvm::dyn_cast_or_null<clang::CXXMemberCallExpr>(expression);
+    if (call == nullptr) return nullptr;
+    if (!llvm::isa_and_nonnull<clang::CXXConversionDecl>((*call).getMethodDecl())) return nullptr;
+    const clang::Expr* const object = (*call).getImplicitObjectArgument();
+    if (object == nullptr) return nullptr;
+    if (!is_standard_string((*object).getType()) || !is_standard_string_view((*call).getType())) return nullptr;
+    return object;
+}
+
 // Looks through the implicit layers around a value: casts, temporaries,
 // full-expressions, parentheses, copies and same-family conversions.
 [[nodiscard]] const clang::Expr* strip_value(const clang::Expr* expression, const Stage stage) {
@@ -226,9 +244,31 @@ struct Destination final {
             expression = (*construction).getArg(0U);
             continue;
         }
+        const clang::Expr* const converted_object =
+            stage == Stage::v2_text_view ? standard_text_conversion_object(expression) : nullptr;
+        if (converted_object != nullptr) {
+            expression = converted_object;
+            continue;
+        }
         break;
     }
     return expression;
+}
+
+// A string literal, as written or behind the implicit construction that
+// makes it a std::string_view or std::string argument (`name == "gauge"`).
+[[nodiscard]] bool is_literal_text(const clang::Expr* expression) {
+    for (unsigned guard = 0U; guard < 16U && expression != nullptr; ++guard) {
+        const clang::Expr* const plain = (*(*expression).IgnoreImplicit()).IgnoreParens();
+        if (llvm::isa<clang::StringLiteral>(plain)) return true;
+        const clang::CXXConstructExpr* const construction = llvm::dyn_cast<clang::CXXConstructExpr>(plain);
+        if (construction == nullptr || llvm::isa<clang::CXXTemporaryObjectExpr>(construction) ||
+            (*construction).getNumArgs() == 0U) {
+            return false;
+        }
+        expression = (*construction).getArg(0U);
+    }
+    return false;
 }
 
 // The offset of a `const` keyword (and the blanks after it) that directly
@@ -333,6 +373,7 @@ public:
 
     void run() {
         TraverseDecl(context_.getTranslationUnitDecl());
+        if (plan_) apply_refusals();
     }
 
     [[nodiscard]] bool shouldVisitTemplateInstantiations() const { return false; }
@@ -1205,6 +1246,8 @@ private:
                 destination.value_type = (*owned).getTemplateArgs()[0].getAsType();
             }
         }
+        destination.candidate = stage_ == Stage::v2_text_view && match.family != Family::none &&
+            kind == EntityKind::parameter && !key.empty();
         if (destination.family == Family::none) destination.family = expression_family(type, stage_);
         destination.dependent = (*type).isDependentType();
         return destination;
@@ -1221,7 +1264,31 @@ private:
             destination.dependent = true;
         }
         destination.ambiguous_braces = has_sibling_overload(callee);
+        if (destination.candidate && !first_party_function(callee)) destination.candidate = false;
         return destination;
+    }
+
+    // Declared in a scoped first-party file, not by the standard library
+    // or a system header.
+    [[nodiscard]] bool first_party_function(const clang::FunctionDecl& function) {
+        if (is_standard_callee(&function)) return false;
+        const clang::SourceLocation location = function.getLocation();
+        if (location.isInvalid() || sources_.isInSystemHeader(location)) return false;
+        std::string relative;
+        if (!relative_path(sources_.getFileID(sources_.getFileLoc(location)), relative)) return false;
+        const bool result = in_scope(relative);
+        return result;
+    }
+
+    // The standard library's function or a member of its class.
+    [[nodiscard]] bool is_standard_callee(const clang::FunctionDecl* callee) const {
+        if (callee == nullptr) return false;
+        if ((*callee).isInStdNamespace()) return true;
+        const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(callee);
+        if (method != nullptr && (*(*method).getParent()).isInStdNamespace()) return true;
+        const clang::SourceLocation location = (*callee).getLocation();
+        const bool result = location.isValid() && sources_.isInSystemHeader(location);
+        return result;
     }
 
     [[nodiscard]] Destination destination_for_return(const clang::FunctionDecl& function) {
@@ -1237,6 +1304,12 @@ private:
         const clang::Expr* expression = (*source).IgnoreImplicit();
         while (llvm::isa<clang::ParenExpr>(expression)) {
             expression = (*llvm::cast<clang::ParenExpr>(expression)).getSubExpr();
+        }
+        // V2: a const std::string& made a view is the converted text itself.
+        const clang::Expr* const converted_object =
+            stage_ == Stage::v2_text_view ? standard_text_conversion_object(expression) : nullptr;
+        if (converted_object != nullptr) {
+            expression = (*(*converted_object).IgnoreImplicit()).IgnoreParens();
         }
         shape.expression = expression;
         if (llvm::isa<clang::ParenListExpr>(expression)) {
@@ -1388,6 +1461,7 @@ private:
             return;
         }
         if (plan_) {
+            if (stage_ == Stage::v2_text_view) plan_text_flow(*source, destination);
             const Denoted from = denoted(source);
             if (!from.found || !wants_edge(destination.key, from.key)) return;
             const bool strict = stage_ == Stage::v5_ownership || destination.key.compare(0U, 2U, "L:") == 0;
@@ -1527,6 +1601,19 @@ private:
                 wrap(span, "stxlib::OperationResult<stxlib::Utf8String>::success(", ")");
                 need(span.path, include_result);
             }
+            return;
+        }
+        // V2: an empty standard text spelled with its type (a default
+        // argument `= std::string_view()`) cannot initialise a TextView;
+        // the empty TextView needs no bridge, so headers take it too.
+        const bool empty_text = shape.kind == SourceKind::empty ||
+            (shape.kind == SourceKind::explicit_temporary && shape.inner == nullptr);
+        const std::string written = stage_ == Stage::v2_text_view && empty_text ? text_of(span) : std::string();
+        const bool spelled_empty = !written.empty() && written[0] != '{';
+        if (spelled_empty) {
+            if (!editable(span, where)) return;
+            replace_span(span, "stxlib::TextView()");
+            need(span.path, include_text_view);
             return;
         }
         if (shape.kind == SourceKind::empty) {
@@ -1899,8 +1986,134 @@ private:
         residue_at(where, "a converted value flows into " + target.getAsString());
     }
 
+    // -- V2 text boundaries -------------------------------------------------------
+    //
+    // V2 has no flow edges, so a converted parameter meets standard text at
+    // every site that still takes it. Outside include/ such a site goes
+    // through the private bridge. A public header cannot include the
+    // bridge, so the plan phase keeps the parameter standard instead of
+    // leaving a site that does not compile: its uses that would need the
+    // bridge refuse it (the refusal becomes the entity's ineligibility,
+    // reported by the closure), and a header flow between two candidate
+    // parameters ties them strictly, so they change together or not at all.
+
+    // The key of the candidate parameter `expression` names (a by-value
+    // std::string_view or const std::string& parameter, looked through
+    // copies and the std::string to view conversion), or empty.
+    [[nodiscard]] std::string text_candidate(const clang::Expr* expression) {
+        const clang::Expr* const plain = strip_value(expression, stage_);
+        const clang::DeclRefExpr* const reference = llvm::dyn_cast_or_null<clang::DeclRefExpr>(plain);
+        if (reference == nullptr) return std::string();
+        const clang::ParmVarDecl* const parameter = llvm::dyn_cast<clang::ParmVarDecl>((*reference).getDecl());
+        if (parameter == nullptr) return std::string();
+        const FamilyMatch match = match_family((*parameter).getType(), EntityKind::parameter, stage_, context_);
+        if (match.family == Family::none) return std::string();
+        const std::string result = parameter_key(parameter);
+        return result;
+    }
+
+    // True when a bridge can be written around `at`: its range maps to one
+    // scoped file outside include/. Otherwise `reason` says why not.
+    [[nodiscard]] bool bridge_site(const clang::Expr& at, std::string& reason) {
+        const Span span = span_of(&at);
+        if (!span.valid) {
+            reason = "inside a macro body";
+            return false;
+        }
+        if (!in_scope(span.path)) {
+            reason = "outside the rewrite scope";
+            return false;
+        }
+        if (!bridge_allowed(span.path)) {
+            reason = "in a public header (no bridge)";
+            return false;
+        }
+        return true;
+    }
+
+    [[nodiscard]] std::string location_text(const clang::SourceLocation location) {
+        if (location.isInvalid()) return std::string();
+        const clang::SourceLocation file_location = sources_.getFileLoc(location);
+        const std::pair<clang::FileID, unsigned> decomposed = sources_.getDecomposedLoc(file_location);
+        std::string relative;
+        if (!relative_path(decomposed.first, relative)) return std::string();
+        const unsigned line = sources_.getLineNumber(decomposed.first, decomposed.second);
+        const std::string result = relative + ":" + std::to_string(line);
+        return result;
+    }
+
+    // Keeps the entity `key` standard (plan) or reports the site (rewrite,
+    // where a refused entity is not converted and its uses are not seen,
+    // so this is only reached for a site the plan did not foresee).
+    // The smallest reason wins, so the result does not depend on order.
+    void refuse(const std::string& key, const clang::SourceLocation where, const std::string& reason) {
+        if (key.empty()) return;
+        if (!plan_) {
+            residue_at(where, reason);
+            return;
+        }
+        const std::string located = "V2: " + reason + " (" + location_text(where) + ")";
+        std::map<std::string, std::string>::iterator found = refusals_.find(key);
+        if (found == refusals_.end()) {
+            refusals_.emplace(key, located);
+            return;
+        }
+        if (located < (*found).second) (*found).second = located;
+    }
+
+    // The plan's refusals become the ineligibility of this unit's facts
+    // (the closure merges facts by key, so one refusing unit suffices).
+    void apply_refusals() {
+        for (EntityFact& fact : harvest_.entities) {
+            if (!fact.ineligible.empty()) continue;
+            std::map<std::string, std::string>::const_iterator found = refusals_.find(fact.key);
+            if (found != refusals_.end()) fact.ineligible = (*found).second;
+        }
+    }
+
+    // A V2 value flow seen by the plan. Outside include/ the rewrite
+    // bridges whatever the closure decides, except a template-dependent
+    // value or an unresolved destination, which it cannot rewrite.
+    void plan_text_flow(const clang::Expr& source, const Destination& destination) {
+        const std::string from = text_candidate(&source);
+        const clang::SourceLocation where = source.getBeginLoc();
+        if (!destination.known) {
+            refuse(from, where, "converted text passed where no parameter is declared (variadic or unresolved)");
+            return;
+        }
+        if (destination.candidate && source.isTypeDependent()) {
+            refuse(destination.key, where, "receives a template-dependent value");
+            return;
+        }
+        std::string reason;
+        if (bridge_site(source, reason)) return;
+        if (!from.empty()) {
+            if (destination.candidate) {
+                edge(destination.key, from, true, false);
+                return;
+            }
+            if (is_text_view(destination.type)) return;
+            refuse(from, where, "converted text flows into standard " + destination.type.getAsString() + " " + reason);
+            return;
+        }
+        if (!destination.candidate) return;
+        const SourceShape shape = classify(&source);
+        const bool needs_nothing = shape.kind == SourceKind::literal || shape.kind == SourceKind::text_view ||
+            shape.kind == SourceKind::empty ||
+            (shape.kind == SourceKind::explicit_temporary && shape.inner == nullptr) || is_literal_text(&source);
+        if (needs_nothing) return;
+        refuse(destination.key, where, "receives standard text " + reason);
+    }
+
     // -- uses -------------------------------------------------------------------
 
+    void text_use(const clang::Expr& expression, const Denoted& entity);
+    void text_member(const std::string& key, const clang::Expr& spelled, const clang::MemberExpr& member);
+    void text_operator(const std::string& key, const clang::Expr& node, const clang::Expr& spelled,
+                       const clang::CXXOperatorCallExpr& operation);
+    void text_equality(const std::string& key, const clang::Expr& spelled, const clang::Expr& other);
+    void text_cast(const std::string& key, const clang::Expr& spelled, const clang::CXXFunctionalCastExpr& cast);
+    void text_bridge(const std::string& key, const clang::Expr& spelled, bool copy, const char* what);
     void handle_use(const clang::Expr& expression, const Denoted& entity);
     void condition_use(const clang::DeclRefExpr& reference, const clang::VarDecl& variable);
     void use_member(const clang::Expr& top, const Denoted& entity, bool xvalue, const clang::MemberExpr& member);
@@ -1921,6 +2134,7 @@ private:
     llvm::Regex only_;
     std::map<unsigned, std::string> paths_;
     std::string group_;      // the site whose edits are being recorded (GroupScope)
+    std::map<std::string, std::string> refusals_;   // V2 plan: entity key -> why it stays standard
 };
 
 // -- declarations ----------------------------------------------------------------
@@ -1997,6 +2211,10 @@ bool Analysis::VisitVarDecl(clang::VarDecl* variable) {
     const bool entity_key = !local || options_.propagate_locals || deduced;
     Destination destination = destination_for((*variable).getType(), entity_key ? key : std::string(), kind);
     if (plan_ && deduced && local) {
+        // V2 converts no local: an auto local keeps the standard type its
+        // initialiser had, which the rewrite bridges (flow), or a public
+        // header refuses.
+        if (stage_ == Stage::v2_text_view) plan_text_flow(*(*variable).getInit(), destination);
         // An auto local takes its initialiser's type, so it changes with it.
         const Denoted from = denoted((*variable).getInit());
         if (from.found) edge(key, from.key, true, false);
@@ -2085,6 +2303,10 @@ bool Analysis::VisitCallExpr(clang::CallExpr* call) {
             const Denoted from = denoted((*call).getArg(index));
             if (from.found && is_converted(from.key)) {
                 residue_at((*(*call).getArg(index)).getBeginLoc(), "a converted value passed to an unresolved callee");
+            }
+            if (plan_ && stage_ == Stage::v2_text_view) {
+                refuse(text_candidate((*call).getArg(index)), (*(*call).getArg(index)).getBeginLoc(),
+                       "converted text passed to an unresolved callee");
             }
         }
         return true;
@@ -2228,6 +2450,10 @@ bool Analysis::VisitMemberExpr(clang::MemberExpr* member) {
 
 void Analysis::handle_use(const clang::Expr& expression, const Denoted& entity) {
     const GroupScope site(group_, site_label("use", expression.getBeginLoc()));
+    if (stage_ == Stage::v2_text_view) {
+        text_use(expression, entity);
+        return;
+    }
     const clang::Expr* top = &expression;
     bool xvalue = false;
     clang::DynTypedNode parent_node;
@@ -2357,6 +2583,340 @@ void Analysis::use_fallback(const clang::Expr& top, const Denoted& entity, const
         return;
     }
     residue_at(top.getBeginLoc(), std::string("a converted value used in a form with no rule (") + what + ")");
+}
+
+// -- V2 uses -------------------------------------------------------------------
+//
+// One use of a converted text parameter (only parameters convert in V2).
+// Every rule is decided the same way in both phases: the plan refuses the
+// parameter where the rewrite could not write the site (text_bridge), and
+// the rewrite writes it. Sites whose value flows somewhere (an argument,
+// an initialiser, a return) are flow()'s.
+void Analysis::text_use(const clang::Expr& expression, const Denoted& entity) {
+    if (plan_ && text_candidate(&expression).empty()) return;
+    const std::string& key = entity.key;
+    const clang::SourceLocation where = expression.getBeginLoc();
+    // `node` climbs the layers that keep the text as it is (implicit
+    // casts, temporaries, copies, the std::string to view conversion,
+    // std::move); `expression` stays the spelled name the bridge wraps.
+    const clang::Expr* node = &expression;
+    clang::DynTypedNode parent_node;
+    bool found = false;
+    for (unsigned guard = 0U; guard < 64U; ++guard) {
+        parent_node = parent_of(clang::DynTypedNode::create(*node), found);
+        if (!found) return;
+        const clang::Expr* const parent = parent_node.get<clang::Expr>();
+        if (parent == nullptr) break;
+        const bool layer = llvm::isa<clang::ImplicitCastExpr>(parent) || llvm::isa<clang::ParenExpr>(parent) ||
+            llvm::isa<clang::MaterializeTemporaryExpr>(parent) || llvm::isa<clang::CXXBindTemporaryExpr>(parent) ||
+            llvm::isa<clang::FullExpr>(parent);
+        // A conditional's branch: flow() bridges each branch on its own.
+        const bool branch = llvm::isa<clang::ConditionalOperator>(parent);
+        if (layer || branch) {
+            node = parent;
+            continue;
+        }
+        const clang::CXXConstructExpr* const copy = llvm::dyn_cast<clang::CXXConstructExpr>(parent);
+        if (copy != nullptr && is_transparent_construction(*copy, stage_)) {
+            node = parent;
+            continue;
+        }
+        const clang::MemberExpr* const conversion = llvm::dyn_cast<clang::MemberExpr>(parent);
+        if (conversion != nullptr && llvm::isa<clang::CXXConversionDecl>((*conversion).getMemberDecl())) {
+            bool call_found = false;
+            const clang::DynTypedNode call_node = parent_of(clang::DynTypedNode::create(*conversion), call_found);
+            const clang::CXXMemberCallExpr* const call = call_found ? call_node.get<clang::CXXMemberCallExpr>() : nullptr;
+            if (call == nullptr || standard_text_conversion_object(call) == nullptr) {
+                refuse(key, where, "a conversion of converted text with no counterpart");
+                return;
+            }
+            node = call;
+            continue;
+        }
+        const clang::CallExpr* const forwarding = llvm::dyn_cast<clang::CallExpr>(parent);
+        if (forwarding != nullptr && !llvm::isa<clang::CXXOperatorCallExpr>(forwarding) &&
+            (*forwarding).getNumArgs() == 1U && (*forwarding).getArg(0U) == node &&
+            (is_standard_entity((*forwarding).getDirectCallee(), "move") ||
+             is_standard_entity((*forwarding).getDirectCallee(), "forward"))) {
+            node = parent;
+            continue;
+        }
+        break;
+    }
+    const clang::Expr* const parent = parent_node.get<clang::Expr>();
+    if (parent == nullptr) {
+        // The range of a range-based for is held by an implicit variable.
+        const clang::VarDecl* const variable = parent_node.get<clang::VarDecl>();
+        const clang::Stmt* const statement = parent_node.get<clang::Stmt>();
+        const bool range = (variable != nullptr && (*variable).isImplicit()) ||
+            (statement != nullptr && llvm::isa<clang::CXXForRangeStmt>(statement));
+        if (range) text_bridge(key, expression, false, "iterated by a range-based for");
+        // Otherwise an initialiser, a return or a member initialiser: flows.
+        return;
+    }
+    const clang::MemberExpr* const member = llvm::dyn_cast<clang::MemberExpr>(parent);
+    if (member != nullptr) {
+        text_member(key, expression, *member);
+        return;
+    }
+    const clang::CXXOperatorCallExpr* const operation = llvm::dyn_cast<clang::CXXOperatorCallExpr>(parent);
+    if (operation != nullptr) {
+        text_operator(key, *node, expression, *operation);
+        return;
+    }
+    // A comparison C++20 rewrote (`a != b` through ==, `a < b` through
+    // <=>), when the parent map shows the written form.
+    const clang::CXXRewrittenBinaryOperator* const rewritten = llvm::dyn_cast<clang::CXXRewrittenBinaryOperator>(parent);
+    if (rewritten != nullptr) {
+        const clang::BinaryOperatorKind written = (*rewritten).getOperator();
+        if (written == clang::BO_EQ || written == clang::BO_NE) {
+            const clang::Expr* const left = (*rewritten).getLHS();
+            const clang::Expr* const other = left == node ? (*rewritten).getRHS() : left;
+            text_equality(key, expression, *other);
+            return;
+        }
+        text_bridge(key, expression, false, "compared by order");
+        return;
+    }
+    const clang::CXXConstructExpr* const construction = llvm::dyn_cast<clang::CXXConstructExpr>(parent);
+    if (construction != nullptr) {
+        // A record other than standard text takes the text as an argument
+        // (VisitCXXConstructExpr flows it); standard text made from it is
+        // written here: `std::string(name)` becomes the bridge's copy.
+        if (expression_family((*construction).getType(), stage_) == Family::none) return;
+        const clang::Expr* above = construction;
+        const clang::CXXFunctionalCastExpr* cast = nullptr;
+        for (unsigned guard = 0U; guard < 8U; ++guard) {
+            bool above_found = false;
+            const clang::DynTypedNode above_node = parent_of(clang::DynTypedNode::create(*above), above_found);
+            const clang::Expr* const next = above_found ? above_node.get<clang::Expr>() : nullptr;
+            if (next == nullptr) break;
+            cast = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(next);
+            if (cast != nullptr) break;
+            if (!llvm::isa<clang::CXXBindTemporaryExpr>(next) && !llvm::isa<clang::MaterializeTemporaryExpr>(next) &&
+                !llvm::isa<clang::ImplicitCastExpr>(next)) {
+                break;
+            }
+            above = next;
+        }
+        unsigned written_arguments = 0U;
+        for (unsigned index = 0U; index < (*construction).getNumArgs(); ++index) {
+            if (!llvm::isa<clang::CXXDefaultArgExpr>((*construction).getArg(index))) ++written_arguments;
+        }
+        if (cast != nullptr && written_arguments == 1U) {
+            text_cast(key, expression, *cast);
+            return;
+        }
+        text_bridge(key, expression, false, "made into standard text");
+        return;
+    }
+    const clang::CXXFunctionalCastExpr* const functional = llvm::dyn_cast<clang::CXXFunctionalCastExpr>(parent);
+    if (functional != nullptr) {
+        text_cast(key, expression, *functional);
+        return;
+    }
+    const clang::ExplicitCastExpr* const cast = llvm::dyn_cast<clang::ExplicitCastExpr>(parent);
+    if (cast != nullptr) {
+        if ((*(*cast).getType()).isVoidType()) return;
+        text_bridge(key, expression, is_standard_string((*cast).getType()), "cast");
+        return;
+    }
+    const clang::CallExpr* const call = llvm::dyn_cast<clang::CallExpr>(parent);
+    if (call != nullptr) {
+        const clang::FunctionDecl* const callee = (*call).getDirectCallee();
+        const bool factory = is_standard_entity(callee, "make_shared") || is_standard_entity(callee, "make_unique") ||
+            is_standard_entity(callee, "make_optional");
+        // A forwarding factory hides the constructor it calls; the flow
+        // cannot see whether that constructor's parameter converts.
+        if (factory) refuse(key, where, "converted text passed through a forwarding factory");
+        return;
+    }
+    // A lambda's capture copies the text as it is.
+    if (llvm::isa<clang::LambdaExpr>(parent)) return;
+    const clang::InitListExpr* const list = llvm::dyn_cast<clang::InitListExpr>(parent);
+    if (list != nullptr) {
+        // A first-party aggregate's fields are flows (VisitInitListExpr);
+        // an array's elements (an initializer_list's) read the bridge.
+        const clang::QualType listed = (*list).getType();
+        const clang::CXXRecordDecl* const record = (*listed).getAsCXXRecordDecl();
+        if (record != nullptr && !(*record).isInStdNamespace() && !(*record).isUnion()) return;
+        const clang::ArrayType* const array = context_.getAsArrayType(listed);
+        if (array == nullptr) {
+            refuse(key, where, "converted text in a braced list of a standard type");
+            return;
+        }
+        const clang::QualType element = (*array).getElementType();
+        if (is_text_view(element)) return;
+        text_bridge(key, expression, is_standard_string(element), "an element of a braced list");
+        return;
+    }
+    const clang::UnaryOperator* const unary = llvm::dyn_cast<clang::UnaryOperator>(parent);
+    if (unary != nullptr && (*unary).getOpcode() == clang::UO_AddrOf) {
+        refuse(key, where, "the address of converted text is taken");
+        return;
+    }
+    refuse(key, where, std::string("converted text in a form with no V2 rule (") + (*parent).getStmtClassName() + ")");
+}
+
+// A method of converted text. size and length are TextView's count;
+// empty and data are TextView's own. Any other std::string_view method
+// reads a standard view of the same bytes; a std::string method that
+// returns std::string reads a standard copy. c_str has no counterpart
+// (a TextView promises no terminating NUL), nor do std::string's
+// methods that a view lacks.
+void Analysis::text_member(const std::string& key, const clang::Expr& spelled, const clang::MemberExpr& member) {
+    const clang::SourceLocation where = spelled.getBeginLoc();
+    const clang::CXXMethodDecl* const method = llvm::dyn_cast<clang::CXXMethodDecl>(member.getMemberDecl());
+    if (method == nullptr || !(*method).getDeclName().isIdentifier()) {
+        refuse(key, where, "a member of converted text that is not a named method");
+        return;
+    }
+    bool found = false;
+    const clang::DynTypedNode call_node = parent_of(clang::DynTypedNode::create(member), found);
+    const clang::CXXMemberCallExpr* const call = found ? call_node.get<clang::CXXMemberCallExpr>() : nullptr;
+    if (call == nullptr) {
+        refuse(key, where, "a method of converted text named without a call");
+        return;
+    }
+    const llvm::StringRef name = (*method).getName();
+    if (name == "empty" || name == "data") return;
+    if (name == "size" || name == "length") {
+        const Span name_token = token_span(member.getMemberLoc());
+        const Span object = span_of(&spelled);
+        if (!name_token.valid || !object.valid || name_token.path != object.path || !in_scope(name_token.path)) {
+            refuse(key, where, "a size of converted text spelled through a macro");
+            return;
+        }
+        if (plan_) return;
+        replace_span(name_token, "count");
+        return;
+    }
+    if (name == "c_str") {
+        refuse(key, where, "c_str() of converted text: stxlib::TextView promises no terminating NUL");
+        return;
+    }
+    const bool from_string = (*(*method).getParent()).getName() == "basic_string";
+    static const char* const view_methods[] = {
+        "substr", "find", "rfind", "find_first_of", "find_last_of", "find_first_not_of", "find_last_not_of",
+        "starts_with", "ends_with", "contains", "compare", "front", "back", "at", "begin", "end", "cbegin",
+        "cend", "rbegin", "rend", "crbegin", "crend", "copy", "max_size",
+    };
+    bool viewable = false;
+    for (const char* const view_method : view_methods) {
+        if (name == view_method) viewable = true;
+    }
+    if (from_string && !viewable) {
+        refuse(key, where, "std::string::" + name.str() + " of converted text has no std::string_view counterpart");
+        return;
+    }
+    const bool copy = from_string && is_standard_string((*call).getType());
+    text_bridge(key, spelled, copy, "calls a standard text method");
+}
+
+// Converted text as an operand of an operator. A first-party operator's
+// operands flow (VisitCallExpr). Of the standard operators, == and !=
+// need nothing against literals, TextViews and converted text; ordering
+// and the rest read a standard view, or a standard copy where the
+// operator takes std::string (operator+). An assignment to the text
+// itself has no counterpart; an assignment from it is a flow.
+void Analysis::text_operator(const std::string& key, const clang::Expr& node, const clang::Expr& spelled,
+                             const clang::CXXOperatorCallExpr& operation) {
+    const clang::SourceLocation where = spelled.getBeginLoc();
+    const clang::FunctionDecl* const callee = operation.getDirectCallee();
+    if (callee != nullptr && !is_standard_callee(callee)) return;
+    unsigned index = operation.getNumArgs();
+    for (unsigned position = 0U; position < operation.getNumArgs(); ++position) {
+        if (operation.getArg(position) == &node) index = position;
+    }
+    if (index == operation.getNumArgs()) {
+        refuse(key, where, "converted text inside an operator expression with no V2 rule");
+        return;
+    }
+    const clang::OverloadedOperatorKind kind = operation.getOperator();
+    if (kind == clang::OO_Equal) {
+        if (index == 0U) refuse(key, where, "converted text is assigned to");
+        return;
+    }
+    if ((kind == clang::OO_EqualEqual || kind == clang::OO_ExclaimEqual) && operation.getNumArgs() == 2U) {
+        text_equality(key, spelled, *operation.getArg(index == 0U ? 1U : 0U));
+        return;
+    }
+    const bool ordering = kind == clang::OO_Less || kind == clang::OO_Greater || kind == clang::OO_LessEqual ||
+        kind == clang::OO_GreaterEqual || kind == clang::OO_Spaceship;
+    if (ordering) {
+        // stxlib's vocabulary has no ordering; the standard view orders the
+        // same bytes. Each converted side wraps itself.
+        text_bridge(key, spelled, false, "compared by order");
+        return;
+    }
+    bool copy = false;
+    const clang::CXXMethodDecl* const method = llvm::dyn_cast_or_null<clang::CXXMethodDecl>(callee);
+    const bool member_operator = method != nullptr && !(*method).isStatic();
+    if (callee != nullptr && !(member_operator && index == 0U)) {
+        const unsigned parameter = member_operator ? index - 1U : index;
+        if (parameter < (*callee).getNumParams()) {
+            copy = is_standard_string((*(*callee).getParamDecl(parameter)).getType());
+        }
+    }
+    text_bridge(key, spelled, copy, "an operand of a standard operator");
+}
+
+// Converted text compared for equality. A literal or a TextView compares
+// with a TextView as it is. Another candidate parameter: in a public
+// header the two are tied (both convert or neither); elsewhere the
+// rewrite looks at whether the other side converted.
+void Analysis::text_equality(const std::string& key, const clang::Expr& spelled, const clang::Expr& other) {
+    if (is_literal_text(&other)) return;
+    const clang::Expr* const other_plain = strip_value(&other, stage_);
+    if (other_plain != nullptr && is_text_view((*other_plain).getType())) return;
+    const std::string other_key = text_candidate(&other);
+    if (!other_key.empty()) {
+        std::string reason;
+        const bool bridged = bridge_site(spelled, reason);
+        if (plan_) {
+            if (!bridged) edge(key, other_key, true, false);
+            return;
+        }
+        if (is_converted(other_key)) return;
+    }
+    text_bridge(key, spelled, false, "compared with standard text");
+}
+
+// Converted text cast to standard text. `std::string(name)` (one
+// argument, parenthesised) becomes the bridge's copy,
+// `gui_forms::platform::standard_text_copy(name)`; any other functional
+// cast reads a standard view inside the cast.
+void Analysis::text_cast(const std::string& key, const clang::Expr& spelled, const clang::CXXFunctionalCastExpr& cast) {
+    const Span whole = span_of(&cast);
+    const Span opening = token_span(cast.getLParenLoc());
+    const bool replaceable = is_standard_string(cast.getType()) && cast.getLParenLoc().isValid() && whole.valid &&
+        opening.valid && opening.path == whole.path && opening.begin >= whole.begin;
+    if (!replaceable) {
+        text_bridge(key, spelled, false, "cast to standard text");
+        return;
+    }
+    std::string reason;
+    if (!bridge_site(cast, reason)) {
+        refuse(key, spelled.getBeginLoc(), "converted text cast to std::string " + reason);
+        return;
+    }
+    if (plan_) return;
+    replace_bytes(whole, whole.begin, opening.end, "gui_forms::platform::standard_text_copy(");
+    need(whole.path, include_bridge);
+}
+
+// Wraps the spelled text in the bridge's standard view (or copy), or,
+// where the bridge cannot be written, refuses the parameter.
+void Analysis::text_bridge(const std::string& key, const clang::Expr& spelled, const bool copy, const char* what) {
+    std::string reason;
+    if (!bridge_site(spelled, reason)) {
+        refuse(key, spelled.getBeginLoc(), std::string("converted text ") + what + " " + reason);
+        return;
+    }
+    if (plan_) return;
+    const Span span = span_of(&spelled);
+    wrap(span, copy ? "gui_forms::platform::standard_text_copy(" : "gui_forms::platform::standard_text(", ")");
+    need(span.path, include_bridge);
 }
 
 void Analysis::use_conversion(const clang::Expr& top, const clang::MemberExpr& member) {
