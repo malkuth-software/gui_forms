@@ -90,7 +90,8 @@ struct GUI_FORMS_API DrawingReplayOptions final {
 // Left out (counted unsupported): clear (the control paints its own
 // background), draw_string (FontSnapshot to FontSpec waits for the font
 // identity work), images (their pixels have no image identity in a
-// painter), texture brushes without a display scale, a path with an element outside the enumeration,
+// painter), shaded triangles (fill_triangles: the Painter has no
+// per-corner shading), texture brushes without a display scale, a path with an element outside the enumeration,
 // and any command whose custom dash pattern does not fit a StrokeStyle.
 //
 // Reads `commands` during the call only; allocates scratch storage once

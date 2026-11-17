@@ -1081,6 +1081,33 @@ typedef struct gd_api_v0 {
      * GD_ERROR_INVALID_ARGUMENT and changes nothing.
      */
     gd_result (*pen_set_trim)(gd_handle pen, double start, double end, double offset);
+    /*
+     * ABI 1.1, provisional (the number is a placeholder the integrator
+     * assigns in fold order; this slot may still move until it is fixed):
+     * shaded triangles (owner, 2026-11-17), GraphicsRecorder::
+     * fill_triangles in C++.
+     *
+     * count points, three corners per triangle, and one colour per corner
+     * in colors[i] for points[i]: count a multiple of 3, 3 through 999,999,
+     * every point finite. Records one fill_triangles command. A triangle's
+     * colour is its corners' colours weighted by barycentric coordinates,
+     * interpolated premultiplied in linear light (alpha as it is), so a
+     * corner draws its own colour exactly. Corners are rounded to 1/16
+     * device pixel; a sample on an edge belongs to the triangle for which
+     * the edge is a top or left edge, so triangles sharing an edge leave no
+     * gap and no double coverage, and where triangles of one call overlap
+     * the later one wins. Each pixel is drawn once per call: one sample at
+     * its centre with smoothing none or high speed, else 4 by 4 samples,
+     * its colour their linear-light mean and its coverage the share
+     * covered. The transform and clip in force apply as for every
+     * command (the clip cuts whole pixels). A count of 0 or not a multiple
+     * of 3 fails GD_ERROR_INVALID_ARGUMENT, more than 1,000,000 points
+     * GD_ERROR_LIMIT_EXCEEDED, a closed recorder GD_ERROR_INVALID_STATE; a
+     * refusal records nothing. At execution a corner farther than
+     * 8,388,608 device pixels from the origin fails GD_ERROR_LIMIT_EXCEEDED.
+     */
+    gd_result (*recorder_fill_triangles)(gd_handle recorder, const gd_point* points,
+                                         const gd_color* colors, uint64_t count);
 } gd_api_v0;
 
 /*

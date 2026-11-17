@@ -669,6 +669,35 @@ static int trace_has(const gd_api_v0* api, gd_handle recorder, const char* needl
     return found;
 }
 
+/* ABI 1.1, provisional: shaded triangles. Malformed lists are refused and
+   record nothing; a whole list records one fill_triangles command whose
+   points and colours trace as given; a closed recorder refuses. */
+static int check_shaded_triangles(const gd_api_v0* api) {
+    gd_handle recorder = {0};
+    uint64_t count = 0;
+    const gd_point quad[6] = {{0, 0}, {10, 0}, {10, 10}, {0, 0}, {10, 10}, {0, 10}};
+    const gd_color colors[6] = {{UINT32_C(0xffff0000), 0}, {UINT32_C(0xff00ff00), 0}, {UINT32_C(0xff0000ff), 0},
+                                {UINT32_C(0xffff0000), 0}, {UINT32_C(0xff0000ff), 0}, {0, 1}};
+    gd_point broken[3] = {{0, 0}, {10, 0}, {10, 10}};
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).recorder_fill_triangles(recorder, quad, colors, 4) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_triangles(recorder, quad, colors, 0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_triangles(recorder, NULL, colors, 3) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_triangles(recorder, quad, NULL, 3) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_triangles(recorder, quad, colors, UINT64_C(1000002)) == GD_ERROR_LIMIT_EXCEEDED);
+    broken[1].x = NAN;
+    CHECK((*api).recorder_fill_triangles(recorder, broken, colors, 3) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 0U);
+    CHECK((*api).recorder_fill_triangles(recorder, quad, colors, 6) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 1U);
+    CHECK(trace_has(api, recorder, "0|fill_triangles|points=0,0;10,0;10,10;0,0;10,10;0,10|"));
+    CHECK((*api).recorder_close(recorder) == GD_OK);
+    CHECK((*api).recorder_fill_triangles(recorder, quad, colors, 6) == GD_ERROR_INVALID_STATE);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 1U);
+    CHECK((*api).release(recorder) == GD_OK);
+    return 0;
+}
+
 /* ABI 0.5 and the clip rules (the flame graph demonstrator's D2 to D5):
    text in a box, batched strings, reset for reuse, closed recorders refuse,
    and set_clip replaces the clip in force, in target coordinates, restored
@@ -928,10 +957,15 @@ int main(void) {
               sizeof(api.last_error) == 5U);
     CHECK(offsetof(gd_api_v0, radial_gradient_brush_set_radii) ==
           offsetof(gd_api_v0, radial_gradient_brush_set_focus) + sizeof(api.radial_gradient_brush_set_focus));
-    /* Then the pen's trim (claude/geometry-1), which ends the table. */
+    /* Then the pen's trim (claude/geometry-1). */
     CHECK(offsetof(gd_api_v0, pen_set_trim) ==
           offsetof(gd_api_v0, radial_gradient_brush_set_radii) + sizeof(api.radial_gradient_brush_set_radii));
-    CHECK(sizeof(gd_api_v0) == offsetof(gd_api_v0, pen_set_trim) + sizeof(api.pen_set_trim));
+    /* Then the shaded triangles (claude/gd-shaded-triangles), which end the
+       table; the integrator fixes the version and slot in fold order. */
+    CHECK(offsetof(gd_api_v0, recorder_fill_triangles) ==
+          offsetof(gd_api_v0, pen_set_trim) + sizeof(api.pen_set_trim));
+    CHECK(sizeof(gd_api_v0) ==
+          offsetof(gd_api_v0, recorder_fill_triangles) + sizeof(api.recorder_fill_triangles));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
@@ -944,6 +978,7 @@ int main(void) {
     CHECK(api.radial_gradient_brush_set_focus != NULL);
     CHECK(api.radial_gradient_brush_set_radii != NULL);
     CHECK(api.pen_set_trim != NULL);
+    CHECK(api.recorder_fill_triangles != NULL);
     CHECK(gd_get_api_v0(UINT32_C(0x00010002), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     memset(&api, 0, sizeof(api));
@@ -1242,6 +1277,7 @@ int main(void) {
     CHECK(check_path_flattening(&api) == 0);
     CHECK(check_texture_and_radial_brushes(&api) == 0);
     CHECK(check_pen_trim(&api) == 0);
+    CHECK(check_shaded_triangles(&api) == 0);
     CHECK(check_rotated_text(&api) == 0);
     CHECK(check_seal_errors(&api) == 0);
     CHECK(check_handle_staleness(&api) == 0);

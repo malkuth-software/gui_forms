@@ -1003,6 +1003,64 @@ void flattened_paths_stay_within_tolerance_in_caller_storage() {
     CHECK(huge.flatten(1e-9, points, figures).status == PathFlatteningStatus::limit_exceeded);
 }
 
+// Shaded triangles (owner, 2026-11-17): a malformed list is refused by its
+// status and records nothing; a whole list records one command whose
+// points and colours trace and frame exactly.
+void shaded_triangles_refuse_malformed_lists_and_trace() {
+    GraphicsRecorder recorder;
+    const PointF quad[] = {{0, 0}, {10, 0}, {10, 10}, {0, 0}, {10, 10}, {0, 10}};
+    const Color corners[] = {Color::from_argb(0xffff0000U), Color::from_argb(0xff00ff00U),
+                             Color::from_argb(0xff0000ffU), Color::from_argb(0xffff0000U),
+                             Color::from_argb(0xff0000ffU), Color::from_argb(0x80000000U)};
+    const std::string before = recorder.deterministic_trace();
+    // Counts that differ, that are not whole triangles, or none at all.
+    CHECK(recorder.fill_triangles(std::span<const PointF>(quad, 6U), std::span<const Color>(corners, 5U)) ==
+          TriangleFillStatus::count_mismatch);
+    CHECK(recorder.fill_triangles(std::span<const PointF>(quad, 4U), std::span<const Color>(corners, 4U)) ==
+          TriangleFillStatus::not_whole_triangles);
+    CHECK(recorder.fill_triangles(std::span<const PointF>(), std::span<const Color>()) ==
+          TriangleFillStatus::not_whole_triangles);
+    // A point that is not finite, anywhere in the list.
+    const PointF broken[] = {{0, 0}, {10, 0}, {10, 10},
+                             {0, 0}, {std::numeric_limits<double>::quiet_NaN(), 10}, {0, 10}};
+    CHECK(recorder.fill_triangles(broken, corners) == TriangleFillStatus::non_finite_point);
+    const PointF far[] = {{0, 0}, {std::numeric_limits<double>::infinity(), 0}, {10, 10}};
+    CHECK(recorder.fill_triangles(far, std::span<const Color>(corners, 3U)) == TriangleFillStatus::non_finite_point);
+    // More points than a batch holds.
+    const std::vector<PointF> many(GraphicsRecorder::maximum_batch_elements + 2U, PointF{1, 1});
+    const std::vector<Color> many_colors(many.size(), Color::from_argb(0xff000000U));
+    CHECK(recorder.fill_triangles(many, many_colors) == TriangleFillStatus::too_many_points);
+    CHECK(recorder.commands().empty());
+    CHECK(recorder.deterministic_trace() == before);
+
+    // A whole list: one command, the corners and colours as given.
+    recorder.translate(5, 5);
+    CHECK(recorder.fill_triangles(quad, corners) == TriangleFillStatus::recorded);
+    CHECK(recorder.commands().size() == 2U);
+    const DrawingCommand& shaded = recorder.commands()[1];
+    CHECK(shaded.kind == CommandKind::fill_triangles);
+    CHECK(shaded.points.size() == 6U && shaded.colors.size() == 6U);
+    CHECK(shaded.points[2] == (PointF{10, 10}));
+    CHECK(shaded.colors[5] == Color::from_argb(0x80000000U));
+    CHECK(shaded.state.transform == Matrix::translation(5, 5));
+    const std::string trace = recorder.deterministic_trace();
+    CHECK(trace_has(trace, "1|fill_triangles|points=0,0;10,0;10,10;0,0;10,10;0,10|"
+                           "colors=ffff0000;ff00ff00;ff0000ff;ffff0000;ff0000ff;80000000|"));
+
+    // Framing keeps the triangles and their colours; only the state is
+    // scaled and clipped.
+    GraphicsRecorder framed;
+    recorder.frame_into(framed, 2.0, RectF{0, 0, 64, 64});
+    CHECK(framed.commands().size() == 2U);
+    CHECK(framed.commands()[1].points == shaded.points);
+    CHECK(framed.commands()[1].colors == shaded.colors);
+
+    // A closed recorder refuses by its status too.
+    recorder.close();
+    CHECK(recorder.fill_triangles(quad, corners) == TriangleFillStatus::closed);
+    CHECK(recorder.commands().size() == 2U);
+}
+
 } // namespace
 
 int main() {
@@ -1015,6 +1073,7 @@ int main() {
     batched_marks_record_one_command_each();
     pen_trims_are_checked_and_traced();
     gapped_marks_record_runs();
+    shaded_triangles_refuse_malformed_lists_and_trace();
     primitive_brushes_contrast_and_text_over_fill();
     bitmap_storage_and_leases_are_generation_safe();
     bounded_bitmap_edits_publish_local_damage_and_cancel_atomically();

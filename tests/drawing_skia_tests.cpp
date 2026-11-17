@@ -1,5 +1,7 @@
 #include "drawing_skia.hpp"
 #include "image/png_test_files.hpp"
+#include "gui_forms/drawing/recorder_raster/recorder_raster.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 #if defined(__APPLE__)
 #include "core_text_font_bytes.hpp"
 #endif
@@ -1007,6 +1009,185 @@ void bundled_faces_come_from_the_pack() {
     CHECK(checksum(packed.snapshot()) != checksum(blank.snapshot()));
 }
 
+// Shaded triangles (owner, 2026-11-17; GraphicsRecorder::fill_triangles).
+
+// The recorder's quality with `smoothing` and source-over compositing.
+void set_triangle_smoothing(GraphicsRecorder& recorder, SmoothingMode smoothing) {
+    recorder.set_quality(smoothing, InterpolationMode::default_mode, PixelOffsetMode::default_mode,
+                         CompositingMode::source_over, CompositingQuality::default_mode);
+}
+
+// The linear-light blend interpolate_linear_light gives `weight` of the way
+// from `from` to `to`, as a drawing colour.
+Color linear_light_mix(Color from, Color to, std::uint32_t weight) {
+    const gui_forms::Color first{from.red(), from.green(), from.blue(), from.alpha()};
+    const gui_forms::Color second{to.red(), to.green(), to.blue(), to.alpha()};
+    const gui_forms::Color mixed = gui_forms::interpolate_linear_light(first, second, weight);
+    return Color::from_argb(mixed.alpha, mixed.red, mixed.green, mixed.blue);
+}
+
+// One triangle drawn with hard edges on white, its corners at pixel
+// centres, into a 64 by 64 bitmap.
+std::uint64_t draw_hard_triangle(SkiaExecutor& executor, std::span<const PointF> points,
+                                 std::span<const Color> colors, Bitmap& target) {
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    set_triangle_smoothing(recorder, SmoothingMode::none);
+    CHECK(recorder.fill_triangles(points, colors) == TriangleFillStatus::recorded);
+    const RasterResult drawn = executor.execute(recorder, target);
+    CHECK(drawn && drawn.commands_executed == 3U);
+    return checksum(target.snapshot());
+}
+
+// A corner's pixel is the corner's colour exactly, an edge's midpoint the
+// two corners' linear-light midpoint, whatever order or orientation the
+// corners are given in.
+void shaded_triangle_corners_and_midpoints_are_exact() {
+    SkiaExecutor executor;
+    const Color black = Color::from_argb(0xff000000U);
+    const Color white = Color::from_argb(0xffffffffU);
+    const Color red = Color::from_argb(0xffff0000U);
+    // The top-left corner sits on a top edge and a left edge, so its
+    // sample (the pixel centre) belongs to the triangle.
+    const PointF points[] = {{10.5, 10.5}, {40.5, 10.5}, {10.5, 40.5}};
+    const Color colors[] = {black, white, red};
+    Bitmap first(64, 64);
+    const std::uint64_t drawn = draw_hard_triangle(executor, points, colors, first);
+    CHECK(first.get_pixel(10, 10) == black);
+    const Color top_middle = linear_light_mix(black, white, gui_forms::linear_light_weight_one / 2U);
+    const Color left_middle = linear_light_mix(black, red, gui_forms::linear_light_weight_one / 2U);
+    CHECK(first.get_pixel(25, 10) == top_middle);
+    CHECK(first.get_pixel(10, 25) == left_middle);
+    // Linear light's midpoint of black and white is sRGB 188, not 128.
+    CHECK(top_middle.red() >= 186U && top_middle.red() <= 190U);
+    // Next to the other corners, nearly their colours.
+    const Color near_white = first.get_pixel(38, 11);
+    CHECK(near_white.red() > 220U && near_white.green() > 220U && near_white.blue() > 220U);
+    const Color near_red = first.get_pixel(11, 38);
+    CHECK(near_red.red() > 220U && near_red.green() < 80U && near_red.blue() < 80U);
+
+    // The same triangle rotated in the list, and turned the other way.
+    const PointF rotated[] = {{40.5, 10.5}, {10.5, 40.5}, {10.5, 10.5}};
+    const Color rotated_colors[] = {white, red, black};
+    Bitmap second(64, 64);
+    CHECK(draw_hard_triangle(executor, rotated, rotated_colors, second) == drawn);
+    const PointF reversed[] = {{10.5, 10.5}, {10.5, 40.5}, {40.5, 10.5}};
+    const Color reversed_colors[] = {black, red, white};
+    Bitmap third(64, 64);
+    CHECK(draw_hard_triangle(executor, reversed, reversed_colors, third) == drawn);
+
+    // A triangle whose corners lie on one line draws nothing.
+    const PointF flat[] = {{10.5, 10.5}, {20.5, 20.5}, {30.5, 30.5}};
+    Bitmap fourth(64, 64);
+    draw_hard_triangle(executor, flat, colors, fourth);
+    CHECK(fourth.get_pixel(20, 20) == white);
+}
+
+// A quad of two triangles in one translucent colour fills uniformly: no
+// gap and no double coverage along the shared diagonal, with hard edges and
+// with 16 samples a pixel.
+void shaded_triangles_share_edges_without_seams() {
+    SkiaExecutor executor;
+    const Color tint = Color::from_argb(0x803366ccU);
+    const PointF a{10.3, 10.7};
+    const PointF b{50.2, 10.1};
+    const PointF c{50.6, 39.6};
+    const PointF d{10.1, 40.4};
+    const PointF quad[] = {a, b, c, a, c, d};
+    const std::vector<Color> colors(6U, tint);
+    const SmoothingMode modes[] = {SmoothingMode::none, SmoothingMode::anti_alias};
+    for (const SmoothingMode mode : modes) {
+        Bitmap target(64, 64);
+        GraphicsRecorder recorder;
+        recorder.clear(Color::from_name("white"));
+        set_triangle_smoothing(recorder, mode);
+        CHECK(recorder.fill_triangles(quad, colors) == TriangleFillStatus::recorded);
+        CHECK(executor.execute(recorder, target));
+        // (30, 25) lies on the diagonal from a to c.
+        const Color reference = target.get_pixel(30, 25);
+        CHECK(!(reference == Color::from_argb(0xffffffffU)));
+        CHECK(reference.alpha() == 255U && reference.blue() > reference.red());
+        for (std::uint32_t y = 12U; y <= 38U; ++y) {
+            for (std::uint32_t x = 12U; x <= 48U; ++x) CHECK(target.get_pixel(x, y) == reference);
+        }
+        // Outside the quad the target is as it was.
+        CHECK(target.get_pixel(5, 5) == Color::from_argb(0xffffffffU));
+        CHECK(target.get_pixel(55, 45) == Color::from_argb(0xffffffffU));
+    }
+}
+
+// The clip in force cuts whole pixels and the transform moves the corners.
+void shaded_triangles_follow_clip_and_transform() {
+    SkiaExecutor executor;
+    const Color white = Color::from_argb(0xffffffffU);
+    const Color blue = Color::from_argb(0xff0000ffU);
+    const PointF cover[] = {{-100, -100}, {200, -100}, {-100, 200}};
+    const Color blues[] = {blue, blue, blue};
+    Bitmap clipped(32, 32);
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    recorder.set_clip({8, 8, 10, 10});
+    CHECK(recorder.fill_triangles(cover, blues) == TriangleFillStatus::recorded);
+    CHECK(executor.execute(recorder, clipped));
+    CHECK(clipped.get_pixel(8, 8) == blue && clipped.get_pixel(17, 17) == blue);
+    CHECK(clipped.get_pixel(7, 8) == white && clipped.get_pixel(18, 8) == white);
+    CHECK(clipped.get_pixel(8, 7) == white && clipped.get_pixel(8, 18) == white);
+
+    Bitmap moved(32, 32);
+    GraphicsRecorder translated;
+    translated.clear(Color::from_name("white"));
+    set_triangle_smoothing(translated, SmoothingMode::none);
+    translated.translate(10, 10);
+    const PointF small[] = {{0.5, 0.5}, {10.5, 0.5}, {0.5, 10.5}};
+    CHECK(translated.fill_triangles(small, blues) == TriangleFillStatus::recorded);
+    CHECK(executor.execute(translated, moved));
+    CHECK(moved.get_pixel(10, 10) == blue && moved.get_pixel(12, 12) == blue);
+    CHECK(moved.get_pixel(5, 5) == white && moved.get_pixel(0, 0) == white);
+}
+
+// A recording replays to the same bytes: drawn again, through
+// execute_recorder, and framed at scale 1 into another recorder. A corner
+// beyond the coordinate limit refuses the command and leaves an owned
+// target as it was.
+void shaded_triangles_replay_exactly() {
+    SkiaExecutor executor;
+    const PointF points[] = {{4.2, 3.7}, {58.9, 8.1}, {30.4, 55.3}, {4.2, 3.7}, {30.4, 55.3}, {2.0, 60.5},
+                             {20.0, 20.0}, {44.0, 24.0}, {28.0, 40.0}};
+    const Color colors[] = {Color::from_argb(0xffd04020U), Color::from_argb(0xff20a0d0U),
+                            Color::from_argb(0xc0f0e030U), Color::from_argb(0xffd04020U),
+                            Color::from_argb(0xc0f0e030U), Color::from_argb(0x40102030U),
+                            Color::from_argb(0xff00ff00U), Color::from_argb(0xffff00ffU),
+                            Color::empty()};
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    CHECK(recorder.fill_triangles(points, colors) == TriangleFillStatus::recorded);
+    Bitmap first(64, 64);
+    Bitmap second(64, 64);
+    CHECK(executor.execute(recorder, first));
+    CHECK(executor.execute(recorder, second));
+    const std::uint64_t drawn = checksum(first.snapshot());
+    CHECK(checksum(second.snapshot()) == drawn);
+    Bitmap through_seam(64, 64);
+    const RecorderRasterResult seam = execute_recorder(recorder, through_seam, 0U);
+    CHECK(seam.status == RecorderRasterStatus::executed && seam.commands_executed == 2U);
+    CHECK(checksum(through_seam.snapshot()) == drawn);
+    GraphicsRecorder framed;
+    recorder.frame_into(framed, 1.0, RectF{0, 0, 64, 64});
+    Bitmap from_frame(64, 64);
+    CHECK(executor.execute(framed, from_frame));
+    CHECK(checksum(from_frame.snapshot()) == drawn);
+
+    GraphicsRecorder too_far;
+    too_far.clear(Color::from_name("white"));
+    const PointF beyond[] = {{0, 0}, {1.0e7, 0}, {0, 10}};
+    CHECK(too_far.fill_triangles(beyond, std::span<const Color>(colors, 3U)) == TriangleFillStatus::recorded);
+    Bitmap untouched(64, 64);
+    const std::uint64_t blank = checksum(untouched.snapshot());
+    const RasterResult refused = executor.execute(too_far, untouched);
+    CHECK(refused.error == RasterError::dimension_limit_exceeded && refused.commands_executed == 1U);
+    CHECK(checksum(untouched.snapshot()) == blank);
+}
+
 int main() {
     command_execution_and_png_round_trip();
     bundled_faces_come_from_the_pack();
@@ -1022,6 +1203,10 @@ int main() {
     state_is_set_only_where_it_changes();
     opaque_image_draws_as_row_copy();
     batched_marks_brushes_grid_and_proportion_rasterize();
+    shaded_triangle_corners_and_midpoints_are_exact();
+    shaded_triangles_share_edges_without_seams();
+    shaded_triangles_follow_clip_and_transform();
+    shaded_triangles_replay_exactly();
     text_over_fill_splits_at_the_fill_edge();
     connected_line_figures_fill_as_one_contour();
     quadratic_bezier_polygon_and_pie_paths_rasterize();

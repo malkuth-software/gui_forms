@@ -353,6 +353,7 @@
 #pragma pop_macro("recorder_reset")
 #pragma pop_macro("recorder_paint_target")
 #pragma pop_macro("recorder_is_visible")
+#pragma pop_macro("recorder_fill_triangles")
 #pragma pop_macro("recorder_fill_rectangles_each")
 #pragma pop_macro("recorder_fill_rectangles")
 #pragma pop_macro("recorder_fill_rectangle")

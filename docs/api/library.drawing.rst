@@ -1173,6 +1173,10 @@ Types
 
       Default: ``{FillDirection::left_to_right}``.
 
+   .. cpp:member:: std::vector<Color> colors
+
+      fill_triangles: one colour per point in ``points``, three points (and three colours) per triangle.
+
    .. cpp:member:: bool laid_out
 
       draw_string: true when the text is laid out in ``rect`` (draw_string_in_rect) rather than placed at ``first``.
@@ -1708,6 +1712,10 @@ Types
    .. cpp:function:: void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors)
 
       Each of 1 or more finite rectangles filled in its own colour (the Painter's fill_rects_each): ``colors`` holds one per rectangle. Each run of consecutive equal colours records one fill_rectangles with a solid brush of that colour.
+
+   .. cpp:function:: TriangleFillStatus fill_triangles(std::span<const PointF> points, std::span<const Color> colors)
+
+      Shaded triangles (Gouraud shading; owner, 2026-11-17, for facets shaded per corner). ``points`` holds three corners per triangle and ``colors`` one colour per corner, in the same order: the same count, a multiple of three, 3 through maximum_batch_elements (333,333 triangles), every point finite. The whole input is checked first; a refusal is reported by its status and records nothing. A disposed recorder throws std::logic_error, as every recording call does. Records one fill_triangles command with the state in force. The raster's rules (execute_recorder, recorder_execute): - Colour: inside a triangle the colour is its corners' colours weighted by the point's barycentric coordinates, interpolated premultiplied in linear light as every GUI.Drawing gradient is (gui_forms/types/linear_light/linear_light.hpp), alpha as it is. A point on an edge is the two corners' linear-light blend, and a corner is its own colour exactly. An empty colour is transparent. - Coverage and seams: the corners are taken to device pixels through the command's transform and rounded to 1/16 pixel. A sample belongs to a triangle when it lies inside it, or on an edge that is a top edge (horizontal, the interior below) or a left edge; so triangles sharing an edge (the same two corners) cover each sample along it exactly once, with no gap. Where triangles of one command overlap, a sample takes the later triangle. Each pixel is then drawn once per command: its colour the linear-light mean of its samples', its coverage the share of its samples covered. With the smoothing mode none or high_speed a pixel has one sample, at its centre (hard edges); otherwise 16, on a 4 by 4 grid. So a quad of two triangles in one colour fills uniformly, the diagonal included, translucent or not. - Compositing: the pixel's colour, at its coverage, over the target (source_over), or replacing the target in proportion to its coverage (source_copy), in sRGB-encoded premultiplied bytes as the other commands composite. - Clip: the clip in force cuts whole pixels, those whose centres lie inside it, as the other commands' clip does. - Limits: a corner farther than 8,388,608 device pixels from the origin after the transform refuses the command (limit exceeded); a triangle whose corners lie on one line draws nothing.
 
    .. cpp:function:: void close()
 
@@ -3677,6 +3685,8 @@ Enumerations
 
    .. cpp:enumerator:: fill_proportion
 
+   .. cpp:enumerator:: fill_triangles
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: CompositingMode
@@ -4293,6 +4303,26 @@ Enumerations
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:enum-class:: TriangleFillStatus
+
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+
+   .. cpp:enumerator:: recorded
+
+   .. cpp:enumerator:: count_mismatch
+
+   .. cpp:enumerator:: not_whole_triangles
+
+   .. cpp:enumerator:: too_many_points
+
+   .. cpp:enumerator:: non_finite_point
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: command_limit
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:enum-class:: WrapMode
 
    ``#include <gui_forms/drawing/types/drawing_types.hpp>``
@@ -4588,7 +4618,7 @@ Functions, constants and aliases
 
 .. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter)
 
-   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - fill_ellipse, fill_path: fill_path (a path's figures as the raster executor builds them: a line or curve not starting at the current point starts a figure, rectangles and ellipses are closed figures, an arc extends its figure); - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_ellipse, draw_path: stroke_path; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A fill whose brush is not solid draws its shape as a clip (clip_rect for rectangles, clip_path for polygons, ellipses and paths) and the brush's paint over the shape's bounds: a linear gradient brush as fill_linear_gradient_spread on the executor's line, a path gradient as fill_radial_gradient_spread on the executor's circle, a radial gradient brush as fill_radial_gradient_spread (or fill_focal_radial_gradient when its focus is not its centre), a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as fill_hatch, each anchored at the recording's origin; the wrap mode is the spread (tile repeats, the flips reflect, clamp pads). A texture brush, when the options name the painter's display scale, is baked into one PartRaster over the device pixels its area touches and drawn with draw_part_raster under clip_rect(area): each pixel samples the image at its centre through the inverse of the brush's transform, wrapped per axis as the raster executor wraps it (tile repeats, a flip mirrors that axis, clamp holds the edge texel), nearest for the nearest interpolation mode and bilinear otherwise, in premultiplied BGRA8 with integer weights. The bake assumes the recording's origin lies on a device pixel; when the painter's translation puts it between pixels, the texture is placed up to half a device pixel from where the executor draws it. A texture with no pixels or a singular transform draws nothing; a fill of more than 2^24 device pixels is left out (counted unsupported). A gradient whose colours and positions are not valid gradient stops fills with its primary colour, as the executor does. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), images (their pixels have no image identity in a painter), texture brushes without a display scale, a path with an element outside the enumeration, and any command whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
+   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - fill_ellipse, fill_path: fill_path (a path's figures as the raster executor builds them: a line or curve not starting at the current point starts a figure, rectangles and ellipses are closed figures, an arc extends its figure); - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_ellipse, draw_path: stroke_path; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A fill whose brush is not solid draws its shape as a clip (clip_rect for rectangles, clip_path for polygons, ellipses and paths) and the brush's paint over the shape's bounds: a linear gradient brush as fill_linear_gradient_spread on the executor's line, a path gradient as fill_radial_gradient_spread on the executor's circle, a radial gradient brush as fill_radial_gradient_spread (or fill_focal_radial_gradient when its focus is not its centre), a conic gradient as fill_conic_gradient, a checker as fill_checker and a hatch as fill_hatch, each anchored at the recording's origin; the wrap mode is the spread (tile repeats, the flips reflect, clamp pads). A texture brush, when the options name the painter's display scale, is baked into one PartRaster over the device pixels its area touches and drawn with draw_part_raster under clip_rect(area): each pixel samples the image at its centre through the inverse of the brush's transform, wrapped per axis as the raster executor wraps it (tile repeats, a flip mirrors that axis, clamp holds the edge texel), nearest for the nearest interpolation mode and bilinear otherwise, in premultiplied BGRA8 with integer weights. The bake assumes the recording's origin lies on a device pixel; when the painter's translation puts it between pixels, the texture is placed up to half a device pixel from where the executor draws it. A texture with no pixels or a singular transform draws nothing; a fill of more than 2^24 device pixels is left out (counted unsupported). A gradient whose colours and positions are not valid gradient stops fills with its primary colour, as the executor does. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), images (their pixels have no image identity in a painter), shaded triangles (fill_triangles: the Painter has no per-corner shading), texture brushes without a display scale, a path with an element outside the enumeration, and any command whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
 
 .. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter, DrawingReplayOptions options)
 

@@ -63,6 +63,27 @@ enum class CommandKind : std::uint8_t {
     draw_markers,
     fill_grid_pattern,
     fill_proportion,
+    // Shaded triangles (appended; checkpoint 33): `points` and `colors`.
+    fill_triangles,
+};
+
+// What GraphicsRecorder::fill_triangles did. Every value but `recorded`
+// records nothing and leaves the recorder as it was.
+enum class TriangleFillStatus : std::uint8_t {
+    // One fill_triangles command was recorded.
+    recorded = 0,
+    // `points` and `colors` hold different counts.
+    count_mismatch = 1,
+    // The count is zero or not a multiple of three.
+    not_whole_triangles = 2,
+    // More than GraphicsRecorder::maximum_batch_elements points.
+    too_many_points = 3,
+    // A point with a coordinate that is not finite.
+    non_finite_point = 4,
+    // The recorder is closed (GraphicsRecorder::close).
+    closed = 5,
+    // The recording already holds GraphicsRecorder::maximum_commands.
+    command_limit = 6,
 };
 
 struct GUI_FORMS_API DrawingCommand final {
@@ -93,6 +114,9 @@ struct GUI_FORMS_API DrawingCommand final {
     CornerRadii radii;
     double scalar{};
     FillDirection direction{FillDirection::left_to_right};
+    // fill_triangles: one colour per point in `points`, three points (and
+    // three colours) per triangle.
+    std::vector<Color> colors;
     // draw_string: true when the text is laid out in `rect`
     // (draw_string_in_rect) rather than placed at `first`.
     bool laid_out{};
@@ -261,6 +285,46 @@ public:
     // run of consecutive equal colours records one fill_rectangles with a
     // solid brush of that colour.
     void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors);
+
+    // Shaded triangles (Gouraud shading; owner, 2026-11-17, for facets
+    // shaded per corner). `points` holds three corners per triangle and
+    // `colors` one colour per corner, in the same order: the same count, a
+    // multiple of three, 3 through maximum_batch_elements (333,333
+    // triangles), every point finite. The whole input is checked first; a
+    // refusal is reported by its status and records nothing. A disposed
+    // recorder throws std::logic_error, as every recording call does.
+    // Records one fill_triangles command with the state in force.
+    //
+    // The raster's rules (execute_recorder, recorder_execute):
+    // - Colour: inside a triangle the colour is its corners' colours
+    //   weighted by the point's barycentric coordinates, interpolated
+    //   premultiplied in linear light as every GUI.Drawing gradient is
+    //   (gui_forms/types/linear_light/linear_light.hpp), alpha as it is. A
+    //   point on an edge is the two corners' linear-light blend, and a
+    //   corner is its own colour exactly. An empty colour is transparent.
+    // - Coverage and seams: the corners are taken to device pixels through
+    //   the command's transform and rounded to 1/16 pixel. A sample belongs
+    //   to a triangle when it lies inside it, or on an edge that is a top
+    //   edge (horizontal, the interior below) or a left edge; so triangles
+    //   sharing an edge (the same two corners) cover each sample along it
+    //   exactly once, with no gap. Where triangles of one command overlap,
+    //   a sample takes the later triangle. Each pixel is then drawn once
+    //   per command: its colour the linear-light mean of its samples', its
+    //   coverage the share of its samples covered. With the smoothing mode
+    //   none or high_speed a pixel has one sample, at its centre (hard
+    //   edges); otherwise 16, on a 4 by 4 grid. So a quad of two triangles
+    //   in one colour fills uniformly, the diagonal included, translucent
+    //   or not.
+    // - Compositing: the pixel's colour, at its coverage, over the target
+    //   (source_over), or replacing the target in proportion to its
+    //   coverage (source_copy), in sRGB-encoded premultiplied bytes as the
+    //   other commands composite.
+    // - Clip: the clip in force cuts whole pixels, those whose centres lie
+    //   inside it, as the other commands' clip does.
+    // - Limits: a corner farther than 8,388,608 device pixels from the
+    //   origin after the transform refuses the command (limit exceeded); a
+    //   triangle whose corners lie on one line draws nothing.
+    [[nodiscard]] TriangleFillStatus fill_triangles(std::span<const PointF> points, std::span<const Color> colors);
 
     // Ends recording: every recording call afterwards throws
     // std::logic_error (the C ABI returns an error and records nothing),
