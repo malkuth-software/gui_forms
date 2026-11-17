@@ -234,7 +234,7 @@ static inline int pthread_cond_timedwait(pthread_cond_t* condition, pthread_mute
 
 #else
 
-#include "gf_conformance_pthread.h"
+#include <pthread.h>
 
 #endif
 
