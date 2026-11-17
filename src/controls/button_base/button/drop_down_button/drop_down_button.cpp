@@ -345,7 +345,9 @@ void DropDownButton::on_activate() {
         return;
     }
     pointer_drop_down_ = false;
-    ButtonBase::on_activate();
+    // Button's activation, so the primary segment hands dialog_result to the
+    // window as an ordinary button does (A-gf-controls-01-F4).
+    Button::on_activate();
 }
 
 namespace {

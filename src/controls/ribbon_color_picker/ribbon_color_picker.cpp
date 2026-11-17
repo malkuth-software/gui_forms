@@ -666,7 +666,15 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
             Delegate<std::size_t>::bind<RibbonColorPicker, &RibbonColorPicker::on_popup_window_closed>(*this));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : Control::Ptr(palette_overlay_);
-    scope_ = (*window).begin_focus_scope(layer_, preferred_focus);
+    // begin_focus_scope runs the previous control's focus and validation
+    // handlers; one that closed the palette found no scope to end, so this
+    // one is ended here and nothing reports an opening (A-gf-controls-12-F4).
+    const FocusScopeId started = (*window).begin_focus_scope(layer_, preferred_focus);
+    if (!is_alive() || !palette_open_) {
+        if (started) static_cast<void>((*window).end_focus_scope(started));
+        return false;
+    }
+    scope_ = started;
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(true);
     return true;

@@ -269,6 +269,19 @@ void test_pane_surface_background() {
             "splitter panels must own their allocation-filling surface color");
 }
 
+// A validating handler, in the panel being collapsed, that collapses the
+// other panel.
+class CollapseSecond final {
+public:
+    explicit CollapseSecond(SplitContainer& split) noexcept : split_(&split) {}
+    void operator()(ControlValidationEvent&) const {
+        if (!(*split_).second_collapsed()) (*split_).set_second_collapsed(true);
+    }
+
+private:
+    SplitContainer* split_;
+};
+
 void test_collapse_focus_restore_and_fixed_panel_resize() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.collapse"));
     (*split).splitter_distance = 110.0;
@@ -305,6 +318,14 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
     window.perform_layout();
     require(near((*(*split).second_panel()).arranged_bounds().width, second_extent),
             "a fixed second panel must retain its extent when the container grows");
+
+    // A handler run by the focus transfer collapses the other panel: the
+    // first panel's collapse is then refused, never both (A-gf-controls-12-F8).
+    require(window.request_focus(field), "the field takes the focus again");
+    SubscriptionToken collapsing = (*field).validating().subscribe(CollapseSecond(*split));
+    (*split).set_first_collapsed(true);
+    require(!((*split).first_collapsed() && (*split).second_collapsed()),
+            "a collapse raced by a focus handler never leaves both panels collapsed");
 }
 
 void test_horizontal_orientation_and_thread_guard() {

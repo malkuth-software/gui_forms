@@ -93,6 +93,8 @@ protected:
     void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    // A press on the close mark whose capture is taken away is forgotten.
+    void on_mouse_capture_changed() override;
 
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;

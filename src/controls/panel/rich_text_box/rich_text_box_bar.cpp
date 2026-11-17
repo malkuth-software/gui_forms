@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -111,12 +112,22 @@ std::size_t RichTextBox::realized_item_count() const {
     return count;
 }
 
+// The realized bar buttons: none while the bar is hidden. An item past them
+// is refused before it indexes the button tables (A-gf-controls-09-F9).
+void RichTextBox::require_realized_item(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("RichTextBox realized item is past the bar's buttons");
+    }
+}
+
 std::string RichTextBox::realized_item_stable_id(std::size_t item) const {
+    require_realized_item(item);
     const std::string id = std::string(stable_id().value()) + ".bar." + std::string(bar_button_texts[item].id);
     return id;
 }
 
 AnatomyStateSet RichTextBox::realized_item_anatomy_states(std::size_t item) const {
+    require_realized_item(item);
     AnatomyStateSet states{};
     const RichTextFormat format = selection_format();
     if (hot_button_.present() && (*hot_button_.value()) == item) states.insert(AnatomyState::hot);

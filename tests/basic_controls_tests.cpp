@@ -1,4 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/value/value.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -98,6 +100,7 @@ public:
         texts.emplace_back(text);
         text_colors.push_back(color);
         roles.push_back(font.role);
+        text_sizes.push_back(font.size);
         text_origins.push_back(origin);
         text_line_order.push_back('T');
     }
@@ -125,6 +128,7 @@ public:
     std::uint64_t lines{};
     std::size_t text_measurements{};
     std::size_t measured_text_bytes{};
+    std::vector<double> text_sizes{};
     Rect last_fill_bounds{};
     Color last_fill_color{};
     Rect last_rounded_stroke_bounds{};
@@ -893,6 +897,24 @@ void test_checkbox_state_and_click_order() {
             "indeterminate CheckBox must return to unchecked without duplicate bool change");
 }
 
+// A refused command bind leaves the value binding in place (A-gf-controls-01-F5).
+void test_checkbox_refused_command_bind_keeps_its_value_binding() {
+    Value<bool> model(true);
+    std::shared_ptr<CheckBox> check = make_control<CheckBox>(StableId("check.refused-command"), "Bound");
+    (*check).bind(model);
+    const std::shared_ptr<Command> gone = std::make_shared<Command>("gone", "Gone");
+    (*gone).dispose();
+    bool refused = false;
+    try {
+        (*check).bind(*gone);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    model.set(false);
+    require(refused && !(*check).checked.read(),
+            "a refused command bind keeps the CheckBox's value binding");
+}
+
 void test_radio_group_scope_and_order() {
     std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("radio.group"), "Mode");
     (*group).set_requested_bounds({0.0, 0.0, 360.0, 70.0});
@@ -974,6 +996,21 @@ Color painted_link_color(LinkLabel& link) {
     require(painter.text_colors.size() == 1U, "LinkLabel must draw its text once");
     const Color color = painter.text_colors.front();
     return color;
+}
+
+// LinkLabel paints with the font measure sized it with: at a text scale
+// above 1 the drawn text is larger than the authored size
+// (A-gf-controls-01-F3).
+void test_link_label_paints_at_the_text_scale() {
+    std::shared_ptr<gui_forms::LinkLabel> link = make_control<LinkLabel>(StableId("link.scaled"), "Open");
+    (*link).set_requested_bounds({0.0, 0.0, 160.0, 48.0});
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(link, Size{160.0, 48.0});
+    (*held_window).set_text_scale(2.0);
+    (*held_window).perform_layout();
+    RecordingPainter painter;
+    (*link).on_paint(painter, {});
+    require(painter.text_sizes.size() == 1U && painter.text_sizes.front() > (*link).font.read().size,
+            "LinkLabel draws its text at the effective text scale");
 }
 
 // The link families (owner decision W-Q5): LinkLabel's text takes the link
@@ -1842,6 +1879,15 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
     require(operation_check_58, "split activation ownership must follow the pressed region rather than release drift");
     const bool operation_check_59 = split_requests == 1U;
     require(operation_check_59, "split activation ownership must follow the pressed region rather than release drift");
+    // The primary segment applies dialog_result as a Button does (A-gf-controls-01-F4).
+    (*split).dialog_result = DialogResult::yes;
+    window.set_dialog_result(DialogResult::none);
+    const bool primary_down = window.dispatch_pointer({PointerAction::down, PointerButton::primary, primary});
+    const bool primary_up = window.dispatch_pointer({PointerAction::up, PointerButton::primary, primary});
+    require(primary_down && primary_up && split_clicks == 3U && window.dialog_result() == DialogResult::yes,
+            "split drop-down primary click hands its dialog result to the window");
+    (*split).dialog_result = DialogResult::none;
+    window.set_dialog_result(DialogResult::none);
 
     const bool operation_check_60 = window.request_focus(menu);
     require(operation_check_60, "Alt+Down must request the focused drop-down menu");
@@ -2212,10 +2258,12 @@ int main() {
         test_nested_authored_surfaces_are_control_background_layers();
         test_mnemonics_and_dialog_buttons_are_retained_commands();
         test_checkbox_state_and_click_order();
+    test_checkbox_refused_command_bind_keeps_its_value_binding();
         test_radio_group_scope_and_order();
         test_radio_clear_survives_a_handler_editing_the_parent();
         test_link_and_callback_disposal();
         test_link_families();
+    test_link_label_paints_at_the_text_scale();
         test_wrong_thread_property_mutation_is_rejected();
         test_fixed_label_text_is_paint_only();
         test_fixed_label_measurement_does_not_resolve_unused_text();

@@ -376,6 +376,8 @@ private:
     [[nodiscard]] std::array<Rect, rich_text_bar_button_count> bar_buttons() const;
     [[nodiscard]] stxlib::Optional<std::size_t> bar_button_at(Point local) const;
     [[nodiscard]] ItemParts bar_item_parts(std::size_t item) const;
+    // Throws std::out_of_range for an item past realized_item_count().
+    void require_realized_item(std::size_t item) const;
     [[nodiscard]] RichTextFormatState bar_button_state(RichTextBarButton button, const RichTextFormat& format) const;
     void paint_bar(Painter& painter) const;
     bool bar_pointer(PointerEvent& event, Point local);

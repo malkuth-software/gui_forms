@@ -368,6 +368,9 @@ protected:
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    // A press whose capture is taken away cancels the gesture: a move under
+    // way is reported as cancel_move.
+    void on_mouse_capture_changed() override;
     void on_key_down(KeyEventArgs& arguments) override;
     void on_focus_changed(bool focused) override;
 

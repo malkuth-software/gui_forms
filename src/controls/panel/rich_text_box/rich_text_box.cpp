@@ -883,6 +883,7 @@ void RichTextBox::publish_part_geometry(std::span<PartGeometry> geometry) const 
 }
 
 void RichTextBox::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
+    require_realized_item(item);
     const ItemParts record = bar_item_parts(item);
     write_item_parts(anatomy().item_systems.front(), rich_text_box_item_part_fields, record, geometry);
 }

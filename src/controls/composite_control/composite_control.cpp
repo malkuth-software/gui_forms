@@ -87,6 +87,21 @@ bool text_role(const PartRole role) noexcept {
 }
 
 // Restores a counter on every exit from a scope.
+// Lends the states being decided to nested reads for a scope, and takes them
+// back on every exit.
+class DecidingStatesScope final {
+public:
+    DecidingStatesScope(AnatomyStateSet*& deciding, AnatomyStateSet& states) noexcept : deciding_(deciding) {
+        deciding_ = &states;
+    }
+    ~DecidingStatesScope() { deciding_ = nullptr; }
+    DecidingStatesScope(const DecidingStatesScope&) = delete;
+    DecidingStatesScope& operator=(const DecidingStatesScope&) = delete;
+
+private:
+    AnatomyStateSet*& deciding_;
+};
+
 class DepthScope final {
 public:
     explicit DepthScope(std::size_t& depth) noexcept : depth_(depth) { ++depth_; }
@@ -353,11 +368,18 @@ bool CompositeControl::command_enabled(const std::string_view name) const {
     return false;
 }
 
+// A command run by a rule or by another command's run(...) counts in the rule
+// depth, so a command that runs itself ends (A-gf-controls-02-F2).
 bool CompositeControl::run_command(const std::size_t command) {
+    if (firing_depth_ >= maximum_composite_rule_depth) {
+        ++statistics_.refused_firings;
+        return false;
+    }
     if (!command_enabled_at(command)) {
         ++statistics_.commands_refused;
         return false;
     }
+    const DepthScope depth(firing_depth_);
     ++statistics_.commands_run;
     CompositeInstanceAccess::run_calls(*this, (*definition_).commands[command].run, CompositeFiring{});
     return true;
@@ -606,10 +628,15 @@ const ControlAnatomy& CompositeControl::anatomy() const noexcept {
     return (*definition_).anatomy;
 }
 
+// A nested call while the declared states are evaluated answers from the
+// states decided so far (deciding_states_), so a `when` reading the
+// composite's own states does not recurse (A-gf-controls-02-F1).
 AnatomyStateSet CompositeControl::anatomy_states() const {
+    if (deciding_states_ != nullptr) return *deciding_states_;
     AnatomyStateSet states = base_anatomy_states();
     if (pressed_part_.present() && pressed_inside_) states.insert(AnatomyState::pressed);
     if (drag_ != nullptr && (*drag_).running()) states.insert(AnatomyState::captured);
+    const DecidingStatesScope deciding(deciding_states_, states);
     const CompositeEvaluator evaluator(*this, CompositeFiring{});
     for (const control_language::CompositeStateDefinition& state : (*definition_).states) {
         if (!evaluator.holds(state.when)) continue;

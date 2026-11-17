@@ -992,6 +992,18 @@ void sorting_headers_and_resizing() {
             "dragging the divider widens the column");
     require(header_clicks.size() == 1U, "a resize is not a header click");
 
+    // A NaN sorts before every other number (A-gf-controls-02-F8).
+    std::shared_ptr<DataGridView> numbers = make_grid("grid.sort.nan");
+    static_cast<void>((*numbers).set_cell_value(row_at(0U), 0U, BindingValue{2.0}));
+    static_cast<void>((*numbers).set_cell_value(row_at(1U), 0U,
+                                                BindingValue{std::numeric_limits<double>::quiet_NaN()}));
+    static_cast<void>((*numbers).set_cell_value(row_at(2U), 0U, BindingValue{1.0}));
+    require((*numbers).sort(0U, DataGridViewSortDirection::ascending) &&
+                (*numbers).row_position(id("bravo")) == present_row(0U) &&
+                (*numbers).row_position(id("charlie")) == present_row(1U) &&
+                (*numbers).row_position(id("alpha")) == present_row(2U),
+            "a NaN cell sorts before the column's numbers");
+
     std::shared_ptr<DataGridView> virtual_grid = make_control<DataGridView>(StableId("grid.sort.virtual"));
     (*virtual_grid).set_columns({{.name = "only"}});
     (*virtual_grid).set_virtual_rows(std::make_shared<CountingProvider>(), virtual_order(10U));

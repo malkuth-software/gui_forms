@@ -2396,6 +2396,13 @@ DataGridView::RealizedSlot DataGridView::realized_slot(const GridLayout& layout,
         slot.column = shown_order_[display_run.at(position % columns)];
         return slot;
     }
+    // An item past the realized ones (column headers hidden, or a count
+    // read before the grid changed) is refused before it indexes anything
+    // (A-gf-controls-03-F4).
+    const std::size_t headers = column_headers_visible.read() ? columns : 0U;
+    if (item - rows - cells >= headers) {
+        throw std::out_of_range("DataGridView realized item is past the realized items");
+    }
     slot.system = column_system;
     slot.column = shown_order_[display_run.at(item - rows - cells)];
     return slot;

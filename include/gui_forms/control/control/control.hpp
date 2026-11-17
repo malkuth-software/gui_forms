@@ -1411,6 +1411,9 @@ public:
     // every item system, not model positions. This is the generic path;
     // item-bearing types also offer typed records through realized_items().
     [[nodiscard]] virtual std::size_t realized_item_count() const;
+    // Throws std::out_of_range for an item past realized_item_count(), as
+    // realized_item_anatomy_states does; an override keeps that rule (a count
+    // read before the items changed must not index past them).
     [[nodiscard]] virtual std::string realized_item_stable_id(std::size_t item) const;
     // The item system a realized item belongs to; the first by default.
     // Throws std::out_of_range for an item past realized_item_count().

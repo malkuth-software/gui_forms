@@ -281,6 +281,12 @@ gui_forms::ScrollBar
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press whose capture is taken away (the sequence broken, the bar or an ancestor made unavailable) ends the drag and the repeat.
+
    .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*

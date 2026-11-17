@@ -2012,6 +2012,8 @@ gui_forms::Control
 
    .. cpp:function:: virtual std::string realized_item_stable_id(std::size_t item) const
 
+      Throws std::out_of_range for an item past realized_item_count(), as realized_item_anatomy_states does; an override keeps that rule (a count read before the items changed must not index past them).
+
    .. cpp:function:: virtual AnatomyStateSet realized_item_anatomy_states(std::size_t item) const
 
    .. cpp:function:: virtual void on_visible_changed()

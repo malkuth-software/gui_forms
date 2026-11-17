@@ -4,6 +4,7 @@
 #include "../panel/input_control_utilities.hpp"
 #include "data_grid_view_bound_index.hpp"
 #include "../scrollable_control/scrolling_utilities.hpp"
+#include "../basic/number_text.hpp"
 
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -64,7 +65,9 @@ int value_rank(const BindingValue& value) noexcept {
 }
 
 // Orders two cell values: by rank, then booleans false first, numbers as
-// doubles, text and other kinds by their text in byte order.
+// doubles with NaN before every other number (so the order stays a strict
+// weak order for std::stable_sort, A-gf-controls-02-F8), text and other
+// kinds by their text in byte order.
 bool value_less(const BindingValue& left, const BindingValue& right) {
     const int left_rank = value_rank(left);
     const int right_rank = value_rank(right);
@@ -78,6 +81,9 @@ bool value_less(const BindingValue& left, const BindingValue& right) {
     if (left_rank == 2) {
         const double left_value = binding_value_to_number(left).value_or(0.0);
         const double right_value = binding_value_to_number(right).value_or(0.0);
+        const bool left_nan = std::isnan(left_value);
+        const bool right_nan = std::isnan(right_value);
+        if (left_nan || right_nan) return left_nan && !right_nan;
         return left_value < right_value;
     }
     if (left_rank == 3) return std::get<std::string>(left) < std::get<std::string>(right);
@@ -559,13 +565,9 @@ std::string DataGridView::shown_text(DataGridViewRowPosition row, std::size_t co
         for (std::size_t remaining = items.size(); remaining > 0U; --remaining) {
             const double* const number = std::get_if<double>(&items[remaining - 1U]);
             if (number == nullptr || !std::isfinite(*number)) continue;
-            std::array<char, 32> buffer{};
-            const int written = std::snprintf(buffer.data(), buffer.size(), "%g", *number);
-            if (written > 0) {
-                const std::size_t length =
-                    std::min<std::size_t>(static_cast<std::size_t>(written), buffer.size() - 1U);
-                text.assign(buffer.data(), length);
-            }
+            // printf's "%g" in the C locale, whatever LC_NUMERIC says
+            // (A-gf-controls-02-F4).
+            number_text::append_number_text(text, *number, std::chars_format::general, 6);
             break;
         }
         return text;

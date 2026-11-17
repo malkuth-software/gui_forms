@@ -41,6 +41,23 @@ private:
     bool& flag_;
 };
 
+// Names the two-way binding being read back for a scope, and restores the
+// previous one on every exit.
+class ReadingBindingScope final {
+public:
+    ReadingBindingScope(stxlib::Optional<std::size_t>& reading, std::size_t binding) noexcept
+        : reading_(reading), previous_(reading) {
+        reading_.set(binding);
+    }
+    ~ReadingBindingScope() { reading_ = previous_; }
+    ReadingBindingScope(const ReadingBindingScope&) = delete;
+    ReadingBindingScope& operator=(const ReadingBindingScope&) = delete;
+
+private:
+    stxlib::Optional<std::size_t>& reading_;
+    const stxlib::Optional<std::size_t> previous_;
+};
+
 // A child's property change, for a two-way binding and for a
 // `*-changed(@child)` rule. The subscriptions are held by the composite
 // (child_subscriptions_), which they name as their owner, so neither
@@ -180,8 +197,11 @@ void CompositeControl::write_bound_children(const stxlib::Optional<std::size_t> 
     if (writing_children_) return;
     const FlagScope writing(writing_children_);
     const CompositeDefinition& definition = *definition_;
-    for (const CompositeChildBinding& binding : definition.child_bindings) {
+    for (std::size_t index = 0U; index < definition.child_bindings.size(); ++index) {
+        const CompositeChildBinding& binding = definition.child_bindings[index];
         if (changed.present() && binding.source != (*changed.value())) continue;
+        // The child being read back already holds the value.
+        if (reading_binding_.present() && (*reading_binding_.value()) == index) continue;
         if (definition.properties[binding.source].command) continue;
         const Control::Ptr target = child(binding.child);
         if (!target) continue;
@@ -221,7 +241,10 @@ void CompositeControl::child_changed(const std::size_t binding) {
     if (!target) return;
     const std::optional<BindingValue> value = (*target).property_value(declared.property);
     if (!value) return;
-    const FlagScope writing(writing_children_);
+    // Only this binding is kept from writing back; the property's other
+    // children, its expressions and what its rules set still follow
+    // (A-gf-controls-02-F3).
+    const ReadingBindingScope reading(reading_binding_, binding);
     static_cast<void>(write_property(declared.source, *value));
 }
 

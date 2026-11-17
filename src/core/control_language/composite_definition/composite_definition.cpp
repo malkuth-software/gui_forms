@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <system_error>
 #include <span>
 #include <string>
 #include <system_error>
@@ -113,11 +114,24 @@ constexpr std::uint32_t first_digit_key = 0x1EU;
 constexpr std::uint32_t zero_key = 0x27U;
 constexpr std::uint32_t f13_key = 0x68U;
 
+// The leading decimal number of `text`, as strtod reads it in the C locale
+// (leading white space, an optional sign, the longest number; 0 without one),
+// but never following LC_NUMERIC (A-gf-controls-02-F4).
 double number_of(const std::string_view text) noexcept {
-    std::array<char, 64> copy{};
-    const std::size_t length = std::min(text.size(), copy.size() - 1U);
-    std::copy_n(text.begin(), length, copy.begin());
-    const double value = std::strtod(copy.data(), nullptr);
+    std::size_t first = 0U;
+    while (first < text.size() && (text[first] == ' ' || text[first] == '\t' || text[first] == '\n' ||
+                                   text[first] == '\v' || text[first] == '\f' || text[first] == '\r')) {
+        ++first;
+    }
+    std::string_view rest = text.substr(first);
+    if (!rest.empty() && rest.front() == '+') {
+        rest.remove_prefix(1U);
+        if (!rest.empty() && rest.front() == '-') return 0.0;
+    }
+    double value{};
+    const std::from_chars_result result =
+        std::from_chars(rest.data(), rest.data() + rest.size(), value, std::chars_format::general);
+    if (result.ec != std::errc{}) return 0.0;
     return value;
 }
 

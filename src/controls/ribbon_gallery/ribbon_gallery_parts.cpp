@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 
 namespace gui_forms {
 namespace {
@@ -610,16 +611,22 @@ ItemSystemIndex RibbonGallery::publish_realized_item_system(std::size_t item) co
     return category_system;
 }
 
+// The realized-item accessors read a caption with .at(), so an item past the
+// realized items and captions is refused with std::out_of_range
+// (A-gf-controls-12-F7).
 std::string RibbonGallery::realized_item_stable_id(std::size_t item) const {
     const Realized shown = realized(geometry());
     if (item < shown.positions.size()) return items_[order_[shown.positions[item]]].stable_id;
-    const std::size_t line = shown.captions[item - shown.positions.size()];
+    const std::size_t line = shown.captions.at(item - shown.positions.size());
     return std::string(stable_id().value()) + ".category." + categories_[lines_[line].category].stable_id;
 }
 
 AnatomyStateSet RibbonGallery::realized_item_anatomy_states(std::size_t item) const {
     const Realized shown = realized(geometry());
     if (item < shown.positions.size()) return item_states(shown.positions[item]);
+    if (item - shown.positions.size() >= shown.captions.size()) {
+        throw std::out_of_range("RibbonGallery realized item is past the realized items");
+    }
     const AnatomyStateSet none;
     return none;
 }
@@ -632,7 +639,7 @@ void RibbonGallery::publish_realized_item_geometry(std::size_t item, std::span<P
         write_item_parts(anatomy().item_systems[item_system.value], item_part_fields, record, geometry_out);
         return;
     }
-    const CategoryParts record = category_parts(shown.captions[item - shown.positions.size()], layout);
+    const CategoryParts record = category_parts(shown.captions.at(item - shown.positions.size()), layout);
     write_item_parts(anatomy().item_systems[category_system.value], category_part_fields, record, geometry_out);
 }
 

@@ -748,6 +748,9 @@ void MonthCalendar::handle_pointer(PointerEvent& event) {
     DateTimeValue date{};
     const Zone zone = zone_at(local, date);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+        // A drag that no longer holds the capture was broken without a
+        // release; it ends before the move (A-gf-controls-08-F4).
+        if (dragging_ && !has_pointer_capture()) end_broken_press();
         hot_zone_ = zone;
         if (zone == Zone::day && in_range(date)) {
             hot_date_.set(date);
@@ -792,6 +795,19 @@ void MonthCalendar::handle_pointer(PointerEvent& event) {
         date_selected_.emit(selection_);
         event.handled = true;
     }
+}
+
+void MonthCalendar::end_broken_press() {
+    dragging_ = false;
+    pressed_zone_ = Zone::none;
+    invalidate(Dirty::paint);
+}
+
+// The window ends a primary press's capture after its release, when the
+// drag has already ended; any other loss ends it here (A-gf-controls-08-F4).
+void MonthCalendar::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (dragging_ || pressed_zone_ != Zone::none) end_broken_press();
 }
 
 // The mouse raisers hand the target phase to handle_pointer, whose

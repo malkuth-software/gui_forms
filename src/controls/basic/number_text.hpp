@@ -50,6 +50,32 @@ namespace gui_forms::number_text {
     return true;
 }
 
+// Reads the leading decimal number of `text` as std::strtod(text, nullptr)
+// reads it in the C locale, for expression text that may carry a unit or
+// other words after the number: leading white space, an optional '+' or '-',
+// then the longest decimal number. 0 when no number starts the text or it is
+// out of range; hexadecimal forms read their leading "0". Unlike strtod it
+// never follows LC_NUMERIC (A-gf-controls-02-F4).
+[[nodiscard]] inline double leading_decimal(std::string_view text) noexcept {
+    std::size_t first = 0U;
+    while (first < text.size() && (text[first] == ' ' || text[first] == '\t' || text[first] == '\n' ||
+                                   text[first] == '\v' || text[first] == '\f' || text[first] == '\r')) {
+        ++first;
+    }
+    std::string_view rest = text.substr(first);
+    // from_chars accepts '-' but not '+'; a '+' followed by another sign reads nothing.
+    if (!rest.empty() && rest.front() == '+') {
+        rest.remove_prefix(1U);
+        if (!rest.empty() && rest.front() == '-') return 0.0;
+    }
+    if (rest.empty()) return 0.0;
+    double parsed{};
+    const std::from_chars_result result =
+        std::from_chars(rest.data(), rest.data() + rest.size(), parsed, std::chars_format::general);
+    if (result.ec != std::errc{}) return 0.0;
+    return parsed;
+}
+
 // Reads a hexadecimal integer as std::stoll(text, nullptr, 16) read it: an
 // optional sign, an optional "0x" or "0X" prefix, then hexadecimal digits.
 // `value` is written only on success; magnitudes beyond INT64_MAX are refused.

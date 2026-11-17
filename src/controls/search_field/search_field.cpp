@@ -381,6 +381,15 @@ void SearchField::on_mouse_up(MouseEventArgs& arguments) {
     Control::on_mouse_up(arguments);
 }
 
+// The window ends a primary press's capture after its release, when the
+// press has already ended; any other loss forgets it (A-gf-controls-13-F3).
+void SearchField::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!pressed_clear_) return;
+    pressed_clear_ = false;
+    invalidate(Dirty::paint);
+}
+
 // Whether a window point lies on the clear button, which shows only while
 // there is text.
 bool SearchField::over_clear(Point window_position) const {

@@ -353,6 +353,90 @@ void authored_defaults_read_as_written() {
     require(unsigned_value != nullptr && *unsigned_value == 9223372036854775808ULL, "2^63 is an unsigned default");
 }
 
+// A two-way child binding and a second child bound to the same property
+// (A-gf-controls-02-F3): typing in the field must still update the echo; only
+// the write back to the field itself is skipped.
+constexpr std::string_view echo_field = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="echo-field" version="1.0" base="user-control" family="card">
+  <property name="query" kind="text" default="" bindable="two-way"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <children>
+    <text-box id="@entry" dock="top" text="bind(self.query)"/>
+    <label id="@echo" dock="top" text="bind(self.query, one_way)"/>
+  </children>
+  <focus target="child(@entry)"/>
+  <semantics role="group" name="property(accessible-name)" children="exposed"/>
+</control>
+)xml";
+
+std::string text_property(const Control& control, const std::string_view name) {
+    const std::optional<BindingValue> value = control.property_value(name);
+    const std::string* const text = value ? std::get_if<std::string>(&*value) : nullptr;
+    std::string result = text != nullptr ? *text : std::string{};
+    return result;
+}
+
+void two_way_child_updates_the_others() {
+    const CompositeLoadResult loaded = load_composite_definition("echo-field.control", echo_field, example_child_types);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the echo field loads");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> field =
+        make_control<CompositeControl>(StableId(std::string("echo")), loaded.definition);
+    const std::span<const Control::Ptr> children = (*field).children();
+    std::shared_ptr<TextBox> entry{};
+    std::shared_ptr<Label> echo{};
+    for (const Control::Ptr& child : children) {
+        if (!entry) entry = std::dynamic_pointer_cast<TextBox>(child);
+        if (!echo) echo = std::dynamic_pointer_cast<Label>(child);
+    }
+    require(entry && echo, "the field has its text box and label");
+    if (!entry || !echo) return;
+    (*entry).text = "typed";
+    require(text_property(*field, "query") == "typed", "the text box writes the composite's property");
+    require(text_property(*echo, "text") == "typed", "the label bound to the same property follows");
+    (*field).set_property_value("query", BindingValue{std::string("set")});
+    require(text_property(*entry, "text") == "set" && text_property(*echo, "text") == "set",
+            "a write from the composite still reaches both children");
+}
+
+// Conditions that read themselves (A-gf-controls-02-F1) and a command that
+// runs itself (A-gf-controls-02-F2): each ends instead of recursing without
+// bound. `lit` reads the composite's own hot state, so its evaluation reads
+// anatomy_states again; `armed` and `go` read each other; `again` runs
+// itself.
+constexpr std::string_view self_reading = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="self-reading" version="1.0" base="user-control" family="card">
+  <property name="level" kind="number" default="0"/>
+  <state name="lit" when="state(hot) or pressed()"/>
+  <state name="armed" when="command-enabled(go)"/>
+  <command name="go" enabled="state(armed)" run="step(level, 1)"/>
+  <command name="again" enabled="enabled(self)" run="run(again)"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <focus target="none"/>
+  <semantics role="group" name="property(accessible-name)"/>
+</control>
+)xml";
+
+void self_reading_conditions_end() {
+    const std::span<const CompositeChildType> none{};
+    const CompositeLoadResult loaded = load_composite_definition("self-reading.control", self_reading, none);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    // The checker admits these today (it finds cycles between custom states
+    // only); if it learns to refuse them, this check moves to the checker.
+    require(static_cast<bool>(loaded), "the self-reading definition loads");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> control =
+        make_control<CompositeControl>(StableId(std::string("self.reading")), loaded.definition);
+    const AnatomyStateSet states = (*control).anatomy_states();
+    require(states.contains(AnatomyState::normal), "a state reading the composite's own states is decided");
+    static_cast<void>((*control).command_enabled("go"));
+    const std::uint64_t refused_before = (*control).statistics().refused_firings;
+    static_cast<void>((*control).perform("again"));
+    require((*control).statistics().refused_firings > refused_before,
+            "a command that runs itself stops at the rule depth");
+}
+
 // A live drag: `level` follows every frame; Escape writes back the value
 // the press found.
 constexpr std::string_view live_slider = R"xml(<?xml version="1.0" encoding="UTF-8"?>
@@ -1088,6 +1172,8 @@ int main() {
     card_with_action();
     stepper_field_refused();
     base_properties_refused();
+    two_way_child_updates_the_others();
+    self_reading_conditions_end();
     live_drag();
     authored_defaults_read_as_written();
     look_shared("toggle-pill.control", {}, Size{160.0, 30.0});

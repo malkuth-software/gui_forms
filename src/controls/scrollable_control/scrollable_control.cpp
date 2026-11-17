@@ -781,6 +781,15 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
         return false;
     }
     const Point local = point_from_window(event.position);
+    // A thumb drag or held part whose capture was taken away (the sequence
+    // broken, the control made unavailable) ends before a move is read, so
+    // later moves neither scroll nor steer a repeat (A-gf-controls-13-F3). A
+    // release is not tested: the window frees a primary press's capture as
+    // the release arrives.
+    if (event.action == PointerAction::move && !has_pointer_capture() &&
+        (dragging_orientation_.present() || pressed_part_ != ScrollPart::none)) {
+        end_broken_scroll_press();
+    }
     if (dragging_orientation_.present()) {
         if (event.pointer_id != 0U && dragging_pointer_id_ != 0U &&
             event.pointer_id != dragging_pointer_id_) return false;
@@ -976,8 +985,19 @@ void ScrollableControl::set_hot_part(ScrollPart part) {
     if (hscroll() || vscroll()) invalidate_scroll_bar_strips(viewport_rectangle_);
 }
 
+void ScrollableControl::end_broken_scroll_press() {
+    stop_press();
+    dragging_orientation_.reset();
+    dragging_pointer_id_ = 0U;
+    invalidate_scroll_bar_strips(viewport_rectangle_);
+}
+
 void ScrollableControl::on_detached_from_window() noexcept {
     stop_press();
+    // A thumb held as the control left its window is not held after it
+    // returns (A-gf-controls-13-F3).
+    dragging_orientation_.reset();
+    dragging_pointer_id_ = 0U;
     hot_part_ = ScrollPart::none;
     Control::on_detached_from_window();
 }

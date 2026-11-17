@@ -1021,6 +1021,22 @@ void lifetime_and_refusals() {
         require(second.site() == transient.get(), "the second site binds");
     }
     require(second.site() == nullptr, "a destroyed site unbinds itself");
+    // A second main site replaces the first, which is unbound rather than
+    // left pointing at a workspace that no longer lists it; destroying the
+    // second then leaves the first's (absent) binding alone
+    // (A-gf-controls-04-F1).
+    {
+        std::unique_ptr<DockWorkspace> shared = std::make_unique<DockWorkspace>("shared");
+        std::shared_ptr<DockSite> first = make_control<DockSite>(StableId("first"), *shared);
+        std::shared_ptr<DockSite> replacement = make_control<DockSite>(StableId("replacement"), *shared);
+        require((*shared).site() == replacement.get() && (*first).workspace() == nullptr &&
+                    (*first).realized_stacks().empty(),
+                "a replaced site is unbound and empties");
+        replacement.reset();
+        require((*shared).site() == nullptr, "the replacement unbinds itself when destroyed");
+        shared.reset();
+        require((*first).workspace() == nullptr, "the replaced site never sees the destroyed workspace");
+    }
     // The navigator on its own.
     std::shared_ptr<DockNavigator> navigator = make_control<DockNavigator>(StableId("navigator"));
     bool threw = false;

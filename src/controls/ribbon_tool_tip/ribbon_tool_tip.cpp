@@ -216,8 +216,10 @@ void RibbonToolTip::set_item_tool_tip(const std::shared_ptr<ToolStrip>& strip, s
     for (ItemMapping& mapping : entry.items) {
         if (mapping.item_id != item_id) continue;
         mapping.content = std::move(content);
+        // show_now copies the identity; the mapping may go during it.
         if (visible_target_.lock() == strip && visible_item_ == item_id) {
-            show_now(strip, mapping.item_id, keyboard_initiated_);
+            const std::string shown_item(item_id);
+            show_now(strip, shown_item, keyboard_initiated_);
         }
         return;
     }
@@ -262,13 +264,21 @@ bool RibbonToolTip::has_tool_tip(const Control& target, std::string_view item_id
     return result;
 }
 
-bool RibbonToolTip::remove_tool_tip(const Control& target, std::string_view item_id) {
+bool RibbonToolTip::remove_tool_tip(const Control& target, std::string_view requested_item) {
     require_access("RibbonToolTip mapping removal");
+    // A copy: the caller's view may point into a mapping or visible_item_.
+    const std::string item_id(requested_item);
     Entry* entry = find_entry(target);
     if (!entry || !find_content(*entry, item_id)) return false;
     const bool affects_pending = pending_target_.lock().get() == &target && pending_item_ == item_id;
     const bool affects_visible = visible_target_.lock().get() == &target && visible_item_ == item_id;
-    if (affects_pending || affects_visible) hide();
+    if (affects_pending || affects_visible) {
+        hide();
+        // hide raises visibility_changed, whose handlers may remove or
+        // clear mappings: the entry is looked up again (A-gf-controls-12-F5).
+        entry = find_entry(target);
+        if (!entry || !find_content(*entry, item_id)) return true;
+    }
     set_cover(target, item_id, false);
     if (item_id.empty()) {
         (*entry).control_content.reset();
@@ -443,8 +453,12 @@ void RibbonToolTip::show(const std::shared_ptr<Control>& target, std::string_vie
     show_now(target, std::string(item_id), true);
 }
 
-void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::string& item_id,
+void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::string& requested_item,
                              bool keyboard_initiated) {
+    // A copy: the caller's string may be a mapping's or pending_item_, and
+    // the visibility_changed handlers close_overlay runs may remove
+    // mappings (A-gf-controls-12-F5).
+    const std::string item_id(requested_item);
     Window* owner = bound_window();
     const Entry* entry = target ? find_entry(*target) : nullptr;
     const RibbonToolTipContent* authored = entry ? find_content(*entry, item_id) : nullptr;
@@ -453,7 +467,13 @@ void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::
     pending_action_ = PendingAction::none;
     pending_target_.reset();
     pending_item_.clear();
-    if (visible()) close_overlay(true);
+    if (visible()) {
+        close_overlay(true);
+        // The mapping is looked up again after the handlers.
+        entry = find_entry(*target);
+        authored = entry ? find_content(*entry, item_id) : nullptr;
+        if (authored == nullptr || bound_window() != owner) return;
+    }
 
     RibbonToolTipContent resolved = resolve(*target, item_id, *authored);
     RibbonToolTipBubbleContent shown;

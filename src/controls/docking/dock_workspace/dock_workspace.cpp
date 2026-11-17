@@ -817,18 +817,28 @@ void DockWorkspace::realize_on_sites(const DockLayoutChange& change) {
 
 // -- sites ---------------------------------------------------------------------
 
+// A site that a new one replaces is unbound, so that every site is either in
+// the workspace's lists (and released with it) or holds no workspace pointer
+// (A-gf-controls-04-F1). The new site is stored first; the replaced site is
+// told afterwards, when the workspace's lists are already whole.
 void DockWorkspace::attach_site(DockSite& site) {
+    DockSite* replaced = nullptr;
     if (!site.floating()) {
+        replaced = site_;
         site_ = &site;
-        return;
-    }
-    for (DockSite*& bound_site : floating_sites_) {
-        if ((*bound_site).floating_site() == site.floating_site()) {
-            bound_site = &site;
-            return;
+    } else {
+        bool stored = false;
+        for (DockSite*& bound_site : floating_sites_) {
+            if ((*bound_site).floating_site() == site.floating_site()) {
+                replaced = bound_site;
+                bound_site = &site;
+                stored = true;
+                break;
+            }
         }
+        if (!stored) floating_sites_.push_back(&site);
     }
-    floating_sites_.push_back(&site);
+    if (replaced != nullptr && replaced != &site) (*replaced).release_workspace();
 }
 
 void DockWorkspace::detach_site(DockSite& site) noexcept {

@@ -227,7 +227,9 @@ void TabControl::add_page(std::shared_ptr<TabPage> page) {
         selected_page_ = page;
         (*page).visible = true;
         select_in_tab_set(page);
-        const TabSelectionChange change{stxlib::Optional<std::size_t>::none(), stxlib::Optional<std::size_t>::of(0U)};
+        // The page's own index: it is last, not first, when the selected
+        // page was disposed and others remain (A-gf-controls-13-F7).
+        const TabSelectionChange change{stxlib::Optional<std::size_t>::none(), index_of(page)};
         publish_change(selected_index_changed_, change);
     } else {
         select_in_tab_set(selected_page_.lock());

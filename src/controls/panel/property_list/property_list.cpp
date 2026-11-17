@@ -824,6 +824,16 @@ void PropertyList::set_header_content(Control::Ptr content, double height) {
             "PropertyList header requires content and a 0 through 4096 height");
     }
     if ((*impl_).header == content && (*impl_).header_height == height) return;
+    // The same header at another height keeps its control; only the height
+    // changes (A-gf-controls-09-F7).
+    if ((*impl_).header == content) {
+        (*impl_).header_height = height;
+        (*impl_).recompute_geometry();
+        (*impl_).arrange_editors();
+        invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
+                   Dirty::semantics);
+        return;
+    }
     if ((*impl_).header && (*(*impl_).header).parent().get() == this) {
         Control::Ptr previous = remove_child((*(*impl_).header).runtime_id());
         if (previous && (*previous).is_alive()) (*previous).dispose();
@@ -1378,8 +1388,10 @@ std::size_t PropertyList::realized_item_count() const {
     return item_entries().size();
 }
 
+// The realized-item accessors read their entry with .at(), so an item past
+// the realized ones is refused with std::out_of_range (A-gf-controls-09-F9).
 std::string PropertyList::realized_item_stable_id(std::size_t item) const {
-    const ItemEntry entry = item_entries()[item];
+    const ItemEntry entry = item_entries().at(item);
     if (entry.group) return (*impl_).groups[entry.group_index].stable_id;
     return (*impl_).spec((*impl_).rows[entry.row_index]).stable_id;
 }
@@ -1391,7 +1403,7 @@ void PropertyList::publish_realized_item_geometry(std::size_t item,
     // Group headers and property rows share one item anatomy; the parts of
     // the other kind are absent. Text is published as the slots on_paint
     // draws into; value editors are child controls.
-    const ItemEntry entry = item_entries()[item];
+    const ItemEntry entry = item_entries().at(item);
     const Rect bounds = local_bounds();
     const double s = effective_text_scale();
     if (entry.group) {
@@ -1436,7 +1448,7 @@ void PropertyList::publish_realized_item_geometry(std::size_t item,
 
 AnatomyStateSet PropertyList::realized_item_anatomy_states(std::size_t item) const {
     AnatomyStateSet states;
-    const ItemEntry entry = item_entries()[item];
+    const ItemEntry entry = item_entries().at(item);
     if (entry.group) {
         states.insert(group_header_item_state);
         const bool expanded = (*impl_).groups[entry.group_index].expanded;

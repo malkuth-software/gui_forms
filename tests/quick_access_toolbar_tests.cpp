@@ -213,6 +213,28 @@ void customize_menu() {
     require(threw, "an undeclared command cannot be shown");
 }
 
+// Hiding a command by an identity viewed from shown_command_ids(): the erase
+// frees or moves the viewed string, so the event must carry a copy taken
+// before it (A-gf-controls-10-F4). The identity is longer than any small
+// string buffer, so a read after the erase would read freed memory.
+void hide_by_shown_identity() {
+    const std::shared_ptr<Command> first =
+        std::make_shared<Command>("application.commands.a-long-identity-past-the-small-string-buffer", "First");
+    const std::shared_ptr<Command> second = std::make_shared<Command>("second", "Second");
+    std::shared_ptr<QuickAccessToolbar> toolbar = make_control<QuickAccessToolbar>(StableId("qat"));
+    std::vector<QuickAccessToolbarCommand> all;
+    all.push_back({.command = first});
+    all.push_back({.command = second});
+    (*toolbar).set_commands(std::move(all));
+    std::vector<QuickAccessToolbarCustomization> changes;
+    SubscriptionToken changed = (*toolbar).customized().subscribe(RecordCustomization{&changes});
+    (*toolbar).set_command_shown((*toolbar).shown_command_ids()[0], false);
+    require(changes.size() == 1U && changes[0].command_id == (*first).stable_id() && !changes[0].shown,
+            "hiding by a viewed identity reports the identity that was hidden");
+    require((*toolbar).shown_command_ids().size() == 1U && (*toolbar).shown_command_ids()[0] == "second",
+            "the other command stays shown");
+}
+
 void overflow_keeps_customize() {
     const Commands commands;
     std::shared_ptr<QuickAccessToolbar> toolbar = make_control<QuickAccessToolbar>(StableId("qat"));
@@ -272,6 +294,7 @@ void unknown_ids_and_semantics() {
 int main() {
     parts_and_commands_only();
     customize_menu();
+    hide_by_shown_identity();
     overflow_keeps_customize();
     unknown_ids_and_semantics();
     std::cout << "QuickAccessToolbar: parts, commands only, customize menu, placement, overflow, unknown IDs and "

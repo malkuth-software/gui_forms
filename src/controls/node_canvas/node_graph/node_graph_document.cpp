@@ -977,10 +977,12 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
     require_room(nodes_, node_total - nodes_.size(), "node_graph.load");
     require_room(links_, link_total - links_.size(), "node_graph.load");
     clear_log();
+    // Each record takes a generation after every one the graph issued,
+    // including those of records an undo took away (A-gf-controls-07-F1).
     for (std::size_t index = 0U; index < node_count; ++index) {
-        std::uint32_t generation = 1U;
+        const std::uint32_t generation = newer_generation(node_generation_issued_);
+        node_generation_issued_ = generation;
         if (index < nodes_.size()) {
-            generation = newer_generation(nodes_[index].generation);
             nodes_[index] = std::move(parsed.nodes[index]);
         } else {
             nodes_.push_back(std::move(parsed.nodes[index]));
@@ -1018,9 +1020,9 @@ GraphLoadResult NodeGraph::load(std::string_view document) {
         link.to = PortRef{NodeId{parsed_link.to_node, nodes_[parsed_link.to_node].generation},
                           PortIndex{static_cast<std::uint16_t>(parsed_link.to_port)}};
         link.live = true;
-        link.generation = 1U;
+        link.generation = newer_generation(link_generation_issued_);
+        link_generation_issued_ = link.generation;
         if (index < links_.size()) {
-            link.generation = newer_generation(links_[index].generation);
             links_[index] = std::move(link);
         } else {
             links_.push_back(std::move(link));

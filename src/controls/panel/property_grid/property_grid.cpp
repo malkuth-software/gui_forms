@@ -91,10 +91,15 @@ struct PropertyGrid::Impl final {
     struct PropertyRefresh final {
         Impl* implementation{};
         std::string canonical;
+        // During a commit the notification is recorded and refreshed after
+        // the committed property (A-gf-controls-09-F2): a setter that moves
+        // another notifying property must not leave that row stale.
         void operator()() const {
-            if (!(*implementation).committing) {
-                (*implementation).refresh_one(canonical, true);
+            if ((*implementation).committing) {
+                (*implementation).defer_refresh(canonical);
+                return;
             }
+            (*implementation).refresh_one(canonical, true);
         }
     };
 
@@ -892,6 +897,34 @@ struct PropertyGrid::Impl final {
         }
     }
 
+    // Records a notifying property whose change arrived during a commit,
+    // once.
+    void defer_refresh(const std::string& canonical) {
+        const std::vector<std::string>::iterator found =
+            std::find(deferred_refreshes.begin(), deferred_refreshes.end(), canonical);
+        if (found == deferred_refreshes.end()) deferred_refreshes.push_back(canonical);
+    }
+
+    // Refreshes, publishing each change, the properties recorded during a
+    // commit, in arrival order. A refresh publishes property_value_changed,
+    // whose handlers may change more properties (recorded and refreshed in
+    // turn while the commit lasts), rebuild the projection, retarget the grid
+    // or dispose it; the flush stops at any of the last three, since a
+    // rebuild has refreshed every row and a retargeted or disposed grid shows
+    // nothing of `object`. Nothing read before a refresh is used after it.
+    void refresh_deferred(const Control::Ptr& object, std::uint64_t expected_projection) {
+        while (!deferred_refreshes.empty()) {
+            if (!owner.is_alive() || projection_revision != expected_projection ||
+                target().get() != object.get()) {
+                deferred_refreshes.clear();
+                return;
+            }
+            const std::string canonical = deferred_refreshes.front();
+            deferred_refreshes.erase(deferred_refreshes.begin());
+            refresh_one(canonical, true);
+        }
+    }
+
     void report_error(std::string property_name, std::string attempted,
                       std::string message) {
         // The error names the registered path, whichever spelling the caller
@@ -913,6 +946,9 @@ struct PropertyGrid::Impl final {
 
     bool set_value(std::string_view property_name, BindingValue value,
                    bool reset, bool structural = false) {
+        // Held for the call: the commit's events run application handlers,
+        // after which the deferred refreshes still read the grid.
+        const Control::Ptr retained_owner = owner.weak_from_this().lock();
         const Control::Ptr object = target();
         const std::vector<Control::Ptr> objects = targets();
         if (!object || objects.empty()) return false;
@@ -1007,6 +1043,7 @@ struct PropertyGrid::Impl final {
             return false;
         }
         const BindingValue previous_value = edits.front().previous_value;
+        deferred_refreshes.clear();
         committing = true;
         struct CommitReset final {
             bool& flag;
@@ -1069,6 +1106,7 @@ struct PropertyGrid::Impl final {
                     origin, reset};
                 owner.publish_change(owner.property_value_changed_, change);
             }
+            refresh_deferred(object, expected_projection);
             return true;
         } catch (const std::exception& error) {
             if (!owner.is_alive()) return false;
@@ -1078,7 +1116,9 @@ struct PropertyGrid::Impl final {
             }
             if ((*object).is_alive()) {
                 refresh_one(property_canonical, false);
+                refresh_deferred(object, expected_projection);
             }
+            if (!owner.is_alive()) return false;
             report_error(authored_path,
                          reset ? std::string("<reset>")
                                : binding_value_to_string(value),
@@ -1239,6 +1279,9 @@ struct PropertyGrid::Impl final {
     SubscriptionToken list_reset;
     std::optional<PropertyGridEditError> last_error;
     std::uint64_t projection_revision{};
+    // Canonical names whose change notifications arrived while committing,
+    // in arrival order, each once; emptied by refresh_deferred.
+    std::vector<std::string> deferred_refreshes;
     bool committing{};
 };
 

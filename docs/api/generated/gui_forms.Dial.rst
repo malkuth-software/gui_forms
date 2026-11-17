@@ -111,6 +111,12 @@ gui_forms::Dial
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press whose capture is taken away (the sequence broken, the dial or an ancestor made unavailable) stops tracking.
+
    .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*

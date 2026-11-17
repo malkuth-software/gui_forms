@@ -387,7 +387,9 @@ public:
     // site.
     DockSite(StableId stable_id, DockWorkspace& workspace);
     // Realizes the floating site `floating_site` (phase D4). A second site
-    // made for the same floating site replaces the first in the workspace.
+    // made for the same floating site replaces the first in the workspace,
+    // which unbinds the first (it then shows nothing); a second main site
+    // replaces the first main site the same way.
     DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floating_site);
     ~DockSite() override;
     // Realizes the workspace's layout. make_control calls it; do not call it
@@ -1012,6 +1014,10 @@ private:
     // Ends the session: its picture's image is released (unless a guest's),
     // then the session is cleared.
     void reset_drag() noexcept;
+    // Ends this site's drag without an edit when the site leaves its
+    // window or workspace: the guest showing it stops, the capture goes
+    // when `release_capture`, the drag layer hides, then reset_drag.
+    void abandon_drag(bool release_capture) noexcept;
     // -- across windows (phase D4) --
     // The desktop point of a point in this site, or none without frames.
     [[nodiscard]] stxlib::Optional<Point> to_desktop(Point local) const;

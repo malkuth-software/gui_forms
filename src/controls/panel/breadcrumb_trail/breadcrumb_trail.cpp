@@ -792,13 +792,23 @@ std::size_t BreadcrumbTrail::realized_item_count() const {
     return visible_items_.size();
 }
 
+// The realized-item accessors refuse an item past the realized ones (none
+// while editing) with std::out_of_range before indexing (A-gf-controls-07-F4).
+void BreadcrumbTrail::require_realized_item(std::size_t item) const {
+    if (item >= realized_item_count()) {
+        throw std::out_of_range("BreadcrumbTrail realized item is past the realized items");
+    }
+}
+
 std::string BreadcrumbTrail::realized_item_stable_id(std::size_t item) const {
+    require_realized_item(item);
     const std::string stable_id(visible_stable_id(visible_items_[item]));
     return stable_id;
 }
 
 void BreadcrumbTrail::publish_realized_item_geometry(std::size_t item,
                                           std::span<PartGeometry> geometry) const {
+    require_realized_item(item);
     ItemParts record;
 
     const VisibleItem& visible = visible_items_[item];
@@ -836,6 +846,7 @@ void BreadcrumbTrail::publish_realized_item_geometry(std::size_t item,
 }
 
 AnatomyStateSet BreadcrumbTrail::realized_item_anatomy_states(std::size_t item) const {
+    require_realized_item(item);
     AnatomyStateSet states;
     const VisibleItem& visible = visible_items_[item];
     if (holds(hovered_visible_, item)) {

@@ -100,6 +100,7 @@ Ribbon::Ribbon(StableId ribbon_id) : Control(std::move(ribbon_id)) {
 Ribbon::~Ribbon() {
     if (overlay_) (*overlay_).close();
     if (group_overlay_) (*group_overlay_).detach();
+    if (plane_popup_) (*plane_popup_).detach();  // A-gf-controls-11-F6
     if (application_overlay_) (*application_overlay_).detach();
     if (application_panel_) (*application_panel_).detach();
 }
@@ -367,6 +368,11 @@ void validate_command(const RibbonCommandSpec& command, std::unordered_set<std::
             "Ribbon gallery, font control and colour picker commands hold their control, and others none");
     }
     if (own) {
+        // add_child refuses a disposed control, so a dead one is refused here,
+        // before anything changes (A-gf-controls-11-F1).
+        if (!(*own).is_alive()) {
+            throw std::invalid_argument("Ribbon hosted controls must not be disposed");
+        }
         const Control::Ptr parent = (*own).parent();
         const bool ours = !parent || parent.get() == ribbon || parent.get() == overlay;
         if (!ours || !authored.insert(own.get()).second) {
@@ -415,6 +421,9 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
         if (tab.panel) {
             if (!tab.groups.empty() || !tab.reduction_order.empty()) {
                 throw std::invalid_argument("Ribbon panel tabs have no groups and no reduction order");
+            }
+            if (!(*tab.panel).is_alive()) {
+                throw std::invalid_argument("Ribbon tab panels must not be disposed");
             }
             const Control::Ptr parent = (*tab.panel).parent();
             const bool ours = !parent || parent.get() == this;
@@ -566,6 +575,64 @@ void Ribbon::release_carried(const HostedCarryOver& carried) {
     }
 }
 
+// A commit that failed part way (add_child refused a hosted control for a
+// reason prepare_tabs cannot see, such as a lifecycle notification under
+// way): the ribbon is left with no tabs rather than with tabs_, records_,
+// layouts_ and scaling_ of different shapes, which every layout, paint and
+// hit test indexes together (A-gf-controls-11-F1). The hosted controls the
+// partial records and the carry-over hold are taken out where the tree
+// allows; a removal that is refused leaves that control a child with no
+// record, which nothing reaches. Never throws.
+void Ribbon::abandon_definition(HostedCarryOver& carried) noexcept {
+    std::vector<Control::Ptr> held{};
+    try {
+        for (const RibbonTabSpec& tab : tabs_) {
+            if (tab.panel) held.push_back(tab.panel);
+        }
+        for (std::vector<std::vector<CommandRecord>>& tab : records_) {
+            for (std::vector<CommandRecord>& group : tab) {
+                for (CommandRecord& record : group) {
+                    if (record.hosted) held.push_back(std::move(record.hosted));
+                }
+            }
+        }
+    } catch (...) {
+    }
+    records_.clear();
+    tabs_.clear();
+    tab_sets_.clear();
+    set_states_.clear();
+    tab_set_of_.clear();
+    layouts_.clear();
+    scaling_.clear();
+    selected_tab_.reset();
+    last_core_tab_.reset();
+    first_group_ = 0U;
+    hot_ = Hit{};
+    pressed_command_.reset();
+    pressed_launcher_.reset();
+    pressed_group_.reset();
+    pressed_tab_.reset();
+    pressed_scroll_ = Hit::Kind::none;
+    stop_.reset();
+    ++content_generation_;
+    advance_layout_revision();
+    for (const Control::Ptr& control : held) {
+        try {
+            if ((*control).parent().get() == this) static_cast<void>(remove_child((*control).runtime_id()));
+        } catch (...) {
+        }
+    }
+    try {
+        release_carried(carried);
+    } catch (...) {
+    }
+    try {
+        invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    } catch (...) {
+    }
+}
+
 // Validates and prepares everything first (prepare_tabs), so that a refusal
 // leaves the ribbon as it was; then closes the overlays, carries the hosted
 // controls and the sets' states over, commits, and restores the selection.
@@ -580,16 +647,21 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     std::string selected_id;
     if (selected_tab_.present()) selected_id = tabs_[*selected_tab_.value()].stable_id;
     std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
-    tabs_ = std::move(tabs);
-    advance_layout_revision();
-    tab_sets_ = std::move(sets);
-    set_states_ = std::move(states);
-    advance_layout_revision();
-    tab_set_of_ = std::move(prepared.tab_set_of);
-    advance_layout_revision();
-    layouts_ = std::move(prepared.layouts);
-    advance_layout_revision();
-    rebuild_records(carried);
+    try {
+        tabs_ = std::move(tabs);
+        advance_layout_revision();
+        tab_sets_ = std::move(sets);
+        set_states_ = std::move(states);
+        advance_layout_revision();
+        tab_set_of_ = std::move(prepared.tab_set_of);
+        advance_layout_revision();
+        layouts_ = std::move(prepared.layouts);
+        advance_layout_revision();
+        rebuild_records(carried);
+    } catch (...) {
+        abandon_definition(carried);
+        throw;
+    }
     release_carried(carried);
     refresh_accents();
     selected_tab_.reset();
@@ -3473,6 +3545,9 @@ std::size_t Ribbon::realized_item_count() const {
 
 std::string Ribbon::realized_item_stable_id(std::size_t item) const {
     const RealizedItem located = locate_realized(layout(), item);
+    if (located.kind == RealizedItem::Kind::none) {
+        throw std::out_of_range("Ribbon realized item is past the realized items");
+    }
     const std::string ribbon_id(stable_id().value());
     if (located.kind == RealizedItem::Kind::tab) return node_identity(ribbon_id, "tab", tabs_[located.index].stable_id);
     if (located.kind == RealizedItem::Kind::group) {
@@ -3520,6 +3595,9 @@ void Ribbon::publish_realized_item_geometry(std::size_t item, std::span<PartGeom
 
 AnatomyStateSet Ribbon::realized_item_anatomy_states(std::size_t item) const {
     const RealizedItem located = locate_realized(layout(), item);
+    if (located.kind == RealizedItem::Kind::none) {
+        throw std::out_of_range("Ribbon realized item is past the realized items");
+    }
     if (located.kind == RealizedItem::Kind::tab) return tab_states(located.index);
     if (located.kind == RealizedItem::Kind::command) return command_states(located.command);
     return AnatomyStateSet{};

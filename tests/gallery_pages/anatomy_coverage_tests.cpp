@@ -22,6 +22,7 @@
 #include <array>
 #include <cmath>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 
 namespace gallery_pages_tests {
@@ -275,6 +276,24 @@ void inspect_control(const Control& control, std::vector<std::string>& seen_ids)
                                          std::string(anatomy_state_name(state)));
             }
         }
+    }
+    // One past the realized items is refused, never read past the tables
+    // (A-gf-controls-03-F4 and the realized-item findings after it).
+    bool identity_refused = false;
+    try {
+        static_cast<void>(control.realized_item_stable_id(items));
+    } catch (const std::out_of_range&) {
+        identity_refused = true;
+    }
+    bool states_refused = false;
+    try {
+        static_cast<void>(control.realized_item_anatomy_states(items));
+    } catch (const std::out_of_range&) {
+        states_refused = true;
+    }
+    if (!identity_refused || !states_refused) {
+        throw std::runtime_error(std::string(anatomy.control_id) +
+                                 " answers for a realized item past realized_item_count()");
     }
     const std::string id(anatomy.control_id);
     if (!contains_id(seen_ids, id)) {

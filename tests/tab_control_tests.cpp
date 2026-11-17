@@ -360,6 +360,22 @@ void test_page_removal_and_disposal_reconciliation() {
                 (*fixture.tabs).selected_tab.read() == fixture.first &&
                 (*fixture.tabs).selected_index.read() == stxlib::Optional<std::size_t>::of(0U) && (*fixture.first).visible.read(),
             "direct selected-page disposal must reconcile without stale ownership");
+
+    // A page added while no page is selected reports its own index
+    // (A-gf-controls-13-F7).
+    Fixture later = make_fixture();
+    Window later_window(later.tabs, {480.0, 260.0});
+    (*later.tabs).selected_index = stxlib::Optional<std::size_t>::of(2U);
+    later_window.perform_layout();
+    (*later.third).dispose();
+    TabSelectionChange observed;
+    std::uint64_t changes{};
+    SubscriptionToken token =
+        (*later.tabs).selected_index_changed().subscribe(ObserveTabSelection(observed, changes));
+    const std::shared_ptr<TabPage> added = make_control<TabPage>(StableId("tabs.added"), "Added");
+    (*later.tabs).add_page(added);
+    require(changes == 0U || observed.new_index == (*later.tabs).selected_index.read(),
+            "the selection event names the index selected_index reads");
 }
 
 template <typename Action>

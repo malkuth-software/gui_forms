@@ -533,6 +533,21 @@ void refusals() {
     wrong_form[0].groups[0].commands.push_back(
         {.stable_id = "g1", .kind = RibbonCommandKind::gallery, .gallery = drop_down});
     require(refused(ribbon, std::move(wrong_form)), "a drop-down gallery cannot sit in the ribbon");
+    // add_child refuses a disposed control; validation refuses it first, so
+    // the previous tabs are kept rather than half replaced
+    // (A-gf-controls-11-F1).
+    std::shared_ptr<RibbonGallery> disposed = make_control<RibbonGallery>(StableId("disposed"));
+    (*disposed).dispose();
+    std::vector<RibbonTabSpec> dead_gallery;
+    dead_gallery.push_back(three_groups({}));
+    dead_gallery[0].groups[0].commands.push_back(
+        {.stable_id = "g1", .kind = RibbonCommandKind::gallery, .gallery = disposed});
+    require(refused(ribbon, std::move(dead_gallery)), "a disposed gallery is refused");
+    std::shared_ptr<Panel> dead_panel = make_control<Panel>(StableId("dead.panel"));
+    (*dead_panel).dispose();
+    std::vector<RibbonTabSpec> dead_panel_tab;
+    dead_panel_tab.push_back(RibbonTabSpec{.stable_id = "panel.tab", .text = "Panel", .panel = dead_panel});
+    require(refused(ribbon, std::move(dead_panel_tab)), "a disposed tab panel is refused");
     require(ribbon.tabs().size() == 1U && ribbon.tabs()[0].reduction_order.empty() &&
                 ribbon.group_layouts(0U, 0U).size() == 3U,
             "every refusal keeps the previous tabs");

@@ -214,6 +214,42 @@ void validation() {
             "on a page without a check box a verification write stores the page's state");
 }
 
+// A validating handler that closes the dialog as it opens.
+class CloseOnValidating final {
+public:
+    CloseOnValidating(TaskDialog& dialog, bool& ran) noexcept : dialog_(&dialog), ran_(&ran) {}
+    void operator()(ControlValidationEvent&) const {
+        if ((*dialog_).shown()) {
+            *ran_ = true;
+            (*dialog_).close("cancel");
+        }
+    }
+
+private:
+    TaskDialog* dialog_;
+    bool* ran_;
+};
+
+// A handler run by show's focus move that closes the dialog leaves no focus
+// scope behind (A-gf-controls-13-F4).
+void closed_while_opening() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("dialog.opening.root"));
+    std::shared_ptr<Button> owner = make_control<Button>(StableId("dialog.opening.owner"), "Scan");
+    (*root).add_child(owner);
+    (*owner).set_requested_bounds({20.0, 20.0, 120.0, 32.0});
+    Window window(root, {720.0, 560.0});
+    window.perform_layout();
+    require(window.request_focus(owner), "the owner takes the focus");
+    const std::size_t depth_before = window.focus_scope_depth();
+    std::shared_ptr<TaskDialog> dialog = make_control<TaskDialog>(StableId("dialog.opening"));
+    (*dialog).set_page(full_page());
+    bool ran = false;
+    SubscriptionToken closing = (*owner).validating().subscribe(CloseOnValidating(*dialog, ran));
+    require((*dialog).show(owner), "show reports the dialog it showed");
+    require(!ran || (!(*dialog).shown() && window.focus_scope_depth() == depth_before),
+            "a dialog closed while it opens ends its focus scope");
+}
+
 void modal_presentation() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("dialog.root"));
     std::shared_ptr<Button> owner = make_control<Button>(StableId("dialog.owner"), "Scan");
@@ -387,6 +423,7 @@ void navigation_and_cancel() {
 int main() {
     validation();
     modal_presentation();
+    closed_while_opening();
     navigation_and_cancel();
     std::cout << "TaskDialog: validation, modal presentation, parts, buttons, Enter and Escape, radio buttons, "
                  "verification, expander, progress, navigation, semantics and disposal passed\n";

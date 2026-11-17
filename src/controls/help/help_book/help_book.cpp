@@ -10,6 +10,7 @@
 #include <array>
 #include <cmath>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -1310,7 +1311,7 @@ std::size_t HelpBook::realized_item_count() const {
 }
 
 std::string HelpBook::realized_item_stable_id(std::size_t item) const {
-    if (item >= layout_.stops.size()) return {};
+    if (item >= layout_.stops.size()) throw std::out_of_range("HelpBook realized item is past the focus stops");
     const FocusStop& stop = layout_.stops[item];
     const std::string id = (stop.section ? "topic-" : "link-") + std::to_string(stop.index);
     return id;
@@ -1323,8 +1324,8 @@ ItemSystemIndex HelpBook::publish_realized_item_system(std::size_t item) const {
 }
 
 AnatomyStateSet HelpBook::realized_item_anatomy_states(std::size_t item) const {
+    if (item >= layout_.stops.size()) throw std::out_of_range("HelpBook realized item is past the focus stops");
     AnatomyStateSet states{};
-    if (item >= layout_.stops.size()) return states;
     const FocusStop& stop = layout_.stops[item];
     if (stop.section) {
         states.insert(section_open(stop.index) ? AnatomyState::open : AnatomyState::closed);

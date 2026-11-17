@@ -264,6 +264,15 @@ void Toast::on_mouse_down(MouseEventArgs& arguments) {
     Control::on_mouse_down(arguments);
 }
 
+// The window ends a primary press's capture after its release, when the
+// press has already ended; any other loss forgets it (A-gf-controls-14-F4).
+void Toast::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!pressed_close_) return;
+    pressed_close_ = false;
+    invalidate(Dirty::paint);
+}
+
 void Toast::on_mouse_up(MouseEventArgs& arguments) {
     if (eligible_for_input() && content_.closable && arguments.button == PointerButton::primary &&
         pressed_close_) {

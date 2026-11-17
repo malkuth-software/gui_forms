@@ -103,7 +103,7 @@ Related types
    * - :cpp:class:`NodeGraphEdited <gui_forms::NodeGraphEdited>`
      -  
    * - :cpp:class:`NodeId <gui_forms::NodeId>`
-     - A node's identity: its slot and the slot's generation when it was added.
+     - A node's identity: its slot and the generation the graph issued it.
    * - :cpp:class:`NodeLinkCheck <gui_forms::NodeLinkCheck>`
      - The compatibility question for one prospective link (node graph gap N6: the graph has no conversion table yet, so the application answers).
    * - :cpp:class:`NodeLinkConnected <gui_forms::NodeLinkConnected>`
@@ -941,7 +941,7 @@ Related types
 
    ``#include <gui_forms/controls/node_graph.hpp>``
 
-   A node's identity: its slot and the slot's generation when it was added.
+   A node's identity: its slot and the generation the graph issued it.
 
    .. cpp:member:: std::uint32_t index
 

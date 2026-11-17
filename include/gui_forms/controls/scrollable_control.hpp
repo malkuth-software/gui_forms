@@ -293,6 +293,8 @@ private:
     [[nodiscard]] bool track_press_continues() const noexcept;
     // Ends a press of an arrow or the track. Never fails.
     void stop_press() noexcept;
+    // Ends a thumb drag or held part the window broke without a release.
+    void end_broken_scroll_press();
     // Moves the hover onto `part`, repainting the bars when it changes.
     void set_hot_part(ScrollPart part);
     void append_semantic_axis(std::vector<SemanticNode>& nodes,

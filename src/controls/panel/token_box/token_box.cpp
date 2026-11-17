@@ -782,6 +782,10 @@ AnatomyStateSet TokenBox::realized_item_anatomy_states(std::size_t item) const {
 
 void TokenBox::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
     const Layout placed = layout();
+    // Checked as the two accessors above are (A-gf-controls-09-F9).
+    if (item >= placed.tokens.size()) {
+        throw std::out_of_range("TokenBox realized token is past the laid-out tokens");
+    }
     const TokenPlacement& placement = placed.tokens[item];
     const Token& token = tokens_[placement.index];
     ItemParts record;

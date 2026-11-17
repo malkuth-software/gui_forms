@@ -202,6 +202,14 @@ void pointer_selection() {
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, tenth}));
     require((*calendar).selection_range() == CalendarDateRange{august(3U), august(5U)},
             "a drag stops at max_selection_count days");
+    // A drag whose capture is taken away ends (A-gf-controls-08-F4).
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, third}));
+    const std::size_t selected_before = selected.size();
+    (*calendar).set_pointer_capture(false);
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, fifth}));
+    require((*calendar).selection_range() == CalendarDateRange{august(3U), august(3U)} &&
+                selected.size() == selected_before,
+            "after its capture is lost a plain move does not extend the selection");
 
     const Point previous = centre((*calendar).parts().previous_arrow.bounds);
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, previous}) &&
@@ -336,6 +344,10 @@ void semantics() {
             "set_value takes an ISO date and shows it");
     require(!(*calendar).on_semantic_action(SemanticAction::set_value, "2026-13-01"),
             "an invalid ISO date is refused");
+    require(!(*calendar).on_semantic_action(SemanticAction::set_value, "20a6-0b-2c") &&
+                !(*calendar).on_semantic_action(SemanticAction::set_value, "2026-8 -2 ") &&
+                (*calendar).selection_start() == august(20U),
+            "an ISO date with a partly numeric field is refused (A-gf-controls-08-F6)");
 }
 
 } // namespace

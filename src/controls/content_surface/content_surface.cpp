@@ -131,16 +131,17 @@ void ContentSurface::append_interactions(std::vector<InteractionDeclaration>& in
 
 ContentFrameSink ContentSurface::open_content(bool opaque) {
     require_mutable();
-    // Made before anything changes, so a failure leaves the old channel.
+    // The new channel is made before anything changes, so a failure leaves
+    // the old program running on its channel (A-gf-controls-02-F9).
     const ContentRequest current = request();
+    std::shared_ptr<detail::ContentChannel> fresh = detail::make_content_channel(current.size, opaque);
+    if (!fresh) throw std::bad_alloc();
     // A running program is stopped (bounded) before its channel goes.
     stop_worker(false);
     failure_.clear();
     // New content ends any forwarding; start_hosted_content restores it.
     hosted_input_ = HostedInput{};
     forwarding_ = false;
-    std::shared_ptr<detail::ContentChannel> fresh = detail::make_content_channel(current.size, opaque);
-    if (!fresh) throw std::bad_alloc();
     if (channel_) detail::revoke_content_channel(*channel_);
     channel_ = std::move(fresh);
     surface_ = (*channel_).surface;

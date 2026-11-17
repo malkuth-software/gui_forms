@@ -67,6 +67,9 @@ protected:
     void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_wheel(MouseEventArgs& arguments) override;
+    // A press whose capture is taken away (the sequence broken, the dial or
+    // an ancestor made unavailable) stops tracking.
+    void on_mouse_capture_changed() override;
     void on_key_down(KeyEventArgs& arguments) override;
 
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;

@@ -146,6 +146,12 @@ gui_forms::WindowCapsule
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
+      A press whose capture is taken away cancels the gesture: a move under way is reported as cancel_move.
+
    .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*

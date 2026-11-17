@@ -329,6 +329,16 @@ void WindowCapsule::on_mouse_leave() {
     take(gesture_.hover(HostWindowId{}, WindowCapsuleSection::none));
 }
 
+// The window ends a primary press's capture after its release, when the
+// gesture is already idle; any other loss (the window deactivated, the
+// program's own window move taking the pointer) cancels it, so later moves
+// raise no move requests (A-gf-controls-14-F4).
+void WindowCapsule::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!interactive_ || !gesture_.pressing()) return;
+    take(gesture_.cancel());
+}
+
 void WindowCapsule::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
     if (!interactive_ || arguments.handled) return;
