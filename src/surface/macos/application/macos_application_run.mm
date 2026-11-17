@@ -305,6 +305,12 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
                                   transparentFullSizeContent:transparentFullSizeContent
                                          windowDragRegionIds:std::move(windowDragRegionIds)];
     [view installCloseRequestHandler:std::move(entry.options.close_request)];
+    // A popup is never gated: it is a transient the program places and
+    // shows itself (first_frame_show.hpp gates top-level windows).
+    const gui_forms::FrameInterval firstShowCeiling = popup.present()
+        ? gui_forms::FrameInterval::zero()
+        : std::chrono::duration_cast<gui_forms::FrameInterval>(entry.options.first_frame_show_ceiling);
+    [view setFirstFrameShowCeiling:firstShowCeiling];
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     if (!entry.options.capture_path.empty()) {
@@ -367,13 +373,13 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         [nativeWindow center];
     } else {
         [ownerWindow addChildWindow:nativeWindow ordered:NSWindowAbove];
-        // A floating window is created hidden; the policy shows it.
-        if (!entry.options.initially_visible || floating) {
-            // addChildWindow:ordered: may order a previously hidden child
-            // onscreen. Preserve the portable initial-visibility contract
-            // after establishing native ownership.
-            [nativeWindow orderOut:nil];
-        }
+        // addChildWindow:ordered: may order a previously hidden child
+        // onscreen. Every owned window is ordered out again here, after
+        // establishing native ownership: a hidden or floating one keeps the
+        // portable initial-visibility contract (the policy shows a floating
+        // window), and a visible one is shown by its first-frame show
+        // (requestFirstShowTakingKey:), which attaches it again.
+        [nativeWindow orderOut:nil];
         NSScreen* screen = ownerWindow.screen ?: NSScreen.mainScreen;
         NSRect placed = nativeWindow.frame;
         const NSRect ownerFrame = ownerWindow.frame;
@@ -410,7 +416,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         entry.options.client_size_ready(RequestNativeClientSize(nativeWindow, view));
     }
     if (entry.options.visibility_ready) {
-        entry.options.visibility_ready(RequestNativeShow(nativeWindow), RequestNativeHide(nativeWindow));
+        entry.options.visibility_ready(RequestNativeShow(nativeWindow, view), RequestNativeHide(nativeWindow, view));
     }
     [view drainPostedWork];
     if (entry.options.dispatch_pending) entry.options.dispatch_pending();
@@ -420,8 +426,10 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     if (entry.options.initially_visible && !floating) {
         const bool takesKey = primary == YES ||
             (popup.present() && ((*popup.value())).focus == gui_forms::HostPopupFocus::takes_focus);
-        if (takesKey) [nativeWindow makeKeyAndOrderFront:nil];
-        else [nativeWindow orderFront:nil];
+        // Shown once its first frame is presented off screen, or at the
+        // ceiling (first_frame_show.hpp); a popup, never gated, at once.
+        NSWindow* const showParent = popup.present() ? nil : ownerWindow;
+        [view requestFirstShowTakingKey:(takesKey ? YES : NO) activating:NO parent:showParent];
     }
     if (entry.options.close_after_launch_for_testing) {
         post_perform_close(nativeWindow);
@@ -660,20 +668,19 @@ HostServiceStatus MacApplicationRun::destroy_window_impl(gui_forms::HostWindowId
 HostServiceStatus MacApplicationRun::show_impl(gui_forms::HostWindowId window) {
     MacRunSlot* found = slot(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
-    NSWindow* nativeWindow = (*found).window;
-    NSWindow* parentWindow = (*found).parent;
-    // Re-attach the child relation in case ordering out detached it.
-    if (parentWindow != nil && nativeWindow.parentWindow == nil) {
-        [parentWindow addChildWindow:nativeWindow ordered:NSWindowAbove];
-    }
-    // orderFront: shows without making the window key.
-    [nativeWindow orderFront:nil];
+    // Shown without making the window key, through the first-frame show
+    // (first_frame_show.hpp): at once for a window shown before, else once
+    // its first frame is presented or at the ceiling. The show re-attaches
+    // the child relation in case ordering out detached it.
+    [(*found).view requestFirstShowTakingKey:NO activating:NO parent:(*found).parent];
     return {};
 }
 
 HostServiceStatus MacApplicationRun::hide_impl(gui_forms::HostWindowId window) {
     MacRunSlot* found = slot(window);
     if (found == nullptr) return {HostServiceError::after_shutdown};
+    // A first show still waiting is cancelled: the window stays off screen.
+    [(*found).view cancelFirstShow];
     [(*found).window orderOut:nil];
     return {};
 }

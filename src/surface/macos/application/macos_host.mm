@@ -246,16 +246,20 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
         if (options.client_size_ready)
             options.client_size_ready(RequestNativeClientSize(nativeWindow, view));
         if (options.visibility_ready) {
-            options.visibility_ready(RequestNativeShow(nativeWindow),
-                                     RequestNativeHide(nativeWindow));
+            options.visibility_ready(RequestNativeShow(nativeWindow, view),
+                                     RequestNativeHide(nativeWindow, view));
         }
         // Match every host: one FIFO initialization turn runs after portable
         // attach/service publication and before first visible presentation.
         [view drainPostedWork];
         if (options.dispatch_pending) options.dispatch_pending();
         [view collectDamage];
-        [nativeWindow makeKeyAndOrderFront:nil];
-        [application activateIgnoringOtherApps:YES];
+        // Shown, made key and the application activated once the first
+        // frame is presented off screen, at most the ceiling later
+        // (first_frame_show.hpp); the deadline wakes from the run loop.
+        [view setFirstFrameShowCeiling:std::chrono::duration_cast<gui_forms::FrameInterval>(
+                                           options.first_frame_show_ceiling)];
+        [view requestFirstShowTakingKey:YES activating:YES parent:nil];
         if (options.close_after_launch_for_testing) {
             const std::uint32_t closeAttempts =
                 std::max<std::uint32_t>(1, options.close_attempts_for_testing);

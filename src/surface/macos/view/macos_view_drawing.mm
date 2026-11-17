@@ -152,6 +152,10 @@ using gui_forms::host::macos::MacPresentedFrame;
     }
     [self completeFrameCaptureIfDue:dirtyRect
                           presented:(presentation.presented && painted.receipt.present()) ? YES : NO];
+    // The first-frame show (first_frame_show.hpp): a presented frame
+    // releases a window waiting off screen. The show itself is never
+    // performed inside this draw (noteFramePresentedForFirstShow).
+    if (presentation.presented) [self noteFramePresentedForFirstShow];
     // Do not collect the next model invalidation from inside AppKit's paint
     // transaction. setNeedsDisplayInRect: may leave the view dirty without
     // enqueueing a second draw when invoked synchronously by drawRect:, which

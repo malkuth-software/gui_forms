@@ -21,10 +21,22 @@ void dispatch_and_collect_on_main(void* context) {
     [(*work).view collectDamage];
 }
 
+// A show or hide for one window and its view, which may be gone by the
+// time the work runs (the window is kept alive, as before).
+struct WindowViewWork final {
+    NSWindow* window;
+    __weak GUIFormsView* view;
+};
+
 void make_key_and_activate_on_main(void* context) {
-    const std::unique_ptr<WindowWork> work(static_cast<WindowWork*>(context));
-    [(*work).window makeKeyAndOrderFront:nil];
-    [NSApp activateIgnoringOtherApps:YES];
+    const std::unique_ptr<WindowViewWork> work(static_cast<WindowViewWork*>(context));
+    GUIFormsView* const view = (*work).view;
+    if (view == nil) {
+        [(*work).window makeKeyAndOrderFront:nil];
+        [NSApp activateIgnoringOtherApps:YES];
+        return;
+    }
+    [view requestFirstShowTakingKey:YES activating:YES parent:nil];
 }
 
 void toggle_full_screen_on_main(void* context) {
@@ -33,7 +45,9 @@ void toggle_full_screen_on_main(void* context) {
 }
 
 void order_out_on_main(void* context) {
-    const std::unique_ptr<WindowWork> work(static_cast<WindowWork*>(context));
+    const std::unique_ptr<WindowViewWork> work(static_cast<WindowViewWork*>(context));
+    GUIFormsView* const view = (*work).view;
+    if (view != nil) [view cancelFirstShow];
     [(*work).window orderOut:nil];
 }
 
@@ -52,7 +66,7 @@ void RequestNativeClose::operator()() const
 
 void RequestNativeShow::operator()() const
 {
-    WindowWork* const work = new WindowWork{window_};
+    WindowViewWork* const work = new WindowViewWork{window_, view_};
     post_main_work(work, &make_key_and_activate_on_main);
 }
 
@@ -111,7 +125,7 @@ void RequestNativeFullScreen::operator()() const {
 
 void RequestNativeHide::operator()() const
 {
-    WindowWork* const work = new WindowWork{window_};
+    WindowViewWork* const work = new WindowViewWork{window_, view_};
     post_main_work(work, &order_out_on_main);
 }
 

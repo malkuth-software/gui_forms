@@ -193,6 +193,8 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
 - (BOOL)answerWindowShouldClose:(NSWindow*)sender {
     if (_view != nil && ![_view requestCloseHiding:_hideOnClose reason:HostCloseReason::user]) return NO;
     if (_hideOnClose) {
+        // A close before the first show leaves the window off screen.
+        if (_view != nil) [_view cancelFirstShow];
         [sender orderOut:nil];
         gui_forms::host::mac_run_hidden_on_close(_run, _windowId);
         return NO;

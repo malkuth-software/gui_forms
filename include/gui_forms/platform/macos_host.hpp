@@ -2,9 +2,11 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host.hpp"
+#include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/window.hpp"
 
 #include <stxlib/optional.hpp>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -61,6 +63,10 @@ struct GUI_FORMS_API MacHostOptions {
     // them. hide_on_close keeps a reusable owned surface alive instead of
     // turning its native close button into a one-shot lifetime boundary.
     bool initially_visible{true};
+    // How long a newly shown window stays off screen waiting for its first
+    // presented frame (ApplicationWindowOptions::first_frame_show_ceiling;
+    // FirstFrameShowGate). Zero shows at once. A popup is never gated.
+    std::chrono::milliseconds first_frame_show_ceiling{gui_forms::first_frame_show_ceiling};
     bool hide_on_close{};
     bool minimizable{true};
     std::function<void(std::function<void()> show,

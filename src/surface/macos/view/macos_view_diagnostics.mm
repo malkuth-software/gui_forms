@@ -324,6 +324,17 @@ std::string MacPaintPhase::json_fields(const std::string_view name) const {
     }
     const bool dragRegionResolved =
         dragRegionConfigured && resolvedDragRegions == _windowDragRegionIds.size();
+    // The first-frame show gate (first_frame_show.hpp): its state, the
+    // cause of the last show and how long it waited.
+    const gui_forms::FirstFrameShowSnapshot firstShow = _firstShow.snapshot();
+    const std::chrono::microseconds firstShowWait =
+        std::chrono::duration_cast<std::chrono::microseconds>(firstShow.last_wait);
+    const std::string firstShowFields =
+        std::string(",\"first_show_state\":\"") + gui_forms::first_frame_show_state_name(firstShow.state) +
+        "\",\"first_show_cause\":\"" + gui_forms::first_frame_show_cause_name(firstShow.last_cause) +
+        "\",\"first_show_wait_us\":" + std::to_string(firstShowWait.count()) +
+        ",\"first_show_cancelled_waits\":" + std::to_string(firstShow.cancelled_waits) +
+        ",\"first_show_presented_frames\":" + std::to_string(firstShow.presented_frames);
     return "{\"session\":" + session + ",\"services\":" + services +
         ",\"titlebar_presentation\":\"" +
         (_transparentFullSizeContent
@@ -352,6 +363,7 @@ std::string MacPaintPhase::json_fields(const std::string_view name) const {
         std::to_string(resolvedDragRegions) +
         ",\"initial_host_occluded\":" + (_initialHostOccluded ? "true" : "false") +
         ",\"host_occluded\":" + (_hostOccluded ? "true" : "false") +
+        firstShowFields +
         ",\"scheduled_wake_count\":" + std::to_string(_scheduledWakeCount) +
         ",\"damage_collection_count\":" + std::to_string(_damageCollectionCount) +
         ",\"native_draw_count\":" + std::to_string(_nativeDrawCount) +

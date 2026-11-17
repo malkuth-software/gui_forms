@@ -784,6 +784,7 @@ add_library(gui_forms_core STATIC
     src/core/host/session/host_session.cpp
     src/core/host/windowing/desktop_coordinates.cpp
     src/core/host/windowing/host_windowing.cpp
+    src/core/host/windowing/first_frame_show.cpp
     src/core/feedback/semantic_feedback/semantic_feedback.cpp
     src/core/display/chunk/display_chunk.cpp
     src/core/display/recording_painter/recording_painter.cpp
@@ -5072,6 +5073,12 @@ if(GUI_FORMS_BUILD_TESTS)
     target_include_directories(gui_forms_presentation_shim_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_presentation_shim_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_presentation_shim_tests COMMAND gui_forms_presentation_shim_tests)
+    # The first-frame show gate (first_frame_show.hpp): the policy each
+    # host carries out before a new window goes on screen. Plain C++.
+    add_executable(gui_forms_first_frame_show_tests tests/first_frame_show_tests.cpp)
+    target_include_directories(gui_forms_first_frame_show_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_first_frame_show_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_first_frame_show_tests COMMAND gui_forms_first_frame_show_tests)
     add_executable(gui_forms_host_scroll_damage_tests tests/host_scroll_damage_tests.cpp)
     target_include_directories(gui_forms_host_scroll_damage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_host_scroll_damage_tests PRIVATE gui_forms_core)
@@ -6307,6 +6314,14 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_macos_exposure_tests PRIVATE gui_forms_host_macos)
         add_test(NAME gui_forms_macos_exposure_tests COMMAND gui_forms_macos_exposure_tests)
 
+        # The first-frame show gate (first_frame_show.hpp): the first frame is
+        # presented off screen and the window shown with it.
+        add_executable(gui_forms_macos_first_frame_show_tests tests/macos_first_frame_show_tests.mm)
+        target_compile_options(gui_forms_macos_first_frame_show_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_first_frame_show_tests PRIVATE gui_forms_host_macos)
+        add_test(NAME gui_forms_macos_first_frame_show_tests COMMAND gui_forms_macos_first_frame_show_tests)
+        set_tests_properties(gui_forms_macos_first_frame_show_tests PROPERTIES TIMEOUT 30)
+
         # Audit P13: a PDF recording of the view outlives the raster's frame.
         add_executable(gui_forms_macos_recorded_draw_tests tests/macos_recorded_draw_tests.mm)
         target_compile_options(gui_forms_macos_recorded_draw_tests PRIVATE -fobjc-arc)
@@ -6461,6 +6476,7 @@ if(GUI_FORMS_BUILD_TESTS)
         foreach(native_fixture IN ITEMS
                 gui_forms_macos_clipboard_image_tests
                 gui_forms_macos_exposure_tests
+                gui_forms_macos_first_frame_show_tests
                 gui_forms_macos_damage_rectangles_tests
                 gui_forms_macos_idle_visibility_tests
                 gui_forms_macos_host_close_tests
