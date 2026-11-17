@@ -278,8 +278,12 @@ def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
         process: subprocess.Popen[str] = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                                           text=True, encoding='utf-8', errors='replace')
         assert process.stdout is not None
+        # Each line is flushed as it arrives, so the job log's timestamps
+        # are when ninja finished each edge, not when a block of output
+        # filled (a silence in the log is then a silence in the build).
         for line in process.stdout:
             sys.stdout.write(line)
+            sys.stdout.flush()
             log.write(line)
         status: int = process.wait()
     sys.stdout.flush()

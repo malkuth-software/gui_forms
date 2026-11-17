@@ -35,6 +35,36 @@ class PhaseTest(unittest.TestCase):
         self.assertIn('| other links | 1 |', text)
         self.assertIn('| other edges | 1 |', text)
 
+    def test_the_slowest_edges_are_listed_longest_first(self) -> None:
+        text: str = ninja_phases.summary(ninja_phases.last_build(LOG), 'linux-x64')
+        slowest_at: int = text.index('Slowest 6 edges:')
+        tests_at: int = text.index('| CMakeFiles/gui_forms_text_tests.dir/tests/text_tests.cpp.obj | 3.0 | 0.0 |')
+        core_at: int = text.index('| CMakeFiles/gui_forms_core.dir/src/core/a.cpp.obj | 1.0 | 0.0 |')
+        self.assertLess(slowest_at, tests_at)
+        self.assertLess(tests_at, core_at)
+        self.assertIn('No quiet stretch', text)
+
+    def test_a_quiet_stretch_names_the_edges_that_ran_through_it(self) -> None:
+        log: str = '\n'.join([
+            '# ninja log v6',
+            '0\t1000\t1\ta.obj\tx',
+            '500\t400000\t1\tstuck.pch\tx',
+            '600\t401000\t1\talso_stuck.obj\tx',
+            '401000\t402000\t1\tlast.exe\tx',
+        ]) + '\n'
+        edges: list[ninja_phases.Edge] = ninja_phases.last_build(log)
+        stretches: list[ninja_phases.QuietStretch] = ninja_phases.quiet_stretches(edges, 120000)
+        self.assertEqual(len(stretches), 1)
+        self.assertEqual(stretches[0].start, 1000)
+        self.assertEqual(stretches[0].end, 400000)
+        names: list[str] = []
+        edge: ninja_phases.Edge
+        for edge in stretches[0].running:
+            names.append(edge.output)
+        self.assertEqual(names, ['stuck.pch', 'also_stuck.obj'])
+        text: str = ninja_phases.summary(edges, 'windows-x64')
+        self.assertIn('| 1.0 | 6.7 | stuck.pch, also_stuck.obj |', text)
+
     def test_a_tree_without_a_log_says_nothing_was_built(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
             out: Path = Path(scratch) / 'summary.md'

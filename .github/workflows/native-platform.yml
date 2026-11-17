@@ -357,8 +357,15 @@ jobs:
           # two commits for that).
           SCOPE: ${{ github.event_name == 'pull_request' && '--test-targets-only --changed-from HEAD^1' || '' }}
           # The daily build compiles every test without the shared precompiled
-          # headers, so each test source still includes what it uses.
-          GUI_FORMS_TEST_PRECOMPILED_HEADER: ${{ github.event_name == 'schedule' && 'OFF' || 'ON' }}
+          # headers, so each test source still includes what it uses. Windows
+          # builds without them too: every Windows pull-request build that
+          # compiled them (#483, 2026-11-16 and 17, 24 or 25 headers) went
+          # silent for 10 to 70 minutes at a time and took 95 to 117 minutes
+          # with 99% compiler-cache hits, while the main builds without them
+          # took 2 (cached) to 20 (cold) minutes on the same toolchain
+          # (notes in the projects desk WINDOWS_CI_30MIN.md; the phases step
+          # names what ran through each silence).
+          GUI_FORMS_TEST_PRECOMPILED_HEADER: ${{ (github.event_name == 'schedule' || inputs.platform == 'windows-x64') && 'OFF' || 'ON' }}
           GUI_FORMS_STX_PACKAGE_DIR: ${{ github.workspace }}/.ci/stx-package
           GUI_FORMS_STX_PACKAGE_RESTORED: ${{ steps.stx-package.outputs.cache-hit }}
           # ctest runs up to four tests at once (ci_build.py --test-jobs auto:
@@ -383,8 +390,10 @@ jobs:
         if: inputs.platform == 'macos-arm64' && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
         continue-on-error: true
         run: cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_hostile_macro_conformance -- -k 0
-      # Where the build's time went (tools/ninja_phases.py): evidence on the
-      # run's summary page, never a gate.
+      # Where the build's time went (tools/ninja_phases.py): evidence in the
+      # job log and on the run's summary page, never a gate. Its slowest
+      # edges and quiet stretches name what a silent build was running; the
+      # evidence artifact keeps the .ninja_log itself.
       - name: Report the build's phases
         if: always() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
         run: python gui_forms/tools/ninja_phases.py .build/native-${{ inputs.platform }}/gui-forms --title "native-${{ inputs.platform }} build" --out "$GITHUB_STEP_SUMMARY"
@@ -605,6 +614,8 @@ jobs:
           overwrite: true
           path: |
             .build/native-${{ inputs.platform }}/**/Testing/Temporary/*LastTest.log
+            .build/native-${{ inputs.platform }}/gui-forms/.ninja_log
+            .build/native-${{ inputs.platform }}/gui-forms/build-output.log
             .ci/*.json
             .ci/engine-gate-*.tsv
       - name: Publish this passing platform immediately
