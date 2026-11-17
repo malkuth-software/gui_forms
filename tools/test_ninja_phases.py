@@ -65,6 +65,39 @@ class PhaseTest(unittest.TestCase):
         text: str = ninja_phases.summary(edges, 'windows-x64')
         self.assertIn('| 1.0 | 6.7 | stuck.pch, also_stuck.obj |', text)
 
+    def test_samples_line_up_with_the_quiet_stretch(self) -> None:
+        log: str = '\n'.join([
+            '# ninja log v6',
+            '0\t1000\t1\ta.obj\tx',
+            '500\t400000\t1\tstuck.pch\tx',
+            '401000\t402000\t1\tlast.exe\tx',
+        ]) + '\n'
+        # The last edge ends at wall clock 10_402_000 ms, so ninja's 0 is 10_000_000.
+        header: str = '\t'.join(ninja_phases.SAMPLE_COLUMNS)
+        samples_text: str = '\n'.join([
+            '\ufeff' + header,
+            't\t10000500\t9000\t8000\t20000\t100\t0\t50\t5\tclang:1:900\tclang:1:20.0',
+            't\t10100000\t300\t21000\t22000\t90000\t4000\t30\t100\tclang:2:2000,ld:3:1500\tSystem:4:1.0',
+            't\t10200000\terror\t\t\t\t\t\t\t\tcounter missing',
+            't\t10300000\t700\t20500\t22000\t50000\t2500\t30\t100\tclang:2:1900\tMsMpEng:5:25.0',
+            't\t10450000\t9000\t8000\t20000\t100\t0\t50\t5\tctest:6:50\tctest:6:1.0',
+        ]) + '\n'
+        samples: list[ninja_phases.ResourceSample] = ninja_phases.read_samples(samples_text)
+        self.assertEqual(len(samples), 4)
+        text: str = ninja_phases.summary(ninja_phases.last_build(log), 'windows-x64', samples, 10402000)
+        self.assertIn('| 1.0 | 2 | 300 | 21000 / 22000 | 90000 | 4000 | clang:2:2000,ld:3:1500 | System:4:1.0 |',
+                      text)
+
+    def test_samples_without_a_clock_say_so(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            (Path(scratch) / '.ninja_log').write_text(
+                '# ninja log v6\n0\t1000\t1\ta.obj\tx\n1000\t200000\t1\tb.obj\tx\n', encoding='utf-8')
+            samples: Path = Path(scratch) / 'samples.tsv'
+            samples.write_text('\t'.join(ninja_phases.SAMPLE_COLUMNS) + '\n', encoding='utf-8')
+            out: Path = Path(scratch) / 'summary.md'
+            self.assertEqual(ninja_phases.main([scratch, '--samples', str(samples), '--out', str(out)]), 0)
+            self.assertIn('no build-clock.json', out.read_text(encoding='utf-8'))
+
     def test_a_tree_without_a_log_says_nothing_was_built(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
             out: Path = Path(scratch) / 'summary.md'

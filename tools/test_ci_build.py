@@ -405,6 +405,24 @@ class KeepGoingBuildTests(unittest.TestCase):
         self.assertEqual(summary.count('src/a.cpp:3:1: error: one'), 1)
         self.assertIn('src/b.cpp:9:2: error: two', summary)
 
+    def test_a_logged_build_records_its_clock_even_when_it_fails(self) -> None:
+        class FailedBuild:
+            def __init__(self, command: list[str], **unused: object) -> None:
+                self.stdout = io.StringIO('[1/1] Building CXX object a.cpp.obj\nsrc/a.cpp:1:1: error: one\n')
+
+            def wait(self) -> int:
+                return 1
+
+        printed: io.StringIO = io.StringIO()
+        with tempfile.TemporaryDirectory() as scratch:
+            with mock.patch.object(ci_build.subprocess, 'Popen', FailedBuild), \
+                    mock.patch.object(sys, 'stdout', printed):
+                with self.assertRaises(ci_build.subprocess.CalledProcessError):
+                    ci_build.build_logged(Path(scratch), False, '--parallel', '4')
+            clock: dict = json.loads((Path(scratch) / ci_build.BUILD_CLOCK_NAME).read_text(encoding='utf-8'))
+        self.assertGreater(clock['started_ms'], 1700000000000)
+        self.assertGreaterEqual(clock['finished_ms'], clock['started_ms'])
+
 
 if __name__ == '__main__':
     unittest.main()

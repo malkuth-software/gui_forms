@@ -31,6 +31,10 @@ on:
         description: A documentation-only pull request (tools/ci_docs_only.py) builds nothing
         type: boolean
         default: false
+      windows_test_pch:
+        description: Windows only, a diagnostic run that compiles the tests with the shared precompiled headers again (they are off on Windows), to catch a silent build with the resource sampler
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -365,7 +369,9 @@ jobs:
           # took 2 (cached) to 20 (cold) minutes on the same toolchain
           # (notes in the projects desk WINDOWS_CI_30MIN.md; the phases step
           # names what ran through each silence).
-          GUI_FORMS_TEST_PRECOMPILED_HEADER: ${{ (github.event_name == 'schedule' || inputs.platform == 'windows-x64') && 'OFF' || 'ON' }}
+          # A diagnostic dispatch can turn them back on for Windows
+          # (windows_test_pch) to catch a silence with the resource sampler.
+          GUI_FORMS_TEST_PRECOMPILED_HEADER: ${{ (github.event_name == 'schedule' || (inputs.platform == 'windows-x64' && inputs.windows_test_pch != true)) && 'OFF' || 'ON' }}
           GUI_FORMS_STX_PACKAGE_DIR: ${{ github.workspace }}/.ci/stx-package
           GUI_FORMS_STX_PACKAGE_RESTORED: ${{ steps.stx-package.outputs.cache-hit }}
           # ctest runs up to four tests at once (ci_build.py --test-jobs auto:
@@ -374,8 +380,24 @@ jobs:
           # stays serial until a week of parallel runs has shown no hidden
           # interference (the check efficiency audit, 2c).
           TEST_JOBS: ${{ github.event_name == 'schedule' && '1' || 'auto' }}
+        # Windows: tools/windows_resource_sampler.ps1 samples memory, paging
+        # and the busiest processes every 30 s in the background while this
+        # step runs, into .ci/windows-resources.tsv (evidence; the phases step
+        # lines it up with the build's quiet stretches). It only observes.
+        # The EXIT trap stops it whatever the step's result: the stop file
+        # ends it within about a second, the kill catches one that has not
+        # gone, and the trap leaves the step's exit status as the build's.
         run: |
           ccache --zero-stats
+          if [ "$RUNNER_OS" = Windows ]; then
+            sampler_stop=.ci/windows-resources.stop
+            rm -f "$sampler_stop"
+            "$(cygpath -u "$SYSTEMROOT")/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+              -File gui_forms/tools/windows_resource_sampler.ps1 \
+              -Log .ci/windows-resources.tsv -Stop "$sampler_stop" -IntervalSeconds 30 &
+            sampler_pid=$!
+            trap 'touch "$sampler_stop"; sleep 2; kill "$sampler_pid" 2>/dev/null || true; wait "$sampler_pid" 2>/dev/null || true' EXIT
+          fi
           if [ "$RUNNER_OS" = Linux ]; then
             xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --test-jobs "$TEST_JOBS" $SCOPE
           else
@@ -396,7 +418,7 @@ jobs:
       # evidence artifact keeps the .ninja_log itself.
       - name: Report the build's phases
         if: always() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
-        run: python gui_forms/tools/ninja_phases.py .build/native-${{ inputs.platform }}/gui-forms --title "native-${{ inputs.platform }} build" --out "$GITHUB_STEP_SUMMARY"
+        run: python gui_forms/tools/ninja_phases.py .build/native-${{ inputs.platform }}/gui-forms --title "native-${{ inputs.platform }} build" --out "$GITHUB_STEP_SUMMARY" ${{ inputs.platform == 'windows-x64' && '--samples .ci/windows-resources.tsv' || '' }}
       # SK2: the time each host spends presenting a frame
       # (benchmarks/present_profile_workload.cpp), in the configuration the
       # toolkit step built. Its values are evidence, never a gate; a workload
@@ -616,6 +638,8 @@ jobs:
             .build/native-${{ inputs.platform }}/**/Testing/Temporary/*LastTest.log
             .build/native-${{ inputs.platform }}/gui-forms/.ninja_log
             .build/native-${{ inputs.platform }}/gui-forms/build-output.log
+            .build/native-${{ inputs.platform }}/gui-forms/build-clock.json
+            .ci/windows-resources.tsv
             .ci/*.json
             .ci/engine-gate-*.tsv
       - name: Publish this passing platform immediately

@@ -13,6 +13,7 @@ tools/build_sdk.py also uses without the harness.
 """
 from __future__ import annotations
 import argparse
+import json
 import os
 from pathlib import Path
 import platform
@@ -20,6 +21,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 
 import harness_link  # noqa: F401  (puts the harness's tools on sys.path)
 import change_selection
@@ -260,6 +262,20 @@ def print_build_errors(log_path: Path) -> None:
         print(shown, flush=True)
 
 
+# The wall-clock times of a tree's last logged build (milliseconds since the
+# Unix epoch): tools/ninja_phases.py places the .ninja_log's relative times on
+# the clock with them, to line a quiet stretch up with resource samples
+# (tools/windows_resource_sampler.ps1). Ninja exits as its last edge ends, so
+# finished_ms is that edge's end.
+BUILD_CLOCK_NAME: str = 'build-clock.json'
+
+
+def write_build_clock(toolkit: Path, started_ms: int, finished_ms: int) -> None:
+    """Writes toolkit/BUILD_CLOCK_NAME with the build's start and end, replacing an earlier one."""
+    clock: dict[str, int] = {'started_ms': started_ms, 'finished_ms': finished_ms}
+    (toolkit / BUILD_CLOCK_NAME).write_text(json.dumps(clock) + '\n', encoding='utf-8')
+
+
 def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
     """Runs `cmake --build toolkit` with `arguments`, echoing its output and
     keeping it in toolkit/build-output.log, then checks the warnings it
@@ -274,6 +290,7 @@ def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
     command: list[str] = ['cmake', '--build', str(toolkit), *arguments, '--', '-k', '0']
     print(' '.join(command), flush=True)
     line: str
+    started_ms: int = time.time_ns() // 1000000
     with log_path.open('w', encoding='utf-8', errors='replace') as log:
         process: subprocess.Popen[str] = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                                           text=True, encoding='utf-8', errors='replace')
@@ -287,6 +304,7 @@ def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
             log.write(line)
         status: int = process.wait()
     sys.stdout.flush()
+    write_build_clock(toolkit, started_ms, time.time_ns() // 1000000)
     if status != 0:
         print_build_errors(log_path)
         raise subprocess.CalledProcessError(status, command)

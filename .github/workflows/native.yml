@@ -35,6 +35,10 @@ on:
         description: Build the native jobs with no compiler cache or object seed, validating afresh, and skip the programs (one cold-build measurement)
         type: boolean
         default: false
+      windows_test_pch:
+        description: Windows diagnostic, validating afresh, with the tests' shared precompiled headers back on (off on Windows), to catch a silent build with the resource sampler (projects desk WINDOWS_CI_30MIN.md)
+        type: boolean
+        default: false
       run_sanitizers:
         description: Run the whole suite under ASan, UBSan and LSan (the Sanitizers job runs only when requested)
         type: boolean
@@ -565,10 +569,11 @@ jobs:
       runner: windows-2022
       platform: windows-x64
       shell: 'msys2 {0}'
-      force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || github.event_name == 'schedule' }}
+      force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || inputs.windows_test_pch == true || github.event_name == 'schedule' }}
       cold_build: ${{ inputs.cold_build == true }}
       package_windows_toolchain: ${{ inputs.package_windows_toolchain == true }}
       docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
+      windows_test_pch: ${{ inputs.windows_test_pch == true }}
     permissions:
       contents: write
       actions: read
