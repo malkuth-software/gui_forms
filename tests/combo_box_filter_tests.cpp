@@ -120,9 +120,12 @@ void prefix_filter_narrows_and_widens() {
     const Control::Ptr list = window.find("filter.prefix.overlay.list");
     require(list != nullptr && (*list).anatomy().control_id == "drop_down_list",
             "the rows are a drop-down list");
+    // The rows are realized by layout: before it the list has no height, so
+    // only its first row is realized and row 3 is refused (std::out_of_range).
+    window.perform_layout();
+    require((*list).realized_item_count() == 4U, "layout realizes every filtered row");
     require((*list).realized_item_stable_id(3U) == "filter.prefix.overlay.list.item.4",
             "a row's identity is its item's, not its position");
-    window.perform_layout();
     const PartGeometry match = item_part(*list, 0U, "match");
     const PartGeometry label = item_part(*list, 0U, "label");
     require(match.present && match.states.contains(AnatomyState::hot) &&
