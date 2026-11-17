@@ -118,7 +118,7 @@ set(_gf_own_libraries "")
 if(GUI_FORMS_OWN_RUNTIME_PREFIX)
     set(_gf_own_lib "${GUI_FORMS_OWN_RUNTIME_PREFIX}/lib")
     foreach(_gf_required IN ITEMS stx_msvc_startup.lib stxlib_msvc_runtime_static.lib
-                                  stxlib_msvc_runtime_per_image.lib ucrtbase.lib kernel32.lib)
+                                  stxlib_msvc_runtime_module.lib ucrtbase.lib kernel32.lib)
         if(NOT EXISTS "${_gf_own_lib}/${_gf_required}")
             message(FATAL_ERROR "GUI_FORMS_MSVC_RUNTIME=OWN: ${_gf_own_lib} has no ${_gf_required} "
                                 "(build STXlib's src/hosted/windows/own_runtime into GUI_FORMS_OWN_RUNTIME_PREFIX)")
