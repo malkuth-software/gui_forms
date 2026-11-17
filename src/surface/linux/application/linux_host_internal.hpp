@@ -10,6 +10,7 @@
 #include "../settings/xsettings_watch.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
+#include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/platform/linux_host.hpp"
 #include <X11/Xlib.h>
 #include <signal.h>
@@ -306,6 +307,15 @@ public:
   bool drag_message(const XClientMessageEvent &message);
 #endif
   void action(ActionKind kind);
+  // The first-frame show (gui_forms/host/windowing/first_frame_show.hpp),
+  // after each update: a complete frame painted into the raster while the
+  // window is unmapped, or the deadline at `now`, maps it. Nothing unless
+  // the gate waits.
+  void advance_first_show(FrameTime now);
+  // Maps the window for a show the gate returned with `cause`. Shown by a
+  // painted frame, the first Expose copies the raster; otherwise the whole
+  // window is damaged and painted, as before the gate.
+  void map_for_show(FirstFrameShowCause cause);
   void close(HostCloseReason reason, bool force = false);
   // Portable frame capture (capture_path host option): runs once after the
   // first presented frame whose damage covered the whole window, then closes.
@@ -433,6 +443,18 @@ public:
   FormWindowState chrome_window_state{FormWindowState::normal};
   Size chrome_minimum_size{};
   bool shown_once{};
+  // The first-frame show gate (first_frame_show.hpp). While it waits the
+  // window stays unmapped and update() paints the model into the raster
+  // without presenting (first_show_staging, read by
+  // present_raster_rectangles); first_show_staged records that such a
+  // present was asked for, so a complete staged frame (damage acknowledged)
+  // can release the show. first_show_copy_pending: the window was mapped
+  // with that frame in the raster, so the Expose burst that follows copies
+  // the raster instead of repainting; cleared at the burst's last event.
+  FirstFrameShowGate first_show{};
+  bool first_show_staging{};
+  bool first_show_staged{};
+  bool first_show_copy_pending{};
   bool frame_capture_completed{};
   bool frame_capture_saved{};
   bool cursor_set{};

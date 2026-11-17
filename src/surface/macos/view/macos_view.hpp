@@ -178,6 +178,21 @@ NS_ASSUME_NONNULL_BEGIN
     std::vector<gui_forms::DevicePixelRect> _overlayRegions;
     std::vector<gui_forms::DevicePixelRect> _overlayDrawn;
     NSTimer* _Nullable _overlayTimer;
+    // The first-frame show gate (gui_forms/host/windowing/first_frame_show.hpp):
+    // the window stays off screen until a frame is presented or the ceiling
+    // passes. What the show does, fixed by the request: make the window key
+    // (else only order it front), activate the application, and the owner
+    // the window is re-attached to as a child before it is ordered front
+    // (observing; nil for none). _firstShowDue: a show the gate returned
+    // and the view has not performed yet; _firstShowDisplaying: the view is
+    // inside its own display of the hidden window, so a present there leaves
+    // the show to that display's caller.
+    gui_forms::FirstFrameShowGate _firstShow;
+    BOOL _firstShowTakesKey;
+    BOOL _firstShowActivates;
+    __weak NSWindow* _Nullable _firstShowParent;
+    BOOL _firstShowDue;
+    BOOL _firstShowDisplaying;
 }
 - (instancetype)initWithModel:(std::unique_ptr<Window>)model
        transparentFullSizeContent:(BOOL)transparentFullSizeContent
@@ -246,6 +261,31 @@ NS_ASSUME_NONNULL_BEGIN
 - (MacDisplayLinkTrace)displayTraceSnapshot;
 - (void)answerDisplayLinkTick;
 - (void)answerDrainPostedWork;
+// The first-frame show (macos_view_scheduling.mm; first_frame_show.hpp).
+// Sets the gate's ceiling; zero turns it off (a popup).
+- (void)setFirstFrameShowCeiling:(gui_forms::FrameInterval)ceiling;
+// Asks for the window to be shown: at once when the gate says so (a frame
+// already presented, a window shown before, a zero ceiling), else after
+// the model's first frame is painted and presented while the window is off
+// screen, or at the ceiling. `parent`, when not nil, is the owner the
+// window is attached to as a child as it is shown.
+- (void)requestFirstShowTakingKey:(BOOL)takesKey
+                       activating:(BOOL)activates
+                           parent:(NSWindow* _Nullable)parent;
+// The window is hidden (or closing) before its show: the wait ends, the
+// window is never ordered front by it, and the model is told it is
+// occluded again. Nothing when no wait is under way.
+- (void)cancelFirstShow;
+// A frame was presented (drawRetainedRect:): reported to the gate.
+- (void)noteFramePresentedForFirstShow;
+// Performs a show the gate returned and the view has not performed.
+- (void)performDueFirstShow;
+- (gui_forms::FirstFrameShowSnapshot)firstShowSnapshot;
+// Draws the hidden window now (displayIfNeeded), marking the draw as the
+// view's own, so that a present inside it leaves the show to the caller.
+- (void)displayAwaitingFirstShow;
+// Marks the show due and posts its performance (performDueFirstShow).
+- (void)postFirstShow;
 @end
 
 // The retained draw and its presentation, the invalidation overlay and frame

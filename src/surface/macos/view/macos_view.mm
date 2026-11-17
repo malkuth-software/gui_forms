@@ -869,6 +869,11 @@ void link_view_categories() noexcept {
     return result;
 }
 - (void)prepareForShutdown {
+    // A window closing before its first show is never shown: the wait ends
+    // and a posted show finds nothing due (first_frame_show.hpp). The model
+    // is not told of occlusion: its session is shutting down.
+    static_cast<void>(_firstShow.cancel());
+    _firstShowDue = NO;
     [self stopDisplayLink];
     // No compositor report reaches a session that is shutting down.
     [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];

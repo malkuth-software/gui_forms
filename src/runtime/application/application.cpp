@@ -263,6 +263,11 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.options.initially_visible = (*bridge).options.initially_visible;
     entry.options.hide_on_close = (*bridge).options.hide_on_close;
     entry.options.minimizable = (*bridge).options.minimizable;
+#if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_LINUX)
+    // The macOS and Linux X11 hosts carry out the first-frame show gate; the
+    // other hosts' options have no ceiling and show at once.
+    entry.options.first_frame_show_ceiling = (*bridge).options.first_frame_show_ceiling;
+#endif
     entry.options.print_metrics_on_close = (*bridge).options.print_metrics_on_close;
     entry.options.host_ready = HostReady{bridge};
     entry.options.dispatch_pending = DispatchPending{bridge};

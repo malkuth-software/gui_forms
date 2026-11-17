@@ -166,6 +166,33 @@ forwarded from there; nothing in the shim is synchronized, because nothing
 in it is shared. The frame is borrowed for one call, and a direct buffer is
 borrowed between acquire and present.
 
+### The first frame and the show
+
+A newly shown top-level window stays off screen until its first frame is
+presented, at most `first_frame_show_ceiling` (300 ms, the owner's choice)
+after the show was asked for, so that it appears with its interface
+already drawn (`FirstFrameShowGate`,
+`include/gui_forms/host/windowing/first_frame_show.hpp`). The policy and
+the deadline are portable; a host lets the model paint while the window is
+off screen, reports each presented frame, arms its existing wake for the
+deadline, and orders the window on screen only when the gate says so.
+
+The order for one window: the init turn (attach, services, the first
+posted work); the first frame painted and presented off screen, while the
+model has no activation; the show; then activation and keyboard focus as
+the platform reports them, and the window's accessibility publication when
+it is on screen. A window hidden or closed before its show is never put on
+screen. When the deadline passes first, the window is shown with whatever
+its storage holds, and painting continues as for any visible window. Only
+the first show waits: a window shown before is shown again at once.
+
+`ApplicationWindowOptions::first_frame_show_ceiling` sets the ceiling per
+window (zero shows at once; at most 1000 ms). Popups and Splash windows are
+never gated. The macOS host and the Linux X11 host carry the gate out (the
+X11 window stays unmapped while its first frame is painted into the
+raster, and the first Expose copies it); the Windows host still shows at
+once.
+
 ## Capabilities
 
 Three host capability bits describe presentation (`HostCapability`; in the

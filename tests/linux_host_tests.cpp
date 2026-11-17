@@ -908,6 +908,104 @@ struct PresentLayout final {
 // visual, and the fallback kernels give the same colours for other layouts.
 // The images are client-side, so every layout is checked whatever the
 // server's own visual.
+// The first-frame show gate on X11 (first_frame_show.hpp): a shown window
+// stays unmapped until the model's first frame is painted into the raster,
+// is mapped by that frame, and its first Expose copies the raster without
+// painting again. A window closed or hidden before its show is never
+// mapped; a zero ceiling maps at once.
+class CountingBlock final : public Control {
+public:
+  CountingBlock(StableId id, const Color color) : Control(std::move(id)), color_(color) {}
+  void on_paint(Painter &painter, Rect) override {
+    ++paints;
+    painter.fill_rect(client_rectangle(), color_);
+  }
+  unsigned paints{};
+
+private:
+  Color color_{};
+};
+std::shared_ptr<NativeWindow> first_show_window(Runtime &runtime, const std::shared_ptr<CountingBlock> &root,
+                                                const char *stable_id, std::chrono::milliseconds ceiling) {
+  host::LinuxApplicationWindow entry;
+  entry.stable_id = stable_id;
+  entry.options.title = "GUI.Forms X11 first-frame show check";
+  entry.options.initial_size = {160, 100};
+  entry.options.print_metrics_on_close = false;
+  entry.options.first_frame_show_ceiling = ceiling;
+  entry.model = std::make_unique<gui_forms::Window>(root, entry.options.initial_size);
+  const std::shared_ptr<NativeWindow> window = runtime.add(std::move(entry));
+  return window;
+}
+void first_frame_show_gate(Runtime &runtime) {
+  const std::size_t width = 160U;
+  const std::size_t height = 100U;
+  {
+    const std::shared_ptr<CountingBlock> root =
+        make_control<CountingBlock>(StableId("first.root"), Color::rgba(30, 95, 180));
+    const std::shared_ptr<NativeWindow> window =
+        first_show_window(runtime, root, "first", std::chrono::milliseconds(300));
+    require(!(*window).visible && !(*window).shown_once, "A gated window was mapped before its first frame");
+    require((*window).first_show.waiting(), "The show request did not start the wait");
+    (*window).ready();
+    // One turn paints the model into the raster and maps the window.
+    runtime.step(0);
+    require((*root).paints >= 1U, "The first frame was not painted while unmapped");
+    require((*window).visible && (*window).shown_once, "The painted first frame did not map the window");
+    require((*window).first_show.snapshot().last_cause == FirstFrameShowCause::frame_presented,
+            "The show was not released by the frame");
+    const unsigned painted = (*root).paints;
+    const std::vector<std::uint32_t> raster = raster_copy(*window, width, height);
+    // The Expose burst: copied from the raster, nothing painted again.
+    for (int tick = 0; tick < 8 && (*window).first_show_copy_pending; ++tick) runtime.step(10);
+    require(!(*window).first_show_copy_pending, "The first Expose burst never arrived");
+    require((*root).paints == painted, "The first Expose painted again instead of copying the raster");
+    const std::vector<unsigned long> screen = screen_copy(*window, width, height);
+    const std::size_t centre = (height / 2U) * width + width / 2U;
+    const std::vector<std::uint32_t> raster_after = raster_copy(*window, width, height);
+    require(raster_after[centre] == raster[centre], "The raster changed across the first Expose");
+    require((screen[centre] & 0xFFFFFFU) == (raster[centre] & 0xFFFFFFU),
+            "The window does not show the first frame's pixels");
+    (*window).close(HostCloseReason::application, true);
+    runtime.step(0);
+  }
+  {
+    const std::shared_ptr<CountingBlock> root =
+        make_control<CountingBlock>(StableId("closed.root"), Color::rgba(200, 40, 40));
+    const std::shared_ptr<NativeWindow> window =
+        first_show_window(runtime, root, "closed", std::chrono::milliseconds(300));
+    (*window).close(HostCloseReason::application, true);
+    for (int tick = 0; tick < 3; ++tick) runtime.step(10);
+    require(!(*window).shown_once, "A window closed before its show was mapped");
+    require((*window).first_show.snapshot().cancelled_waits == 1U, "The close did not cancel the wait");
+  }
+  {
+    const std::shared_ptr<CountingBlock> root =
+        make_control<CountingBlock>(StableId("hidden.root"), Color::rgba(40, 160, 60));
+    const std::shared_ptr<NativeWindow> window =
+        first_show_window(runtime, root, "hidden", std::chrono::milliseconds(300));
+    (*window).action(ActionKind::hide);
+    for (int tick = 0; tick < 3; ++tick) runtime.step(10);
+    require(!(*window).shown_once, "A window hidden before its show was mapped");
+    require((*window).first_show.state() == FirstFrameShowState::idle, "The hide did not end the wait");
+    (*window).action(ActionKind::show);
+    runtime.step(0);
+    require((*window).visible, "A show after the hide did not map the window");
+    (*window).close(HostCloseReason::application, true);
+    runtime.step(0);
+  }
+  {
+    const std::shared_ptr<CountingBlock> root =
+        make_control<CountingBlock>(StableId("zero.root"), Color::rgba(90, 90, 90));
+    const std::shared_ptr<NativeWindow> window =
+        first_show_window(runtime, root, "zero", std::chrono::milliseconds(0));
+    require((*window).visible && (*window).shown_once, "A zero ceiling did not map at once");
+    require((*window).first_show.snapshot().last_cause == FirstFrameShowCause::immediate,
+            "A zero ceiling's show was not immediate");
+    (*window).close(HostCloseReason::application, true);
+    runtime.step(0);
+  }
+}
 void present_kernels(Display *display) {
   // Three premultiplied BGRA8 pixels: red 200, green 100, blue 50 at alpha
   // 255; red 255, green 0, blue 0 at alpha 255; red 64, green 32, blue 16 at
@@ -1143,9 +1241,10 @@ int main() {
     damage_rectangles_gate(runtime);
     scroll_copy_gate(runtime);
     client_size_request(runtime);
+    first_frame_show_gate(runtime);
     (*window).close(HostCloseReason::application, true);
     std::cout << "X11 services: cross-process text and PNG INCR, preserved "
-                 "input, local file drops, open/save dialogs, live frame sequence, client size request passed\n";
+                 "input, local file drops, open/save dialogs, live frame sequence, client size request, first-frame show passed\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

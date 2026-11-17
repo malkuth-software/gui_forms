@@ -2,6 +2,7 @@
 // presents live surfaces, posted work and the wake timer.
 
 #include "macos_view.hpp"
+#include "../application/macos_main_work.hpp"
 #include "../application/macos_values.hpp"
 
 #include <optional>
@@ -24,6 +25,22 @@ namespace {
 // GUIFormsDisplayTarget's native entries: each sends the entry's answer message.
 void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sender) {
     [object answerTick:sender];
+}
+// The first-frame show, posted (postFirstShow): the view may be gone by
+// the time the work runs. The function adopts and deletes the context.
+struct FirstShowWork final {
+    __weak GUIFormsView* view;
+};
+
+void run_perform_due_first_show(GUIFormsView* view) {
+    [view performDueFirstShow];
+}
+
+void perform_first_show_on_main(void* context) {
+    const std::unique_ptr<FirstShowWork> work(static_cast<FirstShowWork*>(context));
+    GUIFormsView* const view = (*work).view;
+    if (view == nil) return;
+    gui_forms::detail::call_failing_fast("macos.first_show", &run_perform_due_first_show, view);
 }
 } // namespace
 
@@ -76,6 +93,12 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
         return;
     }
     const gui_forms::FrameTime pollTime = std::chrono::steady_clock::now();
+    // The first-frame show's deadline rides on this view's wake
+    // (armWakeTimer). Its show is posted, never performed here.
+    if (_firstShow.waiting()) {
+        const gui_forms::FirstFrameShowStep firstShowStep = _firstShow.poll(pollTime);
+        if (firstShowStep.show) [self postFirstShow];
+    }
     const gui_forms::FramePollResult pollResult = (*_model).poll_frame_schedule(pollTime);
     if (_causalTrace && (*_causalTrace).enabled) {
         (*_causalTrace).record_poll(pollTime, pollResult.deadlines_fired, pollResult.next_wake);
@@ -114,6 +137,13 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
     }
     [self startDisplayLinkIfNeeded];
     [self armWakeTimer];
+    // While the first show waits, the window is off screen, where AppKit
+    // displays nothing on its own: the damage just requested is drawn and
+    // presented now. A present there leaves the show due; it is posted.
+    if (_firstShow.waiting()) {
+        [self displayAwaitingFirstShow];
+        if (_firstShowDue == YES) [self postFirstShow];
+    }
 }
 
 - (void)startDisplayLinkIfNeeded {
@@ -236,7 +266,13 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
     if (!_model || _wakeSource == nil) {
         return;
     }
-    const stxlib::Optional<gui_forms::FrameTime> wake = (*_model).next_wake();
+    stxlib::Optional<gui_forms::FrameTime> wake = (*_model).next_wake();
+    // A waiting first show's deadline is one more wake (first_frame_show.hpp).
+    const stxlib::Optional<gui_forms::FrameTime> firstShowDeadline = _firstShow.deadline();
+    if (firstShowDeadline.present() &&
+        (wake.absent() || *firstShowDeadline.value() < *wake.value())) {
+        wake = firstShowDeadline;
+    }
     if (wake.absent()) {
         if (_causalTrace && (*_causalTrace).enabled) {
             (*_causalTrace).record_arm(gui_forms::FrameClock::now(), wake, 0);
@@ -260,6 +296,100 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
     if (_causalTrace && (*_causalTrace).enabled) {
         (*_causalTrace).record_arm(now, wake, static_cast<std::int64_t>(nanoseconds));
     }
+}
+
+- (void)setFirstFrameShowCeiling:(gui_forms::FrameInterval)ceiling {
+    _firstShow.set_ceiling(ceiling);
+}
+
+// Order of events (first_frame_show.hpp): the open path has run the init
+// turn and collected damage; here the model is told the window is visible
+// (it paints only then), the frame is drawn and presented off screen, and
+// the window is ordered front, made key and the application activated as
+// the request asked. Activation and focus reach the model afterwards
+// through windowDidBecomeKey:, and AppKit publishes the window to
+// accessibility clients when it is on screen.
+- (void)requestFirstShowTakingKey:(BOOL)takesKey
+                       activating:(BOOL)activates
+                           parent:(NSWindow*)parent {
+    _firstShowTakesKey = takesKey;
+    _firstShowActivates = activates;
+    _firstShowParent = parent;
+    const gui_forms::FirstFrameShowStep step = _firstShow.request_show(gui_forms::FrameClock::now());
+    if (step.show) {
+        _firstShowDue = YES;
+        [self performDueFirstShow];
+        return;
+    }
+    if (!_firstShow.waiting()) return;
+    // The window is about to be shown: the model paints although the
+    // window is off screen (initializeHost reported it occluded, and an
+    // occluded model declines to paint). Unoccluding collects damage, which
+    // draws the hidden window while the gate waits.
+    if (_hostOccluded == YES) [self notifyOcclusion:NO];
+    else [self collectDamage];
+    [self displayAwaitingFirstShow];
+    if (_firstShowDue == YES) {
+        [self performDueFirstShow];
+        return;
+    }
+    // No frame yet: the deadline is armed with the view's wake.
+    [self armWakeTimer];
+}
+
+- (void)cancelFirstShow {
+    _firstShowDue = NO;
+    if (!_firstShow.cancel()) return;
+    // The window stays off screen: the model is occluded again, as
+    // initializeHost left it, until a show unoccludes it.
+    if (_hostOccluded == NO) [self notifyOcclusion:YES];
+    [self armWakeTimer];
+}
+
+- (void)noteFramePresentedForFirstShow {
+    const gui_forms::FirstFrameShowStep step =
+        _firstShow.report_frame_presented(gui_forms::FrameClock::now());
+    if (!step.show) return;
+    _firstShowDue = YES;
+    // Inside the view's own display of the hidden window, its caller
+    // performs the show once the draw returns; inside AppKit's display
+    // cycle the show is posted, so no window is ordered from inside a draw.
+    if (_firstShowDisplaying == NO) [self postFirstShow];
+}
+
+- (void)performDueFirstShow {
+    if (_firstShowDue == NO) return;
+    _firstShowDue = NO;
+    NSWindow* const window = self.window;
+    if (window == nil || _hostAttached == NO || [self acceptsWindowRequest] == NO) return;
+    NSWindow* const parent = _firstShowParent;
+    // addChildWindow:ordered: orders the child on screen, so the relation
+    // is made only now (the open path detached it to keep the window off
+    // screen), and again in case ordering out detached it.
+    if (parent != nil && window.parentWindow == nil) {
+        [parent addChildWindow:window ordered:NSWindowAbove];
+    }
+    if (_firstShowTakesKey == YES) [window makeKeyAndOrderFront:nil];
+    else [window orderFront:nil];
+    if (_firstShowActivates == YES) [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (gui_forms::FirstFrameShowSnapshot)firstShowSnapshot {
+    const gui_forms::FirstFrameShowSnapshot snapshot = _firstShow.snapshot();
+    return snapshot;
+}
+
+- (void)displayAwaitingFirstShow {
+    if (_firstShowDisplaying == YES || self.window == nil) return;
+    _firstShowDisplaying = YES;
+    [self displayIfNeeded];
+    _firstShowDisplaying = NO;
+}
+
+- (void)postFirstShow {
+    _firstShowDue = YES;
+    FirstShowWork* const work = new FirstShowWork{self};
+    post_main_work(work, &perform_first_show_on_main);
 }
 
 @end

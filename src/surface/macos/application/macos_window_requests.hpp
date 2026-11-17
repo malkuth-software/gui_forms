@@ -35,14 +35,19 @@ private:
     NSWindow* window_;
 };
 
+// Shows the window through its view's first-frame show gate
+// (first_frame_show.hpp): made key and the application activated, at once
+// or once its first frame is presented, at most the ceiling later.
 class RequestNativeShow final {
 public:
-    explicit RequestNativeShow(NSWindow* window) noexcept : window_(window) {}
+    RequestNativeShow(NSWindow* window, GUIFormsView* view) noexcept : window_(window), view_(view) {}
 
     void operator()() const;
 
 private:
     NSWindow* window_;
+    // Observing: the window's content view; nil once it is gone.
+    __weak GUIFormsView* view_;
 };
 
 class RequestNativeTitle final {
@@ -74,14 +79,18 @@ private:
     NSWindow* window_;
 };
 
+// Hides the window; a first show still waiting is cancelled
+// (first_frame_show.hpp), so the window is not ordered front afterwards.
 class RequestNativeHide final {
 public:
-    explicit RequestNativeHide(NSWindow* window) noexcept : window_(window) {}
+    RequestNativeHide(NSWindow* window, GUIFormsView* view) noexcept : window_(window), view_(view) {}
 
     void operator()() const;
 
 private:
     NSWindow* window_;
+    // Observing: the window's content view; nil once it is gone.
+    __weak GUIFormsView* view_;
 };
 
 class ShowNativeDialog final {

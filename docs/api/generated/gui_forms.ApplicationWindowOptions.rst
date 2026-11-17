@@ -151,6 +151,10 @@ gui_forms::ApplicationWindowOptions
 
       The window may be presented non-opaque (stage T5, owner decisions T5-Q3 and T5-Q4): declared before the host creates the native window (Window::declare_non_opaque). The backdrop itself is asked for through Window::request_backdrop, and the window is opaque without it.
 
+   .. cpp:member:: std::chrono::milliseconds first_frame_show_ceiling
+
+      How long a newly shown window stays off screen waiting for its first presented frame, from the show request, so that it appears already drawn (FirstFrameShowGate, gui_forms/host/windowing/ first_frame_show.hpp). After it the window is shown with whatever frame exists. Zero shows at once; longer than maximum_first_frame_show_ceiling is clamped to it. Honoured by the macOS and Linux X11 hosts; the Windows host shows at once until it reports presented frames to the gate. Default: ``{gui_forms::first_frame_show_ceiling}``.
+
    .. cpp:member:: std::function<void(Window&, ApplicationWindowHandle)> ready
 
       Runs after this model has an attached host and services. Other windows may not be ready yet. Keep a weak handle for native window requests.

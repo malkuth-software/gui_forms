@@ -574,6 +574,14 @@ namespace {
 bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect> requested,
                                PresentedArea& copied,
                                std::span<const presentation::PresentScroll> scrolls = {}) {
+  // The first-frame show's staging (first_frame_show.hpp): the window is
+  // unmapped and its contents would be discarded, so the frame stays in the
+  // raster for the first Expose to copy. Nothing is copied; the frame counts
+  // as presented, so the model's paint is acknowledged as on screen.
+  if (window.first_show_staging) {
+    window.first_show_staged = true;
+    return true;
+  }
   render::SkiaRaster& raster = window.raster;
   const std::uint32_t width = raster.pixel_width();
   const std::uint32_t height = raster.pixel_height();
@@ -1414,6 +1422,12 @@ void NativeWindow::attach() {
   }
   accessibility = std::make_unique<LinuxAccessibility>(runtime.display, xid, *entry.model, entry.options.title);
   (*accessibility).set_scale(scale);
+  // A popup or Splash (override-redirect) is never gated: the program
+  // places and shows it itself.
+  const FrameInterval first_show_ceiling = entry.popup.present()
+      ? FrameInterval::zero()
+      : std::chrono::duration_cast<FrameInterval>(entry.options.first_frame_show_ceiling);
+  first_show.set_ceiling(first_show_ceiling);
   if (entry.options.initially_visible)
     action(ActionKind::show);
 }
@@ -1443,15 +1457,18 @@ void NativeWindow::action(ActionKind kind) {
     return;
   }
   if (kind == ActionKind::show) {
-    visible = true;
-    shown_once = true;
-    // A window manager removes _NET_WM_STATE when a window is withdrawn;
-    // restate it before every map.
-    restate_wm_state();
-    XMapRaised(runtime.display, xid);
-    damage.add({0, 0, size.width, size.height});
+    // Through the first-frame show gate: mapped at once for a window shown
+    // before (or a zero ceiling), else kept unmapped while update() paints
+    // the model into the raster, and mapped by advance_first_show once that
+    // frame is complete or at the deadline.
+    const FirstFrameShowStep step = first_show.request_show(std::chrono::steady_clock::now());
+    if (step.show)
+      map_for_show(step.cause);
   }
   if (kind == ActionKind::hide) {
+    // A wait under way ends: the window is never mapped by it.
+    static_cast<void>(first_show.cancel());
+    first_show_copy_pending = false;
     visible = false;
     XUnmapWindow(runtime.display, xid);
   }
@@ -1524,6 +1541,36 @@ void NativeWindow::action(ActionKind kind) {
                SubstructureRedirectMask | SubstructureNotifyMask, &event);
   }
 }
+void NativeWindow::map_for_show(FirstFrameShowCause cause) {
+  visible = true;
+  shown_once = true;
+  // A window manager removes _NET_WM_STATE when a window is withdrawn;
+  // restate it before every map.
+  restate_wm_state();
+  XMapRaised(runtime.display, xid);
+  // Order of events (first_frame_show.hpp): the map, then the Expose burst
+  // (copied from the raster when it holds the first frame), MapNotify
+  // (the model learns it is visible), FocusIn from the window manager
+  // (activation and focus) and the accessibility bridge's window event.
+  if (cause == FirstFrameShowCause::frame_presented)
+    first_show_copy_pending = true;
+  else
+    damage.add({0, 0, size.width, size.height});
+}
+void NativeWindow::advance_first_show(FrameTime now) {
+  if (closed || !first_show.waiting())
+    return;
+  FirstFrameShowStep step{};
+  // A staged frame whose damage the model acknowledged is complete.
+  if (first_show_staged && damage.empty())
+    step = first_show.report_frame_presented(now);
+  if (!step.show)
+    step = first_show.poll(now);
+  if (!step.show)
+    return;
+  first_show_staged = false;
+  map_for_show(step.cause);
+}
 void NativeWindow::restate_wm_state() {
   std::array<Atom, 4> states{};
   int count = 0;
@@ -1566,6 +1613,9 @@ void NativeWindow::close(HostCloseReason reason, bool force) {
     }
   }
   if (accessibility) { (*accessibility).detach(); }
+  // A window closed before its first show is never mapped.
+  static_cast<void>(first_show.cancel());
+  first_show_copy_pending = false;
   closed = true;
   visible = false;
   static_cast<void>(dispatch(HostClosedEvent{reason}));
@@ -1593,10 +1643,25 @@ void NativeWindow::event(XEvent &event) {
     // present copies the scrolls' areas instead of moving them.
     if (presenter) (*presenter).notify_copy_contents_lost();
     // Device pixels to logical units, here at the boundary.
-    damage.add({static_cast<double>(event.xexpose.x) / scale,
-                static_cast<double>(event.xexpose.y) / scale,
-                static_cast<double>(event.xexpose.width) / scale,
-                static_cast<double>(event.xexpose.height) / scale});
+    const Rect exposed{static_cast<double>(event.xexpose.x) / scale,
+                       static_cast<double>(event.xexpose.y) / scale,
+                       static_cast<double>(event.xexpose.width) / scale,
+                       static_cast<double>(event.xexpose.height) / scale};
+    if (first_show_copy_pending) {
+      // The first Expose burst after a show the first frame released: the
+      // raster holds that frame, so each exposed rectangle is copied, with
+      // no paint and no report. A copy that fails is painted instead.
+      PresentedArea copied;
+      const std::array<Rect, 1> rectangles{exposed};
+      if (!present_raster_rectangles(*this, rectangles, copied))
+        damage.add(exposed);
+      if (event.xexpose.count == 0) {
+        first_show_copy_pending = false;
+        frame_capture_if_due(true);
+      }
+      return;
+    }
+    damage.add(exposed);
     return;
   }
   if (event.type == ConfigureNotify) {
@@ -1886,7 +1951,11 @@ void NativeWindow::update() {
     static_cast<void>(present_raster_rectangles(*this, std::span<const Rect>{}, faded));
     return;
   }
-  if (!visible || screen.empty()) {
+  // While the first show waits, the unmapped window's frame is painted
+  // into the raster and staged (present_raster_rectangles copies nothing).
+  first_show_staging = !visible && first_show.waiting();
+  if ((!visible && !first_show_staging) || screen.empty()) {
+    first_show_staging = false;
     live_frames.clear();
     return;
   }
@@ -2125,7 +2194,9 @@ void NativeWindow::frame_capture_if_due(bool covers_window) {
   // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
   static_cast<void>(covers_window);
 #else
-  if (closed || frame_capture_completed || !covers_window ||
+  // A frame staged for the first show is captured once the first Expose
+  // has copied it (the window is on screen), not before.
+  if (closed || frame_capture_completed || !covers_window || first_show_staging ||
       entry.options.capture_path.empty())
     return;
   frame_capture_completed = true;
@@ -2331,8 +2402,21 @@ void Runtime::step(int maximum_wait) {
   for (std::size_t i = 0; i < snapshot.size(); ++i) {
     NativeWindow &window = *snapshot[i];
     window.update();
+    window.first_show_staging = false;
+    window.advance_first_show(std::chrono::steady_clock::now());
     if (window.closed)
       continue;
+    // A waiting first show's deadline is one more wake.
+    const stxlib::Optional<FrameTime> first_show_deadline = window.first_show.deadline();
+    if (first_show_deadline.present()) {
+      const long long first_show_delay =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              *first_show_deadline.value() - std::chrono::steady_clock::now())
+              .count();
+      const int first_show_milliseconds = static_cast<int>(std::clamp(
+          first_show_delay + 1LL, 0LL, static_cast<long long>(std::numeric_limits<int>::max())));
+      wait = wait < 0 ? first_show_milliseconds : std::min(wait, first_show_milliseconds);
+    }
     // The live clock (stage DP): a registered live surface is sampled at
     // least every 16 ms, as the Windows host's waitable timer does.
     if ((*window.entry.model).has_live_surface_presentations() && !window.live_idle)

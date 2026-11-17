@@ -75,6 +75,12 @@ Related types
      - A point on the host's device desktop: Win32 screen pixels of a per-monitor-aware process, X11 root-window pixels.
    * - :cpp:class:`DesktopLogicalPoint <gui_forms::DesktopLogicalPoint>`
      - A point in desktop logical units: where window frames, the pointer's desktop position and logical work areas are published.
+   * - :cpp:class:`FirstFrameShowGate <gui_forms::FirstFrameShowGate>`
+     - One window's first-frame show: the wait for its first presented frame, bounded by the ceiling, as described at the top of this header.
+   * - :cpp:class:`FirstFrameShowSnapshot <gui_forms::FirstFrameShowSnapshot>`
+     - The gate's counters, for the host's diagnostics.
+   * - :cpp:class:`FirstFrameShowStep <gui_forms::FirstFrameShowStep>`
+     - What the host does after a gate call: perform the native show when ``show`` is true.
    * - :cpp:class:`HostActivationEvent <gui_forms::HostActivationEvent>`
      - HostActivationEvent carries portable top-level activation state.
    * - :cpp:class:`HostAttachEvent <gui_forms::HostAttachEvent>`
@@ -648,6 +654,111 @@ Related types
    .. cpp:member:: double x
 
    .. cpp:member:: double y
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FirstFrameShowGate final
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   One window's first-frame show: the wait for its first presented frame, bounded by the ceiling, as described at the top of this header.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit FirstFrameShowGate(FrameInterval ceiling = first_frame_show_ceiling) noexcept
+
+      ``ceiling`` is clamped to [0, maximum_first_frame_show_ceiling]; zero turns the gate off (every request shows at once).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: FirstFrameShowState state() const noexcept
+
+   .. cpp:function:: bool waiting() const noexcept
+
+   .. cpp:function:: stxlib::Optional<FrameTime> deadline() const noexcept
+
+      The deadline while waiting; empty otherwise.
+
+   .. cpp:function:: const FirstFrameShowSnapshot& snapshot() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: FirstFrameShowStep request_show(FrameTime now) noexcept
+
+      The show is asked for at ``now``. Shows at once when a frame was already presented (frame_presented), the window was shown before or the ceiling is zero (immediate); otherwise starts the wait with the deadline ``now + ceiling`` and shows nothing. A request while waiting keeps the first deadline and shows nothing.
+
+   .. cpp:function:: FirstFrameShowStep report_frame_presented(FrameTime now) noexcept
+
+      A frame was presented into the window's storage at ``now``. Shows (frame_presented) when waiting; records the frame in any state, so a later request shows at once.
+
+   .. cpp:function:: FirstFrameShowStep poll(FrameTime now) noexcept
+
+      The host's wake at ``now``. Shows (deadline) when waiting and ``now`` is at or after the deadline; otherwise nothing.
+
+   .. cpp:function:: bool cancel() noexcept
+
+      The window was hidden or closed before it was shown. Ends a wait, forgetting its deadline, and returns true; returns false, changing nothing, when no wait was under way.
+
+   .. cpp:function:: void set_ceiling(FrameInterval ceiling) noexcept
+
+      Sets the ceiling (clamped as the constructor's) for later requests; a wait under way keeps its deadline.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FirstFrameShowSnapshot final
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   The gate's counters, for the host's diagnostics.
+
+   .. cpp:member:: FirstFrameShowState state
+
+      Default: ``{FirstFrameShowState::idle}``.
+
+   .. cpp:member:: FirstFrameShowCause last_cause
+
+      The cause of the last show; none before the first. Default: ``{FirstFrameShowCause::none}``.
+
+   .. cpp:member:: FrameInterval ceiling
+
+      The ceiling in force (after clamping).
+
+   .. cpp:member:: FrameInterval last_wait
+
+      How long the last show waited from its request; zero before the first show and for a show at once.
+
+   .. cpp:member:: std::uint64_t requests
+
+   .. cpp:member:: std::uint64_t frame_shows
+
+   .. cpp:member:: std::uint64_t deadline_shows
+
+   .. cpp:member:: std::uint64_t immediate_shows
+
+   .. cpp:member:: std::uint64_t cancelled_waits
+
+   .. cpp:member:: std::uint64_t presented_frames
+
+      Frames reported presented, in any state.
+
+   .. cpp:member:: bool frame_presented
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FirstFrameShowStep final
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   What the host does after a gate call: perform the native show when ``show`` is true. A gate returns show at most once per wait, and the gate is already in its shown state when it does, so a reentrant call (the show itself causing a present or an activation) returns no show.
+
+   .. cpp:member:: bool show
+
+   .. cpp:member:: FirstFrameShowCause cause
+
+      Default: ``{FirstFrameShowCause::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2702,6 +2813,10 @@ Related types
 
       Default: ``{true}``.
 
+   .. cpp:member:: std::chrono::milliseconds first_frame_show_ceiling
+
+      How long a newly shown window stays unmapped waiting for its first frame, painted into the raster and copied on the first Expose (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate). Zero maps at once. A popup is never gated. Default: ``{gui_forms::first_frame_show_ceiling}``.
+
    .. cpp:member:: bool hide_on_close
 
    .. cpp:member:: bool minimizable
@@ -2815,6 +2930,10 @@ Related types
    .. cpp:member:: bool initially_visible
 
       Application-mode secondary windows may be constructed and attached before the run loop while remaining hidden until their owner invokes them. hide_on_close keeps a reusable owned surface alive instead of turning its native close button into a one-shot lifetime boundary. Default: ``{true}``.
+
+   .. cpp:member:: std::chrono::milliseconds first_frame_show_ceiling
+
+      How long a newly shown window stays off screen waiting for its first presented frame (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate). Zero shows at once. A popup is never gated. Default: ``{gui_forms::first_frame_show_ceiling}``.
 
    .. cpp:member:: bool hide_on_close
 
@@ -3766,6 +3885,32 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FirstFrameShowCause
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: frame_presented
+
+   .. cpp:enumerator:: deadline
+
+   .. cpp:enumerator:: immediate
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FirstFrameShowState
+
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+   .. cpp:enumerator:: idle
+
+   .. cpp:enumerator:: waiting
+
+   .. cpp:enumerator:: shown
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HostAutoCompleteSource
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -4600,6 +4745,22 @@ Functions, constants and aliases
 .. cpp:function:: DesktopDevicePoint desktop_device_point(std::span<const HostMonitor> device_monitors, DesktopLogicalPoint logical_point, double& scale) noexcept
 
    The inverse: finds the monitor whose logical frame contains the point (or the nearest logical frame) and maps it back to device units. Returns the point unchanged when ``device_monitors`` is empty. ``scale`` receives that monitor's scale (1 when there is none), which a caller uses to convert an extent placed at that point.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+
+.. cpp:function:: const char* first_frame_show_state_name(FirstFrameShowState state) noexcept
+
+.. cpp:function:: const char* first_frame_show_cause_name(FirstFrameShowCause cause) noexcept
+
+.. cpp:var:: constexpr std::chrono::milliseconds first_frame_show_ceiling
+
+   The ceiling the owner chose: a window waits at most this long, from its show request, for its first frame (ApplicationWindowOptions:: first_frame_show_ceiling's default). Value: ``{300}``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds maximum_first_frame_show_ceiling
+
+   The longest ceiling a program may ask for; a longer one is clamped to it, so that no option keeps a window off screen for long. Value: ``{1000}``.
 
 .. cpp:namespace:: gui_forms
 

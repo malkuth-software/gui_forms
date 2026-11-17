@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 
 #include <stxlib/optional.hpp>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -40,6 +41,11 @@ struct GUI_FORMS_API LinuxHostOptions final {
   stxlib::Optional<Size> capture_size{};
   bool print_metrics_on_close{true};
   bool initially_visible{true};
+  // How long a newly shown window stays unmapped waiting for its first
+  // frame, painted into the raster and copied on the first Expose
+  // (ApplicationWindowOptions::first_frame_show_ceiling; FirstFrameShowGate).
+  // Zero maps at once. A popup is never gated.
+  std::chrono::milliseconds first_frame_show_ceiling{gui_forms::first_frame_show_ceiling};
   bool hide_on_close{};
   bool minimizable{true};
   std::function<void(std::function<void()> show, std::function<void()> hide)>
