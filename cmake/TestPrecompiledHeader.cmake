@@ -96,6 +96,12 @@ function(_gui_forms_test_pch_signature target result)
         get_target_property(property_value ${target} ${property})
         string(APPEND signature "${property}=${property_value};")
     endforeach()
+    # The target's type: with POSITION_INDEPENDENT_CODE an executable
+    # compiles with -fPIE and an object library (a shared runner's program,
+    # cmake/TestRunners.cmake) with -fPIC on Linux, and clang refuses a
+    # precompiled header made the other way ("is pie differs").
+    get_target_property(target_type ${target} TYPE)
+    string(APPEND signature "TYPE=${target_type};")
     set(${result} "${signature}" PARENT_SCOPE)
 endfunction()
 
