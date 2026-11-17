@@ -156,10 +156,17 @@ echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
 echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
 echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
 echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
-echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
+echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
 ```
 
-(The sanitizer job uses `CCACHE_MAXSIZE=1G`.)
+The limit is above one full tree's objects (0.9 to 1.2 GB), so nothing is
+evicted during a build; the sanitizer and profile jobs use the same limit.
+The saved cache holds only the entries the build used (`ci_cache.py evict`).
+Main saves its objects after a passing build. A pull request saves its own,
+after a failed build or test too, under the family
+`gui-objects-v2-<platform>-<compiler>-pr<number>-`, and its next push
+restores that before main's; `cache-prune-pull-request` in `native.yml`
+deletes the generations each save supersedes.
 
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
 path or timestamp. The only sloppiness options are the two a precompiled header

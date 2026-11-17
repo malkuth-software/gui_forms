@@ -284,11 +284,16 @@ jobs:
           # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
           # reads one only with these two relaxations.
           echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
-          echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
+          # One full tree's objects are 0.9 to 1.2 GB; a smaller limit evicts
+          # during the build (the check efficiency audit, 2b). The saved cache is
+          # still only this build's working set (ci_cache.py evict).
+          echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
           echo "GUI_FORMS_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
       # A cold build (dispatch input cold_build) restores no objects and no seed.
+      # A pull request restores its own last objects first (saved below, family
+      # ...-pr<number>-), then main's.
       - uses: actions/cache/restore@v4
         id: objects
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true') && inputs.cold_build != true
@@ -296,6 +301,7 @@ jobs:
           path: .ccache
           key: gui-objects-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ steps.inputs.outputs.tree }}
           restore-keys: |
+            gui-objects-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-pr${{ github.event.pull_request.number }}-
             gui-objects-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-
             gui-objects-v2-${{ inputs.platform }}-
       - uses: actions/cache/restore@v4
@@ -340,6 +346,7 @@ jobs:
       # (--test-targets-only: no program, example, bundle or package, and no
       # SDK install); the merge group, main and the schedule build everything.
       - name: Build and test native toolkit
+        id: build
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         env:
           GUI_FORMS_ENGINE_GATE_MANIFEST: ${{ github.workspace }}/.ci/engine-gate-${{ inputs.platform }}.tsv
@@ -501,14 +508,28 @@ jobs:
       # native job builds everything (no change selection), so the set is
       # complete, and the archive the programs job, a stacked pull request's
       # seed and a consumer download is about 25 MB instead of 600. Only after
-      # a build that passed; a job that reused a validation compiled nothing
-      # and keeps its cache.
+      # a build that passed, or on a pull request after its build step ran at
+      # all (the pull request's own save below); a job that reused a validation
+      # compiled nothing and keeps its cache.
       - name: Keep only the compiler cache entries this build used
-        if: success() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && (success() || (!cancelled() && github.event_name == 'pull_request' && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')))
         run: python template_harness/harness/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
-      # Only main saves object caches: pull requests and merge groups seed
-      # from validated archives (ci_promote.py seed), and their per-tree
-      # entries evicted the dependency caches from the repository's 10 GB.
+      # A pull request keeps its own objects, after a failed build or test too
+      # (owner, 2026-11-16: the check efficiency audit's fix 2): its next push
+      # restores them before main's, instead of starting again from main's
+      # objects, which a checkpoint's header changes make miss (2 to 13 % hits
+      # on #483). They are their own family (...-pr<number>-), scoped by GitHub
+      # to the pull request's ref, so no restore on main or in another pull
+      # request sees them, and native.yml's cache-prune-pull-request deletes the
+      # generations each save supersedes.
+      - uses: actions/cache/save@v4
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true && !cancelled() && github.event_name == 'pull_request' && (steps.build.outcome == 'success' || steps.build.outcome == 'failure')
+        with:
+          path: .ccache
+          key: gui-objects-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-pr${{ github.event.pull_request.number }}-${{ steps.inputs.outputs.tree }}
+      # Only main saves object caches into main's family: merge groups seed
+      # from validated archives (ci_promote.py seed), and a pull request saves
+      # into its own family above.
       # Only after the build and its tests passed (owner, 2026-11-01): a
       # failed build's cache, unevicted, would become the family's newest
       # entry, which every restore picks and ci_cache prune keeps while it

@@ -319,7 +319,7 @@ jobs:
           # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
           # reads one only with these two relaxations.
           echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
-          echo "CCACHE_MAXSIZE=1G" >> "$GITHUB_ENV"
+          echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
           echo "GUI_FORMS_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
@@ -687,3 +687,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 -B template_harness/harness/ci_cache.py prune --ref refs/heads/main --apply
+
+  # A pull request's object caches (native-platform.yml saves one per platform
+  # and push, family ...-pr<number>-): delete the generations each new save
+  # superseded, keeping the newest of each family on the pull request's ref.
+  # Runs after failed jobs too, since those save as well (the check efficiency
+  # audit's fix 2). Main's caches are on another ref and never touched here.
+  cache-prune-pull-request:
+    needs: [native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gui_forms
+      - uses: ./gui_forms/.github/actions/harness-checkout
+      - name: Delete superseded cache generations of this pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: refs/pull/${{ github.event.pull_request.number }}/merge
+        run: python3 -B template_harness/harness/ci_cache.py prune --ref "$REF" --apply
