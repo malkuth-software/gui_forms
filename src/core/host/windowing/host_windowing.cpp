@@ -308,9 +308,43 @@ HostServiceStatus HostWindowing::destroy_window(HostWindowId window) {
     HostServiceStatus status = validate_window_request(HostCapability::runtime_windows, window);
     if (!status.accepted()) return status;
     if (window == primary_) return reject(HostServiceError::invalid_argument);
+    // A window the program opened over this one refuses the destroy. The
+    // popup-kind windows the run keeps for it do not: a Window's warm Popup
+    // slots (PopupStandby: a drop-down's list, a menu) and its tooltip
+    // (TransientWindow) stay open, hidden, for the window's whole life, and
+    // the program never opened them, so it cannot close them first. Before
+    // this they made every window that had once shown a drop-down
+    // undestroyable: Plan Paint's Settings dialog, after a choice from its
+    // Canvas surround list, refused OK, Cancel and Escape, all of which
+    // destroy its window.
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        const WindowRecord& owned = windows_[index];
+        if (owned.owner == window && owned.kind != HostWindowKind::popup) {
+            return reject(HostServiceError::invalid_argument);
+        }
+    }
+    // The popups go first, each through this function, so a popup's own
+    // popups go before it and each closed callback runs. Each accepted
+    // destroy retires one record, so the loop ends. A refusal is returned
+    // with this window open and the popups already destroyed gone.
+    for (;;) {
+        HostWindowId popup{};
+        for (std::size_t index = 0U; index < windows_.size(); ++index) {
+            const WindowRecord& owned = windows_[index];
+            if (owned.owner == window && owned.kind == HostWindowKind::popup) {
+                popup = owned.id;
+                break;
+            }
+        }
+        if (!popup.valid()) break;
+        status = destroy_window(popup);
+        if (!status.accepted()) return status;
+    }
+    // A closed callback may have opened another window over this one.
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
         if (windows_[index].owner == window) return reject(HostServiceError::invalid_argument);
     }
+    if (record(window) == nullptr) return reject(HostServiceError::after_shutdown);
     status = destroy_window_impl(window);
     if (!status.accepted()) {
         ++snapshot_.rejected_requests;

@@ -267,7 +267,9 @@ public:
     [[nodiscard]] ApplicationModalResult show_modal(ApplicationWindow&& window) const;
     // Closes and destroys a window this run opened, or an owned initial
     // window, without asking its closing handler (HostWindowing::
-    // destroy_window). Its closed callback runs before this returns.
+    // destroy_window). Its closed callback runs before this returns. The
+    // popup windows the run kept for it (drop-down lists, menus, its
+    // tooltip) go with it; a window the program opened over it refuses.
     [[nodiscard]] HostServiceStatus destroy_window(const ApplicationWindowHandle& window) const;
     // The pointer in desktop logical units (capability screen_pointer).
     [[nodiscard]] HostScreenPointResult pointer_position() const;

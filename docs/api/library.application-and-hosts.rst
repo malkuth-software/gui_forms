@@ -2380,7 +2380,7 @@ Related types
 
    .. cpp:function:: HostServiceStatus destroy_window(HostWindowId window)
 
-      Closes and destroys a window opened by this run without asking its closing handler: the program decided. Its closed callback runs before this returns and its identity is retired. The primary window and a window that still owns live windows are invalid_argument.
+      Closes and destroys a window opened by this run without asking its closing handler: the program decided. Its closed callback runs before this returns and its identity is retired. The popup-kind windows it owns (the warm Popup slots and tooltip the run keeps for its model) are destroyed first, each with its closed callback. The primary window and a window that still owns any other live window are invalid_argument; a refusal after its popups went leaves the window open without them.
 
    .. cpp:function:: HostMonitorResult query_monitors()
 
