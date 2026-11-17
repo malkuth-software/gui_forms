@@ -759,6 +759,7 @@ add_library(gui_forms_core STATIC
     src/core/host/presentation/presentation_geometry.cpp
     src/core/host/presentation/presentation_trace.cpp
     src/core/host/presentation/presentation_shim.cpp
+    src/core/host/presentation/host_scroll.cpp
     src/core/host/cursor_interaction/cursor_interaction.cpp
     src/core/types/cursor_image/cursor_image.cpp
     src/core/host/session/host_session.cpp
@@ -5067,6 +5068,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_include_directories(gui_forms_presentation_shim_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_presentation_shim_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_presentation_shim_tests COMMAND gui_forms_presentation_shim_tests)
+    add_executable(gui_forms_host_scroll_damage_tests tests/host_scroll_damage_tests.cpp)
+    target_include_directories(gui_forms_host_scroll_damage_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_host_scroll_damage_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_host_scroll_damage_tests COMMAND gui_forms_host_scroll_damage_tests)
     add_executable(gui_forms_web_host_rules_tests
         tests/web_host_rules_tests.cpp
         src/host/web/application/web_dialog_rules.cpp

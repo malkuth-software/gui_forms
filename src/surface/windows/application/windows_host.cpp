@@ -14,6 +14,9 @@
 #include "../fonts/sealed_pages_windows.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #include "../raster/dib_band_present.hpp"
+#include "../raster/window_scroll.hpp"
+#include "../../../core/host/presentation/host_scroll.hpp"
+#include "../../../core/host/presentation/presentation_shim.hpp"
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
 #include "../raster/dib_frame_store.hpp"
 #endif
@@ -1408,6 +1411,70 @@ struct RequestWindowTitle final {
         } catch (...) { return {HostServiceError::backend_failure}; }
     }
 };
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+// The Windows copy path for the presentation shim (docs/user/presentation.md),
+// used while host scroll is on (GUI_FORMS_PRESENT=scroll): copy() is the DIB
+// present, each rectangle validated as it reaches the window; scroll() moves
+// the window's own pixels with ScrollWindowEx (detail::scroll_window_pixels),
+// after which the shim copies only the strip the move exposed. A scroll
+// that cannot be moved whole is refused, and the shim copies its whole area.
+//
+// The raster is the frame's source: copy() reads it, not the frame the shim
+// passes, which describes the same pixels. `window`, `target`, `copied` and
+// `overlay_shown` are set by the host for one present and `target` and
+// `copied` cleared after it. One execution context: the window's UI thread.
+class WindowsCopyPath final : public presentation::PresentationCopyPath {
+public:
+    explicit WindowsCopyPath(WindowsRaster& raster) noexcept : raster_(raster) {}
+
+    [[nodiscard]] bool scrolls() const noexcept override { return true; }
+
+    bool scroll(const presentation::PresentScrollPlan& plan) override {
+        if (window == nullptr || target == nullptr) return false;
+        // The invalidation overlay draws on the window outside the raster:
+        // its outlines would move with the pixels.
+        if (overlay_shown) return false;
+        // A child window keeps its own pixels; ScrollWindowEx without
+        // SW_SCROLLCHILDREN neither moves it nor reports what lies under it.
+        if (GetWindow(window, GW_CHILD) != nullptr) return false;
+        const bool moved = detail::scroll_window_pixels(window, plan);
+        return moved;
+    }
+
+    presentation::PresentOutcome copy(const presentation::PresentSourcePixels& source,
+                                      std::span<const presentation::PresentRect> rects) override {
+        static_cast<void>(source);
+        if (target == nullptr) return presentation::PresentOutcome::failed;
+        bool presented = true;
+        for (std::size_t index = 0U; index < rects.size(); ++index) {
+            const presentation::PresentRect rect = rects[index];
+            const RECT device{rect.left, rect.top, rect.right, rect.bottom};
+            if (device.right <= device.left || device.bottom <= device.top) continue;
+            if (!raster_.present(target, device)) {
+                presented = false;
+                continue;
+            }
+            if (window != nullptr) ValidateRect(window, &device);
+            if (copied != nullptr) {
+                (*copied).device_pixels += rect.area();
+                ++(*copied).rectangles;
+            }
+        }
+        const presentation::PresentOutcome outcome =
+            presented ? presentation::PresentOutcome::presented : presentation::PresentOutcome::failed;
+        return outcome;
+    }
+
+    HWND window{};
+    HDC target{};
+    PresentedArea* copied{};
+    bool overlay_shown{};
+
+private:
+    WindowsRaster& raster_;
+};
+#endif
+
 class WindowsHostState;
 class WindowsApplicationRun;
 // Writes what `owner` and the visible windows it owns show, composed in
@@ -2576,15 +2643,26 @@ private:
     // instead: copies earlier in the list may have moved pixels in it, and
     // the repaint covers each clip. Without a frame the clips are also
     // invalidated, so a later WM_PAINT paints them.
+    //
+    // While host scroll is on, the copies are also kept in device pixels in
+    // present_scrolls_, for the present to move the window's own pixels;
+    // present_scrolls_ stays empty when any copy is not on whole device
+    // pixels or any is refused, and the clips are then presented whole.
     void apply_scroll_copies(const bool frame_begun) {
         applied_copy_clips_.clear();
+        present_scrolls_.clear();
         if (pending_copies_.empty()) return;
         bool applied = frame_begun;
+        bool host_scrolling = host_scroll_presenter() != nullptr;
         for (const ScrollCopy& copy : pending_copies_) {
             if (applied) applied = raster_.painter().scroll_copy(copy.clip, copy.offset);
             applied_copy_clips_.push_back(copy.clip);
+            presentation::PresentScroll scroll{};
+            if (host_scrolling) host_scrolling = presentation::device_present_scroll(copy, scale_, scroll);
+            if (host_scrolling) present_scrolls_.push_back(scroll);
         }
         pending_copies_.clear();
+        if (!host_scrolling || !applied) present_scrolls_.clear();
         if (applied) {
             scroll_copies_applied_ += applied_copy_clips_.size();
             return;
@@ -2609,6 +2687,68 @@ private:
             InvalidateRect(hwnd_, &native_clip, FALSE);
         }
         applied_copy_clips_.clear();
+        present_scrolls_.clear();
+        // The window no longer shows the frame before: the next scrolls are
+        // copied instead of moved.
+        if (presenter_) (*presenter_).notify_copy_contents_lost();
+    }
+
+    // The window's presentation shim while host scroll is on: made at the
+    // first frame that asks, after the process's policy (GUI_FORMS_PRESENT)
+    // is read once for the window. Null while the policy leaves host scroll
+    // off: the host then presents exactly as before, without the shim. While
+    // it is on, every frame of the default profile is presented through the
+    // shim, so that it knows when the window shows the frame before.
+    presentation::PresentationShim* host_scroll_presenter() {
+        if (!host_scroll_policy_read_) {
+            host_scroll_policy_read_ = true;
+            const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
+            host_scroll_policy_ = policy.host_scroll;
+        }
+        if (!host_scroll_policy_) return nullptr;
+        if (!presenter_) {
+            copy_path_ = std::make_unique<WindowsCopyPath>(raster_);
+            presenter_ = std::make_unique<presentation::PresentationShim>(copy_path_.get(), nullptr, nullptr);
+        }
+        return presenter_.get();
+    }
+
+    // Presents `rectangles` (device pixels) of the raster to `target`
+    // through the shim, after moving the window's pixels for
+    // present_scrolls_ where it can; what reached the window is added to
+    // `copied`. The rectangles must already leave out the scrolls' clips
+    // (the shim adds each exposed strip, and the whole area of a scroll it
+    // cannot move). Returns whether the frame was presented; on false the
+    // shim stops moving pixels until a frame is presented again.
+    bool present_through_shim(presentation::PresentationShim& presenter, HDC target,
+                              std::span<const RECT> rectangles, PresentedArea& copied) {
+        const WindowsRaster::PresentedPixels pixels = raster_.presented_pixels();
+        if (pixels.pixels == nullptr || pixels.width <= 0 || pixels.height <= 0) return false;
+        present_device_rects_.clear();
+        present_device_rects_.reserve(rectangles.size());
+        for (std::size_t index = 0; index < rectangles.size(); ++index) {
+            const RECT device = rectangles[index];
+            present_device_rects_.push_back(
+                presentation::PresentRect{device.left, device.top, device.right, device.bottom});
+        }
+        presentation::PresentFrame frame{};
+        frame.source.pixels = pixels.pixels;
+        frame.source.row_bytes = pixels.row_bytes;
+        frame.source.extent = presentation::PresentExtent{static_cast<std::uint32_t>(pixels.width),
+                                                          static_cast<std::uint32_t>(pixels.height)};
+        frame.damage = present_device_rects_;
+        frame.scrolls = present_scrolls_;
+        WindowsCopyPath& path = *copy_path_;
+        path.window = hwnd_;
+        path.target = target;
+        path.copied = &copied;
+        path.overlay_shown = (*model_).invalidation_overlay() != nullptr || !overlay_drawn_.empty();
+        const presentation::PresentReport report = presenter.present(frame);
+        path.target = nullptr;
+        path.copied = nullptr;
+        present_scrolls_.clear();
+        const bool presented = report.outcome == presentation::PresentOutcome::presented;
+        return presented;
     }
 #endif
 
@@ -2883,8 +3023,15 @@ private:
         // are then drawn over their whole clips.
         const bool regions_usable = !live_region_lost_ && pending_copies_.empty();
         apply_scroll_copies(frame_begun);
+        // The copies' clips are presented whole, since the window still
+        // shows their pixels where they were; with host scroll the window
+        // moves those pixels itself and the shim copies only what the moves
+        // exposed.
+        const bool host_scrolling = !present_scrolls_.empty();
         DamageRegion screen;
-        for (const Rect clip : applied_copy_clips_) screen.add(clip);
+        if (!host_scrolling) {
+            for (const Rect clip : applied_copy_clips_) screen.add(clip);
+        }
         std::uint64_t live_pixels = 0U;
         bool regions_taken = false;
         live_frames_.clear();
@@ -2966,16 +3113,26 @@ private:
         const std::chrono::steady_clock::time_point copy_started =
             std::chrono::steady_clock::now();
         const std::span<const Rect> presented_rectangles = screen.rectangles();
-        for (std::size_t index = 0; index < presented_rectangles.size(); ++index) {
-            const RECT device = device_rect(presented_rectangles[index]);
-            const std::uint64_t pixels = device_pixels(device);
-            if (pixels == 0U) continue;
-            if (raster_.present(target, device)) {
-                ValidateRect(hwnd_, &device);
-                copied.device_pixels += pixels;
-                ++copied.rectangles;
-            } else {
-                presented = false;
+        presentation::PresentationShim* const presenter = host_scroll_presenter();
+        if (presenter != nullptr) {
+            present_native_rects_.clear();
+            present_native_rects_.reserve(presented_rectangles.size());
+            for (std::size_t index = 0; index < presented_rectangles.size(); ++index) {
+                present_native_rects_.push_back(device_rect(presented_rectangles[index]));
+            }
+            presented = present_through_shim(*presenter, target, present_native_rects_, copied);
+        } else {
+            for (std::size_t index = 0; index < presented_rectangles.size(); ++index) {
+                const RECT device = device_rect(presented_rectangles[index]);
+                const std::uint64_t pixels = device_pixels(device);
+                if (pixels == 0U) continue;
+                if (raster_.present(target, device)) {
+                    ValidateRect(hwnd_, &device);
+                    copied.device_pixels += pixels;
+                    ++copied.rectangles;
+                } else {
+                    presented = false;
+                }
             }
         }
         ReleaseDC(hwnd_, target);
@@ -3234,7 +3391,9 @@ private:
         }
         // Present exactly the rectangles painted and the copies' clips: the
         // raster keeps the last frame everywhere else, and the window already
-        // shows it there.
+        // shows it there. With host scroll the window moves the copies'
+        // pixels itself, and the shim copies only what the moves exposed.
+        const bool host_scrolling = !present_scrolls_.empty();
         const std::span<const Rect> painted_rectangles = pending_damage_.rectangles();
         std::vector<RECT> present_rectangles;
         present_rectangles.reserve(painted_rectangles.size() + applied_copy_clips_.size() + 1U);
@@ -3246,7 +3405,9 @@ private:
             for (std::size_t index = 0; index < painted_rectangles.size(); ++index) {
                 present_rectangles.push_back(device_rect(painted_rectangles[index]));
             }
-            for (const Rect clip : applied_copy_clips_) present_rectangles.push_back(device_rect(clip));
+            if (!host_scrolling) {
+                for (const Rect clip : applied_copy_clips_) present_rectangles.push_back(device_rect(clip));
+            }
         }
         // With no damage pending there is nothing to paint, and an exposure
         // still copies the raster as it stands.
@@ -3256,11 +3417,21 @@ private:
         // BeginPaint's device context is clipped to the update region, which
         // need not hold a copy's clip: a frame that applied copies presents
         // through the window's own device context.
+        // The same holds for the strips a host scroll exposed.
         const bool copied_clips = !applied_copy_clips_.empty();
         HDC present_dc = copied_clips ? GetDC(hwnd_) : dc;
         if (present_dc == nullptr) presented = false;
-        for (std::size_t index = 0; presented && index < present_rectangles.size(); ++index) {
-            presented = raster_.present(present_dc, present_rectangles[index]);
+        presentation::PresentationShim* const presenter = host_scroll_presenter();
+        // Through the shim, what it copied (the strips included) is counted
+        // as it reaches the window.
+        PresentedArea shim_copied;
+        const bool through_shim = presented && presenter != nullptr;
+        if (through_shim) {
+            presented = present_through_shim(*presenter, present_dc, present_rectangles, shim_copied);
+        } else {
+            for (std::size_t index = 0; presented && index < present_rectangles.size(); ++index) {
+                presented = raster_.present(present_dc, present_rectangles[index]);
+            }
         }
         if (copied_clips && present_dc != nullptr) ReleaseDC(hwnd_, present_dc);
         if (presented) {
@@ -3278,10 +3449,15 @@ private:
                 std::chrono::steady_clock::now() - started);
         PresentedArea copied;
         copied.copy_nanoseconds = copy_nanoseconds;
-        for (std::size_t index = 0; index < present_rectangles.size(); ++index) {
-            const std::uint64_t pixels = device_pixels(present_rectangles[index]);
-            copied.device_pixels += pixels;
-            if (pixels != 0U) ++copied.rectangles;
+        if (through_shim) {
+            copied.device_pixels = shim_copied.device_pixels;
+            copied.rectangles = shim_copied.rectangles;
+        } else {
+            for (std::size_t index = 0; index < present_rectangles.size(); ++index) {
+                const std::uint64_t pixels = device_pixels(present_rectangles[index]);
+                copied.device_pixels += pixels;
+                if (pixels != 0U) ++copied.rectangles;
+            }
         }
         if (presented && receipt.present() &&
             (*model_).notify_presented(*receipt.value(),
@@ -4011,6 +4187,19 @@ private:
     std::vector<Rect> applied_copy_clips_;
     std::uint64_t scroll_copies_applied_{};
     std::uint64_t scroll_copies_refused_{};
+    // Host scroll (host_scroll_presenter): the policy, read once for the
+    // window; the copy path, borrowing raster_ (declared above), and the
+    // shim borrowing the copy path (declared before it, so destroyed
+    // after it); the current frame's copies in device pixels (empty when
+    // the frame does not host-scroll); and the present's reused rectangle
+    // lists.
+    bool host_scroll_policy_read_{};
+    bool host_scroll_policy_{};
+    std::unique_ptr<WindowsCopyPath> copy_path_;
+    std::unique_ptr<presentation::PresentationShim> presenter_;
+    std::vector<presentation::PresentScroll> present_scrolls_;
+    std::vector<presentation::PresentRect> present_device_rects_;
+    std::vector<RECT> present_native_rects_;
 #endif
     // The frame sequence's per-tick storage, reused across ticks: each
     // surface's frame, the frame each presentation draws from, and the device
@@ -4239,6 +4428,13 @@ HostCapabilities windows_capabilities() {
     // square before build 22000, and for a maximized, snapped or
     // full-screen window).
     capabilities.window_corner_shapes = WindowCornerShapes{true, true};
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+    // Host scroll (ScrollWindowEx, WindowsCopyPath) while the process's
+    // policy turns it on (GUI_FORMS_PRESENT=scroll); the transactional
+    // profile records no scroll copies.
+    const presentation::PresentPolicy present_policy = presentation::present_policy_from_environment();
+    if (present_policy.host_scroll) capabilities.available = capabilities.available | HostCapability::host_scroll;
+#endif
     // locale: not yet reported (read_windows_locale is the hand-back's
     // interface and gives nothing until GetLocaleInfoEx is read).
     // A high-integrity build reads none of the user's settings
