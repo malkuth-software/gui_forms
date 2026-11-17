@@ -1549,13 +1549,13 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
             }
             pixels_opaque = decoded.every_pixel_opaque;
         }
-        // An image whose decoded pixels are all opaque is made an opaque
-        // image (the same bytes), so Skia draws it as an opaque source: a
-        // copy where it covers whole device pixels, rather than a blend
-        // (the blend study's opaque_images_blended).
-        const SkImageInfo image_info =
-            pixels_opaque ? output_info.makeAlphaType(kOpaque_SkAlphaType) : output_info;
-        sk_sp<SkImage> image = SkImages::RasterFromData(image_info, pixel_data, row_bytes);
+        // Every image stays premultiplied, an all-opaque one too. Made a
+        // kOpaque image, Skia drew its antialiased edges at fractional
+        // device positions through another stage, and its bytes parted from
+        // the same pixels drawn premultiplied
+        // (gui_forms_skia_image_downscale_tests). The scan is kept: the
+        // blend study counts such an image as opaque_images_blended.
+        sk_sp<SkImage> image = SkImages::RasterFromData(output_info, pixel_data, row_bytes);
         if (!image) {
             (*impl_).images.erase(id.value);
             synchronized = false;
@@ -1565,7 +1565,7 @@ bool SkiaRaster::synchronize_images(const ImageRegistry& registry) {
         record.content_hash = ((*resource.value())).content_hash;
         record.image = std::move(image);
         record.pixels_opaque = pixels_opaque;
-        record.drawn_as_copy = pixels_opaque;
+        record.drawn_as_copy = false;
         if (patchable) {
             record.pixels = std::move(pixel_data);
             record.row_bytes = row_bytes;

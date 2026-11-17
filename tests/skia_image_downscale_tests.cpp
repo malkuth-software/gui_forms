@@ -230,7 +230,7 @@ void one_and_above_unchanged() {
 }
 
 // The blend study's apply step: an image whose decoded pixels are all opaque
-// is made an opaque image, drawn as an opaque source. Its pixels must be
+// is scanned as such but kept premultiplied. Its pixels must be
 // those of the same bytes drawn as a premultiplied image, at fractional
 // positions, below, at and above 1x, at partial opacity and on a
 // translucent ground; and the raster says how it draws each
@@ -261,7 +261,9 @@ void opaque_image_draws_as_premultiplied() {
     require(first.resize({160.0, 160.0}, 1.0) && second.resize({160.0, 160.0}, 1.0), "rasters size");
     require(first.synchronize_images(registry) && second.synchronize_images(registry), "images synchronize");
     const ImageDrawOpacity known = first.image_draw_opacity(opaque.image);
-    require(known.pixels_opaque && known.drawn_as_copy, "an all-opaque PNG is drawn as a copy");
+    // Scanned opaque, but drawn premultiplied, as a blend: a kOpaque image's
+    // antialiased edges did not keep these pixels.
+    require(known.pixels_opaque && !known.drawn_as_copy, "an all-opaque PNG is scanned opaque and drawn as a blend");
     const ImageDrawOpacity given = first.image_draw_opacity(premultiplied.image);
     require(!given.pixels_opaque && !given.drawn_as_copy, "pixels given premultiplied are not scanned");
     const Rect destinations[] = {
