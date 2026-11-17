@@ -36,20 +36,22 @@ if __name__ == '__main__':
         raise SystemExit(harness_status)
     import check_lifetime_rules as harness_rules
     selected: list[Path] = harness_rules.collect(sys.argv[1:])
-    findings: list[check_member_views.Finding] = []
+    # Each file is masked once here, for the member-view and termination passes.
+    masked: dict[Path, str] = {}
     path: Path
     for path in selected:
-        findings.extend(check_member_views.check_member_views(path, harness_rules.masked_source(path)))
+        masked[path] = harness_rules.masked_source(path)
+    findings: list[check_member_views.Finding] = []
+    for path in selected:
+        findings.extend(check_member_views.check_member_views(path, masked[path]))
     finding: check_member_views.Finding
     for finding in findings:
         print(f'{finding.path}:{finding.line}: {finding.rule}: {finding.detail}')
     # The termination rule reads destructor triviality from the first-party
     # types of every selected file, so all are indexed before any is checked.
     import destructor_index
-    masked: dict[Path, str] = {}
     types: destructor_index.TypeIndex = destructor_index.TypeIndex()
     for path in selected:
-        masked[path] = harness_rules.masked_source(path)
         types.add(path, masked[path])
     exit_findings: list[check_exit_statics.Finding] = []
     for path in selected:

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-# Copied unchanged from STXlib tools/check_std_rules.py at commit 60dea8f
+# Copied from STXlib tools/check_std_rules.py at commit 60dea8f
 # (60dea8f0175319987ac067080a37be278846f795, branch claude/std-rules-adoptable;
-# D15, decision 6a). Update it by copying a newer STXlib commit over this file
-# and changing this line; GUI.Forms' configuration is tools/std_rules.toml.
+# D15, decision 6a), with STXlib branch claude/std-rules-speed's whole-text
+# reading applied (one-pass strip_comments_and_literals, matching_lines; the
+# same change to STXlib's own copy). Update it by copying a newer STXlib
+# commit over this file and changing this line; GUI.Forms' configuration is
+# tools/std_rules.toml, and tools/test_check_std_rules.py checks the reading.
 r"""check_std_rules: rules for the C and C++ standard library, as a CI gate.
 
 Audit B (STXlib's notes, audits/B-std-capabilities.md, section 3.16) sorts
@@ -115,6 +118,7 @@ What no text check can see, and how STXlib covers it instead:
 from __future__ import annotations
 
 import argparse
+import bisect
 import dataclasses
 import fnmatch
 import json
@@ -322,62 +326,177 @@ SUPPRESSION: re.Pattern[str] = re.compile(r'std-rules:\s*allow\(([^)]*)\)\s*(.*)
 SUPPRESSION_MARK: re.Pattern[str] = re.compile(r'std-rules:')
 
 
+# One left-to-right pass over the text (re.sub), each alternative tried at a
+# position in this order, exactly the cases of the character loop it replaced:
+# a line comment (removed up to its line break), a block comment (its line
+# breaks kept; an unterminated one runs to the end), a raw string literal not
+# preceded by a letter, digit or underscore (one space and its line breaks; an
+# unterminated one runs to the end), a digit separator (a quote between two
+# alphanumerics: one space), and a quoted literal (one space; a backslash
+# takes the next character, line break included, and an unescaped line break
+# ends the literal and is consumed with it). Anything else is kept.
+STRIPPED_LEXEMES: re.Pattern[str] = re.compile(
+    r'(?P<line>//[^\n]*)'
+    r'|(?P<block>/\*(?s:.*?)(?:\*/|\Z))'
+    r'|(?P<raw>(?<!\w)R"(?P<delimiter>[^()\\ \n]{0,16})\((?s:.*?)(?:\)(?P=delimiter)"|\Z))'
+    r"|(?P<separator>(?<=[^\W_])'(?=[^\W_]))"
+    r'|(?P<literal>"(?:[^"\\\n]|\\(?s:.)|\\\Z)*(?:"|\n|\Z)'
+    r"|'(?:[^'\\\n]|\\(?s:.)|\\\Z)*(?:'|\n|\Z))")
+
+
+def stripped_lexeme(match: re.Match[str]) -> str:
+    kind: str | None = match.lastgroup
+    if kind == 'line':
+        return ''
+    if kind == 'block':
+        return '\n' * match.group(0).count('\n')
+    if kind == 'raw':
+        return ' ' + '\n' * match.group(0).count('\n')
+    # A digit separator or a quoted literal.
+    return ' '
+
+
 def strip_comments_and_literals(text: str) -> str:
     """Blanks comments and literals, keeping line breaks so line numbers hold.
 
     The same reading as tools/check_public_headers.py, plus raw string
-    literals (R"delimiter( ... )delimiter").
+    literals (R"delimiter( ... )delimiter"). STRIPPED_LEXEMES lists the cases.
     """
+    return STRIPPED_LEXEMES.sub(stripped_lexeme, text)
+
+
+# Whole-text matching. A rule's pattern is written for one line at a time; it
+# is searched once over the file's lines joined with '\n' (re.MULTILINE, so ^
+# and $ still mean a line's ends) when it can be rewritten so that no match or
+# lookaround can cross or consume a line break: \s becomes [^\S\n], \W and \D
+# become [^\w\n] and [^\d\n], and a negated class also refuses '\n'. A '\n'
+# then reads like a line's ends to everything else (\b, lookbehinds and
+# lookaheads over the rewritten classes), so the lines holding a match are
+# exactly the lines a search of each line finds. A pattern using anything this
+# rewriting does not cover (\A, \Z, \B, escapes naming a character or group by
+# number, inline flags other than i, a class holding \s, \W or \D outside a
+# negation) is searched line by line as before.
+LINE_SAFE_FLAGS: frozenset[str] = frozenset('iaLu')
+
+
+def line_safe(pattern: str) -> str | None:
+    """The pattern rewritten for whole-text matching, or None when it must stay per line."""
     result: list[str] = []
     index: int = 0
-    length: int = len(text)
+    length: int = len(pattern)
+    in_class: bool = False
+    negated: bool = False
+    class_start: int = 0
     while index < length:
-        character: str = text[index]
-        following: str = text[index + 1] if index + 1 < length else ''
-        if character == '/' and following == '/':
-            while index < length and text[index] != '\n':
-                index += 1
-            continue
-        if character == '/' and following == '*':
+        character: str = pattern[index]
+        if character == '\\':
+            if index + 1 >= length:
+                return None
+            escaped: str = pattern[index + 1]
+            if escaped.isdigit() or escaped in 'AZBxuUNnrfvtag0':
+                return None
+            if in_class:
+                if escaped in 'sWD' and not negated:
+                    return None
+                result.append(character + escaped)
+            elif escaped == 's':
+                result.append('[^\\S\\n]')
+            elif escaped == 'W':
+                result.append('[^\\w\\n]')
+            elif escaped == 'D':
+                result.append('[^\\d\\n]')
+            else:
+                result.append(character + escaped)
             index += 2
-            while index < length and not (text[index] == '*' and index + 1 < length and text[index + 1] == '/'):
-                if text[index] == '\n':
-                    result.append('\n')
-                index += 1
-            index += 2
             continue
-        raw: re.Match[str] | None = None
-        if character == 'R' and following == '"' and (index == 0 or not (text[index - 1].isalnum() or
-                                                                         text[index - 1] == '_')):
-            raw = re.compile(r'R"([^()\\ \n]{0,16})\(').match(text, index)
-        if raw is not None:
-            closing: str = ')' + raw.group(1) + '"'
-            end: int = text.find(closing, raw.end())
-            end = length if end < 0 else end + len(closing)
-            result.append(' ')
-            result.append('\n' * text.count('\n', index, end))
-            index = end
-            continue
-        if character in ('"', "'"):
-            # A digit separator (1'000) is not a literal.
-            if character == "'" and index > 0 and text[index - 1].isalnum() and following.isalnum():
-                result.append(' ')
+        if in_class:
+            if character == ']' and index > class_start:
+                if negated:
+                    result.append('\\n')
+                result.append(']')
+                in_class = False
                 index += 1
                 continue
-            quote: str = character
-            result.append(' ')
-            index += 1
-            while index < length and text[index] != quote:
-                if text[index] == '\\':
-                    index += 1
-                elif text[index] == '\n':
-                    break
-                index += 1
+            if character == '\n':
+                return None
+            result.append(character)
             index += 1
             continue
+        if character == '[':
+            in_class = True
+            negated = index + 1 < length and pattern[index + 1] == '^'
+            result.append('[^' if negated else '[')
+            index += 2 if negated else 1
+            # A ']' first in a class is a member, not its end.
+            class_start = index
+            continue
+        if character == '(' and pattern.startswith('(?', index):
+            following: str = pattern[index + 2:index + 3]
+            if following.isalpha() or following == '-':
+                flags: str = ''
+                cursor: int = index + 2
+                while cursor < length and (pattern[cursor].isalpha() or pattern[cursor] == '-'):
+                    flags += pattern[cursor]
+                    cursor += 1
+                if not set(flags.replace('-', '')) <= LINE_SAFE_FLAGS:
+                    return None
+        if character == '\n':
+            return None
         result.append(character)
         index += 1
+    if in_class:
+        return None
     return ''.join(result)
+
+
+@dataclasses.dataclass(frozen=True)
+class JoinedLines:
+    """A file's lines (str.splitlines) joined with '\n', and where each line starts."""
+    text: str
+    starts: list[int]
+
+
+def joined_lines(lines: list[str]) -> JoinedLines:
+    starts: list[int] = []
+    offset: int = 0
+    line: str
+    for line in lines:
+        starts.append(offset)
+        offset += len(line) + 1
+    return JoinedLines('\n'.join(lines), starts)
+
+
+@dataclasses.dataclass(frozen=True)
+class LinePattern:
+    """A rule's pattern, with its whole-text form when it has one."""
+    per_line: re.Pattern[str]
+    whole: re.Pattern[str] | None
+
+
+def line_pattern(pattern: str) -> LinePattern:
+    safe: str | None = line_safe(pattern)
+    whole: re.Pattern[str] | None = None if safe is None else re.compile(safe, re.MULTILINE)
+    return LinePattern(re.compile(pattern), whole)
+
+
+def matching_lines(pattern: LinePattern, lines: list[str], joined: JoinedLines) -> list[int]:
+    """The 1-based numbers of the lines a search of each line finds, in order, each once."""
+    numbers: list[int] = []
+    if not lines:
+        return numbers
+    if pattern.whole is None:
+        line_number: int
+        line: str
+        for line_number, line in enumerate(lines, start=1):
+            if pattern.per_line.search(line):
+                numbers.append(line_number)
+        return numbers
+    match: re.Match[str]
+    for match in pattern.whole.finditer(joined.text):
+        number: int = bisect.bisect_right(joined.starts, match.start())
+        if not numbers or numbers[-1] != number:
+            numbers.append(number)
+    return numbers
 
 
 # ---- configuration ------------------------------------------------------------
@@ -689,13 +808,13 @@ def atomic_uses(path_text: str, stripped: str,
 @dataclasses.dataclass(frozen=True)
 class CompiledRule:
     rule: Rule
-    names: tuple[re.Pattern[str], ...]
-    headers: tuple[re.Pattern[str], ...]
+    names: tuple[LinePattern, ...]
+    headers: tuple[LinePattern, ...]
 
 
 def compile_rules(rules: list[Rule]) -> list[CompiledRule]:
-    return [CompiledRule(rule, tuple(re.compile(pattern) for pattern in rule.names),
-                         tuple(re.compile(pattern) for pattern in rule.headers)) for rule in rules]
+    return [CompiledRule(rule, tuple(line_pattern(pattern) for pattern in rule.names),
+                         tuple(line_pattern(pattern) for pattern in rule.headers)) for rule in rules]
 
 
 def matches_any(relative: str, patterns: list[str] | tuple[str, ...]) -> bool:
@@ -718,6 +837,8 @@ def check_file(path: pathlib.Path, path_text: str, rules: list[CompiledRule], ho
     findings: list[Finding] = list(suppressions.findings)
     stripped: str = strip_comments_and_literals(original)
     stripped_lines: list[str] = stripped.splitlines()
+    joined: JoinedLines = joined_lines(lines)
+    joined_stripped: JoinedLines = joined_lines(stripped_lines)
     seen: set[tuple[int, str]] = set()
     compiled: CompiledRule
     for compiled in rules:
@@ -725,17 +846,12 @@ def check_file(path: pathlib.Path, path_text: str, rules: list[CompiledRule], ho
         if (rule.host_only and host_code) or rule.identifier in standing:
             continue
         hits: list[int] = []
-        pattern: re.Pattern[str]
+        pattern: LinePattern
         for pattern in compiled.headers:
-            line_number: int
-            line: str
-            for line_number, line in enumerate(lines, start=1):
-                if pattern.search(line):
-                    hits.append(line_number)
+            hits.extend(matching_lines(pattern, lines, joined))
         for pattern in compiled.names:
-            for line_number, line in enumerate(stripped_lines, start=1):
-                if pattern.search(line):
-                    hits.append(line_number)
+            hits.extend(matching_lines(pattern, stripped_lines, joined_stripped))
+        line_number: int
         for line_number in hits:
             if (line_number, rule.identifier) in seen:
                 continue

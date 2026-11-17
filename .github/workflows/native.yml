@@ -76,19 +76,39 @@ jobs:
       # template_harness beside gui_forms, at the commit gui_forms/harness.lock
       # pins: the shared CI tools and checkers (docs/building/template-harness.md).
       - uses: ./gui_forms/.github/actions/harness-checkout
+        id: harness
         if: steps.nightly.outputs.run != 'false'
       - uses: actions/setup-python@v5
         if: steps.nightly.outputs.run != 'false'
         with:
           python-version: '3.14'
       # The pinned harness's own tests (the checkers, the reuse, cache and
-      # toolchain tools GUI.Forms moved there), then the forwarding shims at
-      # the old tool paths: template_harness has no CI of its own yet.
-      - name: Check the pinned harness and the shims that reach it
-        if: steps.nightly.outputs.run != 'false'
+      # toolchain tools GUI.Forms moved there, and the FranSushi plugins, about
+      # 140 s): template_harness has no CI of its own yet. They give the same
+      # result for every GUI.Forms commit with the same harness.lock, so they
+      # run once per pinned commit (a receipt keyed on it) and on the daily
+      # schedule and a manual run (the check efficiency audit, 3a).
+      - uses: actions/cache/restore@v4
+        id: harness-receipt
+        if: steps.nightly.outputs.run != 'false' && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        with:
+          path: .ci/harness-tests-passed
+          key: gui-harness-tests-v1-${{ steps.harness.outputs.commit }}
+      - name: Check the pinned harness
+        if: steps.nightly.outputs.run != 'false' && steps.harness-receipt.outputs.cache-hit != 'true'
         run: |
           python3 -B -m unittest discover -s ../template_harness/harness -p "test_*.py"
-          python3 -B -m unittest discover -s tools -p test_harness_shims.py
+          mkdir -p ../.ci
+          echo "${{ steps.harness.outputs.commit }}" > ../.ci/harness-tests-passed
+      - uses: actions/cache/save@v4
+        if: steps.nightly.outputs.run != 'false' && steps.harness-receipt.outputs.cache-hit != 'true' && hashFiles('.ci/harness-tests-passed') != ''
+        with:
+          path: .ci/harness-tests-passed
+          key: gui-harness-tests-v1-${{ steps.harness.outputs.commit }}
+      # The forwarding shims at the old tool paths, on every run.
+      - name: Check the shims that reach the harness
+        if: steps.nightly.outputs.run != 'false'
+        run: python3 -B -m unittest discover -s tools -p test_harness_shims.py
       - name: Check scanner fixtures and corrected authoring scope
         if: steps.nightly.outputs.run != 'false'
         run: |
@@ -158,6 +178,7 @@ jobs:
           python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
           # D15 (decision 6a): the standard-library rules, STXlib's check_std_rules
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
+          python3 -B -m unittest discover -s tools -p test_check_std_rules.py
           python3 -I tools/check_std_rules.py --config tools/std_rules.toml
           # D15 (stage V0): the std:: census of the C++ surface only falls
           # (manifests/std_surface_census.json).
