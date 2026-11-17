@@ -577,6 +577,42 @@ void test_query_field_gaps() {
                    DiagnosticCode::control_child_invalid, "an editor attribute that is no property");
 }
 
+// A custom state reading the composite's own states, a state and a command
+// reading each other, and a command running itself: the checker finds cycles
+// between custom states only, so it admits these, and the composite's rule
+// depth ends them at run time (composite_control_tests
+// self_reading_conditions_end). The same commands with nothing running them
+// are refused as unreachable (E912).
+constexpr std::string_view self_reading_body =
+    "<property name=\"level\" kind=\"number\" default=\"0\"/>"
+    "<state name=\"lit\" when=\"state(hot) or pressed()\"/>"
+    "<state name=\"armed\" when=\"command-enabled(go)\"/>"
+    "<look>:state(lit) { } :state(armed) { }</look>"
+    "<part name=\"face\" role=\"face\" box=\"inset(region, 0)\"/>"
+    "<focus target=\"none\"/>"
+    "<semantics role=\"group\" name=\"property(accessible-name)\"/>";
+
+void test_self_reading_admitted() {
+    const FormSchema schema = composite_schema();
+    {
+        Workspace workspace{};
+        ControlModel model{};
+        std::string body(self_reading_body);
+        body += "<command name=\"go\" enabled=\"state(armed)\" run=\"step(level, 1)\" semantic-action=\"press\"/>"
+                "<command name=\"again\" enabled=\"enabled(self)\" run=\"run(again)\" "
+                "semantic-action=\"increment\"/>";
+        const ControlModelOutcome outcome = build(workspace, document(body), schema, model);
+        print_diagnostics(workspace.diagnostics);
+        require(outcome == ControlModelOutcome::model_built,
+                "a self-reading state, a state-command cycle and a self-running command are admitted");
+    }
+    std::string unreachable(self_reading_body);
+    unreachable += "<command name=\"go\" enabled=\"state(armed)\" run=\"step(level, 1)\"/>"
+                   "<command name=\"again\" enabled=\"enabled(self)\" run=\"run(again)\"/>";
+    expect_refused(schema, document(unreachable), DiagnosticCode::control_command_unreachable,
+                   "self-reading commands nothing runs");
+}
+
 int main() {
     test_toggle_pill();
     test_card_with_action();
@@ -587,6 +623,7 @@ int main() {
     test_reference_codes();
     test_warning_and_all_at_once();
     test_query_field_gaps();
+    test_self_reading_admitted();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

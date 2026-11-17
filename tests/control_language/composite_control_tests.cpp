@@ -364,7 +364,7 @@ constexpr std::string_view echo_field = R"xml(<?xml version="1.0" encoding="UTF-
     <text-box id="@entry" dock="top" text="bind(self.query)"/>
     <label id="@echo" dock="top" text="bind(self.query, one_way)"/>
   </children>
-  <focus target="child(@entry)"/>
+  <focus target="child(@entry)" visible-cue="part(focus)"/>
   <semantics role="group" name="property(accessible-name)" children="exposed"/>
 </control>
 )xml";
@@ -404,14 +404,16 @@ void two_way_child_updates_the_others() {
 // runs itself (A-gf-controls-02-F2): each ends instead of recursing without
 // bound. `lit` reads the composite's own hot state, so its evaluation reads
 // anatomy_states again; `armed` and `go` read each other; `again` runs
-// itself.
+// itself. Each command is a semantic action so that the checker's E912 (a
+// command nothing runs) does not refuse the document; that the checker
+// admits these cycles is control_model_tests test_self_reading_admitted.
 constexpr std::string_view self_reading = R"xml(<?xml version="1.0" encoding="UTF-8"?>
 <control xmlns="urn:gui-forms:control:1" name="self-reading" version="1.0" base="user-control" family="card">
   <property name="level" kind="number" default="0"/>
   <state name="lit" when="state(hot) or pressed()"/>
   <state name="armed" when="command-enabled(go)"/>
-  <command name="go" enabled="state(armed)" run="step(level, 1)"/>
-  <command name="again" enabled="enabled(self)" run="run(again)"/>
+  <command name="go" enabled="state(armed)" run="step(level, 1)" semantic-action="press"/>
+  <command name="again" enabled="enabled(self)" run="run(again)" semantic-action="increment"/>
   <part name="face" role="face" box="inset(region, 0)"/>
   <focus target="none"/>
   <semantics role="group" name="property(accessible-name)"/>
@@ -422,8 +424,6 @@ void self_reading_conditions_end() {
     const std::span<const CompositeChildType> none{};
     const CompositeLoadResult loaded = load_composite_definition("self-reading.control", self_reading, none);
     for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
-    // The checker admits these today (it finds cycles between custom states
-    // only); if it learns to refuse them, this check moves to the checker.
     require(static_cast<bool>(loaded), "the self-reading definition loads");
     if (!loaded) return;
     const std::shared_ptr<CompositeControl> control =
