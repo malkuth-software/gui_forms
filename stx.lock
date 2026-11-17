@@ -23,4 +23,4 @@
 # -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<that checkout>.
 [stx]
 repository = "malkuth-software/stx"
-commit = "91dd981f7b12aff1f093e8ba1a2c926015c1f4d8"
+commit = "0fc2a32b393b0d6fca8f69026a2a84adc3ed5012"
