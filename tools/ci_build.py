@@ -425,6 +425,14 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     # one-module SDK once shipped without the masks (b68c80ecc, 2d4bb797b)
     # while a tree without them passed.
     options.append('-DGUI_FORMS_BUILD_TEXT_MASKS=ON')
+    # No link-time optimisation in the test tree (owner, 2026-11-17: build
+    # times). With GUI_FORMS_LTO the archives hold bitcode, and each of the
+    # several hundred test programs ran ThinLTO's code generation over the
+    # whole toolkit at its link: on the Windows runner about 79 of the build's
+    # 112 minutes went to linking. Release builds of the SDK (build_sdk.py)
+    # keep LTO; GUI_FORMS_CI_LTO=1 keeps it here too.
+    if os.environ.get('GUI_FORMS_CI_LTO') != '1':
+        options.append('-DGUI_FORMS_LTO=OFF')
     configure: list[str] = [
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
         *toolkit_options(ROOT / 'gui_forms', sdk, gallery, True), *options]
