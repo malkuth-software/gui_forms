@@ -17,6 +17,7 @@
 #include <stxlib/optional.hpp>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -464,8 +465,11 @@ void paint_path() {
     require(large_plan.drawing == ThemeEngine::PartDrawing::over_frame_budget,
             "an animated part over the per-frame budget keeps the built-in recipe");
     const std::size_t composites = painter.composites;
+    const std::uint64_t fallbacks = window.metrics_snapshot().engine_built_in_fallbacks;
     (*theme).engine().paint(painter, *control, large);
     require(painter.composites == composites && painter.fills > 0U, "and is painted by it");
+    require(window.metrics_snapshot().engine_built_in_fallbacks == fallbacks + 1U,
+            "and the fallback is counted as a refused primitive's is");
 
     // Forced high contrast: the engine's last pass draws every part built in.
     PresentationSettings settings = window.presentation_settings();

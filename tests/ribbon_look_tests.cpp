@@ -795,6 +795,46 @@ void test_selected_tool_tab() {
         "ribbon::part(command-plane) { height: 88px; }\n",
         "Plan Paint's current tab row compiles cleanly");
     check_selected_tool_tab(plan_paint, "Plan Paint's sheet");
+    // Plan Paint's interface hue (Settings, theme hue) tints the sheet's
+    // colours; the owner's capture was mint. Hand-tinted to about hue 160:
+    // the fault is in the plan's budget, not the colours, so any tint fails
+    // or passes with the blue sheet.
+    const std::shared_ptr<const Theme> plan_paint_mint = theme_from_sheet(
+        "ribbon::part(tab-rail) { background-color: #9bd8c4; height: 27px; }\n"
+        "ribbon::part(tab) {\n"
+        "  background-color: #9bdac6;\n"
+        "  background-image: linear-gradient(to bottom, rgba(34, 116, 92, 0.15) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  border: 0 solid transparent;\n"
+        "  border-top-left-radius: 4px;\n"
+        "  border-top-right-radius: 4px;\n"
+        "  border-bottom-left-radius: 0;\n"
+        "  border-bottom-right-radius: 0;\n"
+        "  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.49);\n"
+        "  gap: -4px;\n"
+        "  margin-top: 3px;\n"
+        "  taper: 4px #49a083;\n"
+        "  edge-shadow: 9px rgba(24, 97, 74, 0.45);\n"
+        "}\n"
+        "ribbon::part(tab):hover { background-color: #ace7d3; }\n"
+        "ribbon::part(tab):state(selected) {\n"
+        "  background-color: #e8fff6;\n"
+        "  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.57) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  box-shadow: inset 0 1px 0 #ffffff;\n"
+        "  margin-top: 0;\n"
+        "  margin-bottom: -2px;\n"
+        "}\n"
+        "ribbon::part(tab):disabled { background-color: #b9d2c9; }\n"
+        "ribbon::part(tab-label):state(selected) { color: #177954; font-weight: bold; font-size: 1.08em; }\n"
+        "ribbon::part(command-plane) { height: 88px; }\n",
+        "Plan Paint's tab row in a mint interface hue compiles cleanly");
+    const double scales[] = {1.0, 2.0};
+    for (const double scale : scales) {
+        check_hovered_selected_tab(plan_paint_mint, 0U, scale, "Plan Paint's mint sheet, the selected Home tab hovered");
+        check_hovered_selected_tab(plan_paint_mint, 1U, scale, "Plan Paint's mint sheet, the selected View tab hovered");
+        check_hovered_selected_tab(plan_paint_mint, 2U, scale, "Plan Paint's mint sheet, the selected Pencil tab hovered");
+    }
+    check_hovered_selected_tab(plan_paint, 1U, 1.0, "Plan Paint's sheet, the selected View tab hovered");
+    check_hovered_selected_tab(plan_paint, 1U, 2.0, "Plan Paint's sheet, the selected View tab hovered");
     check_hovered_selected_tab(plan_paint, 0U, 1.0, "Plan Paint's sheet, the selected Home tab hovered");
     check_hovered_selected_tab(plan_paint, 2U, 1.0, "Plan Paint's sheet, the selected Pencil tab hovered");
     check_hovered_selected_tab(plan_paint, 0U, 2.0, "Plan Paint's sheet, the selected Home tab hovered");

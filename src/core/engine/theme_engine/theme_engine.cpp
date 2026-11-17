@@ -1490,6 +1490,11 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
 // author.
 void ThemeEngine::paint_without_primitive(const Control& control, const PartPaint& part, PartPaintRun& run) const {
     if (run.kept != nullptr) stop_ambient(*run.window, *run.kept, *run.record.value());
+    // A part whose rule chose a primitive the plan put over the animated
+    // frame budget falls back as a refused one does, and is counted so.
+    if (run.decided.drawing == PartDrawing::over_frame_budget && run.window != nullptr) {
+        (*run.window).metrics().record_engine_built_in_fallback();
+    }
     PrimitiveParameterBlock unused{};
     const PresentedProperties presented = run_transitions(run.decided.resolution, run.transitions, nullptr, unused);
     run.shown = scaled_part(part, presented.scale);

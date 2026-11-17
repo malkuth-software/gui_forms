@@ -654,7 +654,7 @@ Related types
 
    .. cpp:member:: std::uint64_t engine_built_in_fallbacks
 
-      Paints at which a part whose rule chose an engine primitive was drawn by the built-in recipe instead: the primitive refused it (engine_primitive_refusals, which counts only the start of a keyed refusal) or no raster was made (engine_raster_failures). Counted at every such paint, so a delta across one state change (a hover) names the parts that changed.
+      Paints at which a part whose rule chose an engine primitive was drawn by the built-in recipe instead: the primitive refused it (engine_primitive_refusals, which counts only the start of a keyed refusal), no raster was made (engine_raster_failures), or the plan put an animated primitive over the frame budget at the part's device size (maximum_animated_operations_per_frame). Counted at every such paint, so a delta across one state change (a hover) names the parts that changed.
 
    .. cpp:member:: std::uint64_t engine_raster_failures
 

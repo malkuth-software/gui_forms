@@ -54,7 +54,7 @@
         "roles": ["face"],
         "states_read": ["pressed", "active_tool"],
         "inputs_read": [],
-        "cost": {"per_device_pixel": 280, "fixed": 64, "preparation_per_device_pixel": 250},
+        "cost": {"per_device_pixel": 80, "fixed": 64, "preparation_per_device_pixel": 250},
         "outsets": [0, 0, 0, 0],
         "parameters": [
           {"name": "amplitude", "kind": "number", "minimum": 0, "maximum": 1, "default": 1, "animated": true},
