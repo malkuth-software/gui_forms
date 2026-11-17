@@ -3293,9 +3293,14 @@ void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
         metrics_.record_focus_transition();
         metrics_.record_focus_revocation();
         if (notify_focus && focused && (*focused).is_alive()) {
+            // The publication's handlers may destroy this root: the rest of
+            // the revocation reads it, so it ends there.
+            const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+            Window* const presenting = (*lifetime).window;
             (*focused).publish_change(
                 static_cast<const void*>(&(*focused).focus_observed_),
                 FocusChangePublication{this, focused, false});
+            if (window_destroyed(*lifetime, presenting)) return;
         }
     }
     if (contains_control(control, captured_.lock())) {
