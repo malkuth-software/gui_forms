@@ -1790,7 +1790,9 @@ private:
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
     // A one-shot wake at `deadline` on the UI thread, revoked by the token
-    // (the tooltip presenter's and the hover wake's common path).
+    // (the tooltip presenter's and the hover wake's common path). With the
+    // schedule full it returns an unconnected token and counts
+    // MetricsSnapshot::internal_wakes_refused; it does not throw.
     [[nodiscard]] FrameRequestToken request_one_shot_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
     // The input state, made on first use (a window that sees no input

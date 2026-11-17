@@ -124,6 +124,11 @@ struct GUI_FORMS_API MetricsSnapshot {
     // per frame poll, however many motion values move.
     std::uint64_t motion_clock_ticks{};
     std::uint64_t frame_requests_coalesced{};
+    // The window's own one-shot wakes (the hover wake, the band's flash or
+    // cycle, the tooltip and toast timing) refused because the window
+    // already held maximum_scheduled_frame_requests. Each fails soft and is
+    // retried at the requester's next event (A-gf-core-17-F3).
+    std::uint64_t internal_wakes_refused{};
     // Missed housekeeping expectations (HousekeepingExpectation), one
     // counter each, and the telemetry lines printed for them.
     std::uint64_t wake_expectation_misses{};

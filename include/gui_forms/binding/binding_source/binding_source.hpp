@@ -259,7 +259,9 @@ private:
     void rebuild_view();
     void reset_view_state(bool metadata_changed);
     void receive_notification(const BindingNotification& notification);
-    void apply_posted(const std::vector<BindingNotification>& notifications);
+    // Applies a batch posted through state's link; stops once a handler has
+    // replaced or revoked that link.
+    void apply_posted(const detail::BindingLinkState& state, const std::vector<BindingNotification>& notifications);
     void apply_notification(const BindingNotification& notification);
     // Moves the position to the anchor provider row's view position, or,
     // when it is gone, to old_position clamped; raises the position events
@@ -299,6 +301,8 @@ private:
     mutable std::uint64_t provider_reads_{};
     // Raw column spellings already looked up, found without allocating.
     mutable std::map<std::string, std::size_t, std::less<>> column_lookup_;
+    // Made with the source and kept until it is destroyed, disposal included,
+    // since currency_manager() hands out references to it.
     std::unique_ptr<CurrencyManager> currency_manager_;
     std::vector<BindingValue> edit_values_;
     bool editing_{};

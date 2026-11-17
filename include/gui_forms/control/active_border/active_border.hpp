@@ -11,7 +11,8 @@
 //
 // Safety is the engine's, not the caller's: resolve_active_border limits a
 // flash or a cycle to maximum_active_border_frequency (three luminance
-// transitions a second, WCAG 2.3.1), refuses to flash saturated red, and
+// transitions a second, WCAG 2.3.1), holds one slower than
+// minimum_active_border_frequency steady, refuses to flash saturated red, and
 // rests the border at its lit pose, steady, under reduced motion, with the
 // application's ambient motion off, in an occluded window, and in high
 // contrast, where it also takes the high-contrast colour and at least
@@ -43,6 +44,11 @@ inline constexpr double maximum_active_border_radius = 64.0;
 // Cycles a second: one cycle is two luminance transitions, so 1.5 is three
 // transitions a second.
 inline constexpr double maximum_active_border_frequency = 1.5;
+// The slowest motion: one cycle a minute. A flash or cycle asked for below
+// it stays steady (A-gf-core-16-F1): a half period of 0.5 / frequency
+// seconds past what the frame clock's ticks hold converted out of range and
+// woke at once, losing the limit above.
+inline constexpr double minimum_active_border_frequency = 1.0 / 60.0;
 inline constexpr double minimum_high_contrast_active_border_width = 2.0;
 // A cycling border repaints at this rate; a flashing one only at its
 // transitions.

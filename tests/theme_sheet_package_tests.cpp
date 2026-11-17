@@ -191,6 +191,16 @@ void test_typed_overrides_check_names_and_write_a_sheet() {
     require(sheet == overrides.sheet_text(), "the sheet is deterministic");
     const ThemeCompileResult compiled = compile_sheet(sheet, "overrides");
     require(compiled.succeeded() && compiled.diagnostics().empty(), "the written sheet compiles without findings");
+    // A-gf-core-14-F2: fractions are written by std::to_chars, which never
+    // reads LC_NUMERIC, in the formats snprintf used. The test cannot set a
+    // decimal-comma LC_NUMERIC itself (check_std_rules refuses setlocale),
+    // so it checks the text the formats give.
+    ThemeOverrides fractional{};
+    require(fractional.set_length(button, ThemeOverrideProperty::corner_radius, 2.5) == ThemeOverrideCheck::accepted,
+            "a fractional radius is accepted");
+    require(fractional.sheet_text().find("border-radius: 2.5px;") != std::string::npos &&
+                sheet.find("rgb(68 119 221 / 50.20%)") != std::string::npos,
+            "lengths and translucent colours are written with a decimal point");
     // Applied to a control through its theme sheet.
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("overrides.root"));
     const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();

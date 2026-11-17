@@ -48,7 +48,14 @@ int step_exponent(double step) noexcept {
 }
 
 void set_label(TickLabel& label, std::string_view text) noexcept {
-    const std::size_t length = std::min(text.size(), maximum_tick_label);
+    std::size_t length = std::min(text.size(), maximum_tick_label);
+    // A cut text ends at the last whole UTF-8 sequence that fits
+    // (A-gf-core-09-F5): while the first byte left out continues a sequence
+    // (10xxxxxx), that sequence is left out whole. A category name is the
+    // application's text and may hold multi-byte characters.
+    if (length < text.size()) {
+        while (length > 0U && (static_cast<unsigned char>(text[length]) & 0xC0U) == 0x80U) length = length - 1U;
+    }
     std::copy(text.begin(), text.begin() + static_cast<std::ptrdiff_t>(length), label.bytes.begin());
     label.bytes[length] = '\0';
     label.length = static_cast<std::uint8_t>(length);

@@ -152,6 +152,14 @@ void limiter_and_rest_poses() {
             "a fast flash is limited to three transitions a second");
     require(fast.lit == blue && fast.alternate == Color::rgba(20, 90, 200, 0),
             "the theme's accent, blinking off");
+    // A-gf-core-16-F1: a flash slower than one cycle a minute holds steady.
+    ActiveBorder glacial = flashing;
+    glacial.frequency = 1e-12;
+    const ActiveBorderPose held = resolve_active_border(glacial, plain_conditions());
+    require(held.motion == ActiveBorderMotion::steady && held.lit == blue, "a flash too slow to move is steady");
+    glacial.frequency = minimum_active_border_frequency;
+    require(resolve_active_border(glacial, plain_conditions()).motion == ActiveBorderMotion::flashing,
+            "a flash of one cycle a minute moves");
 
     ActiveBorder red_flash = flashing;
     red_flash.colour.set(red);

@@ -65,7 +65,11 @@ ActiveBorderPose resolve_active_border(const ActiveBorder& border, const ActiveB
         pose.width = std::max(border.width, minimum_high_contrast_active_border_width);
         return pose;
     }
-    const bool moving = border.motion != ActiveBorderMotion::steady && border.frequency > 0.0;
+    // Below the slowest motion (zero included) the border holds steady
+    // (A-gf-core-16-F1), so no caller converts a half period past the frame
+    // clock's range.
+    const bool moving =
+        border.motion != ActiveBorderMotion::steady && border.frequency >= minimum_active_border_frequency;
     if (conditions.rest || !moving) return pose;
     // The red flash rule: a flash that shows saturated red does not flash.
     const bool red = active_border_saturated_red(pose.lit) || active_border_saturated_red(pose.alternate);

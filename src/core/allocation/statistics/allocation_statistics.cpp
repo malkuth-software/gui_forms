@@ -1,5 +1,7 @@
 #include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 
+#include "../../json/json_text/json_text.hpp"
+
 #include <atomic>
 #include <sstream>
 #include <stdexcept>
@@ -80,6 +82,9 @@ AllocationCounts AllocationStatistics::total() const noexcept {
 
 std::string AllocationStatistics::to_json() const {
     std::ostringstream output;
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"scope\":\"gui_forms_counted_paths\",\"total\":";
     write_counts(output, total());
     for (std::size_t index = 0U; index < allocation_subsystem_count; ++index) {

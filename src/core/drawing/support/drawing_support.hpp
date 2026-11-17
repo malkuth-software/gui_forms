@@ -659,12 +659,17 @@ void include_element_visibility(const PathElement& element, PointF point, FillMo
         const PointF start =
             point_on_ellipse(element.rect, element.start_angle);
         if (figure.empty() || figure.back() != start) figure.push_back(start);
+        // One turn at most, as bounds, flattening and the raster draw it
+        // (A-gf-core-05-F3): a sweep traced twice round would cross every
+        // ray an even number of times and read an inside point as outside
+        // under the alternate fill.
+        const double sweep = std::clamp(element.sweep_angle, -360.0, 360.0);
         const int segments = std::max(
-            1, static_cast<int>(std::ceil(std::abs(element.sweep_angle) / 12.0)));
+            1, static_cast<int>(std::ceil(std::abs(sweep) / 12.0)));
         for (int index = 1; index <= segments; ++index) {
             const double ratio = static_cast<double>(index) / segments;
             figure.push_back(point_on_ellipse(element.rect,
-                element.start_angle + element.sweep_angle * ratio));
+                element.start_angle + sweep * ratio));
         }
         return;
     }

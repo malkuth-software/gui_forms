@@ -46,9 +46,14 @@ constexpr double default_band_width = 1.0;
 
 constexpr Color transparent_colour = Color::rgba(0, 0, 0, 0);
 
-// A flash's half period at `frequency` cycles a second (above 0).
+// A flash's half period at `frequency` cycles a second. The limiter
+// (limited_band_motion) moves only at minimum_active_border_frequency or
+// faster; the bound is applied again before the conversion, so the half
+// period is at most 30 seconds and always within the clock's ticks
+// (A-gf-core-16-F1).
 FrameInterval band_flash_half_period(double frequency) noexcept {
-    const std::chrono::duration<double> seconds(0.5 / frequency);
+    const double bounded = frequency >= minimum_active_border_frequency ? frequency : minimum_active_border_frequency;
+    const std::chrono::duration<double> seconds(0.5 / bounded);
     const FrameInterval interval = std::chrono::ceil<FrameInterval>(seconds);
     return interval;
 }

@@ -314,6 +314,45 @@ void base_properties_refused() {
             "a child binding to a base property is refused (E999), not compiled to property 0");
 }
 
+// A-gf-core-03-F2, F3: defaults start as written. Two-number insets are
+// vertical then horizontal, a short colour stands for doubled digits, and
+// integer defaults beyond a double's precision read exactly.
+constexpr std::string_view authored_defaults = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="authored-defaults" version="1.0">
+  <property name="gap" kind="insets" default="4 8"/>
+  <property name="content-color" kind="color" default="#f80"/>
+  <property name="authored-foreground" kind="color" default="#0f08"/>
+  <property name="largest" kind="signed-integer" default="9223372036854775807"/>
+  <property name="beyond-signed" kind="unsigned-integer" default="9223372036854775808"/>
+</control>
+)xml";
+
+void authored_defaults_read_as_written() {
+    const std::span<const CompositeChildType> none{};
+    const CompositeLoadResult loaded =
+        load_composite_definition("authored-defaults.control", authored_defaults, none);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the authored defaults load");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> box =
+        make_control<CompositeControl>(StableId(std::string("defaults")), loaded.definition);
+    const std::optional<BindingValue> gap = (*box).property_value("gap");
+    const Insets* insets = gap ? std::get_if<Insets>(&*gap) : nullptr;
+    require(insets != nullptr && *insets == Insets{8.0, 4.0, 8.0, 4.0}, "two-number insets are vertical, horizontal");
+    const std::optional<BindingValue> content = (*box).property_value("content_color");
+    const Color* orange = content ? std::get_if<Color>(&*content) : nullptr;
+    require(orange != nullptr && *orange == Color::rgba(255, 136, 0, 255), "#rgb reads as #rrggbb");
+    const std::optional<BindingValue> foreground = (*box).property_value("authored_foreground");
+    const Color* green = foreground ? std::get_if<Color>(&*foreground) : nullptr;
+    require(green != nullptr && *green == Color::rgba(0, 255, 0, 136), "#rgba reads as #rrggbbaa");
+    const std::optional<BindingValue> largest = (*box).property_value("largest");
+    const std::int64_t* signed_value = largest ? std::get_if<std::int64_t>(&*largest) : nullptr;
+    require(signed_value != nullptr && *signed_value == 9223372036854775807LL, "2^63 - 1 reads exactly");
+    const std::optional<BindingValue> beyond = (*box).property_value("beyond_signed");
+    const std::uint64_t* unsigned_value = beyond ? std::get_if<std::uint64_t>(&*beyond) : nullptr;
+    require(unsigned_value != nullptr && *unsigned_value == 9223372036854775808ULL, "2^63 is an unsigned default");
+}
+
 // A live drag: `level` follows every frame; Escape writes back the value
 // the press found.
 constexpr std::string_view live_slider = R"xml(<?xml version="1.0" encoding="UTF-8"?>
@@ -1050,6 +1089,7 @@ int main() {
     stepper_field_refused();
     base_properties_refused();
     live_drag();
+    authored_defaults_read_as_written();
     look_shared("toggle-pill.control", {}, Size{160.0, 30.0});
     look_shared("card-with-action.control", "title", Size{240.0, 160.0});
     no_look();

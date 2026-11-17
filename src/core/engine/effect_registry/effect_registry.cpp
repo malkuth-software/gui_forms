@@ -96,9 +96,12 @@ bool table_names(std::span<const std::byte> table, std::string_view name, std::s
         const std::optional<std::string_view> recorded = reader.text();
         const std::optional<std::uint32_t> bound = reader.u32();
         const std::optional<std::uint32_t> setup_bound = reader.u32();
-        const std::optional<std::uint32_t> state_size = reader.u32();
-        if (!recorded || !bound || !setup_bound || !state_size) return false;
-        if (*recorded == name && *state_size == state_size) return true;
+        const std::optional<std::uint32_t> recorded_size = reader.u32();
+        if (!recorded || !bound || !setup_bound || !recorded_size) return false;
+        // The record's size against the effect's own (A-gf-core-05-F2: a
+        // local of the parameter's name once shadowed it, so this compared
+        // the record with itself).
+        if (*recorded == name && static_cast<std::size_t>(*recorded_size) == state_size) return true;
     }
     return false;
 }

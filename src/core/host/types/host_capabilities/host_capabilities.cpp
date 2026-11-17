@@ -1,5 +1,7 @@
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 
+#include "../../../json/json_text/json_text.hpp"
+
 #include <array>
 #include <sstream>
 #include <utility>
@@ -87,6 +89,9 @@ std::string HostCapabilities::to_json() const {
         {HostCapability::linux_dmabuf, "linux_dmabuf"},
     }};
     std::ostringstream output;
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"protocol_version\":" << protocol_version
            << ",\"platform\":\"" << json_escape(platform)
            << "\",\"available_bits\":"

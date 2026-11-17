@@ -10,7 +10,11 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <system_error>
 #include <utility>
 
 namespace gui_forms::control_language {
@@ -210,6 +214,32 @@ std::optional<double> number_of(const std::string_view text) {
     const std::string copy(text);
     const double value = std::strtod(copy.c_str(), nullptr);
     return value;
+}
+
+// Whether word, which number_of read as number, is a default of an integer
+// kind (A-gf-core-03-F2). Digits that parse exactly as the kind's integer
+// are admitted, so 9223372036854775807 is a signed default although no
+// double holds it. Any other number must be whole and inside the kind's
+// range, tested as exact doubles before any conversion: -2^63 <= n < 2^63
+// signed, 0 <= n < 2^64 unsigned.
+bool integer_default_valid(const std::string_view word, const double number, const bool signed_kind) noexcept {
+    const char* const first = word.data();
+    const char* const last = word.data() + word.size();
+    bool exact = false;
+    if (signed_kind) {
+        std::int64_t parsed = 0;
+        const std::from_chars_result result = std::from_chars(first, last, parsed);
+        exact = result.ec == std::errc{} && result.ptr == last;
+    } else {
+        std::uint64_t parsed = 0U;
+        const std::from_chars_result result = std::from_chars(first, last, parsed);
+        exact = result.ec == std::errc{} && result.ptr == last;
+    }
+    if (exact) return true;
+    const bool in_range = signed_kind ? number >= -9223372036854775808.0 && number < 9223372036854775808.0
+                                      : number >= 0.0 && number < 18446744073709551616.0;
+    const bool whole = in_range && std::trunc(number) == number;
+    return whole;
 }
 
 std::optional<ControlPropertyKind> kind_of(const std::string_view word) noexcept {
@@ -796,9 +826,8 @@ void ModelBuilder::read_property(const std::uint32_t index, ControlModel& scratc
         case ControlPropertyKind::unsigned_integer: {
             valid = numbers.size() == 1U && numeric;
             if (valid && *property.kind != ControlPropertyKind::number) {
-                const double number = *number_of(numbers[0]);
-                const bool whole = number == static_cast<double>(static_cast<long long>(number));
-                valid = whole && (*property.kind == ControlPropertyKind::signed_integer || number >= 0.0);
+                const bool signed_kind = *property.kind == ControlPropertyKind::signed_integer;
+                valid = integer_default_valid(numbers[0], *number_of(numbers[0]), signed_kind);
             }
             break;
         }

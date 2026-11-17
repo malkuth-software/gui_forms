@@ -2452,7 +2452,15 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
     if (!(*found).second.descriptor.readable || !(*found).second.get) return std::nullopt;
     const PropertyRegistration::Getter getter = (*found).second.get;
     const BindingValue value = getter();
-    const PropertyDescriptor* const descriptor = &(*found).second.descriptor;
+    // The getter is application code and may have removed or redefined this
+    // registration (A-gf-core-03-F4), so `found` is not read after it: the
+    // property is looked up again and the value checked against what is
+    // registered now.
+    const BindablePropertyMap::const_iterator current = bindable_properties_.find(canonical);
+    if (current == bindable_properties_.end()) {
+        throw std::logic_error("GUI.Forms property getter removed its own property: " + canonical);
+    }
+    const PropertyDescriptor* const descriptor = &(*current).second.descriptor;
     const std::optional<BindingValue> normalized = convert_property_value(value, *descriptor);
     if (!normalized || !valid_property_value_tree(*normalized)) {
         throw std::logic_error(

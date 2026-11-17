@@ -74,6 +74,7 @@ public:
     void record_pass_limit_hit() noexcept;
     void record_callback_arbitration_retry(bool limit_hit) noexcept;
     void record_frame_request() noexcept;
+    void record_internal_wake_refused() noexcept;
     void record_frame_poll(std::uint64_t deadlines_fired,
                            std::uint64_t motion_clock_ticks,
                            std::uint64_t ui_timer_ticks,

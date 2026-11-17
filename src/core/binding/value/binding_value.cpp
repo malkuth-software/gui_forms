@@ -205,6 +205,14 @@ const PropertyEnumChoice* enum_choice_by_value(
     return nullptr;
 }
 
+// The integer range ends as exact doubles (A-gf-core-02-F1). The maxima
+// 2^63 - 1 and 2^64 - 1 are not doubles: cast, they round up to 2^63 and
+// 2^64, which are out of range, so a whole double converts only when it is
+// below these exclusive bounds. -2^63 is exact and in range.
+constexpr double signed_lowest_as_double = -9223372036854775808.0;
+constexpr double signed_above_as_double = 9223372036854775808.0;
+constexpr double unsigned_above_as_double = 18446744073709551616.0;
+
 std::optional<std::int64_t> enum_numeric_value(
     const BindingValue& value,
     const PropertyEnumDescriptor& descriptor) noexcept {
@@ -221,8 +229,7 @@ std::optional<std::int64_t> enum_numeric_value(
     }
     if (const double* item = std::get_if<double>(&value)) {
         if (!std::isfinite(*item) || std::trunc(*item) != *item ||
-            *item < static_cast<double>(std::numeric_limits<std::int64_t>::min()) ||
-            *item > static_cast<double>(std::numeric_limits<std::int64_t>::max())) {
+            *item < signed_lowest_as_double || *item >= signed_above_as_double) {
             return std::nullopt;
         }
         return static_cast<std::int64_t>(*item);
@@ -546,10 +553,8 @@ struct BindingValueSignedVisitor final {
             return static_cast<std::int64_t>(item);
         } else if constexpr (std::is_same_v<Type, double>) {
             if (!std::isfinite(item) || std::trunc(item) != item ||
-                item < static_cast<double>(
-                    std::numeric_limits<std::int64_t>::min()) ||
-                item > static_cast<double>(
-                    std::numeric_limits<std::int64_t>::max())) {
+                item < signed_lowest_as_double ||
+                item >= signed_above_as_double) {
                 return std::nullopt;
             }
             return static_cast<std::int64_t>(item);
@@ -579,8 +584,7 @@ struct BindingValueUnsignedVisitor final {
         } else if constexpr (std::is_same_v<Type, double>) {
             if (!std::isfinite(item) || std::trunc(item) != item ||
                 item < 0.0 ||
-                item > static_cast<double>(
-                    std::numeric_limits<std::uint64_t>::max())) {
+                item >= unsigned_above_as_double) {
                 return std::nullopt;
             }
             return static_cast<std::uint64_t>(item);

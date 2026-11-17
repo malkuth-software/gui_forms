@@ -1042,6 +1042,15 @@ std::shared_ptr<PartRaster> EnginePartTable::shared_bake(const PartRasterRequest
         if (request.target.images != nullptr) image_revision = (*request.target.images).snapshot().revision;
     }
     const std::size_t bytes = (*baked).pixels().size();
+    // lend_image_variants may have held an image variant, and making room
+    // for it evicts shared bakes by moving the last into the hole, so the
+    // index found before the bake may name another bake or none
+    // (A-gf-core-06-F2). The stale bake is looked up again; when it was
+    // evicted, the new bake is kept as a new one below.
+    found = shared_bakes_.size();
+    for (std::size_t index = 0U; index < shared_bakes_.size(); ++index) {
+        if (answers(shared_bakes_[index].cached, request)) found = index;
+    }
     if (found != shared_bakes_.size()) {
         // Baked again in place of the stale one.
         SharedBake& replaced = shared_bakes_[found];

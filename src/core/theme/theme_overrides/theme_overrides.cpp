@@ -3,9 +3,11 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <cstdio>
 #include <span>
+#include <system_error>
 
 namespace gui_forms {
 
@@ -100,25 +102,39 @@ void append_kebab(std::string& out, std::string_view name) {
     for (const char character : name) out.push_back(character == '_' ? '-' : character);
 }
 
-// `#rrggbb`, or `rgb(r g b / a%)` for a translucent colour.
+// `#rrggbb`, or `rgb(r g b / a%)` for a translucent colour. The fraction
+// is written by std::to_chars, never through LC_NUMERIC (A-gf-core-14-F2:
+// snprintf's %f wrote a decimal comma under such a locale, which the sheet
+// compiler then refused or read otherwise); the integer forms of snprintf
+// take nothing from the locale.
 void append_colour(std::string& out, Color colour) {
     std::array<char, 48> buffer{};
-    int written = 0;
     if (colour.alpha == 255U) {
-        written = std::snprintf(buffer.data(), buffer.size(), "#%02x%02x%02x", colour.red, colour.green, colour.blue);
-    } else {
-        const double percent = static_cast<double>(colour.alpha) * 100.0 / 255.0;
-        written = std::snprintf(buffer.data(), buffer.size(), "rgb(%u %u %u / %.2f%%)", colour.red, colour.green,
-                                colour.blue, percent);
+        const int written =
+            std::snprintf(buffer.data(), buffer.size(), "#%02x%02x%02x", colour.red, colour.green, colour.blue);
+        if (written > 0) out.append(buffer.data(), static_cast<std::size_t>(written));
+        return;
     }
-    if (written > 0) out.append(buffer.data(), static_cast<std::size_t>(written));
+    const int channels = std::snprintf(buffer.data(), buffer.size(), "rgb(%u %u %u / ", colour.red, colour.green,
+                                       colour.blue);
+    if (channels <= 0) return;
+    out.append(buffer.data(), static_cast<std::size_t>(channels));
+    const double percent = static_cast<double>(colour.alpha) * 100.0 / 255.0;
+    const std::to_chars_result fraction =
+        std::to_chars(buffer.data(), buffer.data() + buffer.size(), percent, std::chars_format::fixed, 2);
+    if (fraction.ec == std::errc{}) out.append(buffer.data(), static_cast<std::size_t>(fraction.ptr - buffer.data()));
+    out.append("%)");
 }
 
+// A length as %.4g would write it in the C locale, by std::to_chars
+// (A-gf-core-14-F2), then its unit.
 void append_length(std::string& out, ThemeOverrideProperty property, double value) {
     std::array<char, 48> buffer{};
-    const char* const format = property == ThemeOverrideProperty::opacity ? "%.4g" : "%.4gpx";
-    const int written = std::snprintf(buffer.data(), buffer.size(), format, value);
-    if (written > 0) out.append(buffer.data(), static_cast<std::size_t>(written));
+    const std::to_chars_result written =
+        std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, std::chars_format::general, 4);
+    if (written.ec != std::errc{}) return;
+    out.append(buffer.data(), static_cast<std::size_t>(written.ptr - buffer.data()));
+    if (property != ThemeOverrideProperty::opacity) out.append("px");
 }
 
 void append_state(std::string& out, AnatomyState state) {

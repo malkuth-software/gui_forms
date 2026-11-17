@@ -1,5 +1,7 @@
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
 
+#include "../../../json/json_text/json_text.hpp"
+
 #include "gui_forms/text/types/text_types.hpp"
 
 #include <sstream>
@@ -75,6 +77,9 @@ bool valid_host_locale(const HostLocale& locale) {
 
 std::string host_locale_json(const HostLocale& locale) {
     std::ostringstream output;
+    // Numbers in the classic locale whatever the global one (the pattern of
+    // A-gf-core-11-F1).
+    detail::prepare_json_stream(output);
     output << "{\"name\":";
     append_json_text(output, locale.name);
     output << ",\"month_names\":";

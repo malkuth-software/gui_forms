@@ -249,6 +249,21 @@ void composites_as_panel_lamps() {
     const LightPlanes spill = uniform_planes(4U, 3U, 1U, 0.3F, 2.0F, 0.0F);
     require(composite(spill, spill, lit, LightComposite{}, native, *raster) == 12U, "a spilling bake is written");
     require(pixel_of(*raster, 2U, 2U) == clear, "a lamp's spill past the key's coverage never shows");
+
+    // A-gf-core-05-F4: a caller's view whose extent claims more rows than
+    // its buffer holds is refused before any write, as is a rectangle whose
+    // far edge overflows.
+    std::vector<std::uint8_t> short_buffer(4U * 4U * 2U, std::uint8_t{0xAB});
+    PartRasterView short_view{};
+    short_view.pixels = std::span<std::uint8_t>(short_buffer);
+    short_view.extent = DeviceExtent{4U, 3U};
+    short_view.row_bytes = 16U;
+    require(engine_light::composite_light_planes(planes, planes, lit, LightComposite{}, native, short_view) == 0U &&
+                short_buffer[0] == std::uint8_t{0xAB},
+            "a view whose buffer is short of its extent is refused, untouched");
+    const LightPlaneRect overflowing{std::numeric_limits<std::int64_t>::max() - 1, 0, 4, 3};
+    require(composite(planes, planes, lit, LightComposite{}, overflowing, *raster) == 0U,
+            "a rectangle whose far edge overflows is refused");
 }
 
 void press_mixes_the_bakes() {

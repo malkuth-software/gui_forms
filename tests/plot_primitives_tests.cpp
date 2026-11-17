@@ -204,6 +204,13 @@ void test_lease_and_borrowed_views() {
     narrow.count = 2U;
     narrow.stride_bytes = 4U;
     require(validate_series_view(narrow) == SeriesViewCheck::stride_too_small, "a stride under the element refuses");
+    // A-gf-core-09-F4: an offset within one element of SIZE_MAX (a negative
+    // offset converted) overflows, whatever the count.
+    SeriesView<float> wrapped = view;
+    wrapped.offset_bytes = static_cast<std::size_t>(-4);
+    require(validate_series_view(wrapped) == SeriesViewCheck::size_overflow, "an offset that wraps refuses");
+    wrapped.count = 1U;
+    require(validate_series_view(wrapped) == SeriesViewCheck::size_overflow, "a single element past SIZE_MAX refuses");
     SeriesLease lease;
     const BorrowedSeries<float> borrowed(view, lease);
     {
@@ -380,6 +387,17 @@ void test_tick_golden_tables() {
     request.categories = names;
     static_cast<void>(generate_ticks(horizontal(ScaleKind::category, -0.5, 2.5, 300.0), request, nullptr, named));
     require(tick_line(named) == "low mid high", "categories are labelled by name");
+    // A-gf-core-09-F5: a long category name is cut at its last whole UTF-8
+    // sequence: eleven three-byte characters (33 bytes) keep ten (30).
+    std::string long_name{};
+    for (std::size_t index = 0U; index < 11U; ++index) long_name += "\xE2\x82\xAC";
+    const std::array<std::string_view, 1> long_names{long_name};
+    TickRequest long_request{};
+    long_request.categories = long_names;
+    TickSet cut{};
+    static_cast<void>(generate_ticks(horizontal(ScaleKind::category, -0.5, 0.5, 300.0), long_request, nullptr, cut));
+    require(cut.major_count == 1U && cut.major[0].label.text() == std::string_view(long_name).substr(0U, 30U),
+            "a cut category name ends at a whole UTF-8 sequence");
     TickSet empty{};
     require(generate_ticks(horizontal(ScaleKind::linear, 0.0, 1.0, 0.5), request, nullptr, empty) ==
                 TickOutcome::too_small && empty.major_count == 0U,

@@ -35,6 +35,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <memory>
 #include <optional>
@@ -367,6 +368,10 @@ void test_revocation_on_replacement_and_disposal() {
     (*other).set_provider(second);
     (*other).dispose();
     require((*second).link.revoked() && (*second).detached == 1U, "disposing the source revokes the link");
+    // A-gf-core-01-F5: the currency manager outlives disposal with its source.
+    CurrencyManager& manager = (*other).currency_manager();
+    require(manager.count() == 0U && manager.position() == -1 && &manager.source() == other.get(),
+            "a disposed source's currency manager still answers, through its source");
 }
 
 // Reports an insertion from another thread.
@@ -392,6 +397,60 @@ void test_cross_thread_notifications_apply_at_a_safe_point() {
     static_cast<void>(host.window.drain_posted_work());
     require((*source).count() == 11U && counter.additions == 1U && (*source).stable_id(10U) == "row.10",
             "the posted notification applies on the UI thread, in order");
+}
+
+// Reports three changes from another thread in one posted batch.
+struct ChangeThriceFromThread final {
+    SharedProvider* provider{};
+    void operator()() const {
+        (*provider).count = 13U;
+        (*provider).link.inserted(10U, 1U);
+        (*provider).link.inserted(11U, 1U);
+        (*provider).link.inserted(12U, 1U);
+    }
+};
+
+// Replaces the source's provider at the first list change it hears, then
+// counts the changes raised after the replacement returned.
+struct ReplaceAtFirstChange final : Component {
+    BindingSource* source{};
+    std::shared_ptr<BindingProvider> next;
+    bool replacing{};
+    bool replaced{};
+    std::size_t changes_after{};
+
+    void on_change(const BindingListChange& change) {
+        static_cast<void>(change);
+        if (replacing) return;
+        if (replaced) {
+            ++changes_after;
+            return;
+        }
+        replacing = true;
+        (*source).set_provider(next);
+        replacing = false;
+        replaced = true;
+    }
+};
+
+// A-gf-core-01-F6: a posted batch stops once a handler replaced the provider.
+void test_posted_batch_stops_at_a_replaced_provider() {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    std::shared_ptr<SharedProvider> first = std::make_shared<SharedProvider>();
+    std::shared_ptr<SharedProvider> second = std::make_shared<SharedProvider>();
+    (*source).set_provider(first);
+    ReplaceAtFirstChange replacer;
+    replacer.source = source.get();
+    replacer.next = second;
+    on((*source).list_changed(), replacer, &ReplaceAtFirstChange::on_change);
+    std::thread worker(ChangeThriceFromThread{first.get()});
+    worker.join();
+    static_cast<void>(host.window.drain_posted_work());
+    require(replacer.replaced && (*first).link.revoked() && !(*second).link.revoked(),
+            "the first posted change replaced the provider");
+    require(replacer.changes_after == 0U && (*source).count() == 10U,
+            "the rest of the old provider's batch is not applied to the new provider");
 }
 
 // ---------------------------------------------------------------------------
@@ -436,6 +495,13 @@ void test_binding_table_checks_whole_and_keeps_errors_by_id() {
     require((*source).count() == 3U && (*source).find_stable_id("b") == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{2U}) &&
                 (*source).find("name", std::string("Zeta")) == gui_forms::platform::stxlib_optional(std::optional<std::size_t>{0U}),
             "the source shows the table's rows in its order");
+    // A-gf-core-01-F4: a removed row's errors go with it, and a later row
+    // given the same stable ID starts without them.
+    require(table.remove(2U, 1U) == 1U && table.count() == 2U, "the row with errors is removed");
+    static_cast<void>(table.append(BindingRow{"b", {std::string("Beta again")}}));
+    require(table.error(2U, name).empty() && table.error(2U, binding_whole_row).empty() &&
+                (*source).error(2U, name).empty(),
+            "a removed row's errors do not reach a new row of the same stable ID");
 }
 
 // ---------------------------------------------------------------------------
@@ -803,6 +869,20 @@ void test_text_compares_ignoring_case_by_code_point() {
                 compare_binding_keys(std::uint64_t{18446744073709551615ULL}, std::int64_t{-1}) > 0 &&
                 compare_binding_keys(BindingValue{}, std::int64_t{0}) < 0,
             "keys compare text ignoring case and numbers across their kinds");
+    // A-gf-core-01-F7: an integer against a double is exact above 2^53, so
+    // equivalence stays transitive (the sort's strict weak order).
+    const std::int64_t above = 9007199254740993LL;
+    const double near = 9007199254740992.0;
+    require(compare_binding_keys(above, near) > 0 && compare_binding_keys(near, above) < 0 &&
+                compare_binding_keys(std::int64_t{9007199254740992LL}, near) == 0 &&
+                compare_binding_keys(std::uint64_t{18446744073709551615ULL}, 18446744073709551616.0) < 0 &&
+                compare_binding_keys(std::int64_t{-9223372036854775807LL - 1LL}, -9223372036854775808.0) == 0 &&
+                compare_binding_keys(std::int64_t{-9223372036854775807LL - 1LL}, -9223372036854777856.0) > 0 &&
+                compare_binding_keys(std::int64_t{-1}, -0.5) < 0 && compare_binding_keys(std::int64_t{0}, -0.5) > 0 &&
+                compare_binding_keys(std::int64_t{0}, -0.0) == 0 &&
+                compare_binding_keys(std::int64_t{0}, std::numeric_limits<double>::infinity()) < 0 &&
+                compare_binding_keys(std::int64_t{0}, -std::numeric_limits<double>::infinity()) > 0,
+            "integers and doubles compare exactly at every magnitude");
 }
 
 // ---------------------------------------------------------------------------
@@ -891,6 +971,7 @@ int main() {
         test_hostile_provider_answers_become_cell_errors();
         test_revocation_on_replacement_and_disposal();
         test_cross_thread_notifications_apply_at_a_safe_point();
+        test_posted_batch_stops_at_a_replaced_provider();
         test_binding_table_checks_whole_and_keeps_errors_by_id();
         test_sort_and_filter_views_match_brute_force_under_changes();
         test_list_changes_replay_to_the_view_and_moves_are_not_resets();

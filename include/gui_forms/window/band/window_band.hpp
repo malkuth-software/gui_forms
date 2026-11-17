@@ -164,7 +164,9 @@ struct GUI_FORMS_API WindowBandAppearance final {
     // The theme colour the band lights in while lit_colour is empty.
     WindowBandColourRole lit_role{WindowBandColourRole::theme};
     // Cycles a second of a flash or a cycle, lowered to
-    // maximum_band_frequency; 0 holds the band lit. Finite, not negative.
+    // maximum_band_frequency; 0, or anything below
+    // minimum_active_border_frequency, holds the band lit. Finite, not
+    // negative.
     double frequency{maximum_band_frequency};
     stxlib::Optional<WindowBandTexture> texture{};
 

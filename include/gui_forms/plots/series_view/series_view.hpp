@@ -57,13 +57,17 @@ template <SeriesElement Element>
     if (view.data == nullptr) return SeriesViewCheck::null_data;
     if (view.stride_bytes < sizeof(Element)) return SeriesViewCheck::stride_too_small;
     if (view.stride_bytes % alignof(Element) != 0U) return SeriesViewCheck::stride_misaligned;
+    // The offset alone must leave room for one element before anything
+    // subtracts it (A-gf-core-09-F4): maximum - offset - sizeof(Element)
+    // wrapped for an offset within sizeof(Element) of SIZE_MAX.
+    const std::size_t maximum = static_cast<std::size_t>(-1);
+    if (view.offset_bytes > maximum - sizeof(Element)) return SeriesViewCheck::size_overflow;
     const std::uintptr_t address = reinterpret_cast<std::uintptr_t>(view.data);
     if ((address + view.offset_bytes) % alignof(Element) != 0U) return SeriesViewCheck::misaligned;
-    const std::size_t maximum = static_cast<std::size_t>(-1);
     const std::size_t last = view.count - 1U;
     if (last != 0U && view.stride_bytes > maximum / last) return SeriesViewCheck::size_overflow;
     const std::size_t span_bytes = last * view.stride_bytes;
-    if (span_bytes > maximum - view.offset_bytes - sizeof(Element)) return SeriesViewCheck::size_overflow;
+    if (span_bytes > maximum - sizeof(Element) - view.offset_bytes) return SeriesViewCheck::size_overflow;
     return SeriesViewCheck::valid;
 }
 
