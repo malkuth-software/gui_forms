@@ -1,4 +1,5 @@
 #include "skia_executor.hpp"
+#include "shaded_triangle_raster.hpp"
 
 #include "include/core/SkBlendMode.h"
 #include "include/core/SkCanvas.h"
@@ -956,6 +957,8 @@ void copy_image_rows(const ImageRowCopy& copy, const ImageSnapshot& image, const
         const bool drawable = path.has_value() && configure_brush(paint, command.brush, command.state);
         return drawable ? RasterError::none : RasterError::invalid_argument;
     }
+    case CommandKind::fill_triangles:
+        return shaded_triangles_refusal(command);
     case CommandKind::draw_image: {
         if (!command.image.has_pixels()) return RasterError::missing_image_pixels;
         const SkImageInfo source_info = image_info(command.image.width, command.image.height);
@@ -1687,6 +1690,11 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
         // by every trimmed command of this execution.
         gui_forms::PaintPath trim_figure;
         gui_forms::PaintPath trim_kept;
+        // The shaded triangles' device triangles and sample owners, reused
+        // by every fill_triangles command of this execution.
+        ShadedTriangleScratch triangle_scratch;
+        const ShadedTriangleTarget triangle_target{target_lock.writable_data, target_lock.row_bytes,
+                                                   target_lock.width, target_lock.height};
         for (const DrawingCommand& command : commands.subspan(first_command)) {
             // A command draws inside a save of its own: restoreAll undoes
             // only what lies above the base level, so the state's clip and a
@@ -1869,6 +1877,13 @@ RasterResult SkiaExecutor::execute(const GraphicsRecorder& recorder,
                 applied = nullptr;
                 (*canvas).clipRRect(track_shape(command.rect, command.radii), SkClipOp::kIntersect, true);
                 (*canvas).drawRect(to_sk_rect(part), paint);
+                break;
+            }
+            case CommandKind::fill_triangles: {
+                // Written straight into the pixels, as text is: the canvas
+                // draws immediately, so command order holds.
+                const RasterError shaded = draw_shaded_triangles(command, triangle_target, triangle_scratch);
+                if (shaded != RasterError::none) return {shaded, executed};
                 break;
             }
             default:

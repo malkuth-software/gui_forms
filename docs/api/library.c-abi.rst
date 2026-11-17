@@ -1459,6 +1459,8 @@ Types
 
    .. cpp:member:: gd_result (*pen_set_trim)(gd_handle pen, double start, double end, double offset)
 
+   .. cpp:member:: gd_result (*recorder_fill_triangles)(gd_handle recorder, const gd_point* points, const gd_color* colors, uint64_t count)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

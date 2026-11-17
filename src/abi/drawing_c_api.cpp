@@ -2947,6 +2947,56 @@ gd_result api_recorder_fill_rectangles_each(gd_handle recorder, const gd_rect* r
     return translate(&fill_recorder_rectangles_each_from_c, recorder, rects, colors, count);
 }
 
+// ABI 1.1, provisional: shaded triangles.
+
+gd_result fill_recorder_triangles(gui_drawing::GraphicsRecorder& graphics,
+                                  const std::vector<gui_drawing::PointF>& points,
+                                  const std::vector<gui_drawing::Color>& colors) {
+    const gui_drawing::TriangleFillStatus status = graphics.fill_triangles(points, colors);
+    switch (status) {
+    case gui_drawing::TriangleFillStatus::recorded:
+        return GD_OK;
+    case gui_drawing::TriangleFillStatus::closed:
+        return fail(GD_ERROR_INVALID_STATE, "GUI.Drawing recorder is closed");
+    case gui_drawing::TriangleFillStatus::command_limit:
+    case gui_drawing::TriangleFillStatus::too_many_points:
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "shaded triangles exceed a recorder limit");
+    case gui_drawing::TriangleFillStatus::count_mismatch:
+    case gui_drawing::TriangleFillStatus::not_whole_triangles:
+    case gui_drawing::TriangleFillStatus::non_finite_point:
+    default:
+        break;
+    }
+    return fail(GD_ERROR_INVALID_ARGUMENT, "shaded triangles require whole finite triangles with a colour per point");
+}
+
+gd_result fill_recorder_triangles_from_c(gd_handle recorder, const gd_point* points, const gd_color* colors,
+                                         std::uint64_t count) {
+    const std::vector<gui_drawing::PointF> native_points = points_from_c(points, count);
+    std::vector<gui_drawing::Color> native_colors;
+    native_colors.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) native_colors.push_back(color_from_c(colors[index]));
+    return registry().with<gui_drawing::GraphicsRecorder>(recorder, GD_OBJECT_RECORDER, &fill_recorder_triangles,
+                                                          native_points, native_colors);
+}
+
+gd_result api_recorder_fill_triangles(gd_handle recorder, const gd_point* points, const gd_color* colors,
+                                      std::uint64_t count) {
+    const char* const triangle_refusal = "shaded triangles require 3 through 999,999 points, a colour each";
+    const gd_result points_counted = check_batch(points, count, 3U, triangle_refusal);
+    if (points_counted != GD_OK) {
+        return points_counted;
+    }
+    const gd_result colors_counted = check_batch(colors, count, 3U, triangle_refusal);
+    if (colors_counted != GD_OK) {
+        return colors_counted;
+    }
+    if (count % 3U != 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, triangle_refusal);
+    }
+    return translate(&fill_recorder_triangles_from_c, recorder, points, colors, count);
+}
+
 // ABI 0.5: text in a box, batched strings, reuse and the fitted measure.
 
 gd_result draw_recorder_string_in_rect(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Font& font,
@@ -3348,6 +3398,7 @@ const gd_api_v0 api_table{
     &api_radial_gradient_brush_set_focus,
     &api_radial_gradient_brush_set_radii,
     &api_pen_set_trim,
+    &api_recorder_fill_triangles,
 };
 
 } // namespace

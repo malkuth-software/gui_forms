@@ -1779,6 +1779,7 @@ if(GUI_FORMS_ENABLE_SKIA)
         src/render/skia/executor/skia_executor.cpp
         src/render/skia/executor/drawing_raster_state.cpp
         src/render/skia/executor/recorder_raster.cpp
+        src/render/skia/executor/shaded_triangle_raster.cpp
     )
     # The installed-face probes are not compiled in a high-integrity build
     # (cmake/HighIntegrity.cmake), whose faces all come from the font pack.

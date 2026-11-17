@@ -702,6 +702,7 @@ namespace {
     case CommandKind::clear:
     case CommandKind::draw_string:
     case CommandKind::draw_image:
+    case CommandKind::fill_triangles:
     default:
         break;
     }

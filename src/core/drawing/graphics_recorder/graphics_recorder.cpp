@@ -668,6 +668,29 @@ void GraphicsRecorder::fill_rectangles_each(std::span<const RectF> rects, std::s
     for (DrawingCommand& command : pending) commands_.push_back(std::move(command));
 }
 
+TriangleFillStatus GraphicsRecorder::fill_triangles(std::span<const PointF> points, std::span<const Color> colors) {
+    require_alive();
+    // Every refusal is decided before anything changes.
+    if (closed_) return TriangleFillStatus::closed;
+    if (commands_.size() >= maximum_commands) return TriangleFillStatus::command_limit;
+    if (points.size() != colors.size()) return TriangleFillStatus::count_mismatch;
+    if (points.empty() || points.size() % 3U != 0U) return TriangleFillStatus::not_whole_triangles;
+    if (points.size() > maximum_batch_elements) return TriangleFillStatus::too_many_points;
+    for (const PointF point : points) {
+        const bool finite = std::isfinite(point.x) && std::isfinite(point.y);
+        if (!finite) return TriangleFillStatus::non_finite_point;
+    }
+    // Built whole before it is appended, so a failed allocation records
+    // nothing.
+    DrawingCommand command;
+    command.kind = CommandKind::fill_triangles;
+    command.state = state_;
+    command.points.assign(points.begin(), points.end());
+    command.colors.assign(colors.begin(), colors.end());
+    append(std::move(command));
+    return TriangleFillStatus::recorded;
+}
+
 void GraphicsRecorder::close() {
     require_alive();
     closed_ = true;
@@ -748,6 +771,17 @@ std::string rects_text(std::span<const RectF> rects) {
     for (std::size_t index = 0; index < rects.size(); ++index) {
         if (index != 0U) result += ";";
         result += rect_text(rects[index]);
+    }
+    return result;
+}
+
+// fill_triangles' corner colours, in order, separated as points_text
+// separates points.
+std::string colors_text(std::span<const Color> colors) {
+    std::string result;
+    for (std::size_t index = 0; index < colors.size(); ++index) {
+        if (index != 0U) result += ";";
+        result += color_text(colors[index]);
     }
     return result;
 }
@@ -860,6 +894,9 @@ void append_command_fields(const DrawingCommand& command, std::string& trace) {
                  "|proportion=" + number(command.scalar) +
                  "|direction=" + std::to_string(static_cast<unsigned>(command.direction)) +
                  "|brush=" + brush_text(command.brush);
+        return;
+    case CommandKind::fill_triangles:
+        trace += "|points=" + points_text(command.points) + "|colors=" + colors_text(command.colors);
         return;
     case CommandKind::set_transform:
     case CommandKind::reset_clip:

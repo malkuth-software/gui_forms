@@ -260,6 +260,7 @@ private:
     case CommandKind::draw_markers: return "draw_markers";
     case CommandKind::fill_grid_pattern: return "fill_grid_pattern";
     case CommandKind::fill_proportion: return "fill_proportion";
+    case CommandKind::fill_triangles: return "fill_triangles";
     }
     return "unknown";
 }
