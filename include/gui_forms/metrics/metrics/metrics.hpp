@@ -100,6 +100,12 @@ public:
     // A material's dither was lowered by `steps` to stay within the bake
     // budget (MetricsSnapshot::engine_dither_degradations).
     void record_engine_dither_degradations(std::uint64_t steps) noexcept;
+    // A part with an engine primitive drawn by the built-in recipe at this
+    // paint (MetricsSnapshot::engine_built_in_fallbacks), and of those, one
+    // the primitive accepted but no raster was made for
+    // (MetricsSnapshot::engine_raster_failures).
+    void record_engine_built_in_fallback() noexcept;
+    void record_engine_raster_failure() noexcept;
     void record_engine_material_assembly() noexcept;
     void record_paint_group_refusals(std::uint64_t refusals) noexcept;
     // A control arranged while the layout pass was arranging another

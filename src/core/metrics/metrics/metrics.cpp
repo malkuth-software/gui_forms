@@ -238,6 +238,12 @@ void Metrics::record_engine_primitive_refusal() noexcept {
 void Metrics::record_engine_dither_degradations(std::uint64_t steps) noexcept {
     values_.engine_dither_degradations = values_.engine_dither_degradations + steps;
 }
+void Metrics::record_engine_built_in_fallback() noexcept {
+    values_.engine_built_in_fallbacks = values_.engine_built_in_fallbacks + 1U;
+}
+void Metrics::record_engine_raster_failure() noexcept {
+    values_.engine_raster_failures = values_.engine_raster_failures + 1U;
+}
 void Metrics::record_engine_material_assembly() noexcept {
     values_.engine_material_assemblies = values_.engine_material_assemblies + 1U;
 }

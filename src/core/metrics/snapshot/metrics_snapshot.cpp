@@ -140,6 +140,8 @@ std::string MetricsSnapshot::to_json() const {
            << "\"effects_unverified\":" << effects_unverified << ','
            << "\"engine_primitive_refusals\":" << engine_primitive_refusals << ','
            << "\"engine_dither_degradations\":" << engine_dither_degradations << ','
+           << "\"engine_built_in_fallbacks\":" << engine_built_in_fallbacks << ','
+           << "\"engine_raster_failures\":" << engine_raster_failures << ','
            << "\"engine_material_assemblies\":" << engine_material_assemblies << ','
            << "\"paint_group_refusals\":" << paint_group_refusals << ','
            << "\"layout_arrange_refusals\":" << layout_arrange_refusals << ','

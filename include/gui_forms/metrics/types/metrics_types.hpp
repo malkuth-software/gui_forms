@@ -221,6 +221,17 @@ struct GUI_FORMS_API MetricsSnapshot {
     // lowered material, so a face keeps its material and loses only the
     // dither, never falling back to the built-in look for it.
     std::uint64_t engine_dither_degradations{};
+    // Paints at which a part whose rule chose an engine primitive was drawn
+    // by the built-in recipe instead: the primitive refused it
+    // (engine_primitive_refusals, which counts only the start of a keyed
+    // refusal) or no raster was made (engine_raster_failures). Counted at
+    // every such paint, so a delta across one state change (a hover) names
+    // the parts that changed.
+    std::uint64_t engine_built_in_fallbacks{};
+    // Paints at which a primitive accepted a part but no raster was made
+    // for it (the part table's raster or shared bake, a keyframe, came back
+    // null), so the built-in recipe drew it.
+    std::uint64_t engine_raster_failures{};
     // Materials assembled from a recipe's material and the material fields
     // a theme's rules set (T3 EC1): once per distinct assembly for a keyed
     // part (AssembledPartMaterial), and at every paint of a part without a

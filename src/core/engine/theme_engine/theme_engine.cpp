@@ -1879,6 +1879,7 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
     if (run.kept != nullptr) (*run.kept).primitive_refused = !accepted;
     if (!accepted) {
         if (newly_refused) (*window).metrics().record_engine_primitive_refusal();
+        (*window).metrics().record_engine_built_in_fallback();
         run.outcome = PartPaintRun::Outcome::built_in;
         return;
     }
@@ -1892,6 +1893,8 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
         run.raster = drawn.raster;
     }
     if (!run.raster) {
+        (*window).metrics().record_engine_raster_failure();
+        (*window).metrics().record_engine_built_in_fallback();
         run.outcome = PartPaintRun::Outcome::built_in;
         return;
     }

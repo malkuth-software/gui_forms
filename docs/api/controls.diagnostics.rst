@@ -311,6 +311,12 @@ Related types
 
       A material's dither was lowered by ``steps`` to stay within the bake budget (MetricsSnapshot::engine_dither_degradations).
 
+   .. cpp:function:: void record_engine_built_in_fallback() noexcept
+
+      A part with an engine primitive drawn by the built-in recipe at this paint (MetricsSnapshot::engine_built_in_fallbacks), and of those, one the primitive accepted but no raster was made for (MetricsSnapshot::engine_raster_failures).
+
+   .. cpp:function:: void record_engine_raster_failure() noexcept
+
    .. cpp:function:: void record_engine_material_assembly() noexcept
 
    .. cpp:function:: void record_paint_group_refusals(std::uint64_t refusals) noexcept
@@ -645,6 +651,14 @@ Related types
    .. cpp:member:: std::uint64_t engine_dither_degradations
 
       Steps a dithered material's dither gave way so that its part stays within the bake budget (EnginePrimitive::affordable_dither): one for blue noise to the ordered table or the ordered table to none, two for blue noise to none. Counted at every paint that lends the lowered material, so a face keeps its material and loses only the dither, never falling back to the built-in look for it.
+
+   .. cpp:member:: std::uint64_t engine_built_in_fallbacks
+
+      Paints at which a part whose rule chose an engine primitive was drawn by the built-in recipe instead: the primitive refused it (engine_primitive_refusals, which counts only the start of a keyed refusal) or no raster was made (engine_raster_failures). Counted at every such paint, so a delta across one state change (a hover) names the parts that changed.
+
+   .. cpp:member:: std::uint64_t engine_raster_failures
+
+      Paints at which a primitive accepted a part but no raster was made for it (the part table's raster or shared bake, a keyframe, came back null), so the built-in recipe drew it.
 
    .. cpp:member:: std::uint64_t engine_material_assemblies
 

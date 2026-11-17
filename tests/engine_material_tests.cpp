@@ -1354,9 +1354,14 @@ void engine_counts_refusals() {
     Window& window = *made.window;
     require(made.painter.rasters == 0U, "a refused material composites no raster");
     require(window.metrics_snapshot().engine_primitive_refusals == 1U, "the refusal is counted");
+    const std::uint64_t fallbacks = window.metrics_snapshot().engine_built_in_fallbacks;
+    require(fallbacks >= 1U, "the built-in recipe's draw is counted as a fallback");
     (*made.pad).invalidate(Dirty::paint);
     repaint(made);
     require(window.metrics_snapshot().engine_primitive_refusals == 1U, "once, when it begins");
+    require(window.metrics_snapshot().engine_built_in_fallbacks > fallbacks,
+            "while each paint's fallback is counted");
+    require(window.metrics_snapshot().engine_raster_failures == 0U, "a refusal is not a raster failure");
 }
 
 // -- measuring the bake costs ------------------------------------------------------
