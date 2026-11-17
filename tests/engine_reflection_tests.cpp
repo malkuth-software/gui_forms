@@ -298,10 +298,10 @@ void is_validated() {
 // The face source's eight (each edge at scale 1 and 2), then the backplane
 // source's, over patterned_backplane.
 constexpr std::array<std::uint64_t, 16> expected_hashes{
-    0x14f6df20874ffb59ULL, 0xc0016f6217ae8cb1ULL, 0xcf14e0c08c5a00edULL, 0x609c71740c7337bdULL,
-    0xed29a0a1274f5c72ULL, 0x8d671a9348b478e9ULL, 0xcdb7b05fb073f935ULL, 0xa31f888b4da48ef1ULL,
-    0x3cfe0a7f4484184bULL, 0x77dd80e5b6105d0fULL, 0xad821fc38c59fceaULL, 0xf341facffc10fb1cULL,
-    0x7429dee566514386ULL, 0x4c532192dccb4dfaULL, 0xf42982ffd70af2f4ULL, 0xd4bd48380959c0d5ULL,
+    0xb8a3af512147130fULL, 0x6738bd9437e4e5fcULL, 0xbc478a28a446dd97ULL, 0x6dc028cd1e380100ULL,
+    0xfe46738bbc7e6f2eULL, 0xd5fadc31fc2eab65ULL, 0x3d0f71b1dd70aeb0ULL, 0x4811826f0f537800ULL,
+    0xaa4ba2fb5baf3759ULL, 0x5b24b8e61b9f33f5ULL, 0xbe4cfcaa9c1974a0ULL, 0xdb6760d805555dc6ULL,
+    0x14b31c6a0de71194ULL, 0xc1d88f6d58bbf138ULL, 0x553c6db90f3562b2ULL, 0x3f511f55bc1e4e57ULL,
 };
 
 void matches_references() {

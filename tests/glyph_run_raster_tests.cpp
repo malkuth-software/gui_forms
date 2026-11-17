@@ -100,47 +100,49 @@ std::uint64_t coverage_hash(const GlyphRunCoverage& coverage) {
 // STXlib's glyph face (face_profile_version 1) moved every text pixel once
 // (owner, 2026-11-16); the values are taken from this test's printed output
 // on the first build with it, and every CI platform must then reproduce
-// them. Zero until then.
+// them. Recorded 2026-11-16 on macOS arm64.
 constexpr std::uint64_t expected_identity[36]{
-    0x0ULL,  // rapids 9 1 0
-    0x0ULL,  // rapids 9 1 23
-    0x0ULL,  // rapids 9 1.5 0
-    0x0ULL,  // rapids 9 1.5 23
-    0x0ULL,  // rapids 9 2 0
-    0x0ULL,  // rapids 9 2 23
-    0x0ULL,  // rapids 13 1 0
-    0x0ULL,  // rapids 13 1 23
-    0x0ULL,  // rapids 13 1.5 0
-    0x0ULL,  // rapids 13 1.5 23
-    0x0ULL,  // rapids 13 2 0
-    0x0ULL,  // rapids 13 2 23
-    0x0ULL,  // rapids 20 1 0
-    0x0ULL,  // rapids 20 1 23
-    0x0ULL,  // rapids 20 1.5 0
-    0x0ULL,  // rapids 20 1.5 23
-    0x0ULL,  // rapids 20 2 0
-    0x0ULL,  // rapids 20 2 23
-    0x0ULL,  // carlito 9 1 0
-    0x0ULL,  // carlito 9 1 23
-    0x0ULL,  // carlito 9 1.5 0
-    0x0ULL,  // carlito 9 1.5 23
-    0x0ULL,  // carlito 9 2 0
-    0x0ULL,  // carlito 9 2 23
-    0x0ULL,  // carlito 13 1 0
-    0x0ULL,  // carlito 13 1 23
-    0x0ULL,  // carlito 13 1.5 0
-    0x0ULL,  // carlito 13 1.5 23
-    0x0ULL,  // carlito 13 2 0
-    0x0ULL,  // carlito 13 2 23
-    0x0ULL,  // carlito 20 1 0
-    0x0ULL,  // carlito 20 1 23
-    0x0ULL,  // carlito 20 1.5 0
-    0x0ULL,  // carlito 20 1.5 23
-    0x0ULL,  // carlito 20 2 0
-    0x0ULL,  // carlito 20 2 23
+    0xf2216845d3db4324ULL,  // rapids 9 1 0
+    0x5875e3dd64481d62ULL,  // rapids 9 1 23
+    0x4339980fb6c81fa4ULL,  // rapids 9 1.5 0
+    0x6ac76dcc87dfedd8ULL,  // rapids 9 1.5 23
+    0xedffde3263d16282ULL,  // rapids 9 2 0
+    0x6019387173adab3bULL,  // rapids 9 2 23
+    0x0c6b9d56df6ccee6ULL,  // rapids 13 1 0
+    0x86a4f0b52734a665ULL,  // rapids 13 1 23
+    0xa7ffae22bc1878f3ULL,  // rapids 13 1.5 0
+    0x4a788e31ecbb4dacULL,  // rapids 13 1.5 23
+    0x3deef7d00f032e61ULL,  // rapids 13 2 0
+    0xb76fc353157ec13bULL,  // rapids 13 2 23
+    0x57bee2fba4420ad8ULL,  // rapids 20 1 0
+    0x88ac01e1958b5f40ULL,  // rapids 20 1 23
+    0x12e434d7abc90a87ULL,  // rapids 20 1.5 0
+    0x91566b0600fc02c2ULL,  // rapids 20 1.5 23
+    0x21ed4e6172219f5bULL,  // rapids 20 2 0
+    0x145525afa9dfc9c4ULL,  // rapids 20 2 23
+    0xad488071546243b0ULL,  // carlito 9 1 0
+    0x634475f2431c4fb2ULL,  // carlito 9 1 23
+    0x4955edfe852762c3ULL,  // carlito 9 1.5 0
+    0xdeb471a57c9f12d7ULL,  // carlito 9 1.5 23
+    0x838586b0a0a9eb7cULL,  // carlito 9 2 0
+    0x6e7fea22916ff85fULL,  // carlito 9 2 23
+    0xadc7b95b58a14d8cULL,  // carlito 13 1 0
+    0x105c2820f359a885ULL,  // carlito 13 1 23
+    0xb7833f77111a732bULL,  // carlito 13 1.5 0
+    0x7a146d0d8ad43fd4ULL,  // carlito 13 1.5 23
+    0x18abde9712d6d6c5ULL,  // carlito 13 2 0
+    0x284536afa630cabbULL,  // carlito 13 2 23
+    0x7ca20dc4c0198e6eULL,  // carlito 20 1 0
+    0xd22c7675dcac07bdULL,  // carlito 20 1 23
+    0x462882802705cea4ULL,  // carlito 20 1.5 0
+    0x752620f9abafac1eULL,  // carlito 20 1.5 23
+    0xc5cc51b5c95e2525ULL,  // carlito 20 2 0
+    0xeefd68169ee0d822ULL,  // carlito 20 2 23
 };
 
 std::size_t identity_index = 0;
+// Mismatches are counted, not thrown, so one run prints every identity hash.
+std::size_t identity_mismatches = 0;
 
 void report_identity_hashes(const char* name, const char* font_path) {
     HarfBuzzFontEngine engine;
@@ -158,8 +160,8 @@ void report_identity_hashes(const char* name, const char* font_path) {
                 const std::uint64_t observed = coverage_hash(coverage);
                 std::cout << "identity " << name << ' ' << size << ' ' << scale << ' ' << phase << ' ' << std::hex
                           << observed << std::dec << '\n';
-                require(identity_index < 36U && observed == expected_identity[identity_index],
-                        "glyph-run coverage differs from the cross-platform expectation");
+                require(identity_index < 36U, "a reference hash for each identity case");
+                if (observed != expected_identity[identity_index]) ++identity_mismatches;
                 ++identity_index;
             }
         }
@@ -219,13 +221,17 @@ void synthesis_and_transforms(const char* font_path, const std::uint64_t (&expec
     }
     require(refused, "singular transform is refused");
     // Bold, oblique, identity, quarter turn, quarter turn bold-oblique; from
-    // the first build with STXlib's glyph face, as expected_identity.
+    // the first build with STXlib's glyph face, as expected_identity (recorded
+    // 2026-11-16 on macOS arm64; Linux checks them in CI).
     const std::uint64_t observed[5]{coverage_hash(bold), coverage_hash(oblique), coverage_hash(identity),
                                     coverage_hash(turned), coverage_hash(turned_bold)};
+    // Every hash is printed before any is checked, so one run shows them all.
+    bool all_match = true;
     for (std::size_t index = 0; index < 5U; ++index) {
         std::cout << "synthesis " << index << ' ' << std::hex << observed[index] << std::dec << '\n';
-        require(observed[index] == expected[index], "synthesized coverage differs from the cross-platform expectation");
+        if (observed[index] != expected[index]) all_match = false;
     }
+    require(all_match, "synthesized coverage differs from the cross-platform expectation");
 }
 
 bool same_coverage(const GlyphRunCoverage& left, const GlyphRunCoverage& right) {
@@ -540,9 +546,12 @@ int main() {
     long_lines_fail_soft_and_window_limits_glyphs(GUI_FORMS_TEST_RAPIDS_REGULAR);
     turned_text_is_stxlibs(GUI_FORMS_TEST_RAPIDS_REGULAR);
     turned_text_is_stxlibs(GUI_FORMS_TEST_CARLITO_REGULAR);
-    synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL});
-    synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL, 0x0ULL});
+    synthesis_and_transforms(GUI_FORMS_TEST_RAPIDS_REGULAR, {0xf9373881ed4b7f9aULL, 0xba00332e573428c8ULL, 0xb423dc9c649de555ULL,
+                                                             0x403ff932b44982c2ULL, 0x9e45d4c92486c478ULL});
+    synthesis_and_transforms(GUI_FORMS_TEST_CARLITO_REGULAR, {0xbb59eff858163080ULL, 0x055596f78b1aebbdULL, 0x02abdb32a0e81885ULL,
+                                                              0x9d4bf4c5f8282964ULL, 0x4bf7e657d40ea310ULL});
     report_identity_hashes("rapids", GUI_FORMS_TEST_RAPIDS_REGULAR);
     report_identity_hashes("carlito", GUI_FORMS_TEST_CARLITO_REGULAR);
+    require(identity_mismatches == 0U, "glyph-run coverage differs from the cross-platform expectation");
     return 0;
 }

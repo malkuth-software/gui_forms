@@ -703,7 +703,7 @@ constexpr std::array<PageDigest, 42> expected_digests{{
     {"input-and-rules", 0x97f43ffcb52aa186ULL},
     {"theme-settings", 0x5cd7a6cafeb9e2e8ULL},
     {"spinners-and-rings", 0x4646261621c9fda5ULL},
-    {"instruments", 0x3cffbb2c5bcd1e03ULL},
+    {"instruments", 0xef863277afb09cd0ULL},
     {"guided-tasks", 0xf2c172da8c8620f9ULL},
     {"help-book", 0x13a076e34c04a876ULL},
     {"industrial-surfaces", 0x2a776630fefe8c3dULL},
@@ -726,11 +726,11 @@ constexpr std::array<PageDigest, 42> expected_digests{{
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
 constexpr std::array<PageDigest, 42> professional_digests{{
-    {"basics", 0xadbc8fd0a146bde0ULL},
+    {"basics", 0x35458306bf2fd471ULL},
     {"values", 0x771882742e59f7b3ULL},
     {"retained-rows", 0x4a69e1dcf6e787a8ULL},
     {"instrument", 0xcb077031b3bf958aULL},
-    {"control-spectrum", 0x943616798006b795ULL},
+    {"control-spectrum", 0x584b2fea4cea8f24ULL},
     {"ranges-and-progress", 0x7a879453e16fd3b4ULL},
     {"containers-and-focus", 0x6fcf1e269845a14cULL},
     {"animation-laboratory", 0x4d231c74ae430929ULL},
@@ -761,13 +761,13 @@ constexpr std::array<PageDigest, 42> professional_digests{{
     {"input-and-rules", 0x66605c3f03edbe95ULL},
     {"theme-settings", 0xaeb87e1964600d6cULL},
     {"spinners-and-rings", 0xde9c67db778bead3ULL},
-    {"instruments", 0x3ef52c2eac4e685cULL},
+    {"instruments", 0x75a20ade3e8c4834ULL},
     {"guided-tasks", 0x3e88e64a660412fbULL},
     {"help-book", 0x7f3cf836f15bcef2ULL},
     {"industrial-surfaces", 0x8815c3ea957db763ULL},
     {"node-graphs", 0xfabe69c388887b8fULL},
     {"composite-controls", 0xc1d7b042a2ff9913ULL},
-    {"controls-inspection", 0x8f6be87f22aeb7d3ULL},
+    {"controls-inspection", 0x242bfaf879d15677ULL},
 }};
 
 // The Gallery theme compiled onto `base`, as the Theme settings page

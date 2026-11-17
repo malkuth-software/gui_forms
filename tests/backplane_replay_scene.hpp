@@ -55,11 +55,12 @@ inline constexpr Rect glass_rect{10.0, 10.0, 220.0, 80.0};
 // SkiaRaster, the one CPU painter. First recorded through the Windows DIB
 // painter (Windows x64, 2026-10-26) and checked against SkiaRaster on macOS
 // and Linux; re-recorded through SkiaRaster on Windows x64 (clang 22.1.8),
-// 2026-11-02 (SK5), unchanged.
+// 2026-11-02 (SK5), unchanged. Re-recorded 2026-11-16 for linear light (macOS
+// arm64 and Linux agree).
 inline constexpr std::array<std::uint64_t, 3> expected{
-    0x14e91c188a71dda6ULL,
-    0xe31497238996ea16ULL,
-    0xfd9daabeb75fa8eeULL,
+    0x7409020174d47c0cULL,
+    0x080776a34439282aULL,
+    0x311f85bcdbdbbfc9ULL,
 };
 
 // The window's own paint: keeps the part rasters it is given, draws

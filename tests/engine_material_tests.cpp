@@ -412,7 +412,7 @@ void keylines_and_inset_shadow() {
 
 // The reference hashes of the glow and gloss bakes, at scale 1 and 2.
 constexpr std::uint64_t expected_glow_hashes[] = {0x047bc7d0bde0012dULL, 0xda184a1654d76385ULL};
-constexpr std::uint64_t expected_gloss_hashes[] = {0x4507eda3b5101fcbULL, 0x56fd9fc391a1030dULL};
+constexpr std::uint64_t expected_gloss_hashes[] = {0x997324122d58ca7eULL, 0xf18ba48623176e8dULL};
 
 // Checks `raster`'s hash against `expected`, or prints it in print mode.
 bool reference_matches(const TestRaster& raster, const char* name, std::uint64_t expected) {
@@ -1177,18 +1177,18 @@ struct ReferenceCase final {
 };
 
 constexpr ReferenceCase reference_cases[] = {
-    {"button_normal_1", ControlSurfaceState::normal, 1.0, 0xed9a62ab804b8e96ULL},
-    {"button_hot_1", ControlSurfaceState::hot, 1.0, 0x660b69d77ff04a61ULL},
-    {"button_pressed_1", ControlSurfaceState::pressed, 1.0, 0xef812e98de443b04ULL},
-    {"button_normal_1.25", ControlSurfaceState::normal, 1.25, 0x2a9264cd54cf3516ULL},
-    {"button_hot_1.25", ControlSurfaceState::hot, 1.25, 0xc834436ae1082069ULL},
-    {"button_pressed_1.25", ControlSurfaceState::pressed, 1.25, 0x20ffbc54f04c58faULL},
-    {"button_normal_1.5", ControlSurfaceState::normal, 1.5, 0xbb080fd1e9248ab4ULL},
-    {"button_hot_1.5", ControlSurfaceState::hot, 1.5, 0xfda6b6cef8a8320dULL},
-    {"button_pressed_1.5", ControlSurfaceState::pressed, 1.5, 0x3239deab7a5a66fULL},
-    {"button_normal_2", ControlSurfaceState::normal, 2.0, 0x54af290b2cb4826dULL},
-    {"button_hot_2", ControlSurfaceState::hot, 2.0, 0x1e700223dc0caa85ULL},
-    {"button_pressed_2", ControlSurfaceState::pressed, 2.0, 0x488d18b42278dce9ULL},
+    {"button_normal_1", ControlSurfaceState::normal, 1.0, 0xcce436e5fcbdd575ULL},
+    {"button_hot_1", ControlSurfaceState::hot, 1.0, 0x7856bde9b747dbe2ULL},
+    {"button_pressed_1", ControlSurfaceState::pressed, 1.0, 0xd5ce437420aab297ULL},
+    {"button_normal_1.25", ControlSurfaceState::normal, 1.25, 0x39857d2bc6c36ccdULL},
+    {"button_hot_1.25", ControlSurfaceState::hot, 1.25, 0x4d5f1be0405549bdULL},
+    {"button_pressed_1.25", ControlSurfaceState::pressed, 1.25, 0x28a0cbb14dbf8d2eULL},
+    {"button_normal_1.5", ControlSurfaceState::normal, 1.5, 0x7fdeb924979caf11ULL},
+    {"button_hot_1.5", ControlSurfaceState::hot, 1.5, 0x80fc49c8ad12d9ddULL},
+    {"button_pressed_1.5", ControlSurfaceState::pressed, 1.5, 0xf9ab30cb6cad29f2ULL},
+    {"button_normal_2", ControlSurfaceState::normal, 2.0, 0x1e177b1e44390ba1ULL},
+    {"button_hot_2", ControlSurfaceState::hot, 2.0, 0x5c73c3ffe4aa54a5ULL},
+    {"button_pressed_2", ControlSurfaceState::pressed, 2.0, 0x332d4c425832bd05ULL},
 };
 
 void reference_images() {

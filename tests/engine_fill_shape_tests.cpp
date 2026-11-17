@@ -137,7 +137,7 @@ const std::vector<GradientStop> red_to_blue{GradientStop{0.0, red}, GradientStop
 
 // The reference hashes, in the order the tests check them.
 constexpr std::uint64_t expected_hashes[] = {
-    0x1b0f72f013af4685ULL, 0xa01bf0370ea92165ULL, 0xfa172c454612b0d5ULL, 0x33592d40fdca4005ULL,
+    0x2bb201abb05d5755ULL, 0xd549ced876e05b85ULL, 0xc0ffc3ac1839eec1ULL, 0xf4d67193618d8d15ULL,
     0xa6b3b5e2870c76c0ULL, 0x2a4b7ac3d222df1fULL, 0x50838a8da95444b5ULL, 0xc9f335d9b9942970ULL,
     0x9d9e8d053bf20df9ULL, 0xa3df483b164b7900ULL, 0xd10bcec38a004b2fULL,
 };
