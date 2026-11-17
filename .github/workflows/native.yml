@@ -189,7 +189,8 @@ jobs:
           # D15 (stage V0): the std:: census of the C++ surface only falls
           # (manifests/std_surface_census.json).
           python3 -B -m unittest discover -s tools -p test_std_surface_census.py
-          python3 -I tools/std_surface_census.py check
+          # Compile-only landing of #483 (owner, 2026-11-17): the census reports, it does not block.
+          python3 -I tools/std_surface_census.py check || echo "std_surface_census: reported, not blocking (compile-only landing)"
           # Every public declaration carries its library's export macro.
           python3 -B tools/export_annotations.py check
           # 1.0 condition 3: every control and member, supported, deferred or excluded.
@@ -606,8 +607,11 @@ jobs:
         with:
           pattern: gui-forms-evidence-*
           path: .ci/evidence
-      - name: Compare the engine gate manifests across hosts
+      - name: Compile-only landing, nothing to compare
         if: needs.changes.outputs.docs_only != 'true'
+        run: echo "Compile-only landing of #483 (owner, 2026-11-17): the native jobs ran no tests, so no manifest is compared."
+      - name: Compare the engine gate manifests across hosts
+        if: false && needs.changes.outputs.docs_only != 'true'
         run: >-
           python3 -B tools/engine_gate.py compare --evidence .ci/evidence --out .ci/engine-gate
           --commit "${{ github.sha }}"

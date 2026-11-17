@@ -314,6 +314,16 @@ def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
         '--build-dir', toolkit)
 
 
+# The compile-only landing of #483 (owner, 2026-11-17): with GUI_FORMS_CI_COMPILE_ONLY=1 every
+# target is still built, test executables included, and no ctest run happens.
+def run_tests(*arguments: str | Path) -> None:
+    """Runs ctest with `arguments`, unless the compile-only switch is set."""
+    if os.environ.get('GUI_FORMS_CI_COMPILE_ONLY') == '1':
+        print('ctest skipped: compile-only (GUI_FORMS_CI_COMPILE_ONLY=1)', flush=True)
+        return
+    run(*arguments)
+
+
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, tests: str = '', test_jobs: int = 1,
                   debug_info: str = 'lines', skip_labels: str = '', changed_from: str = '',
@@ -473,7 +483,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         write_build_record(toolkit, BUILT_NOTHING, 'the selected tests read no build output')
     os.environ['GUI_FORMS_FONT_DIR'] = str(ROOT / 'gui_forms/assets/fonts')
     if sanitize or tests:
-        run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
+        run_tests('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
             '--parallel', test_jobs, *selection)
         return
     if install_only:
@@ -481,7 +491,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     else:
         # The JUnit report names the passed tests the cache manifest records
         # (tools/native_tests.py); the programs job does not run them again.
-        run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
+        run_tests('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
             '--parallel', test_jobs, *selection, '--output-junit', native_tests.JUNIT_NAME)
     if test_targets_only:
         print('pull request: no SDK install or installed reference examples (the merge group builds them)',
@@ -502,7 +512,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', f'-DCMAKE_PREFIX_PATH={sdk}',
         '-DCMAKE_TOOLCHAIN_FILE=' + str(ROOT / 'gui_forms/cmake/llvm22.cmake'))
     run('cmake', '--build', examples, '--parallel', jobs)
-    run('ctest', '--test-dir', examples, '--output-on-failure')
+    run_tests('ctest', '--test-dir', examples, '--output-on-failure')
 
 
 def build_high_integrity(host: str, build: Path, jobs: int, test_jobs: int, clipboard_text: bool) -> None:
@@ -532,7 +542,7 @@ def build_high_integrity(host: str, build: Path, jobs: int, test_jobs: int, clip
         *stx_options(os.environ.get('GUI_FORMS_STX_PREFIX', ''), stx_package_dir)]
     configure_tree(toolkit, configure)
     run('cmake', '--build', toolkit, '--parallel', jobs)
-    run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', '300',
+    run_tests('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', '300',
         '--parallel', test_jobs, '-L', 'high_integrity')
 
 

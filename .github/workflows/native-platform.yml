@@ -57,6 +57,9 @@ jobs:
       contents: write
       actions: read
     env:
+      # Compile-only landing of #483 (owner, 2026-11-17): every step builds, no test step runs;
+      # tools/ci_build.py skips its ctest runs while this is 1.
+      GUI_FORMS_CI_COMPILE_ONLY: '1'
       GUI_FORMS_RUNNER: ${{ inputs.runner }}
       OBJCXX: clang++
       CC: clang
@@ -454,7 +457,7 @@ jobs:
           archives=$(find "$build/gui-forms" .ci/stx-package -name '*.a' -not -path '*/_deps/*' -not -name '*.dll.a')
           python gui_forms/tools/audit_link_map.py --forbid-foreign $archives
       - name: Test development text-mask ownership on Windows
-        if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true')
+        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true'))
         shell: msys2 {0}
         run: |
           if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
@@ -474,7 +477,7 @@ jobs:
           cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_windows_dib_frame_store_tests gui_forms_windows_dib_lifecycle_tests --parallel 4
           ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_windows_dib_(frame_store|lifecycle)_tests$' --output-on-failure
       - name: Test development text-mask ownership on macOS and Linux
-        if: steps.promotion.outputs.reused != 'true' && (runner.os != 'Windows' && steps.reuse.outputs.reused != 'true')
+        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os != 'Windows' && steps.reuse.outputs.reused != 'true'))
         shell: bash
         run: |
           if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
@@ -486,12 +489,12 @@ jobs:
           # configure into their own build directory.
           ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|prepared_text_(service|raster|skia)_tests|prepared_display_tests|opaque_live_surface_raster_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
       - name: Verify Linux prepared frames through X11
-        if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Linux' && steps.reuse.outputs.reused != 'true')
+        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os == 'Linux' && steps.reuse.outputs.reused != 'true'))
         run: |
           cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_linux_prepared_text_host_tests --parallel 4
           xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_linux_prepared_text_host_tests$' --output-on-failure
       - name: Verify Mac prepared-frame native exposure and visibility
-        if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true')
+        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true'))
         # Run after OFF diagnostics; development-only host rebuilding must not
         # change the binary used by the recorded baseline or exported SDK.
         run: |

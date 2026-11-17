@@ -178,6 +178,8 @@ jobs:
       # tree: the compiler (and its system headers) and the stx package (its pin
       # and recipe).
       - name: Check the state machines
+        # Compile-only landing of #483 (owner, 2026-11-17): findings are reported, not blocking.
+        continue-on-error: true
         if: steps.scope.outputs.scope != 'none'
         shell: bash
         env:

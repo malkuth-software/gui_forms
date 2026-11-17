@@ -918,6 +918,8 @@
     _ZGVZN9gui_forms18DragDispatchResult*;
     _ZGVZN9gui_forms18ExpandableSections*;
     _ZGVZN9gui_forms18FamiliarThemeBuild*;
+    _ZGVZN9gui_forms18FirstFrameShowGate*;
+    _ZGVZN9gui_forms18FirstFrameShowStep*;
     _ZGVZN9gui_forms18FlexContainerInput*;
     _ZGVZN9gui_forms18FlexContainerStyle*;
     _ZGVZN9gui_forms18GridContainerInput*;
@@ -1265,6 +1267,7 @@
     _ZGVZN9gui_forms22DispatchCancelledError*;
     _ZGVZN9gui_forms22EffectInstanceCounters*;
     _ZGVZN9gui_forms22ExpressionDependencies*;
+    _ZGVZN9gui_forms22FirstFrameShowSnapshot*;
     _ZGVZN9gui_forms22HelpBookCompileOptions*;
     _ZGVZN9gui_forms22HelpBookSystemSnapshot*;
     _ZGVZN9gui_forms22HelpBookViewerSnapshot*;
@@ -2599,6 +2602,8 @@
     _ZGVZNK9gui_forms18DragDispatchResult*;
     _ZGVZNK9gui_forms18ExpandableSections*;
     _ZGVZNK9gui_forms18FamiliarThemeBuild*;
+    _ZGVZNK9gui_forms18FirstFrameShowGate*;
+    _ZGVZNK9gui_forms18FirstFrameShowStep*;
     _ZGVZNK9gui_forms18FlexContainerInput*;
     _ZGVZNK9gui_forms18FlexContainerStyle*;
     _ZGVZNK9gui_forms18GridContainerInput*;
@@ -2946,6 +2951,7 @@
     _ZGVZNK9gui_forms22DispatchCancelledError*;
     _ZGVZNK9gui_forms22EffectInstanceCounters*;
     _ZGVZNK9gui_forms22ExpressionDependencies*;
+    _ZGVZNK9gui_forms22FirstFrameShowSnapshot*;
     _ZGVZNK9gui_forms22HelpBookCompileOptions*;
     _ZGVZNK9gui_forms22HelpBookSystemSnapshot*;
     _ZGVZNK9gui_forms22HelpBookViewerSnapshot*;
@@ -4690,6 +4696,8 @@
     _ZN9gui_forms18DragDispatchResult*;
     _ZN9gui_forms18ExpandableSections*;
     _ZN9gui_forms18FamiliarThemeBuild*;
+    _ZN9gui_forms18FirstFrameShowGate*;
+    _ZN9gui_forms18FirstFrameShowStep*;
     _ZN9gui_forms18FlexContainerInput*;
     _ZN9gui_forms18FlexContainerStyle*;
     _ZN9gui_forms18GridContainerInput*;
@@ -5475,6 +5483,7 @@
     _ZN9gui_forms22DispatchCancelledError*;
     _ZN9gui_forms22EffectInstanceCounters*;
     _ZN9gui_forms22ExpressionDependencies*;
+    _ZN9gui_forms22FirstFrameShowSnapshot*;
     _ZN9gui_forms22HelpBookCompileOptions*;
     _ZN9gui_forms22HelpBookSystemSnapshot*;
     _ZN9gui_forms22HelpBookViewerSnapshot*;
@@ -6045,6 +6054,10 @@
     _ZN9gui_forms27content_publish_result_nameE*;
     _ZN9gui_forms27content_surface_status_nameB*;
     _ZN9gui_forms27content_surface_status_nameE*;
+    _ZN9gui_forms27first_frame_show_cause_nameB*;
+    _ZN9gui_forms27first_frame_show_cause_nameE*;
+    _ZN9gui_forms27first_frame_show_state_nameB*;
+    _ZN9gui_forms27first_frame_show_state_nameE*;
     _ZN9gui_forms27form_start_position_definedB*;
     _ZN9gui_forms27form_start_position_definedE*;
     _ZN9gui_forms27layout_diagnostic_code_nameB*;
@@ -7657,6 +7670,8 @@
     _ZNK[RO]9gui_forms18DragDispatchResult*;
     _ZNK[RO]9gui_forms18ExpandableSections*;
     _ZNK[RO]9gui_forms18FamiliarThemeBuild*;
+    _ZNK[RO]9gui_forms18FirstFrameShowGate*;
+    _ZNK[RO]9gui_forms18FirstFrameShowStep*;
     _ZNK[RO]9gui_forms18FlexContainerInput*;
     _ZNK[RO]9gui_forms18FlexContainerStyle*;
     _ZNK[RO]9gui_forms18GridContainerInput*;
@@ -8004,6 +8019,7 @@
     _ZNK[RO]9gui_forms22DispatchCancelledError*;
     _ZNK[RO]9gui_forms22EffectInstanceCounters*;
     _ZNK[RO]9gui_forms22ExpressionDependencies*;
+    _ZNK[RO]9gui_forms22FirstFrameShowSnapshot*;
     _ZNK[RO]9gui_forms22HelpBookCompileOptions*;
     _ZNK[RO]9gui_forms22HelpBookSystemSnapshot*;
     _ZNK[RO]9gui_forms22HelpBookViewerSnapshot*;
@@ -9338,6 +9354,8 @@
     _ZN[KRO]9gui_forms18DragDispatchResult*;
     _ZN[KRO]9gui_forms18ExpandableSections*;
     _ZN[KRO]9gui_forms18FamiliarThemeBuild*;
+    _ZN[KRO]9gui_forms18FirstFrameShowGate*;
+    _ZN[KRO]9gui_forms18FirstFrameShowStep*;
     _ZN[KRO]9gui_forms18FlexContainerInput*;
     _ZN[KRO]9gui_forms18FlexContainerStyle*;
     _ZN[KRO]9gui_forms18GridContainerInput*;
@@ -9685,6 +9703,7 @@
     _ZN[KRO]9gui_forms22DispatchCancelledError*;
     _ZN[KRO]9gui_forms22EffectInstanceCounters*;
     _ZN[KRO]9gui_forms22ExpressionDependencies*;
+    _ZN[KRO]9gui_forms22FirstFrameShowSnapshot*;
     _ZN[KRO]9gui_forms22HelpBookCompileOptions*;
     _ZN[KRO]9gui_forms22HelpBookSystemSnapshot*;
     _ZN[KRO]9gui_forms22HelpBookViewerSnapshot*;
@@ -11019,6 +11038,8 @@
     _ZT[VIST]N9gui_forms18DragDispatchResult*E;
     _ZT[VIST]N9gui_forms18ExpandableSections*E;
     _ZT[VIST]N9gui_forms18FamiliarThemeBuild*E;
+    _ZT[VIST]N9gui_forms18FirstFrameShowGate*E;
+    _ZT[VIST]N9gui_forms18FirstFrameShowStep*E;
     _ZT[VIST]N9gui_forms18FlexContainerInput*E;
     _ZT[VIST]N9gui_forms18FlexContainerStyle*E;
     _ZT[VIST]N9gui_forms18GridContainerInput*E;
@@ -11366,6 +11387,7 @@
     _ZT[VIST]N9gui_forms22DispatchCancelledError*E;
     _ZT[VIST]N9gui_forms22EffectInstanceCounters*E;
     _ZT[VIST]N9gui_forms22ExpressionDependencies*E;
+    _ZT[VIST]N9gui_forms22FirstFrameShowSnapshot*E;
     _ZT[VIST]N9gui_forms22HelpBookCompileOptions*E;
     _ZT[VIST]N9gui_forms22HelpBookSystemSnapshot*E;
     _ZT[VIST]N9gui_forms22HelpBookViewerSnapshot*E;
@@ -12700,6 +12722,8 @@
     _ZT[hvc]*9gui_forms18DragDispatchResult*;
     _ZT[hvc]*9gui_forms18ExpandableSections*;
     _ZT[hvc]*9gui_forms18FamiliarThemeBuild*;
+    _ZT[hvc]*9gui_forms18FirstFrameShowGate*;
+    _ZT[hvc]*9gui_forms18FirstFrameShowStep*;
     _ZT[hvc]*9gui_forms18FlexContainerInput*;
     _ZT[hvc]*9gui_forms18FlexContainerStyle*;
     _ZT[hvc]*9gui_forms18GridContainerInput*;
@@ -13047,6 +13071,7 @@
     _ZT[hvc]*9gui_forms22DispatchCancelledError*;
     _ZT[hvc]*9gui_forms22EffectInstanceCounters*;
     _ZT[hvc]*9gui_forms22ExpressionDependencies*;
+    _ZT[hvc]*9gui_forms22FirstFrameShowSnapshot*;
     _ZT[hvc]*9gui_forms22HelpBookCompileOptions*;
     _ZT[hvc]*9gui_forms22HelpBookSystemSnapshot*;
     _ZT[hvc]*9gui_forms22HelpBookViewerSnapshot*;
@@ -14381,6 +14406,8 @@
     _ZZN9gui_forms18DragDispatchResult*;
     _ZZN9gui_forms18ExpandableSections*;
     _ZZN9gui_forms18FamiliarThemeBuild*;
+    _ZZN9gui_forms18FirstFrameShowGate*;
+    _ZZN9gui_forms18FirstFrameShowStep*;
     _ZZN9gui_forms18FlexContainerInput*;
     _ZZN9gui_forms18FlexContainerStyle*;
     _ZZN9gui_forms18GridContainerInput*;
@@ -14728,6 +14755,7 @@
     _ZZN9gui_forms22DispatchCancelledError*;
     _ZZN9gui_forms22EffectInstanceCounters*;
     _ZZN9gui_forms22ExpressionDependencies*;
+    _ZZN9gui_forms22FirstFrameShowSnapshot*;
     _ZZN9gui_forms22HelpBookCompileOptions*;
     _ZZN9gui_forms22HelpBookSystemSnapshot*;
     _ZZN9gui_forms22HelpBookViewerSnapshot*;
@@ -16062,6 +16090,8 @@
     _ZZNK9gui_forms18DragDispatchResult*;
     _ZZNK9gui_forms18ExpandableSections*;
     _ZZNK9gui_forms18FamiliarThemeBuild*;
+    _ZZNK9gui_forms18FirstFrameShowGate*;
+    _ZZNK9gui_forms18FirstFrameShowStep*;
     _ZZNK9gui_forms18FlexContainerInput*;
     _ZZNK9gui_forms18FlexContainerStyle*;
     _ZZNK9gui_forms18GridContainerInput*;
@@ -16409,6 +16439,7 @@
     _ZZNK9gui_forms22DispatchCancelledError*;
     _ZZNK9gui_forms22EffectInstanceCounters*;
     _ZZNK9gui_forms22ExpressionDependencies*;
+    _ZZNK9gui_forms22FirstFrameShowSnapshot*;
     _ZZNK9gui_forms22HelpBookCompileOptions*;
     _ZZNK9gui_forms22HelpBookSystemSnapshot*;
     _ZZNK9gui_forms22HelpBookViewerSnapshot*;
