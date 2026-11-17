@@ -1,0 +1,82 @@
+#include <gui_forms/names.hpp>
+
+#include <cstddef>
+#include <functional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+namespace {
+
+[[nodiscard]] std::size_t standard_length(const std::string_view text) noexcept {
+    return text.size();
+}
+
+} // namespace
+
+// A functional cast to std::string (pattern 1), from a view and from a
+// const std::string&.
+std::string copied_name(const std::string_view name) {
+    const std::string copy = std::string(name);
+    return copy;
+}
+
+std::string copied_label(const std::string& label) {
+    return std::string(label);
+}
+
+// A standard hash fed the text (pattern 5).
+std::size_t name_hash(const std::string_view name) {
+    return std::hash<std::string_view>{}(name);
+}
+
+// An ordering comparison (pattern 2): each side reads a standard view.
+bool sorts_before(const std::string_view name, const std::string_view other) {
+    return name < other;
+}
+
+// A range-based for (pattern 3).
+std::size_t dots(const std::string_view name) {
+    std::size_t count = 0U;
+    for (const char character : name) {
+        if (character == '.') ++count;
+    }
+    return count;
+}
+
+char first_letter(const std::string_view name) {
+    return name.empty() ? '\0' : name[0];
+}
+
+// std::string::substr returns std::string: a standard copy.
+std::string prefix(const std::string& label) {
+    return label.substr(0U, 3U);
+}
+
+bool starts_with_item(const std::string_view name) {
+    return name.starts_with("item") || name == "item";
+}
+
+// A const std::string& passed as a view to converted text: no bridge.
+bool label_starts_with_item(const std::string& label) {
+    return starts_with_item(label);
+}
+
+// Passed as a view to an unconverted function: a standard view.
+std::size_t measured(const std::string& label) {
+    return label.size() + standard_length(label);
+}
+
+// A standard exception's std::string parameter: a standard copy.
+void refuse_wrong(const std::string& message) {
+    throw std::logic_error(message);
+}
+
+// c_str() has no counterpart: the parameter stays standard.
+const char* terminated(const std::string& label) {
+    return label.c_str();
+}
+
+} // namespace gui_forms

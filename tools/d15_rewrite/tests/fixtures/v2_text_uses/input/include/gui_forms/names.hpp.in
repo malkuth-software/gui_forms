@@ -1,0 +1,22 @@
+#pragma once
+
+#include <cstddef>
+#include <string>
+#include <string_view>
+
+namespace gui_forms {
+
+[[nodiscard]] std::string copied_name(std::string_view name);
+[[nodiscard]] std::string copied_label(const std::string& label);
+[[nodiscard]] std::size_t name_hash(std::string_view name);
+[[nodiscard]] bool sorts_before(std::string_view name, std::string_view other);
+[[nodiscard]] std::size_t dots(std::string_view name);
+[[nodiscard]] char first_letter(std::string_view name);
+[[nodiscard]] std::string prefix(const std::string& label);
+[[nodiscard]] bool starts_with_item(std::string_view name);
+[[nodiscard]] bool label_starts_with_item(const std::string& label);
+[[nodiscard]] std::size_t measured(const std::string& label);
+void refuse_wrong(const std::string& message);
+[[nodiscard]] const char* terminated(const std::string& label);
+
+} // namespace gui_forms
