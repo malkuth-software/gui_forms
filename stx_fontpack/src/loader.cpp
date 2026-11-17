@@ -596,10 +596,14 @@ void job_open_stream(Loader& loader, const Job& job, Worker& worker) {
         // The number stream has its own decoder; its byte-stream slot only records the count
         // so that the checks on stream positions cover it too.
         std::memset(&loader.decoders[s], 0, sizeof(StreamDecoder));
-        ok = number_open(loader.number_decoder, loader.scratch, loader.blobs[s], loader.blob_sizes[s], consumed) &&
-             consumed == loader.blob_sizes[s];
+        // An open decoder holds its tables whatever the header's length:
+        // it is marked open before the length is checked, so that
+        // loader_release closes it on refusal too.
+        const bool opened = number_open(loader.number_decoder, loader.scratch, loader.blobs[s], loader.blob_sizes[s],
+                                        consumed);
+        loader.number_opened = opened;
+        ok = opened && consumed == loader.blob_sizes[s];
         if (ok) {
-            loader.number_opened = true;
             loader.decoders[s].size = loader.number_decoder.count;
             loader.decoders[s].stored = true;
             const std::size_t bytes = (static_cast<std::size_t>(loader.number_decoder.count) + 8) * sizeof(std::int16_t);
@@ -608,10 +612,12 @@ void job_open_stream(Loader& loader, const Job& job, Worker& worker) {
             loader.numbers_bytes = ok ? bytes : 0;
         }
     } else {
-        ok = stream_open(loader.decoders[s], loader.scratch, loader.blobs[s], loader.blob_sizes[s], consumed) &&
-             consumed == loader.blob_sizes[s];
+        // Marked open before the length check, as the number stream is.
+        const bool opened = stream_open(loader.decoders[s], loader.scratch, loader.blobs[s], loader.blob_sizes[s],
+                                        consumed);
+        loader.opened[s] = opened;
+        ok = opened && consumed == loader.blob_sizes[s];
         if (ok) {
-            loader.opened[s] = true;
             const std::size_t bytes = static_cast<std::size_t>(loader.decoders[s].size) + 8;
             loader.decoded[s] = static_cast<std::uint8_t*>(scratch_take(loader, bytes));
             ok = loader.decoded[s] != nullptr;
