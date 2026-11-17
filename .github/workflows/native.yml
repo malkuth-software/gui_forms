@@ -609,7 +609,7 @@ jobs:
           path: .ci/evidence
       - name: Compile-only landing, nothing to compare
         if: needs.changes.outputs.docs_only != 'true'
-        run: echo "Compile-only landing of PR 483 (owner, 2026-11-17): the native jobs ran no tests, so no manifest is compared."
+        run: 'echo "Compile-only landing of PR 483 (owner, 2026-11-17): the native jobs ran no tests, so no manifest is compared."'
       - name: Compare the engine gate manifests across hosts
         if: false && needs.changes.outputs.docs_only != 'true'
         run: >-
