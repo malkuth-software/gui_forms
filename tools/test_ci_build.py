@@ -36,6 +36,20 @@ class GalleryOptionTests(unittest.TestCase):
             self.assertFalse(ci_build.gallery_enabled(False, {'GUI_FORMS_CI_BUILD_GALLERY': value}), value)
 
 
+class TestJobTests(unittest.TestCase):
+    def test_auto_is_the_processors_capped(self) -> None:
+        self.assertEqual(ci_build.test_job_count('auto', 2), 2)
+        self.assertEqual(ci_build.test_job_count('auto', 16), ci_build.TEST_JOBS_CAP)
+        self.assertEqual(ci_build.test_job_count('auto', 0), 1)
+        self.assertEqual(ci_build.test_job_count('3'), 3)
+
+    def test_other_values_are_refused(self) -> None:
+        value: str
+        for value in ('0', '-2', 'many', ''):
+            with self.assertRaises(ci_build.argparse.ArgumentTypeError):
+                ci_build.test_job_count(value)
+
+
 CHECKOUT: Path = Path(__file__).resolve().parents[1]
 FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'tests', 'examples',
                                             'file_manager_demoboard')

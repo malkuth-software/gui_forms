@@ -438,7 +438,8 @@ jobs:
           if [ -n "$CHANGED_FROM" ]; then
             selection="--changed-from $CHANGED_FROM"
           fi
-          xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --sanitize $selection
+          # Up to four tests at once, as in the native jobs (ci_build.py --test-jobs auto).
+          xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --test-jobs auto --sanitize $selection
       # No first-party function may need a stack frame over 256 KB under the
       # sanitizers: AddressSanitizer's redzones grew test mains to hundreds of KB
       # on Windows, and a chain of them overflowed theme_tests' 1 MB main

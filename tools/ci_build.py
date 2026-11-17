@@ -235,6 +235,10 @@ def report_stx_package(toolkit: Path, restored: bool) -> None:
 
 # The most distinct error lines a failed build prints at its end.
 KEEP_GOING_SUMMARY: int = 200
+# --test-jobs auto: the machine's processors, at most this many (CI's runners
+# have four; the suite marks its interfering tests RUN_SERIAL or with a
+# RESOURCE_LOCK, so ctest keeps those apart).
+TEST_JOBS_CAP: int = 4
 
 
 def print_build_errors(log_path: Path) -> None:
@@ -510,11 +514,28 @@ def build_high_integrity(host: str, build: Path, jobs: int, test_jobs: int, clip
         '--parallel', test_jobs, '-L', 'high_integrity')
 
 
+def test_job_count(text: str, processors: int | None = None) -> int:
+    """--test-jobs: a positive count, or 'auto' for the processors (os.cpu_count()
+    unless given) capped at TEST_JOBS_CAP. Raises argparse.ArgumentTypeError otherwise."""
+    if text == 'auto':
+        available: int = (os.cpu_count() if processors is None else processors) or 1
+        result: int = max(1, min(available, TEST_JOBS_CAP))
+        return result
+    try:
+        count: int = int(text)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError('--test-jobs takes a positive count or auto, not ' + text) from error
+    if count < 1:
+        raise argparse.ArgumentTypeError('--test-jobs must be positive')
+    return count
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--jobs', type=int, default=4)
-    parser.add_argument('--test-jobs', type=int, default=1,
-                        help='tests ctest runs at once (default 1: one after another)')
+    parser.add_argument('--test-jobs', type=test_job_count, default=1,
+                        help='tests ctest runs at once (default 1: one after another), or auto: the '
+                             'processors, at most ' + str(TEST_JOBS_CAP))
     parser.add_argument('--debug-info', choices=tuple(DEBUG_INFO_FLAGS), default='',
                         help='with --sanitize, the debug information: lines (-gline-tables-only, the default) '
                              'or full (-g); also ' + DEBUG_INFO_VARIABLE)

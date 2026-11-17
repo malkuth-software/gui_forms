@@ -359,12 +359,18 @@ jobs:
           GUI_FORMS_TEST_PRECOMPILED_HEADER: ${{ github.event_name == 'schedule' && 'OFF' || 'ON' }}
           GUI_FORMS_STX_PACKAGE_DIR: ${{ github.workspace }}/.ci/stx-package
           GUI_FORMS_STX_PACKAGE_RESTORED: ${{ steps.stx-package.outputs.cache-hit }}
+          # ctest runs up to four tests at once (ci_build.py --test-jobs auto:
+          # the runner's processors, capped); the suite keeps its interfering
+          # tests apart with RUN_SERIAL and RESOURCE_LOCK. The daily schedule
+          # stays serial until a week of parallel runs has shown no hidden
+          # interference (the check efficiency audit, 2c).
+          TEST_JOBS: ${{ github.event_name == 'schedule' && '1' || 'auto' }}
         run: |
           ccache --zero-stats
           if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 $SCOPE
+            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --test-jobs "$TEST_JOBS" $SCOPE
           else
-            python gui_forms/tools/ci_build.py --jobs 4 $SCOPE
+            python gui_forms/tools/ci_build.py --jobs 4 --test-jobs "$TEST_JOBS" $SCOPE
           fi
       # The hostile-macro conformance of the consumer surface, both paths
       # (cmake/HostileMacroConformance.cmake): built in this one job, allowed
