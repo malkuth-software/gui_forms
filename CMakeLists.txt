@@ -5059,7 +5059,7 @@ if(GUI_FORMS_BUILD_TESTS)
         tests/host_locale_tests.cpp
         src/host/macos/locale/icu_date_pattern.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
-        src/host/windows/locale/windows_date_pattern.cpp)
+        src/surface/windows/locale/windows_date_pattern.cpp)
     target_include_directories(gui_forms_host_locale_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_host_locale_tests PRIVATE gui_forms_core)
     if(APPLE)
