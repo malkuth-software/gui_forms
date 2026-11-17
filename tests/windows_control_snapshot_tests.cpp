@@ -49,15 +49,15 @@ void matches_direct_paint() {
     const stxlib::Optional<ControlSnapshot> snapshot = window.snapshot_control(card, 1.0);
     require(snapshot.present() && (*snapshot.value()).pixel_width == 100U && (*snapshot.value()).pixel_height == 60U,
             "the host raster snapshots the card");
-    const std::optional<ImageResourceView> view = window.image_resources().find((*snapshot.value()).image);
-    require(view.has_value(), "the picture is registered");
-    const std::span<const std::byte> picture = (*view).encoded;
+    const stxlib::Optional<ImageResourceView> view = window.image_resources().find((*snapshot.value()).image);
+    require(view.present(), "the picture is registered");
+    const std::span<const std::byte> picture = (*view.value()).encoded;
     const std::span<std::byte> painted = (*direct).pixels();
     const std::size_t direct_row = (*direct).row_bytes();
     std::size_t differences = 0U;
     for (std::size_t y = 0; y < 60U; ++y) {
         for (std::size_t x = 0; x < 100U * 4U; ++x) {
-            const std::byte from_snapshot = picture[y * (*view).row_bytes + x];
+            const std::byte from_snapshot = picture[y * (*view.value()).row_bytes + x];
             const std::byte from_window = painted[(y + 10U) * direct_row + 20U * 4U + x];
             if (from_snapshot != from_window) ++differences;
         }

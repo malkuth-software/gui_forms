@@ -194,6 +194,78 @@ if(GUI_FORMS_LIBCXX_PREFIX)
 else()
     set(_gf_temporary_stl ON)
 endif()
+# The startup objects and the C++ exception runtime (the EH runtime study's
+# stages, projects desks/coordinator/MSVC_ABI_EH_RUNTIME_STUDY.md, section 6).
+# - GUI_FORMS_MSVC_STARTUP=VCRUNTIME (Stage 0): Microsoft's startup objects
+#   from msvcrt.lib (or libcmt.lib for STATIC), as the driver names them.
+# - GUI_FORMS_MSVC_STARTUP=STXLIB (Stage 1): STXlib's startup shim
+#   (src/hosted/windows_msvc_startup), installed at
+#   GUI_FORMS_MSVC_STARTUP_PREFIX: entry points, initializer tables, TLS,
+#   thread-safe statics, the cookie, the load configuration, __chkstk and
+#   atexit over the UCRT's documented exports. Microsoft's startup
+#   libraries are refused with /NODEFAULTLIB; the UCRT's import library is
+#   named instead. With a vcruntime-mode libc++ the shim's operator new and
+#   delete archive is linked too.
+# - GUI_FORMS_MSVC_EH_RUNTIME=VCRUNTIME (Stages 0 and 1): the exception
+#   runtime, RTTI, terminate and the string group from vcruntime140.dll.
+# - GUI_FORMS_MSVC_EH_RUNTIME=STXLIB (Stage 2): STXlib's own runtime, the
+#   archives listed in GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES; vcruntime and
+#   the STL's runtime are refused, and libc++ must be built with
+#   _LIBCPP_NO_VCRUNTIME so that it owns std::exception, type_info and
+#   operator new. Requires the STXLIB startup.
+set(GUI_FORMS_MSVC_STARTUP "VCRUNTIME" CACHE STRING "Startup objects: VCRUNTIME (Microsoft's) or STXLIB (cmake/llvm22-windows-msvc.cmake)")
+set(GUI_FORMS_MSVC_STARTUP_PREFIX "" CACHE PATH "STXlib's MSVC-target startup shim install (GUI_FORMS_MSVC_STARTUP=STXLIB)")
+set(GUI_FORMS_MSVC_EH_RUNTIME "VCRUNTIME" CACHE STRING "C++ exception runtime: VCRUNTIME or STXLIB (cmake/llvm22-windows-msvc.cmake)")
+set(GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES "" CACHE STRING "STXlib's MSVC-target exception runtime archives (GUI_FORMS_MSVC_EH_RUNTIME=STXLIB)")
+set(_gf_runtime_libraries "")
+if(GUI_FORMS_MSVC_STARTUP STREQUAL "STXLIB")
+    if(NOT GUI_FORMS_MSVC_VCRUNTIME STREQUAL "DLL")
+        message(FATAL_ERROR "GUI_FORMS_MSVC_STARTUP=STXLIB links the UCRT as a DLL: set GUI_FORMS_MSVC_VCRUNTIME=DLL")
+    endif()
+    if(NOT EXISTS "${GUI_FORMS_MSVC_STARTUP_PREFIX}/lib/stx_msvc_startup.lib")
+        message(FATAL_ERROR "No STXlib startup shim at ${GUI_FORMS_MSVC_STARTUP_PREFIX} (lib/stx_msvc_startup.lib)")
+    endif()
+    string(APPEND _gf_link " -Xlinker /NODEFAULTLIB:msvcrt.lib -Xlinker /NODEFAULTLIB:libcmt.lib -Xlinker /NODEFAULTLIB:msvcrtd.lib -Xlinker /NODEFAULTLIB:libcmtd.lib")
+    string(APPEND _gf_runtime_libraries " \"${GUI_FORMS_MSVC_STARTUP_PREFIX}/lib/stx_msvc_startup.lib\"")
+    set(_gf_libcxx_vcruntime ON)
+    if(GUI_FORMS_LIBCXX_PREFIX)
+        file(STRINGS "${GUI_FORMS_LIBCXX_PREFIX}/include/c++/v1/__config_site" _gf_no_vcruntime REGEX "^#define _LIBCPP_NO_VCRUNTIME")
+        if(_gf_no_vcruntime)
+            set(_gf_libcxx_vcruntime OFF)
+        endif()
+    endif()
+    if(_gf_libcxx_vcruntime)
+        string(APPEND _gf_runtime_libraries " \"${GUI_FORMS_MSVC_STARTUP_PREFIX}/lib/stx_msvc_startup_vcruntime_mode.lib\"")
+    endif()
+    if(GUI_FORMS_MSVC_EH_RUNTIME STREQUAL "STXLIB")
+        if(_gf_libcxx_vcruntime)
+            message(FATAL_ERROR "GUI_FORMS_MSVC_EH_RUNTIME=STXLIB needs a libc++ built with _LIBCPP_NO_VCRUNTIME")
+        endif()
+        if(GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES STREQUAL "")
+            message(FATAL_ERROR "GUI_FORMS_MSVC_EH_RUNTIME=STXLIB needs GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES")
+        endif()
+        string(APPEND _gf_link " -Xlinker /NODEFAULTLIB:vcruntime.lib -Xlinker /NODEFAULTLIB:libvcruntime.lib -Xlinker /NODEFAULTLIB:msvcprt.lib -Xlinker /NODEFAULTLIB:libcpmt.lib")
+        string(REPLACE " -Xlinker /DEFAULTLIB:msvcprt.lib" "" _gf_link "${_gf_link}")
+        foreach(_gf_eh_library IN LISTS GUI_FORMS_MSVC_EH_RUNTIME_LIBRARIES)
+            string(APPEND _gf_runtime_libraries " \"${_gf_eh_library}\"")
+        endforeach()
+    elseif(GUI_FORMS_MSVC_EH_RUNTIME STREQUAL "VCRUNTIME")
+        string(APPEND _gf_runtime_libraries " vcruntime.lib")
+    else()
+        message(FATAL_ERROR "GUI_FORMS_MSVC_EH_RUNTIME is VCRUNTIME or STXLIB, not ${GUI_FORMS_MSVC_EH_RUNTIME}")
+    endif()
+    string(APPEND _gf_runtime_libraries " ucrt.lib")
+    if(GUI_FORMS_LIBCXX_PREFIX)
+        set(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES}${_gf_runtime_libraries}"
+            CACHE STRING "libc++, the runtime and the Windows system libraries (cmake/llvm22-windows-msvc.cmake)" FORCE)
+    endif()
+    set(CMAKE_C_STANDARD_LIBRARIES "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 -loldnames${_gf_runtime_libraries}"
+        CACHE STRING "The runtime and the Windows system libraries (cmake/llvm22-windows-msvc.cmake)" FORCE)
+elseif(NOT GUI_FORMS_MSVC_STARTUP STREQUAL "VCRUNTIME")
+    message(FATAL_ERROR "GUI_FORMS_MSVC_STARTUP is VCRUNTIME or STXLIB, not ${GUI_FORMS_MSVC_STARTUP}")
+elseif(GUI_FORMS_MSVC_EH_RUNTIME STREQUAL "STXLIB")
+    message(FATAL_ERROR "GUI_FORMS_MSVC_EH_RUNTIME=STXLIB needs GUI_FORMS_MSVC_STARTUP=STXLIB")
+endif()
 set(CMAKE_EXE_LINKER_FLAGS_INIT "${_gf_link}")
 set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_gf_link}")
 set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_gf_link}")

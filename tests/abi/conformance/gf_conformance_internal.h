@@ -5,7 +5,7 @@
 
 #include "gf_conformance.h"
 
-#include <pthread.h>
+#include "gf_conformance_pthread.h"
 #include <stdint.h>
 #include <stdio.h>
 

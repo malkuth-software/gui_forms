@@ -7,7 +7,8 @@
  * window run. A consumer links the installed GUIForms::CAbiConformance
  * (installed as gui_forms/c/gf_conformance.h) and runs the kit in its own
  * tests (owner decision C-3; docs/c-abi/conformance-kit.md); the library's
- * own tests run it in-tree. The kit uses only gf_abi.h and pthreads.
+ * own tests run it in-tree. The kit uses only gf_abi.h and pthreads
+ * (on the MSVC target, which has none, the subset in gf_conformance_pthread.h).
  */
 
 #include "gui_forms/c/gf_abi.h"

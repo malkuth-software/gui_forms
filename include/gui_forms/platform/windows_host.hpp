@@ -15,6 +15,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms::host {
 
 struct GUI_FORMS_API WindowsHostOptions final {
@@ -92,7 +94,7 @@ struct GUI_FORMS_API WindowsApplicationWindow final {
     HostWindowFloating floating{HostWindowFloating::none};
     // A native popup window (ApplicationWindow::popup); none for every
     // other kind.
-    std::optional<HostPopupPlacement> popup{};
+    stxlib::Optional<HostPopupPlacement> popup{};
 };
 
 // Opens one window while the application runs: the same entry, ownership

@@ -1008,8 +1008,12 @@ target_link_libraries(gui_forms_font_metrics_differential
     PRIVATE gui_forms_text_engine stxlib::algorithms)
 add_executable(gui_forms_font_metrics_differential_tool
     tools/font_metrics_differential/font_metrics_differential_main.cpp)
+# The program's import library (a Windows link writes one beside each
+# executable, named after its output) keeps the target's own name, so that it
+# never overwrites the library of the same output name.
 set_target_properties(gui_forms_font_metrics_differential_tool PROPERTIES
-    OUTPUT_NAME gui_forms_font_metrics_differential)
+    OUTPUT_NAME gui_forms_font_metrics_differential
+    ARCHIVE_OUTPUT_NAME gui_forms_font_metrics_differential_tool)
 target_link_libraries(gui_forms_font_metrics_differential_tool PRIVATE
     gui_forms_font_metrics_differential)
 
@@ -1127,6 +1131,10 @@ target_compile_features(gui_drawing_core PUBLIC cxx_std_20)
 # drawing core links the core too. gui_forms_core builds no drawing source,
 # so the link is one way.
 target_link_libraries(gui_drawing_core PRIVATE gui_forms_core)
+# The public include directory it shares holds headers that include STXlib's
+# (stxlib/optional.hpp), so its users get STXlib's include directory too; the
+# link adds nothing, since gui_forms_core already links stxlib::boundary.
+target_link_libraries(gui_drawing_core PUBLIC stxlib::boundary)
 set_target_properties(gui_drawing_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # The GUI.Drawing C API (gui_forms/drawing_c_api.h). Its objects ship inside

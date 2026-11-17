@@ -378,15 +378,15 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         owner_id = (*owner_slot).id;
         owner = (*(*owner_slot).state).native_window();
     }
-    const std::optional<HostPopupPlacement> popup = entry.popup;
+    const stxlib::Optional<HostPopupPlacement> popup = entry.popup;
     const HostWindowKind kind =
-        host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
+        host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.present());
     const bool floating = host_window_kind_traits(kind).floating;
     HostWindowDescription description;
     description.stable_id = entry.stable_id;
     description.owner = owner_id;
     description.kind = kind;
-    if (popup.has_value()) description.transient = (*popup).kind;
+    if (popup.present()) description.transient = (*popup.value()).kind;
     outcome.admission = admit(description);
     if (!outcome.admission.status.accepted()) {
         outcome.failure_code = 2;
@@ -416,8 +416,8 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     const WindowsWindowStyles styles = windows_window_styles(kind, entry.tool_window, entry.options);
     const DWORD style = styles.style;
     DWORD ex_style = styles.extended;
-    const bool splash_popup = popup.has_value() && host_transient_is_splash((*popup).kind);
-    const bool passive_popup = popup.has_value() && ((*popup).focus == HostPopupFocus::passive || splash_popup);
+    const bool splash_popup = popup.present() && host_transient_is_splash((*popup.value()).kind);
+    const bool passive_popup = popup.present() && ((*popup.value()).focus == HostPopupFocus::passive || splash_popup);
     if (passive_popup) {
         ex_style = ex_style | WS_EX_NOACTIVATE;
         (*window_slot.state).mark_passive_popup();
@@ -456,8 +456,8 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     // no DWM border or rounding around its clear pixels.
     if (kind == HostWindowKind::popup) gui_forms::host::detail::apply_windows_popup_frame(window);
     // A popup is placed where the program put it, before it is shown.
-    if (popup.has_value()) {
-        const Rect content{(*popup).origin.x, (*popup).origin.y, initial_size.width, initial_size.height};
+    if (popup.present()) {
+        const Rect content{(*popup.value()).origin.x, (*popup.value()).origin.y, initial_size.width, initial_size.height};
         if (!request_frame_impl(id, content).accepted()) {
             DestroyWindow(window);
             retire(id);
