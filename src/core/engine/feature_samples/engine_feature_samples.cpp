@@ -317,6 +317,42 @@ void fill_blend_screen(const FeatureSampleInputs&, ThemeDefinition& definition) 
     draw_fill_blend(definition, MaterialBlendMode::screen, "fill_blend_screen");
 }
 
+void fill_blend_overlay(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::overlay, "fill_blend_overlay");
+}
+
+void fill_blend_darken(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::darken, "fill_blend_darken");
+}
+
+void fill_blend_lighten(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::lighten, "fill_blend_lighten");
+}
+
+void fill_blend_color_dodge(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::color_dodge, "fill_blend_color_dodge");
+}
+
+void fill_blend_color_burn(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::color_burn, "fill_blend_color_burn");
+}
+
+void fill_blend_hard_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::hard_light, "fill_blend_hard_light");
+}
+
+void fill_blend_soft_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::soft_light, "fill_blend_soft_light");
+}
+
+void fill_blend_difference(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::difference, "fill_blend_difference");
+}
+
+void fill_blend_exclusion(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_fill_blend(definition, MaterialBlendMode::exclusion, "fill_blend_exclusion");
+}
+
 // -- shapes, borders and keylines -------------------------------------------------
 
 void shape_corner_radii(const FeatureSampleInputs&, ThemeDefinition& definition) {
@@ -449,6 +485,42 @@ void part_blend_multiply(const FeatureSampleInputs&, ThemeDefinition& definition
 
 void part_blend_screen(const FeatureSampleInputs&, ThemeDefinition& definition) {
     draw_part_blend(definition, "screen", "part_blend_screen");
+}
+
+void part_blend_overlay(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "overlay", "part_blend_overlay");
+}
+
+void part_blend_darken(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "darken", "part_blend_darken");
+}
+
+void part_blend_lighten(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "lighten", "part_blend_lighten");
+}
+
+void part_blend_color_dodge(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "color-dodge", "part_blend_color_dodge");
+}
+
+void part_blend_color_burn(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "color-burn", "part_blend_color_burn");
+}
+
+void part_blend_hard_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "hard-light", "part_blend_hard_light");
+}
+
+void part_blend_soft_light(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "soft-light", "part_blend_soft_light");
+}
+
+void part_blend_difference(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "difference", "part_blend_difference");
+}
+
+void part_blend_exclusion(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_part_blend(definition, "exclusion", "part_blend_exclusion");
 }
 
 // The finish derived from the face (E9.6, owner option A1) at 0.75.
@@ -667,6 +739,15 @@ constexpr EngineFeatureSample samples[] = {
     {"finish_glint", "material", PartRole::face, Drive::rest, finish_glint},
     {"fill_blend_multiply", "material", PartRole::face, Drive::rest, fill_blend_multiply},
     {"fill_blend_screen", "material", PartRole::face, Drive::rest, fill_blend_screen},
+    {"fill_blend_overlay", "material", PartRole::face, Drive::rest, fill_blend_overlay},
+    {"fill_blend_darken", "material", PartRole::face, Drive::rest, fill_blend_darken},
+    {"fill_blend_lighten", "material", PartRole::face, Drive::rest, fill_blend_lighten},
+    {"fill_blend_color_dodge", "material", PartRole::face, Drive::rest, fill_blend_color_dodge},
+    {"fill_blend_color_burn", "material", PartRole::face, Drive::rest, fill_blend_color_burn},
+    {"fill_blend_hard_light", "material", PartRole::face, Drive::rest, fill_blend_hard_light},
+    {"fill_blend_soft_light", "material", PartRole::face, Drive::rest, fill_blend_soft_light},
+    {"fill_blend_difference", "material", PartRole::face, Drive::rest, fill_blend_difference},
+    {"fill_blend_exclusion", "material", PartRole::face, Drive::rest, fill_blend_exclusion},
     {"shape_corner_radii", "material", PartRole::face, Drive::rest, shape_corner_radii},
     {"shape_pill", "material", PartRole::face, Drive::rest, shape_pill},
     {"shape_circle", "material", PartRole::face, Drive::rest, shape_circle},
@@ -685,6 +766,15 @@ constexpr EngineFeatureSample samples[] = {
     {"filter_blur", "material", PartRole::face, Drive::rest, filter_blur},
     {"part_blend_multiply", "material", PartRole::face, Drive::rest, part_blend_multiply},
     {"part_blend_screen", "material", PartRole::face, Drive::rest, part_blend_screen},
+    {"part_blend_overlay", "material", PartRole::face, Drive::rest, part_blend_overlay},
+    {"part_blend_darken", "material", PartRole::face, Drive::rest, part_blend_darken},
+    {"part_blend_lighten", "material", PartRole::face, Drive::rest, part_blend_lighten},
+    {"part_blend_color_dodge", "material", PartRole::face, Drive::rest, part_blend_color_dodge},
+    {"part_blend_color_burn", "material", PartRole::face, Drive::rest, part_blend_color_burn},
+    {"part_blend_hard_light", "material", PartRole::face, Drive::rest, part_blend_hard_light},
+    {"part_blend_soft_light", "material", PartRole::face, Drive::rest, part_blend_soft_light},
+    {"part_blend_difference", "material", PartRole::face, Drive::rest, part_blend_difference},
+    {"part_blend_exclusion", "material", PartRole::face, Drive::rest, part_blend_exclusion},
     {"finish", "material", PartRole::face, Drive::rest, finish},
     {"mask_solid", "material", PartRole::face, Drive::rest, mask_solid},
     {"mask_linear", "material", PartRole::face, Drive::rest, mask_linear},
