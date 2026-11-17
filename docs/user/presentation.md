@@ -125,6 +125,7 @@ always correct, because the raster holds the whole frame.
 |---|---|
 | Linux X11, copy path | `XCopyArea` within the window, while a compositing manager keeps the window's contents |
 | Linux X11, Present path | in place when the buffer's age is 1 |
+| Windows, copy path | `ScrollWindowEx` within the window, no GPU API; a move whose uncovered region reaches past the exposed bands (part of the area clipped, covered or off screen) is refused, as is any move under a child window or while the invalidation overlay is drawn |
 | macOS | none yet: AppKit's backing store is not moved, and the view names AppKit's drawn rectangles as the damage, which already include the copies' clips, so it passes no scrolls |
 | Wayland | in place when the buffer's age is 1, once a host passes its scrolls |
 | The window manager | moves its surface's pixels for a window whose layer is opaque and uncovered over the scroll |
@@ -242,5 +243,8 @@ The Windows backend (the Windows side's item 14) must report:
 - its refusals by kind and its losses, so that the shim's trace matches
   the reference's.
 
-Until its backend lands, the Windows host keeps its existing DIB path,
-which is its copy path, and reports none of these.
+The Windows host's existing DIB path is its copy path. With
+`GUI_FORMS_PRESENT=scroll` it presents through the shim and reports
+`host_scroll` (`ScrollWindowEx`, `src/surface/windows/raster/window_scroll.hpp`);
+it reports no direct path and no buffer route (owner, 2026-11-16: no GPU
+surfaces).

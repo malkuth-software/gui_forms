@@ -8,6 +8,7 @@
 #endif
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
+#include "../../../core/host/presentation/host_scroll.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
@@ -462,29 +463,6 @@ presentation::PresentationShim& window_presenter(NativeWindow& window) {
   }
   window.presenter = std::make_unique<presentation::PresentationShim>(&window.copy_path, std::move(direct), nullptr);
   return *window.presenter;
-}
-
-// One scroll copy in device pixels at `scale`, rounded as the raster's
-// scroll_copy rounds it. False, leaving `scroll` as it was, when the clip or
-// offset is not on whole device pixels (request_scroll_copy admits only
-// those; the raster refuses the rest).
-bool device_scroll(const ScrollCopy& copy, double scale, presentation::PresentScroll& scroll) {
-  const std::array<double, 6> values{copy.clip.x * scale, copy.clip.y * scale, copy.clip.right() * scale,
-                                     copy.clip.bottom() * scale, copy.offset.x * scale, copy.offset.y * scale};
-  const double limit = static_cast<double>(presentation::maximum_present_side);
-  for (const double value : values) {
-    if (!std::isfinite(value) || std::abs(value - std::round(value)) > 1.0e-6) return false;
-    if (std::abs(value) > limit) return false;
-  }
-  presentation::PresentScroll made{};
-  made.area.left = std::max(static_cast<std::int32_t>(std::lround(values[0])), 0);
-  made.area.top = std::max(static_cast<std::int32_t>(std::lround(values[1])), 0);
-  made.area.right = std::max(static_cast<std::int32_t>(std::lround(values[2])), made.area.left);
-  made.area.bottom = std::max(static_cast<std::int32_t>(std::lround(values[3])), made.area.top);
-  made.dx = static_cast<std::int32_t>(std::lround(values[4]));
-  made.dy = static_cast<std::int32_t>(std::lround(values[5]));
-  scroll = made;
-  return true;
 }
 
 } // namespace
@@ -1942,7 +1920,7 @@ void NativeWindow::update() {
     if (copies_applied) copies_applied = raster.scroll_copy(copy.clip, copy.offset);
     applied_copy_clips.push_back(copy.clip);
     presentation::PresentScroll scroll{};
-    if (host_scrolling) host_scrolling = device_scroll(copy, scale, scroll);
+    if (host_scrolling) host_scrolling = presentation::device_present_scroll(copy, scale, scroll);
     if (host_scrolling) present_scrolls.push_back(scroll);
   }
   pending_copies.clear();

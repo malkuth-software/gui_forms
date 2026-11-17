@@ -5,6 +5,11 @@
 // equals a fresh whole-window paint of the same scene, at scales 1 and 2, for
 // one scroll per frame and for two scrolls taken before one frame (the
 // damage the host still holds moves with the second copy).
+//
+// Host scroll (GUI_FORMS_PRESENT=scroll; docs/user/presentation.md): the
+// window moves its own pixels with ScrollWindowEx and only the exposed strip
+// is copied; the window then equals the raster. A child window over the
+// viewport makes the move refused, and the whole area is copied instead.
 // Exercises the Windows host in the same translation unit.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/scrollable_control.hpp"
@@ -167,6 +172,126 @@ struct ScrollCopyHostFixture final {
 
     }
 
+    // The window's client pixels as GDI reads them back, row by row, with
+    // the alpha byte cleared (the window shows no alpha in this profile).
+    static std::vector<std::uint32_t> window_pixels(HWND window, const int width, const int height) {
+        HDC source = GetDC(window);
+        require(source != nullptr, "the window's device context");
+        HDC memory = CreateCompatibleDC(source);
+        BITMAPINFO info{};
+        info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth = width;
+        info.bmiHeader.biHeight = -height;
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
+        void* bits = nullptr;
+        HBITMAP bitmap = memory != nullptr ? CreateDIBSection(memory, &info, DIB_RGB_COLORS, &bits, nullptr, 0)
+                                           : nullptr;
+        HGDIOBJ previous = bitmap != nullptr ? SelectObject(memory, bitmap) : nullptr;
+        const BOOL copied = bitmap != nullptr && BitBlt(memory, 0, 0, width, height, source, 0, 0, SRCCOPY);
+        GdiFlush();
+        std::vector<std::uint32_t> pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height));
+        if (copied != FALSE && bits != nullptr) std::memcpy(pixels.data(), bits, pixels.size() * 4U);
+        if (previous != nullptr) SelectObject(memory, previous);
+        if (bitmap != nullptr) DeleteObject(bitmap);
+        if (memory != nullptr) DeleteDC(memory);
+        ReleaseDC(window, source);
+        require(copied != FALSE && bits != nullptr, "the window's pixels are read back");
+        for (std::uint32_t& pixel : pixels) pixel &= 0x00FFFFFFU;
+        return pixels;
+    }
+
+    // Requires the window to show the raster, outside `excluded` (device
+    // pixels; empty for none).
+    static void require_window_shows_raster(WindowsHostState& state, const RECT excluded, const char* stage) {
+        std::vector<std::uint32_t> raster = pixels_of(state.raster_.painter());
+        const int width = static_cast<int>(state.raster_.painter().pixel_width());
+        const int height = static_cast<int>(state.raster_.painter().pixel_height());
+        const std::vector<std::uint32_t> shown = window_pixels(state.hwnd_, width, height);
+        std::size_t differing = 0U;
+        for (int row = 0; row < height; ++row) {
+            for (int column = 0; column < width; ++column) {
+                const bool skipped = column >= excluded.left && column < excluded.right && row >= excluded.top &&
+                                     row < excluded.bottom;
+                if (skipped) continue;
+                const std::size_t index = static_cast<std::size_t>(row) * static_cast<std::size_t>(width) +
+                                          static_cast<std::size_t>(column);
+                if ((raster[index] & 0x00FFFFFFU) != shown[index]) ++differing;
+            }
+        }
+        require(differing == 0U, std::string(stage) + ": " + std::to_string(differing) +
+                                     " window pixels differ from the raster");
+    }
+
+    static void exercise_host_scroll(const ATOM native_class, const double scale) {
+        require(_putenv_s("GUI_FORMS_PRESENT", "scroll") == 0, "the presentation policy is set");
+        const ScrollScene scene = make_scene();
+        std::unique_ptr<Window> model = std::make_unique<Window>(scene.root, scene_size);
+        WindowsHostOptions options{};
+        options.quit_thread_on_close = false;
+        options.print_metrics_on_close = false;
+        options.scale_override = scale;
+        WindowsHostState state(std::move(model), options);
+        const int width = static_cast<int>(scene_size.width * scale);
+        const int height = static_cast<int>(scene_size.height * scale);
+        // Shown, topmost and unactivated: ScrollWindowEx moves only what a
+        // window shows.
+        HWND window = CreateWindowExW(WS_EX_NOACTIVATE | WS_EX_TOPMOST,
+                                      reinterpret_cast<LPCWSTR>(static_cast<ULONG_PTR>(native_class)),
+                                      L"Host scroll fixture", WS_POPUP, 0, 0, width, height, nullptr, nullptr,
+                                      GetModuleHandleW(nullptr), &state);
+        require(window != nullptr, "host scroll fixture native creation");
+        require(state.initialize(window), "host scroll fixture host initialization");
+        ShowWindow(window, SW_SHOWNOACTIVATE);
+        const RECT none{0, 0, 0, 0};
+
+        InvalidateRect(state.hwnd_, nullptr, FALSE);
+        send_paint(state);
+        require(state.presenter_ != nullptr, "the policy makes the window's presentation shim");
+        require(state.pending_damage_.empty(), "the first frame is presented through the shim");
+        require_window_shows_raster(state, none, "host scroll first frame");
+
+        // One scroll: the window moves its pixels, and only the exposed strip
+        // (and the bar) is copied, far less than the viewport.
+        const presentation::PresentShimSnapshot before = (*state.presenter_).snapshot();
+        require((*scene.viewport).scroll_by({0.0, 10.0}), "the viewport scrolls");
+        state.collect_damage();
+        send_paint(state);
+        const presentation::PresentShimSnapshot after = (*state.presenter_).snapshot();
+        require(after.scrolls_moved == before.scrolls_moved + 1U && after.scrolls_refused == before.scrolls_refused,
+                "ScrollWindowEx moves the window's pixels");
+        const double viewport_pixels = 100.0 * 80.0 * scale * scale;
+        const double written = static_cast<double>(after.pixels_written - before.pixels_written);
+        // Without host scroll the viewport's whole clip is copied.
+        require(written < viewport_pixels, "only the exposed strip and the bar are copied, not the viewport");
+        require(state.pending_damage_.empty(), "the scrolled frame is presented");
+        require_matches(state, scale, {0.0, 10.0}, "host scroll raster");
+        require_window_shows_raster(state, none, "host scroll window");
+
+        // A child window over the viewport: the move is refused and the
+        // whole area copied; the window still shows the raster around it.
+        const int child_left = static_cast<int>(40.0 * scale);
+        const int child_top = static_cast<int>(30.0 * scale);
+        const int child_side = static_cast<int>(20.0 * scale);
+        HWND child = CreateWindowExW(0, L"STATIC", L"", WS_CHILD | WS_VISIBLE, child_left, child_top, child_side,
+                                     child_side, window, nullptr, GetModuleHandleW(nullptr), nullptr);
+        require(child != nullptr, "the covering child window");
+        const presentation::PresentShimSnapshot covered_before = (*state.presenter_).snapshot();
+        require((*scene.viewport).scroll_by({0.0, 12.0}), "the viewport scrolls under the child");
+        state.collect_damage();
+        send_paint(state);
+        const presentation::PresentShimSnapshot covered_after = (*state.presenter_).snapshot();
+        require(covered_after.scrolls_refused == covered_before.scrolls_refused + 1U &&
+                    covered_after.scrolls_moved == covered_before.scrolls_moved,
+                "a child window refuses the move");
+        require_matches(state, scale, {0.0, 22.0}, "refused host scroll raster");
+        const RECT child_area{child_left, child_top, child_left + child_side, child_top + child_side};
+        require_window_shows_raster(state, child_area, "refused host scroll window");
+        DestroyWindow(child);
+        require(_putenv_s("GUI_FORMS_PRESENT", "") == 0, "the presentation policy is cleared");
+    }
+
     static void run() {
         WNDCLASSEXW native_class{};
         native_class.cbSize = sizeof(native_class);
@@ -177,6 +302,7 @@ struct ScrollCopyHostFixture final {
         require(registered_class != 0, "fixture class registration");
         constexpr std::array<double, 2> scales{1.0, 2.0};
         for (const double scale : scales) exercise(registered_class, scale);
+        for (const double scale : scales) exercise_host_scroll(registered_class, scale);
         require(UnregisterClassW(native_class.lpszClassName, native_class.hInstance) != FALSE,
                 "fixture class release");
     }
