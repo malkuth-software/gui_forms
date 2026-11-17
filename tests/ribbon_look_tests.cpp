@@ -562,6 +562,47 @@ void check_selected_tool_tab(const std::shared_ptr<const Theme>& theme, std::str
     require(!painter.filled_rgb(selection_plate), name + ": no selection plate covers the selected tool tab");
 }
 
+// The owner's steps for the Pencil tab (2026-11-17, on Plan Paint ce06a7a
+// over SDK 31b48906e): select the Pencil tab, then hover that same
+// selected tab. The tab shows flat with a rectangular outline over it,
+// while hovering another selected tab looks right. A probe of those steps
+// in Plan Paint's sheet: the hovered selected tool tab (authored width 142)
+// must paint as the hovered selected Home tab does: never under the
+// menu-item family's hot plate (white to #D5E9FA in #488BC4, the built-in
+// recipe of the tab's hover layer wherever the engine draws no rise) or
+// its selection plate, and with no primitive refused. Unverified: run
+// without a build, so whether it fails before a fix is not known.
+constexpr Color menu_item_hot_plate = Color::rgba(0xd5, 0xe9, 0xfa);
+
+void check_hovered_selected_tab(const std::shared_ptr<const Theme>& theme, std::size_t tab, std::string_view where) {
+    const std::string name(where);
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(tool_tabs("Tool"));
+    (*ribbon).set_theme_override(theme);
+    (*ribbon).application_modes = 1U;
+    Window window(ribbon, {700.0, 200.0});
+    window.perform_layout();
+    (*ribbon).set_tabs(tool_tabs("Pencil"));
+    window.perform_layout();
+    const std::vector<Ribbon::Tab> before = (*ribbon).realized_tabs();
+    require(before.size() == 3U, name + ": three tabs are realized");
+    if (before.size() != 3U) return;
+    // Select it with a click, as the owner does, then hover it.
+    const Point press = centre(before[tab].parts.tab.bounds);
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, press}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, press}));
+    window.perform_layout();
+    require((*ribbon).selected_tab.read() == stxlib::Optional<std::size_t>::of(tab), name + ": the click selects the tab");
+    const Point hover = centre((*ribbon).realized_tabs()[tab].parts.tab.bounds);
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, hover}));
+    window.perform_layout();
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
+    require(!painter.filled_rgb(menu_item_hot_plate), name + ": no menu-item hot plate covers the hovered selected tab");
+    require(!painter.filled_rgb(selection_plate), name + ": no selection plate covers the hovered selected tab");
+    require(window.metrics_snapshot().engine_primitive_refusals == 0U,
+            name + ": no primitive is refused while the selected tab is hovered");
+}
+
 void test_selected_tool_tab() {
     check_selected_tool_tab(gui_forms_theme(), "default theme");
     const std::shared_ptr<const Theme> plan_paint = theme_from_sheet(
@@ -593,6 +634,8 @@ void test_selected_tool_tab() {
         "ribbon::part(command-plane) { height: 88px; }\n",
         "Plan Paint's current tab row compiles cleanly");
     check_selected_tool_tab(plan_paint, "Plan Paint's sheet");
+    check_hovered_selected_tab(plan_paint, 0U, "Plan Paint's sheet, the selected Home tab hovered");
+    check_hovered_selected_tab(plan_paint, 2U, "Plan Paint's sheet, the selected Pencil tab hovered");
 }
 
 // The folders stack (owner, 2026-11-09): in the default theme each tab
