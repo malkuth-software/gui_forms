@@ -18,9 +18,9 @@ for a new dependency or a new platform assumption is not.
   Vulkan, Metal, Direct3D, Dawn or WebGPU.
 - Skia only through the private CPU adapter in `src/render/skia/`; no Skia
   type in a public header, control API, DML, C ABI or renderer-neutral test.
-- PNG (`stx_png`) is the only image codec, behind `src/core/image/`. HarfBuzz and FreeType
-  are the only third-party text dependencies, pinned by revision; bidi, line
-  breaking, script runs and Markdown are STXlib's.
+- PNG (`stx_png`) is the only image codec, behind `src/core/image/`. There are no
+  third-party text dependencies: font reading, shaping, hinting, bidi, line
+  breaking, script runs and Markdown are STXlib's (since 2026-11-16).
 - The core is retained. No immediate-mode control API, no perpetual redraw.
 - The portable core and host protocol encode no AppKit, Win32, Wayland or X11
   assumption. Honest platform differences are capability-reported adapter

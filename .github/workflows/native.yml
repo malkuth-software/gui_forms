@@ -146,6 +146,8 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_paint_census.py
           # The C++ and C counter (code-statistics.yml runs it on main).
           python3 -B -m unittest discover -s tools -p test_code_statistics.py
+          # The audit findings counter for the high-integrity report.
+          python3 -B -m unittest discover -s tools -p test_integrity_counts.py
           # Property families: shared enumerations get their traits once.
           python3 -B -m unittest discover -s tools -p test_property_codemod.py
           python3 -B tools/paint_census.py check

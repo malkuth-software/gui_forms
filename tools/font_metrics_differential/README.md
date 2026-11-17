@@ -6,7 +6,7 @@ stage F's gate ([`planning/stages/F-font-substitution/README.md`](https://github
 decisions 8 and 9 of 2026-10-23).
 
 The reference is always our own engine. Both faces go through the same
-FreeType and HarfBuzz code that GUI.Forms renders with, and no host renderer
+STXlib font reader and shaper that GUI.Forms renders with, and no host renderer
 is ever the reference. The optional GDI measurement is information for stages
 R and S, which compare against Windows Forms. It is never part of F's
 gate.
@@ -26,12 +26,12 @@ root as `gui_forms_font_metrics_differential`.
 
 For each face:
 
-- **Facts from FreeType**, in font units: family, version, SHA-256, units per
+- **Facts from the font reader**, in font units: family, version, SHA-256, units per
   em, weight class, the `hhea`, `OS/2` typo and win vertical metrics, and the
   advance of every code point in U+0020..007E and U+00A0..017F.
 - **The bundled engine's measurements** at 11, 12, 13, 16, 22 and 24 px (8.25,
   9, 10 and 12 pt at 96 dpi, and 11 and 12 px at scale 2). The engine is the
-  one GUI.Forms shapes with: HarfBuzz over FreeType, unhinted advances
+  one GUI.Forms shapes with: STXlib's shaper, unhinted advances
   (ADR-004). It records the line metrics (ascent, descent, gap), the width of
   every corpus string, and the greedy line breaks of every corpus paragraph at
   20, 35 and 60 ems.
@@ -62,8 +62,9 @@ The report also records information that is not gated, from GDI:
 
 ## The engine's line metrics
 
-The engine takes its vertical metrics from FreeType 2.14.2, pinned and
-unmodified apart from its options header. That rule is:
+The engine takes its vertical metrics by FreeType 2.14.2's rule, which
+STXlib's font reader follows (FreeType itself, pinned and unmodified apart
+from its options header, read them until 2026-11-16). That rule is:
 
 - the OS/2 typo metrics when the face sets `USE_TYPO_METRICS` (bit 7 of
   `fsSelection`);
@@ -71,7 +72,7 @@ unmodified apart from its options header. That rule is:
 - the typo metrics, then the win metrics, only when `hhea`'s ascender and
   descender are both zero.
 
-At a size, FreeType rounds the ascender up, the descender down and the height
+At a size, the rule rounds the ascender up, the descender down and the height
 to the nearest pixel (`GRID_FIT_METRICS`). The line gap is that height less
 the ascender and descender, never below zero.
 

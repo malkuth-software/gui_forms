@@ -26,9 +26,9 @@ struct GUI_FORMS_API PreparedTextPaintResult final {
 };
 
 enum class PreparedTextSlot { empty, queued, running, ready };
-// ADR-004: light_gray_v2 is FreeType light auto-hinting, grayscale, the one
-// GUI.Forms text profile. outline_gray_72dpi_v1 (bytecode hinting) is retired
-// and refused as unsupported.
+// ADR-004: light_gray_v2 is light auto-hinting (STXlib's, after FreeType's),
+// grayscale, the one GUI.Forms text profile. outline_gray_72dpi_v1 (bytecode
+// hinting) is retired and refused as unsupported.
 enum class PreparedRasterProfile : std::uint32_t { outline_gray_72dpi_v1 = 1, light_gray_v2 = 2 };
 
 struct GUI_FORMS_API LayoutAuthority final {

@@ -18,5 +18,6 @@ Builds published from `main` are tagged `v0.6.N`; earlier builds were tagged
 
 **After 1.0:** HTML import, a light FreeType fork, identical floating-point
 results on every architecture, registered font families through themes once
-FreeType is formally verified. GUI.Forms 2.0 is planned for release builds
+FreeType is formally verified (planned while GUI.Forms read fonts with
+FreeType; since 2026-11-16 STXlib's glyph library reads them). GUI.Forms 2.0 is planned for release builds
 without exceptions, formal verification and freestanding builds.

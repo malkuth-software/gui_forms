@@ -105,7 +105,7 @@ Two consumer shapes follow from the table:
   self-contained `gui_forms_abi` library, and not `Application`.
 
 [Install](install.md#package-components) lists the optional components
-(`TextMasks`, `AudioLoopTransport`, `FreeType`, `HarfBuzz`, `GalleryModel`)
+(`TextMasks`, `AudioLoopTransport`, `GalleryModel`)
 and the build options that provide them.
 
 ## The one linking rule

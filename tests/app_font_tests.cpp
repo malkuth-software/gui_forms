@@ -4,7 +4,7 @@
 // - loading: the name and face rules, the family's number, state and lookup by name;
 // - a composite's look names the family and its child draws it; an application theme naming
 //   it gets the unavailable warning (W113) and a stock control drops it (refusal counted);
-// - quarantine: a face that passes the checks but FreeType cannot open quarantines its
+// - quarantine: a face that passes the checks but the font reader cannot open quarantines its
 //   family, and the text draws with the role's faces;
 // - unload while in use: deferred while an engine holds the bytes, released when it goes.
 //
@@ -450,8 +450,8 @@ void theme_does_not_resolve_family() {
 
 // -- Quarantine and unload --------------------------------------------------
 
-// A face with CFF outlines whose CFF table is zeros: it passes the table checks, and FreeType
-// refuses it (CFF major version 0).
+// A face with CFF outlines whose CFF table is zeros: it passes the table checks, and STXlib's
+// font reader refuses it (CFF major version 0).
 std::shared_ptr<const std::vector<std::byte>> unopenable_face() {
     std::vector<SyntheticTable> tables = minimal_tables();
     std::vector<SyntheticTable> cff_tables{};
@@ -492,7 +492,7 @@ void malformed_face_is_quarantined() {
     font.family = family;
     const ShapedText shaped = engine.shape("Quarantine", font);
     require(app_font_family_state(family) == AppFontState::quarantined && !font_family_drawable(family),
-            "a face FreeType cannot open quarantines its family");
+            "a face the font reader cannot open quarantines its family");
     require(app_font_statistics().quarantines == before.quarantines + 1U, "the quarantine is counted");
     require(!shaped.missing_primary_face && !shaped.runs.empty() && shaped.missing_clusters == 0U,
             "the role's faces draw the text instead");

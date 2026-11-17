@@ -2580,14 +2580,14 @@
     },
     "HarfBuzzFontEngine": {
       "status": "OBSERVED: bundle 009 text-engine split; focused M4 shaping tests pass",
-      "summary": "HarfBuzzFontEngine owns bounded FreeType faces and HarfBuzz shaping state behind renderer-neutral font IDs, deterministic fallback ordering, absolute UTF-8 clusters, and immutable shaped runs.",
+      "summary": "HarfBuzzFontEngine (named for its former HarfBuzz backend) owns bounded STXlib typefaces and shaping state (stxlib::glyphs) behind renderer-neutral font IDs, deterministic fallback ordering, absolute UTF-8 clusters, and immutable shaped runs.",
       "methods": {
-        "HarfBuzzFontEngine": "Constructs the private FreeType/HarfBuzz implementation; copying is prohibited and moves transfer complete engine ownership.",
-        "~HarfBuzzFontEngine": "Releases HarfBuzz fonts/faces and FreeType ownership in dependency-safe order.",
+        "HarfBuzzFontEngine": "Constructs the private STXlib-backed implementation; copying is prohibited and moves transfer complete engine ownership.",
+        "~HarfBuzzFontEngine": "Releases its STXlib typefaces and shaping state in dependency-safe order.",
         "operator=": "Moves complete engine ownership; copying is prohibited.",
-        "register_typeface": "Validates bounded bytes and unique stable ID, owns the font bytes, creates FreeType/HarfBuzz faces, and commits only a usable face.",
+        "register_typeface": "Validates bounded bytes and unique stable ID, owns the font bytes, opens the STXlib typeface, and commits only a usable face.",
         "register_fallback_typeface": "Registers a face and appends its ID once to deterministic fallback order.",
-        "shape": "Validates request UTF-8/ranges, segments unsupported clusters across primary/fallback faces, shapes with HarfBuzz, and returns absolute cluster metadata and aggregate metrics.",
+        "shape": "Validates request UTF-8/ranges, segments unsupported clusters across primary/fallback faces, shapes with STXlib's shaper, and returns absolute cluster metadata and aggregate metrics.",
         "face_count": "Returns the number of committed faces."
       }
     },
@@ -2611,7 +2611,7 @@
       "status": "OBSERVED: bundle 009 retained Skia raster split; focused M4 smoke and core tests pass",
       "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 native material/raster showcase rendered through this CPU-only Skia Painter adapter.",
-      "summary": "SkiaRaster is GUI.Forms' private CPU-only Painter terminal with explicit frame bounds, state stack, rounded clips/materials, PNG registry synchronization, live-surface sampling, HarfBuzz fallback text, and caller-readable BGRA output.",
+      "summary": "SkiaRaster is GUI.Forms' private CPU-only Painter terminal with explicit frame bounds, state stack, rounded clips/materials, PNG registry synchronization, live-surface sampling, fallback text through the bundled engine, and caller-readable BGRA output.",
       "methods": {
         "SkiaRaster": "Allocates a bounded CPU raster surface; moves transfer ownership and copying is prohibited.",
         "~SkiaRaster": "Releases private CPU surface, font, image, and shaping state.",
@@ -2619,7 +2619,7 @@
         "resize": "Validates and replaces CPU backing dimensions/scale while resetting frame state.",
         "begin_frame": "Begins one nonnested damage-clipped paint transaction.",
         "end_frame": "Requires balanced Painter save state and completes the active transaction.",
-        "register_typeface": "Validates and registers primary font bytes for Skia/HarfBuzz use.",
+        "register_typeface": "Validates and registers primary font bytes for the bundled text engine.",
         "register_fallback_typeface": "Registers a deterministic fallback face without exposing native objects.",
         "synchronize_images": "Synchronizes generational registry resources and retires stale decoded images.",
         "pixels": "Returns const CPU backing bytes.",

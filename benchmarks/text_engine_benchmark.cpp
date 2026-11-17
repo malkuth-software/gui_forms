@@ -229,7 +229,7 @@ int main(const int argc, char** const argv) {
     const int passes = argc == 3 ? std::max(3, parsed_count(argv[2])) : 15;
     const std::filesystem::path fonts(argv[1]);
     Benchmark benchmark(fonts);
-    // The first pass fills FreeType's and HarfBuzz's lazy state; it is reported
+    // The first pass fills the engine's and STXlib's lazy state; it is reported
     // apart from the warm median.
     const double first = benchmark.immediate_frames();
     std::vector<double> immediate;

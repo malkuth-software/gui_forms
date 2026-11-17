@@ -4,7 +4,7 @@
 // is an offline tool: the integrator runs it and ships its bakes, which
 // engine_light::LightPlaneCache reads and composites at run time; nothing
 // here runs in a program. One change from the study: legends are drawn by
-// GUI.Drawing's text engine (the shared HarfBuzz and FreeType engine) in the
+// GUI.Drawing's text engine (the shared engine over STXlib's glyphs) in the
 // bundled Portsmouth Mono (owner, 2026-11-12), as coverage masks the lens
 // samples, in place of the study's stroke font.
 //
