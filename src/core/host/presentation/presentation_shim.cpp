@@ -92,6 +92,10 @@ bool present_list_names(std::string_view list, std::string_view word) noexcept {
     return false;
 }
 
+namespace {
+
+// Whether GUI_FORMS_PRESENT names `word` ("direct" or "scroll"). False
+// when the variable is unset.
 bool present_policy_names(std::string_view word) noexcept {
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // A high-integrity build reads no environment variable
@@ -106,6 +110,8 @@ bool present_policy_names(std::string_view word) noexcept {
     return named;
 #endif
 }
+
+} // namespace
 
 PresentPolicy present_policy_from_environment() noexcept {
     PresentPolicy policy{};

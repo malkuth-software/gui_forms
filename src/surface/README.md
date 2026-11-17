@@ -6,9 +6,9 @@ moves into STXlib as its surface. Moving it changes no behaviour.
 
 | Folder | Platform APIs |
 | --- | --- |
-| `macos/` | AppKit, CoreGraphics, CoreText, IOSurface, Metal (present only) |
+| `macos/` | AppKit, CoreGraphics, CoreText, IOSurface |
 | `windows/` | Win32, COM, UIA, MSAA, DWM, GDI |
-| `linux/` | Xlib, xcb, XInput2, Xrandr, Present, DRI3, Wayland, GBM, GIO (AT-SPI) |
+| `linux/` | Xlib, xcb, XInput2, Xrandr, Present, Wayland, GIO (AT-SPI) |
 | `posix/` | `mmap`, sockets, child processes (hosted content, sealed font pages) |
 | `web/` | Emscripten (the program half's calls and the page half) |
 

@@ -264,18 +264,4 @@ bool move_present_pixels(const PresentTargetPixels& target, const PresentScrollP
     return true;
 }
 
-PresentHoldCount count_present_holds(std::span<const bool> displayed) noexcept {
-    std::size_t newest_displayed = 0U;
-    bool any = false;
-    for (std::size_t index = 0U; index < displayed.size(); ++index) {
-        if (!displayed[index]) continue;
-        newest_displayed = index;
-        any = true;
-    }
-    PresentHoldCount count{};
-    count.displaced = any ? newest_displayed : 0U;
-    count.held = displayed.size() - count.displaced;
-    return count;
-}
-
 } // namespace gui_forms::host::presentation

@@ -4,7 +4,7 @@
 // with wl_surface_damage_buffer for the damage and committed. The
 // compositor reads a buffer until it sends wl_buffer.release; a buffer is
 // written again only after that. No GPU API is used: wl_shm is shared
-// memory, and linux-dmabuf (which needs GBM or EGL) is not.
+// memory.
 //
 // GUI.Forms has no Wayland host yet: this path is written for it and is
 // built only with GUI_FORMS_ENABLE_WAYLAND_PRESENT. A Wayland host's copy

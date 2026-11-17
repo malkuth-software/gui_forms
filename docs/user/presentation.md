@@ -30,21 +30,15 @@ buffer to write into and presents that buffer itself:
 | Linux X11 | MIT-SHM pixmaps presented with the Present extension (`XPresentPixmap`) |
 | Linux Wayland | `wl_shm` buffers attached to the surface with `wl_surface_damage_buffer` (written; GUI.Forms has no Wayland host yet) |
 | The window manager | the surface its host supplies (the reference) |
-| Windows | to be decided by the Windows side's study |
+| Windows | none: its existing GDI surfaces, with host scroll through `ScrollWindowEx` (owner, 2026-11-16: no GPU surfaces) |
 
-A direct buffer may live in GPU memory. GUI.Forms treats it as a *blind
-interface*: it locks or maps the buffer, writes CPU pixels, unlocks it and
-asks the window system to present it. GUI.Forms never draws on the GPU,
+A direct buffer is CPU-writable memory the window system presents: an
+IOSurface, a shared-memory pixmap, a `wl_shm` buffer. GUI.Forms has no
+GPU surfaces (owner, 2026-11-16): it locks or maps the buffer, writes CPU
+pixels, unlocks it and asks the window system to present it. It never
+obtains or presents a buffer through a graphics API, draws on the GPU,
 compiles a shader, encodes or submits GPU work, or creates a rendering
 context, on any path.
-
-Some platforms hand out such buffers only through a graphics API. Those
-*buffer routes* are allowed as enumerated host capabilities (owner,
-2026-11-16): the API is used only to obtain, map or lock, and present the
-buffer, inside the host adapter, behind its own build option, reported by
-its own capability bit, with the copy path as the fallback on any refusal
-or loss. Nothing of them appears in the portable contract, the public
-headers or the C ABI beyond the capability bits.
 
 ## The contract
 
@@ -204,47 +198,25 @@ copies' clips, and the shim adds back the area of any scroll it refuses.
 | X11 Present (`src/surface/linux/application/x11_present_direct.cpp`) | up to three MIT-SHM pixmaps, presented with `XPresentPixmap` and an update region; reused after `PresentIdleNotify` | unsupported without libXpresent, MIT-SHM pixmaps or Present, on a remote display, on a visual not in the raster's layout, and on a 32-bit window presenting opaque; busy while every pixmap is read; resources when a segment cannot be made |
 | Wayland `wl_shm` (`src/surface/linux/wayland/wayland_shm_present.cpp`, built with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`) | up to three memfd buffers, ARGB8888 or XRGB8888, attached with `wl_surface_damage_buffer`; reused after `wl_buffer.release` | busy while every buffer is held; resources when one cannot be made; lost when the display is in error or a flush fails |
 
-### Buffer routes
+### Rules for every direct path
 
-| Route | Capability | Build option and policy | What the API is used for |
-|---|---|---|---|
-| macOS `CAMetalLayer` (`macos_metal_present.mm`) | `metal_drawables` | `GUI_FORMS_ENABLE_METAL_PRESENT`; `GUI_FORMS_PRESENT=direct,metal` | the system default device for the layer, `nextDrawable` (only while a drawable is free), the drawable texture's `iosurface` (locked for writing), `-[CAMetalDrawable present]`; no command buffer |
-| X11 DRI3 (`x11_dri3_present.cpp`, `src/surface/linux/gbm/`) | `dri3_pixmaps` | `GUI_FORMS_ENABLE_X11_DRI3_PRESENT` (with libXpresent); `GUI_FORMS_PRESENT=direct,dri3` | `DRI3Open` for the server's device, linear GBM buffers mapped for writing (age 0) and exported, `DRI3PixmapFromBuffer`, then `XPresentPixmap` |
-| Wayland linux-dmabuf (`wayland_dmabuf_present.cpp`) | `linux_dmabuf` (reserved) | `GUI_FORMS_ENABLE_WAYLAND_DMABUF_PRESENT`; `direct,dmabuf` for a future Wayland host | linear GBM buffers on the compositor's render node, mapped and exported, `zwp_linux_dmabuf_v1` `create_immed` |
-| Windows DXGI flip model or DirectComposition | to be added by the Windows side | the Windows side's | the Windows side's study (below) |
+GUI.Forms has no GPU surfaces (owner, 2026-11-16): every direct path above
+writes CPU pixels into buffers the window system gives, and no direct path
+obtains or presents a buffer through a graphics API. Two rules hold for
+each:
 
-Two rules hold for every route, as for every direct path:
+- **A direct path never waits for a buffer.** "No buffer ready" is a
+  refusal (`busy`) for that frame, never a block on the UI thread: the
+  frame is presented by the copy path at once with the same pixels, and
+  the shim's pause follows (the table above).
+- **A direct path claims only the contents it knows.** A buffer's age is
+  what the path can prove of its contents. Where an age is known, the shim
+  writes the union of the damage since that buffer was last written
+  (`PresentDamageHistory`); an age older than the history kept is unknown,
+  and age 0 writes the whole frame from the raster.
 
-- **A route never waits for a buffer.** "No buffer ready" is a refusal
-  (`busy`) for that frame, never a block on the UI thread: the frame is
-  presented by the copy path at once with the same pixels, and the shim's
-  pause follows (the table above). The Metal route chose this over a
-  separate acquiring context: `nextDrawable` blocks while every drawable
-  of the layer's pool is held, so before calling it the route counts the
-  drawables the window server still holds (each tracked present's
-  `presentedTime`, which is 0 until it reaches the screen; a present
-  followed by a later displayed one has been replaced and is forgotten:
-  `count_present_holds`) and refuses busy, without calling it, when the
-  pool is held. The layer's one-second `nextDrawable` timeout stays only as
-  a backstop. There is no asynchronous work, so nothing is cancelled: a
-  release or the window's destruction only drops the route's references,
-  and the window server finishes showing what it has.
-- **A route claims only the contents it knows.** A buffer's age is what the
-  route can prove of its contents. GBM mappings (the DRI3 and linux-dmabuf
-  routes) do not promise the buffer's earlier contents, since a driver may
-  map a staging copy that is not read back, and GBM reports no age; so
-  those routes map for writing only and report age 0, and the shim writes
-  the whole frame from the raster each time (`gbm_buffer_known_age` is
-  where a driver's own report would answer). Where an age is known, the
-  shim writes the union of the damage since that buffer was last written
-  (`PresentDamageHistory`); an age older than the history kept is
-  unknown.
-
-Each route reports `direct_buffers` with its own bit. Where a route is not
-built, or the policy does not name it, the host uses its non-API direct
-path (IOSurface, MIT-SHM with Present, `wl_shm`) under
-`GUI_FORMS_PRESENT=direct`, or the copy path. Every refusal and loss of a
-route takes the same fallback as any direct path, with the same pixels.
+Where the policy does not name `direct`, or a direct path refuses or is
+lost, the host presents on the copy path with the same pixels.
 
 ## What a new platform backend provides
 
@@ -258,24 +230,17 @@ A backend, the Windows one included, supplies:
   refusal named by kind; a loss detected at present or reported between
   frames; and `release` making the copy path's pixels visible again;
 - the capability bits, only for what it implements;
-- a graphics API only inside the host adapter, only to obtain, map or lock
-  and present a buffer, behind its own build option.
+- no graphics API: its buffers are written by the CPU and presented by the
+  window system, never obtained or presented through a GPU API.
 
 The Windows backend (the Windows side's item 14) must report:
 
 - `direct_buffers` only while a direct path is in use for the process
   (built, and named by `GUI_FORMS_PRESENT=direct`);
-- one new capability bit per buffer route it adds (for example DXGI flip
-  model or DirectComposition), reserved in fold order after
-  `linux_dmabuf` with its `GF_HOST_CAPABILITY_*` constant, its manifest
-  entry, its name in the capability matrix and a row here and in
-  [Hosts and capabilities](hosts-and-capabilities.md), reported only where
-  it is built and the policy names it;
 - `host_scroll` only where its copy path or direct path moves presented
-  pixels (for example `ScrollWindowEx` or `IDXGISwapChain1::Present1`'s
-  scroll rectangle);
-- its refusals by kind and its losses (device removal, occlusion, a lost
-  swap chain), so that the shim's trace matches the reference's.
+  pixels (`ScrollWindowEx`, repainting only the exposed strip);
+- its refusals by kind and its losses, so that the shim's trace matches
+  the reference's.
 
 Until its backend lands, the Windows host keeps its existing DIB path,
 which is its copy path, and reports none of these.

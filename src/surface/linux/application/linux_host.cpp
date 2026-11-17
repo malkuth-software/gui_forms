@@ -454,16 +454,7 @@ presentation::PresentationShim& window_presenter(NativeWindow& window) {
   window.host_scroll_policy = policy.host_scroll;
   std::unique_ptr<presentation::PresentationDirectPath> direct{};
   window.direct_path = nullptr;
-  window.dri3_path = nullptr;
-#if defined(GUI_FORMS_HAVE_X11_DRI3)
-  if (policy.direct && presentation::present_policy_names("dri3")) {
-    std::unique_ptr<X11Dri3Path> buffers =
-        std::make_unique<X11Dri3Path>(window.runtime.display, window.xid, window.visual, window.depth);
-    window.dri3_path = buffers.get();
-    direct = std::move(buffers);
-  }
-#endif
-  if (policy.direct && !direct) {
+  if (policy.direct) {
     std::unique_ptr<X11PresentPath> pixmaps =
         std::make_unique<X11PresentPath>(window.runtime.display, window.xid, window.visual, window.depth);
     window.direct_path = pixmaps.get();
@@ -667,9 +658,6 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   window.copy_path.present_alpha = window.present_alpha;
   window.copy_path.copied = &copied;
   if (window.direct_path != nullptr) (*window.direct_path).present_alpha = window.present_alpha;
-#if defined(GUI_FORMS_HAVE_X11_DRI3)
-  if (window.dri3_path != nullptr) (*window.dri3_path).present_alpha = window.present_alpha;
-#endif
   const presentation::PresentReport report = presenter.present(frame);
   window.copy_path.copied = nullptr;
   if (report.path == presentation::PresentPath::direct) {
@@ -1378,7 +1366,6 @@ NativeWindow::~NativeWindow() {
   // The shim first: its direct path's server resources go before the
   // display closes.
   direct_path = nullptr;
-  dri3_path = nullptr;
   presenter.reset();
   shared_image.release();
   (*entry.model).set_dispatch_wake_handler({});
@@ -2274,10 +2261,6 @@ void Runtime::dispatch(XEvent &event) {
       NativeWindow &receiving = *windows[i];
       if (receiving.xid == present_event.window && receiving.direct_path != nullptr)
         (*receiving.direct_path).idle(present_event.pixmap, present_event.serial);
-#if defined(GUI_FORMS_HAVE_X11_DRI3)
-      if (receiving.xid == present_event.window && receiving.dri3_path != nullptr)
-        (*receiving.dri3_path).idle(present_event.pixmap, present_event.serial);
-#endif
     }
     return;
   }
@@ -2616,12 +2599,6 @@ HostCapabilities linux_capabilities() {
   const presentation::PresentPolicy policy = presentation::present_policy_from_environment();
 #if defined(GUI_FORMS_HAVE_XPRESENT) && defined(GUI_FORMS_HAVE_XSHM)
   if (policy.direct) capabilities.available = capabilities.available | HostCapability::direct_buffers;
-#endif
-#if defined(GUI_FORMS_HAVE_X11_DRI3)
-  // The DRI3 buffer route (x11_dri3_present.hpp), where it is built and the
-  // policy names it.
-  if (policy.direct && presentation::present_policy_names("dri3"))
-    capabilities.available = capabilities.available | HostCapability::dri3_pixmaps;
 #endif
   if (policy.host_scroll) capabilities.available = capabilities.available | HostCapability::host_scroll;
 #endif

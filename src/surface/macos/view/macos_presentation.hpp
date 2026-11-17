@@ -43,9 +43,9 @@ private:
     __unsafe_unretained GUIFormsView* view_;
 };
 
-// The view's direct paths (IOSurface, and the CAMetalLayer route where it
-// is built): the per-present settings the view gives them and the
-// dealloc notice. Owned by the shim; the view observes it.
+// The view's direct path (the IOSurface path): the per-present settings
+// the view gives it and the dealloc notice. Owned by the shim; the view
+// observes it.
 class MacDirectPath : public presentation::PresentationDirectPath {
 public:
     // Forgets the view (its dealloc): the layer is still removed and the

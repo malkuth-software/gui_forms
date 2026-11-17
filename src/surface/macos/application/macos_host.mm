@@ -91,12 +91,6 @@ HostCapabilities macos_capabilities() {
     const gui_forms::host::presentation::PresentPolicy policy =
         gui_forms::host::presentation::present_policy_from_environment();
     if (policy.direct) capabilities.available = capabilities.available | HostCapability::direct_buffers;
-#if defined(GUI_FORMS_HAVE_METAL_PRESENT)
-    // The Metal buffer route (macos_metal_present.hpp), where it is built
-    // and the policy names it.
-    if (policy.direct && gui_forms::host::presentation::present_policy_names("metal"))
-        capabilities.available = capabilities.available | HostCapability::metal_drawables;
-#endif
 #endif
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).

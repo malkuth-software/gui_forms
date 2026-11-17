@@ -24,8 +24,8 @@ enum class ForeignWindowErrors {
   // (A-gf-host-01-F3).
   selection_reply,
   // Any error of a request to one of the scope's extensions (their major
-  // opcodes): the presentation direct paths' MIT-SHM, Present, XFixes and
-  // DRI3 requests, which a server may refuse (BadAlloc, BadMatch,
+  // opcodes): the presentation direct path's MIT-SHM, Present and XFixes
+  // requests, which a server may refuse (BadAlloc, BadMatch,
   // BadPixmap) for reasons outside our control (A-gf-present-01-F1). The
   // caller learns of it from synchronize() and falls back.
   extension_requests,
