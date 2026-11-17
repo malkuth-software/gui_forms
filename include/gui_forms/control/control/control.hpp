@@ -1,5 +1,6 @@
 #pragma once
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/control/runtime_id/runtime_id.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
@@ -120,18 +121,6 @@ private:
     std::tuple<Values...> values_;
 };
 }
-
-struct GUI_FORMS_API RuntimeId {
-    std::uint64_t value{};
-    friend constexpr bool operator==(const RuntimeId& left,
-                                     const RuntimeId& right) noexcept {
-        return left.value == right.value;
-    }
-    friend constexpr std::strong_ordering operator<=>(
-        const RuntimeId& left, const RuntimeId& right) noexcept {
-        return left.value <=> right.value;
-    }
-};
 
 // Exact WinForms flag values. Masked bounds mutation is kept in the portable
 // retained core because layout authors and generated facades need one coherent

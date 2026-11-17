@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/control/runtime_id/runtime_id.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"

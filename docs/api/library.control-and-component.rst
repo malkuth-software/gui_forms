@@ -2883,7 +2883,7 @@ Related types
 
 .. cpp:struct:: RuntimeId
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/runtime_id/runtime_id.hpp>``
 
    RuntimeId is the monotonic process-local identity used for exact retained instances and child operations.
 
