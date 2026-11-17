@@ -10,7 +10,7 @@
 //     std::unique_ptr<HostedClient> client = HostedClient::connect();
 //     if (!client) return 1;                         // not started by GUI.Forms
 //     while ((*client).pump(std::chrono::milliseconds(0))) {
-//         std::optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(100));
+//         stxlib::Optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(100));
 //         if (!slot) continue;
 //         std::span<std::byte> pixels = (*client).slot_pixels(*slot);
 //         ... draw width by height BGRA rows into pixels ...
