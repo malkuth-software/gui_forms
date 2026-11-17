@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include <array>
+#include <climits>
 #include <cstddef>
 #include <string>
 
@@ -46,6 +47,7 @@ constexpr std::array<LCTYPE, 12> abbreviated_month_name_types{
 std::optional<std::string> utf8_from_wide(const std::wstring_view text) {
     std::string converted;
     if (text.empty()) return converted;
+    if (text.size() > static_cast<std::size_t>(INT_MAX)) return std::nullopt;
     const int length = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), static_cast<int>(text.size()),
                                            nullptr, 0, nullptr, nullptr);
     if (length <= 0) return std::nullopt;
@@ -60,7 +62,7 @@ std::optional<std::string> utf8_from_wide(const std::wstring_view text) {
 // when it cannot be read, is too long, or cannot be converted.
 std::optional<std::string> locale_text(const LocaleSource& source, const LCTYPE type) {
     std::array<wchar_t, maximum_locale_value> buffer{};
-    const int written = GetLocaleInfoEx(source.name, type | source.flags, buffer.data(), static_cast<int>(buffer.size()));
+    const int written = GetLocaleInfoEx(source.name, type | source.flags, buffer.data(), maximum_locale_value);
     // The count includes the terminator.
     if (written <= 0) return std::nullopt;
     const std::wstring_view text(buffer.data(), static_cast<std::size_t>(written - 1));
@@ -140,7 +142,7 @@ std::optional<HostLocale> read_windows_locale_defaults(const std::string_view na
     if (name.empty() || name.size() >= static_cast<std::size_t>(LOCALE_NAME_MAX_LENGTH)) return std::nullopt;
     std::array<wchar_t, LOCALE_NAME_MAX_LENGTH> wide{};
     const int length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name.data(), static_cast<int>(name.size()),
-                                           wide.data(), static_cast<int>(wide.size()) - 1);
+                                           wide.data(), LOCALE_NAME_MAX_LENGTH - 1);
     // The array starts zeroed, so the name stays terminated.
     if (length <= 0) return std::nullopt;
     if (IsValidLocaleName(wide.data()) == FALSE) return std::nullopt;

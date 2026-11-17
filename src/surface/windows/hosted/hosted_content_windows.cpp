@@ -558,6 +558,8 @@ std::wstring_view environment_name(const std::wstring& entry) noexcept {
 // Compares two names without regard to case, as the system orders the
 // block. Names are at most 32,767 characters, so their sizes fit an int.
 int compare_environment_names(std::wstring_view left, std::wstring_view right) noexcept {
+    // CompareStringOrdinal's failure value, for a name no environment block holds.
+    if (left.size() > static_cast<std::size_t>(INT_MAX) || right.size() > static_cast<std::size_t>(INT_MAX)) return 0;
     const int order = CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(),
                                            static_cast<int>(right.size()), TRUE);
     return order;

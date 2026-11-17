@@ -3443,7 +3443,7 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<HostPopupPlacement> popup
+   .. cpp:member:: stxlib::Optional<HostPopupPlacement> popup
 
       A native popup window (ApplicationWindow::popup); none for every other kind.
 

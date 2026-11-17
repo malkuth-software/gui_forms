@@ -711,12 +711,14 @@ constexpr std::wstring_view dialog_class_name{L"#32770"};
 constexpr int maximum_class_name = 257;
 
 bool window_class_is(HWND window, std::wstring_view expected) noexcept {
+    if (expected.size() > static_cast<std::size_t>(maximum_class_name)) return false;
     std::array<wchar_t, maximum_class_name> name{};
-    const int length = GetClassNameW(window, name.data(), static_cast<int>(name.size()));
+    const int length = GetClassNameW(window, name.data(), maximum_class_name);
     if (length <= 0) return false;
     const std::wstring_view actual(name.data(), static_cast<std::size_t>(length));
-    return CompareStringOrdinal(actual.data(), static_cast<int>(actual.size()), expected.data(),
-                                static_cast<int>(expected.size()), TRUE) == CSTR_EQUAL;
+    // expected is at most maximum_class_name characters (checked above), so its size fits an int.
+    const int expected_length = static_cast<int>(expected.size());
+    return CompareStringOrdinal(actual.data(), length, expected.data(), expected_length, TRUE) == CSTR_EQUAL;
 }
 
 // EnumChildWindows target: stops at the box's icon control and stores it
