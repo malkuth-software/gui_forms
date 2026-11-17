@@ -73,6 +73,9 @@ class RuleSet;
 // The internal drag engine (src/core/drag_engine/drag_engine.hpp).
 class DragEngine;
 namespace detail {
+// tools/layout_probe/surface_root_layout_probe.py: reads the members'
+// offsets as two libraries compile them.
+struct SurfaceRootLayoutProbe;
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
 class AcceleratorAttachment;
@@ -1677,6 +1680,7 @@ private:
     friend class detail::SurfaceHandleAccess;
     friend class detail::SurfaceHelpAccess;
     friend class detail::SurfaceMouseRuleAccess;
+    friend struct detail::SurfaceRootLayoutProbe;
     // Key and text forwarding to a warm Popup window (Window::
     // forward_input_to_popup_window): while set, dispatch_key and
     // dispatch_text offer each event to the model of slot
@@ -3240,5 +3244,28 @@ private:
     bool (*offer_mouse_rules_)(RuleSet& rules, detail::MouseRuleEvent event, Control& control,
                                const MouseEventArgs* arguments){};
 };
+
+namespace detail {
+
+// One layout of SurfaceRoot per program (an ODR guard, #483). Every unit
+// that includes this header refers to the marker named by the size and
+// alignment it sees; the core library defines the marker of its own layout
+// only (surface_root.cpp). A unit that compiles SurfaceRoot otherwise (other
+// definitions, another header) names a marker nothing defines, and the link
+// fails, instead of two libraries reading each other's members at the wrong
+// offsets: the surface host's inline set_scroll_copies_supported wrote its
+// bool where core read scroll_copies_. A layout that keeps its size while
+// moving members passes this guard; tools/layout_probe compares offsets.
+template <std::size_t Size, std::size_t Alignment>
+struct SurfaceRootLayout final {
+    static const int marker;
+};
+
+#if defined(__GNUC__) || defined(__clang__)
+[[gnu::used]] static const int* const surface_root_layout_marker =
+    &SurfaceRootLayout<sizeof(SurfaceRoot), alignof(SurfaceRoot)>::marker;
+#endif
+
+} // namespace detail
 
 } // namespace gui_forms
