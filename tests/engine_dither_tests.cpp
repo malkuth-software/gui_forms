@@ -10,9 +10,9 @@
 //   plain rounding.
 // - Banding: a 1024-pixel gradient across four byte steps (#808080 to
 //   #848484) shows 4 steps and runs of 256 equal bytes undithered; dithered,
-//   hundreds of steps per row, runs a fraction as long, and 8 x 8 block means
-//   within a sixteenth of a byte of the exact ramp where rounding misses by
-//   nearly half a byte.
+//   the three modes' bytes differ, with hundreds of steps per row, runs a
+//   fraction as long, and 8 x 8 block means within 5/64 of a byte of the
+//   exact linear-light ramp where rounding misses by nearly half a byte.
 // - Determinism across hosts: the three bakes' FNV-1a hashes are constants
 //   computed outside the kernel (an emulation of its arithmetic in Python's
 //   IEEE doubles, recorded 2026-11-12), so every host must give these bytes.
@@ -395,8 +395,36 @@ struct BandingMetrics final {
     double mean_error{};
 };
 
+// The exact sRGB curve in doubles, from and to bytes: an oracle apart from
+// the engine's integer tables (gui_forms/types/linear_light).
+double linear_of_srgb_byte(double encoded) {
+    const double unit = encoded / 255.0;
+    if (unit <= 0.04045) return unit / 12.92;
+    const double linear = std::pow((unit + 0.055) / 1.055, 2.4);
+    return linear;
+}
+
+double srgb_byte_of_linear(double linear) {
+    if (linear <= 0.0031308) return linear * 12.92 * 255.0;
+    const double encoded = (1.055 * std::pow(linear, 1.0 / 2.4) - 0.055) * 255.0;
+    return encoded;
+}
+
+// The banding ramp's exact sRGB level at `fraction` of the way from the
+// byte `low` to `high`: gradients interpolate in linear light (owner,
+// 2026-11-16), so the level is the sRGB encoding of the linear mix, which
+// for #808080 to #848484 lies up to 0.02 of a byte off the straight sRGB
+// line and averages 0.012 above it, more than the mean's tolerance.
+double ramp_level(double low, double high, double fraction) {
+    const double from = linear_of_srgb_byte(low);
+    const double to = linear_of_srgb_byte(high);
+    const double mixed = from + (to - from) * fraction;
+    const double level = srgb_byte_of_linear(mixed);
+    return level;
+}
+
 // The green channel's metrics of a raster of the banding material, whose
-// exact value at column x is `low` + (`high` − `low`) × (x + 1/2) / width.
+// exact value at column x is ramp_level(`low`, `high`, (x + 1/2) / width).
 BandingMetrics banding_metrics(const PartRaster& raster, double low, double high) {
     const DeviceExtent extent = raster.extent();
     const std::span<const std::uint8_t> pixels = raster.pixels();
@@ -423,7 +451,13 @@ BandingMetrics banding_metrics(const PartRaster& raster, double low, double high
     }
     metrics.steps_per_row = static_cast<double>(steps) / static_cast<double>(extent.height);
     const double width = static_cast<double>(extent.width);
-    const double exact_mean = (low + high) * 0.5;
+    // Every row is the same ramp: the exact mean is one row's.
+    double exact_total = 0.0;
+    for (std::uint32_t column = 0U; column < extent.width; ++column) {
+        const double fraction = (static_cast<double>(column) + 0.5) / width;
+        exact_total = exact_total + ramp_level(low, high, fraction);
+    }
+    const double exact_mean = exact_total / width;
     metrics.mean_error = std::abs(total / (width * static_cast<double>(extent.height)) - exact_mean);
     for (std::uint32_t top = 0U; top + 8U <= extent.height; top += 8U) {
         for (std::uint32_t left = 0U; left + 8U <= extent.width; left += 8U) {
@@ -433,7 +467,8 @@ BandingMetrics banding_metrics(const PartRaster& raster, double low, double high
                 const std::size_t start = static_cast<std::size_t>(row) * raster.row_bytes();
                 for (std::uint32_t column = left; column < left + 8U; ++column) {
                     sum = sum + static_cast<double>(pixels[start + static_cast<std::size_t>(column) * 4U + green]);
-                    exact = exact + low + (high - low) * ((static_cast<double>(column) + 0.5) / width);
+                    const double fraction = (static_cast<double>(column) + 0.5) / width;
+                    exact = exact + ramp_level(low, high, fraction);
                 }
             }
             const double error = std::abs(sum - exact) / 64.0;
@@ -468,16 +503,27 @@ void banding() {
               << ", block error " << bayer.block_error << '\n';
     std::cout << "banding blue-noise: steps/row " << noise.steps_per_row << ", longest run " << noise.longest_run
               << ", block error " << noise.block_error << '\n';
+    // Each mode quantizes differently: a gradient rounded to whole bytes
+    // before the dither (linear light's first form, 2026-11-16) gave all
+    // three the same bytes.
+    require(!same_raster(*plain, *ordered) && !same_raster(*plain, *blue) && !same_raster(*ordered, *blue),
+            "the three dither modes bake different bytes");
     // Undithered: five bytes, four steps, a run of 256 between them, and a
     // block mean up to almost half a byte off the ramp (the band).
     require(rounded.steps_per_row == 4.0 && rounded.longest_run >= 250U, "undithered, the ramp shows four bands");
     require(rounded.block_error > 0.4, "undithered, a block misses the ramp by almost half a byte");
-    // Dithered (2026-11-12 emulation: ordered 512 steps, run 98, block error
-    // 1/64; blue noise 415 steps, run 60, block error 3/64).
+    // Dithered (2026-11-16 emulation of the linear-light ramp, the kernel's
+    // tables and thresholds in Python's doubles: ordered 512.5 steps, run
+    // 100, block error 0.021; blue noise 416.6 steps, run 70, block error
+    // 0.066, mean errors below 0.001). Against the exact linear-light ramp,
+    // whose fractions within a block differ from the straight sRGB ramp's,
+    // the blue-noise table's worst block is 4.2/64 off (the same with the
+    // ramp in exact doubles, so not the encoding's), where the straight
+    // ramp's (2026-11-12) was 3/64; its bound is 5/64.
     require(bayer.steps_per_row >= 256.0 && bayer.longest_run <= 128U, "ordered, the bands break up");
     require(noise.steps_per_row >= 256.0 && noise.longest_run <= 96U, "blue noise, the bands break up");
     require(bayer.block_error <= 1.0 / 32.0, "ordered, every 8 x 8 block keeps the ramp's mean");
-    require(noise.block_error <= 1.0 / 16.0, "blue noise, every 8 x 8 block keeps the ramp's mean");
+    require(noise.block_error <= 5.0 / 64.0, "blue noise, every 8 x 8 block keeps the ramp's mean");
     require(bayer.mean_error <= 0.01 && noise.mean_error <= 0.01, "dithering keeps the mean");
 }
 

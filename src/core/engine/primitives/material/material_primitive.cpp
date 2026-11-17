@@ -121,6 +121,21 @@ constexpr std::size_t maximum_outer = SurfaceMaterial::maximum_shadows + Surface
 // destination holds all of it (valid_surface_material).
 static_assert(SurfaceMaterial::maximum_glow_reach <= material_outset, "a glow stays within the material's outsets");
 
+// How a gradient's colour between two stops enters the pixel arithmetic,
+// chosen once per bake from the material's dither (resolve_look_at).
+enum class StopEncoding : std::uint8_t {
+    // Rounded to the nearest sRGB byte by the engine's integer tables
+    // (interpolate_linear_light), as the Skia painter's stops are: the
+    // undithered bake.
+    nearest_byte,
+    // Kept between sRGB bytes (continuous_linear_light), so that the
+    // dither's threshold, not an earlier rounding, chooses each pixel's
+    // byte. Rounded to a byte first, every pixel of a ramp would already be
+    // whole and every threshold would leave it as it is: the three dither
+    // modes would bake the same bytes.
+    continuous,
+};
+
 struct ResolvedFill final {
     MaterialFillKind kind{MaterialFillKind::solid};
     Color colour{};
@@ -143,6 +158,7 @@ struct ResolvedFill final {
     double from_turn{};
     double periods_per_turn{1.0};
     GradientSpreadMode spread{GradientSpreadMode::pad};
+    StopEncoding stop_encoding{StopEncoding::nearest_byte};
     MaterialBlendMode blend{MaterialBlendMode::normal};
     // Borrowed from the material for the bake.
     std::span<const GradientStop> stops{};
@@ -641,11 +657,16 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
         look.outer[look.outer_count] = resolved;
         look.outer_count = look.outer_count + 1U;
     }
+    // A dithered bake keeps its gradients between bytes for the dither's
+    // threshold (StopEncoding).
+    const StopEncoding stop_encoding =
+        material.dither == MaterialDither::none ? StopEncoding::nearest_byte : StopEncoding::continuous;
     for (std::size_t index = 0U; index < material.fills.size(); ++index) {
         const MaterialFillLayer& layer = material.fills[index];
         if (layer.kind == MaterialFillKind::solid && layer.color.alpha == 0U) continue;
         look.fills[look.fill_count] = resolve_fill(layer, box, scale);
         look.fills[look.fill_count].image = index;
+        look.fills[look.fill_count].stop_encoding = stop_encoding;
         look.fill_count = look.fill_count + 1U;
         if (layer.blend != MaterialBlendMode::normal) look.face_blends = true;
     }
@@ -656,6 +677,7 @@ MaterialLook resolve_look_at(const SurfaceMaterial& material, const PrimitiveTar
         ResolvedMask& resolved = look.masks[index];
         resolved.fill = resolve_fill(layer.source, box, scale);
         resolved.fill.image = mask_layer;
+        resolved.fill.stop_encoding = stop_encoding;
         resolved.mode = layer.mode;
         resolved.composite = layer.composite;
     }
@@ -1073,22 +1095,97 @@ double spread_position(double t, GradientSpreadMode spread) noexcept {
     return std::clamp(t, 0.0, 1.0);
 }
 
+// The sRGB level, in bytes and fractions of a byte, of `level` on linear
+// light's 16-bit scale (LinearLightLevel's): linear between the decode
+// table's neighbouring entries, so that each byte's own entry gives that
+// byte exactly and the level rises with `level`. It is within 1/40 of a
+// byte of the exact sRGB curve (checked 2026-11-16 against the curve in
+// doubles at every quarter step of the scale; the largest gap is near
+// black, where the table's entries are 20 apart). Integer tables and one
+// division, no libm: the same value on every host.
+double continuous_srgb_of_linear_light(double level) noexcept {
+    const std::array<std::uint16_t, 256>& table = gui_forms::detail::linear_light_decode_table;
+    // !(level > 0.0) takes NaN to black as well.
+    if (!(level > 0.0)) return 0.0;
+    if (level >= static_cast<double>(table[255U])) return 255.0;
+    // The last entry at or below `level`: table[0] is 0, below it, and
+    // table[255] above it, so the entry and the next one exist.
+    const std::uint16_t* const first = table.data();
+    const std::uint16_t* const last = first + table.size();
+    const std::uint16_t* const above = std::upper_bound(first, last, level);
+    const std::size_t byte = static_cast<std::size_t>(above - first) - 1U;
+    const double low = static_cast<double>(table[byte]);
+    const double high = static_cast<double>(table[byte + 1U]);
+    const double fraction = (level - low) / (high - low);
+    const double encoded = static_cast<double>(byte) + fraction;
+    return encoded;
+}
+
+// One colour channel of continuous_linear_light, as linear_light_channel
+// (linear_light.hpp) sums it, with `alpha_sum` (not zero) as a double:
+// the premultiplied linear sum, below 2^41, and alpha_sum, below 2^24, are
+// exact in double, so the level is their quotient rounded once.
+double continuous_light_channel(std::uint8_t from, std::uint8_t from_alpha, std::uint8_t to, std::uint8_t to_alpha,
+                                std::uint64_t keep, std::uint64_t weight, double alpha_sum) noexcept {
+    const std::uint64_t from_linear = gui_forms::detail::linear_light_decode_table[from];
+    const std::uint64_t to_linear = gui_forms::detail::linear_light_decode_table[to];
+    const std::uint64_t from_part = from_linear * from_alpha * keep;
+    const std::uint64_t to_part = to_linear * to_alpha * weight;
+    const std::uint64_t premultiplied = from_part + to_part;
+    const double level = static_cast<double>(premultiplied) / alpha_sum;
+    const double encoded = continuous_srgb_of_linear_light(level);
+    return encoded;
+}
+
+// The colour `weight` of the way from `from` to `to`, interpolated
+// premultiplied in linear light as interpolate_linear_light does, but with
+// its sRGB channels and alpha left between bytes, then premultiplied and
+// scaled by `coverage` (StopEncoding::continuous). The ends and equal
+// colours are the stops' bytes exactly, as there; a zero alpha sum is
+// transparent black.
+Unit continuous_linear_light(Color from, Color to, std::uint32_t weight, double coverage) noexcept {
+    if (weight == 0U) return premultiply(from, coverage);
+    if (weight >= linear_light_weight_one) return premultiply(to, coverage);
+    if (from == to) return premultiply(from, coverage);
+    const std::uint64_t later = weight;
+    const std::uint64_t keep = linear_light_weight_one - weight;
+    const std::uint64_t from_alpha = from.alpha;
+    const std::uint64_t to_alpha = to.alpha;
+    const std::uint64_t alpha_sum = from_alpha * keep + to_alpha * later;
+    if (alpha_sum == 0U) return Unit{};
+    const double total = static_cast<double>(alpha_sum);
+    // alpha_sum is alpha in 1/(255 × 65536).
+    constexpr double alpha_scale = 255.0 * static_cast<double>(linear_light_weight_one);
+    const double alpha = total / alpha_scale * coverage;
+    const double red = continuous_light_channel(from.red, from.alpha, to.red, to.alpha, keep, later, total);
+    const double green = continuous_light_channel(from.green, from.alpha, to.green, to.alpha, keep, later, total);
+    const double blue = continuous_light_channel(from.blue, from.alpha, to.blue, to.alpha, keep, later, total);
+    const Unit unit{red / 255.0 * alpha, green / 255.0 * alpha, blue / 255.0 * alpha, alpha};
+    return unit;
+}
+
 // The gradient's colour at `t` in [0, 1], premultiplied and scaled by
 // `coverage`; the stops are valid (valid_gradient_stops: at least two, from
 // 0 to 1, increasing). The two neighbouring stops are interpolated
 // premultiplied in linear light (owner, 2026-11-16;
 // gui_forms/types/linear_light/linear_light.hpp), as the Skia painter's
-// gradients are: the colour is exact to the sRGB byte, by the engine's
-// integer tables, and a stop fading to transparent fades the other stop's
-// colour, never towards black.
-Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage) noexcept {
+// gradients are, and a stop fading to transparent fades the other stop's
+// colour, never towards black. By `encoding`, the colour is exact to the
+// sRGB byte, by the engine's integer tables, or kept between bytes for the
+// dither (StopEncoding).
+Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage, StopEncoding encoding) noexcept {
     std::size_t next = 1U;
     while (next + 1U < stops.size() && t > stops[next].offset) next = next + 1U;
     const GradientStop& low = stops[next - 1U];
     const GradientStop& high = stops[next];
     const double span = high.offset - low.offset;
     const double f = std::clamp((t - low.offset) / span, 0.0, 1.0);
-    const Color mixed = interpolate_linear_light(low.color, high.color, linear_light_weight(f));
+    const std::uint32_t weight = linear_light_weight(f);
+    if (encoding == StopEncoding::continuous) {
+        const Unit between = continuous_linear_light(low.color, high.color, weight, coverage);
+        return between;
+    }
+    const Color mixed = interpolate_linear_light(low.color, high.color, weight);
     const Unit colour = premultiply(mixed, coverage);
     return colour;
 }
@@ -1102,7 +1199,7 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
     }
     case MaterialFillKind::linear_gradient: {
         const double t = (centre_x - fill.origin_x) * fill.step_x + (centre_y - fill.origin_y) * fill.step_y;
-        const Unit linear = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
+        const Unit linear = stop_colour(fill.stops, spread_position(t, fill.spread), coverage, fill.stop_encoding);
         return linear;
     }
     case MaterialFillKind::radial_gradient: {
@@ -1120,7 +1217,7 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
             const double reach = toward * toward + inside * (from_x * from_x + from_y * from_y);
             t = (toward + std::sqrt(reach)) * fill.focal_scale;
         }
-        const Unit radial = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
+        const Unit radial = stop_colour(fill.stops, spread_position(t, fill.spread), coverage, fill.stop_encoding);
         return radial;
     }
     case MaterialFillKind::conic_gradient: {
@@ -1131,7 +1228,7 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
         const double turn = angle * inverse_whole_turn - fill.from_turn;
         const double past = turn - std::floor(turn);
         const double t = past * fill.periods_per_turn;
-        const Unit conic = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
+        const Unit conic = stop_colour(fill.stops, spread_position(t, fill.spread), coverage, fill.stop_encoding);
         return conic;
     }
     case MaterialFillKind::image: {

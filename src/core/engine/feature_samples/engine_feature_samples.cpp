@@ -238,6 +238,12 @@ void procedural_checker(const FeatureSampleInputs&, ThemeDefinition& definition)
     draw_procedural(definition, ProceduralPattern::checker, 0x0E11F007U, "procedural_checker");
 }
 
+// The hatch (raster patterns, owner 2026-11-16) in its default style,
+// horizontal: a 32-unit tile, a whole number of its 8 × 8 squares.
+void procedural_hatch(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_procedural(definition, ProceduralPattern::hatch, 0x0E11F008U, "procedural_hatch");
+}
+
 // One surface finish (skeudoindustrial surfaces, phase 1), as the only
 // fill: the study's paint and dust, a seed of its own.
 void draw_finish(ThemeDefinition& definition, FinishKind kind, std::int32_t seed, std::string_view label) {
@@ -649,6 +655,7 @@ constexpr EngineFeatureSample samples[] = {
     {"procedural_brushed_metal", "material", PartRole::face, Drive::rest, procedural_brushed_metal},
     {"procedural_fresco", "material", PartRole::face, Drive::rest, procedural_fresco},
     {"procedural_checker", "material", PartRole::face, Drive::rest, procedural_checker},
+    {"procedural_hatch", "material", PartRole::face, Drive::rest, procedural_hatch},
     {"finish_dusty_matte", "material", PartRole::face, Drive::rest, finish_dusty_matte},
     {"finish_orange_peel", "material", PartRole::face, Drive::rest, finish_orange_peel},
     {"finish_hammertone", "material", PartRole::face, Drive::rest, finish_hammertone},
