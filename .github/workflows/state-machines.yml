@@ -130,6 +130,17 @@ jobs:
             python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
           fi
           python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
+      # The gate's own stx package (Skia off, audio on: another stamp than the
+      # native jobs' package, so its own family), under the native jobs' key
+      # inputs; saved whenever its stamp exists (cmake/Stx.cmake writes it only
+      # after a complete build), so configuring links it instead of building it
+      # (about 60 s; the check efficiency audit, 1d and 5).
+      - uses: actions/cache/restore@v4
+        id: stx-package
+        if: steps.scope.outputs.scope != 'none'
+        with:
+          path: .ci/stx-package
+          key: gui-stx-package-v1-state-machines-${{ runner.arch }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       # Configure only: the checker runs the front end (-fsyntax-only) over the
       # tree's compile commands and builds just the generated headers.
       # The form-compiler test is off: its header is generated at build time,
@@ -139,11 +150,17 @@ jobs:
         run: |
           cmake -S gui_forms -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/gui_forms/cmake/llvm22.cmake" \
+            -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package" \
             -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=ON \
             -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF -DGUI_FORMS_ENABLE_MACOS_HOST=OFF \
             -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_ENABLE_SKIA=OFF \
             -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF
+      - uses: actions/cache/save@v4
+        if: always() && steps.scope.outputs.scope != 'none' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
+        with:
+          path: .ci/stx-package
+          key: ${{ steps.stx-package.outputs.cache-primary-key }}
       - uses: actions/cache/restore@v4
         if: steps.scope.outputs.scope != 'none' && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
         with:
@@ -153,14 +170,15 @@ jobs:
             gui-state-machine-units-v1-${{ github.head_ref || github.ref_name }}-
             gui-state-machine-units-v1-main-
       # The salt names what a unit reads from outside the checkout and the build
-      # tree: the compiler (and its system headers) and the stx pin.
+      # tree: the compiler (and its system headers) and the stx package (its pin
+      # and recipe).
       - name: Check the state machines
         if: steps.scope.outputs.scope != 'none'
         shell: bash
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           SCOPE: ${{ steps.scope.outputs.scope }}
-          SALT: ${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock') }}
+          SALT: ${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**') }}
         run: |
           set -o pipefail
           changed=""

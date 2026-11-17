@@ -495,13 +495,17 @@ jobs:
           path: |
             gui_forms/third_party/miniaudio
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
-      # A package this job built is kept for the runs after it, only after
-      # every build and test step above passed (owner, 2026-11-01). Pull
-      # requests save it too: the key changes only when stx.lock or the recipe
-      # does, so the entries are rare, and the pull request's later runs then
-      # link it instead of building it again. Merge groups save nothing.
+      # A package this job built is kept for the runs after it whenever its
+      # stamp exists, whatever the build and tests did after it (owner,
+      # 2026-11-16: the check efficiency audit's fix 5; before, only after
+      # every step passed). cmake/Stx.cmake writes the stamp only after the
+      # package built and installed completely, and the package depends only
+      # on what its key holds, never on the tests. Pull requests save it too:
+      # the key changes only when stx.lock or the recipe does, so the entries
+      # are rare, and the pull request's later runs then link it instead of
+      # building it again (about 106 s per job). Merge groups save nothing.
       - uses: actions/cache/save@v4
-        if: success() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true && github.event_name != 'merge_group' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
+        if: always() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true && github.event_name != 'merge_group' && steps.stx-package.outputs.cache-hit != 'true' && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''
         with:
           path: .ci/stx-package
           key: ${{ steps.stx-package.outputs.cache-primary-key }}

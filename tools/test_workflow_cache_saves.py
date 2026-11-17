@@ -29,6 +29,9 @@ in ADMITTED_FAILURE_SAVES with the condition and key fragments it must carry:
 - a pull request's own objects (.ccache, key ...-pr<number>-<tree>): saved
   only on pull_request, into a family no other ref restores; the pull
   request's next push restores it before main's.
+- the stx package (.ci/stx-package) whenever its stamp exists:
+  cmake/Stx.cmake writes the stamp only after a complete build and install,
+  and the package depends only on its key's inputs, never on the tests.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -49,6 +52,8 @@ GUARDED_PATHS: tuple[str, ...] = (".ccache", "third_party/", ".ci/stx-package")
 ADMITTED_FAILURE_SAVES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     (".ci/state-machine-units.json", ("hashFiles('.ci/state-machine-units.json') != ''",), ""),
     (".ccache", ("github.event_name == 'pull_request'",), "-pr${{ github.event.pull_request.number }}-"),
+    (".ci/stx-package", ("hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''",
+                         "steps.stx-package.outputs.cache-hit != 'true'"), ""),
 )
 
 
@@ -204,6 +209,13 @@ class WorkflowCacheSaveTests(unittest.TestCase):
         self.assertTrue(admitted_failure_save(objects))
         self.assertFalse(admitted_failure_save(objects.replace("-pr${{ github.event.pull_request.number }}", "")))
         self.assertFalse(admitted_failure_save(objects.replace(" && github.event_name == 'pull_request'", "")))
+        package: str = ("      - uses: actions/cache/save@v4\n"
+                        "        if: always() && steps.stx-package.outputs.cache-hit != 'true' && "
+                        "hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''\n"
+                        "        with:\n          path: .ci/stx-package\n")
+        self.assertTrue(admitted_failure_save(package))
+        self.assertFalse(admitted_failure_save(package.replace(
+            " && hashFiles('.ci/stx-package/gui-forms-stx-package.stamp') != ''", "")))
         self.assertTrue(prune_waits_for_success(
             "${{ !cancelled() && !contains(needs.*.result, 'failure') && github.event_name == 'push' }}"))
 
