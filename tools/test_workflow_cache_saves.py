@@ -18,6 +18,14 @@ does):
   (.ci/stx-package) save comes after every
   test step of its job (a step named "Test..." or "Build and test...");
 - the cache-prune job runs only when none of the jobs it follows failed.
+
+Admitted exceptions (owner, 2026-11-16, the check efficiency audit's
+fixes), each a save that cannot replace a good entry with a bad one, listed
+in ADMITTED_FAILURE_SAVES with the condition and key fragments it must carry:
+
+- the state-machine gate's unit store (.ci/state-machine-units.json): the
+  findings are recomputed from it on every run, and a unit that failed to
+  compile is never stored.
 """
 from __future__ import annotations
 from pathlib import Path
@@ -32,6 +40,12 @@ STEP_IF: re.Pattern[str] = re.compile(r"^\s{8}if:\s*(.*)$", re.MULTILINE)
 STATUS_FUNCTIONS: re.Pattern[str] = re.compile(r"\b(always|cancelled|failure)\(\)")
 TEST_STEP: re.Pattern[str] = re.compile(r"^\s*- name:\s*(Test\b|Build and test\b)")
 GUARDED_PATHS: tuple[str, ...] = (".ccache", "third_party/", ".ci/stx-package")
+# (path, condition fragments, key fragment): a save of that path may run after a
+# failure only when its `if:` holds every condition fragment and its key holds the
+# key fragment ("" for none).
+ADMITTED_FAILURE_SAVES: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    (".ci/state-machine-units.json", ("hashFiles('.ci/state-machine-units.json') != ''",), ""),
+)
 
 
 def jobs(workflow: str) -> list[str]:
@@ -68,6 +82,22 @@ def save_condition_violation(step: str) -> str | None:
     if status is None:
         return None
     return "saves under " + status.group(0)
+
+
+def admitted_failure_save(step: str) -> bool:
+    """Whether a save step is one of ADMITTED_FAILURE_SAVES, with all its fragments."""
+    condition: re.Match[str] | None = STEP_IF.search(step)
+    if condition is None:
+        return False
+    path: str
+    fragments: tuple[str, ...]
+    key: str
+    for path, fragments, key in ADMITTED_FAILURE_SAVES:
+        if re.search(r"^\s*path:\s*" + re.escape(path) + r"\s*$", step, re.MULTILINE) is None:
+            continue
+        if all(fragment in condition.group(1) for fragment in fragments) and key in step:
+            return True
+    return False
 
 
 def guards_build_output(step: str) -> bool:
@@ -117,6 +147,8 @@ class WorkflowCacheSaveTests(unittest.TestCase):
                     if CACHE_SAVE.search(step) is None:
                         continue
                     checked += 1
+                    if admitted_failure_save(step):
+                        continue
                     violation: str | None = save_condition_violation(step)
                     self.assertIsNone(violation, f"{path.name}: {step.strip().splitlines()[0]}: {violation}")
         # native-platform, native and release save several caches each.
@@ -155,6 +187,12 @@ class WorkflowCacheSaveTests(unittest.TestCase):
                       "      - name: Test\n        run: ctest\n")
         self.assertEqual(saves_before_tests(jobs("x\n" + early)[0]), ["- uses: actions/cache/save@v4"])
         self.assertFalse(prune_waits_for_success("always() && github.event_name == 'push'"))
+        units: str = ("      - uses: actions/cache/save@v4\n"
+                      "        if: always() && hashFiles('.ci/state-machine-units.json') != ''\n"
+                      "        with:\n          path: .ci/state-machine-units.json\n")
+        self.assertTrue(admitted_failure_save(units))
+        self.assertFalse(admitted_failure_save(units.replace(" && hashFiles('.ci/state-machine-units.json') != ''", "")))
+        self.assertFalse(admitted_failure_save(units.replace("state-machine-units.json\n", "elsewhere.json\n")))
         self.assertTrue(prune_waits_for_success(
             "${{ !cancelled() && !contains(needs.*.result, 'failure') && github.event_name == 'push' }}"))
 
