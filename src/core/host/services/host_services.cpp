@@ -79,53 +79,6 @@ bool valid_monitor(const HostMonitor& monitor) noexcept {
            valid_scale(monitor.scale);
 }
 
-class DragDataValidator final {
-public:
-    explicit DragDataValidator(std::size_t& total) noexcept : total_(&total) {}
-
-    template <typename DataValue>
-    bool operator()(const DataValue& data) const noexcept {
-        using Data =
-            std::remove_cv_t<std::remove_reference_t<DataValue>>;
-        if constexpr (std::is_same_v<Data, DragTextData>) {
-            return data.text_utf8.size() <= DragLimits::maximum_text_bytes &&
-                   data.text_utf8.find('\0') == std::string::npos &&
-                   valid_utf8(data.text_utf8) && add_size(data.text_utf8.size());
-        } else if constexpr (std::is_same_v<Data, DragFileListData>) {
-            if (data.paths_utf8.empty() ||
-                data.paths_utf8.size() > DragLimits::maximum_paths) {
-                return false;
-            }
-            for (const std::string& path : data.paths_utf8) {
-                if (path.empty() ||
-                    path.size() > DragLimits::maximum_path_bytes ||
-                    path.find('\0') != std::string::npos ||
-                    !valid_utf8(path) || !add_size(path.size())) {
-                    return false;
-                }
-            }
-            return true;
-        } else if constexpr (std::is_same_v<Data, DragBinaryData>) {
-            return !data.media_type.empty() &&
-                   data.media_type.size() <=
-                       DragLimits::maximum_media_type_bytes &&
-                   data.media_type.find('\0') == std::string::npos &&
-                   valid_utf8(data.media_type) && add_size(data.bytes.size());
-        } else {
-            return false;
-        }
-    }
-
-private:
-    bool add_size(std::size_t value) const noexcept {
-        if (value > DragLimits::maximum_total_bytes - *total_) return false;
-        *total_ += value;
-        return true;
-    }
-
-    std::size_t* total_{};
-};
-
 bool valid_monitor_set(const std::vector<HostMonitor>& monitors) {
     if (monitors.empty() || monitors.size() > 64U) {
         return false;
@@ -139,33 +92,6 @@ bool valid_monitor_set(const std::vector<HostMonitor>& monitors) {
         primary_count += monitor.primary ? 1U : 0U;
     }
     return primary_count == 1U;
-}
-
-bool valid_drag_event(const DragEvent& event) noexcept {
-    constexpr std::uint8_t known_effects =
-        static_cast<std::uint8_t>(DragEffect::copy) |
-        static_cast<std::uint8_t>(DragEffect::move) |
-        static_cast<std::uint8_t>(DragEffect::link);
-    const std::uint8_t effects = static_cast<std::uint8_t>(event.allowed_effects);
-    if (event.session_id == 0 || !std::isfinite(event.position.x) ||
-        !std::isfinite(event.position.y) || (effects & ~known_effects) != 0 ||
-        event.accepted_effect != DragEffect::none ||
-        event.items.size() > DragLimits::maximum_items) {
-        return false;
-    }
-    if (event.action != DragAction::leave &&
-        (event.items.empty() || event.allowed_effects == DragEffect::none)) {
-        return false;
-    }
-    std::size_t total = 0;
-    const DragDataValidator validator(total);
-    for (const DragDataItem& item : event.items) {
-        const bool valid = std::visit(validator, item);
-        if (!valid) {
-            return false;
-        }
-    }
-    return true;
 }
 
 bool valid_dialog_string(std::string_view text) noexcept {

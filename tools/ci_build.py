@@ -435,6 +435,8 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     # keep LTO; GUI_FORMS_CI_LTO=1 keeps it here too.
     if os.environ.get('GUI_FORMS_CI_LTO') != '1':
         options.append('-DGUI_FORMS_LTO=OFF')
+    # Warnings are failures in CI (owner, 2026-11-17).
+    options.append('-DGUI_FORMS_WARNINGS_AS_ERRORS=ON')
     configure: list[str] = [
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
         *toolkit_options(ROOT / 'gui_forms', sdk, gallery, True), *options]

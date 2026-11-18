@@ -186,6 +186,7 @@ option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the p
 # text with the shared text engine (gui_forms_text_engine), which reads
 # fonts, shapes, measures and draws with STXlib and is always built.
 option(GUI_FORMS_BUILD_FUZZERS "Build libFuzzer entry points" OFF)
+option(GUI_FORMS_WARNINGS_AS_ERRORS "Fail the build on any compiler warning in the library and its programs (tools/ci_build.py turns it on)" OFF)
 # Stage FD5: the program that generates a form document's C++ header; the SDK
 # installs it. A cross build has no host to run it on.
 if(CMAKE_CROSSCOMPILING)
@@ -258,6 +259,10 @@ if(NOT MSVC AND NOT EMSCRIPTEN)
     set(_gf_linked_module "$<OR:$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>>")
     if(APPLE)
         add_link_options($<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:-dead_strip>)
+        # CMake repeats a static library on a link line for the dependency
+        # cycles it resolves; Apple's linker (ld-prime) warns at each repeat,
+        # which is no fault of the link.
+        add_link_options($<${_gf_linked_module}:LINKER:-no_warn_duplicate_libraries>)
     elseif(GUI_FORMS_WINDOWS_MSVC_TARGET)
         # lld-link's spelling: /OPT:REF drops unreferenced sections, and
         # /OPT:NOICF keeps identical-code folding off, as above.
@@ -7409,6 +7414,20 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             endif()
             # Hardening and the warning level (cmake/Hardening.cmake, D11).
             gui_forms_harden_target(${gui_forms_first_party_target} ${gui_forms_target_type})
+            # Warnings are failures (owner, 2026-11-17) for the library and its
+            # programs. The test programs (moving to gui_forms_tests) turn it
+            # on there.
+            get_target_property(gui_forms_target_sources ${gui_forms_first_party_target} SOURCES)
+            set(gui_forms_test_target FALSE)
+            if(gui_forms_first_party_target MATCHES "(_tests|_tests_objects|_test_runtime)$" OR
+               gui_forms_first_party_target MATCHES "^gui_forms_test_runner_" OR
+               "${gui_forms_target_sources}" MATCHES "(^|;|/)tests/")
+                set(gui_forms_test_target TRUE)
+            endif()
+            if(GUI_FORMS_WARNINGS_AS_ERRORS AND NOT gui_forms_test_target)
+                target_compile_options(${gui_forms_first_party_target} PRIVATE
+                    $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-Werror>)
+            endif()
             # A view (std::string_view, std::span) bound or assigned to a
             # temporary dangles: PartPaint::text twice held a temporary
             # std::string (CorrespondenceView, PropertyList) and painting read

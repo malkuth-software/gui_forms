@@ -82,7 +82,9 @@ public:
 
 private:
     CallbackTarget* target_{};
-    std::array<std::byte, 192U> retained_state_{};
+    // Padding that makes the callable too large for small-buffer storage;
+    // never read.
+    [[maybe_unused]] std::array<std::byte, 192U> retained_state_{};
 };
 
 template <typename Callback>

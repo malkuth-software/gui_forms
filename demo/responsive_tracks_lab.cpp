@@ -38,7 +38,6 @@ constexpr Color graphite_dark = Color::rgba(43, 53, 60);
 constexpr Color pearl = Color::rgba(231, 238, 242);
 constexpr Color paper = Color::rgba(251, 252, 250);
 constexpr Color sapphire = Color::rgba(50, 107, 145);
-constexpr Color coral = Color::rgba(205, 105, 83);
 
 std::shared_ptr<Panel> band(std::string id, std::string text,
                             Color background, Color foreground,

@@ -36,36 +36,38 @@ struct PixelStorage final {
     [[nodiscard]] std::size_t size() const noexcept { return row_bytes * static_cast<std::size_t>(height); }
 };
 
-namespace {
+// The drawing sources' shared helpers: inline, so one definition serves every
+// source that includes this header (an anonymous namespace gave each its own
+// copy, a warning for each helper it did not use, and its own bitmap counter).
 
-std::atomic_uint64_t next_bitmap_id{1};
+inline std::atomic_uint64_t next_bitmap_id{1};
 
-[[nodiscard]] std::int32_t clamp_i32(std::int64_t value) noexcept {
+[[nodiscard]] inline std::int32_t clamp_i32(std::int64_t value) noexcept {
     return static_cast<std::int32_t>(std::clamp(
         value,
         static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::min()),
         static_cast<std::int64_t>(std::numeric_limits<std::int32_t>::max())));
 }
 
-void require_finite(double value, std::string_view field) {
+inline void require_finite(double value, std::string_view field) {
     if (!std::isfinite(value)) {
         throw std::invalid_argument(std::string(field) + " must be finite");
     }
 }
 
-void require_finite(PointF point, std::string_view field) {
+inline void require_finite(PointF point, std::string_view field) {
     if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
         throw std::invalid_argument(std::string(field) + " must be finite");
     }
 }
 
-void require_finite(RectF rect, std::string_view field) {
+inline void require_finite(RectF rect, std::string_view field) {
     if (!rect.finite()) {
         throw std::invalid_argument(std::string(field) + " must be finite");
     }
 }
 
-[[nodiscard]] PointF point_on_ellipse(RectF bounds,
+[[nodiscard]] inline PointF point_on_ellipse(RectF bounds,
                                       double angle_degrees) noexcept {
     // The engine's deterministic sine and cosine, exact at quarter turns.
     const gui_forms::EngineSineCosine turn =
@@ -75,7 +77,7 @@ void require_finite(RectF rect, std::string_view field) {
                 bounds.height * 0.5 * turn.sine};
 }
 
-[[nodiscard]] double ellipse_parameter_angle(
+[[nodiscard]] inline double ellipse_parameter_angle(
     double radius_x, double radius_y, double geometric_degrees) noexcept {
     const gui_forms::EngineSineCosine geometric =
         gui_forms::engine_sine_cosine_degrees(geometric_degrees);
@@ -84,7 +86,7 @@ void require_finite(RectF rect, std::string_view field) {
     return parameter;
 }
 
-[[nodiscard]] PointF ellipse_point(double center_x, double center_y,
+[[nodiscard]] inline PointF ellipse_point(double center_x, double center_y,
                                    double radius_x, double radius_y,
                                    double parameter) noexcept {
     const gui_forms::EngineSineCosine turn =
@@ -127,7 +129,7 @@ private:
     double bottom_{};
 };
 
-[[nodiscard]] std::string ascii_lower(std::string_view input) {
+[[nodiscard]] inline std::string ascii_lower(std::string_view input) {
     std::string result;
     result.reserve(input.size());
     for (const unsigned char value : input) {
@@ -138,14 +140,14 @@ private:
     return result;
 }
 
-[[nodiscard]] int hex_digit(char value) noexcept {
+[[nodiscard]] inline int hex_digit(char value) noexcept {
     if (value >= '0' && value <= '9') return value - '0';
     if (value >= 'a' && value <= 'f') return value - 'a' + 10;
     if (value >= 'A' && value <= 'F') return value - 'A' + 10;
     return -1;
 }
 
-[[nodiscard]] std::uint32_t parse_hex(std::string_view value) {
+[[nodiscard]] inline std::uint32_t parse_hex(std::string_view value) {
     std::uint32_t result{};
     for (const char character : value) {
         const int digit = hex_digit(character);
@@ -157,7 +159,7 @@ private:
     return result;
 }
 
-[[nodiscard]] bool valid_utf8(std::string_view input) noexcept {
+[[nodiscard]] inline bool valid_utf8(std::string_view input) noexcept {
     std::size_t index{};
     while (index < input.size()) {
         const unsigned char lead = static_cast<unsigned char>(input[index]);
@@ -198,7 +200,7 @@ private:
     return true;
 }
 
-[[nodiscard]] std::string number(double value) {
+[[nodiscard]] inline std::string number(double value) {
     if (value == 0.0) value = 0.0;
     std::array<char, 64> buffer{};
     const std::to_chars_result result = std::to_chars(buffer.data(), buffer.data() + buffer.size(),
@@ -210,7 +212,7 @@ private:
     return std::string(buffer.data(), result.ptr);
 }
 
-[[nodiscard]] std::string color_text(Color color) {
+[[nodiscard]] inline std::string color_text(Color color) {
     if (color.is_empty()) return "empty";
     std::ostringstream output;
     output.imbue(std::locale::classic());
@@ -219,22 +221,22 @@ private:
     return output.str();
 }
 
-[[nodiscard]] std::string point_text(PointF point) {
+[[nodiscard]] inline std::string point_text(PointF point) {
     return number(point.x) + "," + number(point.y);
 }
 
-[[nodiscard]] std::string rect_text(RectF rect) {
+[[nodiscard]] inline std::string rect_text(RectF rect) {
     return number(rect.x) + "," + number(rect.y) + "," +
            number(rect.width) + "," + number(rect.height);
 }
 
-[[nodiscard]] std::string matrix_text(const Matrix& value) {
+[[nodiscard]] inline std::string matrix_text(const Matrix& value) {
     return number(value.m11()) + "," + number(value.m12()) + "," +
            number(value.m21()) + "," + number(value.m22()) + "," +
            number(value.dx()) + "," + number(value.dy());
 }
 
-[[nodiscard]] const char* command_name(CommandKind kind) noexcept {
+[[nodiscard]] inline const char* command_name(CommandKind kind) noexcept {
     switch (kind) {
     case CommandKind::save: return "save";
     case CommandKind::restore: return "restore";
@@ -265,7 +267,7 @@ private:
     return "unknown";
 }
 
-[[nodiscard]] std::string escaped(std::string_view text) {
+[[nodiscard]] inline std::string escaped(std::string_view text) {
     std::string result;
     result.reserve(text.size());
     for (const unsigned char value : text) {
@@ -281,14 +283,14 @@ private:
     return result;
 }
 
-void require_pen_width(double width) {
+inline void require_pen_width(double width) {
     require_finite(width, "pen width");
     if (width <= 0.0 || width > 1'000'000.0) {
         throw std::invalid_argument("pen width must be positive and bounded");
     }
 }
 
-void require_blend_positions(std::span<const double> positions,
+inline void require_blend_positions(std::span<const double> positions,
                              std::size_t color_count) {
     if (positions.size() != color_count || positions.size() < 2U ||
         positions.size() > 4096U) {
@@ -315,7 +317,7 @@ void require_blend_positions(std::span<const double> positions,
 // (LinearGradientBrush::set_blend), interpolated in linear light as every
 // gradient is (owner, 2026-11-16; gui_forms/types/linear_light/linear_light.hpp).
 // An empty colour is taken as transparent black.
-[[nodiscard]] Color interpolate_color(Color first, Color second,
+[[nodiscard]] inline Color interpolate_color(Color first, Color second,
                                       double amount) noexcept {
     const gui_forms::Color from = first.is_empty() ? gui_forms::Color{0U, 0U, 0U, 0U}
         : gui_forms::Color{first.red(), first.green(), first.blue(), first.alpha()};
@@ -326,33 +328,33 @@ void require_blend_positions(std::span<const double> positions,
     return Color::from_argb(mixed.alpha, mixed.red, mixed.green, mixed.blue);
 }
 
-[[nodiscard]] std::uint8_t premultiply(std::uint8_t channel,
+[[nodiscard]] inline std::uint8_t premultiply(std::uint8_t channel,
                                        std::uint8_t alpha) noexcept {
     return static_cast<std::uint8_t>(
         (static_cast<unsigned>(channel) * alpha + 127U) / 255U);
 }
 
-[[nodiscard]] std::uint8_t unpremultiply(std::uint8_t channel,
+[[nodiscard]] inline std::uint8_t unpremultiply(std::uint8_t channel,
                                          std::uint8_t alpha) noexcept {
     if (alpha == 0U) return 0U;
     return static_cast<std::uint8_t>(std::min(
         255U, (static_cast<unsigned>(channel) * 255U + alpha / 2U) / alpha));
 }
 
-[[nodiscard]] std::uint8_t normalized_channel(double value) noexcept {
+[[nodiscard]] inline std::uint8_t normalized_channel(double value) noexcept {
     if (value <= 0.0) return 0U;
     if (value >= 1.0) return 255U;
     return static_cast<std::uint8_t>(std::lround(value * 255.0));
 }
 
-[[nodiscard]] std::size_t pixel_offset(const PixelStorage& storage,
+[[nodiscard]] inline std::size_t pixel_offset(const PixelStorage& storage,
                                        std::uint32_t x,
                                        std::uint32_t y) noexcept {
     return static_cast<std::size_t>(y) * storage.row_bytes +
            static_cast<std::size_t>(x) * 4U;
 }
 
-void store_color(PixelStorage& storage, std::uint32_t x, std::uint32_t y,
+inline void store_color(PixelStorage& storage, std::uint32_t x, std::uint32_t y,
                  Color color) noexcept {
     const std::size_t offset = pixel_offset(storage, x, y);
     const std::uint8_t alpha = color.is_empty() ? 0U : color.alpha();
@@ -365,7 +367,7 @@ void store_color(PixelStorage& storage, std::uint32_t x, std::uint32_t y,
     storage.data()[offset + 3U] = static_cast<std::byte>(alpha);
 }
 
-[[nodiscard]] Color load_color(const PixelStorage& storage,
+[[nodiscard]] inline Color load_color(const PixelStorage& storage,
                                std::uint32_t x,
                                std::uint32_t y) noexcept {
     const std::size_t offset = pixel_offset(storage, x, y);
@@ -380,7 +382,7 @@ void store_color(PixelStorage& storage, std::uint32_t x, std::uint32_t y,
                             unpremultiply(green, alpha), unpremultiply(blue, alpha));
 }
 
-[[nodiscard]] bool stored_color_equals(const PixelStorage& storage,
+[[nodiscard]] inline bool stored_color_equals(const PixelStorage& storage,
                                        std::uint32_t x, std::uint32_t y,
                                        Color color) noexcept {
     const std::size_t offset = pixel_offset(storage, x, y);
@@ -402,7 +404,7 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
     }
 }
 
-[[nodiscard]] std::string pen_text(const PenSnapshot& pen) {
+[[nodiscard]] inline std::string pen_text(const PenSnapshot& pen) {
     std::string result = color_text(pen.color) + "," + number(pen.width) + "," +
                          std::to_string(static_cast<unsigned>(pen.dash_style));
     if (pen.dash_style == DashStyle::custom) {
@@ -423,7 +425,7 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
     return result;
 }
 
-[[nodiscard]] std::string brush_text(const BrushSnapshot& brush) {
+[[nodiscard]] inline std::string brush_text(const BrushSnapshot& brush) {
     if (brush.kind == BrushKind::solid) return color_text(brush.primary);
     std::string result = std::to_string(static_cast<unsigned>(brush.kind)) + "," +
         color_text(brush.primary) + "," + color_text(brush.secondary) + "," +
@@ -458,7 +460,7 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
     return result;
 }
 
-[[nodiscard]] std::string points_text(std::span<const PointF> points) {
+[[nodiscard]] inline std::string points_text(std::span<const PointF> points) {
     std::string result;
     for (std::size_t index = 0; index < points.size(); ++index) {
         if (index != 0U) result += ";";
@@ -468,7 +470,7 @@ void require_enum(Enum value, unsigned maximum, std::string_view field) {
 }
 
 // One path element's points or box, included in `accumulator`.
-void include_path_element(const PathElement& element, RectBoundsAccumulator& accumulator) {
+inline void include_path_element(const PathElement& element, RectBoundsAccumulator& accumulator) {
     switch (element.verb) {
     case PathVerb::line:
         accumulator.include(element.first);
@@ -500,7 +502,7 @@ void include_path_element(const PathElement& element, RectBoundsAccumulator& acc
 }
 
 // One path element's coordinates in a trace, appended to `result`.
-void append_element_text(const PathElement& element, std::string& result) {
+inline void append_element_text(const PathElement& element, std::string& result) {
     switch (element.verb) {
     case PathVerb::line:
         result += "," + point_text(element.first) + "," + point_text(element.second);
@@ -532,7 +534,7 @@ void append_element_text(const PathElement& element, std::string& result) {
     return;
 }
 
-[[nodiscard]] std::string path_text(const PathSnapshot& path) {
+[[nodiscard]] inline std::string path_text(const PathSnapshot& path) {
     std::string result = std::to_string(static_cast<unsigned>(path.fill_mode));
     for (const PathElement& element : path.elements) {
         result += ";" + std::to_string(static_cast<unsigned>(element.verb));
@@ -541,7 +543,7 @@ void append_element_text(const PathElement& element, std::string& result) {
     return result;
 }
 
-[[nodiscard]] std::string image_attributes_text(
+[[nodiscard]] inline std::string image_attributes_text(
     const ImageAttributesSnapshot& attributes) {
     std::string result;
     if (attributes.color_matrix.present()) {
@@ -565,7 +567,7 @@ void append_element_text(const PathElement& element, std::string& result) {
     return result;
 }
 
-void include_polygon_visibility(std::vector<PointF>& figure, PointF point,
+inline void include_polygon_visibility(std::vector<PointF>& figure, PointF point,
                                 FillMode fill_mode, bool& inside) {
     if (figure.size() < 3U) {
         figure.clear();
@@ -587,7 +589,7 @@ void include_polygon_visibility(std::vector<PointF>& figure, PointF point,
 
 // One element's part in whether `point` is inside: outlines collect into
 // `figure`, which a figure mark or a closed shape resolves into `inside`.
-void include_element_visibility(const PathElement& element, PointF point, FillMode fill_mode,
+inline void include_element_visibility(const PathElement& element, PointF point, FillMode fill_mode,
                                 std::vector<PointF>& figure, bool& inside) {
     bool primitive_hit = false;
     switch (element.verb) {
@@ -683,7 +685,7 @@ void include_element_visibility(const PathElement& element, PointF point, FillMo
     return;
 }
 
-[[nodiscard]] bool path_snapshot_visible(const PathSnapshot& path, PointF point) {
+[[nodiscard]] inline bool path_snapshot_visible(const PathSnapshot& path, PointF point) {
     bool inside = false;
     std::vector<PointF> figure;
     for (const PathElement& element : path.elements) {
@@ -693,4 +695,3 @@ void include_element_visibility(const PathElement& element, PointF point, FillMo
     return inside;
 }
 
-} // namespace

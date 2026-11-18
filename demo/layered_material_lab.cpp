@@ -38,7 +38,6 @@ namespace {
 
 constexpr Color ink = Color::rgba(29, 45, 75);
 constexpr Color muted = Color::rgba(94, 111, 128);
-constexpr Color paper = Color::rgba(246, 248, 249);
 
 class LabRoot final : public Panel {
 public:

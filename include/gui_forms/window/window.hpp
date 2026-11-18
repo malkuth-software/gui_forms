@@ -401,7 +401,7 @@ private:
         bool placed{};
         Rect placed_destination{};
         Rect placed_clip{};
-        std::vector<Rect> placed_overlays;
+        std::vector<Rect> placed_overlays{};
         LiveSurfaceWakeConnection idle_wake{};
         std::uint64_t observed_epoch{};
         std::uint64_t observed_generation{};

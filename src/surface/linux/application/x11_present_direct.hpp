@@ -98,24 +98,27 @@ private:
   void free_slot(PixmapSlot &slot) noexcept;
   void free_slots() noexcept;
 
-  Display *display_;
-  ::Window window_;
-  Visual *visual_;
-  int depth_;
+  // Read only by the Present path (GUI_FORMS_HAVE_XPRESENT and
+  // GUI_FORMS_HAVE_XSHM); a build without them compiles stubs that refuse,
+  // hence [[maybe_unused]].
+  [[maybe_unused]] Display *display_;
+  [[maybe_unused]] ::Window window_;
+  [[maybe_unused]] Visual *visual_;
+  [[maybe_unused]] int depth_;
   enum class Check : std::uint8_t { unchecked, usable, unsupported };
-  Check checked_{Check::unchecked};
+  [[maybe_unused]] Check checked_{Check::unchecked};
   // The event selection made at the first acquire; 0 before.
-  XID selection_{};
+  [[maybe_unused]] XID selection_{};
   // MIT-SHM's, Present's and XFixes' major opcodes: the requests whose
   // errors this path absorbs and maps to a fallback (A-gf-present-01-F1).
-  std::array<int, 3> opcodes_{-1, -1, -1};
+  [[maybe_unused]] std::array<int, 3> opcodes_{-1, -1, -1};
   std::array<PixmapSlot, maximum_slots> slots_{};
-  std::size_t count_{};
+  [[maybe_unused]] std::size_t count_{};
   presentation::PresentExtent extent_{};
-  std::size_t held_{};
-  bool holding_{};
-  std::uint32_t serial_{};
-  std::uint64_t presents_{};
+  [[maybe_unused]] std::size_t held_{};
+  [[maybe_unused]] bool holding_{};
+  [[maybe_unused]] std::uint32_t serial_{};
+  [[maybe_unused]] std::uint64_t presents_{};
   // A present's update rectangles, reused.
   std::vector<XRectangle> rectangles_;
 };

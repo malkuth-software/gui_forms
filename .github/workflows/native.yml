@@ -315,32 +315,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # A requested run looks up no earlier receipt and runs the whole suite;
-      # the later `steps.receipt` conditions always hold.
+      # A requested run looks up no earlier receipt and runs the whole suite.
       # The Ubuntu mirror is sometimes slow (7-11 minutes for 30 MB), so the
       # downloaded Ubuntu packages are kept in an Actions cache, refreshed once
       # per runner image; only main saves it (harness/install_linux_ci_packages.sh).
       - name: Name the Linux package cache
-        if: steps.receipt.outputs.reused != 'true'
         id: linux-image
         run: echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
-        if: steps.receipt.outputs.reused != 'true'
         id: linux-packages
         with:
           path: ${{ runner.temp }}/apt-archives
           key: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-${{ steps.linux-image.outputs.image }}
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install Linux dependencies
-        if: steps.receipt.outputs.reused != 'true'
         run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       - uses: actions/cache/save@v4
-        if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true' && steps.receipt.outputs.reused != 'true'
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true'
         with:
           path: ${{ runner.temp }}/apt-archives
           key: ${{ steps.linux-packages.outputs.cache-primary-key }}
       - name: Configure compiler cache
-        if: steps.receipt.outputs.reused != 'true'
         run: |
           echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$PWD" >> "$GITHUB_ENV"
@@ -358,7 +353,6 @@ jobs:
       # a pull request's merge commit, so the message is read from the head
       # commit by name (the full history holds it); a push reads its own.
       - name: Choose the sanitizer debug information
-        if: steps.receipt.outputs.reused != 'true'
         id: debug-info
         env:
           HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -379,7 +373,6 @@ jobs:
       # and only line-table runs find or pack a seed: a full -g hunt starts from
       # main's cache and leaves no seed behind for a line-table run to restore.
       - uses: actions/cache/restore@v4
-        if: steps.receipt.outputs.reused != 'true'
         id: sanitizer-cache
         with:
           path: |
@@ -389,12 +382,12 @@ jobs:
             gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-${{ hashFiles('gui_forms/stx.lock') }}-
       - name: Find sanitizer objects of the nearest branch
         id: seed
-        if: steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
+        if: steps.debug-info.outputs.mode == 'lines'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python template_harness/harness/ci_sanitizer_seed.py find
       - uses: actions/download-artifact@v4
-        if: steps.seed.outputs.seeded == 'true' && steps.receipt.outputs.reused != 'true'
+        if: steps.seed.outputs.seeded == 'true'
         with:
           github-token: ${{ github.token }}
           run-id: ${{ steps.seed.outputs.producer-run }}
@@ -402,31 +395,27 @@ jobs:
           path: .ci/sanitizer-seed
           merge-multiple: true
       - name: Replace the restored objects with the seed (every test still runs)
-        if: steps.seed.outputs.seeded == 'true' && steps.receipt.outputs.reused != 'true'
+        if: steps.seed.outputs.seeded == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python template_harness/harness/ci_sanitizer_seed.py restore --artifact-id "${{ steps.seed.outputs.artifact-id }}"
       - name: Identify and verify LLVM release compiler
         id: compiler
-        if: steps.receipt.outputs.reused != 'true'
         run: python template_harness/harness/compiler_identity.py
       # Linux links the harness's static position-independent C++ runtime
       # (cmake/llvm22.cmake refuses a configure without it), cached under the
       # native jobs' key.
       - name: Select the Linux runtime prefix
         id: linux-runtime
-        if: steps.receipt.outputs.reused != 'true'
         run: |
           directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
           echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
           echo "directory=$directory" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
-        if: steps.receipt.outputs.reused != 'true'
         with:
           path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
           key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
       - name: Build the static Linux runtimes
-        if: steps.receipt.outputs.reused != 'true'
         run: |
           if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
             python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
@@ -438,7 +427,6 @@ jobs:
       # group does the same from the main commit it extends. A push to main
       # that carried no receipt runs the whole suite.
       - name: Build and test under the sanitizers
-        if: steps.receipt.outputs.reused != 'true'
         env:
           CHANGED_FROM: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
@@ -458,19 +446,16 @@ jobs:
       # A run that built nothing (a change no test reads, such as a
       # documentation-only one) passes: ci_build.py's build record says so.
       - name: Check stack frames
-        if: ${{ !cancelled() && steps.receipt.outputs.reused != 'true' }}
+        if: ${{ !cancelled() }}
         run: python gui_forms/tools/stack_frames.py check --tree .build/native-linux-x64/gui-forms-sanitize --jobs 4 --top 15
       - name: Report cache statistics
-        if: always() && steps.receipt.outputs.reused != 'true'
+        if: always()
         run: ccache --show-stats --verbose
       # What passed this tree: this run's build record, or the run it carried.
       - name: Record this tree's sanitizer run
         id: record
         if: success()
-        env:
-          CARRIED: ${{ steps.receipt.outputs.producer-run }}
-          COVERAGE: ${{ steps.receipt.outputs.coverage }}
-        run: python template_harness/harness/ci_tree_receipt.py write --kind sanitize --out .ci/tree-receipt --build-record .build/native-linux-x64/gui-forms-sanitize.record.json ${CARRIED:+--carried-from "$CARRIED" --coverage "$COVERAGE"}
+        run: python template_harness/harness/ci_tree_receipt.py write --kind sanitize --out .ci/tree-receipt --build-record .build/native-linux-x64/gui-forms-sanitize.record.json
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -478,10 +463,10 @@ jobs:
           path: .ci/tree-receipt/receipt.json
           retention-days: 30
       - name: Pack the sanitizer objects as the next run's seed
-        if: success() && steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
+        if: success() && steps.debug-info.outputs.mode == 'lines'
         run: python template_harness/harness/ci_sanitizer_seed.py pack
       - uses: actions/upload-artifact@v4
-        if: success() && steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
+        if: success() && steps.debug-info.outputs.mode == 'lines'
         with:
           name: gui-sanitize-ccache-linux-x64
           path: |
@@ -494,10 +479,10 @@ jobs:
       # saves it when it builds everything: the daily schedule, and a push
       # that carried no pull request's receipt.
       - name: Keep only the compiler cache entries this build used
-        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.receipt.outputs.reused != 'true'
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: python template_harness/harness/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
       - uses: actions/cache/save@v4
-        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.receipt.outputs.reused != 'true'
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
           path: |
             .ccache
