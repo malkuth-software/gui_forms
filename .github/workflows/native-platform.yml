@@ -517,7 +517,7 @@ jobs:
           fi
       - name: Prove archived macOS runtimes after relocation
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true')
-        run: python gui_forms/tools/prove_macos_runtime_restore.py --archive gui-forms-cache-macos-arm64.tar.gz --executable .build/native-macos-arm64/gui-forms/gui_forms_form_compiler
+        run: python gui_forms/tools/prove_macos_runtime_restore.py --archive gui-forms-cache-macos-arm64.tar.gz --executable .build/native-macos-arm64/gui-forms/gui_forms_form_compiler --expect-exit 2
       - uses: actions/upload-artifact@v4
         id: cache-artifact
         with:

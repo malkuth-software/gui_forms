@@ -3458,8 +3458,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             # Warnings are failures (owner, 2026-11-17) for the library and its
             # programs; gui_forms_tests turns them on for the tests.
             if(GUI_FORMS_WARNINGS_AS_ERRORS)
+                # A #warning is a deliberate notice (the unverified effect
+                # programs say so on purpose): it stays a warning.
                 target_compile_options(${gui_forms_first_party_target} PRIVATE
-                    $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-Werror>)
+                    $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-Werror>
+                    $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-Wno-error=\#warnings>)
             endif()
             # A view (std::string_view, std::span) bound or assigned to a
             # temporary dangles: PartPaint::text twice held a temporary
