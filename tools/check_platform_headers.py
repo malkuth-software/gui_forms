@@ -18,7 +18,10 @@ src/surface/<platform>/ for the platforms in PLATFORM_DIRECTORIES. All of
 src/host/ is scanned: after the consolidation it is platform-neutral.
 Tests, demonstrations, examples, tools and benchmarks are programs that may
 drive a platform directly and are not scanned (check_std_rules governs
-their standard-library use).
+their standard-library use). So is src/abi/conformance/, the C ABI
+conformance kit the SDK ships for consumers' own tests: it starts threads
+and processes directly (moved from tests/ with the tests' move to
+gui_forms_tests, 2026-11-17).
 
 An include is a preprocessor line `#include`, `#include_next` or `#import`
 naming a header in angle brackets or quotes; block comments are skipped.
@@ -131,6 +134,10 @@ def platform_includes(text: str) -> list[tuple[int, str]]:
     return found
 
 
+# The C ABI conformance kit: a consumer-side test kit, not the library.
+CONFORMANCE_KIT: str = "src/abi/conformance/"
+
+
 def scanned_files(root: Path) -> list[Path]:
     """Every source file the check reads, sorted."""
     files: list[Path] = []
@@ -142,7 +149,7 @@ def scanned_files(root: Path) -> list[Path]:
             if not path.is_file() or path.suffix not in SOURCE_SUFFIXES:
                 continue
             relative: str = path.relative_to(root).as_posix()
-            if in_platform_directory(relative):
+            if in_platform_directory(relative) or relative.startswith(CONFORMANCE_KIT):
                 continue
             files.append(path)
     files.sort()

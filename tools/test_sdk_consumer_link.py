@@ -33,9 +33,13 @@ class SdkConsumerLinkTests(unittest.TestCase):
         self.assertEqual(link.SKIPPED_FEATURES, 77)
 
     def test_consumer_sources_exist(self) -> None:
+        self.assertTrue(link.DEFAULT_FACE.is_file())
+        # The consumer project lives in gui_forms_tests (tests/sdk_consumer);
+        # gui_forms' own CI has no checkout of it.
+        if link.TESTS_CHECKOUT is None:
+            self.skipTest('no gui_forms_tests checkout: the consumer sources live there')
         for name in ('CMakeLists.txt', 'main.cpp', 'text_masks_consumer.cpp', 'c_abi_consumer.c'):
             self.assertTrue((link.CONSUMER / name).is_file(), name)
-        self.assertTrue(link.DEFAULT_FACE.is_file())
 
 
 if __name__ == '__main__':
