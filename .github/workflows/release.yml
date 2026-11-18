@@ -116,6 +116,12 @@ jobs:
           EOF
   programs:
     needs: prepare
+    # The workflow's own permissions (contents: read, above) bound what a caller
+    # grants, so the job that publishes the programs test cache to the release
+    # test-cache-<commit> (tools/test_cache.py publish) asks for contents: write itself.
+    permissions:
+      contents: write
+      actions: read
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
