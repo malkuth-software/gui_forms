@@ -246,9 +246,11 @@ def has_commit(checkout: Path, revision: str) -> bool:
     """Whether checkout is a Git repository holding revision."""
     if not checkout.is_dir():
         return False
-    completed: subprocess.CompletedProcess[bytes] = subprocess.run(
-        ["git", "-C", str(checkout), "cat-file", "-e", revision + "^{commit}"], capture_output=True)
-    return completed.returncode == 0
+    # The type is asked rather than written as revision^{commit}: the git on
+    # the Windows runners expands braces in its command line (tools/test_cache.py, git).
+    completed: subprocess.CompletedProcess[str] = subprocess.run(
+        ["git", "-C", str(checkout), "cat-file", "-t", revision], capture_output=True, text=True)
+    return completed.returncode == 0 and completed.stdout.strip() == "commit"
 
 
 def fetch_pin(source: VendoredSource, revision: str, work: Path) -> Path:

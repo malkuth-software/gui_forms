@@ -170,11 +170,10 @@ def bracket(value: str) -> str:
 def git(source: Path, *arguments: str) -> str:
     """The stripped output of a git command in source.
 
-    The command trusts source for itself (safe.directory): on the Windows
-    runners actions/checkout trusts the checkout only in a temporary HOME it
-    removes, and the git the build then reaches (the restored Windows
-    toolchain's PATH) refuses a tree another account owns."""
-    command: list[str] = ['git', '-c', 'safe.directory=*', '-C', str(source), *arguments]
+    Arguments hold no braces or wildcards: on the Windows runners the git on
+    PATH expands its command line as a shell would ('HEAD^{tree}' reached it
+    as 'HEAD^tree'), so a commit's tree is read with show --format=%T."""
+    command: list[str] = ['git', '-C', str(source), *arguments]
     completed: subprocess.CompletedProcess[str] = subprocess.run(command, check=False, capture_output=True,
                                                                  text=True)
     if completed.returncode != 0:
@@ -530,7 +529,7 @@ def pack(arguments: argparse.Namespace) -> int:
     (staging / 'settings.cmake').write_text(settings_text(settings), encoding='utf-8')
     manifest: dict[str, object] = {
         'format': FORMAT, 'repository': DEFAULT_REPOSITORY, 'commit': commit, 'dirty': dirty,
-        'tree': git(source, 'rev-parse', 'HEAD^{tree}'),
+        'tree': git(source, 'show', '-s', '--format=%T', 'HEAD'),
         'platform': arguments.platform, 'kind': arguments.kind, 'version': description['GF_TC_VERSION'],
         'system': description['GF_TC_SYSTEM_NAME'], 'cxx_compiler_version': description['GF_TC_CXX_COMPILER_VERSION'],
         'settings': settings, 'targets': len(cmake_list(description.get('GF_TC_TARGETS', ''))),
@@ -573,7 +572,7 @@ def publish(arguments: argparse.Namespace) -> int:
     with tarfile.open(archive, 'r:gz') as tar:
         member: typing.IO[bytes] | None = tar.extractfile(ARCHIVE_ROOT + '/manifest.json')
         manifest: dict = json.loads(member.read().decode('utf-8')) if member else {}
-    tree: str = git(ROOT, 'rev-parse', commit + '^{tree}')
+    tree: str = git(ROOT, 'show', '-s', '--format=%T', commit)
     if manifest.get('tree') != tree or manifest.get('dirty'):
         print(f'test_cache: {archive.name} was packed from tree {manifest.get("tree")} '
               f'(dirty: {manifest.get("dirty")}), not {commit}\'s tree {tree}', file=sys.stderr)
