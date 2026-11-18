@@ -56,11 +56,11 @@ struct GUI_FORMS_API PropertyObjectMember final {
     // may also pin conversion/editor services independently of its owner.
     stxlib::Optional<BindingValueKind> declared_kind{};
     bool nullable{};
-    std::shared_ptr<const PropertyEnumDescriptor> enumeration;
-    std::vector<BindingValue> standard_values;
+    std::shared_ptr<const PropertyEnumDescriptor> enumeration{};
+    std::vector<BindingValue> standard_values{};
     bool standard_values_exclusive{};
-    std::string converter_name;
-    std::string editor_name;
+    std::string converter_name{};
+    std::string editor_name{};
     friend bool operator==(const PropertyObjectMember& left,
                            const PropertyObjectMember& right) noexcept(noexcept(
         left.name == right.name && left.description == right.description &&
