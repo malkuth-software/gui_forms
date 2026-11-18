@@ -168,9 +168,18 @@ def bracket(value: str) -> str:
 
 
 def git(source: Path, *arguments: str) -> str:
-    """The stripped output of a git command in source."""
-    completed: subprocess.CompletedProcess[str] = subprocess.run(['git', '-C', str(source), *arguments],
-                                                                 check=True, capture_output=True, text=True)
+    """The stripped output of a git command in source.
+
+    The command trusts source for itself (safe.directory): on the Windows
+    runners actions/checkout trusts the checkout only in a temporary HOME it
+    removes, and the git the build then reaches (the restored Windows
+    toolchain's PATH) refuses a tree another account owns."""
+    command: list[str] = ['git', '-c', 'safe.directory=*', '-C', str(source), *arguments]
+    completed: subprocess.CompletedProcess[str] = subprocess.run(command, check=False, capture_output=True,
+                                                                 text=True)
+    if completed.returncode != 0:
+        raise RuntimeError('git ' + ' '.join(arguments) + ' failed (' + str(completed.returncode) + '): '
+                           + completed.stderr.strip())
     return completed.stdout.strip()
 
 
