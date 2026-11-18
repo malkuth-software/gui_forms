@@ -70,7 +70,10 @@ SOURCE_TOKEN: str = '@GF_TC_SOURCE@'
 BINARY_TOKEN: str = '@GF_TC_BINARY@'
 # The generated files of the build tree the tests read (besides each target's
 # own file): headers and the inputs generated beside them.
-GENERATED_SUFFIXES: frozenset[str] = frozenset({'.h', '.hpp', '.hh', '.inc', '.inl', '.ipp', '.def', '.modulemap'})
+# The tests also read the generated manifests and lists (gf_abi/*.json, the
+# export lists).
+GENERATED_SUFFIXES: frozenset[str] = frozenset({'.h', '.hpp', '.hh', '.inc', '.inl', '.ipp', '.def', '.modulemap',
+                                                '.json', '.txt'})
 # Build-tree directories never packed: CMake's and CTest's own, and the cache's.
 SKIPPED_BUILD_DIRECTORIES: frozenset[str] = frozenset({'CMakeFiles', 'Testing', 'test-cache', '.cmake'})
 # The target types the loader imports, and how.
@@ -82,6 +85,12 @@ INTERFACE_PROPERTIES: tuple[str, ...] = (
     'INTERFACE_COMPILE_OPTIONS', 'INTERFACE_COMPILE_FEATURES', 'INTERFACE_LINK_LIBRARIES',
     'INTERFACE_LINK_OPTIONS', 'INTERFACE_LINK_DIRECTORIES', 'INTERFACE_LINK_DEPENDS', 'INTERFACE_SOURCES',
     'INTERFACE_PRECOMPILE_HEADERS', 'INTERFACE_POSITION_INDEPENDENT_CODE')
+# What cmake/TestCache.cmake records of a foreign imported target.
+FOREIGN_PROPERTIES: tuple[str, ...] = INTERFACE_PROPERTIES + (
+    'IMPORTED_LOCATION', 'IMPORTED_LOCATION_RELEASE', 'IMPORTED_LOCATION_NOCONFIG', 'IMPORTED_IMPLIB',
+    'IMPORTED_IMPLIB_RELEASE', 'IMPORTED_CONFIGURATIONS', 'IMPORTED_LINK_INTERFACE_LANGUAGES', 'IMPORTED_SONAME',
+    'IMPORTED_NO_SONAME')
+WINDOWS_IMPORT_SUFFIX: re.Pattern[str] = re.compile(r'\.(lib|dll\.a)$', re.IGNORECASE)
 SET_PATTERN: re.Pattern[str] = re.compile(r'^set\(([A-Za-z0-9_.+:-]+) (?:\[==\[(.*?)\]==\]|([A-Za-z_]+))\)$',
                                           re.MULTILINE | re.DOTALL)
 ALIAS_PATTERN: re.Pattern[str] = re.compile(r'add_(library|executable)\(\s*([A-Za-z0-9_:]+)\s+ALIAS\s+([A-Za-z0-9_]+)\s*\)')
@@ -230,7 +239,7 @@ def stage_build(binary: Path, source: Path, description: dict[str, str], locatio
             bundle: Path = Path(value)
             total += copy_tree(bundle, build / bundle.relative_to(binary))
             files += 1
-        elif key.startswith(('GF_TC_FILE_', 'GF_TC_LINKER_FILE_')):
+        elif key.startswith(('GF_TC_FILE_', 'GF_TC_LINKER_FILE_', 'GF_TC_SONAME_FILE_')):
             wanted.append(Path(value))
         elif key.startswith('GF_TC_OBJECTS_'):
             wanted.extend(Path(entry) for entry in cmake_list(value))
@@ -272,9 +281,9 @@ def stage_build(binary: Path, source: Path, description: dict[str, str], locatio
         if (package / part).is_dir():
             target: Path = build / 'stx-package' / part
             if under(package, binary):
+                # The header sweep above may have made the directory already.
                 target = build / package.relative_to(binary) / part
-            if not target.exists():
-                total += copy_tree(package / part, target)
+            total += copy_tree(package / part, target)
     return files, total
 
 
@@ -333,6 +342,25 @@ def loader_text(description: dict[str, str], locations: dict[str, str], relocati
     out.append('set(THREADS_PREFER_PTHREAD_FLAG ON)')
     out.append('find_package(Threads REQUIRED)')
     out.append('')
+    out.append('# The foreign imported targets the tree found (system libraries).')
+    foreign_kinds: dict[str, str] = {'STATIC_LIBRARY': 'STATIC', 'SHARED_LIBRARY': 'SHARED',
+                                     'MODULE_LIBRARY': 'MODULE', 'UNKNOWN_LIBRARY': 'UNKNOWN',
+                                     'INTERFACE_LIBRARY': 'INTERFACE'}
+    foreign: str
+    for foreign in cmake_list(description.get('GF_TC_FOREIGN', '')):
+        kind: str = description['GF_TC_FOREIGN_TYPE_' + foreign]
+        out.append(f'if(NOT TARGET {foreign})')
+        if kind == 'EXECUTABLE':
+            out.append(f'    add_executable({foreign} IMPORTED GLOBAL)')
+        else:
+            out.append(f'    add_library({foreign} {foreign_kinds[kind]} IMPORTED GLOBAL)')
+        prop: str
+        for prop in FOREIGN_PROPERTIES:
+            value: str | None = description.get(f'GF_TC_FOREIGN_{prop}_{foreign}')
+            if value:
+                out.append(f'    _gf_tc_property({foreign} {prop} {bracket(relocation.text(value))})')
+        out.append('endif()')
+    out.append('')
     out.append('# One imported target per target of the tree, under its own name.')
     targets: list[str] = cmake_list(description.get('GF_TC_TARGETS', ''))
     target: str
@@ -342,6 +370,9 @@ def loader_text(description: dict[str, str], locations: dict[str, str], relocati
             out.append(f'add_executable({target} IMPORTED GLOBAL)')
         else:
             out.append(f'add_library({target} {LIBRARY_TYPES[kind]} IMPORTED GLOBAL)')
+        # Not a system library to its consumers: its headers are first-party
+        # in the tests, as they were in the tree (warnings, the effect pass).
+        out.append(f'set_property(TARGET {target} PROPERTY SYSTEM FALSE)')
         if kind == 'OBJECT_LIBRARY':
             objects: str = relocation.text(locations['GF_TC_OBJECTS_' + target])
             out.append(f'_gf_tc_property({target} IMPORTED_OBJECTS {bracket(objects)})')
@@ -349,7 +380,7 @@ def loader_text(description: dict[str, str], locations: dict[str, str], relocati
             location: str = relocation.text(locations['GF_TC_FILE_' + target])
             out.append(f'_gf_tc_property({target} IMPORTED_LOCATION {bracket(location)})')
             linker: str | None = locations.get('GF_TC_LINKER_FILE_' + target)
-            if linker:
+            if linker and WINDOWS_IMPORT_SUFFIX.search(linker):
                 out.append(f'_gf_tc_property({target} IMPORTED_IMPLIB {bracket(relocation.text(linker))})')
             if kind == 'STATIC_LIBRARY':
                 out.append(f'set_property(TARGET {target} PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES C CXX)')

@@ -54,7 +54,7 @@ struct GUI_FORMS_API PropertyObjectMember final {
     bool writable{true};
     // Optional schema is required when a member's current value is null and
     // may also pin conversion/editor services independently of its owner.
-    stxlib::Optional<BindingValueKind> declared_kind;
+    stxlib::Optional<BindingValueKind> declared_kind{};
     bool nullable{};
     std::shared_ptr<const PropertyEnumDescriptor> enumeration;
     std::vector<BindingValue> standard_values;
@@ -157,7 +157,7 @@ struct GUI_FORMS_API PropertyEnumChoice final {
 
 struct GUI_FORMS_API PropertyEnumDescriptor final {
     std::string type_name;
-    std::vector<PropertyEnumChoice> choices;
+    std::vector<PropertyEnumChoice> choices{};
     bool flags{};
     friend bool operator==(const PropertyEnumDescriptor& left,
                            const PropertyEnumDescriptor& right) noexcept(noexcept(

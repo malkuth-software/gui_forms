@@ -22,7 +22,7 @@ struct GUI_FORMS_API InstrumentFieldSpec final {
     std::string name;
     std::string value;
     InstrumentFieldEditor editor{InstrumentFieldEditor::choice};
-    std::vector<std::string> choices;
+    std::vector<std::string> choices{};
     std::string validation_message;
     double width_weight{1.0};
     bool required{};

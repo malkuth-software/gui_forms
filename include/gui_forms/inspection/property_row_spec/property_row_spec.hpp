@@ -34,7 +34,7 @@ struct GUI_FORMS_API PropertyRowSpec final {
     std::string value;
     std::string description;
     PropertyEditorKind editor{PropertyEditorKind::read_only};
-    std::vector<std::string> choices;
+    std::vector<std::string> choices{};
     std::string validation_message;
     std::string parent_id;
     std::uint8_t depth{};

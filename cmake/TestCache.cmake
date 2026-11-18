@@ -42,6 +42,18 @@ function(_gui_forms_test_cache_targets directory output)
     set(${output} ${targets} PARENT_SCOPE)
 endfunction()
 
+# Appends to `output` the imported targets of `directory` and of every
+# directory below it.
+function(_gui_forms_test_cache_imported directory output)
+    get_property(targets DIRECTORY "${directory}" PROPERTY IMPORTED_TARGETS)
+    get_property(subdirectories DIRECTORY "${directory}" PROPERTY SUBDIRECTORIES)
+    foreach(subdirectory IN LISTS subdirectories)
+        _gui_forms_test_cache_imported("${subdirectory}" below)
+        list(APPEND targets ${below})
+    endforeach()
+    set(${output} ${targets} PARENT_SCOPE)
+endfunction()
+
 # `value` as a CMake bracket argument, so that semicolons, quotes and
 # generator expressions survive as written.
 function(_gui_forms_test_cache_quote value output)
@@ -138,11 +150,43 @@ function(gui_forms_describe_test_cache)
             string(APPEND locations "set(GF_TC_OBJECTS_${target} [==[$<TARGET_OBJECTS:${target}>]==])\n")
         elseif(NOT type STREQUAL "INTERFACE_LIBRARY")
             string(APPEND locations "set(GF_TC_FILE_${target} [==[$<TARGET_FILE:${target}>]==])\n")
-            if(type STREQUAL "SHARED_LIBRARY" AND WIN32)
+            if(type STREQUAL "SHARED_LIBRARY")
+                # The import library (Windows), or the name links and the
+                # soname link (libx.dylib, libx.1.dylib) a program loads.
                 string(APPEND locations "set(GF_TC_LINKER_FILE_${target} [==[$<TARGET_LINKER_FILE:${target}>]==])\n")
+                if(NOT WIN32)
+                    string(APPEND locations "set(GF_TC_SONAME_FILE_${target} [==[$<TARGET_SONAME_FILE:${target}>]==])\n")
+                endif()
             endif()
         endif()
     endforeach()
+    # The imported targets the tree found (PkgConfig::..., X11::..., the
+    # system libraries), but those of the stx packages, which the loader
+    # finds again: a consumer needs them for the links above. Their paths are
+    # the system's, the same on the machine the cache is built for.
+    set(foreign_targets "")
+    _gui_forms_test_cache_imported("${CMAKE_SOURCE_DIR}" imported_targets)
+    foreach(target IN LISTS imported_targets)
+        if(target MATCHES "^(stx|stxlib|Threads::)" OR target IN_LIST foreign_targets)
+            continue()
+        endif()
+        get_target_property(type ${target} TYPE)
+        if(NOT type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|UNKNOWN_LIBRARY|INTERFACE_LIBRARY|EXECUTABLE)$")
+            continue()
+        endif()
+        list(APPEND foreign_targets ${target})
+        string(APPEND description "set(GF_TC_FOREIGN_TYPE_${target} ${type})\n")
+        foreach(property IN LISTS _gui_forms_test_cache_properties ITEMS IMPORTED_LOCATION IMPORTED_LOCATION_RELEASE
+                         IMPORTED_LOCATION_NOCONFIG IMPORTED_IMPLIB IMPORTED_IMPLIB_RELEASE IMPORTED_CONFIGURATIONS
+                         IMPORTED_LINK_INTERFACE_LANGUAGES IMPORTED_SONAME IMPORTED_NO_SONAME)
+            get_target_property(value ${target} ${property})
+            if(value)
+                _gui_forms_test_cache_quote("${value}" quoted)
+                string(APPEND description "set(GF_TC_FOREIGN_${property}_${target} ${quoted})\n")
+            endif()
+        endforeach()
+    endforeach()
+    string(APPEND description "set(GF_TC_FOREIGN [==[${foreign_targets}]==])\n")
     string(APPEND description "set(GF_TC_TARGETS [==[${cached_targets}]==])\n")
     string(APPEND description "set(GF_TC_UTILITIES [==[${utility_targets}]==])\n")
     string(APPEND description "set(GF_TC_VARIABLES [==[${kept_variables}]==])\n")
