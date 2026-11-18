@@ -51,6 +51,7 @@ class CommittedManifestTests(unittest.TestCase):
 
 
 class EvidenceTests(unittest.TestCase):
+    @unittest.skipIf(mm.TESTS_CHECKOUT is None, "no gui_forms_tests checkout: the committed evidence is kept as is")
     def test_kept_rows_keep_test_evidence_only_when_asked(self) -> None:
         manifest: dict = mm.load_manifest()
         automatic: int = sum(1 for entry in manifest["controls"] for row in entry["members"]
@@ -59,6 +60,7 @@ class EvidenceTests(unittest.TestCase):
         self.assertGreaterEqual(len(mm.kept_rows(manifest, False)), automatic)
         self.assertTrue(all(row.get("basis") in mm.MANUAL_BASES for row in mm.kept_rows(manifest, True).values()))
 
+    @unittest.skipIf(mm.TESTS_ROOT is None, "no gui_forms_tests checkout to scan")
     def test_evidence_scan_reads_tracked_files_only(self) -> None:
         files: list[Path] = mm.tracked_files(mm.TESTS_ROOT)
         self.assertTrue(files)

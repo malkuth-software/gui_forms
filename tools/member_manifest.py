@@ -891,12 +891,35 @@ def kept_rows(previous: Mapping, refresh_evidence: bool) -> dict[tuple[str, str,
             keep: bool = basis in MANUAL_BASES
             if not refresh_evidence and basis == "none":
                 keep = True
+            # Without a gui_forms_tests checkout the evidence file cannot be
+            # checked, so the committed row stands.
             if basis == "test" and not refresh_evidence:
                 keep = TESTS_CHECKOUT is None or (TESTS_CHECKOUT / str(row.get("evidence", ""))).is_file()
-            if TESTS_CHECKOUT is None and basis in ("test", "none"):
-                keep = True
             if keep:
                 kept[(key_type, row.get("kind", ""), row.get("winforms") or "", row.get("gui_forms") or "")] = row
+    return kept
+
+
+def kept_entry_statuses(previous: Mapping) -> dict[str, dict]:
+    """The status fields of each committed GUI.Forms type entry whose basis is
+    test evidence (basis test or none), by type, for a generation that keeps
+    the committed evidence: kept while the evidence file exists, or always
+    without a gui_forms_tests checkout to check it in."""
+    kept: dict[str, dict] = {}
+    for entry in previous.get("controls", []):
+        type_name: str | None = entry.get("type")
+        basis: str | None = entry.get("basis")
+        if not type_name or basis not in ("test", "none"):
+            continue
+        if basis == "test" and TESTS_CHECKOUT is not None and \
+                not (TESTS_CHECKOUT / str(entry.get("evidence", ""))).is_file():
+            continue
+        fields: dict = {}
+        name: str
+        for name in ("status", "reason", "basis", "evidence", "question"):
+            if name in entry:
+                fields[name] = entry[name]
+        kept[type_name] = fields
     return kept
 
 
@@ -947,7 +970,14 @@ def previous_winforms(previous: Mapping) -> dict[str, list[WinFormsMember]]:
 
 def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], previous: Mapping,
                    provenance: Mapping, refresh_evidence: bool = True) -> dict:
+    # Test evidence is refreshed only from a gui_forms_tests checkout: without
+    # one the scan finds nothing, and the committed evidence stands.
+    if TESTS_CHECKOUT is None:
+        refresh_evidence = False
     kept: dict[tuple[str, str, str, str], dict] = kept_rows(previous, refresh_evidence)
+    kept_entries: dict[str, dict] = {}
+    if not refresh_evidence:
+        kept_entries = kept_entry_statuses(previous)
     raisers: dict[tuple[str, str, str, str], dict] = previous_raisers(previous)
     controls: list[dict] = []
     covered: set[str] = set()
@@ -1010,7 +1040,10 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
             entry["winforms_base"] = WINFORMS_TYPES[counterpart].base or None
         if type_name in ROOT_NOTES:
             entry["counterpart_note"] = ROOT_NOTES[type_name]
-        if type_test:
+        previous_entry: dict | None = kept_entries.get(type_name)
+        if previous_entry is not None and not type_test:
+            entry.update(previous_entry)
+        elif type_test:
             entry.update(status="supported", basis="test", evidence=type_test)
         else:
             entry.update(status="unclassified", basis="none", question="untested: no test names the type")
