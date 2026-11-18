@@ -1,6 +1,16 @@
 #include "gui_forms/audio/audio.hpp"
 #define MINIAUDIO_IMPLEMENTATION
+// miniaudio is vendored as published: its implementation defines helpers a
+// platform's build does not call (ma_device__on_notification_rerouted on
+// Linux), which is its code's warning, not ours.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
 #include "miniaudio.h"
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 #ifdef GUI_FORMS_AUDIO_LOOP_TRANSPORT
 #include "loop_transport/loop_transport_state.hpp"
 #endif

@@ -59,7 +59,7 @@ std::unique_ptr<TransientWindow> TransientWindow::open(const TransientWindowOpen
     if (!record) return nullptr;
     if (const Window* const model = (*record).model()) note_popup_backdrop(opening.owner, *model);
     std::unique_ptr<TransientWindow> window(new TransientWindow(std::move(record), root, opening.owner));
-    return std::move(window);
+    return window;
 }
 
 TransientWindow::~TransientWindow() {

@@ -134,7 +134,7 @@ std::shared_ptr<Button> button(std::string id, std::string text, Rect bounds,
     std::shared_ptr<gui_forms::Button> result = std::make_shared<Button>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
     (*result).set_style(house_style());
-    (*result).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 10.0, 600, false, 0.18});
+    (*result).font = FontSpec{FontRole::control, 10.0, 600, false, 0.18};
     (*result).visual_style = visual;
     return result;
 }

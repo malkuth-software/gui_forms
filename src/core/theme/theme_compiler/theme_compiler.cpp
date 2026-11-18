@@ -659,7 +659,7 @@ ThemeDiagnostic first_error(const theme_language::ThemeDiagnosticList& diagnosti
 // to `warnings`, and blanked from the pack's text (every byte but line
 // breaks a space), since the closure's combined text holds it after other
 // sheets. False with `problem` set at the first error.
-bool read_user_sheet(const UserSheet& sheet, std::string_view theme, std::span<const UserSheet> subs,
+bool read_user_sheet(const UserSheet& sheet, std::string_view, std::span<const UserSheet> subs,
                      const theme_language::InstalledThemeIndex& index, VerifiedThemePack& pack,
                      theme_language::ThemeHeader* header, std::vector<ThemeCompileDiagnostic>& warnings,
                      ThemeDiagnostic& problem) {

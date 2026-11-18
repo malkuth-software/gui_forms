@@ -44,10 +44,10 @@
 # owner's open question, so this file neither forces nor refuses it; a
 # high-integrity C ABI has null slots where the entries are compiled out.
 #
-# The test suite, the Gallery and the demonstrations call entries this
-# configuration removes, so they are off here; the high-integrity tests
-# (GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS) build instead (tools/ci_build.py
-# --high-integrity). The form compiler and the theme check stay: they are
+# The Gallery and the demonstrations call entries this configuration
+# removes, so they are off here. The test suite does too: gui_forms_tests,
+# given a test cache of this configuration (GUI_FORMS_TEST_CACHE), builds the
+# high-integrity tests alone (its cmake/HighIntegrityTests.cmake). The form compiler and the theme check stay: they are
 # build-time programs that build steps run (gui_forms_add_form,
 # gui_forms_add_theme_check), executables of their own that no program links.
 # The Gallery's lab form compiler is not built.
@@ -64,7 +64,6 @@ if(NOT GUI_FORMS_HIGH_INTEGRITY)
         message(FATAL_ERROR "GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT is an allowance of the "
                             "high-integrity configuration; it needs GUI_FORMS_HIGH_INTEGRITY=ON")
     endif()
-    set(GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS OFF)
     return()
 endif()
 
@@ -87,7 +86,6 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_BUILD_PREPARED_TEXT|OFF|BOOL|the prepared-text service is a development service"
     "GUI_FORMS_BUILD_TEXT_MASKS|OFF|BOOL|the text-mask service is a development service"
     "GUI_FORMS_ENABLE_WAYLAND_PRESENT|OFF|BOOL|the presentation shim's direct paths are not compiled"
-    "GUI_FORMS_BUILD_TESTS|OFF|BOOL|the suite calls entries this configuration removes (GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS builds its tests)"
     "GUI_FORMS_BUILD_GALLERY|OFF|BOOL|the Gallery calls entries this configuration removes"
     "GUI_FORMS_BUILD_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_INSTALL_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
@@ -157,7 +155,6 @@ else()
                    "the sanitizers intercept")
 endif()
 
-option(GUI_FORMS_BUILD_HIGH_INTEGRITY_TESTS "Build the high-integrity configuration's tests" ON)
 add_compile_definitions(GUI_FORMS_HIGH_INTEGRITY=1)
 if(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     add_compile_definitions(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT=1)

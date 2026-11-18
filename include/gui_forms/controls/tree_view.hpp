@@ -32,7 +32,7 @@ struct GUI_FORMS_API TreeViewItem final {
     bool expandable{};
     bool expanded{};
     bool enabled{true};
-    std::string image_key;
+    std::string image_key{};
 };
 
 struct GUI_FORMS_API TreeSelectionChange final {

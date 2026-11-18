@@ -15,7 +15,10 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "Set GUI_FORMS_LLVM_RUNTIME to the LLVM 22.1.8 macOS 14 runtime prefix")
     endif()
     file(TO_CMAKE_PATH "$ENV{GUI_FORMS_LLVM_RUNTIME}" _gf_runtime)
-    set(_gf_cxx "-stdlib=libc++ -nostdinc++ -isystem \"${_gf_runtime}/include/c++/v1\"")
+    # No -stdlib=libc++ when compiling: -nostdinc++ and the runtime's -isystem
+    # choose the headers, so clang reported -stdlib unused on every compile
+    # (1325 warnings a Linux build); the link flags keep it.
+    set(_gf_cxx "-nostdinc++ -isystem \"${_gf_runtime}/include/c++/v1\"")
     set(CMAKE_CXX_FLAGS_INIT "${_gf_cxx}")
     set(CMAKE_OBJCXX_FLAGS_INIT "${_gf_cxx}")
     # A program is one module (owner decision, 2026-11-15): it links the
@@ -72,7 +75,10 @@ elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
                                 "template_harness/harness/build_linux_runtimes.py")
         endif()
     endforeach()
-    set(_gf_cxx "-stdlib=libc++ -nostdinc++ -isystem \"${_gf_runtime}/include/c++/v1\"")
+    # No -stdlib=libc++ when compiling: -nostdinc++ and the runtime's -isystem
+    # choose the headers, so clang reported -stdlib unused on every compile
+    # (1325 warnings a Linux build); the link flags keep it.
+    set(_gf_cxx "-nostdinc++ -isystem \"${_gf_runtime}/include/c++/v1\"")
     set(_gf_link "-stdlib=libc++ -nostdlib++")
     file(GLOB _gf_musl_loader "/lib/ld-musl-*.so.1")
     if(_gf_musl_loader)
@@ -100,6 +106,14 @@ elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
         if(_gf_variable STREQUAL "CMAKE_CXX_FLAGS")
             set(_gf_added "${_gf_cxx}")
             set(_gf_marker "-nostdinc\\+\\+")
+            # A tree configured before compiling stopped naming -stdlib
+            # (2026-11-17) caches it; clang reports it unused on every compile.
+            if(DEFINED CACHE{CMAKE_CXX_FLAGS} AND "$CACHE{CMAKE_CXX_FLAGS}" MATCHES "-stdlib=libc\\+\\+")
+                string(REPLACE "-stdlib=libc++" "" _gf_stripped "$CACHE{CMAKE_CXX_FLAGS}")
+                string(STRIP "${_gf_stripped}" _gf_stripped)
+                set(CMAKE_CXX_FLAGS "${_gf_stripped}" CACHE STRING
+                    "Flags with the Linux C++ library (cmake/llvm22.cmake)" FORCE)
+            endif()
         elseif(_gf_variable STREQUAL "CMAKE_CXX_STANDARD_LIBRARIES")
             set(_gf_added "${_gf_runtime_archives}")
             set(_gf_marker "libc\\+\\+abi\\.a")

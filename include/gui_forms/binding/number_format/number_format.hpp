@@ -59,7 +59,7 @@ struct GUI_FORMS_API NumberFormat final {
     // empty or zero precision gives a double's shortest text that parses
     // back to the same value (scientific from an exponent of 15 or below
     // -5) and an integer's every digit.
-    stxlib::Optional<std::uint32_t> precision;
+    stxlib::Optional<std::uint32_t> precision{};
     // The exponent letter's case: "E" for an upper-case format letter.
     bool upper_case{true};
 

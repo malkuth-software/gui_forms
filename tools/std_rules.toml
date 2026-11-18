@@ -8,24 +8,16 @@
 format = 1
 root = ".."
 profile = "consumer"
-paths = ["src", "include", "tests", "examples", "demo", "benchmarks", "fuzz", "lab"]
+paths = ["src", "include", "examples", "demo", "benchmarks", "fuzz", "lab"]
 # Native code, where the host-only rules (pthread, wchar_t and the rest)
-# do not apply: the platform hosts, and the tests and probes that drive a
-# native host or its system interfaces directly.
+# do not apply: the platform hosts. (The tests, with the probes that drive a
+# native host directly, are gui_forms_tests', checked there with its own
+# configuration.)
 host_paths = [
     "src/host/*",
     "src/surface/*",
-    "tests/windows_*",
-    "tests/macos_*",
-    "tests/linux_*",
-    "tests/support/windows_*",
-    "tests/abi/host/*",
-    "tests/abi/msvc/*",
-    "tests/application_native_tests.cpp",
-    # The C ABI's C programs: C has no portable thread, so the conformance
-    # kit and the C11 runtime test start their threads natively.
-    "tests/abi/conformance/*",
-    "tests/abi/gf_abi_runtime_c11_tests.c",
+    # The C ABI's conformance kit: C has no portable thread, so it starts its
+    # threads natively.
+    "src/abi/conformance/*",
 ]
-exclude = ["tests/form_language/generated/*"]
 allowance = "tools/std_rules_allowance.txt"

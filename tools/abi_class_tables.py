@@ -42,9 +42,12 @@ Outputs (``--check`` regenerates them in memory and fails on any difference):
 - ``manifests/abi/class_tables.json``: the append-only ledger of class ids,
   segment entries and class tables. The generator only appends to it: a raiser
   that disappears, or a ledger edited to lose or reorder an entry or id, fails;
-- ``tests/abi/conformance/gf_conformance_classes.c`` (the conformance kit's part
+- ``src/abi/conformance/gf_conformance_classes.c`` (the conformance kit's part
   for the plan's guarantees) and
-  ``tests/abi/csharp/GuiForms.Forms.Tests/ClassHookTests.g.cs``.
+  ``tests/abi/csharp/GuiForms.Forms.Tests/ClassHookTests.g.cs`` in the
+  gui_forms_tests checkout named by ``--tests-root`` (default: a
+  ``gui_forms_tests`` checkout beside this one; without one, that file is
+  neither written nor checked here, and gui_forms_tests' CI checks it).
 
 A class table exists for every creatable control class that is not ``final``
 (a bridge derives from the stock class). A segment exists for every class that
@@ -74,8 +77,9 @@ LEDGER: Path = ROOT / "manifests" / "abi" / "class_tables.json"
 HEADER: Path = ROOT / "include" / "gui_forms" / "c" / "gf_abi_classes.h"
 CPP_DIR: Path = ROOT / "src" / "abi" / "stable" / "classes" / "generated"
 CSHARP_DIR: Path = ROOT / "bindings" / "csharp" / "GuiForms.Forms" / "Generated"
-C_TEST: Path = ROOT / "tests" / "abi" / "conformance" / "gf_conformance_classes.c"
-CSHARP_TEST: Path = ROOT / "tests" / "abi" / "csharp" / "GuiForms.Forms.Tests" / "ClassHookTests.g.cs"
+C_TEST: Path = ROOT / "src" / "abi" / "conformance" / "gf_conformance_classes.c"
+# The C# hook test, relative to a gui_forms_tests checkout (--tests-root).
+CSHARP_TEST_RELATIVE: Path = Path("tests") / "abi" / "csharp" / "GuiForms.Forms.Tests" / "ClassHookTests.g.cs"
 
 LEDGER_FORMAT: int = 1
 # The ABI minor the first tables enter at (the sealed-interface decision).
@@ -1953,15 +1957,18 @@ def render_csharp_test(model: Model) -> str:
 # ---------------------------------------------------------------------------
 # Writing and checking.
 
-def outputs(model: Model) -> dict[Path, str]:
+def outputs(model: Model, tests_root: Path | None) -> dict[Path, str]:
+    """Every generated file and its text; the C# hook test only with a
+    gui_forms_tests checkout (tests_root)."""
     files: dict[Path, str] = {
         HEADER: render_header(model),
         CPP_DIR / "abi_class_segments.hpp": render_segments(model),
         CPP_DIR / "abi_class_registry.cpp": render_registry(model),
         LEDGER: json.dumps(model.ledger, indent=2) + "\n",
         C_TEST: render_c_test(model),
-        CSHARP_TEST: render_csharp_test(model),
     }
+    if tests_root is not None:
+        files[tests_root / CSHARP_TEST_RELATIVE] = render_csharp_test(model)
     name: str = ""
     text: str = ""
     for name, text in csharp_files(model).items():
@@ -1980,7 +1987,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="fail when a committed output differs")
     parser.add_argument("--previous", type=Path,
                         help="an earlier ledger the current one must extend (append-only check)")
+    parser.add_argument("--tests-root", type=Path,
+                        help="the gui_forms_tests checkout whose C# hook test to write or check "
+                             "(default: ../gui_forms_tests when present)")
     arguments: argparse.Namespace = parser.parse_args(argv)
+    tests_root: Path | None = arguments.tests_root
+    if tests_root is None and (ROOT.parent / "gui_forms_tests" / "tests").is_dir():
+        tests_root = ROOT.parent / "gui_forms_tests"
+    if tests_root is not None:
+        tests_root = tests_root.resolve()
     try:
         model: Model = build_model()
     except TableError as error:
@@ -1992,7 +2007,7 @@ def main(argv: list[str] | None = None) -> int:
         for problem in check_append_only(load_json(arguments.previous), model.ledger):
             print(f"abi_class_tables: append-only: {problem}", file=sys.stderr)
             failed = 1
-    files: dict[Path, str] = outputs(model)
+    files: dict[Path, str] = outputs(model, tests_root)
     path: Path
     text: str = ""
     for path, text in files.items():
@@ -2000,7 +2015,8 @@ def main(argv: list[str] | None = None) -> int:
         if current == text:
             continue
         if arguments.check:
-            print(f"abi_class_tables: {path.relative_to(ROOT).as_posix()} is stale; "
+            shown: str = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.as_posix()
+            print(f"abi_class_tables: {shown} is stale; "
                   "run `python3 -B tools/abi_class_tables.py`", file=sys.stderr)
             failed = 1
             continue

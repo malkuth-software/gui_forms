@@ -13,9 +13,14 @@ import ci_build
 # Options whose values are paths of the tree or build that ran the configure;
 # only their presence and file names are compared.
 PATH_OPTIONS: dict[str, str] = {"CMAKE_TOOLCHAIN_FILE": "cmake/llvm22.cmake"}
-# Options the two set differently by design: CI also builds and runs the
-# tests; each installs into its own prefix.
-DIFFERENT_BY_DESIGN: dict[str, tuple[str, str]] = {"GUI_FORMS_BUILD_TESTS": ("ON", "OFF")}
+# Options the two set differently by design: CI also describes the tree for
+# the test cache (gui_forms_tests builds the tests against it); each
+# installs into its own prefix.
+# CI's tree packs the test cache and pins the reference arithmetic (the
+# tests' bytes); an SDK is a deployment build with contraction on
+# (tools/toolkit_configure.py, toolkit_options).
+DIFFERENT_BY_DESIGN: dict[str, tuple[str, str]] = {"GUI_FORMS_TEST_CACHE": ("ON", "OFF"),
+                                                   "GUI_FORMS_REFERENCE_ARITHMETIC": ("ON", "OFF")}
 
 
 class Captured(Exception):
@@ -85,6 +90,11 @@ class ConfigureOptionTests(unittest.TestCase):
                 name: str
                 for name in CI_EXAMPLE_OPTIONS:
                     self.assertEqual(ci.pop(name, None), "ON")
+                # CI's own choices (tools/ci_build.py, 2026-11-17): no LTO in
+                # the CI tree, and warnings as failures; an SDK keeps LTO and
+                # leaves -Werror to its consumer.
+                self.assertEqual(ci.pop("GUI_FORMS_LTO", None), "OFF")
+                self.assertEqual(ci.pop("GUI_FORMS_WARNINGS_AS_ERRORS", None), "ON")
                 self.assertEqual(sorted(ci), sorted(sdk))
                 name: str
                 for name in ci:

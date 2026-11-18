@@ -2,8 +2,10 @@
 """Measure a relocated source build and fail if cache reuse changes its binary.
 
 The caller supplies a clean source snapshot and a new scratch directory. Only
-copies below scratch are edited. The proof uses the real retained-controls
-event fixture, without renderer dependencies or platform GUI interaction.
+copies below scratch are edited. The proof builds the form compiler (the
+core, the controls and the form language, without renderer dependencies or
+platform GUI interaction) and runs it on no input. The retained-controls
+event test it built before lives in gui_forms_tests since 2026-11-17.
 """
 from __future__ import annotations
 
@@ -67,10 +69,7 @@ def build(root: Path, cache: Path, name: str, jobs: int,
             '-DGUI_FORMS_ENABLE_MACOS_HOST=OFF',
             '-DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF',
             '-DGUI_FORMS_ENABLE_LINUX_HOST=OFF',
-            '-DGUI_FORMS_BUILD_GALLERY=OFF', '-DGUI_FORMS_BUILD_TESTS=ON',
-            # The proof runs ccache without sloppiness, under which no compile
-            # reading a precompiled header is cached.
-            '-DGUI_FORMS_TEST_PRECOMPILED_HEADER=OFF',
+            '-DGUI_FORMS_BUILD_GALLERY=OFF',
             '-DCMAKE_C_COMPILER_LAUNCHER=ccache',
             '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache',
             '-DCMAKE_CXX_FLAGS=' + flags]
@@ -85,14 +84,14 @@ def build(root: Path, cache: Path, name: str, jobs: int,
         execute(command, environment, root / (name + '-configure.log'))
     subprocess.run(['ccache', '--zero-stats'], env=environment, check=True)
     elapsed: float = execute(
-        ['cmake', '--build', str(output), '--target', 'gui_forms_owned_event_tests',
+        ['cmake', '--build', str(output), '--target', 'gui_forms_form_compiler',
          '--parallel', str(jobs)], environment, root / (name + '-build.log'))
-    execute(['ctest', '--test-dir', str(output), '-R', '^gui_forms_owned_event_tests$',
-             '--output-on-failure'], environment, root / (name + '-test.log'))
     suffix: str = ''
     if os.name == 'nt':
         suffix = '.exe'
-    executable: Path = output / ('gui_forms_owned_event_tests' + suffix)
+    executable: Path = output / ('gui_forms_form_compiler' + suffix)
+    # It runs: given no document, it prints its usage and exits.
+    subprocess.run([str(executable)], env=environment, capture_output=True, check=False)
     content: bytes = executable.read_bytes()
     digest: str = hashlib.sha256(content).hexdigest()
     stats: dict[str, int] = statistics(environment)

@@ -1,6 +1,7 @@
 name: GUI.Forms programs and release
 # Builds the demonstration programs (packaging/programs.json) with the Gallery and
-# the File Manager demoboard enabled, runs ctest, packages each program, installs
+# the File Manager demoboard enabled, packs the programs test cache (the tests
+# run in malkuth-software/gui_forms_tests), packages each program, installs
 # and smoke-launches the packages on the runner, and publishes a tested `v*`
 # release from main. Pull requests stop after the smoke. Toolchain and cache
 # restoration mirror native.yml so the published compiler cache can match.
@@ -86,7 +87,6 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_package_sdk.py
           python3 -B -m unittest discover -s tools -p test_build_sdk.py
           python3 -B -m unittest discover -s ../template_harness/harness -p test_prune_cache_releases.py
-          python3 -B -m unittest discover -s tools -p test_release_tests.py
       - name: Select one tested publication version
         id: version
         env:
@@ -273,7 +273,7 @@ jobs:
         id: objects
         with:
           path: .ccache
-          key: gui-programs-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/CMakeLists.txt', 'gui_forms/cmake/**', 'gui_forms/include/**', 'gui_forms/src/**', 'gui_forms/demo/**', 'gui_forms/file_manager_demoboard/**', 'gui_forms/tests/**') }}
+          key: gui-programs-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/CMakeLists.txt', 'gui_forms/cmake/**', 'gui_forms/include/**', 'gui_forms/src/**', 'gui_forms/demo/**', 'gui_forms/file_manager_demoboard/**') }}
           restore-keys: |
             gui-programs-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-
             gui-objects-v2-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-
@@ -304,50 +304,6 @@ jobs:
           tar -xzf .ci/native-cache/gui-forms-cache-${{ matrix.platform }}.tar.gz .ccache
           tar -xzf .ci/native-cache/gui-forms-cache-${{ matrix.platform }}.tar.gz -O cache-manifest.json > .ci/native-manifest.json
           rm -rf .ci/native-cache
-      # A pull request or a merge group called from native.yml runs only the
-      # tests its native job did not pass on this tree: those of the Gallery,
-      # the demoboard and any the native job skipped (tools/native_tests.py).
-      # A push to main is the commit its merge group tested (or, merged
-      # without the queue, has the tree of the up-to-date pull request it
-      # merges): main's native job reuses that run's validation, and this job
-      # carries that run's programs receipt (the rest of the tests) instead
-      # of running them again (owner's choice, 2026-10-23). A release tag names a tree main has already tested and
-      # carries main's receipt the same way. Both still package and smoke
-      # test under their own version (tools/release_tests.py). With no such
-      # run, or one that has not finished, the job runs every test. The daily
-      # scheduled run and direct runs always test everything: the schedule is
-      # the backstop for native_tests.py's name match.
-      - name: Carry the tests of this tree from an earlier run
-        id: tested
-        if: startsWith(github.ref, 'refs/tags/v') || (inputs.from_native && github.event_name == 'push' && github.ref == 'refs/heads/main')
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMAND: ${{ startsWith(github.ref, 'refs/tags/v') && 'find' || 'merged' }}
-        run: python gui_forms/tools/release_tests.py "$COMMAND" --platform "${{ matrix.platform }}" --dist dist
-      # A push to main carries the run that tested its tree (the merge group, or
-      # the merged pull request's run), found before the build: that run's
-      # programs job archived the compiler cache entries it created
-      # (gui-programs-objects-<platform>, below), which the restored cache
-      # lacks because pull requests and merge groups save no Actions cache.
-      # Adding them turns this build's compilations into hits, so main links
-      # and packages the tested tree without compiling it again (about 200 s
-      # of the linux-x64 job on 2026-11-02, run 41473847301). An expired or
-      # missing archive only means compiling as before.
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        id: tested-objects
-        if: steps.tested.outputs.reused == 'true' && inputs.from_native && github.event_name == 'push'
-        continue-on-error: true
-        with:
-          name: gui-programs-objects-${{ matrix.platform }}
-          path: .ci/tested-objects
-          run-id: ${{ steps.tested.outputs.run }}
-          github-token: ${{ github.token }}
-      - name: Add the tested run's objects to the compiler cache
-        if: steps.tested-objects.outcome == 'success'
-        run: |
-          tar -xf .ci/tested-objects/gui-programs-objects-${{ matrix.platform }}.tar
-          rm -rf .ci/tested-objects
       # --- build, as tools/ci_build.py configures it, plus the programs ------------
       # The CPU renderer (stx_skia) and the text stack come from the stx package
       # (cmake/Stx.cmake), restored from the cache the platform's native job
@@ -372,44 +328,18 @@ jobs:
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=$([ "${{ matrix.host }}" = WINDOWS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
             $renderer \
-            -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_REFERENCE_ARITHMETIC=OFF \
+            -DGUI_FORMS_TEST_CACHE=ON -DGUI_FORMS_REFERENCE_ARITHMETIC=OFF \
             -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
             -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
             -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
-      # A pull request builds only what the tests it runs need: the tests its
-      # native job did not pass (tools/native_tests.py select), through
-      # tools/pr_build_targets.py, and no program, bundle or package no test
-      # runs. It packages and launches nothing (below); the merge group and
-      # main build, package and launch everything.
-      - name: Build the programs and tests
+      - name: Build the programs
         id: compile
-        env:
-          PULL_REQUEST: ${{ inputs.from_native && github.event_name == 'pull_request' }}
         run: |
           ccache --zero-stats
           # The entries present before compiling; the archive step below keeps the rest.
           mkdir -p .ccache
           find .ccache -type f | LC_ALL=C sort > "$RUNNER_TEMP/ccache-before.txt"
-          if [ "$PULL_REQUEST" != true ]; then
-            cmake --build "$BUILD_DIR" --parallel 4
-            exit 0
-          fi
-          selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR" | tr -d '\r')
-          case "$selection" in
-            NONE) echo "The native job passed every test of this build; nothing to build"; echo NONE > "$RUNNER_TEMP/pattern.txt"; exit 0 ;;
-            ALL) pattern="" ;;
-            *) pattern="$selection" ;;
-          esac
-          # The pull request's merge commit: its first parent is the base.
-          python gui_forms/tools/pr_build_targets.py --build-dir "$BUILD_DIR" --tests "$pattern" \
-            --changed-from HEAD^1 --pattern-out "$RUNNER_TEMP/pattern.txt" > "$RUNNER_TEMP/targets.txt"
-          echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
-          if [ -s "$RUNNER_TEMP/targets.txt" ]; then
-            # Windows' Python may end each line with CR; ninja would take it as part of the name.
-            # One target per line, split only at newlines: an output name may hold a space
-            # ("GUI.Forms Gallery"), which plain xargs would split. -0 works on BSD and GNU xargs.
-            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | tr '\n' '\0' | xargs -0 cmake --build "$BUILD_DIR" --parallel 4 --target
-          fi
+          cmake --build "$BUILD_DIR" --parallel 4
       - name: Report cache statistics
         if: always()
         run: ccache --show-stats --verbose
@@ -417,38 +347,30 @@ jobs:
       - name: Report the build's phases
         if: always()
         run: python gui_forms/tools/ninja_phases.py "$BUILD_DIR" --title "programs-${{ matrix.platform }} build" --out "$GITHUB_STEP_SUMMARY"
-      - name: Test
-        if: steps.tested.outputs.reused != 'true'
+      # The programs test cache (tools/test_cache.py, kind programs): this
+      # deployment tree with the Gallery and the demoboard, which
+      # malkuth-software/gui_forms_tests runs its program tests against (every
+      # test but the byte-exact ones, label reference_arithmetic, which the
+      # reference caches cover). Published per commit on a push to main or to
+      # a checkpoint branch, as the native jobs publish theirs.
+      - name: Pack the programs test cache
+        run: python gui_forms/tools/test_cache.py pack --build-dir "$BUILD_DIR" --platform "${{ matrix.platform }}" --kind programs --output .ci/test-cache
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gui-forms-test-cache-programs-${{ matrix.platform }}
+          path: .ci/test-cache/gui_forms_test_cache-*
+          compression-level: 0
+          overwrite: true
+          retention-days: 30
+      - name: Publish the programs test cache for this commit
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/checkpoint/'))
+        shell: bash
         env:
-          GUI_FORMS_FONT_DIR: ${{ github.workspace }}/gui_forms/assets/fonts
-          NARROW: ${{ inputs.from_native && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
-          PULL_REQUEST: ${{ inputs.from_native && github.event_name == 'pull_request' }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p dist
-          selection=ALL
-          if [ "$PULL_REQUEST" = true ]; then
-            # The tests the build step chose: not passed by the native job, and affected by the change.
-            selection=$(tr -d '\r' < "$RUNNER_TEMP/pattern.txt")
-          elif [ "$NARROW" = true ]; then
-            selection=$(python gui_forms/tools/native_tests.py select --manifest .ci/native-manifest.json --build-dir "$BUILD_DIR" | tr -d '\r')
-          fi
-          # What ships is a deployment build (GUI_FORMS_REFERENCE_ARITHMETIC=OFF, owner
-          # 2026-11-16: contraction stays on "for actual deployment"), tested by every
-          # test except the byte-exact ones (label reference_arithmetic: pinned pixel
-          # hashes and cross-host comparisons), which the native, sanitizer and
-          # engine gate jobs run in reference builds.
-          set -- --test-dir "$BUILD_DIR" --output-on-failure --timeout 120 --output-junit "$PWD/dist/ctest-${{ matrix.platform }}.xml" \
-            -LE reference_arithmetic
-          case "$selection" in
-            ALL) echo "Running every test" ;;
-            NONE) echo "The native job passed every test of this build; nothing left to run"; exit 0 ;;
-            *) echo "Running the tests the native job did not pass: $selection"; set -- "$@" -R "$selection" --no-tests=error ;;
-          esac
-          if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" ctest "$@"
-          else
-            ctest "$@"
-          fi
+          for archive in .ci/test-cache/gui_forms_test_cache-*.tar.gz; do
+            python gui_forms/tools/test_cache.py publish --archive "$archive" --commit "$GITHUB_SHA" --repository "$GITHUB_REPOSITORY"
+          done
       # A pull request or a merge group passes the compiler cache entries its
       # build created to the push to main that merges its tree (above): only
       # the new entries, as the push restores the same Actions cache this run
@@ -557,7 +479,7 @@ jobs:
           if-no-files-found: ${{ runner.os == 'Linux' && 'warn' || 'error' }}
       # upload-artifact roots an artifact at the common ancestor of its paths, and
       # the release job reads packages-*.json from the top of the merged receipts.
-      # Every receipts path stays under dist/; the ctest log is its own artifact.
+      # Every receipts path stays under dist/.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
@@ -565,13 +487,6 @@ jobs:
           path: |
             dist/packages-*.json
             dist/smoke-*.json
-            dist/ctest-*.xml
-          if-no-files-found: warn
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: gui-forms-ctest-log-${{ matrix.platform }}
-          path: .build/native-${{ matrix.platform }}/gui-forms/Testing/Temporary/LastTest.log
           if-no-files-found: warn
   # A call for one platform leaves publishing to its caller, which waits for
   # all four.

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- A document naming an application type (stage FD, phase FD6.1): the build
-   generates its header with gui_forms_add_form, which declares note-card. -->
-<user-control xmlns="urn:gui-forms:form:1" id="notes.root">
-  <note-card id="notes.card"
-      padding="3">
-    <button id="notes.card.close" text="Close" command="bind(close_)"/>
-  </note-card>
-</user-control>

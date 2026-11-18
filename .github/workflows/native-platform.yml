@@ -1,5 +1,6 @@
 name: GUI.Forms native platform
-# One platform's native job: build, test, cache and evidence. native.yml calls it
+# One platform's native job: build, install, smoke check, test cache, object
+# cache and evidence (the tests run in malkuth-software/gui_forms_tests). native.yml calls it
 # once per platform, so each platform's programs job (release.yml) can start as
 # soon as its own native job passes instead of waiting for all four. Every
 # github.* value (event, ref, sha, run) is the calling run's.
@@ -57,9 +58,6 @@ jobs:
       contents: write
       actions: read
     env:
-      # Compile-only landing of #483 (owner, 2026-11-17): every step builds, no test step runs;
-      # tools/ci_build.py skips its ctest runs while this is 1.
-      GUI_FORMS_CI_COMPILE_ONLY: '1'
       GUI_FORMS_RUNNER: ${{ inputs.runner }}
       OBJCXX: clang++
       CC: clang
@@ -350,39 +348,15 @@ jobs:
         with:
           path: .ci/stx-package
           key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
-      # The engine gate test writes its manifest for the engine-gate job (T2 E11).
-      # A pull request runs the whole suite but builds only what its tests run
-      # (--test-targets-only: no program, example, bundle or package, and no
-      # SDK install); the merge group, main and the schedule build everything.
-      - name: Build and test native toolkit
+      # The library, its install and smoke check, and the test cache
+      # malkuth-software/gui_forms_tests builds against (tools/ci_build.py
+      # --test-cache; tools/test_cache.py). The tests run there, not here.
+      - name: Build native toolkit and pack the test cache
         id: build
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         env:
-          GUI_FORMS_ENGINE_GATE_MANIFEST: ${{ github.workspace }}/.ci/engine-gate-${{ inputs.platform }}.tsv
-          # The pull request's merge commit: its first parent is the base, so
-          # HEAD^1 names what the pull request changed (the checkout fetches
-          # two commits for that).
-          SCOPE: ${{ github.event_name == 'pull_request' && '--test-targets-only --changed-from HEAD^1' || '' }}
-          # The daily build compiles every test without the shared precompiled
-          # headers, so each test source still includes what it uses. Windows
-          # builds without them too: every Windows pull-request build that
-          # compiled them (#483, 2026-11-16 and 17, 24 or 25 headers) went
-          # silent for 10 to 70 minutes at a time and took 95 to 117 minutes
-          # with 99% compiler-cache hits, while the main builds without them
-          # took 2 (cached) to 20 (cold) minutes on the same toolchain
-          # (notes in the projects desk WINDOWS_CI_30MIN.md; the phases step
-          # names what ran through each silence).
-          # A diagnostic dispatch can turn them back on for Windows
-          # (windows_test_pch) to catch a silence with the resource sampler.
-          GUI_FORMS_TEST_PRECOMPILED_HEADER: ${{ (github.event_name == 'schedule' || (inputs.platform == 'windows-x64' && inputs.windows_test_pch != true)) && 'OFF' || 'ON' }}
           GUI_FORMS_STX_PACKAGE_DIR: ${{ github.workspace }}/.ci/stx-package
           GUI_FORMS_STX_PACKAGE_RESTORED: ${{ steps.stx-package.outputs.cache-hit }}
-          # ctest runs up to four tests at once (ci_build.py --test-jobs auto:
-          # the runner's processors, capped); the suite keeps its interfering
-          # tests apart with RUN_SERIAL and RESOURCE_LOCK. The daily schedule
-          # stays serial until a week of parallel runs has shown no hidden
-          # interference (the check efficiency audit, 2c).
-          TEST_JOBS: ${{ github.event_name == 'schedule' && '1' || 'auto' }}
         # Windows: tools/windows_resource_sampler.ps1 samples memory, paging
         # and the busiest processes every 30 s in the background while this
         # step runs, into .ci/windows-resources.tsv (evidence; the phases step
@@ -402,19 +376,10 @@ jobs:
             trap 'touch "$sampler_stop"; sleep 2; kill "$sampler_pid" 2>/dev/null || true; wait "$sampler_pid" 2>/dev/null || true' EXIT
           fi
           if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --test-jobs "$TEST_JOBS" $SCOPE
+            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --test-cache .ci/test-cache
           else
-            python gui_forms/tools/ci_build.py --jobs 4 --test-jobs "$TEST_JOBS" $SCOPE
+            python gui_forms/tools/ci_build.py --jobs 4 --test-cache .ci/test-cache
           fi
-      # The hostile-macro conformance of the consumer surface, both paths
-      # (cmake/HostileMacroConformance.cmake): built in this one job, allowed
-      # to fail, so the full list of failures is in the log until it has
-      # passed on every host. Then GUI_FORMS_HOSTILE_MACRO_TESTS turns on in
-      # every native job and this step goes.
-      - name: Hostile-macro conformance (allowed to fail)
-        if: inputs.platform == 'macos-arm64' && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
-        continue-on-error: true
-        run: cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_hostile_macro_conformance -- -k 0
       # Where the build's time went (tools/ninja_phases.py): evidence in the
       # job log and on the run's summary page, never a gate. Its slowest
       # edges and quiet stretches name what a silent build was running; the
@@ -456,50 +421,6 @@ jobs:
           build=.build/native-${{ inputs.platform }}
           archives=$(find "$build/gui-forms" .ci/stx-package -name '*.a' -not -path '*/_deps/*' -not -name '*.dll.a')
           python gui_forms/tools/audit_link_map.py --forbid-foreign $archives
-      - name: Test development text-mask ownership on Windows
-        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true'))
-        shell: msys2 {0}
-        run: |
-          if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
-            cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
-          fi
-          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
-          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_prepared_text_service_tests gui_forms_prepared_display_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
-          # In parallel: the two consumer configure tests (about 15 s and 9 s) each
-          # configure into their own build directory.
-          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|prepared_text_service_tests|prepared_display_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
-      - name: Test Windows DIB ownership and exact brush replay
-        if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true')
-        shell: msys2 {0}
-        run: |
-          cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/DevelopmentTextLastTest.log
-          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=ON
-          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_windows_dib_frame_store_tests gui_forms_windows_dib_lifecycle_tests --parallel 4
-          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_windows_dib_(frame_store|lifecycle)_tests$' --output-on-failure
-      - name: Test development text-mask ownership on macOS and Linux
-        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os != 'Windows' && steps.reuse.outputs.reused != 'true'))
-        shell: bash
-        run: |
-          if [ -f .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log ]; then
-            cp .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/LastTest.log .build/native-${{ inputs.platform }}/gui-forms/Testing/Temporary/SDKLastTest.log
-          fi
-          cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
-          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_prepared_text_service_tests gui_forms_prepared_text_raster_tests gui_forms_prepared_display_tests gui_forms_prepared_text_skia_tests gui_forms_opaque_live_surface_raster_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
-          # In parallel: the two consumer configure tests (about 15 s and 9 s) each
-          # configure into their own build directory.
-          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|prepared_text_(service|raster|skia)_tests|prepared_display_tests|opaque_live_surface_raster_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
-      - name: Verify Linux prepared frames through X11
-        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os == 'Linux' && steps.reuse.outputs.reused != 'true'))
-        run: |
-          cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_linux_prepared_text_host_tests --parallel 4
-          xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_linux_prepared_text_host_tests$' --output-on-failure
-      - name: Verify Mac prepared-frame native exposure and visibility
-        if: env.GUI_FORMS_CI_COMPILE_ONLY != '1' && (steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true'))
-        # Run after OFF diagnostics; development-only host rebuilding must not
-        # change the binary used by the recorded baseline or exported SDK.
-        run: |
-          cmake --build .build/native-macos-arm64/gui-forms --target gui_forms_macos_exposure_tests gui_forms_macos_idle_visibility_tests gui_forms_macos_display_link_tests gui_forms_macos_prepared_text_host_tests --parallel 4
-          ctest --test-dir .build/native-macos-arm64/gui-forms -R '^gui_forms_macos_(exposure|idle_visibility|display_link(_overlay)?|prepared_text_host)_tests$' --output-on-failure
       # A pull request installs no SDK (above); the merge group audits it.
       - name: Audit installed macOS binary minimums
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true') && github.event_name != 'pull_request'
@@ -596,7 +517,7 @@ jobs:
           fi
       - name: Prove archived macOS runtimes after relocation
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true')
-        run: python gui_forms/tools/prove_macos_runtime_restore.py --archive gui-forms-cache-macos-arm64.tar.gz --executable .build/native-macos-arm64/gui-forms/gui_forms_threading_tests
+        run: python gui_forms/tools/prove_macos_runtime_restore.py --archive gui-forms-cache-macos-arm64.tar.gz --executable .build/native-macos-arm64/gui-forms/gui_forms_form_compiler --expect-exit 2
       - uses: actions/upload-artifact@v4
         id: cache-artifact
         with:
@@ -621,16 +542,6 @@ jobs:
           include-hidden-files: true
           overwrite: true
           retention-days: 30
-      # A job that promoted (a push to main) or reused an exact-tree
-      # validation ran no test, so it has no engine gate manifest of its own:
-      # it carries the validation run's manifest for the same tree, so the
-      # engine-gate job compares every host (tools/engine_gate.py carry).
-      - name: Carry the validation run's engine gate manifest
-        if: always() && (steps.promotion.outputs.reused == 'true' || steps.reuse.outputs.reused == 'true')
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python gui_forms/tools/engine_gate.py carry --platform "${{ inputs.platform }}" --state .ci
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -638,13 +549,42 @@ jobs:
           include-hidden-files: true
           overwrite: true
           path: |
-            .build/native-${{ inputs.platform }}/**/Testing/Temporary/*LastTest.log
+            .build/native-${{ inputs.platform }}/installed-reference-examples/Testing/Temporary/LastTest.log
             .build/native-${{ inputs.platform }}/gui-forms/.ninja_log
             .build/native-${{ inputs.platform }}/gui-forms/build-output.log
             .build/native-${{ inputs.platform }}/gui-forms/build-clock.json
             .ci/windows-resources.tsv
             .ci/*.json
-            .ci/engine-gate-*.tsv
+      # The test cache (tools/test_cache.py): an artifact of every run, and
+      # published per commit (release test-cache-<commit>) on a push to main
+      # or to a checkpoint branch, where gui_forms_tests' gui_forms.lock can
+      # name it. A run that promoted or reused a validation of the same tree
+      # built nothing: it takes that run's test cache, whose manifest names
+      # the same tree (test_cache.py publish checks it).
+      - uses: actions/upload-artifact@v4
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
+        with:
+          name: gui-forms-test-cache-${{ inputs.platform }}
+          path: .ci/test-cache/gui_forms_test_cache-*
+          compression-level: 0
+          overwrite: true
+          retention-days: 30
+      - uses: actions/download-artifact@v4
+        if: steps.promotion.outputs.reused == 'true' || steps.reuse.outputs.reused == 'true'
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.promotion.outputs.producer-run || steps.reuse.outputs.producer-run }}
+          name: gui-forms-test-cache-${{ inputs.platform }}
+          path: .ci/test-cache
+      - name: Publish the test cache for this commit
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/checkpoint/'))
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for archive in .ci/test-cache/gui_forms_test_cache-*.tar.gz; do
+            python gui_forms/tools/test_cache.py publish --archive "$archive" --commit "$GITHUB_SHA" --repository "$GITHUB_REPOSITORY"
+          done
       - name: Publish this passing platform immediately
         # Only a push to main publishes. The daily schedule rebuilds a commit
         # main already published, and publish_cache.py refuses different bytes.

@@ -41,7 +41,7 @@ struct GUI_FORMS_API ResponsiveTrackSpec final {
     double maximum{};
     double remaining_weight{1.0};
     bool hidden{};
-    stxlib::Optional<std::uint16_t> collapse_priority;
+    stxlib::Optional<std::uint16_t> collapse_priority{};
 
     friend bool operator==(const ResponsiveTrackSpec& left,
                            const ResponsiveTrackSpec& right) {

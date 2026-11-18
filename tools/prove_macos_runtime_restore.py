@@ -16,6 +16,10 @@ def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive', type=Path, required=True)
     parser.add_argument('--executable', type=Path, required=True)
+    # The exit status a run with no arguments is expected to give: 0 for a
+    # native test; a program that prints its usage without arguments (the
+    # form compiler, 2) still proves the restored runtime loads and runs.
+    parser.add_argument('--expect-exit', type=int, default=0)
     args: argparse.Namespace = parser.parse_args()
     original: Path = Path(os.environ['GUI_FORMS_LLVM_RUNTIME']).resolve()
     archive: Path = args.archive.resolve()
@@ -56,7 +60,10 @@ def main() -> None:
         environment['DYLD_PRINT_LIBRARIES'] = '1'
         result: subprocess.CompletedProcess[str] = subprocess.run(
             [str(copied)], env=environment, text=True, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, timeout=60, check=True)
+            stderr=subprocess.PIPE, timeout=60, check=False)
+        if result.returncode != args.expect_exit:
+            raise RuntimeError(f'{executable.name} exited {result.returncode}, expected {args.expect_exit}:\n'
+                               + result.stderr[-2000:])
         for library in sorted((restored / 'lib').glob('*.dylib')):
             if not library.is_symlink():
                 if dynamic_runtime and str(library) not in result.stderr:
@@ -64,7 +71,7 @@ def main() -> None:
                 if not dynamic_runtime and str(library) in result.stderr:
                     raise RuntimeError('A statically linked program loaded ' + str(library))
         print(result.stdout, end='')
-        print('Archived runtime restored; its dylibs loaded; native test passed')
+        print('Archived runtime restored; its dylibs loaded; the program ran')
 
 
 if __name__ == '__main__':

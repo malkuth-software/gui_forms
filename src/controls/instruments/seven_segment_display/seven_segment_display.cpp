@@ -15,14 +15,8 @@
 namespace gui_forms {
 namespace {
 
-// The segment bits, from a (top) clockwise to f (upper left), then g.
-constexpr std::uint8_t segment_a = 1U << 0U;
-constexpr std::uint8_t segment_b = 1U << 1U;
-constexpr std::uint8_t segment_c = 1U << 2U;
-constexpr std::uint8_t segment_d = 1U << 3U;
-constexpr std::uint8_t segment_e = 1U << 4U;
-constexpr std::uint8_t segment_f = 1U << 5U;
-constexpr std::uint8_t segment_g = 1U << 6U;
+// The segment bits of segment_glyphs: bit 0 is a (top), clockwise to bit 5, f
+// (upper left), then bit 6, g (the middle bar).
 constexpr std::size_t segments_per_cell = 7U;
 
 // A character and the segments it lights.

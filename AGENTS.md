@@ -75,8 +75,8 @@ Before committing, run the spelling check over everything you touched; the
 finding:
 
 ```text
-python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
-python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard
+python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz
+python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard
 python3 -B tools/export_annotations.py check
 python3 -B tools/control_registry.py members --check
 python3 -B tools/abi_class_tables.py --check
@@ -137,22 +137,25 @@ allowance, runs there (`stx_skia/AGENTS.md` in stx).
 The second checks two rules of sections 5 and 9: a function returning a
 borrow of a container or snapshot argument deletes its rvalue overload, and a
 function pointer looked up by name takes its type from the declaration. The
-`sanitizers` CI job runs the whole suite under ASan, UBSan and LSan on Linux
-and fails on any report, but only when requested by hand (owner ruling,
-2026-11-03): the gate is the local sanitized run of every test when a
-checkpoint is folded.
+`sanitizers` CI job builds the sanitized tree and its test cache, and
+gui_forms_tests' `sanitizers` job runs the whole suite against it under ASan,
+UBSan and LSan on Linux and fails on any report, both only when requested by
+hand (owner ruling, 2026-11-03): the gate is the local sanitized run of every
+test when a checkpoint is folded.
 
 Every build tree keeps a sanitizer tree beside its ordinary one, on every
 platform it builds on:
 
 ```text
-python3 -B tools/ci_build.py --sanitize [--gallery] [--tests REGEX]
+python3 -B tools/ci_build.py --sanitize --test-cache <dir> [--gallery]
 ```
 
 It builds `.build/native-<host>-<arch>/gui-forms-sanitize` with CI's flags
 (ASan and UBSan everywhere, LSan on Linux and macOS; the Windows MinGW runtime
-has none) and fails on any report. Run it over the tests your change touches
-before pushing C++, and the whole suite before a stage gate.
+has none) and packs the sanitize test cache into `<dir>`; gui_forms_tests'
+`tools/ci_tests.py --kind sanitize --archive <dir>/<archive> --unpinned` runs
+the tests against it and fails on any report. Run it over the tests your
+change touches before pushing C++, and the whole suite before a stage gate.
 
 The checks cover spelling and those two rules only. Ownership, lifetime, initialization and
 naming still need review against the full document.
@@ -273,7 +276,17 @@ directory.
   project and consumes only an explicitly negotiated public manifest.
 - The standalone fixture-backed File Manager consumer specification and its
   eventual installed-package consumer live under `file_manager_demoboard/`.
-- Tests live under `tests/`.
+- Tests live in their own repository, `malkuth-software/gui_forms_tests`
+  (owner, 2026-10-29 and 2026-11-17), with the test CMake, the test-only
+  tools, goldens and fixtures, the engine gate and the sanitizer runs. They
+  never compile GUI.Forms: they build against the test cache this tree
+  packs (`GUI_FORMS_TEST_CACHE`, `cmake/TestCache.cmake`,
+  `tools/test_cache.py`), which gui_forms CI publishes per commit as the
+  prerelease `test-cache-<commit>`, and which gui_forms_tests'
+  `gui_forms.lock` pins. A change here that a test must see lands here
+  first; the tests move their pin to it. This tree keeps the library, its
+  build and packaging, and the installed reference examples as its smoke
+  check.
 - Instrumentation must be queryable as structured counters/snapshots, not only
   prose logs.
 

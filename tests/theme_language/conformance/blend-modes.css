@@ -1,3 +1,0 @@
-/* forms: property.mix-blend-mode-separable property.background-blend-mode-separable */
-track-bar { mix-blend-mode: color-dodge }
-track-bar::part(thumb) { background-image: linear-gradient(red, blue), linear-gradient(green, white); background-blend-mode: soft-light, difference }

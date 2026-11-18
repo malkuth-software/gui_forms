@@ -2,11 +2,15 @@
 """Build an independent consumer and check installed CMake component failures."""
 from __future__ import annotations
 import argparse
+import sys
 from pathlib import Path
 import shlex
 import shutil
 import subprocess
 import tempfile
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import tests_checkout  # noqa: E402
 
 import sdk_consumer_link
 
@@ -92,6 +96,9 @@ def main() -> None:
         parser.error("--feature-components requires --native: TextMasks lives in Application")
     prefix: Path = args.prefix.resolve(strict=True)
     project: Path = Path(__file__).resolve().parent.parent
+    # The consumer projects of the feature and hosted-client checks are tests
+    # of gui_forms_tests (tools/tests_checkout.py).
+    tests: Path = tests_checkout.tests_root() or project
     scratch: str
     with tempfile.TemporaryDirectory(prefix="gui-forms-installed-consumer-") as scratch:
         scratch_path: Path = Path(scratch)
@@ -121,8 +128,8 @@ def main() -> None:
         print(test_output)
         if args.feature_components:
             features: Path = scratch_path / "feature-consumer"
-            shutil.copytree(project / "tests" / "installed_feature_consumer", features)
-            main_source: Path = project / "tests" / "application_text_consumer" / "main.cpp"
+            shutil.copytree(tests / "tests" / "installed_feature_consumer", features)
+            main_source: Path = tests / "tests" / "application_text_consumer" / "main.cpp"
             feature_build: Path = scratch_path / "feature-build"
             run(["cmake", "-S", str(features), "-B", str(feature_build),
                  "-DGUI_FORMS_CONSUMER_MAIN=" + str(main_source)]
@@ -131,7 +138,7 @@ def main() -> None:
             print(run(["ctest", "--test-dir", str(feature_build), "--output-on-failure"]))
         if args.hosted_client:
             hosted: Path = scratch_path / "hosted-client-consumer"
-            shutil.copytree(project / "tests" / "hosted_client_consumer", hosted)
+            shutil.copytree(tests / "tests" / "hosted_client_consumer", hosted)
             hosted_build: Path = scratch_path / "hosted-client-build"
             run(["cmake", "-S", str(hosted), "-B", str(hosted_build)] + package_arguments)
             run(["cmake", "--build", str(hosted_build), "--parallel", "2"])

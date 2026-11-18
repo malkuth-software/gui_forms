@@ -250,6 +250,7 @@ const Ribbon::RowMetrics& Ribbon::row_metrics() const {
     const ControlPartMetrics application = part_metrics("application_button", ControlVisualRole::accent_button, {});
     const ControlPartMetrics rest = part_metrics("tab", ControlVisualRole::menu_item, {});
     const ControlPartMetrics chosen = part_metrics("tab", ControlVisualRole::menu_item, selected);
+    const ControlPartMetrics divider = part_metrics("group_divider", ControlVisualRole::panel, {});
     const double row = std::max(1.0, rail.block_size.value_or(tab_row_extent)) * scale;
     const double rows = row_extent * static_cast<double>(rows_per_column);
     const double stock_plane = plane_top_padding + rows + caption_extent + plane_bottom_padding;
@@ -258,6 +259,10 @@ const Ribbon::RowMetrics& Ribbon::row_metrics() const {
     row_metrics_.padding = rest.padding_inline.value_or(tab_padding) * scale;
     row_metrics_.application_padding = application.padding_inline.value_or(tab_padding) * scale;
     row_metrics_.gap = rest.gap.value_or(tab_gap) * scale;
+    // Whole units, so the divider's pixels stay on the device grid at whole
+    // scales (an etched divider's two lines would otherwise blend into one).
+    const double divider_wanted = std::round(divider.minimum_inline_size.value_or(divider_width));
+    row_metrics_.divider = std::clamp(divider_wanted, divider_width, maximum_divider_width);
     // A top margin leaves at least one unit of the tab; a bottom margin
     // may be negative, running the tab below the rail into the plane.
     const double highest = std::max(0.0, row - 1.0);
@@ -577,7 +582,7 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
     const double padding = group_padding * scale;
     const double gap = column_gap * scale;
     if (group_layout.size == RibbonGroupSize::collapsed) {
-        const double collapsed = scaling.collapsed[group] + padding * 2.0 + divider_width;
+        const double collapsed = scaling.collapsed[group] + padding * 2.0 + row_metrics().divider;
         return collapsed;
     }
     const double rows_height = row_extent * scale * static_cast<double>(rows_per_column);
@@ -640,7 +645,7 @@ double Ribbon::place_group(const TabScaling& scaling, std::size_t tab, std::size
     if (column_rows != 0U) column_x += column_width + gap;
     const double content = column_x - gap - (x + padding);
     const double inner = std::max(std::max(0.0, content), scaling.captions[group]);
-    const double width = inner + padding * 2.0 + divider_width;
+    const double width = inner + padding * 2.0 + row_metrics().divider;
     return width;
 }
 

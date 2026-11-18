@@ -46,11 +46,6 @@ constexpr double maximum_solver_extent = 1'000'000.0;
 }
 constexpr double maximum_extent = 1'000'000.0;
 
-[[nodiscard]] double bounded_maximum(
-    const CommandOverflowGroupSpec& spec) noexcept {
-    return spec.maximum > 0.0 ? spec.maximum : maximum_extent;
-}
-
 [[nodiscard]] double desired_track_extent(
     const std::vector<ResponsiveTrackSpec>& tracks, double gap) noexcept {
     double value = 0.0;

@@ -1198,6 +1198,11 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
     return [super isAccessibilitySelectorAllowed:selector];
 }
 
+// The informal NSAccessibility protocol, deprecated since macOS 10.10 but still
+// asked by assistive clients that set attributes; the element answers both it
+// and the protocol methods.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 - (BOOL)accessibilityIsAttributeSettable:(NSAccessibilityAttributeName)attribute {
     return gui_forms::detail::call_failing_fast(
         "macos.accessibility_element.accessibilityIsAttributeSettable:",
@@ -1219,6 +1224,7 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
     }
     return [super accessibilityIsAttributeSettable:attribute];
 }
+#pragma clang diagnostic pop
 
 @end
 

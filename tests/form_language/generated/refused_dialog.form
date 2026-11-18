@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- A document the form compiler refuses (E812): two stable IDs spell one
-   member. -->
-<user-control xmlns="urn:gui-forms:form:1" id="refused.root">
-  <button id="refused.ok" text="OK"/>
-  <button id="refused-ok" text="Also OK"/>
-</user-control>

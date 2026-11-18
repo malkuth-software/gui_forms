@@ -291,7 +291,7 @@ void SurfaceRoot::cancel_frame_requests() {
     frame_requests_.clear();
 }
 
-void SurfaceRoot::set_occluded(bool occluded, FrameTime transition_time) {
+void SurfaceRoot::set_occluded(bool occluded, FrameTime) {
     require_root_thread("occlusion transition");
     if (occluded_ == occluded) {
         return;

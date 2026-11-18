@@ -22,7 +22,7 @@ consumer may not define standard names ([macro.names]).
     python3 -B tools/generate_hostile_macros.py \\
         --translation-unit tests/hostile_macros/hostile_macro_minimal.cpp \\
         --include-root include --include-root STXLIB/include \\
-        --standard-names tests/hostile_macros/standard_library_names.txt \\
+        --standard-names manifests/standard_library_names.txt \\
         --output build/hostile_macros/hostile_macros_minimal.h \\
         --report build/hostile_macros/hostile_macros_minimal.txt
 

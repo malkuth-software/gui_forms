@@ -129,12 +129,13 @@ jobs:
           python3 tools/control_registry.py emit-abi --check
           # Stage C: the C ABI's generated C# interop and C++ wrappers (with the
           # wrappers' 1:1 slot map). The blocking audit against the sealed
-          # 1.1 baseline runs in every native build's ctest
-          # (gui_forms_abi_audit), with the pinned clang.
+          # 1.1 baseline is gui_forms_tests' gui_forms_abi_audit test, with
+          # the pinned clang.
           python3 -B tools/abi_bindings.py csharp --check
           python3 -B tools/abi_bindings.py cpp --check
           python3 -B tools/drawing_bridge.py --check
-          # The class tables (ABI 1.3): generated outputs and the append-only ledger.
+          # The class tables (ABI 1.3): generated outputs and the append-only ledger
+          # (the C# hook test is gui_forms_tests', checked there).
           python3 -B tools/abi_class_tables.py --check
           python3 tools/control_registry.py emit-forms --check
           python3 -B -m unittest discover -s tools -p test_control_schema.py
@@ -168,20 +169,17 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 -B -m unittest discover -s tools -p test_flatten_control_headers.py
           python3 tools/generate_library_docs.py --check
-          python3 -B ../template_harness/harness/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
+          python3 -B ../template_harness/harness/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz stx_fontpack
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
           python3 -B -m unittest discover -s tools -p test_ninja_phases.py
-          python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
-          python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
           # The shim: the harness's lifetime rules, then GUI.Forms' member-view
           # rule, the termination rule for statics in src/ (exit-releases-nothing) and the
           # tests' stable-ID literal rule.
           python3 -B -m unittest discover -s tools -p test_check_exit_statics.py
           python3 -B -m unittest discover -s tools -p test_check_stable_id_literals.py
-          python3 -B -m unittest discover -s tools -p test_naming_audit.py
-          python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
+          python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard fuzz stx_fontpack
           # D15 (decision 6a): the standard-library rules, STXlib's check_std_rules
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
           python3 -B -m unittest discover -s tools -p test_check_std_rules.py
@@ -196,10 +194,6 @@ jobs:
           # 1.0 condition 3: every control and member, supported, deferred or excluded.
           python3 -B -m unittest discover -s tools -p test_member_manifest.py
           python3 -B tools/control_registry.py members --check
-          python3 -B -m unittest discover -s tools -p test_check_test_registration.py
-          python3 -B tools/check_test_registration.py
-          # Release-1.0 condition 2: the normative trace comparison, every host's trace shape.
-          python3 -B -m unittest discover -s tools -p test_normative_trace.py
   # Documentation-only pull requests (owner, 2026-11-09): when every changed
   # path is documentation no test reads (tools/ci_docs_only.py), the four
   # native jobs report success without building (their build job is
@@ -276,9 +270,10 @@ jobs:
           path: .ci/tree-receipt/receipt.json
           retention-days: 30
   # House style section 1: memory errors and undefined behaviour are defects,
-  # tests included. The whole suite runs under AddressSanitizer,
-  # UndefinedBehaviorSanitizer and LeakSanitizer; any report stops its test
-  # and fails the job. Owner ruling (2026-11-03): the sanitizers do not run
+  # tests included. The tree builds under AddressSanitizer,
+  # UndefinedBehaviorSanitizer and LeakSanitizer into the sanitize test
+  # cache; gui_forms_tests runs the whole suite against it, where any report
+  # stops its test and fails the job. Owner ruling (2026-11-03): the sanitizers do not run
   # remotely unless someone requests a run by hand (workflow_dispatch with
   # run_sanitizers; one planned at 1.0). Pull requests, pushes, merge groups
   # and the schedule skip this job, and it is not a required check. The gate
@@ -292,6 +287,9 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.run_sanitizers
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: write
+      actions: read
     env:
       CC: clang
       CXX: clang++
@@ -315,32 +313,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # A requested run looks up no earlier receipt and runs the whole suite;
-      # the later `steps.receipt` conditions always hold.
+      # A requested run looks up no earlier receipt and runs the whole suite.
       # The Ubuntu mirror is sometimes slow (7-11 minutes for 30 MB), so the
       # downloaded Ubuntu packages are kept in an Actions cache, refreshed once
       # per runner image; only main saves it (harness/install_linux_ci_packages.sh).
       - name: Name the Linux package cache
-        if: steps.receipt.outputs.reused != 'true'
         id: linux-image
         run: echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
-        if: steps.receipt.outputs.reused != 'true'
         id: linux-packages
         with:
           path: ${{ runner.temp }}/apt-archives
           key: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-${{ steps.linux-image.outputs.image }}
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install Linux dependencies
-        if: steps.receipt.outputs.reused != 'true'
         run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       - uses: actions/cache/save@v4
-        if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true' && steps.receipt.outputs.reused != 'true'
+        if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true'
         with:
           path: ${{ runner.temp }}/apt-archives
           key: ${{ steps.linux-packages.outputs.cache-primary-key }}
       - name: Configure compiler cache
-        if: steps.receipt.outputs.reused != 'true'
         run: |
           echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$PWD" >> "$GITHUB_ENV"
@@ -358,7 +351,6 @@ jobs:
       # a pull request's merge commit, so the message is read from the head
       # commit by name (the full history holds it); a push reads its own.
       - name: Choose the sanitizer debug information
-        if: steps.receipt.outputs.reused != 'true'
         id: debug-info
         env:
           HEAD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -379,7 +371,6 @@ jobs:
       # and only line-table runs find or pack a seed: a full -g hunt starts from
       # main's cache and leaves no seed behind for a line-table run to restore.
       - uses: actions/cache/restore@v4
-        if: steps.receipt.outputs.reused != 'true'
         id: sanitizer-cache
         with:
           path: |
@@ -389,12 +380,12 @@ jobs:
             gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-${{ hashFiles('gui_forms/stx.lock') }}-
       - name: Find sanitizer objects of the nearest branch
         id: seed
-        if: steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
+        if: steps.debug-info.outputs.mode == 'lines'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python template_harness/harness/ci_sanitizer_seed.py find
       - uses: actions/download-artifact@v4
-        if: steps.seed.outputs.seeded == 'true' && steps.receipt.outputs.reused != 'true'
+        if: steps.seed.outputs.seeded == 'true'
         with:
           github-token: ${{ github.token }}
           run-id: ${{ steps.seed.outputs.producer-run }}
@@ -402,53 +393,47 @@ jobs:
           path: .ci/sanitizer-seed
           merge-multiple: true
       - name: Replace the restored objects with the seed (every test still runs)
-        if: steps.seed.outputs.seeded == 'true' && steps.receipt.outputs.reused != 'true'
+        if: steps.seed.outputs.seeded == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python template_harness/harness/ci_sanitizer_seed.py restore --artifact-id "${{ steps.seed.outputs.artifact-id }}"
       - name: Identify and verify LLVM release compiler
         id: compiler
-        if: steps.receipt.outputs.reused != 'true'
         run: python template_harness/harness/compiler_identity.py
       # Linux links the harness's static position-independent C++ runtime
       # (cmake/llvm22.cmake refuses a configure without it), cached under the
       # native jobs' key.
       - name: Select the Linux runtime prefix
         id: linux-runtime
-        if: steps.receipt.outputs.reused != 'true'
         run: |
           directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
           echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
           echo "directory=$directory" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
-        if: steps.receipt.outputs.reused != 'true'
         with:
           path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
           key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
       - name: Build the static Linux runtimes
-        if: steps.receipt.outputs.reused != 'true'
         run: |
           if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
             python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
           fi
           python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
-      # A pull request builds and runs only the tests its changed paths can
-      # affect (the areas of tools/test_areas.json; every test when it touches
-      # CMake, the toolchain, the core headers or this workflow); a merge
-      # group does the same from the main commit it extends. A push to main
-      # that carried no receipt runs the whole suite.
-      - name: Build and test under the sanitizers
-        if: steps.receipt.outputs.reused != 'true'
-        env:
-          CHANGED_FROM: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+      # The sanitized tree and its test cache (the sanitize kind, which
+      # gui_forms_tests' sanitizer run links). Published on a dispatch from
+      # main or a checkpoint branch, like the native jobs' caches.
+      - name: Build under the sanitizers and pack the test cache
         run: |
           ccache --zero-stats
-          selection=""
-          if [ -n "$CHANGED_FROM" ]; then
-            selection="--changed-from $CHANGED_FROM"
-          fi
-          # Up to four tests at once, as in the native jobs (ci_build.py --test-jobs auto).
-          xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/ci_build.py --jobs 4 --test-jobs auto --sanitize $selection
+          python gui_forms/tools/ci_build.py --jobs 4 --sanitize --test-cache .ci/test-cache
+      - name: Publish the sanitize test cache for this commit
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/checkpoint/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for archive in .ci/test-cache/gui_forms_test_cache-*.tar.gz; do
+            python gui_forms/tools/test_cache.py publish --archive "$archive" --commit "$GITHUB_SHA" --repository "$GITHUB_REPOSITORY"
+          done
       # No first-party function may need a stack frame over 256 KB under the
       # sanitizers: AddressSanitizer's redzones grew test mains to hundreds of KB
       # on Windows, and a chain of them overflowed theme_tests' 1 MB main
@@ -458,19 +443,16 @@ jobs:
       # A run that built nothing (a change no test reads, such as a
       # documentation-only one) passes: ci_build.py's build record says so.
       - name: Check stack frames
-        if: ${{ !cancelled() && steps.receipt.outputs.reused != 'true' }}
+        if: ${{ !cancelled() }}
         run: python gui_forms/tools/stack_frames.py check --tree .build/native-linux-x64/gui-forms-sanitize --jobs 4 --top 15
       - name: Report cache statistics
-        if: always() && steps.receipt.outputs.reused != 'true'
+        if: always()
         run: ccache --show-stats --verbose
       # What passed this tree: this run's build record, or the run it carried.
       - name: Record this tree's sanitizer run
         id: record
         if: success()
-        env:
-          CARRIED: ${{ steps.receipt.outputs.producer-run }}
-          COVERAGE: ${{ steps.receipt.outputs.coverage }}
-        run: python template_harness/harness/ci_tree_receipt.py write --kind sanitize --out .ci/tree-receipt --build-record .build/native-linux-x64/gui-forms-sanitize.record.json ${CARRIED:+--carried-from "$CARRIED" --coverage "$COVERAGE"}
+        run: python template_harness/harness/ci_tree_receipt.py write --kind sanitize --out .ci/tree-receipt --build-record .build/native-linux-x64/gui-forms-sanitize.record.json
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -478,10 +460,10 @@ jobs:
           path: .ci/tree-receipt/receipt.json
           retention-days: 30
       - name: Pack the sanitizer objects as the next run's seed
-        if: success() && steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
+        if: success() && steps.debug-info.outputs.mode == 'lines'
         run: python template_harness/harness/ci_sanitizer_seed.py pack
       - uses: actions/upload-artifact@v4
-        if: success() && steps.debug-info.outputs.mode == 'lines' && steps.receipt.outputs.reused != 'true'
+        if: success() && steps.debug-info.outputs.mode == 'lines'
         with:
           name: gui-sanitize-ccache-linux-x64
           path: |
@@ -494,10 +476,10 @@ jobs:
       # saves it when it builds everything: the daily schedule, and a push
       # that carried no pull request's receipt.
       - name: Keep only the compiler cache entries this build used
-        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.receipt.outputs.reused != 'true'
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: python template_harness/harness/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
       - uses: actions/cache/save@v4
-        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.receipt.outputs.reused != 'true'
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
           path: |
             .ccache
@@ -578,58 +560,6 @@ jobs:
     permissions:
       contents: write
       actions: read
-
-  # T2's gate evidence (E11): every native job's engine gate manifest, compared
-  # across hosts. Fails on any reference-image hash that differs between hosts,
-  # any idle counter above zero, or any host without a manifest (a job that
-  # reused a validation carries that run's manifest). A host without evidence
-  # (its job cancelled, failed or never given a runner) is reported apart from
-  # a cross-host difference, and still fails: the gate runs whatever the
-  # native jobs' results, so it never reads as skipped. The filled record is the
-  # t2-engine-gate-record artifact (notes:results/2026-10-22-t2-engine-gate/).
-  # A documentation-only pull request built nothing to compare, so the gate
-  # passes without comparing.
-  engine-gate:
-    needs: [changes, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
-    if: >-
-      !cancelled()
-      && (needs.changes.outputs.docs_only == 'true' || !contains(needs.*.result, 'skipped'))
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: Documentation only, nothing was built to compare
-        if: needs.changes.outputs.docs_only == 'true'
-        run: echo "A documentation-only pull request, so no native job built and no manifest is compared."
-      - uses: actions/checkout@v4
-        if: needs.changes.outputs.docs_only != 'true'
-      - uses: actions/download-artifact@v4
-        if: needs.changes.outputs.docs_only != 'true'
-        with:
-          pattern: gui-forms-evidence-*
-          path: .ci/evidence
-      - name: Compile-only landing, nothing to compare
-        if: needs.changes.outputs.docs_only != 'true'
-        run: 'echo "Compile-only landing of PR 483 (owner, 2026-11-17): the native jobs ran no tests, so no manifest is compared."'
-      - name: Compare the engine gate manifests across hosts
-        if: false && needs.changes.outputs.docs_only != 'true'
-        run: >-
-          python3 -B tools/engine_gate.py compare --evidence .ci/evidence --out .ci/engine-gate
-          --commit "${{ github.sha }}"
-          --run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          --job-results "$NEEDS"
-        env:
-          NEEDS: ${{ toJSON(needs) }}
-      - name: Show the record
-        if: always() && needs.changes.outputs.docs_only != 'true'
-        run: |
-          if [ -f .ci/engine-gate/record.md ]; then cat .ci/engine-gate/record.md >> "$GITHUB_STEP_SUMMARY"; fi
-      - uses: actions/upload-artifact@v4
-        if: always() && needs.changes.outputs.docs_only != 'true'
-        with:
-          name: t2-engine-gate-record
-          include-hidden-files: true
-          path: .ci/engine-gate/
-          if-no-files-found: warn
 
   # The demonstration programs, their tests and packages, one platform each,
   # built from that platform's native objects as soon as its native job passes.

@@ -13,7 +13,7 @@ consumer is not entitled to define:
 - reserved identifiers (any leading underscore, or a double underscore);
 - names declared by the standard library ([macro.names]: a translation unit
   that includes a standard header shall not define them), read from
-  tests/hostile_macros/standard_library_names.txt;
+  manifests/standard_library_names.txt;
 - GUI.Forms' reserved prefixes (gf_, GF_, gd_, GD_, gui_forms, GUI_FORMS,
   gui_drawing, GUI_DRAWING, stxlib, STXLIB, stx_, STX_), which the consumer
   surface claims as the C library claims str and mem;
@@ -42,7 +42,7 @@ Run directly to refresh the standard name list from a libc++ include
 directory:
 
     python3 -B tools/consumer_macros.py standard-names --libcxx DIR \\
-        --output tests/hostile_macros/standard_library_names.txt
+        --output manifests/standard_library_names.txt
 """
 from __future__ import annotations
 

@@ -38,7 +38,7 @@ add_custom_command(OUTPUT ${_gf_shield_files}
     COMMAND ${_gf_shield_command} --output-dir "${_gf_shield_output}"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tools/consumer_shield.py"
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/consumer_macros.py"
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/hostile_macros/standard_library_names.txt"
+        "${CMAKE_CURRENT_SOURCE_DIR}/manifests/standard_library_names.txt"
         "${_gf_shield_roots}" ${_gf_shield_headers}
     COMMENT "Generating the consumer-macro shield"
     VERBATIM)

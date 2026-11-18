@@ -202,8 +202,10 @@ std::vector<std::string> label_lines(const std::string_view text, const FontSpec
     return lines;
 }
 
+// The font is the resolver's: resolve_width measures with the face it was made
+// for, so this overload does not read it.
 std::vector<std::string> label_lines(
-    const std::string_view text, const FontSpec font, const double width, const TextWrapping wrapping,
+    const std::string_view text, const FontSpec, const double width, const TextWrapping wrapping,
     const TextWidthResolver& resolve_width, const std::size_t maximum_lines) {
     std::vector<std::string> lines{};
     const std::size_t line_limit = maximum_lines == 0U

@@ -39,7 +39,7 @@ struct CorrespondenceItem final {
     // Case-insensitive ASCII terms whose matching excerpt ranges receive a
     // restrained evidence mark. Text remains one factual string; terms do not
     // become commands or ranking tokens.
-    std::vector<std::string> emphasis_terms;
+    std::vector<std::string> emphasis_terms{};
 };
 
 struct CorrespondenceSelectionChange final {

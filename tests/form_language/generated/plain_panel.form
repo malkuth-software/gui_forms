@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- A derived control that binds nothing (stage B): its class takes no
-   model. -->
-<user-control xmlns="urn:gui-forms:form:1" id="plain.root">
-  <label id="plain.caption" text="Caption"/>
-</user-control>

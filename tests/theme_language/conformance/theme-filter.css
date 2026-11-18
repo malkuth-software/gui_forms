@@ -1,3 +1,0 @@
-/* forms: atrule.filter value.url-fragment */
-button::part(face) { filter: url(#warm) }
-@filter warm { color-matrix: saturate(0.5); component-transfer: red linear(0.5 0.25) alpha identity }

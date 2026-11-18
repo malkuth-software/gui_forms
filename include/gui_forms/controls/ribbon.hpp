@@ -870,6 +870,9 @@ private:
         double padding{};
         double application_padding{};
         double gap{};
+        // The group divider's width in whole logical units (not scaled with
+        // the text): the theme's `min-width` for group_divider, at least 1.
+        double divider{};
         TabMargins application_margins{};
         TabMargins rest{};
         TabMargins selected{};

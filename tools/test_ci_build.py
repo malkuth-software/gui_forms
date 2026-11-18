@@ -1,7 +1,7 @@
 """Unit tests of GUI.Forms' own parts of ci_build.py (no build is run).
 
-The product-independent steps it imports (sanitizer options, test selection,
-configure records) are tested with them in template_harness
+The product-independent steps it imports (sanitizer options, configure
+records) are tested with them in template_harness
 (harness/test_ci_build_steps.py)."""
 from __future__ import annotations
 import io
@@ -15,7 +15,6 @@ from unittest import mock
 
 import ci_build
 import ci_build_steps
-import pr_build_targets
 
 
 class GalleryOptionTests(unittest.TestCase):
@@ -36,22 +35,8 @@ class GalleryOptionTests(unittest.TestCase):
             self.assertFalse(ci_build.gallery_enabled(False, {'GUI_FORMS_CI_BUILD_GALLERY': value}), value)
 
 
-class TestJobTests(unittest.TestCase):
-    def test_auto_is_the_processors_capped(self) -> None:
-        self.assertEqual(ci_build.test_job_count('auto', 2), 2)
-        self.assertEqual(ci_build.test_job_count('auto', 16), ci_build.TEST_JOBS_CAP)
-        self.assertEqual(ci_build.test_job_count('auto', 0), 1)
-        self.assertEqual(ci_build.test_job_count('3'), 3)
-
-    def test_other_values_are_refused(self) -> None:
-        value: str
-        for value in ('0', '-2', 'many', ''):
-            with self.assertRaises(ci_build.argparse.ArgumentTypeError):
-                ci_build.test_job_count(value)
-
-
 CHECKOUT: Path = Path(__file__).resolve().parents[1]
-FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'tests', 'examples',
+FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'examples',
                                             'file_manager_demoboard')
 SOURCE_SUFFIXES: tuple[str, ...] = ('.c', '.cc', '.cpp', '.h', '.hpp', '.inc', '.m', '.mm')
 
@@ -86,21 +71,12 @@ def rule_expression(pattern: str) -> re.Pattern[str]:
 
 
 class CheckoutFileTests(unittest.TestCase):
-    """The GUI.Forms files the shared steps read: the sanitizer job and the test labels."""
+    """The GUI.Forms file the shared steps read: the sanitizer job."""
 
     def test_the_sanitizer_job_sets_the_variable_this_tool_reads(self) -> None:
         workflow: str = (CHECKOUT / '.github/workflows/native.yml').read_text(encoding='utf-8')
         self.assertIn(ci_build.DEBUG_INFO_VARIABLE + '=$mode', workflow)
         self.assertIn('gui-sanitize-v1-${{ steps.debug-info.outputs.mode }}-', workflow)
-
-
-    def test_the_gallery_accessibility_tests_carry_the_label(self) -> None:
-        cmake: str = (CHECKOUT / 'CMakeLists.txt').read_text(encoding='utf-8')
-        name: str
-        for name in ('gui_forms_macos_accessibility_client_gallery_tests', 'gui_forms_linux_accessibility_gallery_tests',
-                     'gui_forms_windows_accessibility_msaa_gallery_tests',
-                     'gui_forms_windows_accessibility_uia_gallery_tests'):
-            self.assertIn('set_property(TEST ' + name + ' APPEND PROPERTY LABELS gallery_accessibility)', cmake)
 
 
 class LeakSuppressionTests(unittest.TestCase):
@@ -140,59 +116,19 @@ class LeakSuppressionTests(unittest.TestCase):
 
 
 
-class UnreadChanges:
-    """Stands in for change_selection: a documentation-only change, which no test reads."""
-
-    def changed_paths(self, root: Path, base: str) -> list[str]:
-        return ['docs/index.md']
-
-    def any_path_read(self, changed: list[str], rules: object) -> bool:
-        return False
-
-    def load_rules(self) -> list[object]:
-        """No rules: the real ones live in <workspace>/gui_forms, which a
-        checkout under another directory name does not have."""
-        return []
-
-    def failing_changed_paths(self, root: Path, base: str) -> list[str]:
-        raise RuntimeError('git failed')
-
-
 class BuildRecordTests(unittest.TestCase):
     """The record beside the tree says what a call built (tools/stack_frames.py reads it)."""
-
-    def call_with(self, changed_paths: object, build: Path) -> None:
-        fake: UnreadChanges = UnreadChanges()
-        original_changed: object = ci_build.change_selection.changed_paths
-        original_read: object = ci_build.change_selection.any_path_read
-        original_rules: object = ci_build.change_selection.load_rules
-        ci_build.change_selection.changed_paths = changed_paths
-        ci_build.change_selection.any_path_read = fake.any_path_read
-        ci_build.change_selection.load_rules = fake.load_rules
-        try:
-            ci_build.build_toolkit('linux', build, build / 'sdk', 1, sanitize=True, changed_from='origin/main')
-        finally:
-            ci_build.change_selection.changed_paths = original_changed
-            ci_build.change_selection.any_path_read = original_read
-            ci_build.change_selection.load_rules = original_rules
-
-    def test_a_change_no_test_reads_records_that_nothing_was_built(self) -> None:
-        with tempfile.TemporaryDirectory() as scratch:
-            build: Path = Path(scratch)
-            self.call_with(UnreadChanges().changed_paths, build)
-            tree: Path = build / 'gui-forms-sanitize'
-            self.assertFalse(tree.exists())
-            record: dict = json.loads(ci_build.build_record_path(tree).read_text(encoding='utf-8'))
-            self.assertEqual(record['built'], ci_build.BUILT_NOTHING)
-            self.assertIn('no test reads', record['reason'])
 
     def test_a_call_that_fails_leaves_no_earlier_record(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
             build: Path = Path(scratch)
             tree: Path = build / 'gui-forms-sanitize'
-            ci_build.write_build_record(tree, ci_build.BUILT_NOTHING, 'an earlier run')
-            with self.assertRaises(RuntimeError):
-                self.call_with(UnreadChanges().failing_changed_paths, build)
+            ci_build.write_build_record(tree, ci_build.BUILT_EVERYTHING, 'an earlier run')
+            with mock.patch.object(ci_build, 'prepare_host'), \
+                    mock.patch.object(ci_build, 'sanitizer_options', return_value=([], {})), \
+                    mock.patch.object(ci_build, 'configure_tree', side_effect=RuntimeError('configure failed')):
+                with self.assertRaises(RuntimeError):
+                    ci_build.build_toolkit('linux', build, build / 'sdk', 1, sanitize=True)
             self.assertFalse(ci_build.build_record_path(tree).exists())
 
 
@@ -208,9 +144,10 @@ def recorder_of_builds(commands: list[list[str]]):
 
 
 class InstallOnlyTests(unittest.TestCase):
-    """--install-only builds and installs the SDK and runs none of the toolkit's tests."""
+    """The tree is built, installed and smoke-checked; the test cache is packed
+    unless --install-only. No test of the toolkit runs here (gui_forms_tests)."""
 
-    def commands_of(self, install_only: bool) -> list[list[str]]:
+    def commands_of(self, install_only: bool, test_cache: Path | None) -> list[list[str]]:
         commands: list[list[str]] = []
 
         def record(*arguments: object, **keywords: object) -> None:
@@ -224,152 +161,44 @@ class InstallOnlyTests(unittest.TestCase):
                     mock.patch.object(ci_build, 'prepare_host'), \
                     mock.patch.object(ci_build, 'check_installed_notices'), \
                     mock.patch.object(ci_build, 'check_windows_sdk_imports'):
-                ci_build.build_toolkit('linux', build, build / 'sdk', 1, install_only=install_only)
+                ci_build.build_toolkit('linux', build, build / 'sdk', 1, install_only=install_only,
+                                       test_cache=test_cache, platform_label='linux-x64')
             toolkit: str = str(build / 'gui-forms')
             self.assertIn(['cmake', '--install', toolkit], commands)
         return commands
 
-    def toolkit_tests(self, commands: list[list[str]]) -> list[list[str]]:
+    def packs(self, commands: list[list[str]]) -> list[list[str]]:
         found: list[list[str]] = []
         command: list[str]
         for command in commands:
-            if command[:1] == ['ctest'] and command[2].endswith('gui-forms'):
+            if len(command) > 3 and command[2].endswith('test_cache.py') and command[3] == 'pack':
                 found.append(command)
         return found
 
-    def test_install_only_runs_no_toolkit_test(self) -> None:
-        self.assertEqual(self.toolkit_tests(self.commands_of(True)), [])
-        self.assertEqual(len(self.toolkit_tests(self.commands_of(False))), 1)
-
-    def test_a_pull_request_runs_the_affected_tests_and_the_smoke_set(self) -> None:
-        listing: dict = {'tests': [{'name': 'gui_forms_engine_gate_tests'}, {'name': 'gui_forms_threading_tests'},
-                                   {'name': 'gui_forms_text_tests'}, {'name': 'gui_forms_tab_tests'}]}
-        affected: dict = {'tests': [{'name': 'gui_forms_text_tests'}]}
-        chosen: dict
-        with mock.patch.object(ci_build, 'changed_tests_listing', return_value=affected):
-            chosen = ci_build.pull_request_listing(listing, ['src/core/text/x.cpp'])
-        names: list[str] = []
-        test: dict
-        for test in chosen['tests']:
-            names.append(test['name'])
-        self.assertEqual(names, ['gui_forms_engine_gate_tests', 'gui_forms_threading_tests', 'gui_forms_text_tests'])
-        # A path every test reads, and no change selection at all, keep the whole suite.
-        with mock.patch.object(ci_build, 'changed_tests_listing', return_value=None):
-            self.assertEqual(ci_build.pull_request_listing(listing, ['CMakeLists.txt']), listing)
-        self.assertEqual(ci_build.pull_request_listing(listing, None), listing)
-
-    def test_a_pull_request_may_narrow_by_change_but_not_by_pattern(self) -> None:
-        with mock.patch.object(sys, 'argv', ['ci_build.py', '--test-targets-only', '--tests', 'x']), \
-                mock.patch('sys.stderr'):
-            with self.assertRaises(SystemExit):
-                ci_build.main()
-        with mock.patch.object(sys, 'argv', ['ci_build.py', '--test-targets-only', '--changed-from', 'HEAD^1']), \
-                mock.patch.object(ci_build, 'build_toolkit') as build:
-            ci_build.main()
-        self.assertEqual(build.call_args.args[10], 'HEAD^1')
-        self.assertTrue(build.call_args.args[12])
-
-    def test_a_pull_request_builds_the_tests_targets_and_installs_nothing(self) -> None:
-        commands: list[list[str]] = []
-
-        def record(*arguments: object, **keywords: object) -> None:
-            commands.append([str(argument) for argument in arguments])
-
-        with tempfile.TemporaryDirectory() as scratch:
-            build: Path = Path(scratch)
-            toolkit: Path = build / 'gui-forms'
-            listing: dict = {'tests': [
-                {'name': 'a', 'command': [str(toolkit / 'a_tests'), str(toolkit / '_deps/x-src/corpus')]},
-                {'name': 'b', 'command': ['cmake', '-DLIBRARY=' + str(toolkit / 'libabi.so'), '-P', 'x.cmake']},
-                {'name': 'c', 'command': [str(toolkit / 'probe_runner'), str(toolkit / 'probe.app')]}]}
-            outputs: dict[str, str] = {'a_tests': 'CXX_EXECUTABLE_LINKER__a_tests_',
-                                       'gallery': 'CXX_EXECUTABLE_LINKER__gallery_',
-                                       'libabi.so': 'CXX_SHARED_LIBRARY_LINKER__abi_',
-                                       'libplugin.so': 'CXX_MODULE_LIBRARY_LINKER__plugin_',
-                                       'probe_runner': 'CXX_EXECUTABLE_LINKER__probe_runner_',
-                                       'probe.app/Contents/MacOS/probe': 'CXX_EXECUTABLE_LINKER__probe_',
-                                       'package': 'phony'}
-            with mock.patch.object(ci_build, 'run', side_effect=record), \
-                    mock.patch.object(ci_build, 'build_logged', side_effect=recorder_of_builds(commands)), \
-                    mock.patch.object(ci_build, 'configure_tree'), \
-                    mock.patch.object(ci_build, 'prepare_host'), \
-                    mock.patch.object(ci_build, 'test_listing', return_value=listing), \
-                    mock.patch.object(ci_build, 'ninja_outputs', return_value=outputs):
-                ci_build.build_toolkit('linux', build, build / 'sdk', 1, test_targets_only=True)
-        self.assertIn(['cmake', '--build', str(toolkit), '--parallel', '1', '--target',
-                       'a_tests', 'libabi.so', 'libplugin.so', 'probe.app/Contents/MacOS/probe', 'probe_runner'],
-                      commands)
-        self.assertEqual(len(self.toolkit_tests(commands)), 1)
-        self.assertIn('--output-junit', self.toolkit_tests(commands)[0])
+    def test_no_toolkit_test_runs_and_the_examples_do(self) -> None:
+        commands: list[list[str]] = self.commands_of(False, Path('cache'))
+        ctests: list[list[str]] = []
         command: list[str]
         for command in commands:
-            self.assertNotIn('--install', command)
-            self.assertNotIn('gallery', command)
+            if command[:1] == ['ctest']:
+                ctests.append(command)
+        self.assertEqual(len(ctests), 1)
+        self.assertTrue(ctests[0][2].endswith('installed-reference-examples'))
 
-    def test_install_only_takes_no_narrowing(self) -> None:
+    def test_the_test_cache_is_packed_unless_install_only(self) -> None:
+        packed: list[list[str]] = self.packs(self.commands_of(False, Path('cache')))
+        self.assertEqual(len(packed), 1)
+        self.assertIn('linux-x64', packed[0])
+        self.assertEqual(self.packs(self.commands_of(True, Path('cache'))), [])
+        self.assertEqual(self.packs(self.commands_of(False, None)), [])
+
+    def test_install_only_packs_nothing(self) -> None:
         option: list[str]
-        for option in (['--sanitize'], ['--tests', 'x'], ['--skip-labels', 'y']):
+        for option in (['--sanitize'], ['--test-cache', 'x']):
             with mock.patch.object(sys, 'argv', ['ci_build.py', '--install-only', *option]), \
                     mock.patch('sys.stderr'):
                 with self.assertRaises(SystemExit):
                     ci_build.main()
-
-
-class PullRequestTargetListTests(unittest.TestCase):
-    """pr_build_targets.py's list feeds `xargs cmake --build --target` in Git
-    Bash: on Windows its lines must end without a carriage return (programs
-    on windows-x64 refused 'gui_forms_abi1.lib' + CR)."""
-
-    def test_the_list_and_the_pattern_end_lines_without_a_carriage_return(self) -> None:
-        listing: dict = {'tests': [{'name': 'a_tests', 'command': ['a_tests']},
-                                   {'name': 'b_tests', 'command': ['b_tests']}]}
-        # A text stream that writes CRLF, as Windows' stdout does by default.
-        raw: io.BytesIO = io.BytesIO()
-        windows_stdout: io.TextIOWrapper = io.TextIOWrapper(raw, encoding='utf-8', newline='\r\n')
-        with tempfile.TemporaryDirectory() as scratch:
-            pattern_path: Path = Path(scratch) / 'pattern.txt'
-            arguments: list[str] = ['--build-dir', scratch, '--tests', 'a_tests|b_tests\r',
-                                    '--pattern-out', str(pattern_path)]
-            with mock.patch.object(ci_build, 'test_listing', return_value=listing) as listed, \
-                    mock.patch.object(ci_build, 'ninja_outputs', return_value={}), \
-                    mock.patch.object(ci_build, 'test_build_targets',
-                                      return_value=(['gui_forms_abi1.lib', 'a_tests.exe'], [])), \
-                    mock.patch.object(sys, 'stdout', windows_stdout), mock.patch('sys.stderr'):
-                self.assertEqual(pr_build_targets.main(arguments), 0)
-                windows_stdout.flush()
-            pattern: bytes = pattern_path.read_bytes()
-        self.assertEqual(raw.getvalue(), b'gui_forms_abi1.lib\na_tests.exe\n')
-        self.assertNotIn(b'\r', pattern)
-        # The CRLF pattern a Windows tool printed reaches ctest without its CR.
-        self.assertEqual(listed.call_args.args[1], 'a_tests|b_tests')
-
-
-class WholeTreeTestTests(unittest.TestCase):
-    """A test labelled sdk installs the whole tree (gui_forms_sdk_consumer_link):
-    a pull request that selects it builds `all`, since the merged Application
-    archive it installs is no output its command names (#483, native linux)."""
-
-    def listing(self) -> dict:
-        return {'tests': [{'name': 'a_tests', 'command': ['a_tests'],
-                           'properties': [{'name': 'LABELS', 'value': ['area_controls']}]},
-                          {'name': 'gui_forms_sdk_consumer_link', 'command': ['python3'],
-                           'properties': [{'name': 'LABELS', 'value': ['area_controls', 'sdk']}]}]}
-
-    def test_the_sdk_label_marks_a_whole_tree_test(self) -> None:
-        self.assertEqual(ci_build.whole_tree_tests(self.listing()), ['gui_forms_sdk_consumer_link'])
-        self.assertEqual(ci_build.whole_tree_tests({'tests': self.listing()['tests'][:1]}), [])
-
-    def test_the_programs_list_is_all_when_a_whole_tree_test_runs(self) -> None:
-        raw: io.BytesIO = io.BytesIO()
-        stdout: io.TextIOWrapper = io.TextIOWrapper(raw, encoding='utf-8')
-        with tempfile.TemporaryDirectory() as scratch:
-            with mock.patch.object(ci_build, 'test_listing', return_value=self.listing()), \
-                    mock.patch.object(ci_build, 'test_build_targets') as narrowed, \
-                    mock.patch.object(sys, 'stdout', stdout), mock.patch('sys.stderr'):
-                self.assertEqual(pr_build_targets.main(['--build-dir', scratch]), 0)
-                stdout.flush()
-        self.assertEqual(raw.getvalue(), b'all\n')
-        narrowed.assert_not_called()
 
 
 class KeepGoingBuildTests(unittest.TestCase):
