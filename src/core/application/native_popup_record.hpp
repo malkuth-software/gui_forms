@@ -135,6 +135,13 @@ void note_popup_backdrop(const std::weak_ptr<ApplicationWindowState>& owner, con
 [[nodiscard]] std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState>& owner,
                                                     Rect bounds, HostMonitorResult& monitors);
 
+// `desktop`, a desktop rectangle in logical units, in the owner's client
+// coordinates (the inverse of desktop_placement, after its work-area move);
+// none when the owner is not a ready window of a live run or the host does
+// not report its frame.
+[[nodiscard]] std::optional<Rect> client_placement(const std::weak_ptr<ApplicationWindowState>& owner,
+                                                   Rect desktop);
+
 // Opens `opening.content` in a native popup window owned by the owner
 // window: a Window model of the bounds' size, non-opaque, sharing the
 // owner's keys, placed at the owner's client origin plus the bounds'

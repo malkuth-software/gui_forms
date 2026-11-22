@@ -384,6 +384,12 @@ std::string SubSurfaceToolTipRequester::item_id() const {
     return (*request).subject.item_id;
 }
 
+ShownSplash SubSurfaceToolTipRequester::shown_splash() const {
+    // A sub-surface's bubble shows through its host window's route.
+    const ShownSplash none{};
+    return none;
+}
+
 std::string SubSurfaceToolTipRequester::text() const {
     const OpenRequest* request = shown();
     if (request == nullptr) return {};

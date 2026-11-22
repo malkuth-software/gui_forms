@@ -759,6 +759,7 @@
     _ZGVZN9gui_forms16ShadowFrameScope*;
     _ZGVZN9gui_forms16ShadowStackState*;
     _ZGVZN9gui_forms16ShapingWorkspace*;
+    _ZGVZN9gui_forms16ShownPopupWindow*;
     _ZGVZN9gui_forms16SourceByteOffset*;
     _ZGVZN9gui_forms16SplitChangeEvent*;
     _ZGVZN9gui_forms16StockIconVectors*;
@@ -2452,6 +2453,7 @@
     _ZGVZNK9gui_forms16ShadowFrameScope*;
     _ZGVZNK9gui_forms16ShadowStackState*;
     _ZGVZNK9gui_forms16ShapingWorkspace*;
+    _ZGVZNK9gui_forms16ShownPopupWindow*;
     _ZGVZNK9gui_forms16SourceByteOffset*;
     _ZGVZNK9gui_forms16SplitChangeEvent*;
     _ZGVZNK9gui_forms16StockIconVectors*;
@@ -4439,6 +4441,7 @@
     _ZN9gui_forms16ShadowFrameScope*;
     _ZN9gui_forms16ShadowStackState*;
     _ZN9gui_forms16ShapingWorkspace*;
+    _ZN9gui_forms16ShownPopupWindow*;
     _ZN9gui_forms16SourceByteOffset*;
     _ZN9gui_forms16SplitChangeEvent*;
     _ZN9gui_forms16StockIconVectors*;
@@ -7588,6 +7591,7 @@
     _ZNK[RO]9gui_forms16ShadowFrameScope*;
     _ZNK[RO]9gui_forms16ShadowStackState*;
     _ZNK[RO]9gui_forms16ShapingWorkspace*;
+    _ZNK[RO]9gui_forms16ShownPopupWindow*;
     _ZNK[RO]9gui_forms16SourceByteOffset*;
     _ZNK[RO]9gui_forms16SplitChangeEvent*;
     _ZNK[RO]9gui_forms16StockIconVectors*;
@@ -9281,6 +9285,7 @@
     _ZN[KRO]9gui_forms16ShadowFrameScope*;
     _ZN[KRO]9gui_forms16ShadowStackState*;
     _ZN[KRO]9gui_forms16ShapingWorkspace*;
+    _ZN[KRO]9gui_forms16ShownPopupWindow*;
     _ZN[KRO]9gui_forms16SourceByteOffset*;
     _ZN[KRO]9gui_forms16SplitChangeEvent*;
     _ZN[KRO]9gui_forms16StockIconVectors*;
@@ -10974,6 +10979,7 @@
     _ZT[VIST]N9gui_forms16ShadowFrameScope*E;
     _ZT[VIST]N9gui_forms16ShadowStackState*E;
     _ZT[VIST]N9gui_forms16ShapingWorkspace*E;
+    _ZT[VIST]N9gui_forms16ShownPopupWindow*E;
     _ZT[VIST]N9gui_forms16SourceByteOffset*E;
     _ZT[VIST]N9gui_forms16SplitChangeEvent*E;
     _ZT[VIST]N9gui_forms16StockIconVectors*E;
@@ -12667,6 +12673,7 @@
     _ZT[hvc]*9gui_forms16ShadowFrameScope*;
     _ZT[hvc]*9gui_forms16ShadowStackState*;
     _ZT[hvc]*9gui_forms16ShapingWorkspace*;
+    _ZT[hvc]*9gui_forms16ShownPopupWindow*;
     _ZT[hvc]*9gui_forms16SourceByteOffset*;
     _ZT[hvc]*9gui_forms16SplitChangeEvent*;
     _ZT[hvc]*9gui_forms16StockIconVectors*;
@@ -14360,6 +14367,7 @@
     _ZZN9gui_forms16ShadowFrameScope*;
     _ZZN9gui_forms16ShadowStackState*;
     _ZZN9gui_forms16ShapingWorkspace*;
+    _ZZN9gui_forms16ShownPopupWindow*;
     _ZZN9gui_forms16SourceByteOffset*;
     _ZZN9gui_forms16SplitChangeEvent*;
     _ZZN9gui_forms16StockIconVectors*;
@@ -16053,6 +16061,7 @@
     _ZZNK9gui_forms16ShadowFrameScope*;
     _ZZNK9gui_forms16ShadowStackState*;
     _ZZNK9gui_forms16ShapingWorkspace*;
+    _ZZNK9gui_forms16ShownPopupWindow*;
     _ZZNK9gui_forms16SourceByteOffset*;
     _ZZNK9gui_forms16SplitChangeEvent*;
     _ZZNK9gui_forms16StockIconVectors*;

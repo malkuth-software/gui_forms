@@ -58,6 +58,7 @@ public:
     void client_changed(const ClientIdentity& client) override;
     void activity(Window& window, AutomationActivity activity) override;
     void calls_finished() noexcept override;
+    void pointer_moved(Window& window, Point position, bool left) noexcept override;
     void control_changed(ControlState state, const ClientIdentity& client) override;
     void ask_consent(const ClientIdentity& client) override;
     void user_step_needed(Window& window, const SemanticNode& node, std::string_view what) override;
@@ -77,6 +78,8 @@ public:
         WindowRef window{};
         bool steady{};
         FrameRequestToken glint_end{};
+        // The pointer is over the top border (the tag line shows on entry).
+        bool over_border{};
     };
 
 private:

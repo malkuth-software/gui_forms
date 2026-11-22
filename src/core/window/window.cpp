@@ -1120,7 +1120,9 @@ void SurfaceRoot::set_dialog_result(DialogResult result) {
     case DialogResult::yes:
     case DialogResult::no:
     case DialogResult::try_again:
-    case DialogResult::continue_: break;
+    case DialogResult::continue_:
+        // A defined value: validated, stored below.
+        break;
     default:
         throw std::invalid_argument("Window DialogResult is not a defined value");
     }
@@ -2205,6 +2207,7 @@ Control::Ptr SurfaceRoot::wheel_latch_target(const PointerEvent& event) {
     case WheelPhase::changed:
     case WheelPhase::ended:
     case WheelPhase::momentum:
+        // Within a gesture: the latch holds.
         break;
     case WheelPhase::cancelled:
     case WheelPhase::momentum_ended:

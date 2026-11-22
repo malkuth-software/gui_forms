@@ -134,6 +134,7 @@ void AutomationControl::note_model_call(FrameTime now) noexcept {
 void AutomationControl::tick(FrameTime now) {
     switch (state_) {
     case ControlState::user_control:
+        // The user has control: no hold to time out.
         return;
     case ControlState::input_suspended:
         if (now - held_since_ >= settings_.suspend_ceiling) {
@@ -144,6 +145,7 @@ void AutomationControl::tick(FrameTime now) {
         }
         break;
     case ControlState::model_directed:
+        // Model-directed control has no ceiling; the idle check below applies.
         break;
     default:
         release(ControlRelease::disconnected);

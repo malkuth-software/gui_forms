@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 
 namespace gui_forms::automation::detail {
 namespace {
@@ -264,6 +265,112 @@ void paint_out_protected(std::span<const FlatNode> nodes, Point origin, WindowCa
     }
 }
 
+// Premultiplied source over: `layer` onto `canvas` with its top left at
+// pixel (left, top) of the canvas, clipped to it.
+void compose_over(WindowCapture& canvas, const WindowCapture& layer, std::int64_t left, std::int64_t top) noexcept {
+    const std::int64_t canvas_width = static_cast<std::int64_t>(canvas.pixel_width);
+    const std::int64_t canvas_height = static_cast<std::int64_t>(canvas.pixel_height);
+    const std::size_t needed = static_cast<std::size_t>(layer.pixel_width) * layer.pixel_height * 4U;
+    if (layer.bgra.size() < needed) return;
+    for (std::uint32_t row = 0U; row < layer.pixel_height; ++row) {
+        const std::int64_t target_row = top + static_cast<std::int64_t>(row);
+        if (target_row < 0 || target_row >= canvas_height) continue;
+        for (std::uint32_t column = 0U; column < layer.pixel_width; ++column) {
+            const std::int64_t target_column = left + static_cast<std::int64_t>(column);
+            if (target_column < 0 || target_column >= canvas_width) continue;
+            const std::byte* const source =
+                layer.bgra.data() + (static_cast<std::size_t>(row) * layer.pixel_width + column) * 4U;
+            std::byte* const target =
+                canvas.bgra.data() +
+                (static_cast<std::size_t>(target_row) * canvas.pixel_width + static_cast<std::size_t>(target_column)) *
+                    4U;
+            const std::uint32_t alpha = std::to_integer<std::uint32_t>(source[3]);
+            const std::uint32_t keep = 255U - alpha;
+            for (std::size_t channel = 0U; channel < 4U; ++channel) {
+                const std::uint32_t over = std::to_integer<std::uint32_t>(source[channel]);
+                const std::uint32_t under = std::to_integer<std::uint32_t>(target[channel]);
+                const std::uint32_t mixed = std::min<std::uint32_t>(255U, over + (under * keep + 127U) / 255U);
+                target[channel] = static_cast<std::byte>(mixed);
+            }
+        }
+    }
+}
+
+// One Popup window's pixels and where its top left lies, in the owner's
+// client coordinates (logical units).
+struct PopupLayer final {
+    WindowCapture capture{};
+    Point origin{};
+    std::size_t slot{};
+};
+
+// The largest composite side, in pixels.
+constexpr std::int64_t maximum_composite_pixels = 16384;
+
+// `capture` (the owner's) with its showing Popup windows and its tooltip's
+// Splash window over it, in screen order (a menu's depths open in turn,
+// the tooltip on top), as the user sees them: the canvas
+// grows to take in each popup, clear where nothing draws, and each popup's
+// password fields are painted out first. Appends the slots composited to
+// `names`; returns how many were. The owner's pixels move right or down
+// when a popup lies left of or above its client area.
+std::size_t composite_popups(AutomationCore& core, Window& window, WindowCapture& capture, std::string& names) {
+    const double scale = capture.scale > 0.0 ? capture.scale : 1.0;
+    std::vector<PopupLayer> layers{};
+    for (std::size_t slot = 0U; slot < Window::shown_popup_window_count; ++slot) {
+        const ShownPopupWindow shown = window.shown_popup_window(slot);
+        Window* const model = shown.model;
+        if (model == nullptr) continue;
+        const Rect* const placed = &shown.bounds;
+        WindowCaptureOptions options{};
+        options.include_overlays = true;
+        options.scale = scale;
+        std::optional<WindowCapture> popup = (*model).capture_window(options);
+        if (!popup.has_value()) continue;
+        std::vector<FlatNode> nodes{};
+        core.flatten_window(*model, nodes);
+        paint_out_protected(nodes, Point{}, *popup);
+        PopupLayer layer{};
+        layer.capture = std::move(*popup);
+        layer.origin = Point{(*placed).x, (*placed).y};
+        layer.slot = slot;
+        layers.push_back(std::move(layer));
+    }
+    if (layers.empty()) return 0U;
+    std::int64_t left = 0;
+    std::int64_t top = 0;
+    std::int64_t right = static_cast<std::int64_t>(capture.pixel_width);
+    std::int64_t bottom = static_cast<std::int64_t>(capture.pixel_height);
+    for (const PopupLayer& layer : layers) {
+        const std::int64_t x = static_cast<std::int64_t>(std::llround(layer.origin.x * scale));
+        const std::int64_t y = static_cast<std::int64_t>(std::llround(layer.origin.y * scale));
+        left = std::min(left, x);
+        top = std::min(top, y);
+        right = std::max(right, x + static_cast<std::int64_t>(layer.capture.pixel_width));
+        bottom = std::max(bottom, y + static_cast<std::int64_t>(layer.capture.pixel_height));
+    }
+    if (right - left > maximum_composite_pixels || bottom - top > maximum_composite_pixels) return 0U;
+    WindowCapture canvas{};
+    canvas.scale = capture.scale;
+    canvas.pixel_width = static_cast<std::uint32_t>(right - left);
+    canvas.pixel_height = static_cast<std::uint32_t>(bottom - top);
+    canvas.logical_size = Size{static_cast<double>(canvas.pixel_width) / scale,
+                               static_cast<double>(canvas.pixel_height) / scale};
+    canvas.bgra.assign(static_cast<std::size_t>(canvas.pixel_width) * canvas.pixel_height * 4U, std::byte{0});
+    compose_over(canvas, capture, -left, -top);
+    for (const PopupLayer& layer : layers) {
+        const std::int64_t x = static_cast<std::int64_t>(std::llround(layer.origin.x * scale));
+        const std::int64_t y = static_cast<std::int64_t>(std::llround(layer.origin.y * scale));
+        compose_over(canvas, layer.capture, x - left, y - top);
+        names += names.empty() ? "" : ", ";
+        names += layer.slot == Window::maximum_popup_windows ? std::string("tooltip") : "popup " + std::to_string(layer.slot);
+        names += " at " + number_text(layer.origin.x) + "," +
+                 number_text(layer.origin.y);
+    }
+    capture = std::move(canvas);
+    return layers.size();
+}
+
 const SemanticNode* find_semantic_node(const SemanticSnapshot&& snapshot, std::uint64_t runtime) = delete;
 
 // The SemanticNode a flat node came from, by runtime ID, in `snapshot`
@@ -458,6 +565,14 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
                                   "wait until idle and try again");
     }
     paint_out_protected(nodes, origin, *capture);
+    // The owner alone would miss what the user sees in its Popup windows
+    // (menus, drop-downs): a window capture composites them over it.
+    std::string popups{};
+    const std::optional<bool> with_popups = boolean_member(arguments, "popups");
+    std::size_t composited = 0U;
+    if (index == no_parent && (!with_popups.has_value() || *with_popups)) {
+        composited = composite_popups(core, window, *capture, popups);
+    }
     ToolImage image{};
     if (!encode_window_capture_png(*capture, image.bytes)) {
         return ToolReply::failure(ToolError::internal, "the capture could not be encoded");
@@ -466,6 +581,7 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     success.text = "capture of " + what + ": " + std::to_string((*capture).pixel_width) + "x" +
                    std::to_string((*capture).pixel_height) + " px at scale " + number_text((*capture).scale) +
                    " (rendered)";
+    if (composited != 0U) success.text += " with its popup windows over it: " + popups;
     success.images.push_back(std::move(image));
     ToolReply reply = ToolReply::success(std::move(success));
     return reply;

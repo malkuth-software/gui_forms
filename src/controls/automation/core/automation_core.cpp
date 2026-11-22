@@ -116,11 +116,11 @@ void append_built_in_specs(std::vector<ToolSpec>& specs) {
         ToolAccess::read_only));
     specs.push_back(built_in(
         "capture", "Capture",
-        "A window or control as a PNG, drawn fresh from the current state (rendered). Password fields are painted "
-        "out.",
+        "A window or control as a PNG, drawn fresh from the current state (rendered); a window's open popup "
+        "windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out.",
         object_schema(targets + ",\"mode\":{\"type\":\"string\",\"enum\":[\"rendered\",\"presented\"]},"
                                 "\"scale\":{\"type\":\"number\"},\"margin\":{\"type\":\"number\"},"
-                                "\"include_overlays\":{\"type\":\"boolean\"}"),
+                                "\"include_overlays\":{\"type\":\"boolean\"},\"popups\":{\"type\":\"boolean\"}"),
         ToolAccess::read_only));
     specs.push_back(built_in(
         "inspect", "Inspect",
@@ -421,6 +421,21 @@ struct CoreRouteAccess final {
         core.route_trace_[core.route_next_] = std::move(event);
         core.route_next_ = (core.route_next_ + 1U) % AutomationCore::route_trace_capacity;
     }
+
+    // Tells the presenter where the pointer is in an attached window (the
+    // tag line on hover); the presenter's own windows are never attached.
+    static void pointer_seen(AutomationCore& core, const SurfaceRoot& window, PointerAction action,
+                             Point position) noexcept {
+        if (action != PointerAction::move && action != PointerAction::leave) return;
+        AutomationPresenter* const presenter = core.control_.presenter();
+        if (presenter == nullptr) return;
+        for (AutomationWindow& entry : core.windows_) {
+            Window* const attached = entry.window.get();
+            if (attached == nullptr || static_cast<const SurfaceRoot*>(attached) != &window) continue;
+            (*presenter).pointer_moved(*attached, position, action == PointerAction::leave);
+            return;
+        }
+    }
 };
 
 namespace {
@@ -438,7 +453,12 @@ void observe_route(void* context, const SurfaceRoot& window, const gui_forms::de
         event.target_stable_id = record.target_stable_id;
         event.target_control_id = record.target_control_id;
         event.handled = record.handled;
+        const bool pointer = event.pointer;
+        const Point position = event.position;
         CoreRouteAccess::record(core, std::move(event));
+        if (pointer) {
+            CoreRouteAccess::pointer_seen(core, window, static_cast<PointerAction>(record.action), position);
+        }
     } catch (...) {
         // Out of memory: the trace misses one event.
     }
@@ -1082,6 +1102,7 @@ StepOutcome CoreAccess::consent_then_post(RunningCall& call, FrameTime now) {
         call.phase = CallPhase::awaiting_consent;
         return StepOutcome::resume_at(now + core.settings().poll_interval);
     case ConsentState::unasked:
+        // Still unasked after asking: the question could not be shown.
         break;
     }
     // The question could not be asked: Don't Allow.
@@ -1287,6 +1308,7 @@ StepOutcome CoreAccess::control_tool(RunningCall& call, FrameTime now) {
     }
     switch (refusal) {
     case ControlRefusal::none:
+        // Accepted: the status reply below reports the new state.
         break;
     case ControlRefusal::not_launched_directed:
         return StepOutcome::finished(ToolReply::failure(

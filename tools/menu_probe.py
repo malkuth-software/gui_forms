@@ -15,8 +15,8 @@ Run it on a private desktop, never the owner's:
 It writes <prefix>_closed.png, <prefix>_file.png, <prefix>_submenu.png and
 <prefix>_context.png and prints one line a step: the step and whether it
 passed. The captures are the owner window drawn fresh (capture mode
-"rendered", overlays included); the Popup windows' own pixels are not
-composed into them, as the retired channel's capture-composite did.
+"rendered", overlays included) with its open Popup windows composited over
+it in slot order, as the retired channel's capture-composite did.
 """
 
 import json
