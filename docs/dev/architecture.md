@@ -80,9 +80,12 @@ and the tests repository runs them as boundary tests against the test
 cache:
 
 - `cmake/check_renderer_boundaries.cmake`: no Skia, CoreGraphics, CoreText,
-  AppKit, Metal or OpenGL symbol in the renderer-free core.
-- `cmake/check_windows_boundaries.cmake`: Win32 and COM types stay out of
-  portable sources, and the Windows Gallery imports no GPU or managed
+  AppKit, Metal or OpenGL symbol in the renderer-free core, and, through
+  `cmake/check_public_header_tokens.cmake`, no such type named in the code
+  of a public header (comments may name them).
+- `cmake/check_host_boundaries.cmake`, `cmake/check_windows_boundaries.cmake`:
+  AppKit symbols stay out of the core and headless host, Win32 and COM types
+  out of portable sources, and the Windows Gallery imports no GPU or managed
   runtime.
 - `cmake/CheckCAbiExports.cmake`: the C ABI library exports exactly its
   entry points, the `gf_` allowlist and `gd_get_api_v0`.

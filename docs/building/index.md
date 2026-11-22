@@ -217,30 +217,34 @@ Linux and macOS. The MinGW runtime on Windows has no ThreadSanitizer, so the
 procedure below does not run there.
 
 ```sh
-python3 -B tools/abi_tsan.py [--set all|c_abi|tsan] [--jobs N] [--tests REGEX] [--skip-labels REGEX]
+python3 -B tools/abi_tsan.py [--tests-checkout DIR] [--jobs N] [--tests REGEX]
 ```
 
-It configures `.build/native-<host>-<arch>/gui-forms-tsan` with the toolkit's
-usual options and `-fsanitize=thread -fno-omit-frame-pointer` (RelWithDebInfo
-at `-O1 -gline-tables-only`). It then builds only what the selected tests
-need and runs them with `TSAN_OPTIONS=halt_on_error=1`, so any report fails
-its test. The tests are those labelled `c_abi` (the C ABI and its
-conformance kit, with its thread checks) and `tsan` (the event stack, the
-dispatcher and timers, threading, and the sub-surface and live-surface
-machinery); `--set` picks both, the default, or one label. These tests live
-in gui_forms_tests, like every other test. Two are left out:
-`gui_forms_abi_csharp`, because the .NET host is not instrumented and TSan's
-runtime must load at process start, and the Windows-only
-`gui_forms_abi_msvc_consumer`.
+The tests live in gui_forms_tests, so the run has two halves. This tool
+configures `.build/native-<host>-<arch>/gui-forms-tsan` with the toolkit's
+usual options for the test cache and `-fsanitize=thread -fno-omit-frame-pointer`
+(Release at `-O1 -gline-tables-only`, no link-time optimisation), builds it
+whole and packs it as a `tsan` test cache into
+`.build/native-<host>-<arch>/gui-forms-tsan-cache`. It then runs
+gui_forms_tests' `tools/abi_tsan.py --archive <that cache>` from the
+checkout beside this one (`--tests-checkout` names another; `--pack-only`
+stops after packing and prints the command). That tool configures
+`.build/<platform>-tsan` in the tests checkout against the cache, builds only
+the programs the tests labelled `c_abi` and `tsan` run, and runs them with
+`TSAN_OPTIONS=halt_on_error=1`, so any report fails its test. The `c_abi` set
+is the same as `ctest -L c_abi`, which includes the conformance kit's thread
+checks. Two tests are left out: `gui_forms_abi_csharp`, because the .NET host
+is not instrumented and TSan's runtime must load at process start, and the
+Windows-only `gui_forms_abi_msvc_consumer`.
 
 The flags reach CMake through `CFLAGS`, `CXXFLAGS`, `OBJCXXFLAGS` and `LDFLAGS`
 at the tree's first configure, as for the macOS sanitized tree above. The
 tool refuses a `gui-forms-tsan` tree whose cache lacks `-fsanitize=thread`;
 delete that tree and run again.
 
-`tools/sanitizer/tsan.supp` holds the suppressions. Like `lsan.supp`, it may
-name frames inside system libraries only, each with the host and the report
-it answers. A race in GUI.Forms code is a defect to fix, never a suppression.
+gui_forms_tests' `tools/sanitizer/tsan.supp` holds the suppressions. Like
+`lsan.supp`, it may name frames inside system libraries only, each with the
+host and the report it answers. A race in GUI.Forms code is a defect to fix, never a suppression.
 
 To record a run, keep the tool's output and the host (OS version,
 architecture, `clang --version`) with the results in the notes repository

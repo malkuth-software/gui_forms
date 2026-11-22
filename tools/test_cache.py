@@ -31,7 +31,7 @@ CMakeLists.txt includes; gui_forms_tests' tools/fetch_test_cache.py fetches the
 archive its gui_forms.lock names and checks the digest.
 
 Commands:
-  pack     --build-dir B --platform P [--kind normal|sanitize|high-integrity] --output DIR
+  pack     --build-dir B --platform P [--kind normal|sanitize|high-integrity|programs|tsan] --output DIR
            packs tree B (configured with GUI_FORMS_TEST_CACHE=ON and built,
            its install step included) into DIR, printing the archive's path.
   publish  --archive A --commit C [--repository R]
@@ -611,7 +611,7 @@ def main(argv: list[str] | None = None) -> int:
     pack_parser: argparse.ArgumentParser = commands.add_parser('pack', help='pack a built tree')
     pack_parser.add_argument('--build-dir', type=Path, required=True)
     pack_parser.add_argument('--platform', required=True, help='macos-arm64, linux-x64, windows-x64, ...')
-    pack_parser.add_argument('--kind', choices=('normal', 'sanitize', 'high-integrity', 'programs'), default='normal')
+    pack_parser.add_argument('--kind', choices=('normal', 'sanitize', 'high-integrity', 'programs', 'tsan'), default='normal')
     pack_parser.add_argument('--output', type=Path, required=True)
     pack_parser.add_argument('--keep-staging', action='store_true', help='keep DIR/staging after packing')
     publish_parser: argparse.ArgumentParser = commands.add_parser('publish', help='upload a packed cache')

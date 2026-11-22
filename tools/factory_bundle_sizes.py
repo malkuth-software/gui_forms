@@ -20,8 +20,6 @@ import fnmatch
 import sys
 from pathlib import Path
 
-from fontTools.ttLib import TTFont
-
 ROOT = Path(__file__).resolve().parents[1]
 FONTS = ROOT / "assets/fonts"
 
@@ -84,7 +82,39 @@ def assign(groups, faces):
             sys.exit(f"{face} matches no group")
 
 
+def family_and_style(face):
+    """A face's family and style from its file name: "Carlito-Bold.ttf" is
+    ("Carlito", "Bold"), "PortsmouthMono.ttf" ("PortsmouthMono", "")."""
+    stem = Path(face).stem
+    family, _, style = stem.partition("-")
+    return family, style
+
+
+def representative_faces(faces):
+    """One face per family, in the order the families first appear: the
+    family's only face, else its Regular or unstyled face, else its first.
+    The faces come from bundled-fonts.sha256, so the list follows the font
+    set (a subset such as NotoSansArabic-Minimal.ttf is its family's face)."""
+    families = {}
+    order = []
+    for face in faces:
+        family, style = family_and_style(face)
+        if family not in families:
+            families[family] = []
+            order.append(family)
+        families[family].append((style, face))
+    chosen = []
+    for family in order:
+        members = families[family]
+        plain = [face for style, face in members if style in ("", "Regular")]
+        chosen.append(plain[0] if plain else members[0][1])
+    return chosen
+
+
 def mapped_characters(path):
+    # Imported here so the tool's file-only parts load without fontTools.
+    from fontTools.ttLib import TTFont
+
     font = TTFont(str(path), lazy=True)
     cmap = font.getBestCmap() or {}
     order = font.getGlyphOrder()
@@ -163,13 +193,7 @@ def main():
     print(f"\nLicence and attribution files installed: {len(licence_files)}, {licence_bytes:,} bytes")
 
     print("\nCharacters mapped (regular or only face of each family):")
-    representatives = [
-        "PortsmouthRapids.ttf", "Portsmouth.ttf", "PortsmouthMono.ttf", "Carlito-Regular.ttf",
-        "Cousine-Regular.ttf", "Selawik-Regular.ttf", "Arimo-Regular.ttf", "Tinos-Regular.ttf",
-        "NotoSansArabic-Regular.ttf", "NotoSansHebrew-Regular.ttf", "NotoSansDevanagari-Regular.ttf",
-        "NotoSansBengali-Regular.ttf", "NotoSansGurmukhi-Regular.ttf", "NotoEmoji-Regular.ttf",
-        "NotoSansCJKjp-Regular.otf",
-    ]
+    representatives = representative_faces(faces)
     union = set()
     for face in representatives:
         characters = mapped_characters(FONTS / face)
