@@ -155,7 +155,7 @@
     "TabControlEvent": "page: object, index: unsigned_integer, action: enumeration",
     "TabSelectionChange": "old_index: unsigned_integer optional, new_index: unsigned_integer optional",
     "TaskDialogButtonClick": "button_id: text, keep_open: boolean",
-    "TaskDialogResult": "button_id: text, verification_checked: boolean, radio_button_id: text",
+    "TaskDialogResult": "button_id: text, verification_checked: boolean, radio_button_id: text, input_text: text",
     "TextSelection": "anchor: unsigned_integer, caret: unsigned_integer",
     "Theme": "",
     "ThemeCompileResult": "",

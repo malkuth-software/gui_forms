@@ -25,6 +25,7 @@ class CheckBox;
 class Label;
 class ProgressBar;
 class RadioButton;
+class TextBox;
 
 // The standard icons of a task dialog page (Windows Forms' TaskDialogIcon),
 // drawn from the stock icon set in its solid style: information-circle,
@@ -92,6 +93,16 @@ struct GUI_FORMS_API TaskDialogProgressBar final {
 
 // One page (Windows Forms' TaskDialogPage). Empty strings leave their part
 // out: no caption row, heading, text, verification check box or footnote.
+// A text field on a page, under its text (the input box's editor): the
+// text it starts with, the placeholder its empty field shows, and its
+// maximum length in bytes (0 for no limit). The field takes focus first
+// and Enter in it clicks the default button.
+struct GUI_FORMS_API TaskDialogInput final {
+    std::string text{};
+    std::string placeholder{};
+    std::size_t maximum_length{};
+};
+
 // A page without buttons gets an OK button. `default_button` names the
 // button Enter clicks and that takes focus first; empty names the first.
 // With `allow_cancel`, Escape closes the dialog as its cancel button would.
@@ -111,6 +122,7 @@ struct GUI_FORMS_API TaskDialogPage final {
     std::string footnote{};
     TaskDialogIcon footnote_icon{TaskDialogIcon::none};
     stxlib::Optional<TaskDialogProgressBar> progress_bar{};
+    stxlib::Optional<TaskDialogInput> input{};
     bool allow_cancel{};
 };
 
@@ -123,11 +135,13 @@ struct GUI_FORMS_API TaskDialogButtonClick final {
 
 // How a dialog closed: the button that closed it (the cancel button's ID, or
 // "cancel", for Escape and a dialog revoked by its window), and the state of
-// the verification check box and the radio buttons at that moment.
+// the verification check box, the radio buttons and the text field (empty
+// without one) at that moment.
 struct GUI_FORMS_API TaskDialogResult final {
     std::string button_id{};
     bool verification_checked{};
     std::string radio_button_id{};
+    std::string input_text{};
 };
 
 // A message dialog with a heading, text, an icon, command buttons, radio
@@ -194,6 +208,9 @@ public:
     [[nodiscard]] std::shared_ptr<CheckBox> verification_check_box() const noexcept { return verification_; }
     [[nodiscard]] std::shared_ptr<Button> expander_button() const noexcept { return expander_button_; }
     [[nodiscard]] std::shared_ptr<ProgressBar> progress_bar() const noexcept { return progress_; }
+    [[nodiscard]] std::shared_ptr<TextBox> input_box() const noexcept { return input_; }
+    // The text field's text, or empty for a page without one.
+    [[nodiscard]] std::string input_text() const;
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -213,6 +230,7 @@ public:
         PartGeometry icon_image;
         PartGeometry heading;
         PartGeometry text;
+        PartGeometry input;
         PartGeometry progress;
         PartGeometry radio_group;
         PartGeometry expander_glyph;
@@ -274,6 +292,7 @@ private:
     std::shared_ptr<CheckBox> verification_{};
     std::shared_ptr<Button> expander_button_{};
     std::shared_ptr<ProgressBar> progress_{};
+    std::shared_ptr<TextBox> input_{};
     std::vector<SubscriptionToken> child_tokens_{};
     // The modal layer the dialog sits in while shown, and its overlay lease
     // and focus scope in the owner's window.

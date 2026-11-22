@@ -2,6 +2,7 @@
 #include "../frame_chrome/frame_chrome.hpp"
 
 #include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
@@ -33,6 +34,7 @@ constexpr double icon_size = 32.0;
 constexpr double icon_gap = 12.0;
 constexpr double paragraph_gap = 8.0;
 constexpr double progress_height = 16.0;
+constexpr double input_height = 28.0;
 constexpr double radio_height = 24.0;
 constexpr double expander_height = 28.0;
 constexpr double expander_glyph_size = 10.0;
@@ -252,6 +254,15 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog expander text must be valid UTF-8");
         }
     }
+    if (page.input.present()) {
+        const TaskDialogInput& input = *page.input.value();
+        if (!valid_text(input.text) || !valid_text(input.placeholder)) {
+            throw std::invalid_argument("TaskDialog input text must be valid UTF-8");
+        }
+        if (input.maximum_length != 0U && input.text.size() > input.maximum_length) {
+            throw std::invalid_argument("TaskDialog input text is longer than its maximum length");
+        }
+    }
     if (page.progress_bar.present()) {
         const TaskDialogProgressBar& progress = (*page.progress_bar.value());
         if (!std::isfinite(progress.minimum) || !std::isfinite(progress.maximum) ||
@@ -281,6 +292,7 @@ void TaskDialog::clear_children_of_page() noexcept {
     verification_.reset();
     expander_button_.reset();
     progress_.reset();
+    input_.reset();
 }
 
 std::shared_ptr<Label> TaskDialog::make_paragraph(std::string_view suffix, const std::string& text,
@@ -306,6 +318,15 @@ void TaskDialog::rebuild_children() {
     footnote_font.size = footnote_size;
     if (!page_.heading.empty()) heading_ = make_paragraph(".heading", page_.heading, heading_font);
     if (!page_.text.empty()) text_ = make_paragraph(".text", page_.text, font_);
+    if (page_.input.present()) {
+        const TaskDialogInput& settings = *page_.input.value();
+        input_ = make_control<TextBox>(StableId(prefix + ".input"), settings.text);
+        (*input_).placeholder_text = settings.placeholder;
+        (*input_).maximum_length = settings.maximum_length;
+        // The prompt names the field to assistive technology.
+        (*input_).accessible_name = page_.text;
+        add_child(input_);
+    }
     if (page_.progress_bar.present()) {
         const TaskDialogProgressBar& settings = (*page_.progress_bar.value());
         progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
@@ -389,6 +410,12 @@ std::shared_ptr<RadioButton> TaskDialog::radio_button(std::string_view radio_id)
         if (page_.radio_buttons[index].stable_id == radio_id) return radios_[index];
     }
     return nullptr;
+}
+
+std::string TaskDialog::input_text() const {
+    if (!input_) return std::string();
+    std::string text = (*input_).text.read();
+    return text;
 }
 
 std::string TaskDialog::checked_radio_button() const {
@@ -547,7 +574,8 @@ bool TaskDialog::show(const Control::Ptr& owner) {
         // The empty layer keeps the owner's keys from its controls.
         started = host.begin_focus_scope(layer);
     } else {
-        started = host.begin_focus_scope(layer, button(default_button_id()));
+        const Control::Ptr first = input_ ? Control::Ptr(input_) : Control::Ptr(button(default_button_id()));
+        started = host.begin_focus_scope(layer, first);
     }
     if (!is_alive() || !shown_) {
         if (started) static_cast<void>(host.end_focus_scope(started));
@@ -610,7 +638,8 @@ void TaskDialog::on_overlay_revoked() {
 void TaskDialog::finish(std::string button_id) {
     if (!shown_) return;
     shown_ = false;
-    TaskDialogResult outcome{std::move(button_id), page_.verification_checked, checked_radio_button()};
+    TaskDialogResult outcome{std::move(button_id), page_.verification_checked, checked_radio_button(),
+                             input_text()};
     // The scope is the owner's window's, where the layer is.
     Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
     if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
@@ -692,6 +721,10 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
         const double height = (*text_).measure({text_width, unbounded}).height;
         parts.text = PartGeometry::from_bounds({text_x, y, text_width, height});
         y += height + gap;
+    }
+    if (input_) {
+        parts.input = PartGeometry::from_bounds({text_x, y, text_width, input_height * scale});
+        y += input_height * scale + gap;
     }
     if (progress_) {
         parts.progress = PartGeometry::from_bounds({text_x, y, text_width, progress_height * scale});
@@ -792,6 +825,7 @@ void TaskDialog::arrange(Rect final_bounds) {
     const Parts& parts = placed.parts;
     if (heading_) set_child_layout(heading_, parts.heading.bounds);
     if (text_) set_child_layout(text_, parts.text.bounds);
+    if (input_) set_child_layout(input_, parts.input.bounds);
     if (progress_) set_child_layout(progress_, parts.progress.bounds);
     for (std::size_t index = 0; index < radios_.size() && index < placed.radios.size(); ++index) {
         set_child_layout(radios_[index], placed.radios[index]);
@@ -895,7 +929,7 @@ namespace {
 
 constexpr std::array<AnatomyState, 1> expander_glyph_states{{AnatomyState::open}};
 
-constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
+constexpr std::array<PartField<TaskDialog::Parts>, 22> task_dialog_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::region},
     {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
@@ -912,6 +946,8 @@ constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
      .member = &TaskDialog::Parts::heading},
     {.declaration = {.name = "text", .role = PartRole::content, .composed_from = "label", .states = {}},
      .member = &TaskDialog::Parts::text},
+    {.declaration = {.name = "input", .role = PartRole::well, .composed_from = "text_box", .states = {}},
+     .member = &TaskDialog::Parts::input},
     {.declaration = {.name = "progress", .role = PartRole::track, .composed_from = "progress_bar", .states = {}},
      .member = &TaskDialog::Parts::progress},
     {.declaration = {.name = "radio_group", .role = PartRole::region, .composed_from = "radio_button", .states = {}},
@@ -941,7 +977,7 @@ constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
      .member = &TaskDialog::Parts::focus},
 }};
 
-constexpr std::array<PartDeclaration, 21> task_dialog_parts = part_declarations(task_dialog_part_fields);
+constexpr std::array<PartDeclaration, 22> task_dialog_parts = part_declarations(task_dialog_part_fields);
 constexpr std::array<AnatomyState, 5> task_dialog_states{
     AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled,
     AnatomyState::focused, AnatomyState::focus_visible,

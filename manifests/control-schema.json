@@ -11978,6 +11978,7 @@
         {"name": "icon_image", "role": "icon", "composed_from": null, "states": []},
         {"name": "heading", "role": "label", "composed_from": "label", "states": []},
         {"name": "text", "role": "content", "composed_from": "label", "states": []},
+        {"name": "input", "role": "well", "composed_from": "text_box", "states": []},
         {"name": "progress", "role": "track", "composed_from": "progress_bar", "states": []},
         {"name": "radio_group", "role": "region", "composed_from": "radio_button", "states": []},
         {"name": "expander_glyph", "role": "disclosure", "composed_from": null, "states": ["open"]},

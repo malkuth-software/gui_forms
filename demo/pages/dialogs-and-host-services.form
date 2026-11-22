@@ -124,25 +124,29 @@
   </scaled-group-box>
 
   <scaled-group-box id="gallery.host.task-dialog"
-      text="TaskDialog and ThreadExceptionDialog · in-window owned dialogs, the same on every host"
+      text="TaskDialog, ThreadExceptionDialog and the input box · in-window owned dialogs, the same on every host"
       design-size="930 96"
       bounds="24 648 930 96"
       classes="paper group-caption">
     <button id="gallery.host.task-dialog.show"
         text="Show task dialog"
         visual-style="accent"
-        bounds="24 40 202 38"/>
+        bounds="24 40 156 38"/>
     <button id="gallery.host.exception-dialog.show"
         text="Show exception dialog"
         visual-style="command"
-        bounds="238 40 202 38"/>
+        bounds="190 40 172 38"/>
+    <button id="gallery.host.input-box.show"
+        text="Input box..."
+        visual-style="command"
+        bounds="372 40 112 38"/>
     <label id="gallery.host.task-dialog.note"
-        text="Each reports its result in closed: a button ID, or cancel and abort."
+        text="Each reports its result in closed: a button ID, cancel and abort, or the typed text."
         classes="muted small"
-        bounds="458 36 446 24"/>
+        bounds="498 36 410 24"/>
     <check-box id="gallery.host.task-dialog.native"
         text="Open the task and font dialogs as native popup windows"
-        bounds="458 60 446 26"/>
+        bounds="498 60 410 26"/>
   </scaled-group-box>
 
   <scaled-group-box id="gallery.host.notify-icon"

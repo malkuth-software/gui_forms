@@ -3292,6 +3292,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `icon_image` | icon |  |  |
 | `heading` | label | `label` |  |
 | `text` | content | `label` |  |
+| `input` | well | `text_box` |  |
 | `progress` | track | `progress_bar` |  |
 | `radio_group` | region | `radio_button` |  |
 | `expander_glyph` | disclosure |  | open |

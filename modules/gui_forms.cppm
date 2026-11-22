@@ -1994,6 +1994,7 @@ using gui_forms::TaskDialogCapabilities;
 using gui_forms::TaskDialogExpandedCapability;
 using gui_forms::TaskDialogExpander;
 using gui_forms::TaskDialogIcon;
+using gui_forms::TaskDialogInput;
 using gui_forms::TaskDialogPage;
 using gui_forms::TaskDialogProgressBar;
 using gui_forms::TaskDialogRadioButton;

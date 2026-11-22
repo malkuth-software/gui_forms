@@ -1272,6 +1272,7 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_cells.cpp
     src/controls/data_grid_view/data_grid_view_cells_region.cpp
     src/controls/task_dialog/task_dialog.cpp
+    src/controls/task_dialog/input_box.cpp
     src/controls/frame_chrome/frame_chrome.cpp
     src/controls/notify_icon/notify_icon.cpp
     src/controls/file_dialog/file_dialog_support.cpp

@@ -471,6 +471,7 @@ __ZGVZN9gui_forms14HostHoverEvent*
 __ZGVZN9gui_forms14HostScaleEvent*
 __ZGVZN9gui_forms14HostTrayIconId*
 __ZGVZN9gui_forms14ImageAtlasSlot*
+__ZGVZN9gui_forms14InputBoxResult*
 __ZGVZN9gui_forms14ItemCheckEvent*
 __ZGVZN9gui_forms14KeyStateChange*
 __ZGVZN9gui_forms14LineBoxMetrics*
@@ -591,6 +592,7 @@ __ZGVZN9gui_forms15HostedKeyRecord*
 __ZGVZN9gui_forms15IconDeclaration*
 __ZGVZN9gui_forms15ImageListChange*
 __ZGVZN9gui_forms15ImageLoadResult*
+__ZGVZN9gui_forms15InputBoxRequest*
 __ZGVZN9gui_forms15InputTimeSource*
 __ZGVZN9gui_forms15ItemPositioning*
 __ZGVZN9gui_forms15ItemSystemIndex*
@@ -628,6 +630,7 @@ __ZGVZN9gui_forms15StableIdLiteral*
 __ZGVZN9gui_forms15SubSurfaceInput*
 __ZGVZN9gui_forms15SurfaceMaterial*
 __ZGVZN9gui_forms15TabControlEvent*
+__ZGVZN9gui_forms15TaskDialogInput*
 __ZGVZN9gui_forms15TextDecorations*
 __ZGVZN9gui_forms15TextMaskMetrics*
 __ZGVZN9gui_forms15TextMaskRequest*
@@ -2164,6 +2167,7 @@ __ZGVZNK9gui_forms14HostHoverEvent*
 __ZGVZNK9gui_forms14HostScaleEvent*
 __ZGVZNK9gui_forms14HostTrayIconId*
 __ZGVZNK9gui_forms14ImageAtlasSlot*
+__ZGVZNK9gui_forms14InputBoxResult*
 __ZGVZNK9gui_forms14ItemCheckEvent*
 __ZGVZNK9gui_forms14KeyStateChange*
 __ZGVZNK9gui_forms14LineBoxMetrics*
@@ -2284,6 +2288,7 @@ __ZGVZNK9gui_forms15HostedKeyRecord*
 __ZGVZNK9gui_forms15IconDeclaration*
 __ZGVZNK9gui_forms15ImageListChange*
 __ZGVZNK9gui_forms15ImageLoadResult*
+__ZGVZNK9gui_forms15InputBoxRequest*
 __ZGVZNK9gui_forms15InputTimeSource*
 __ZGVZNK9gui_forms15ItemPositioning*
 __ZGVZNK9gui_forms15ItemSystemIndex*
@@ -2321,6 +2326,7 @@ __ZGVZNK9gui_forms15StableIdLiteral*
 __ZGVZNK9gui_forms15SubSurfaceInput*
 __ZGVZNK9gui_forms15SurfaceMaterial*
 __ZGVZNK9gui_forms15TabControlEvent*
+__ZGVZNK9gui_forms15TaskDialogInput*
 __ZGVZNK9gui_forms15TextDecorations*
 __ZGVZNK9gui_forms15TextMaskMetrics*
 __ZGVZNK9gui_forms15TextMaskRequest*
@@ -4003,6 +4009,7 @@ __ZN9gui_forms14HostHoverEvent*
 __ZN9gui_forms14HostScaleEvent*
 __ZN9gui_forms14HostTrayIconId*
 __ZN9gui_forms14ImageAtlasSlot*
+__ZN9gui_forms14InputBoxResult*
 __ZN9gui_forms14ItemCheckEvent*
 __ZN9gui_forms14KeyStateChange*
 __ZN9gui_forms14LineBoxMetrics*
@@ -4088,6 +4095,8 @@ __ZN9gui_forms14gloss_materialB*
 __ZN9gui_forms14gloss_materialE*
 __ZN9gui_forms14has_stock_iconB*
 __ZN9gui_forms14has_stock_iconE*
+__ZN9gui_forms14input_box_pageB*
+__ZN9gui_forms14input_box_pageE*
 __ZN9gui_forms14looks_like_rtfB*
 __ZN9gui_forms14looks_like_rtfE*
 __ZN9gui_forms14marker_outlineB*
@@ -4106,6 +4115,8 @@ __ZN9gui_forms14shape_containsB*
 __ZN9gui_forms14shape_containsE*
 __ZN9gui_forms14shape_coverageB*
 __ZN9gui_forms14shape_coverageE*
+__ZN9gui_forms14show_input_boxB*
+__ZN9gui_forms14show_input_boxE*
 __ZN9gui_forms14text_extent_ofB*
 __ZN9gui_forms14text_extent_ofE*
 __ZN9gui_forms14text_role_nameB*
@@ -4173,6 +4184,7 @@ __ZN9gui_forms15HostedKeyRecord*
 __ZN9gui_forms15IconDeclaration*
 __ZN9gui_forms15ImageListChange*
 __ZN9gui_forms15ImageLoadResult*
+__ZN9gui_forms15InputBoxRequest*
 __ZN9gui_forms15InputTimeSource*
 __ZN9gui_forms15ItemPositioning*
 __ZN9gui_forms15ItemSystemIndex*
@@ -4210,6 +4222,7 @@ __ZN9gui_forms15StableIdLiteral*
 __ZN9gui_forms15SubSurfaceInput*
 __ZN9gui_forms15SurfaceMaterial*
 __ZN9gui_forms15TabControlEvent*
+__ZN9gui_forms15TaskDialogInput*
 __ZN9gui_forms15TextDecorations*
 __ZN9gui_forms15TextMaskMetrics*
 __ZN9gui_forms15TextMaskRequest*
@@ -4428,6 +4441,8 @@ __ZN9gui_forms16host_locale_jsonB*
 __ZN9gui_forms16host_locale_jsonE*
 __ZN9gui_forms16host_window_kindB*
 __ZN9gui_forms16host_window_kindE*
+__ZN9gui_forms16input_box_resultB*
+__ZN9gui_forms16input_box_resultE*
 __ZN9gui_forms16key_command_nameB*
 __ZN9gui_forms16key_command_nameE*
 __ZN9gui_forms16line_box_metricsB*
@@ -7256,6 +7271,7 @@ __ZNK[RO]9gui_forms14HostHoverEvent*
 __ZNK[RO]9gui_forms14HostScaleEvent*
 __ZNK[RO]9gui_forms14HostTrayIconId*
 __ZNK[RO]9gui_forms14ImageAtlasSlot*
+__ZNK[RO]9gui_forms14InputBoxResult*
 __ZNK[RO]9gui_forms14ItemCheckEvent*
 __ZNK[RO]9gui_forms14KeyStateChange*
 __ZNK[RO]9gui_forms14LineBoxMetrics*
@@ -7376,6 +7392,7 @@ __ZNK[RO]9gui_forms15HostedKeyRecord*
 __ZNK[RO]9gui_forms15IconDeclaration*
 __ZNK[RO]9gui_forms15ImageListChange*
 __ZNK[RO]9gui_forms15ImageLoadResult*
+__ZNK[RO]9gui_forms15InputBoxRequest*
 __ZNK[RO]9gui_forms15InputTimeSource*
 __ZNK[RO]9gui_forms15ItemPositioning*
 __ZNK[RO]9gui_forms15ItemSystemIndex*
@@ -7413,6 +7430,7 @@ __ZNK[RO]9gui_forms15StableIdLiteral*
 __ZNK[RO]9gui_forms15SubSurfaceInput*
 __ZNK[RO]9gui_forms15SurfaceMaterial*
 __ZNK[RO]9gui_forms15TabControlEvent*
+__ZNK[RO]9gui_forms15TaskDialogInput*
 __ZNK[RO]9gui_forms15TextDecorations*
 __ZNK[RO]9gui_forms15TextMaskMetrics*
 __ZNK[RO]9gui_forms15TextMaskRequest*
@@ -8949,6 +8967,7 @@ __ZN[KRO]9gui_forms14HostHoverEvent*
 __ZN[KRO]9gui_forms14HostScaleEvent*
 __ZN[KRO]9gui_forms14HostTrayIconId*
 __ZN[KRO]9gui_forms14ImageAtlasSlot*
+__ZN[KRO]9gui_forms14InputBoxResult*
 __ZN[KRO]9gui_forms14ItemCheckEvent*
 __ZN[KRO]9gui_forms14KeyStateChange*
 __ZN[KRO]9gui_forms14LineBoxMetrics*
@@ -9069,6 +9088,7 @@ __ZN[KRO]9gui_forms15HostedKeyRecord*
 __ZN[KRO]9gui_forms15IconDeclaration*
 __ZN[KRO]9gui_forms15ImageListChange*
 __ZN[KRO]9gui_forms15ImageLoadResult*
+__ZN[KRO]9gui_forms15InputBoxRequest*
 __ZN[KRO]9gui_forms15InputTimeSource*
 __ZN[KRO]9gui_forms15ItemPositioning*
 __ZN[KRO]9gui_forms15ItemSystemIndex*
@@ -9106,6 +9126,7 @@ __ZN[KRO]9gui_forms15StableIdLiteral*
 __ZN[KRO]9gui_forms15SubSurfaceInput*
 __ZN[KRO]9gui_forms15SurfaceMaterial*
 __ZN[KRO]9gui_forms15TabControlEvent*
+__ZN[KRO]9gui_forms15TaskDialogInput*
 __ZN[KRO]9gui_forms15TextDecorations*
 __ZN[KRO]9gui_forms15TextMaskMetrics*
 __ZN[KRO]9gui_forms15TextMaskRequest*
@@ -10642,6 +10663,7 @@ __ZT[VIST]N9gui_forms14HostHoverEvent*E
 __ZT[VIST]N9gui_forms14HostScaleEvent*E
 __ZT[VIST]N9gui_forms14HostTrayIconId*E
 __ZT[VIST]N9gui_forms14ImageAtlasSlot*E
+__ZT[VIST]N9gui_forms14InputBoxResult*E
 __ZT[VIST]N9gui_forms14ItemCheckEvent*E
 __ZT[VIST]N9gui_forms14KeyStateChange*E
 __ZT[VIST]N9gui_forms14LineBoxMetrics*E
@@ -10762,6 +10784,7 @@ __ZT[VIST]N9gui_forms15HostedKeyRecord*E
 __ZT[VIST]N9gui_forms15IconDeclaration*E
 __ZT[VIST]N9gui_forms15ImageListChange*E
 __ZT[VIST]N9gui_forms15ImageLoadResult*E
+__ZT[VIST]N9gui_forms15InputBoxRequest*E
 __ZT[VIST]N9gui_forms15InputTimeSource*E
 __ZT[VIST]N9gui_forms15ItemPositioning*E
 __ZT[VIST]N9gui_forms15ItemSystemIndex*E
@@ -10799,6 +10822,7 @@ __ZT[VIST]N9gui_forms15StableIdLiteral*E
 __ZT[VIST]N9gui_forms15SubSurfaceInput*E
 __ZT[VIST]N9gui_forms15SurfaceMaterial*E
 __ZT[VIST]N9gui_forms15TabControlEvent*E
+__ZT[VIST]N9gui_forms15TaskDialogInput*E
 __ZT[VIST]N9gui_forms15TextDecorations*E
 __ZT[VIST]N9gui_forms15TextMaskMetrics*E
 __ZT[VIST]N9gui_forms15TextMaskRequest*E
@@ -12335,6 +12359,7 @@ __ZT[hvc]*9gui_forms14HostHoverEvent*
 __ZT[hvc]*9gui_forms14HostScaleEvent*
 __ZT[hvc]*9gui_forms14HostTrayIconId*
 __ZT[hvc]*9gui_forms14ImageAtlasSlot*
+__ZT[hvc]*9gui_forms14InputBoxResult*
 __ZT[hvc]*9gui_forms14ItemCheckEvent*
 __ZT[hvc]*9gui_forms14KeyStateChange*
 __ZT[hvc]*9gui_forms14LineBoxMetrics*
@@ -12455,6 +12480,7 @@ __ZT[hvc]*9gui_forms15HostedKeyRecord*
 __ZT[hvc]*9gui_forms15IconDeclaration*
 __ZT[hvc]*9gui_forms15ImageListChange*
 __ZT[hvc]*9gui_forms15ImageLoadResult*
+__ZT[hvc]*9gui_forms15InputBoxRequest*
 __ZT[hvc]*9gui_forms15InputTimeSource*
 __ZT[hvc]*9gui_forms15ItemPositioning*
 __ZT[hvc]*9gui_forms15ItemSystemIndex*
@@ -12492,6 +12518,7 @@ __ZT[hvc]*9gui_forms15StableIdLiteral*
 __ZT[hvc]*9gui_forms15SubSurfaceInput*
 __ZT[hvc]*9gui_forms15SurfaceMaterial*
 __ZT[hvc]*9gui_forms15TabControlEvent*
+__ZT[hvc]*9gui_forms15TaskDialogInput*
 __ZT[hvc]*9gui_forms15TextDecorations*
 __ZT[hvc]*9gui_forms15TextMaskMetrics*
 __ZT[hvc]*9gui_forms15TextMaskRequest*
@@ -14028,6 +14055,7 @@ __ZZN9gui_forms14HostHoverEvent*
 __ZZN9gui_forms14HostScaleEvent*
 __ZZN9gui_forms14HostTrayIconId*
 __ZZN9gui_forms14ImageAtlasSlot*
+__ZZN9gui_forms14InputBoxResult*
 __ZZN9gui_forms14ItemCheckEvent*
 __ZZN9gui_forms14KeyStateChange*
 __ZZN9gui_forms14LineBoxMetrics*
@@ -14148,6 +14176,7 @@ __ZZN9gui_forms15HostedKeyRecord*
 __ZZN9gui_forms15IconDeclaration*
 __ZZN9gui_forms15ImageListChange*
 __ZZN9gui_forms15ImageLoadResult*
+__ZZN9gui_forms15InputBoxRequest*
 __ZZN9gui_forms15InputTimeSource*
 __ZZN9gui_forms15ItemPositioning*
 __ZZN9gui_forms15ItemSystemIndex*
@@ -14185,6 +14214,7 @@ __ZZN9gui_forms15StableIdLiteral*
 __ZZN9gui_forms15SubSurfaceInput*
 __ZZN9gui_forms15SurfaceMaterial*
 __ZZN9gui_forms15TabControlEvent*
+__ZZN9gui_forms15TaskDialogInput*
 __ZZN9gui_forms15TextDecorations*
 __ZZN9gui_forms15TextMaskMetrics*
 __ZZN9gui_forms15TextMaskRequest*
@@ -15721,6 +15751,7 @@ __ZZNK9gui_forms14HostHoverEvent*
 __ZZNK9gui_forms14HostScaleEvent*
 __ZZNK9gui_forms14HostTrayIconId*
 __ZZNK9gui_forms14ImageAtlasSlot*
+__ZZNK9gui_forms14InputBoxResult*
 __ZZNK9gui_forms14ItemCheckEvent*
 __ZZNK9gui_forms14KeyStateChange*
 __ZZNK9gui_forms14LineBoxMetrics*
@@ -15841,6 +15872,7 @@ __ZZNK9gui_forms15HostedKeyRecord*
 __ZZNK9gui_forms15IconDeclaration*
 __ZZNK9gui_forms15ImageListChange*
 __ZZNK9gui_forms15ImageLoadResult*
+__ZZNK9gui_forms15InputBoxRequest*
 __ZZNK9gui_forms15InputTimeSource*
 __ZZNK9gui_forms15ItemPositioning*
 __ZZNK9gui_forms15ItemSystemIndex*
@@ -15878,6 +15910,7 @@ __ZZNK9gui_forms15StableIdLiteral*
 __ZZNK9gui_forms15SubSurfaceInput*
 __ZZNK9gui_forms15SurfaceMaterial*
 __ZZNK9gui_forms15TabControlEvent*
+__ZZNK9gui_forms15TaskDialogInput*
 __ZZNK9gui_forms15TextDecorations*
 __ZZNK9gui_forms15TextMaskMetrics*
 __ZZNK9gui_forms15TextMaskRequest*

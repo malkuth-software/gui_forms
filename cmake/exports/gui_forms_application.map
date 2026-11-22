@@ -473,6 +473,7 @@
     _ZGVZN9gui_forms14HostScaleEvent*;
     _ZGVZN9gui_forms14HostTrayIconId*;
     _ZGVZN9gui_forms14ImageAtlasSlot*;
+    _ZGVZN9gui_forms14InputBoxResult*;
     _ZGVZN9gui_forms14ItemCheckEvent*;
     _ZGVZN9gui_forms14KeyStateChange*;
     _ZGVZN9gui_forms14LineBoxMetrics*;
@@ -593,6 +594,7 @@
     _ZGVZN9gui_forms15IconDeclaration*;
     _ZGVZN9gui_forms15ImageListChange*;
     _ZGVZN9gui_forms15ImageLoadResult*;
+    _ZGVZN9gui_forms15InputBoxRequest*;
     _ZGVZN9gui_forms15InputTimeSource*;
     _ZGVZN9gui_forms15ItemPositioning*;
     _ZGVZN9gui_forms15ItemSystemIndex*;
@@ -630,6 +632,7 @@
     _ZGVZN9gui_forms15SubSurfaceInput*;
     _ZGVZN9gui_forms15SurfaceMaterial*;
     _ZGVZN9gui_forms15TabControlEvent*;
+    _ZGVZN9gui_forms15TaskDialogInput*;
     _ZGVZN9gui_forms15TextDecorations*;
     _ZGVZN9gui_forms15TextMaskMetrics*;
     _ZGVZN9gui_forms15TextMaskRequest*;
@@ -2166,6 +2169,7 @@
     _ZGVZNK9gui_forms14HostScaleEvent*;
     _ZGVZNK9gui_forms14HostTrayIconId*;
     _ZGVZNK9gui_forms14ImageAtlasSlot*;
+    _ZGVZNK9gui_forms14InputBoxResult*;
     _ZGVZNK9gui_forms14ItemCheckEvent*;
     _ZGVZNK9gui_forms14KeyStateChange*;
     _ZGVZNK9gui_forms14LineBoxMetrics*;
@@ -2286,6 +2290,7 @@
     _ZGVZNK9gui_forms15IconDeclaration*;
     _ZGVZNK9gui_forms15ImageListChange*;
     _ZGVZNK9gui_forms15ImageLoadResult*;
+    _ZGVZNK9gui_forms15InputBoxRequest*;
     _ZGVZNK9gui_forms15InputTimeSource*;
     _ZGVZNK9gui_forms15ItemPositioning*;
     _ZGVZNK9gui_forms15ItemSystemIndex*;
@@ -2323,6 +2328,7 @@
     _ZGVZNK9gui_forms15SubSurfaceInput*;
     _ZGVZNK9gui_forms15SurfaceMaterial*;
     _ZGVZNK9gui_forms15TabControlEvent*;
+    _ZGVZNK9gui_forms15TaskDialogInput*;
     _ZGVZNK9gui_forms15TextDecorations*;
     _ZGVZNK9gui_forms15TextMaskMetrics*;
     _ZGVZNK9gui_forms15TextMaskRequest*;
@@ -4005,6 +4011,7 @@
     _ZN9gui_forms14HostScaleEvent*;
     _ZN9gui_forms14HostTrayIconId*;
     _ZN9gui_forms14ImageAtlasSlot*;
+    _ZN9gui_forms14InputBoxResult*;
     _ZN9gui_forms14ItemCheckEvent*;
     _ZN9gui_forms14KeyStateChange*;
     _ZN9gui_forms14LineBoxMetrics*;
@@ -4090,6 +4097,8 @@
     _ZN9gui_forms14gloss_materialE*;
     _ZN9gui_forms14has_stock_iconB*;
     _ZN9gui_forms14has_stock_iconE*;
+    _ZN9gui_forms14input_box_pageB*;
+    _ZN9gui_forms14input_box_pageE*;
     _ZN9gui_forms14looks_like_rtfB*;
     _ZN9gui_forms14looks_like_rtfE*;
     _ZN9gui_forms14marker_outlineB*;
@@ -4108,6 +4117,8 @@
     _ZN9gui_forms14shape_containsE*;
     _ZN9gui_forms14shape_coverageB*;
     _ZN9gui_forms14shape_coverageE*;
+    _ZN9gui_forms14show_input_boxB*;
+    _ZN9gui_forms14show_input_boxE*;
     _ZN9gui_forms14text_extent_ofB*;
     _ZN9gui_forms14text_extent_ofE*;
     _ZN9gui_forms14text_role_nameB*;
@@ -4175,6 +4186,7 @@
     _ZN9gui_forms15IconDeclaration*;
     _ZN9gui_forms15ImageListChange*;
     _ZN9gui_forms15ImageLoadResult*;
+    _ZN9gui_forms15InputBoxRequest*;
     _ZN9gui_forms15InputTimeSource*;
     _ZN9gui_forms15ItemPositioning*;
     _ZN9gui_forms15ItemSystemIndex*;
@@ -4212,6 +4224,7 @@
     _ZN9gui_forms15SubSurfaceInput*;
     _ZN9gui_forms15SurfaceMaterial*;
     _ZN9gui_forms15TabControlEvent*;
+    _ZN9gui_forms15TaskDialogInput*;
     _ZN9gui_forms15TextDecorations*;
     _ZN9gui_forms15TextMaskMetrics*;
     _ZN9gui_forms15TextMaskRequest*;
@@ -4430,6 +4443,8 @@
     _ZN9gui_forms16host_locale_jsonE*;
     _ZN9gui_forms16host_window_kindB*;
     _ZN9gui_forms16host_window_kindE*;
+    _ZN9gui_forms16input_box_resultB*;
+    _ZN9gui_forms16input_box_resultE*;
     _ZN9gui_forms16key_command_nameB*;
     _ZN9gui_forms16key_command_nameE*;
     _ZN9gui_forms16line_box_metricsB*;
@@ -7258,6 +7273,7 @@
     _ZNK[RO]9gui_forms14HostScaleEvent*;
     _ZNK[RO]9gui_forms14HostTrayIconId*;
     _ZNK[RO]9gui_forms14ImageAtlasSlot*;
+    _ZNK[RO]9gui_forms14InputBoxResult*;
     _ZNK[RO]9gui_forms14ItemCheckEvent*;
     _ZNK[RO]9gui_forms14KeyStateChange*;
     _ZNK[RO]9gui_forms14LineBoxMetrics*;
@@ -7378,6 +7394,7 @@
     _ZNK[RO]9gui_forms15IconDeclaration*;
     _ZNK[RO]9gui_forms15ImageListChange*;
     _ZNK[RO]9gui_forms15ImageLoadResult*;
+    _ZNK[RO]9gui_forms15InputBoxRequest*;
     _ZNK[RO]9gui_forms15InputTimeSource*;
     _ZNK[RO]9gui_forms15ItemPositioning*;
     _ZNK[RO]9gui_forms15ItemSystemIndex*;
@@ -7415,6 +7432,7 @@
     _ZNK[RO]9gui_forms15SubSurfaceInput*;
     _ZNK[RO]9gui_forms15SurfaceMaterial*;
     _ZNK[RO]9gui_forms15TabControlEvent*;
+    _ZNK[RO]9gui_forms15TaskDialogInput*;
     _ZNK[RO]9gui_forms15TextDecorations*;
     _ZNK[RO]9gui_forms15TextMaskMetrics*;
     _ZNK[RO]9gui_forms15TextMaskRequest*;
@@ -8951,6 +8969,7 @@
     _ZN[KRO]9gui_forms14HostScaleEvent*;
     _ZN[KRO]9gui_forms14HostTrayIconId*;
     _ZN[KRO]9gui_forms14ImageAtlasSlot*;
+    _ZN[KRO]9gui_forms14InputBoxResult*;
     _ZN[KRO]9gui_forms14ItemCheckEvent*;
     _ZN[KRO]9gui_forms14KeyStateChange*;
     _ZN[KRO]9gui_forms14LineBoxMetrics*;
@@ -9071,6 +9090,7 @@
     _ZN[KRO]9gui_forms15IconDeclaration*;
     _ZN[KRO]9gui_forms15ImageListChange*;
     _ZN[KRO]9gui_forms15ImageLoadResult*;
+    _ZN[KRO]9gui_forms15InputBoxRequest*;
     _ZN[KRO]9gui_forms15InputTimeSource*;
     _ZN[KRO]9gui_forms15ItemPositioning*;
     _ZN[KRO]9gui_forms15ItemSystemIndex*;
@@ -9108,6 +9128,7 @@
     _ZN[KRO]9gui_forms15SubSurfaceInput*;
     _ZN[KRO]9gui_forms15SurfaceMaterial*;
     _ZN[KRO]9gui_forms15TabControlEvent*;
+    _ZN[KRO]9gui_forms15TaskDialogInput*;
     _ZN[KRO]9gui_forms15TextDecorations*;
     _ZN[KRO]9gui_forms15TextMaskMetrics*;
     _ZN[KRO]9gui_forms15TextMaskRequest*;
@@ -10644,6 +10665,7 @@
     _ZT[VIST]N9gui_forms14HostScaleEvent*E;
     _ZT[VIST]N9gui_forms14HostTrayIconId*E;
     _ZT[VIST]N9gui_forms14ImageAtlasSlot*E;
+    _ZT[VIST]N9gui_forms14InputBoxResult*E;
     _ZT[VIST]N9gui_forms14ItemCheckEvent*E;
     _ZT[VIST]N9gui_forms14KeyStateChange*E;
     _ZT[VIST]N9gui_forms14LineBoxMetrics*E;
@@ -10764,6 +10786,7 @@
     _ZT[VIST]N9gui_forms15IconDeclaration*E;
     _ZT[VIST]N9gui_forms15ImageListChange*E;
     _ZT[VIST]N9gui_forms15ImageLoadResult*E;
+    _ZT[VIST]N9gui_forms15InputBoxRequest*E;
     _ZT[VIST]N9gui_forms15InputTimeSource*E;
     _ZT[VIST]N9gui_forms15ItemPositioning*E;
     _ZT[VIST]N9gui_forms15ItemSystemIndex*E;
@@ -10801,6 +10824,7 @@
     _ZT[VIST]N9gui_forms15SubSurfaceInput*E;
     _ZT[VIST]N9gui_forms15SurfaceMaterial*E;
     _ZT[VIST]N9gui_forms15TabControlEvent*E;
+    _ZT[VIST]N9gui_forms15TaskDialogInput*E;
     _ZT[VIST]N9gui_forms15TextDecorations*E;
     _ZT[VIST]N9gui_forms15TextMaskMetrics*E;
     _ZT[VIST]N9gui_forms15TextMaskRequest*E;
@@ -12337,6 +12361,7 @@
     _ZT[hvc]*9gui_forms14HostScaleEvent*;
     _ZT[hvc]*9gui_forms14HostTrayIconId*;
     _ZT[hvc]*9gui_forms14ImageAtlasSlot*;
+    _ZT[hvc]*9gui_forms14InputBoxResult*;
     _ZT[hvc]*9gui_forms14ItemCheckEvent*;
     _ZT[hvc]*9gui_forms14KeyStateChange*;
     _ZT[hvc]*9gui_forms14LineBoxMetrics*;
@@ -12457,6 +12482,7 @@
     _ZT[hvc]*9gui_forms15IconDeclaration*;
     _ZT[hvc]*9gui_forms15ImageListChange*;
     _ZT[hvc]*9gui_forms15ImageLoadResult*;
+    _ZT[hvc]*9gui_forms15InputBoxRequest*;
     _ZT[hvc]*9gui_forms15InputTimeSource*;
     _ZT[hvc]*9gui_forms15ItemPositioning*;
     _ZT[hvc]*9gui_forms15ItemSystemIndex*;
@@ -12494,6 +12520,7 @@
     _ZT[hvc]*9gui_forms15SubSurfaceInput*;
     _ZT[hvc]*9gui_forms15SurfaceMaterial*;
     _ZT[hvc]*9gui_forms15TabControlEvent*;
+    _ZT[hvc]*9gui_forms15TaskDialogInput*;
     _ZT[hvc]*9gui_forms15TextDecorations*;
     _ZT[hvc]*9gui_forms15TextMaskMetrics*;
     _ZT[hvc]*9gui_forms15TextMaskRequest*;
@@ -14030,6 +14057,7 @@
     _ZZN9gui_forms14HostScaleEvent*;
     _ZZN9gui_forms14HostTrayIconId*;
     _ZZN9gui_forms14ImageAtlasSlot*;
+    _ZZN9gui_forms14InputBoxResult*;
     _ZZN9gui_forms14ItemCheckEvent*;
     _ZZN9gui_forms14KeyStateChange*;
     _ZZN9gui_forms14LineBoxMetrics*;
@@ -14150,6 +14178,7 @@
     _ZZN9gui_forms15IconDeclaration*;
     _ZZN9gui_forms15ImageListChange*;
     _ZZN9gui_forms15ImageLoadResult*;
+    _ZZN9gui_forms15InputBoxRequest*;
     _ZZN9gui_forms15InputTimeSource*;
     _ZZN9gui_forms15ItemPositioning*;
     _ZZN9gui_forms15ItemSystemIndex*;
@@ -14187,6 +14216,7 @@
     _ZZN9gui_forms15SubSurfaceInput*;
     _ZZN9gui_forms15SurfaceMaterial*;
     _ZZN9gui_forms15TabControlEvent*;
+    _ZZN9gui_forms15TaskDialogInput*;
     _ZZN9gui_forms15TextDecorations*;
     _ZZN9gui_forms15TextMaskMetrics*;
     _ZZN9gui_forms15TextMaskRequest*;
@@ -15723,6 +15753,7 @@
     _ZZNK9gui_forms14HostScaleEvent*;
     _ZZNK9gui_forms14HostTrayIconId*;
     _ZZNK9gui_forms14ImageAtlasSlot*;
+    _ZZNK9gui_forms14InputBoxResult*;
     _ZZNK9gui_forms14ItemCheckEvent*;
     _ZZNK9gui_forms14KeyStateChange*;
     _ZZNK9gui_forms14LineBoxMetrics*;
@@ -15843,6 +15874,7 @@
     _ZZNK9gui_forms15IconDeclaration*;
     _ZZNK9gui_forms15ImageListChange*;
     _ZZNK9gui_forms15ImageLoadResult*;
+    _ZZNK9gui_forms15InputBoxRequest*;
     _ZZNK9gui_forms15InputTimeSource*;
     _ZZNK9gui_forms15ItemPositioning*;
     _ZZNK9gui_forms15ItemSystemIndex*;
@@ -15880,6 +15912,7 @@
     _ZZNK9gui_forms15SubSurfaceInput*;
     _ZZNK9gui_forms15SurfaceMaterial*;
     _ZZNK9gui_forms15TabControlEvent*;
+    _ZZNK9gui_forms15TaskDialogInput*;
     _ZZNK9gui_forms15TextDecorations*;
     _ZZNK9gui_forms15TextMaskMetrics*;
     _ZZNK9gui_forms15TextMaskRequest*;

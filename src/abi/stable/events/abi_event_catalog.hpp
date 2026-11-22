@@ -3626,6 +3626,7 @@ inline void append_field(EventFields& fields, std::string_view name, const TaskD
     append_field(fields, "button_id", value.button_id);
     append_field(fields, "verification_checked", value.verification_checked);
     append_field(fields, "radio_button_id", value.radio_button_id);
+    append_field(fields, "input_text", value.input_text);
     fields.leave(prefix);
 }
 

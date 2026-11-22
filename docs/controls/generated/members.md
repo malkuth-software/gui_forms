@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2388 | 3 | 370 | 4142 | 2511 |
+| 2390 | 3 | 370 | 4142 | 2513 |
 
 ## GUI.Forms types
 
@@ -125,7 +125,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `GalleryCommand` | GUI.Forms-only | 11 | 0 | 0 | 1 | 12 |
 | `AnchoredOverlayLayer` | GUI.Forms-only | 3 | 0 | 0 | 1 | 4 |
 | `FontDialog` | `FontDialog` | 16 | 0 | 0 | 19 | 15 |
-| `TaskDialog` | `TaskDialog` | 19 | 0 | 0 | 4 | 19 |
+| `TaskDialog` | `TaskDialog` | 21 | 0 | 0 | 4 | 21 |
 | `ThreadExceptionDialog` | `ThreadExceptionDialog` | 7 | 0 | 0 | 2 | 3 |
 | `SevenSegmentDisplay` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
 | `GaugeBase` | GUI.Forms-only | 4 | 0 | 0 | 5 | 9 |

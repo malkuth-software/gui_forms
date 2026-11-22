@@ -204,6 +204,8 @@ HEADER_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/column_strip.hpp": "Selection from a list",
     # The help system's printing sits beside its controls.
     "include/gui_forms/controls/help_print.hpp": "Information display",
+    # The input box is a TaskDialog page and sits with the dialogs.
+    "include/gui_forms/controls/input_box.hpp": "Dialogs and overlays",
     # The stock specimens (one per anatomy, for captures and the theme
     # editor's palette) are a catalogue, not a control.
     "include/gui_forms/controls/stock_specimens.hpp": "Diagnostics",

@@ -8,6 +8,7 @@
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/input_box.hpp"
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/host/services/host_services.hpp"
@@ -74,6 +75,8 @@ private:
     void build_task_dialog();
     void on_show_task_dialog();
     void on_task_dialog_closed(const TaskDialogResult& result);
+    void on_show_input_box();
+    void on_input_box_closed(const TaskDialogResult& result);
     void on_native_dialogs_changed(bool native);
     void on_show_exception_dialog();
     void on_exception_dialog_closed(DialogResult result);
@@ -120,6 +123,11 @@ private:
     Command task_dialog_command_{};
     std::shared_ptr<Button> task_dialog_button_;
     std::shared_ptr<TaskDialog> task_dialog_;
+    Command input_box_command_{};
+    std::shared_ptr<Button> input_box_button_;
+    // The input box shown last; its layer keeps it while it is open.
+    std::shared_ptr<TaskDialog> input_box_;
+    std::string folder_name_{"New folder"};
     // Opens TaskDialog and FontDialog as native popup windows (owner,
     // 2026-11-04: opt-in) instead of overlays.
     std::shared_ptr<CheckBox> native_dialogs_;
@@ -163,6 +171,7 @@ void HostServicesPage::mount_document(const std::shared_ptr<Surface>& body) {
     clipboard_ = document_.gallery_host_clipboard_editor;
     font_button_ = document_.gallery_host_font_choose;
     task_dialog_button_ = document_.gallery_host_task_dialog_show;
+    input_box_button_ = document_.gallery_host_input_box_show;
     exception_dialog_button_ = document_.gallery_host_exception_dialog_show;
     native_dialogs_ = document_.gallery_host_task_dialog_native;
     notify_toggle_button_ = document_.gallery_host_notify_icon_toggle;
@@ -206,6 +215,35 @@ void HostServicesPage::build_task_dialog() {
         StableId("gallery.host.exception-dialog.dialog"), std::move(report));
     on(exception_dialog_command_.invoked(), *this, &HostServicesPage::on_show_exception_dialog);
     on((*exception_dialog_).closed(), *this, &HostServicesPage::on_exception_dialog_closed);
+    input_box_command_.set_text("Input box...");
+    input_box_command_.set_description("Ask for a folder name in an input box");
+    (*input_box_button_).bind(input_box_command_);
+    on(input_box_command_.invoked(), *this, &HostServicesPage::on_show_input_box);
+}
+
+// The input box: a prompt, a field holding the last accepted name, OK and
+// Cancel. Its answer arrives when it closes.
+void HostServicesPage::on_show_input_box() {
+    if (input_box_ && (*input_box_).shown()) return;
+    InputBoxRequest request{};
+    request.title = "New folder";
+    request.prompt = "Name the new folder";
+    request.default_response = folder_name_;
+    request.maximum_length = 64U;
+    input_box_ = show_input_box(input_box_button_, request, StableId("gallery.host.input-box.dialog"));
+    if (!input_box_) return;
+    on((*input_box_).closed(), *this, &HostServicesPage::on_input_box_closed);
+    (*status_).text = "Input box shown · Enter accepts, Escape cancels";
+}
+
+void HostServicesPage::on_input_box_closed(const TaskDialogResult& result) {
+    const InputBoxResult answer = input_box_result(result);
+    if (!answer.accepted) {
+        (*status_).text = "Input box cancelled · the name stays " + folder_name_;
+        return;
+    }
+    folder_name_ = answer.text;
+    (*status_).text = "Input box accepted · the new folder is " + folder_name_;
 }
 
 void HostServicesPage::on_show_exception_dialog() {

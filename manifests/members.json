@@ -4242,6 +4242,8 @@
       {"kind": "method", "winforms": "ShowDialogAsync", "scope": "admitted", "overloads": 3, "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": null, "gui_forms": "checked_radio_button", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/task_dialog_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "expander_button", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/task_dialog_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "input_box", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/dialogs-and-host-services_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "input_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/task_dialog_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "page", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "presented_surface", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/native_popup_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "progress_bar", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
