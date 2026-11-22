@@ -971,7 +971,7 @@ gui_forms::Ribbon
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 8 unclassified; 54 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 49 supported, 0 deferred, 0 excluded, 5 unclassified; 54 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1013,7 +1013,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - property
      - GUI.Forms-only
      - ``merge_source``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``overlay_group``
@@ -1141,7 +1141,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - method
      - GUI.Forms-only
      - ``merge``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``numeric_up_down``
@@ -1157,7 +1157,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - method
      - GUI.Forms-only
      - ``revert_merge``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_tab_set_availability``

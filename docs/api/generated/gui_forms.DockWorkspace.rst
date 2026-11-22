@@ -829,7 +829,7 @@ gui_forms::DockWorkspace
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 56 supported, 0 deferred, 0 excluded, 26 unclassified; 82 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 65 supported, 0 deferred, 0 excluded, 17 unclassified; 82 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -919,11 +919,11 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - property
      - GUI.Forms-only
      - ``merge_ribbon``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``merge_tool_strip``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``merged_document``
@@ -931,11 +931,11 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - property
      - GUI.Forms-only
      - ``merged_ribbon_document``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``merged_tool_strip_document``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``named_layouts``
@@ -1023,7 +1023,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - method
      - GUI.Forms-only
      - ``clear_merge_tool_strip``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``clear_panel_menu_strip``
@@ -1031,7 +1031,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - method
      - GUI.Forms-only
      - ``clear_panel_ribbon``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``clear_panel_tool_strip``
@@ -1107,7 +1107,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - method
      - GUI.Forms-only
      - ``panel_ribbon``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``panel_title``
@@ -1151,7 +1151,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - method
      - GUI.Forms-only
      - ``set_panel_ribbon``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_panel_title``
@@ -1159,7 +1159,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
    * - method
      - GUI.Forms-only
      - ``set_panel_tool_strip``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``show_panel``
