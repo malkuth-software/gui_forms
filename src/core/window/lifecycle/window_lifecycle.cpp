@@ -679,7 +679,14 @@ void SurfaceRoot::set_active(bool active) {
     // ends the pointer sequences in progress (input order rule 5).
     if (!active) break_pointer_sequences();
     // A drag does not survive the window's deactivation (DK's rule).
-    if (!active && drag_engine_) (*drag_engine_).cancel(DragEnd::deactivated);
+    if (!active && drag_engine_) {
+        // The drag's end calls its client, whose change event may close
+        // and destroy this window: nothing of it is read after that.
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        (*drag_engine_).cancel(DragEnd::deactivated);
+        if ((*lifetime).window != presenting) return;
+    }
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);
     mark_subtree_dirty(*root_, Dirty::paint | Dirty::semantics);

@@ -108,8 +108,9 @@ public:
     void preview_drag(const DragFrame& frame) override {
         if (frame.selection.kind != DragSelectionKind::value) return;
         SplitContainer& container = *container_;
-        container.set_distance(frame.selection.value, reason_for(frame.mode));
+        // Marked first: the change event may drop the container.
         container.previewed_ = true;
+        container.set_distance(frame.selection.value, reason_for(frame.mode));
     }
 
     void announce_drag(const DragFrame& frame, DragAnnouncement& announcement) override {
@@ -538,7 +539,12 @@ void SplitContainer::on_pointer_preview(PointerEvent& event) {
     }
     pointer_start_distance_ = effective_distance_;
     previewed_ = false;
+    // A focus handler may close and destroy the window, and `root` with it:
+    // no drag starts then.
+    const WindowRef held = (*root).window_ref();
+    Window* const presenting = held.get();
     if (window() != nullptr) (*window()).request_focus(splitter_);
+    if (held.get() != presenting) return;
     // No threshold: the press starts the drag, as before the engine. The
     // grip is the subject, so it holds the capture.
     DragEngine& engine = (*root).drag_engine();

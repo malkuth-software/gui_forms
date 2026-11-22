@@ -1852,6 +1852,11 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
         captured_pointer_id_ = 0;
     }
     if (previous && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // The losing control's handler and the drag it ends (a client's end
+    // raising its change event) may close and destroy this window: nothing
+    // of it is read after that.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     // WinForms' MouseCaptureChanged, on the control losing the capture;
     // after the MouseUp when a primary release ends it.
     if (previous && previous != control) {
@@ -1869,6 +1874,7 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
                 break_pointer_sequences();
             }
             (*previous).on_mouse_capture_changed();
+            if (window_destroyed(*lifetime, presenting)) return;
         }
     }
     if (revoked && previous) {
@@ -1879,6 +1885,7 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     // the release reaches the subject, which then ends the drag itself.
     if (previous && previous != control && drag_engine_ && !defer_capture_changed_) {
         (*drag_engine_).note_capture_lost(*previous);
+        if (window_destroyed(*lifetime, presenting)) return;
     }
     PointerCaptureChange change;
     change.captured = static_cast<bool>(control);
@@ -3735,8 +3742,14 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
     }
     const Control::Ptr control = find(stable_id);
     const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
+    // A control's action (its focus handlers, the menu it opens) may close
+    // and destroy this window: nothing of it is read after that, and the
+    // action counts as performed.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     if (!control) {
-        if (dispatch_semantic_child_action(scoped ? scoped : root_, stable_id, action, value)) {
+        if (dispatch_semantic_child_action(scoped ? scoped : root_, stable_id, action, value) ||
+            window_destroyed(*lifetime, presenting)) {
             return true;
         }
         ControlList overlay_roots;
@@ -3747,8 +3760,10 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         for (ControlList::reverse_iterator overlay = overlay_roots.rbegin();
              overlay != overlay_roots.rend();
              ++overlay) {
-            if (dispatch_semantic_child_action(
-                    *overlay, stable_id, action, value)) return true;
+            if (dispatch_semantic_child_action(*overlay, stable_id, action, value) ||
+                window_destroyed(*lifetime, presenting)) {
+                return true;
+            }
         }
         return false;
     }
@@ -3773,6 +3788,7 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         // control's subtree, so focus is still refused where nothing there
         // can take it.
         const bool handled = (*control).on_semantic_action(action, value);
+        if (window_destroyed(*lifetime, presenting)) return handled;
         if (!handled || !(*control).is_alive() || (*control).surface_root_ != this) return false;
         const Control::Ptr now_focused = focused_.lock();
         const bool inside = contains_control(control, now_focused);

@@ -18,6 +18,25 @@ namespace {
 
 constexpr double infinite_distance = std::numeric_limits<double>::infinity();
 
+// The window that hosts the engine's root, read before a call that may run a
+// handler: a client's callback (a SplitChange raised by a preview, say), an
+// interaction event or a capture change may close and destroy the window, and
+// the engine, which the root owns, with it. Nothing of the engine is read once
+// gone() says so, as the key dispatch guards the root (A-gf-core-17-F1).
+class RootWatch final {
+public:
+    explicit RootWatch(const SurfaceRoot& root) : held_(root.window_ref()), presenting_(held_.get()) {}
+
+    [[nodiscard]] bool gone() const noexcept {
+        const bool destroyed = held_.get() != presenting_;
+        return destroyed;
+    }
+
+private:
+    WindowRef held_;
+    Window* presenting_;
+};
+
 bool finite_point(Point point) noexcept {
     const bool finite = std::isfinite(point.x) && std::isfinite(point.y);
     return finite;
@@ -1006,7 +1025,9 @@ bool DragEngine::arm(DragClient& client, Control& owner, Control& subject, std::
     if (!start_session(client, owner, subject, key, DragInputMode::pointer, press, source)) return false;
     threshold_ = threshold;
     phase_ = DragPhase::armed;
+    const RootWatch watch(*root_);
     subject.set_pointer_capture(true);
+    if (watch.gone()) return false;
     record(DragTraceEvent::arm);
     if (threshold > 0.0) return true;
     const bool planned = plan();
@@ -1018,16 +1039,19 @@ bool DragEngine::begin_keyboard(DragClient& client, Control& owner, Control& sub
     const Point centre = centre_of(source);
     if (!start_session(client, owner, subject, key, DragInputMode::keyboard, centre, source)) return false;
     const std::uint64_t serial = serial_;
+    const RootWatch watch(*root_);
     if (!plan()) return false;
-    if (!still(serial)) return false;
+    if (watch.gone() || !still(serial)) return false;
     pointer_ = pointer_for(selection_);
     const DragFrame frame = frame_now();
     announce(frame);
-    return still(serial);
+    const bool running = !watch.gone() && still(serial);
+    return running;
 }
 
 void DragEngine::compact_refused() {
     const std::uint64_t serial = serial_;
+    const RootWatch watch(*root_);
     std::array<DragCandidateRange, maximum_drag_operators> kept{};
     std::size_t write = 0U;
     // The added ranges are disjoint and ascending, so compacting them in
@@ -1041,7 +1065,7 @@ void DragEngine::compact_refused() {
         for (std::size_t read = original.first; read < end_index; ++read) {
             const DragLanding landing = landings_[read];
             const bool accepted = (*client_).accepts_drag_candidate(landing);
-            if (!still(serial)) return;
+            if (watch.gone() || !still(serial)) return;
             if (!accepted) {
                 ++statistics_.refused_candidates;
                 removed = true;
@@ -1138,6 +1162,7 @@ bool DragEngine::plan() {
     settles_ = false;
     for (Control::WeakPtr& container : containers_) container.reset();
     const std::uint64_t serial = serial_;
+    const RootWatch watch(*root_);
     const Control::Ptr subject = subject_.lock();
     if (!subject || !client_alive()) {
         end(DragEnd::subject_gone);
@@ -1152,7 +1177,7 @@ bool DragEngine::plan() {
     declared.epoch = epoch_;
     DragPlanBuilder builder(*this);
     DragPlanRefusal refusal = (*client_).plan_drag(builder, declared);
-    if (!still(serial)) return false;
+    if (watch.gone() || !still(serial)) return false;
     ++statistics_.plans;
     if (refusal == DragPlanRefusal::none) refusal = builder.refusal();
     if (refusal == DragPlanRefusal::none && root_node_ == no_drag_node) refusal = DragPlanRefusal::empty;
@@ -1162,7 +1187,7 @@ bool DragEngine::plan() {
         return false;
     }
     compact_refused();
-    if (!still(serial)) return false;
+    if (watch.gone() || !still(serial)) return false;
     if (mode_ == DragInputMode::keyboard) {
         mark_keyboard_reachable();
         choose_keyboard_start();
@@ -1175,7 +1200,7 @@ bool DragEngine::plan() {
     // A chain point plans again within the same drag, which started once.
     if (epoch_.value != 1U) return true;
     raise(&DragInteractionEvents::started, DragEnd::none);
-    const bool running = still(serial);
+    const bool running = !watch.gone() && still(serial);
     return running;
 }
 
@@ -1200,8 +1225,9 @@ DragFrame DragEngine::frame_now() const noexcept {
 void DragEngine::announce(const DragFrame& frame) {
     if (!client_alive()) return;
     const DragAnnouncement before = announcement_;
+    const RootWatch watch(*root_);
     (*client_).announce_drag(frame, announcement_);
-    if (announcement_.view() == before.view()) return;
+    if (watch.gone() || announcement_.view() == before.view()) return;
     const Control::Ptr root = (*root_).root();
     if (root) (*root).invalidate(Dirty::semantics);
 }
@@ -1238,10 +1264,11 @@ void DragEngine::select(const DragSelection& selection, DragTraceEvent event) {
     if (!changed && !continuous) return;
     const std::uint64_t serial = serial_;
     const DragFrame frame = frame_now();
+    const RootWatch watch(*root_);
     if (client_alive()) (*client_).preview_drag(frame);
-    if (!still(serial)) return;
+    if (watch.gone() || !still(serial)) return;
     if (changed) announce(frame);
-    if (!target_changed || !still(serial)) return;
+    if (!target_changed || watch.gone() || !still(serial)) return;
     raise(&DragInteractionEvents::target_changed, DragEnd::none);
 }
 
@@ -1269,15 +1296,16 @@ void DragEngine::drag_to(Point pointer, Modifier modifiers, DragTraceEvent event
     outcome.pointer = pointer_;
     ++statistics_.chains;
     record(DragTraceEvent::chain);
+    const RootWatch watch(*root_);
     if (client_alive()) (*client_).commit_drag_chain(outcome);
-    if (!still(serial)) return;
+    if (watch.gone() || !still(serial)) return;
     const Point centre = centre_of(source_);
     const Point grab{press_.x - centre.x, press_.y - centre.y};
     source_ = landings_[selection_.landing].rect;
     const Point moved_centre = centre_of(source_);
     press_ = Point{moved_centre.x + grab.x, moved_centre.y + grab.y};
     if (!plan()) return;
-    if (!still(serial)) return;
+    if (watch.gone() || !still(serial)) return;
     const Evaluation replanned = evaluate(root_node_, pointer, modifiers, false);
     select(replanned.selection, event);
 }
@@ -1293,6 +1321,7 @@ bool DragEngine::pointer(const PointerEvent& event) {
     const std::size_t landings_capacity = landings_.capacity();
     const std::size_t flags_capacity = reachable_.capacity();
     const std::size_t trace_capacity = trace_.capacity();
+    const RootWatch watch(*root_);
     const Control::Ptr subject = subject_.lock();
     if (!subject || !client_alive()) {
         end(DragEnd::subject_gone);
@@ -1318,16 +1347,18 @@ bool DragEngine::pointer(const PointerEvent& event) {
         pointer_ = event.position;
         modifiers_ = event.modifiers;
         if (!plan()) return true;
-        if (!still(serial)) return true;
+        if (watch.gone() || !still(serial)) return true;
         // The first dragging frame is a change from nothing, so the client
         // previews and announces it.
         selection_ = DragSelection{};
         drag_to(event.position, event.modifiers, DragTraceEvent::move);
+        if (watch.gone()) return true;
         note_growth(landings_capacity, flags_capacity, trace_capacity);
         return true;
     }
     if (event.action == PointerAction::move) {
         drag_to(event.position, event.modifiers, DragTraceEvent::move);
+        if (watch.gone()) return true;
         note_growth(landings_capacity, flags_capacity, trace_capacity);
         return true;
     }
@@ -1458,6 +1489,7 @@ bool DragEngine::key(const KeyEvent& event) {
     const std::size_t landings_capacity = landings_.capacity();
     const std::size_t flags_capacity = reachable_.capacity();
     const std::size_t trace_capacity = trace_.capacity();
+    const RootWatch watch(*root_);
     if (event.physical_key == PhysicalKey::escape) {
         if (phase_ == DragPhase::armed) {
             disarm();
@@ -1481,6 +1513,7 @@ bool DragEngine::key(const KeyEvent& event) {
     case PhysicalKey::tab: {
         const bool forward = !has_modifier(event.modifiers, Modifier::shift);
         static_cast<void>(step_group(forward));
+        if (watch.gone()) return true;
         note_growth(landings_capacity, flags_capacity, trace_capacity);
         return true;
     }
@@ -1504,6 +1537,7 @@ bool DragEngine::key(const KeyEvent& event) {
     } else {
         static_cast<void>(step_continuous(dx, dy, event.modifiers));
     }
+    if (watch.gone()) return true;
     note_growth(landings_capacity, flags_capacity, trace_capacity);
     return true;
 }
@@ -1517,7 +1551,9 @@ void DragEngine::release_capture() {
 void DragEngine::disarm() {
     ending_ = true;
     phase_ = DragPhase::idle;
+    const RootWatch watch(*root_);
     release_capture();
+    if (watch.gone()) return;
     record(DragTraceEvent::end);
     reset_session();
     ending_ = false;
@@ -1540,12 +1576,15 @@ void DragEngine::end(DragEnd ending) {
     const std::size_t end_index = static_cast<std::size_t>(ending);
     if (end_index < statistics_.ends.size()) ++statistics_.ends[end_index];
     phase_ = outcome.animate ? DragPhase::settling : DragPhase::idle;
+    const RootWatch watch(*root_);
     release_capture();
+    if (watch.gone()) return;
     record(DragTraceEvent::end, ending);
     if (alive) {
         DragEnd reported = ending;
         if (commits) {
             (*client_).rewrite_drag_outcome(outcome);
+            if (watch.gone()) return;
             // A rewrite keeps a committing end or turns it into rejected (the
             // candidate went away); any other end it writes is rejected too.
             const bool still_commits = outcome.end == DragEnd::dropped || outcome.end == DragEnd::free;
@@ -1560,13 +1599,17 @@ void DragEngine::end(DragEnd ending) {
         }
         const bool reported_commits = reported == DragEnd::dropped || reported == DragEnd::free;
         if (serial == serial_) (*client_).end_drag(outcome);
+        if (watch.gone()) return;
         if (serial == serial_ && client_alive()) {
             DragFrame frame = frame_now();
             frame.end = reported;
             announce(frame);
+            if (watch.gone()) return;
         }
         if (serial == serial_ && reported_commits) raise(&DragInteractionEvents::dropped, reported);
+        if (watch.gone()) return;
         if (serial == serial_) raise(&DragInteractionEvents::ended, reported);
+        if (watch.gone()) return;
     }
     if (serial == serial_ && phase_ == DragPhase::idle) reset_session();
     ending_ = false;
@@ -1596,13 +1639,15 @@ bool DragEngine::replan(const DragClient& client, Point moved) {
     // last saw.
     const DragSelection shown = selection_;
     ++statistics_.replans;
+    const RootWatch watch(*root_);
     if (!plan()) return false;
-    if (!still(serial)) return false;
+    if (watch.gone() || !still(serial)) return false;
     selection_ = shown;
     const Evaluation evaluation = evaluate(root_node_, pointer_, modifiers_, false);
     ++statistics_.evaluations;
     if (evaluation.tied) ++statistics_.ties;
     select(evaluation.selection, DragTraceEvent::move);
+    if (watch.gone()) return false;
     note_growth(landings_capacity, flags_capacity, trace_capacity);
     const bool running = still(serial) && phase_ == DragPhase::dragging;
     return running;

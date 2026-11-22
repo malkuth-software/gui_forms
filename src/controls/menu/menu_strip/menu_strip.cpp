@@ -763,9 +763,12 @@ bool MenuStrip::on_semantic_child_action(std::string_view id,
     // Focus first: its handlers may replace the items or drop the strip, so
     // the menu is found again after it (commit, then notify; house style 5),
     // and `lifetime` keeps the strip alive across them.
+    // A handler that closed or left the window ends it here: the action was
+    // taken, and nothing of the window it showed in is reached again.
     const Control::Ptr lifetime = shared_from_this();
-    if (window()) static_cast<void>((*window()).request_focus(lifetime));
-    if (!is_alive()) return true;
+    Window* const shown_in = window();
+    if (shown_in) static_cast<void>((*shown_in).request_focus(lifetime));
+    if (!is_alive() || window() != shown_in) return true;
     const stxlib::Optional<std::size_t> again = find_top_level(items_, id);
     if (again.absent()) return true;
     set_hot(again);
@@ -811,12 +814,14 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
     // alive across them.
     const std::string selected_id = items_[selected].stable_id;
     const Control::Ptr lifetime = shared_from_this();
-    if (window() && !(*window()).request_focus(lifetime)) {
+    Window* const shown_in = window();
+    if (shown_in && !(*shown_in).request_focus(lifetime)) {
         // The mnemonic is still owned, but prevent-mode validation may reject
         // the focus transaction that would authorize opening the overlay.
         return true;
     }
-    if (!is_alive()) return true;
+    // A handler that closed or left the window: the mnemonic was taken.
+    if (!is_alive() || window() != shown_in) return true;
     const stxlib::Optional<std::size_t> again = find_top_level(items_, selected_id);
     if (again.absent()) return true;
     set_hot(again);
