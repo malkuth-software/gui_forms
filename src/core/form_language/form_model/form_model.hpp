@@ -15,9 +15,8 @@
 // - signed and unsigned integers: one integer number;
 // - number: one number;
 // - text: the whole attribute value, as XML decodes it (a line feed is
-//   `&#10;`: XML turns a literal one into a space). A text that begins
-//   with `bind(` would be a binding: it is written with one more leading
-//   backslash (`\bind(x)`), which the reader removes;
+//   `&#10;`: XML turns a literal one into a space). An attribute is always
+//   a value, never a binding (Bindings below), so no text needs an escape;
 // - point and size: two numbers (x y, width height);
 // - rectangle: four numbers (x y width height);
 // - insets: one, two or four numbers in CSS order (all; vertical and
@@ -37,7 +36,7 @@
 // The other kinds' words and numbers are separated by whitespace, as
 // before: `bounds="16 16 300 28"`, `anchor="top right"`.
 //
-// Strings (a collection's quoted items, a binding's field): a string is
+// Strings (a collection's quoted items): a string is
 // written between double or single quotes on one line (single quotes in a
 // double-quoted attribute).
 // A backslash begins an escape, and these are the only ones:
@@ -49,30 +48,44 @@
 // (E815 form_escape_invalid, its detail the escape as written).
 // quote_form_string writes a text so that reading it gives the text back.
 //
-// Bindings (owner rulings FD-6 R1 and R2, 2026-11-07): a bindable
-// property may be bound in its own slot instead of set:
+// Bindings (owner rulings FD-6 R1 and R2, 2026-11-07; binding elements,
+// owner 2026-11-21): a binding is structure, so it is an element of its
+// own, a `bind` child of the object whose property it binds:
 //
-//   `<property>="bind(<source>[, '<field>'][, <option>]...)"`
+//   <check-box id="settings.auto" text="Save automatically">
+//     <bind property="checked" to="autosave"/>
+//   </check-box>
 //
-// - `<source>` is one C++ identifier: the owner's member the generated code
-//   reads (`owner.<source>`), or the name a run-time load's FormSources
+// The reserved element `bind` is no object and has no `id`. It is admitted
+// directly inside any object, a type that holds no children included, and
+// holds nothing itself (E809 otherwise). Its attributes:
+// - `property` (required): the bound property, in kebab case, as its
+//   attribute would be written. One the object's type lacks is E804; one
+//   also written as an attribute, or bound by an earlier `bind`, is E806.
+// - `to` (required): one C++ identifier, the owner's member the generated
+//   code reads (`owner.<to>`), or the name a run-time load's FormSources
 //   gives. Without a field it is a scalar Value (a boolean property's
-//   Value<bool>, a signed integer's Value<int>, a number's Value<double>);
-//   with `"<field>"`, a string, it is a BindingSource and the field is one
-//   of its records' fields, for a property of any kind.
-// - The direction is the property's default (PropertyDescriptor::
-//   binding_direction): two way for what the user changes through the
-//   control, one way otherwise. `one_way` narrows a two-way default.
-// - `update on-change` or `update on-validate` (the default) chooses when a
+//   Value<bool>, a signed integer's Value<int>, a number's Value<double>).
+// - `field`: with it, `to` is a BindingSource and the field is one of its
+//   records' fields, for a property of any kind (the whole attribute
+//   value; not empty).
+// - `mode`: `one-way` narrows a two-way default; `two-way` restates it,
+//   and is refused (E818) on a property whose default is one way. The
+//   default is the property's (PropertyDescriptor::binding_direction): two
+//   way for what the user changes through the control, one way otherwise.
+// - `update`: `on-change` or `on-validate` (the default) chooses when a
 //   two-way text property bound to a field writes back.
-// - `convert <name>` is reserved for a named converter: refused (E999)
-//   until converters exist, so that no interim meaning ships.
-// - `command: bind(<source>)` binds a button's Command (a type whose
-//   FormSchemaType::bind_command is set): commands are state.
-// - The form root's window properties and the properties a parent provides
-//   to its children are not bound.
-// The loader and the generated code bind each property at its place in
-// document order, the source's value taken and the subscription made in
+// - `converter` is reserved for a named converter: refused (E999) until
+//   converters exist, so that no interim meaning ships.
+// Any other attribute is E818. `<bind property="command" to="<source>"/>`
+// binds a button's Command (a type whose FormSchemaType::bind_command is
+// set; commands are state), by its source alone. The form root's window
+// properties and the properties a parent provides to its children are not
+// bound. An attribute is always a literal value: there is no binding
+// written in one.
+// The loader and the generated code bind each property at its `bind`
+// element's place in document order (after the object's attributes, which
+// are read first), the source's value taken and the subscription made in
 // one step (form_binding.hpp). A malformed binding is E817, an option not
 // admitted E818.
 //
@@ -333,6 +346,16 @@ inline constexpr std::string_view form_root_type_name = "form";
 // object whose type holds spans.
 inline constexpr std::string_view form_span_type_name = "span";
 
+// The reserved element of a binding, admitted directly inside any object
+// (Bindings above), and its attributes.
+inline constexpr std::string_view form_bind_type_name = "bind";
+inline constexpr std::string_view form_bind_property_attribute = "property";
+inline constexpr std::string_view form_bind_source_attribute = "to";
+inline constexpr std::string_view form_bind_field_attribute = "field";
+inline constexpr std::string_view form_bind_mode_attribute = "mode";
+inline constexpr std::string_view form_bind_update_attribute = "update";
+inline constexpr std::string_view form_bind_converter_attribute = "converter";
+
 // The reserved form type's schema, for the caller to list with the
 // registry's types.
 [[nodiscard]] FormSchemaType form_root_type();
@@ -369,16 +392,18 @@ enum class FormPropertyProvider : std::uint8_t {
     parent_type,
 };
 
-// A bound property's binding (Bindings above).
+// A bound property's binding (Bindings above): its `bind` element.
 struct FormBinding final {
-    // The source's name: an owner member, or a FormSources name.
+    // The source's name (`to`): an owner member, or a FormSources name.
     std::string source{};
     // The BindingSource field; empty for a scalar Value or a Command.
     std::string field{};
-    // The property's default, narrowed by `one_way`.
+    // The property's default, narrowed by `mode="one-way"`.
     PropertyBindingDirection direction{PropertyBindingDirection::one_way};
     // When a two-way field binding writes back; on_validate unless written.
     FormUpdateTrigger trigger{FormUpdateTrigger::on_validate};
+    // Its `bind` element's position in FormSyntax::locations.
+    std::uint32_t element{};
 };
 
 struct FormProperty final {
@@ -386,8 +411,11 @@ struct FormProperty final {
     FormPropertyProvider provider{FormPropertyProvider::object_type};
     // The property's position in its provider's list (see provider).
     std::size_t schema_property{};
-    // Its attribute: the position in its object's element's attributes
-    // (FormSyntax::locations), and where its name begins.
+    // Where it is written (FormSyntax::locations). A set property: its
+    // attribute's position among its object's element's attributes, and
+    // where the attribute's name begins. A bound property: the position of
+    // the `property` attribute among its `bind` element's attributes
+    // (FormBinding::element), and where that element's start tag begins.
     std::uint32_t attribute{};
     theme_language::SourcePosition position{};
     // Of the property's kind, normalized by its descriptor; empty when the
@@ -409,8 +437,9 @@ struct FormSpan final {
 
 // Caller-owned: replaced whole by a build that succeeds, left as it was by
 // one that refuses. Objects are in document order, each before its
-// children; spans and properties (bound ones among them) are in document
-// order.
+// children; spans and properties are in document order, an object's
+// properties together: its attributes, then its `bind` elements, then the
+// properties its parent provides (ProvidedPropertyOrder).
 struct FormModel final {
     std::vector<FormObject> objects{};
     std::vector<FormSpan> spans{};

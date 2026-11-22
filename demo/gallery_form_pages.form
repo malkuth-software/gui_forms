@@ -38,19 +38,22 @@
           tab-index="2"/>
       <check-box id="gallery.checkbox"
           text="Enable precise updates"
-          checked="bind(precise_updates)"
           bounds="10 84 220 24"
-          tab-index="3"/>
+          tab-index="3">
+        <bind property="checked" to="precise_updates"/>
+      </check-box>
       <radio-button id="gallery.radio.classic"
           text="Classic relief"
-          checked="bind(classic_relief)"
           bounds="236 84 180 24"
-          tab-index="4"/>
+          tab-index="4">
+        <bind property="checked" to="classic_relief"/>
+      </radio-button>
       <radio-button id="gallery.radio.quiet"
           text="Quiet relief"
-          checked="bind(quiet_relief)"
           bounds="422 84 180 24"
-          tab-index="5"/>
+          tab-index="5">
+        <bind property="checked" to="quiet_relief"/>
+      </radio-button>
       <check-box id="gallery.checkbox.indeterminate"
           text="Three-state option"
           three-state="true"
@@ -76,13 +79,15 @@
     <track-bar id="gallery.slider"
         minimum="0"
         maximum="100"
-        value="bind(slider)"
-        bounds="10 22 640 28"/>
+        bounds="10 22 640 28">
+      <bind property="value" to="slider"/>
+    </track-bar>
     <progress-bar id="gallery.progress"
         minimum="0"
         maximum="100"
-        value="bind(progress, one_way)"
-        bounds="10 56 640 20"/>
+        bounds="10 56 640 20">
+      <bind property="value" to="progress" mode="one-way"/>
+    </progress-bar>
     <label id="gallery.value-label" text="42%" classes="body" bounds="10 82 640 22"/>
   </group-box>
 

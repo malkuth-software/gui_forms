@@ -12,8 +12,12 @@ else. The build generates a C++ class from it.
     client-size="480 320"
     accept-button="settings.ok">
   <panel id="settings.root">
-    <check-box id="settings.autosave" text="Save automatically" bounds="16 16 300 28" checked="bind(autosave)"/>
-    <button id="settings.ok" text="OK" bounds="376 272 88 32" command="bind(accept)" classes="default-action"/>
+    <check-box id="settings.autosave" text="Save automatically" bounds="16 16 300 28">
+      <bind property="checked" to="autosave"/>
+    </check-box>
+    <button id="settings.ok" text="OK" bounds="376 272 88 32" classes="default-action">
+      <bind property="command" to="accept"/>
+    </button>
   </panel>
 </form>
 ```
@@ -29,10 +33,11 @@ gui_forms_add_form(my_app forms/settings.form CLASS SettingsWindow NAMESPACE my_
   a class holding the panel as a member (`root_control()` shows it). Its
   controls are typed public members named after their stable
   IDs (`settings.ok` becomes `settings_ok`).
-- **Bindings** are made when each control is created, from the model named
-  in CMake: `bind(autosave)` reads `settings.autosave`. A property the user
-  edits binds two way, anything else one way. `bind(people, 'name')` binds a
-  field of a `BindingSource`.
+- **Bindings** are `bind` elements, made when each control is created, from
+  the model named in CMake: `<bind property="checked" to="autosave"/>` reads
+  `settings.autosave`. A property the user edits binds two way, anything
+  else one way (`mode="one-way"` narrows it). `field="name"` binds a field
+  of a `BindingSource`. An attribute is always a literal value.
 - **No look, no code.** Colours and fonts belong to the theme (E813); the
   form names roles with `classes`. Handlers and rules belong to program code
   (E816 for an `on-...` handler attribute).

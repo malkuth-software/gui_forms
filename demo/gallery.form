@@ -61,17 +61,18 @@
       <label id="gallery.status.text" bounds="18 10 800 24" anchor="top left right"/>
       <check-box id="gallery.status.live"
           text="Live animation"
-          checked="bind(live_motion)"
           indicator-style="toggle"
           bounds="846 8 180 28"
-          anchor="top right"/>
+          anchor="top right">
+        <bind property="checked" to="live_motion"/>
+      </check-box>
     </panel>
 
     <group-box id="gallery.diagnostics"
         text="Diagnostics"
-        visible="bind(diagnostics_visible, one_way)"
         bounds="1000 34 280 742"
         dock="right">
+      <bind property="visible" to="diagnostics_visible" mode="one-way"/>
       <label id="gallery.diagnostics.about" text="GUI.Forms Gallery" classes="note" bounds="10 22 260 52"/>
       <label id="gallery.diagnostics.renderer" text="renderer" classes="body" bounds="10 80 260 20"/>
       <label id="gallery.diagnostics.controls" text="controls" classes="body" bounds="10 106 260 20"/>

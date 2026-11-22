@@ -33,8 +33,9 @@
 //   Control::set_property_value (set_child_property_value), the loader's
 //   path. Both take the model's normalized value and convert it as the
 //   table write does, so both paths set the same values.
-// - A bound property is bound where a literal would be set, reading the
-//   owner's member: `gui_forms::bind_form_value<Kind>(..., owner.<source>,
+// - A bound property (a `bind` element, form_model.hpp) is bound at its
+//   place in the model's order, after its object's set properties,
+//   reading the owner's member: `gui_forms::bind_form_value<Kind>(..., owner.<source>,
 //   ...)` for a Value (one whose type does not carry the property's kind
 //   does not compile), `gui_forms::bind_form_field(...)` for a
 //   BindingSource field and `bind(owner.<source>)` for a Command. The

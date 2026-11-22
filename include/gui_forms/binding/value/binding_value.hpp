@@ -180,7 +180,8 @@ inline constexpr std::size_t maximum_property_standard_values = 256U;
 // property only; `two_way`, also from the property back to the source, for
 // a property the user changes through the control (a check box's checked
 // state, a range's value, a text box's text). A document narrows a two-way
-// default with the `one_way` option and cannot widen a one-way one.
+// default with `mode="one-way"` on its `bind` element and cannot widen a
+// one-way one.
 enum class PropertyBindingDirection : std::uint8_t {
     one_way,
     two_way,
