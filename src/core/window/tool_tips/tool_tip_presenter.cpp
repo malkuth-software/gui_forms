@@ -354,6 +354,8 @@ void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
     pending.key.font = bake_lines_.font;
     pending.key.shadow = shadow;
     pending.key.scale = scale;
+    pending.key.theme = (*root).theme_ptr();
+    pending.key.text_scale = (*transient_bubble_).effective_text_scale();
     pending_bake_ = std::move(pending);
 }
 
