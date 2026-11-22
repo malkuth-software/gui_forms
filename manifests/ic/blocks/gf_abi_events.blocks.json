@@ -25,9 +25,18 @@
           "name": "self",
           "type": "gf_abi::events",
           "state": "alive"
+        },
+        {
+          "name": "subscription",
+          "type": "gf_subscription*",
+          "bounded_by": [
+            "not_null(subscription)"
+          ]
         }
       ],
-      "requires": [],
+      "requires": [
+        "not_null(subscription)"
+      ],
       "fails": [
         {
           "failure": "not_found",
@@ -41,60 +50,37 @@
       }
     },
     {
-      "name": "gf_abi.events.subscribe.disposing",
-      "mode": "legal",
+      "name": "gf_abi.events.subscribe.misuse.subscription_output",
+      "mode": "misuse",
       "call": "subscribe",
-      "kind": "member",
-      "thread": "ui",
+      "violates": "not_null(subscription)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.subscribe.outside.disposing",
+      "mode": "misuse",
+      "call": "subscribe",
       "state": "disposing",
-      "moves": null,
-      "inputs": [
-        {
-          "name": "self",
-          "type": "gf_abi::events",
-          "state": "disposing"
-        }
-      ],
-      "requires": [],
-      "fails": [
-        {
-          "failure": "not_found",
-          "when": "A name the type does not raise gives GF_STATUS_NOT_FOUND.",
-          "leaves": "unchanged"
-        }
-      ],
-      "returns": {
-        "type": "gf_subscription",
-        "owns": "caller"
-      }
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
     },
     {
-      "name": "gf_abi.events.subscribe.disposed",
-      "mode": "legal",
+      "name": "gf_abi.events.subscribe.outside.disposed",
+      "mode": "misuse",
       "call": "subscribe",
-      "kind": "member",
-      "thread": "ui",
       "state": "disposed",
-      "moves": null,
-      "inputs": [
-        {
-          "name": "self",
-          "type": "gf_abi::events",
-          "state": "disposed"
-        }
-      ],
-      "requires": [],
-      "fails": [
-        {
-          "failure": "not_found",
-          "when": "A name the type does not raise gives GF_STATUS_NOT_FOUND.",
-          "leaves": "unchanged"
-        }
-      ],
-      "returns": {
-        "type": "gf_subscription",
-        "owns": "caller"
-      }
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.events.subscribe_property.alive",
@@ -109,15 +95,19 @@
           "name": "self",
           "type": "gf_abi::events",
           "state": "alive"
+        },
+        {
+          "name": "subscription",
+          "type": "gf_subscription*",
+          "bounded_by": [
+            "not_null(subscription)"
+          ]
         }
       ],
-      "requires": [],
+      "requires": [
+        "not_null(subscription)"
+      ],
       "fails": [
-        {
-          "failure": "invalid_argument",
-          "when": "code: subscribing needs a subscription output",
-          "leaves": "unchanged"
-        },
         {
           "failure": "not_found",
           "when": "code: the source has no property of that name",
@@ -128,6 +118,17 @@
         "type": "gf_subscription",
         "owns": "caller"
       }
+    },
+    {
+      "name": "gf_abi.events.subscribe_property.misuse.subscription_output",
+      "mode": "misuse",
+      "call": "subscribe_property",
+      "violates": "not_null(subscription)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.events.subscribe_property.outside.disposing",

@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../basic/number_text.hpp"
+#include "raster_canvas_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -14,6 +15,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::raster_canvas;
 namespace {
 
 [[nodiscard]] bool valid_origin(gui_drawing::PointF origin) noexcept {
@@ -514,7 +516,7 @@ void RasterCanvas::written(const decltype(canvas_background)&) {
 
 void RasterCanvas::prepare_write(const decltype(transparency_cell_size)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || (incoming != 0.0 && (incoming < 2.0 || incoming > 128.0))) {
+    if (!ic::admits_transparency_cell_size(incoming)) {
         throw std::invalid_argument("canvas transparency cell size must be zero or within [2, 128]");
     }
 }

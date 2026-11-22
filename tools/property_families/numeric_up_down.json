@@ -144,7 +144,7 @@
       "hand": [],
       "effects": null,
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming <= 0.0) {",
+        "if (!ic::admits_increment(incoming)) {",
         "    throw std::invalid_argument(\"NumericUpDown increment must be finite and positive\");",
         "}"
       ],

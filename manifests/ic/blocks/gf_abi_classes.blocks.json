@@ -105,11 +105,6 @@
           "failure": "not_found",
           "when": "An unknown class or entry gives GF_STATUS_NOT_FOUND.",
           "leaves": "unchanged"
-        },
-        {
-          "failure": "wrong_handle_kind",
-          "when": "It needs an object of a class whose chain has that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise).",
-          "leaves": "unchanged"
         }
       ],
       "returns": {}

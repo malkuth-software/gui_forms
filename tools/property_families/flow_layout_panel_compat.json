@@ -100,7 +100,7 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument(\"FlowLayoutPanelCompat item spacing must be finite and between zero and 256\");"
+        "if (!ic::admits_item_spacing(incoming)) throw std::invalid_argument(\"FlowLayoutPanelCompat item spacing must be finite and between zero and 256\");"
       ],
       "sample": "Size{4.0, 6.0}"
     },

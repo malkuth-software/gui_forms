@@ -4,8 +4,180 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_diagnostics.ic.toml",
-    "sha256": "4801f4715c28b5208eccc996c0e33eea2573bb1f0bb20ddbb8b702dcb2218eb5"
+    "sha256": "1765a2a4c21447014c370589a8e7903d96782cca1ddd40bd15ce84966d3766dd"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
-  "obligations": []
+  "obligations": [
+    {
+      "id": "gf_abi.diagnostics.shadow_frames.requires.shadow_frames_buffer",
+      "kind": "entry-check",
+      "statement": "shadow_frames runs only when not_null(required) and (not_null(frames) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_shadow_frames_buffer, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.shadow_frames.refusal.shadow_frames_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(required) and (not_null(frames) or capacity == 0), shadow_frames changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.set_invalidation_overlay.requires.set_invalidation_overlay_enabled",
+      "kind": "entry-check",
+      "statement": "set_invalidation_overlay runs only when enabled <= 1; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_set_invalidation_overlay_enabled, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.set_invalidation_overlay.refusal.set_invalidation_overlay_enabled",
+      "kind": "refusal-leaves",
+      "statement": "Unless enabled <= 1, set_invalidation_overlay changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.invalidation_overlay.requires.invalidation_overlay_enabled",
+      "kind": "entry-check",
+      "statement": "invalidation_overlay runs only when not_null(enabled); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_invalidation_overlay_enabled, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.invalidation_overlay.refusal.invalidation_overlay_enabled",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(enabled), invalidation_overlay changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_snapshot.requires.failure_snapshot_buffers",
+      "kind": "entry-check",
+      "statement": "failure_snapshot runs only when not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_failure_snapshot_buffers, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_snapshot.refusal.failure_snapshot_buffers",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0), failure_snapshot changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.set_exception_reflection.requires.set_exception_reflection_enabled",
+      "kind": "entry-check",
+      "statement": "set_exception_reflection runs only when enabled <= 1; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_set_exception_reflection_enabled, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.set_exception_reflection.refusal.set_exception_reflection_enabled",
+      "kind": "refusal-leaves",
+      "statement": "Unless enabled <= 1, set_exception_reflection changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.exception_reflection.requires.exception_reflection_enabled",
+      "kind": "entry-check",
+      "statement": "exception_reflection runs only when not_null(enabled); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_exception_reflection_enabled, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.exception_reflection.refusal.exception_reflection_enabled",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(enabled), exception_reflection changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_detail.requires.failure_detail_output",
+      "kind": "entry-check",
+      "statement": "failure_detail runs only when not_null(output); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_failure_detail_output, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_detail.refusal.failure_detail_output",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(output), failure_detail changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_detail.requires.failure_detail_output_size",
+      "kind": "entry-check",
+      "statement": "failure_detail runs only when output_size >= failure_detail_size_1_5; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_failure_detail_output_size, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_detail.refusal.failure_detail_output_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless output_size >= failure_detail_size_1_5, failure_detail changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.set_diagnostic_overlay.requires.set_diagnostic_overlay_enabled",
+      "kind": "entry-check",
+      "statement": "set_diagnostic_overlay runs only when enabled <= 1; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_diagnostics::admits_set_diagnostic_overlay_enabled, called in src/abi/stable/tables/abi_diagnostics.cpp"
+    },
+    {
+      "id": "gf_abi.diagnostics.set_diagnostic_overlay.refusal.set_diagnostic_overlay_enabled",
+      "kind": "refusal-leaves",
+      "statement": "Unless enabled <= 1, set_diagnostic_overlay changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
 }

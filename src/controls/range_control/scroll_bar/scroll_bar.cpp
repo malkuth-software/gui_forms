@@ -601,8 +601,7 @@ void ScrollBar::written(const decltype(button_extent)&) {
 
 void ScrollBar::prepare_write(const decltype(minimum_thumb_extent)&, double& incoming) {
     require_mutable();
-    require_finite(incoming, "scrollbar thumb extent must be finite");
-    if (incoming < scroll_thumb_extent_least || incoming > scroll_thumb_extent_most) throw std::invalid_argument("scrollbar thumb extent must be between 8 and 128");
+    if (!ic::admits_minimum_thumb_extent(incoming)) throw std::invalid_argument("scrollbar thumb extent must be finite and between 8 and 128");
 }
 
 void ScrollBar::written(const decltype(minimum_thumb_extent)&) {

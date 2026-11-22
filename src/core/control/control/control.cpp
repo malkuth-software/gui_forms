@@ -25,6 +25,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "control_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -38,6 +39,7 @@
 #include <stdexcept>
 
 namespace gui_forms {
+namespace ic = detail::ic::control;
 
 namespace {
 
@@ -3387,10 +3389,7 @@ void Control::on_fore_color_changed() {}
 
 void Control::prepare_write(const decltype(minimum_size)&, Size& value) {
     require_mutable();
-    const Size maximum = maximum_size.read();
-    if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
-        (maximum.width > 0.0 && value.width > maximum.width) ||
-        (maximum.height > 0.0 && value.height > maximum.height)) {
+    if (!ic::admits_minimum_size(value, maximum_size.read())) {
         throw std::invalid_argument("GUI.Forms minimum size is invalid");
     }
 }
@@ -3409,10 +3408,7 @@ void Control::written(const decltype(minimum_size)&) {
 
 void Control::prepare_write(const decltype(maximum_size)&, Size& value) {
     require_mutable();
-    const Size minimum = minimum_size.read();
-    if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
-        (value.width > 0.0 && value.width < minimum.width) ||
-        (value.height > 0.0 && value.height < minimum.height)) {
+    if (!ic::admits_maximum_size(value, minimum_size.read())) {
         throw std::invalid_argument("GUI.Forms maximum size is invalid");
     }
 }

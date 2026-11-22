@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Wizard",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/wizard.ic.toml",
+    "sha256": "dafc63f38691f8565bc0a4408a76b66244b354a892f174c81ae5686572829e7c"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.wizard.current_page_write.requires.current_page",
+      "kind": "entry-check",
+      "statement": "current_page runs only when incoming == 0 or incoming < page_count; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::wizard::admits_current_page, called in src/controls/wizard/wizard.cpp"
+    },
+    {
+      "id": "gui_forms.wizard.current_page_write.refusal.current_page",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming == 0 or incoming < page_count, current_page changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

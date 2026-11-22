@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::StepIndicator",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/step_indicator.ic.toml",
+    "sha256": "903cecb651ba46903129622030759cb5c769321a2a717cc55ccc65b52d2ea48e"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.stepindicator.current_step_write.requires.current_step",
+      "kind": "entry-check",
+      "statement": "current_step runs only when incoming == 0 or incoming < step_count; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::step_indicator::admits_current_step, called in src/controls/step_indicator/step_indicator.cpp"
+    },
+    {
+      "id": "gui_forms.stepindicator.current_step_write.refusal.current_step",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming == 0 or incoming < step_count, current_step changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

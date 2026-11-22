@@ -761,10 +761,45 @@
           "name": "self",
           "type": "gf_abi::bindings",
           "state": "alive"
+        },
+        {
+          "name": "column_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "callbacks",
+          "type": "gf_binding_provider_callbacks*",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "provider",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(provider)"
+          ]
         }
       ],
-      "requires": [],
-      "fails": [],
+      "requires": [
+        "not_null(provider)",
+        "not_null(callbacks) or column_count == 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: provider callbacks or columns their checks refuse",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a binding source",
+          "leaves": "unchanged"
+        }
+      ],
       "returns": {}
     },
     {
@@ -780,10 +815,45 @@
           "name": "self",
           "type": "gf_abi::bindings",
           "state": "disposing"
+        },
+        {
+          "name": "column_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "callbacks",
+          "type": "gf_binding_provider_callbacks*",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "provider",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(provider)"
+          ]
         }
       ],
-      "requires": [],
-      "fails": [],
+      "requires": [
+        "not_null(provider)",
+        "not_null(callbacks) or column_count == 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: provider callbacks or columns their checks refuse",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a binding source",
+          "leaves": "unchanged"
+        }
+      ],
       "returns": {}
     },
     {
@@ -799,11 +869,68 @@
           "name": "self",
           "type": "gf_abi::bindings",
           "state": "disposed"
+        },
+        {
+          "name": "column_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "callbacks",
+          "type": "gf_binding_provider_callbacks*",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "provider",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(provider)"
+          ]
         }
       ],
-      "requires": [],
-      "fails": [],
+      "requires": [
+        "not_null(provider)",
+        "not_null(callbacks) or column_count == 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: provider callbacks or columns their checks refuse",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a binding source",
+          "leaves": "unchanged"
+        }
+      ],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.misuse.set_provider_provider",
+      "mode": "misuse",
+      "call": "set_provider",
+      "violates": "not_null(provider)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.misuse.set_provider_columns",
+      "mode": "misuse",
+      "call": "set_provider",
+      "violates": "not_null(callbacks) or column_count == 0",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.bindings.notify",

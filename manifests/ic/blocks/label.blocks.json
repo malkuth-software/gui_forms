@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Label",
+  "declaration": "include/gui_forms/controls/label.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.label.line_spacing_write",
+      "mode": "legal",
+      "call": "line_spacing",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Label"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and 4 * incoming >= 3 and incoming <= 3"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and 4 * incoming >= 3 and incoming <= 3"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.label.line_spacing_write.misuse.line_spacing",
+      "mode": "misuse",
+      "call": "line_spacing",
+      "violates": "finite(incoming) and 4 * incoming >= 3 and incoming <= 3",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

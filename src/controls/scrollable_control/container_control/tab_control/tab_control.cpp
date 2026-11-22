@@ -6,6 +6,7 @@
 #include "gui_forms/window.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "tab_control_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,6 +17,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::tab_control;
 
 namespace {
 
@@ -435,9 +437,7 @@ void TabControl::written(const decltype(size_mode)&) {
 
 void TabControl::prepare_write(const decltype(item_size)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||
-        incoming.width < 24.0 || incoming.height < 18.0 ||
-        incoming.width > PageItemWidths::maximum_width || incoming.height > PageItemWidths::maximum_width) {
+    if (!ic::admits_item_size(incoming)) {
         throw std::invalid_argument(
             "TabControl item size must be finite, at least 24 by 18 and at most 1024 by 1024");
     }

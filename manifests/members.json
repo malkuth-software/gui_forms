@@ -74,8 +74,8 @@
       {"kind": "property", "winforms": "Left", "scope": "admitted", "gui_forms": "left", "status": "supported", "basis": "test", "evidence": "tests/core_tests.cpp"},
       {"kind": "property", "winforms": "Location", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "Margin", "scope": "admitted", "gui_forms": "margin", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": "MaximumSize", "scope": "admitted", "gui_forms": "maximum_size", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": "MinimumSize", "scope": "admitted", "gui_forms": "minimum_size", "status": "supported", "basis": "test", "evidence": "tests/dock_layout_tests.cpp"},
+      {"kind": "property", "winforms": "MaximumSize", "scope": "admitted", "gui_forms": "maximum_size", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "constraints": "Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height), else failure invalid_argument, unchanged."},
+      {"kind": "property", "winforms": "MinimumSize", "scope": "admitted", "gui_forms": "minimum_size", "status": "supported", "basis": "test", "evidence": "tests/dock_layout_tests.cpp", "constraints": "Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height), else failure invalid_argument, unchanged."},
       {"kind": "property", "winforms": "ModifierKeys", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "MouseButtons", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "MousePosition", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
@@ -601,7 +601,7 @@
       {"kind": "event", "winforms": "Disposed", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "Dispose", "scope": "admitted", "overloads": 2, "gui_forms": "dispose", "status": "supported", "basis": "test", "evidence": "tests/background_worker_tests.cpp", "constraints": "Admitted in any state; then disposed. Fails logic_error (verify_dispose_thread refuses the calling thread (a control's or window's own rule)), unchanged."},
       {"kind": "method", "winforms": "GetService", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "property", "winforms": null, "gui_forms": "component_state", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "component_state", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ic/gf_abi_ic_fuzz.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "interactions", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "is_alive", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "is_disposed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
@@ -1265,7 +1265,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "sweep_scope_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "Sparkline", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/anatomy_coverage_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "capacity", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "capacity", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "constraints": "Requires incoming >= 2 and incoming <= 100000, else failure invalid_argument, unchanged."},
       {"kind": "property", "winforms": null, "gui_forms": "extent", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "fill", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "latest", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
@@ -3512,8 +3512,8 @@
       {"kind": "property", "winforms": null, "gui_forms": "splitter_control", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/containers-and-focus_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "splitter_seam_snapshot", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/seam_proximity_lab_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "drag_dropped", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/split_container_tests.cpp"},
-      {"kind": "event", "winforms": null, "gui_forms": "drag_ended", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/split_container_tests.cpp"},
-      {"kind": "event", "winforms": null, "gui_forms": "drag_started", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/split_container_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "drag_ended", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ic/gf_abi_ic_fuzz.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "drag_started", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ic/gf_abi_ic_fuzz.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "drag_target_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "splitter_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
@@ -4277,7 +4277,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "dial_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "StepIndicator", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "current_step", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "current_step", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "constraints": "Requires incoming == 0 or incoming < step_count, else failure invalid_argument, unchanged."},
       {"kind": "property", "winforms": null, "gui_forms": "steps", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "current_step_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/property_family_generated_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "step_clicked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
@@ -4291,7 +4291,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "can_go_next", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "cancel_button", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "cancel_text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "current_page", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "current_page", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "constraints": "Requires incoming == 0 or incoming < page_count, else failure invalid_argument, unchanged."},
       {"kind": "property", "winforms": null, "gui_forms": "finish_text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "next_button", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "next_text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},

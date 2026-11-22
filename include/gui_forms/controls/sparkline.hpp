@@ -58,6 +58,8 @@ GUI_FORMS_API void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpa
                                    std::size_t slots, double scale, const SparklineStyle& style,
                                    SparklineWorkspace& workspace);
 
+// ic: gui_forms::Sparkline: generated from include/gui_forms/controls/sparkline.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Sparkline final : public Control, public SparklineCapabilities<Sparkline> {
 public:
     explicit Sparkline(StableId stable_id);
@@ -118,6 +120,7 @@ private:
     friend struct SparklineCapacityCapability<Sparkline>;
     friend struct SparklineFillCapability<Sparkline>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires incoming >= 2 and incoming <= 100000, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(capacity)& cell, std::uint32_t& incoming);
     void written(const decltype(capacity)& cell);
     void prepare_write(const decltype(fill)& cell, bool& incoming);

@@ -45,6 +45,108 @@
         "failure": "invalid_argument"
       },
       "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.splitcontainer.first_minimum_write",
+      "mode": "legal",
+      "call": "first_minimum",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::SplitContainer"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0",
+            "incoming <= first_maximum_bound"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0",
+        "incoming <= first_maximum_bound"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.splitcontainer.first_minimum_write.misuse.first_minimum_extent",
+      "mode": "misuse",
+      "call": "first_minimum",
+      "violates": "finite(incoming) and incoming >= 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.splitcontainer.first_minimum_write.misuse.first_minimum_order",
+      "mode": "misuse",
+      "call": "first_minimum",
+      "violates": "incoming <= first_maximum_bound",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.splitcontainer.second_minimum_write",
+      "mode": "legal",
+      "call": "second_minimum",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::SplitContainer"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0",
+            "incoming <= second_maximum_bound"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0",
+        "incoming <= second_maximum_bound"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.splitcontainer.second_minimum_write.misuse.second_minimum_extent",
+      "mode": "misuse",
+      "call": "second_minimum",
+      "violates": "finite(incoming) and incoming >= 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.splitcontainer.second_minimum_write.misuse.second_minimum_order",
+      "mode": "misuse",
+      "call": "second_minimum",
+      "violates": "incoming <= second_maximum_bound",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
     }
   ]
 }

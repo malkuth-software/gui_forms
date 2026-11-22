@@ -317,6 +317,7 @@ private:
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(content_padding)& cell, Insets& incoming);
     void written(const decltype(content_padding)& cell);
+    // ic: Requires finite(incoming) and 4 * incoming >= 3 and incoming <= 3, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(text_line_spacing)& cell, double& incoming);
     void written(const decltype(text_line_spacing)& cell);
     void prepare_write(const decltype(image_alignment)& cell, ContentAlignment& incoming);

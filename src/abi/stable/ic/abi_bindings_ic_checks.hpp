@@ -52,4 +52,16 @@ namespace gui_forms::abi1::ic_bindings {
     return result;
 }
 
+// gf_bindings_table::set_provider: not_null(provider); else returns GF_STATUS_INVALID_ARGUMENT.
+[[nodiscard]] constexpr bool admits_set_provider_provider(const uint64_t* provider) noexcept {
+    const bool result = provider != nullptr;
+    return result;
+}
+
+// gf_bindings_table::set_provider: not_null(callbacks) or column_count == 0; else returns GF_STATUS_INVALID_ARGUMENT.
+[[nodiscard]] constexpr bool admits_set_provider_columns(const uint64_t column_count, const gf_binding_provider_callbacks* callbacks) noexcept {
+    const bool result = (callbacks != nullptr) || (column_count == 0);
+    return result;
+}
+
 } // namespace gui_forms::abi1::ic_bindings

@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_classes.ic.toml",
-    "sha256": "6c4c3e083934e844a1828755fcf1697d4b0713a3cb8dc7afdf8aa9e5d7d727d1"
+    "sha256": "b7f8b9a616b2dd6bab92ef564311f0e65982cf1d0b0ed76bdedd800013f697fa"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -45,6 +45,16 @@
       "tool": null,
       "premises": [],
       "status": "open"
+    },
+    {
+      "id": "gf_abi.classes.base_raiser_object_kind",
+      "kind": "stated",
+      "statement": "The base function that base_raiser gives refuses, when it is called, an object not made from a class table or whose class chain lacks the entry's segment, with GF_STATUS_WRONG_HANDLE_KIND; base_raiser itself takes no object, so the refusal is the raiser's, not the slot's.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "method": "inspection of the raiser's entry check (src/abi/stable/classes/abi_class_bridge.cpp)"
     }
   ]
 }

@@ -44,5 +44,10 @@ thread = "any"
 fails = [
   { failure = "invalid_argument", when = "code: a base function needs an event" },
   { failure = "not_found", when = "An unknown class or entry gives GF_STATUS_NOT_FOUND." },
-  { failure = "wrong_handle_kind", when = "It needs an object of a class whose chain has that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise)." },
 ]
+
+[[obligation]]
+id = "base_raiser_object_kind"
+statement = "The base function that base_raiser gives refuses, when it is called, an object not made from a class table or whose class chain lacks the entry's segment, with GF_STATUS_WRONG_HANDLE_KIND; base_raiser itself takes no object, so the refusal is the raiser's, not the slot's."
+method = "inspection of the raiser's entry check (src/abi/stable/classes/abi_class_bridge.cpp)"
+premises = []

@@ -314,9 +314,7 @@ requires = [
   { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_child_count_count" },
 ]
 fails = [
-  { failure = "buffer_too_small", when = "The number of MDI children (Form.MdiChildren), and the id of the child at index, in tree and tab order, into the caller's buffer (required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL;" },
   { failure = "invalid_state", when = "code: the control is not in a window" },
-  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the end)." },
   { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
 ]
 
@@ -328,6 +326,7 @@ thread = "ui"
 in = ["created", "running"]
 outside = "value:GF_STATUS_DISPOSED"
 fails = [
+  { failure = "buffer_too_small", when = "the id is longer than capacity: required receives its size, nothing else is written" },
   { failure = "invalid_state", when = "code: the control is not in a window" },
   { failure = "not_found", when = "code: the index is past the window's MDI children" },
   { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },

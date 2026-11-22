@@ -62,6 +62,8 @@ struct GUI_FORMS_API TabControlEvent final {
 // list buttons) and keys serve the tabs. The strip is an internal child: it
 // takes no focus (the control keeps it, as one tab stop) and publishes no
 // semantics of its own (the control publishes its tabs as before).
+// ic: gui_forms::TabControl: generated from include/gui_forms/controls/tab_control.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API TabControl final : public ContainerControl, public TabControlCapabilities<TabControl> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -228,6 +230,9 @@ private:
     void written(const decltype(appearance)& cell);
     void prepare_write(const decltype(size_mode)& cell, TabSizeMode& incoming);
     void written(const decltype(size_mode)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >=
+    // ic: 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most, else failure
+    // ic: invalid_argument, unchanged.
     void prepare_write(const decltype(item_size)& cell, Size& incoming);
     void written(const decltype(item_size)& cell);
     void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);

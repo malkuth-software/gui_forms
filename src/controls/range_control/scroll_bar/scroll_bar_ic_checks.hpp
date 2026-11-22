@@ -6,12 +6,22 @@
 // (docs/ic_declarations.md in template_harness).
 
 #include "gui_forms/controls/scroll_bar.hpp"
+#include "gui_forms/controls/scroll_bar_metrics.hpp"
 
 namespace gui_forms::detail::ic::scroll_bar {
 
 // ScrollBar::button_extent: finite(incoming) and incoming >= 8 and incoming <= 64; else failure invalid_argument.
 [[nodiscard]] constexpr bool admits_button_extent(const double incoming) noexcept {
     const bool result = __builtin_isfinite(incoming) && (incoming >= 8) && (incoming <= 64);
+    return result;
+}
+
+// ScrollBar::minimum_thumb_extent: finite(incoming) and incoming >= thumb_extent_least and incoming <=
+// thumb_extent_most; else failure invalid_argument.
+[[nodiscard]] constexpr bool admits_minimum_thumb_extent(const double incoming) noexcept {
+    const bool result = __builtin_isfinite(incoming)
+                     && (incoming >= scroll_thumb_extent_least)
+                     && (incoming <= scroll_thumb_extent_most);
     return result;
 }
 

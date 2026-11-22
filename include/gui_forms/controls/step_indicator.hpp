@@ -30,6 +30,8 @@ namespace gui_forms {
 // is a step's name, ordinary for the current step and secondary for the
 // others. To assistive technology it is a group whose value reads "Step 2
 // of 4: Details".
+// ic: gui_forms::StepIndicator: generated from include/gui_forms/controls/step_indicator.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator> {
 public:
     explicit StepIndicator(StableId stable_id);
@@ -93,6 +95,7 @@ public:
 private:
     friend struct StepIndicatorCurrentStepCapability<StepIndicator>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires incoming == 0 or incoming < step_count, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(current_step)& cell, std::uint32_t& incoming);
     void written(const decltype(current_step)& cell);
     // property_codemod end StepIndicator

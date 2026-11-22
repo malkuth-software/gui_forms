@@ -27,3 +27,13 @@ parameters = { incoming = "double" }
 requires = [
   { holds = "finite(incoming) and incoming >= 0 and incoming <= 64", refuses = "failure:invalid_argument", check = "image_gap" },
 ]
+
+[[call]]
+name = "text_line_spacing"
+id = "text_line_spacing_write"
+declarations = ["void prepare_write(const decltype(text_line_spacing)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and 4 * incoming >= 3 and incoming <= 3", refuses = "failure:invalid_argument", check = "text_line_spacing" },
+]

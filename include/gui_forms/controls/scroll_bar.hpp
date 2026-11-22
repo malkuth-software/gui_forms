@@ -130,6 +130,8 @@ private:
     // ic: Requires finite(incoming) and incoming >= 8 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(button_extent)& cell, double& incoming);
     void written(const decltype(button_extent)& cell);
+    // ic: Requires finite(incoming) and incoming >= thumb_extent_least and incoming <= thumb_extent_most, else failure
+    // ic: invalid_argument, unchanged.
     void prepare_write(const decltype(minimum_thumb_extent)& cell, double& incoming);
     void written(const decltype(minimum_thumb_extent)& cell);
     void prepare_write(const decltype(initial_repeat_delay)& cell, FrameInterval& incoming);

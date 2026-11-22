@@ -167,9 +167,11 @@
       "hand": [],
       "effects": "invalidation::bounds",
       "prepare": [
-        "require_finite_nonnegative(incoming, \"first panel minimum must be finite and nonnegative\");",
+        "if (!ic::admits_first_minimum_extent(incoming)) {",
+        "    throw std::invalid_argument(\"first panel minimum must be finite and nonnegative\");",
+        "}",
         "const double* maximum = first_maximum.read().value();",
-        "if (maximum != nullptr && incoming > *maximum) {",
+        "if (!ic::admits_first_minimum_order(incoming, maximum != nullptr ? *maximum : unbounded)) {",
         "    throw std::invalid_argument(\"first panel minimum may not exceed its maximum\");",
         "}"
       ],
@@ -194,9 +196,11 @@
       "hand": [],
       "effects": "invalidation::bounds",
       "prepare": [
-        "require_finite_nonnegative(incoming, \"second panel minimum must be finite and nonnegative\");",
+        "if (!ic::admits_second_minimum_extent(incoming)) {",
+        "    throw std::invalid_argument(\"second panel minimum must be finite and nonnegative\");",
+        "}",
         "const double* maximum = second_maximum.read().value();",
-        "if (maximum != nullptr && incoming > *maximum) {",
+        "if (!ic::admits_second_minimum_order(incoming, maximum != nullptr ? *maximum : unbounded)) {",
         "    throw std::invalid_argument(\"second panel minimum may not exceed its maximum\");",
         "}"
       ],
@@ -362,7 +366,7 @@
       "hand": [],
       "effects": null,
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming <= 0.0) {",
+        "if (!ic::admits_keyboard_increment(incoming)) {",
         "    throw std::invalid_argument(\"splitter keyboard increment must be finite and positive\");",
         "}"
       ],

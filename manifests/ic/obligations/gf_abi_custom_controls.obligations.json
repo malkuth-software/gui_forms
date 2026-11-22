@@ -4,10 +4,48 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_custom_controls.ic.toml",
-    "sha256": "b51ac27171a72cd3ea5e62b3ec133451c4a58a113129f64b4f0099fffe203ecb"
+    "sha256": "98a13e8c4cd560ffec7f4a1de334af503ce3e0a95b06ce0da5d6bef401f4f8da"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
+    {
+      "id": "gf_abi.custom_controls.create.requires.create_outputs",
+      "kind": "entry-check",
+      "statement": "create runs only when not_null(spec) and not_null(object); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_create_outputs, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.refusal.create_outputs",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(spec) and not_null(object), create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.requires.create_spec_size",
+      "kind": "entry-check",
+      "statement": "create runs only when spec_size >= spec_size_1_0; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_create_spec_size, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.refusal.create_spec_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless spec_size >= spec_size_1_0, create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
     {
       "id": "gf_abi.custom_controls.create_composite.requires.create_composite_object",
       "kind": "entry-check",

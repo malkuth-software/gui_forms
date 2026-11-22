@@ -39,7 +39,6 @@ fails = [
   { failure = "invalid_argument", when = "Creates an object of the schema type type_name, written in any spelling of its id (\"check_box\" or \"CheckBox\"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits joined by single '-' (\"settings.ok-button\"; a Windows Forms name such as \"textBox1\" is spelled \"text-box1\"), GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise." },
   { failure = "not_found", when = "A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND." },
   { failure = "unsupported_capability", when = "A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND." },
-  { failure = "wrong_handle_kind", when = "The objects table takes components wherever it takes an object, except the tree slots, which take controls (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes controls." },
 ]
 
 [[call]]

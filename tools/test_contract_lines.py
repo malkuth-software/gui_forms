@@ -1,8 +1,8 @@
-"""Class table generator tests: the `// ic:` contract lines tools/ic_declarations.py writes survive a regeneration."""
+"""Contract line tests: the `// ic:` contract lines tools/ic_declarations.py writes survive a regeneration."""
 
 import unittest
 
-import abi_class_tables as act
+import contract_lines as act
 
 
 class KeepContractLinesTests(unittest.TestCase):

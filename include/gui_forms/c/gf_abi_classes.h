@@ -622,8 +622,7 @@ typedef struct gf_classes_table {
      * that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise). An unknown class
      * or entry gives GF_STATUS_NOT_FOUND. Any thread. */
     // ic: Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or
-    // ic: entry gives GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (It needs an object of a class whose chain
-    // ic: has that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise).), unchanged. Thread: any.
+    // ic: entry gives GF_STATUS_NOT_FOUND.), unchanged. Thread: any.
     gf_status (GF_CALL* base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser);
 } gf_classes_table;
 

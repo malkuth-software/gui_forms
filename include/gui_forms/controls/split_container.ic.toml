@@ -12,6 +12,10 @@ header = "include/gui_forms/controls/split_container.hpp"
 anchor = "class GUI_FORMS_API SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer> {"
 thread = "ui"
 
+[terms]
+first_maximum_bound = "double"
+second_maximum_bound = "double"
+
 [checks]
 path = "src/controls/scrollable_control/container_control/split_container/split_container_ic_checks.hpp"
 namespace = "gui_forms::detail::ic::split_container"
@@ -26,4 +30,26 @@ kind = "member"
 parameters = { incoming = "double" }
 requires = [
   { holds = "finite(incoming) and incoming > 0", refuses = "failure:invalid_argument", check = "keyboard_increment" },
+]
+
+[[call]]
+name = "first_minimum"
+id = "first_minimum_write"
+declarations = ["void prepare_write(const decltype(first_minimum)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "first_minimum_extent" },
+  { holds = "incoming <= first_maximum_bound", refuses = "failure:invalid_argument", check = "first_minimum_order" },
+]
+
+[[call]]
+name = "second_minimum"
+id = "second_minimum_write"
+declarations = ["void prepare_write(const decltype(second_minimum)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "second_minimum_extent" },
+  { holds = "incoming <= second_maximum_bound", refuses = "failure:invalid_argument", check = "second_minimum_order" },
 ]

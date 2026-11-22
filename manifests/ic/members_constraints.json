@@ -120,7 +120,7 @@
     {
       "type": "gf_abi::bindings",
       "member": "set_provider",
-      "constraints": "No declared constraint.",
+      "constraints": "Requires not_null(provider), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(callbacks) or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: provider callbacks or columns their checks refuse), unchanged; wrong_handle_kind (code: the object is not a binding source), unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_bindings.ic.toml"
     },
     {
@@ -144,7 +144,7 @@
     {
       "type": "gf_abi::classes",
       "member": "base_raiser",
-      "constraints": "Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or entry gives GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (It needs an object of a class whose chain has that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise).), unchanged. Thread: any.",
+      "constraints": "Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or entry gives GF_STATUS_NOT_FOUND.), unchanged. Thread: any.",
       "declaration": "include/gui_forms/c/gf_abi_classes.ic.toml"
     },
     {
@@ -546,7 +546,7 @@
     {
       "type": "gf_abi::custom_controls",
       "member": "create",
-      "constraints": "Returns gf_object, owned by the caller.",
+      "constraints": "Requires not_null(spec) and not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple of 8, or whose reserved is not zero), unchanged. Returns gf_object, owned by the caller.",
       "declaration": "include/gui_forms/c/gf_abi_custom_controls.ic.toml"
     },
     {
@@ -780,25 +780,25 @@
     {
       "type": "gf_abi::diagnostics",
       "member": "exception_reflection",
-      "constraints": "No declared constraint.",
+      "constraints": "Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
       "type": "gf_abi::diagnostics",
       "member": "failure_detail",
-      "constraints": "Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size.), unchanged.",
+      "constraints": "Requires not_null(output), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires output_size >= failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
       "type": "gf_abi::diagnostics",
       "member": "failure_snapshot",
-      "constraints": "Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero.), unchanged.",
+      "constraints": "Requires not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero.), unchanged; invalid_argument (code: the output record is null or smaller than its 1.0 size), unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
       "type": "gf_abi::diagnostics",
       "member": "invalidation_overlay",
-      "constraints": "No declared constraint.",
+      "constraints": "Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
@@ -810,25 +810,25 @@
     {
       "type": "gf_abi::diagnostics",
       "member": "set_diagnostic_overlay",
-      "constraints": "Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.), unchanged. Thread: any.",
+      "constraints": "Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
       "type": "gf_abi::diagnostics",
       "member": "set_exception_reflection",
-      "constraints": "Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.), unchanged. Thread: any.",
+      "constraints": "Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
       "type": "gf_abi::diagnostics",
       "member": "set_invalidation_overlay",
-      "constraints": "Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.), unchanged. Thread: any.",
+      "constraints": "Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
       "type": "gf_abi::diagnostics",
       "member": "shadow_frames",
-      "constraints": "Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged.",
+      "constraints": "Requires not_null(required) and (not_null(frames) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged; invalid_argument (code: the output record is null or smaller than its 1.0 size), unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml"
     },
     {
@@ -1014,13 +1014,13 @@
     {
       "type": "gf_abi::events",
       "member": "subscribe",
-      "constraints": "Fails not_found (A name the type does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.",
+      "constraints": "Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (A name the type does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.",
       "declaration": "include/gui_forms/c/gf_abi_events.ic.toml"
     },
     {
       "type": "gf_abi::events",
       "member": "subscribe_property",
-      "constraints": "Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code: subscribing needs a subscription output), unchanged; not_found (code: the source has no property of that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.",
+      "constraints": "Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the source has no property of that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.",
       "declaration": "include/gui_forms/c/gf_abi_events.ic.toml"
     },
     {
@@ -1332,7 +1332,7 @@
     {
       "type": "gf_abi::objects",
       "member": "create",
-      "constraints": "Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (Creates an object of the schema type type_name, written in any spelling of its id (\"check_box\" or \"CheckBox\"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits joined by single '-' (\"settings.ok-button\"; a Windows Forms name such as \"textBox1\" is spelled \"text-box1\"), GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise.), unchanged; not_found (A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (The objects table takes components wherever it takes an object, except the tree slots, which take controls (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes controls.), unchanged. Returns gf_object, owned by the caller.",
+      "constraints": "Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (Creates an object of the schema type type_name, written in any spelling of its id (\"check_box\" or \"CheckBox\"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits joined by single '-' (\"settings.ok-button\"; a Windows Forms name such as \"textBox1\" is spelled \"text-box1\"), GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise.), unchanged; not_found (A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged. Returns gf_object, owned by the caller.",
       "declaration": "include/gui_forms/c/gf_abi_objects.ic.toml"
     },
     {
@@ -2064,13 +2064,13 @@
     {
       "type": "gf_abi::windows",
       "member": "mdi_child_at",
-      "constraints": "Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the control is not in a window), unchanged; not_found (code: the index is past the window's MDI children), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.",
+      "constraints": "Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (the id is longer than capacity: required receives its size, nothing else is written), unchanged; invalid_state (code: the control is not in a window), unchanged; not_found (code: the index is past the window's MDI children), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_windows.ic.toml"
     },
     {
       "type": "gf_abi::windows",
       "member": "mdi_child_count",
-      "constraints": "Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (The number of MDI children (Form.MdiChildren), and the id of the child at index, in tree and tab order, into the caller's buffer (required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL;), unchanged; invalid_state (code: the control is not in a window), unchanged; not_found (GF_STATUS_NOT_FOUND past the end).), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.",
+      "constraints": "Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.",
       "declaration": "include/gui_forms/c/gf_abi_windows.ic.toml"
     },
     {
@@ -2248,6 +2248,12 @@
       "declaration": "include/gui_forms/c/gf_abi_windows_paint_endpoint.ic.toml"
     },
     {
+      "type": "gui_forms::BackstageView",
+      "member": "column_width",
+      "constraints": "Requires finite(incoming) and incoming >= 48 and incoming <= 480, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/backstage_view.ic.toml"
+    },
+    {
       "type": "gui_forms::Badge",
       "member": "maximum",
       "constraints": "Requires incoming != 0, else failure invalid_argument, unchanged.",
@@ -2263,6 +2269,12 @@
       "type": "gui_forms::ButtonBase",
       "member": "image_gap",
       "constraints": "Requires finite(incoming) and incoming >= 0 and incoming <= 64, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/button_base.ic.toml"
+    },
+    {
+      "type": "gui_forms::ButtonBase",
+      "member": "text_line_spacing",
+      "constraints": "Requires finite(incoming) and 4 * incoming >= 3 and incoming <= 3, else failure invalid_argument, unchanged.",
       "declaration": "include/gui_forms/controls/button_base.ic.toml"
     },
     {
@@ -2306,6 +2318,18 @@
       "member": "preferred_width",
       "constraints": "Requires finite(incoming) and incoming >= 120 and incoming <= 1024, else failure invalid_argument, unchanged.",
       "declaration": "include/gui_forms/components/context_menu/context_menu.ic.toml"
+    },
+    {
+      "type": "gui_forms::Control",
+      "member": "maximum_size",
+      "constraints": "Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height), else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/control/control/control.ic.toml"
+    },
+    {
+      "type": "gui_forms::Control",
+      "member": "minimum_size",
+      "constraints": "Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height), else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/control/control/control.ic.toml"
     },
     {
       "type": "gui_forms::CorrespondenceView",
@@ -2396,6 +2420,12 @@
       "member": "snapshot",
       "constraints": "Returns HostSessionSnapshot, owned by the caller.",
       "declaration": "include/gui_forms/host/session/host_session.ic.toml"
+    },
+    {
+      "type": "gui_forms::Label",
+      "member": "line_spacing",
+      "constraints": "Requires finite(incoming) and 4 * incoming >= 3 and incoming <= 3, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/label.ic.toml"
     },
     {
       "type": "gui_forms::ListBox",
@@ -2506,6 +2536,12 @@
       "declaration": "include/gui_forms/controls/range_control.ic.toml"
     },
     {
+      "type": "gui_forms::RasterCanvas",
+      "member": "transparency_cell_size",
+      "constraints": "Requires finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128)), else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/raster_canvas.ic.toml"
+    },
+    {
       "type": "gui_forms::ResponsiveTrackPanel",
       "member": "track_gap",
       "constraints": "Requires finite(incoming) and incoming >= 0 and incoming <= 256, else failure invalid_argument, unchanged.",
@@ -2524,10 +2560,28 @@
       "declaration": "include/gui_forms/controls/scroll_bar.ic.toml"
     },
     {
+      "type": "gui_forms::ScrollBar",
+      "member": "minimum_thumb_extent",
+      "constraints": "Requires finite(incoming) and incoming >= thumb_extent_least and incoming <= thumb_extent_most, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/scroll_bar.ic.toml"
+    },
+    {
       "type": "gui_forms::SevenSegmentDisplay",
       "member": "digit_count",
       "constraints": "Requires incoming <= 64, else failure invalid_argument, unchanged.",
       "declaration": "include/gui_forms/controls/seven_segment_display.ic.toml"
+    },
+    {
+      "type": "gui_forms::Sparkline",
+      "member": "capacity",
+      "constraints": "Requires incoming >= 2 and incoming <= 100000, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/sparkline.ic.toml"
+    },
+    {
+      "type": "gui_forms::SplitContainer",
+      "member": "first_minimum",
+      "constraints": "Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged. Requires incoming <= first_maximum_bound, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/split_container.ic.toml"
     },
     {
       "type": "gui_forms::SplitContainer",
@@ -2536,10 +2590,34 @@
       "declaration": "include/gui_forms/controls/split_container.ic.toml"
     },
     {
+      "type": "gui_forms::SplitContainer",
+      "member": "second_minimum",
+      "constraints": "Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged. Requires incoming <= second_maximum_bound, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/split_container.ic.toml"
+    },
+    {
+      "type": "gui_forms::StepIndicator",
+      "member": "current_step",
+      "constraints": "Requires incoming == 0 or incoming < step_count, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/step_indicator.ic.toml"
+    },
+    {
+      "type": "gui_forms::TabControl",
+      "member": "item_size",
+      "constraints": "Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/tab_control.ic.toml"
+    },
+    {
       "type": "gui_forms::TableLayoutPanelCompat",
       "member": "track_spacing",
       "constraints": "Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and incoming.width <= 256 and incoming.height <= 256, else failure invalid_argument, unchanged.",
       "declaration": "include/gui_forms/controls/table_layout_panel_compat.ic.toml"
+    },
+    {
+      "type": "gui_forms::ToolStrip",
+      "member": "end_reserve",
+      "constraints": "Requires finite(incoming) and incoming >= 0 and incoming <= 64, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/tool_strip.ic.toml"
     },
     {
       "type": "gui_forms::TrackBar",
@@ -2552,6 +2630,12 @@
       "member": "tick_frequency",
       "constraints": "Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.",
       "declaration": "include/gui_forms/controls/track_bar.ic.toml"
+    },
+    {
+      "type": "gui_forms::TreeListView",
+      "member": "indentation",
+      "constraints": "Requires finite(incoming) and incoming >= indentation_least and incoming <= indentation_most, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/tree_list_view.ic.toml"
     },
     {
       "type": "gui_forms::TreeView",
@@ -2618,6 +2702,12 @@
       "member": "window_alive",
       "constraints": "No declared constraint.",
       "declaration": "include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.ic.toml"
+    },
+    {
+      "type": "gui_forms::Wizard",
+      "member": "current_page",
+      "constraints": "Requires incoming == 0 or incoming < page_count, else failure invalid_argument, unchanged.",
+      "declaration": "include/gui_forms/controls/wizard.ic.toml"
     }
   ]
 }

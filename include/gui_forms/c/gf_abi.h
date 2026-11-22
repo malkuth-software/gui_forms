@@ -733,10 +733,8 @@ typedef struct gf_objects_table {
     // ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A
     // ic: type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the
     // ic: types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give
-    // ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (The
-    // ic: objects table takes components wherever it takes an object, except the tree slots, which take controls
-    // ic: (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes controls.), unchanged. Returns
-    // ic: gf_object, owned by the caller.
+    // ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged. Returns gf_object, owned
+    // ic: by the caller.
     gf_status (GF_CALL* create)(gf_utf8_view type_name, gf_utf8_view stable_id,
                                 gf_object* object);
     /* Adds a reference. Any thread. */
@@ -937,16 +935,18 @@ typedef struct gf_events_table {
      * interaction the schema lists for source's type (schema.interaction_at).
      * The event's fields carry the payload (Event fields above). A name the
      * type does not raise gives GF_STATUS_NOT_FOUND. */
-    // ic: Fails not_found (A name the type does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns
-    // ic: gf_subscription, owned by the caller. Transfers callback from caller to library.
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (A name the type
+    // ic: does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller.
+    // ic: Transfers callback from caller to library.
     gf_status (GF_CALL* subscribe)(gf_object source, gf_utf8_view interaction,
                                    const gf_callback* callback,
                                    gf_subscription* subscription);
     /* Subscribes to changes of one property; the event has no payload. */
-    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
-    // ic: (code: subscribing needs a subscription output), unchanged; not_found (code: the source has no property of
-    // ic: that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to
-    // ic: library.
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the source
+    // ic: has no property of that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback
+    // ic: from caller to library.
     gf_status (GF_CALL* subscribe_property)(gf_object source, gf_utf8_view property,
                                             const gf_callback* callback,
                                             gf_subscription* subscription);
@@ -1645,15 +1645,13 @@ typedef struct gf_windows_table {
      * buffer (required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL; GF_STATUS_NOT_FOUND past the end). */
     // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else
-    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (The number of MDI children
-    // ic: (Form.MdiChildren), and the id of the child at index, in tree and tab order, into the caller's buffer
-    // ic: (required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL;), unchanged; invalid_state (code: the
-    // ic: control is not in a window), unchanged; not_found (GF_STATUS_NOT_FOUND past the end).), unchanged;
-    // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
-    gf_status (GF_CALL* mdi_child_count)(gf_object window_or_root, uint64_t* count);
-    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the
-    // ic: control is not in a window), unchanged; not_found (code: the index is past the window's MDI children),
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a window),
     // ic: unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+    gf_status (GF_CALL* mdi_child_count)(gf_object window_or_root, uint64_t* count);
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (the id
+    // ic: is longer than capacity: required receives its size, nothing else is written), unchanged; invalid_state
+    // ic: (code: the control is not in a window), unchanged; not_found (code: the index is past the window's MDI
+    // ic: children), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity,
                                       uint64_t* required);
     /* Since 1.6. The active child's id (Form.ActiveMdiChild), as
@@ -2856,8 +2854,10 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.
      * The frames are copies; nothing is lent.
      */
-    // ic: Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is
-    // ic: GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged.
+    // ic: Requires not_null(required) and (not_null(frames) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is
+    // ic: GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged; invalid_argument (code:
+    // ic: the output record is null or smaller than its 1.0 size), unchanged.
     gf_status (GF_CALL* shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required,
                                        gf_shadow_stack_info* info);
     /*
@@ -2875,9 +2875,9 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null
      * output.
      */
-    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.),
-    // ic: unchanged. Thread: any.
+    // ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* set_invalidation_overlay)(uint32_t enabled);
+    // ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* invalidation_overlay)(uint32_t* enabled);
     /*
      * Since 1.2. Copies the calling thread's last failure snapshot into
@@ -2891,9 +2891,12 @@ typedef struct gf_diagnostics_table {
      * stays until the thread's next one or clear_failure_snapshot; the
      * frames and text are copies, and nothing is lent.
      */
-    // ic: Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is written and the
-    // ic: result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero.),
-    // ic: unchanged.
+    // ic: Requires not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity ==
+    // ic: 0) and (not_null(message_buffer) or message_capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is
+    // ic: written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their
+    // ic: capacity is zero.), unchanged; invalid_argument (code: the output record is null or smaller than its 1.0
+    // ic: size), unchanged.
     gf_status (GF_CALL* failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames,
                                           uint64_t frame_capacity, uint64_t* frames_required,
                                           char* message_buffer, uint64_t message_capacity,
@@ -2906,9 +2909,9 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null
      * output.
      */
-    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.),
-    // ic: unchanged. Thread: any.
+    // ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* set_exception_reflection)(uint32_t enabled);
+    // ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* exception_reflection)(uint32_t* enabled);
     /*
      * Since 1.2, a debugging aid with which a binding tests its reflection:
@@ -2931,8 +2934,8 @@ typedef struct gf_diagnostics_table {
      * (clear_failure_snapshot). GF_STATUS_INVALID_ARGUMENT for a null
      * detail or one smaller than its 1.5 size.
      */
-    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size.),
-    // ic: unchanged.
+    // ic: Requires not_null(output), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires output_size >=
+    // ic: failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
     /*
      * Since 1.5. The diagnostic overlay: the invalidation outlines and,
@@ -2945,7 +2948,7 @@ typedef struct gf_diagnostics_table {
      * and writes the new state into enabled, which may be null. Any
      * thread. GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.
      */
-    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.), unchanged. Thread: any.
+    // ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* set_diagnostic_overlay)(uint32_t enabled);
     gf_status (GF_CALL* toggle_diagnostic_overlay)(uint32_t* enabled);
 } gf_diagnostics_table;
@@ -3817,7 +3820,11 @@ typedef struct gf_custom_controls_table {
      * lowercase '.'-separated, '-'-joined segments) and gives the
      * caller one reference to it. A malformed spec gives INVALID_ARGUMENT
      * and calls no callback, release among them. */
-    // ic: Returns gf_object, owned by the caller.
+    // ic: Requires not_null(spec) and not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires
+    // ic: spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
+    // ic: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose
+    // ic: struct_size is below 32, not a multiple of 8, or whose reserved is not zero), unchanged. Returns gf_object,
+    // ic: owned by the caller.
     gf_status (GF_CALL* create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object);
     /* Reports that property index changed, as a C++ control raises its
      * changed event: subscribers and bindings read it afresh. A property
@@ -4140,6 +4147,10 @@ typedef struct gf_bindings_table {
      * column table. The previous provider is let go (its release is called
      * and its id refused from then on); the first row becomes current. The
      * library copies columns and callbacks during the call. */
+    // ic: Requires not_null(provider), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(callbacks)
+    // ic: or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
+    // ic: provider callbacks or columns their checks refuse), unchanged; wrong_handle_kind (code: the object is not a
+    // ic: binding source), unchanged.
     gf_status (GF_CALL* set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count,
                                       const gf_binding_provider_callbacks* callbacks, uint64_t* provider);
     /* Since 1.2 (N31). Reports a provider's change, from any thread: on

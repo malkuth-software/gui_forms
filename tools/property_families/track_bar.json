@@ -41,7 +41,7 @@
       "hooks": "generated",
       "prepare": [
         "require_finite(incoming, \"tick frequency must be finite\");",
-        "if (incoming <= 0.0) throw std::invalid_argument(\"tick frequency must be positive\");"
+        "if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument(\"tick frequency must be positive\");"
       ],
       "sample": "5.0"
     },
@@ -107,7 +107,7 @@
       "on_changed": false,
       "prepare": [
         "require_finite(incoming, \"thumb extent must be finite\");",
-        "if (incoming < 0.0 || incoming > 64.0) throw std::invalid_argument(\"thumb extent must be between 0 and 64\");"
+        "if (!ic::admits_thumb_extent(incoming)) throw std::invalid_argument(\"thumb extent must be between 0 and 64\");"
       ],
       "sample": "10.0",
       "setter": "set_thumb_extent",

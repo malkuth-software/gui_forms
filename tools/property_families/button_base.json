@@ -171,7 +171,7 @@
       "hooks": "generated",
       "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) {",
+        "if (!ic::admits_text_line_spacing(incoming)) {",
         "    throw std::invalid_argument(\"Button text line spacing must be finite and between 0.75 and 3.0\");",
         "}"
       ],
@@ -236,7 +236,7 @@
       "hooks": "generated",
       "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 64.0) {",
+        "if (!ic::admits_image_gap(incoming)) {",
         "    throw std::invalid_argument(\"Button image gap must be finite and between zero and 64\");",
         "}"
       ],

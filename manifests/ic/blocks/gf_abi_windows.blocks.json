@@ -1507,18 +1507,8 @@
       ],
       "fails": [
         {
-          "failure": "buffer_too_small",
-          "when": "The number of MDI children (Form.MdiChildren), and the id of the child at index, in tree and tab order, into the caller's buffer (required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL;",
-          "leaves": "unchanged"
-        },
-        {
           "failure": "invalid_state",
           "when": "code: the control is not in a window",
-          "leaves": "unchanged"
-        },
-        {
-          "failure": "not_found",
-          "when": "GF_STATUS_NOT_FOUND past the end).",
           "leaves": "unchanged"
         },
         {
@@ -1556,18 +1546,8 @@
       ],
       "fails": [
         {
-          "failure": "buffer_too_small",
-          "when": "The number of MDI children (Form.MdiChildren), and the id of the child at index, in tree and tab order, into the caller's buffer (required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL;",
-          "leaves": "unchanged"
-        },
-        {
           "failure": "invalid_state",
           "when": "code: the control is not in a window",
-          "leaves": "unchanged"
-        },
-        {
-          "failure": "not_found",
-          "when": "GF_STATUS_NOT_FOUND past the end).",
           "leaves": "unchanged"
         },
         {
@@ -1618,6 +1598,11 @@
       "requires": [],
       "fails": [
         {
+          "failure": "buffer_too_small",
+          "when": "the id is longer than capacity: required receives its size, nothing else is written",
+          "leaves": "unchanged"
+        },
+        {
           "failure": "invalid_state",
           "when": "code: the control is not in a window",
           "leaves": "unchanged"
@@ -1652,6 +1637,11 @@
       ],
       "requires": [],
       "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "the id is longer than capacity: required receives its size, nothing else is written",
+          "leaves": "unchanged"
+        },
         {
           "failure": "invalid_state",
           "when": "code: the control is not in a window",

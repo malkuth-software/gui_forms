@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/controls/scroll_bar.ic.toml",
-    "sha256": "f02b97db5a21ce143465fd3017b27669ebf65df0356af60ea69986148d524940"
+    "sha256": "e3e6f0f7a593ee8652a5e887720dcefd0cdb4c3a50a95698b81d5107c170e6bc"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -22,6 +22,25 @@
       "id": "gui_forms.scrollbar.button_extent_write.refusal.button_extent",
       "kind": "refusal-leaves",
       "statement": "Unless finite(incoming) and incoming >= 8 and incoming <= 64, button_extent changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.scrollbar.minimum_thumb_extent_write.requires.minimum_thumb_extent",
+      "kind": "entry-check",
+      "statement": "minimum_thumb_extent runs only when finite(incoming) and incoming >= thumb_extent_least and incoming <= thumb_extent_most; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::scroll_bar::admits_minimum_thumb_extent, called in src/controls/range_control/scroll_bar/scroll_bar.cpp"
+    },
+    {
+      "id": "gui_forms.scrollbar.minimum_thumb_extent_write.refusal.minimum_thumb_extent",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= thumb_extent_least and incoming <= thumb_extent_most, minimum_thumb_extent changes nothing observable.",
       "level": "none",
       "tool": null,
       "premises": [],

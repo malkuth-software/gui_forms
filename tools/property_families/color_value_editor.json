@@ -50,7 +50,7 @@
       "hand": [],
       "effects": "Dirty::layout | Dirty::paint | Dirty::hit_test",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 96.0) {",
+        "if (!ic::admits_swatch_width(incoming)) {",
         "    throw std::invalid_argument(\"color editor swatch width must be within [12, 96]\");",
         "}"
       ],

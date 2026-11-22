@@ -16,16 +16,56 @@
       "thread": "ui",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
+      "inputs": [
+        {
+          "name": "frames",
+          "type": "gf_shadow_frame*",
+          "bounded_by": [
+            "not_null(required) and (not_null(frames) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(frames) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(frames) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(frames) or capacity == 0)"
+      ],
       "fails": [
         {
           "failure": "buffer_too_small",
           "when": "When capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.",
           "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: the output record is null or smaller than its 1.0 size",
+          "leaves": "unchanged"
         }
       ],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.shadow_frames.misuse.shadow_frames_buffer",
+      "mode": "misuse",
+      "call": "shadow_frames",
+      "violates": "not_null(required) and (not_null(frames) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.set_invalidation_overlay",
@@ -35,16 +75,31 @@
       "thread": "any",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
-      "fails": [
+      "inputs": [
         {
-          "failure": "invalid_argument",
-          "when": "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.",
-          "leaves": "unchanged"
+          "name": "enabled",
+          "type": "uint32_t",
+          "bounded_by": [
+            "enabled <= 1"
+          ]
         }
       ],
+      "requires": [
+        "enabled <= 1"
+      ],
+      "fails": [],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.set_invalidation_overlay.misuse.set_invalidation_overlay_enabled",
+      "mode": "misuse",
+      "call": "set_invalidation_overlay",
+      "violates": "enabled <= 1",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.invalidation_overlay",
@@ -54,10 +109,31 @@
       "thread": "ui",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
+      "inputs": [
+        {
+          "name": "enabled",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(enabled)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(enabled)"
+      ],
       "fails": [],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.invalidation_overlay.misuse.invalidation_overlay_enabled",
+      "mode": "misuse",
+      "call": "invalidation_overlay",
+      "violates": "not_null(enabled)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.failure_snapshot",
@@ -67,16 +143,77 @@
       "thread": "ui",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
+      "inputs": [
+        {
+          "name": "frames",
+          "type": "gf_shadow_frame*",
+          "bounded_by": [
+            "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "frame_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "frames_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "message_buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "message_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "message_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)"
+      ],
       "fails": [
         {
           "failure": "buffer_too_small",
           "when": "When frame_capacity or message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero.",
           "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: the output record is null or smaller than its 1.0 size",
+          "leaves": "unchanged"
         }
       ],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.failure_snapshot.misuse.failure_snapshot_buffers",
+      "mode": "misuse",
+      "call": "failure_snapshot",
+      "violates": "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.clear_failure_snapshot",
@@ -99,16 +236,31 @@
       "thread": "any",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
-      "fails": [
+      "inputs": [
         {
-          "failure": "invalid_argument",
-          "when": "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.",
-          "leaves": "unchanged"
+          "name": "enabled",
+          "type": "uint32_t",
+          "bounded_by": [
+            "enabled <= 1"
+          ]
         }
       ],
+      "requires": [
+        "enabled <= 1"
+      ],
+      "fails": [],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.set_exception_reflection.misuse.set_exception_reflection_enabled",
+      "mode": "misuse",
+      "call": "set_exception_reflection",
+      "violates": "enabled <= 1",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.exception_reflection",
@@ -118,10 +270,31 @@
       "thread": "ui",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
+      "inputs": [
+        {
+          "name": "enabled",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(enabled)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(enabled)"
+      ],
       "fails": [],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.exception_reflection.misuse.exception_reflection_enabled",
+      "mode": "misuse",
+      "call": "exception_reflection",
+      "violates": "not_null(enabled)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.raise_native_exception",
@@ -150,16 +323,50 @@
       "thread": "ui",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
-      "fails": [
+      "inputs": [
         {
-          "failure": "invalid_argument",
-          "when": "GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size.",
-          "leaves": "unchanged"
+          "name": "output",
+          "type": "gf_failure_detail*",
+          "bounded_by": [
+            "not_null(output)"
+          ]
+        },
+        {
+          "name": "output_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "output_size >= failure_detail_size_1_5"
+          ]
         }
       ],
+      "requires": [
+        "not_null(output)",
+        "output_size >= failure_detail_size_1_5"
+      ],
+      "fails": [],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.failure_detail.misuse.failure_detail_output",
+      "mode": "misuse",
+      "call": "failure_detail",
+      "violates": "not_null(output)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.diagnostics.failure_detail.misuse.failure_detail_output_size",
+      "mode": "misuse",
+      "call": "failure_detail",
+      "violates": "output_size >= failure_detail_size_1_5",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.set_diagnostic_overlay",
@@ -169,16 +376,31 @@
       "thread": "any",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
-      "fails": [
+      "inputs": [
         {
-          "failure": "invalid_argument",
-          "when": "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.",
-          "leaves": "unchanged"
+          "name": "enabled",
+          "type": "uint32_t",
+          "bounded_by": [
+            "enabled <= 1"
+          ]
         }
       ],
+      "requires": [
+        "enabled <= 1"
+      ],
+      "fails": [],
       "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.set_diagnostic_overlay.misuse.set_diagnostic_overlay_enabled",
+      "mode": "misuse",
+      "call": "set_diagnostic_overlay",
+      "violates": "enabled <= 1",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.diagnostics.toggle_diagnostic_overlay",

@@ -1413,7 +1413,7 @@ void ButtonBase::written(const decltype(content_padding)&) {
 
 void ButtonBase::prepare_write(const decltype(text_line_spacing)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) {
+    if (!ic::admits_text_line_spacing(incoming)) {
         throw std::invalid_argument("Button text line spacing must be finite and between 0.75 and 3.0");
     }
 }

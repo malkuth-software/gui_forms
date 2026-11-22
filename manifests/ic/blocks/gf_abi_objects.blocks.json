@@ -47,11 +47,6 @@
           "failure": "unsupported_capability",
           "when": "A type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.",
           "leaves": "unchanged"
-        },
-        {
-          "failure": "wrong_handle_kind",
-          "when": "The objects table takes components wherever it takes an object, except the tree slots, which take controls (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes controls.",
-          "leaves": "unchanged"
         }
       ],
       "returns": {

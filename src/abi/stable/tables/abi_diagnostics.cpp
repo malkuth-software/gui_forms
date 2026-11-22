@@ -6,6 +6,7 @@
 
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_diagnostics_ic_checks.hpp"
 
 #include "../../../core/failure/failure_snapshot.hpp"
 
@@ -88,7 +89,7 @@ gf_shadow_frame c_frame(const ShadowFrame& frame) noexcept {
 // Opens no frame of its own, so the copy shows the caller's stack.
 gf_status GF_CALL diagnostics_shadow_frames(gf_shadow_frame* frames, std::uint64_t capacity, std::uint64_t* required,
                                             gf_shadow_stack_info* info) noexcept {
-    if (required == nullptr || (frames == nullptr && capacity != 0U)) {
+    if (!ic_diagnostics::admits_shadow_frames_buffer(frames, capacity, required)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, shadow_frames_slot,
                     "shadow_frames needs a required output, and frames when capacity is not zero");
     }
@@ -121,7 +122,7 @@ gf_status GF_CALL diagnostics_shadow_frames(gf_shadow_frame* frames, std::uint64
 // The process switch (set_invalidation_overlay_default): any thread, no
 // frame of its own.
 gf_status GF_CALL diagnostics_set_invalidation_overlay(std::uint32_t enabled) noexcept {
-    if (enabled > 1U) {
+    if (!ic_diagnostics::admits_set_invalidation_overlay_enabled(enabled)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_invalidation_overlay_slot, "enabled must be 0 or 1");
     }
     set_invalidation_overlay_default(enabled == 1U);
@@ -129,7 +130,7 @@ gf_status GF_CALL diagnostics_set_invalidation_overlay(std::uint32_t enabled) no
 }
 
 gf_status GF_CALL diagnostics_invalidation_overlay(std::uint32_t* enabled) noexcept {
-    if (enabled == nullptr) {
+    if (!ic_diagnostics::admits_invalidation_overlay_enabled(enabled)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, invalidation_overlay_slot, "invalidation_overlay needs an output");
     }
     *enabled = invalidation_overlay_default() ? 1U : 0U;
@@ -140,7 +141,7 @@ gf_status GF_CALL diagnostics_invalidation_overlay(std::uint32_t* enabled) noexc
 // counters card whenever it is on (business_card.hpp). Any thread, no
 // frame of its own.
 gf_status GF_CALL diagnostics_set_diagnostic_overlay(std::uint32_t enabled) noexcept {
-    if (enabled > 1U) {
+    if (!ic_diagnostics::admits_set_diagnostic_overlay_enabled(enabled)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_diagnostic_overlay_slot, "enabled must be 0 or 1");
     }
     gui_forms::set_diagnostic_overlay(enabled == 1U);
@@ -159,8 +160,8 @@ gf_status GF_CALL diagnostics_failure_snapshot(gf_failure_snapshot* snapshot, gf
                                                std::uint64_t frame_capacity, std::uint64_t* frames_required,
                                                char* message_buffer, std::uint64_t message_capacity,
                                                std::uint64_t* message_required) noexcept {
-    if (frames_required == nullptr || message_required == nullptr || (frames == nullptr && frame_capacity != 0U) ||
-        (message_buffer == nullptr && message_capacity != 0U)) {
+    if (!ic_diagnostics::admits_failure_snapshot_buffers(frames, frame_capacity, frames_required, message_buffer,
+                                                         message_capacity, message_required)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, failure_snapshot_slot,
                     "failure_snapshot needs both size outputs, and each buffer whose capacity is not zero");
     }
@@ -207,7 +208,7 @@ gf_status GF_CALL diagnostics_clear_failure_snapshot() noexcept {
 
 // The process switch: any thread, no frame of its own.
 gf_status GF_CALL diagnostics_set_exception_reflection(std::uint32_t enabled) noexcept {
-    if (enabled > 1U) {
+    if (!ic_diagnostics::admits_set_exception_reflection_enabled(enabled)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_exception_reflection_slot, "enabled must be 0 or 1");
     }
     detail::set_exception_reflection(enabled == 1U);
@@ -215,7 +216,7 @@ gf_status GF_CALL diagnostics_set_exception_reflection(std::uint32_t enabled) no
 }
 
 gf_status GF_CALL diagnostics_exception_reflection(std::uint32_t* enabled) noexcept {
-    if (enabled == nullptr) {
+    if (!ic_diagnostics::admits_exception_reflection_enabled(enabled)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, exception_reflection_slot, "exception_reflection needs an output");
     }
     *enabled = detail::exception_reflection() ? 1U : 0U;
@@ -243,12 +244,13 @@ gf_status GF_CALL diagnostics_raise_native_exception(gf_utf8_view message) noexc
 
 // gf_failure_detail's first 1.5 size, before flags and reserved (provisional,
 // gf_abi.h): a caller compiled then is still served, with the bytes that fit.
-constexpr std::uint32_t failure_detail_size_first_1_5 = 536U;
+constexpr std::uint32_t failure_detail_size_first_1_5 = ic_diagnostics::failure_detail_size_1_5;
 static_assert(offsetof(gf_failure_detail, flags) == failure_detail_size_first_1_5);
 
 // Copies the thread's failure detail out. Opens no frame of its own.
 gf_status GF_CALL diagnostics_failure_detail(gf_failure_detail* output) noexcept {
-    if (output == nullptr || (*output).struct_size < failure_detail_size_first_1_5) {
+    if (!ic_diagnostics::admits_failure_detail_output(output) ||
+        !ic_diagnostics::admits_failure_detail_output_size((*output).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, failure_detail_slot,
                     "the output record is null or smaller than its first 1.5 size");
     }

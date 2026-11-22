@@ -45,6 +45,44 @@
         "failure": "invalid_argument"
       },
       "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.buttonbase.text_line_spacing_write",
+      "mode": "legal",
+      "call": "text_line_spacing",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ButtonBase"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and 4 * incoming >= 3 and incoming <= 3"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and 4 * incoming >= 3 and incoming <= 3"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.buttonbase.text_line_spacing_write.misuse.text_line_spacing",
+      "mode": "misuse",
+      "call": "text_line_spacing",
+      "violates": "finite(incoming) and 4 * incoming >= 3 and incoming <= 3",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
     }
   ]
 }

@@ -4,10 +4,66 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_events.ic.toml",
-    "sha256": "a946da502089b796e278da3d8ec2c2a549dab6a1ecc82809d5707a46d1a3a453"
+    "sha256": "f1af50dbb02f9d677c8212ddad8365d4b83e8c8467ee8e64434e19ec6d351e0c"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
+    {
+      "id": "gf_abi.events.subscribe.requires.subscription_output",
+      "kind": "entry-check",
+      "statement": "subscribe runs only when not_null(subscription); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_events::admits_subscription_output, called in src/abi/stable/tables/abi_events.cpp"
+    },
+    {
+      "id": "gf_abi.events.subscribe.refusal.subscription_output",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(subscription), subscribe changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "subscribe in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "subscribe in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.requires.subscription_output",
+      "kind": "entry-check",
+      "statement": "subscribe_property runs only when not_null(subscription); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_events::admits_subscription_output, called in src/abi/stable/tables/abi_events.cpp"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.refusal.subscription_output",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(subscription), subscribe_property changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
     {
       "id": "gf_abi.events.subscribe_property.outside.disposing",
       "kind": "typestate-refusal",

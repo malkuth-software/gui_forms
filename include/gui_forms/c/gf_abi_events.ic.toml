@@ -16,11 +16,24 @@ initial = "alive"
 state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
 identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
 
+
+[checks]
+path = "src/abi/stable/ic/abi_events_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_events"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_events.cpp"]
+
 [[call]]
 name = "subscribe"
 declarations = ["gf_status (GF_CALL* subscribe)("]
 kind = "member"
 thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { subscription = "gf_subscription*" }
+requires = [
+  { holds = "not_null(subscription)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "subscription_output" },
+]
 returns = { type = "gf_subscription", owns = "caller" }
 fails = [
   { failure = "not_found", when = "A name the type does not raise gives GF_STATUS_NOT_FOUND." },
@@ -34,11 +47,14 @@ name = "subscribe_property"
 declarations = ["gf_status (GF_CALL* subscribe_property)("]
 kind = "member"
 thread = "ui"
+parameters = { subscription = "gf_subscription*" }
+requires = [
+  { holds = "not_null(subscription)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "subscription_output" },
+]
 in = ["alive"]
 outside = "value:GF_STATUS_DISPOSED"
 returns = { type = "gf_subscription", owns = "caller" }
 fails = [
-  { failure = "invalid_argument", when = "code: subscribing needs a subscription output" },
   { failure = "not_found", when = "code: the source has no property of that name" },
 ]
 transfers = [

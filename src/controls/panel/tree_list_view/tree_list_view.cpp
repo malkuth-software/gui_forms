@@ -11,6 +11,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "tree_list_view_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -23,6 +24,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::tree_list_view;
 namespace {
 
 // View geometry in logical units at text scale 1. The scroll bar extent is
@@ -2573,7 +2575,7 @@ std::optional<std::string> TreeListView::read_view(const decltype(selected_id)&)
 
 void TreeListView::prepare_write(const decltype(indentation)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < minimum_indentation || incoming > maximum_indentation) {
+    if (!ic::admits_indentation(incoming)) {
         throw std::invalid_argument("TreeListView indentation is outside the indentation bounds");
     }
 }

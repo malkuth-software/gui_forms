@@ -10,6 +10,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "tool_strip_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::tool_strip;
 namespace {
 
 // Strip geometry in logical units at text scale 1 (Windows Forms' 25-unit
@@ -40,7 +42,6 @@ constexpr double vertical_item_extent = 22.0;
 constexpr double default_combo_box_width = 120.0;
 constexpr double default_hosted_width = 100.0;
 constexpr double maximum_hosted_width = 1024.0;
-constexpr double maximum_end_reserve = 64.0;
 
 bool has_menu(ToolStripItemKind kind) noexcept {
     const bool result = kind == ToolStripItemKind::drop_down_button ||
@@ -361,7 +362,7 @@ void ToolStrip::set_item_checked(std::string_view item_id, bool checked) {
 
 void ToolStrip::prepare_write(const decltype(end_reserve)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > maximum_end_reserve) {
+    if (!ic::admits_end_reserve(incoming)) {
         throw std::invalid_argument("ToolStrip end reserve must be finite and between 0 and 64");
     }
 }

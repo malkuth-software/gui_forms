@@ -1,0 +1,29 @@
+# BackstageView's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/backstage_view.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/backstage_view/backstage_view_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "BackstageView"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/backstage_view.hpp"
+anchor = "class GUI_FORMS_API BackstageView final : public Control, public BackstageViewCapabilities<BackstageView> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/backstage_view/backstage_view_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::backstage_view"
+includes = ["gui_forms/controls/backstage_view.hpp"]
+used_in = ["src/controls/backstage_view/backstage_view.cpp"]
+
+[[call]]
+name = "column_width"
+id = "column_width_write"
+declarations = ["void prepare_write(const decltype(column_width)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 48 and incoming <= 480", refuses = "failure:invalid_argument", check = "column_width" },
+]

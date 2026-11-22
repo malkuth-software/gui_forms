@@ -116,7 +116,7 @@
       "hand": [],
       "effects": "Dirty::paint",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 12.0) {",
+        "if (!ic::admits_status_rail_width(incoming)) {",
         "    throw std::invalid_argument(\"CorrespondenceView status rail width must be finite and between 1 and 12\");",
         "}"
       ],

@@ -2056,6 +2056,8 @@ Types
 
    .. cpp:member:: gf_status (*set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count, const gf_binding_provider_callbacks* callbacks, uint64_t* provider)
 
+      ic: Requires not_null(provider), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(callbacks) ic: or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: ic: provider callbacks or columns their checks refuse), unchanged; wrong_handle_kind (code: the object is not a ic: binding source), unchanged.
+
    .. cpp:member:: gf_status (*notify)(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count, uint64_t target)
 
       ic: Fails invalid_argument (code: kind is a gf_binding_notification_kind), unchanged; removed (An id the source ic: has let go, or whose source is disposed, gives GF_STATUS_REMOVED.), unchanged. Thread: any.
@@ -2203,7 +2205,7 @@ Types
 
    .. cpp:member:: gf_status (*base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser)
 
-      ic: Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or ic: entry gives GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (It needs an object of a class whose chain ic: has that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise).), unchanged. Thread: any.
+      ic: Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or ic: entry gives GF_STATUS_NOT_FOUND.), unchanged. Thread: any.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2937,7 +2939,7 @@ Types
 
    .. cpp:member:: gf_status (*create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object)
 
-      ic: Returns gf_object, owned by the caller.
+      ic: Requires not_null(spec) and not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires ic: spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: ic: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose ic: struct_size is below 32, not a multiple of 8, or whose reserved is not zero), unchanged. Returns gf_object, ic: owned by the caller.
 
    .. cpp:member:: gf_status (*notify_changed)(gf_object object, uint64_t index)
 
@@ -3302,25 +3304,29 @@ Types
 
    .. cpp:member:: gf_status (*shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required, gf_shadow_stack_info* info)
 
-      ic: Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is ic: GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged.
+      ic: Requires not_null(required) and (not_null(frames) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is ic: GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged; invalid_argument (code: ic: the output record is null or smaller than its 1.0 size), unchanged.
 
    .. cpp:member:: gf_status (*set_invalidation_overlay)(uint32_t enabled)
 
-      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.), ic: unchanged. Thread: any.
+      ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*invalidation_overlay)(uint32_t* enabled)
 
+      ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames, uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
 
-      ic: Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is written and the ic: result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero.), ic: unchanged.
+      ic: Requires not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == ic: 0) and (not_null(message_buffer) or message_capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is ic: written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their ic: capacity is zero.), unchanged; invalid_argument (code: the output record is null or smaller than its 1.0 ic: size), unchanged.
 
    .. cpp:member:: gf_status (*clear_failure_snapshot)(void)
 
    .. cpp:member:: gf_status (*set_exception_reflection)(uint32_t enabled)
 
-      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.), ic: unchanged. Thread: any.
+      ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*exception_reflection)(uint32_t* enabled)
+
+      ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*raise_native_exception)(gf_utf8_view message)
 
@@ -3328,11 +3334,11 @@ Types
 
    .. cpp:member:: gf_status (*failure_detail)(gf_failure_detail* detail)
 
-      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size.), ic: unchanged.
+      ic: Requires not_null(output), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires output_size >= ic: failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*set_diagnostic_overlay)(uint32_t enabled)
 
-      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.), unchanged. Thread: any.
+      ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*toggle_diagnostic_overlay)(uint32_t* enabled)
 
@@ -3785,11 +3791,11 @@ Types
 
    .. cpp:member:: gf_status (*subscribe)(gf_object source, gf_utf8_view interaction, const gf_callback* callback, gf_subscription* subscription)
 
-      ic: Fails not_found (A name the type does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns ic: gf_subscription, owned by the caller. Transfers callback from caller to library.
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (A name the type ic: does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller. ic: Transfers callback from caller to library.
 
    .. cpp:member:: gf_status (*subscribe_property)(gf_object source, gf_utf8_view property, const gf_callback* callback, gf_subscription* subscription)
 
-      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: subscribing needs a subscription output), unchanged; not_found (code: the source has no property of ic: that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to ic: library.
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the source ic: has no property of that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback ic: from caller to library.
 
    .. cpp:member:: gf_status (*disconnect)(gf_subscription subscription)
 
@@ -4456,7 +4462,7 @@ Types
 
    .. cpp:member:: gf_status (*create)(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object)
 
-      ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (Creates an object of the schema type type_name, written in any spelling of its id ("check_box" or ic: "CheckBox"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits ic: joined by single '-' ("settings.ok-button"; a Windows Forms name such as "textBox1" is spelled "text-box1"), ic: GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise.), unchanged; not_found (A type that ic: needs another object (a dock site its workspace or a timer its window, say: create_with), and the types ic: neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A ic: type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the ic: types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (The ic: objects table takes components wherever it takes an object, except the tree slots, which take controls ic: (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes controls.), unchanged. Returns ic: gf_object, owned by the caller.
+      ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (Creates an object of the schema type type_name, written in any spelling of its id ("check_box" or ic: "CheckBox"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits ic: joined by single '-' ("settings.ok-button"; a Windows Forms name such as "textBox1" is spelled "text-box1"), ic: GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise.), unchanged; not_found (A type that ic: needs another object (a dock site its workspace or a timer its window, say: create_with), and the types ic: neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A ic: type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the ic: types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged. Returns gf_object, owned ic: by the caller.
 
    .. cpp:member:: gf_status (*retain)(gf_object object)
 
@@ -6261,11 +6267,11 @@ Types
 
    .. cpp:member:: gf_status (*mdi_child_count)(gf_object window_or_root, uint64_t* count)
 
-      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (The number of MDI children ic: (Form.MdiChildren), and the id of the child at index, in tree and tab order, into the caller's buffer ic: (required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL;), unchanged; invalid_state (code: the ic: control is not in a window), unchanged; not_found (GF_STATUS_NOT_FOUND past the end).), unchanged; ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a window), ic: unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
 
-      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the ic: control is not in a window), unchanged; not_found (code: the index is past the window's MDI children), ic: unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (the id ic: is longer than capacity: required receives its size, nothing else is written), unchanged; invalid_state ic: (code: the control is not in a window), unchanged; not_found (code: the index is past the window's MDI ic: children), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*active_mdi_child)(gf_object window_or_root, char* buffer, uint64_t capacity, uint64_t* required)
 

@@ -52,7 +52,7 @@
       "initial": "5.0",
       "comment": "The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 32.0) {",
+        "if (!ic::admits_accent_width(incoming)) {",
         "    throw std::invalid_argument(\"metrics accent width must be within [1, 32]\");",
         "}"
       ],

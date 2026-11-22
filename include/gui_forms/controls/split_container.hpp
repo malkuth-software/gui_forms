@@ -202,8 +202,12 @@ private:
     void written(const decltype(splitter_geometry)& cell);
     void write_view(const decltype(splitter_transition_duration)& cell, FrameInterval incoming);
     [[nodiscard]] FrameInterval read_view(const decltype(splitter_transition_duration)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged. Requires incoming <=
+    // ic: first_maximum_bound, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(first_minimum)& cell, double& incoming);
     void written(const decltype(first_minimum)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged. Requires incoming <=
+    // ic: second_maximum_bound, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(second_minimum)& cell, double& incoming);
     void written(const decltype(second_minimum)& cell);
     void prepare_write(const decltype(first_maximum)& cell, stxlib::Optional<double>& incoming);

@@ -384,6 +384,8 @@ constexpr ControlStyles& operator|=(ControlStyles& left,
 // (Control::release_children_iteratively).
 inline constexpr std::size_t maximum_control_tree_depth = 64U;
 
+// ic: gui_forms::Control: generated from include/gui_forms/control/control/control.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Control : public Component,
                 public std::enable_shared_from_this<Control>,
                 public ControlCapabilities<Control> {
@@ -1870,8 +1872,14 @@ private:
     void written(const decltype(back_color)& cell);
     void prepare_write(const decltype(fore_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(fore_color)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0
+    // ic: and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or
+    // ic: incoming.height <= maximum_size.height), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(minimum_size)& cell, Size& value);
     void written(const decltype(minimum_size)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0
+    // ic: and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or
+    // ic: incoming.height >= minimum_size.height), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(maximum_size)& cell, Size& value);
     void written(const decltype(maximum_size)& cell);
     void prepare_write(const decltype(margin)& cell, Insets& value);

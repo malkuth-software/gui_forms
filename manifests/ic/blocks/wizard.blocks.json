@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Wizard",
+  "declaration": "include/gui_forms/controls/wizard.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.wizard.current_page_write",
+      "mode": "legal",
+      "call": "current_page",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Wizard"
+        },
+        {
+          "name": "incoming",
+          "type": "std::uint32_t",
+          "bounded_by": [
+            "incoming == 0 or incoming < page_count"
+          ]
+        }
+      ],
+      "requires": [
+        "incoming == 0 or incoming < page_count"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.wizard.current_page_write.misuse.current_page",
+      "mode": "misuse",
+      "call": "current_page",
+      "violates": "incoming == 0 or incoming < page_count",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

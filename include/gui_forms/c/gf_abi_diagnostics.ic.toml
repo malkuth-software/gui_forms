@@ -12,39 +12,59 @@ anchor = "typedef struct gf_diagnostics_table {"
 keys = { manifest = "gf_abi::diagnostics", abi = "GF_TABLE_DIAGNOSTICS" }
 thread = "ui"
 
+[constants]
+failure_detail_size_1_5 = { value = "536", type = "uint32_t" }
+
+[checks]
+path = "src/abi/stable/ic/abi_diagnostics_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_diagnostics"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_diagnostics.cpp"]
+
 [[call]]
 name = "shadow_frames"
 declarations = ["gf_status (GF_CALL* shadow_frames)("]
 kind = "static"
 thread = "ui"
+parameters = { frames = "gf_shadow_frame*", capacity = "uint64_t", required = "uint64_t*" }
+requires = [
+  { holds = "not_null(required) and (not_null(frames) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "shadow_frames_buffer" },
+]
 fails = [
   { failure = "buffer_too_small", when = "When capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero." },
+  { failure = "invalid_argument", when = "code: the output record is null or smaller than its 1.0 size" },
 ]
-
 [[call]]
 name = "set_invalidation_overlay"
 declarations = ["gf_status (GF_CALL* set_invalidation_overlay)("]
 kind = "static"
 thread = "any"
-fails = [
-  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output." },
+parameters = { enabled = "uint32_t" }
+requires = [
+  { holds = "enabled <= 1", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_invalidation_overlay_enabled" },
 ]
-
 [[call]]
 name = "invalidation_overlay"
 declarations = ["gf_status (GF_CALL* invalidation_overlay)("]
 kind = "static"
 thread = "ui"
-
+parameters = { enabled = "uint32_t*" }
+requires = [
+  { holds = "not_null(enabled)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "invalidation_overlay_enabled" },
+]
 [[call]]
 name = "failure_snapshot"
 declarations = ["gf_status (GF_CALL* failure_snapshot)("]
 kind = "static"
 thread = "ui"
+parameters = { frames = "gf_shadow_frame*", frame_capacity = "uint64_t", frames_required = "uint64_t*", message_buffer = "char*", message_capacity = "uint64_t", message_required = "uint64_t*" }
+requires = [
+  { holds = "not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == 0) and (not_null(message_buffer) or message_capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "failure_snapshot_buffers" },
+]
 fails = [
   { failure = "buffer_too_small", when = "When frame_capacity or message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero." },
+  { failure = "invalid_argument", when = "code: the output record is null or smaller than its 1.0 size" },
 ]
-
 [[call]]
 name = "clear_failure_snapshot"
 declarations = ["gf_status (GF_CALL* clear_failure_snapshot)("]
@@ -56,16 +76,19 @@ name = "set_exception_reflection"
 declarations = ["gf_status (GF_CALL* set_exception_reflection)("]
 kind = "static"
 thread = "any"
-fails = [
-  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output." },
+parameters = { enabled = "uint32_t" }
+requires = [
+  { holds = "enabled <= 1", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_exception_reflection_enabled" },
 ]
-
 [[call]]
 name = "exception_reflection"
 declarations = ["gf_status (GF_CALL* exception_reflection)("]
 kind = "static"
 thread = "ui"
-
+parameters = { enabled = "uint32_t*" }
+requires = [
+  { holds = "not_null(enabled)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "exception_reflection_enabled" },
+]
 [[call]]
 name = "raise_native_exception"
 declarations = ["gf_status (GF_CALL* raise_native_exception)("]
@@ -80,19 +103,20 @@ name = "failure_detail"
 declarations = ["gf_status (GF_CALL* failure_detail)("]
 kind = "static"
 thread = "ui"
-fails = [
-  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size." },
+parameters = { output = "gf_failure_detail*", output_size = "uint32_t" }
+requires = [
+  { holds = "not_null(output)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "failure_detail_output" },
+  { holds = "output_size >= failure_detail_size_1_5", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "failure_detail_output_size" },
 ]
-
 [[call]]
 name = "set_diagnostic_overlay"
 declarations = ["gf_status (GF_CALL* set_diagnostic_overlay)("]
 kind = "static"
 thread = "any"
-fails = [
-  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1." },
+parameters = { enabled = "uint32_t" }
+requires = [
+  { holds = "enabled <= 1", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_diagnostic_overlay_enabled" },
 ]
-
 [[call]]
 name = "toggle_diagnostic_overlay"
 declarations = ["gf_status (GF_CALL* toggle_diagnostic_overlay)("]

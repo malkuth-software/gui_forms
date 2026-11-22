@@ -27,7 +27,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < minimum_indentation || incoming > maximum_indentation) {",
+        "if (!ic::admits_indentation(incoming)) {",
         "    throw std::invalid_argument(\"TreeListView indentation is outside the indentation bounds\");",
         "}"
       ],

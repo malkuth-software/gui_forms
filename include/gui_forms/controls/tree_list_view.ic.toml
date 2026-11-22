@@ -1,0 +1,33 @@
+# TreeListView's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/tree_list_view.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/panel/tree_list_view/tree_list_view_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "TreeListView"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/tree_list_view.hpp"
+anchor = "class GUI_FORMS_API TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {"
+thread = "ui"
+
+[constants]
+indentation_least = { cpp = "TreeListView::minimum_indentation", type = "double" }
+indentation_most = { cpp = "TreeListView::maximum_indentation", type = "double" }
+
+[checks]
+path = "src/controls/panel/tree_list_view/tree_list_view_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::tree_list_view"
+includes = ["gui_forms/controls/tree_list_view.hpp"]
+used_in = ["src/controls/panel/tree_list_view/tree_list_view.cpp"]
+
+[[call]]
+name = "indentation"
+id = "indentation_write"
+declarations = ["void prepare_write(const decltype(indentation)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= indentation_least and incoming <= indentation_most", refuses = "failure:invalid_argument", check = "indentation" },
+]

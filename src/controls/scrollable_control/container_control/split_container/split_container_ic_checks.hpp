@@ -15,4 +15,28 @@ namespace gui_forms::detail::ic::split_container {
     return result;
 }
 
+// SplitContainer::first_minimum: finite(incoming) and incoming >= 0; else failure invalid_argument.
+[[nodiscard]] constexpr bool admits_first_minimum_extent(const double incoming) noexcept {
+    const bool result = __builtin_isfinite(incoming) && (incoming >= 0);
+    return result;
+}
+
+// SplitContainer::first_minimum: incoming <= first_maximum_bound; else failure invalid_argument.
+[[nodiscard]] constexpr bool admits_first_minimum_order(const double incoming, const double first_maximum_bound) noexcept {
+    const bool result = incoming <= first_maximum_bound;
+    return result;
+}
+
+// SplitContainer::second_minimum: finite(incoming) and incoming >= 0; else failure invalid_argument.
+[[nodiscard]] constexpr bool admits_second_minimum_extent(const double incoming) noexcept {
+    const bool result = __builtin_isfinite(incoming) && (incoming >= 0);
+    return result;
+}
+
+// SplitContainer::second_minimum: incoming <= second_maximum_bound; else failure invalid_argument.
+[[nodiscard]] constexpr bool admits_second_minimum_order(const double incoming, const double second_maximum_bound) noexcept {
+    const bool result = incoming <= second_maximum_bound;
+    return result;
+}
+
 } // namespace gui_forms::detail::ic::split_container

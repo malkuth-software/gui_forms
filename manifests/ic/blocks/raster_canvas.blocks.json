@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::RasterCanvas",
+  "declaration": "include/gui_forms/controls/raster_canvas.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.rastercanvas.transparency_cell_size_write",
+      "mode": "legal",
+      "call": "transparency_cell_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::RasterCanvas"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128))"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128))"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.rastercanvas.transparency_cell_size_write.misuse.transparency_cell_size",
+      "mode": "misuse",
+      "call": "transparency_cell_size",
+      "violates": "finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128))",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

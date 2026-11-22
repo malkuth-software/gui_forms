@@ -37,7 +37,7 @@ constexpr SlotIdentity create_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 3U};
 constexpr SlotIdentity perform_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 4U};
 constexpr SlotIdentity composite_child_slot{GF_TABLE_CUSTOM_CONTROLS, 5U};
 
-constexpr std::uint32_t spec_size_1_0 = 80U;
+constexpr std::uint32_t spec_size_1_0 = ic_custom_controls::spec_size_1_0;
 constexpr std::uint32_t callbacks_size_1_0 = 48U;
 constexpr std::uint32_t property_size_1_0 = 96U;
 constexpr std::uint32_t paint_target_size_1_0 = 72U;
@@ -209,7 +209,8 @@ gf_status read_spec(const gf_custom_control_spec& spec, std::vector<CustomProper
 // enter_ui bound the thread for this call once *entered_ui is set.
 gf_status custom_controls_create_body(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object,
                                       bool* entered_ui) {
-    if (spec == nullptr || object == nullptr || (*spec).struct_size < spec_size_1_0) {
+    if (!ic_custom_controls::admits_create_outputs(spec, object) ||
+        !ic_custom_controls::admits_create_spec_size((*spec).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
                     "create needs a gf_custom_control_spec of at least the 1.0 size and an object output");
     }

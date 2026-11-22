@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Control",
+  "declaration": "include/gui_forms/control/control/control.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.control.minimum_size_write",
+      "mode": "legal",
+      "call": "minimum_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Control"
+        },
+        {
+          "name": "incoming",
+          "type": "Size",
+          "bounded_by": [
+            "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height)"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.control.minimum_size_write.misuse.minimum_size",
+      "mode": "misuse",
+      "call": "minimum_size",
+      "violates": "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height)",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.control.maximum_size_write",
+      "mode": "legal",
+      "call": "maximum_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Control"
+        },
+        {
+          "name": "incoming",
+          "type": "Size",
+          "bounded_by": [
+            "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height)"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.control.maximum_size_write.misuse.maximum_size",
+      "mode": "misuse",
+      "call": "maximum_size",
+      "violates": "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height)",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

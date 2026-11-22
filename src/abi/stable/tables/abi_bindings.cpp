@@ -630,7 +630,7 @@ gf_status GF_CALL bindings_set_current_field(gf_object source, gf_utf8_view fiel
 gf_status bindings_set_provider_body(gf_object source, const gf_binding_column* columns,
                                      std::uint64_t column_count, const gf_binding_provider_callbacks* callbacks,
                                      std::uint64_t* provider) {
-    if (provider == nullptr) {
+    if (!ic_bindings::admits_set_provider_provider(provider)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "set_provider needs a provider output");
     }
     // Everything the caller lends is read and checked before the
@@ -648,7 +648,7 @@ gf_status bindings_set_provider_body(gf_object source, const gf_binding_column* 
         if (read != GF_STATUS_OK) {
             return read;
         }
-    } else if (column_count != 0U) {
+    } else if (!ic_bindings::admits_set_provider_columns(column_count, callbacks)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "an empty table takes no columns");
     }
     std::shared_ptr<BindingSource> typed;

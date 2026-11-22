@@ -15,4 +15,11 @@ namespace gui_forms::detail::ic::button_base {
     return result;
 }
 
+// ButtonBase::text_line_spacing: finite(incoming) and 4 * incoming >= 3 and incoming <= 3; else failure
+// invalid_argument.
+[[nodiscard]] constexpr bool admits_text_line_spacing(const double incoming) noexcept {
+    const bool result = __builtin_isfinite(incoming) && ((4 * incoming) >= 3) && (incoming <= 3);
+    return result;
+}
+
 } // namespace gui_forms::detail::ic::button_base

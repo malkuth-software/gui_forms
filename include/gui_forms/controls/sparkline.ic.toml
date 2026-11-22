@@ -1,0 +1,29 @@
+# Sparkline's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/sparkline.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/instruments/sparkline/sparkline_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "Sparkline"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/sparkline.hpp"
+anchor = "class GUI_FORMS_API Sparkline final : public Control, public SparklineCapabilities<Sparkline> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/instruments/sparkline/sparkline_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::sparkline"
+includes = ["gui_forms/controls/sparkline.hpp"]
+used_in = ["src/controls/instruments/sparkline/sparkline.cpp"]
+
+[[call]]
+name = "capacity"
+id = "capacity_write"
+declarations = ["void prepare_write(const decltype(capacity)&"]
+kind = "member"
+parameters = { incoming = "std::uint32_t" }
+requires = [
+  { holds = "incoming >= 2 and incoming <= 100000", refuses = "failure:invalid_argument", check = "capacity" },
+]

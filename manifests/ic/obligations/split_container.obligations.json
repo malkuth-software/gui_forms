@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/controls/split_container.ic.toml",
-    "sha256": "d48406979a8affae4b705f683b6fbf66529e14e8aa12bf105d6082fb1a8bc002"
+    "sha256": "46de4a2a5892ff0ef528d57cbe26850878907a20a61f1b4f37820bbf1bbf6a4a"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -22,6 +22,82 @@
       "id": "gui_forms.splitcontainer.keyboard_increment_write.refusal.keyboard_increment",
       "kind": "refusal-leaves",
       "statement": "Unless finite(incoming) and incoming > 0, keyboard_increment changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.splitcontainer.first_minimum_write.requires.first_minimum_extent",
+      "kind": "entry-check",
+      "statement": "first_minimum runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::split_container::admits_first_minimum_extent, called in src/controls/scrollable_control/container_control/split_container/split_container.cpp"
+    },
+    {
+      "id": "gui_forms.splitcontainer.first_minimum_write.refusal.first_minimum_extent",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, first_minimum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.splitcontainer.first_minimum_write.requires.first_minimum_order",
+      "kind": "entry-check",
+      "statement": "first_minimum runs only when incoming <= first_maximum_bound; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::split_container::admits_first_minimum_order, called in src/controls/scrollable_control/container_control/split_container/split_container.cpp"
+    },
+    {
+      "id": "gui_forms.splitcontainer.first_minimum_write.refusal.first_minimum_order",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming <= first_maximum_bound, first_minimum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.splitcontainer.second_minimum_write.requires.second_minimum_extent",
+      "kind": "entry-check",
+      "statement": "second_minimum runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::split_container::admits_second_minimum_extent, called in src/controls/scrollable_control/container_control/split_container/split_container.cpp"
+    },
+    {
+      "id": "gui_forms.splitcontainer.second_minimum_write.refusal.second_minimum_extent",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, second_minimum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.splitcontainer.second_minimum_write.requires.second_minimum_order",
+      "kind": "entry-check",
+      "statement": "second_minimum runs only when incoming <= second_maximum_bound; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::split_container::admits_second_minimum_order, called in src/controls/scrollable_control/container_control/split_container/split_container.cpp"
+    },
+    {
+      "id": "gui_forms.splitcontainer.second_minimum_write.refusal.second_minimum_order",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming <= second_maximum_bound, second_minimum changes nothing observable.",
       "level": "none",
       "tool": null,
       "premises": [],

@@ -52,6 +52,8 @@ struct GUI_FORMS_API BackstageTopicChange final {
 // The column and page are told apart by their surfaces (decision 26: the
 // contrast between them helps), the column on the card family and the page
 // on the window family until the default theme (T4) gives the column its own.
+// ic: gui_forms::BackstageView: generated from include/gui_forms/controls/backstage_view.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API BackstageView final : public Control, public BackstageViewCapabilities<BackstageView> {
 public:
     // Development bounds, not measured capacity.
@@ -177,6 +179,7 @@ private:
     friend struct BackstageViewColumnWidthCapability<BackstageView>;
     friend struct BackstageViewSelectedTopicCapability<BackstageView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 48 and incoming <= 480, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(column_width)& cell, double& incoming);
     void written(const decltype(column_width)& cell);
     void write_view(const decltype(selected_topic)& cell, stxlib::Optional<std::size_t> incoming);

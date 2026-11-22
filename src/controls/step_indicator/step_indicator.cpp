@@ -3,6 +3,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "step_indicator_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,6 +15,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::step_indicator;
 namespace {
 
 // Geometry in logical units: a chip's side, the gap between a chip and its
@@ -309,7 +311,7 @@ std::span<const PropertyEntry> StepIndicator::property_table() const noexcept {
 
 void StepIndicator::prepare_write(const decltype(current_step)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming != 0U && incoming >= steps_.size()) throw std::invalid_argument("StepIndicator current step is past the last step");
+    if (!ic::admits_current_step(incoming, steps_.size())) throw std::invalid_argument("StepIndicator current step is past the last step");
 }
 
 void StepIndicator::written(const decltype(current_step)&) {

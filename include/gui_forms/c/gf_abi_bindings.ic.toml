@@ -189,6 +189,15 @@ name = "set_provider"
 declarations = ["gf_status (GF_CALL* set_provider)("]
 kind = "member"
 thread = "ui"
+parameters = { column_count = "uint64_t", callbacks = "gf_binding_provider_callbacks*", provider = "uint64_t*" }
+requires = [
+  { holds = "not_null(provider)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_provider_provider" },
+  { holds = "not_null(callbacks) or column_count == 0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_provider_columns" },
+]
+fails = [
+  { failure = "invalid_argument", when = "code: provider callbacks or columns their checks refuse" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a binding source" },
+]
 
 [[call]]
 name = "notify"

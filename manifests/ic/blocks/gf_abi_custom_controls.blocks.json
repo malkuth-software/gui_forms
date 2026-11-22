@@ -20,13 +20,66 @@
       "thread": "ui",
       "state": null,
       "moves": null,
-      "inputs": [],
-      "requires": [],
-      "fails": [],
+      "inputs": [
+        {
+          "name": "spec",
+          "type": "gf_custom_control_spec*",
+          "bounded_by": [
+            "not_null(spec) and not_null(object)"
+          ]
+        },
+        {
+          "name": "object",
+          "type": "gf_object*",
+          "bounded_by": [
+            "not_null(spec) and not_null(object)"
+          ]
+        },
+        {
+          "name": "spec_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "spec_size >= spec_size_1_0"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(spec) and not_null(object)",
+        "spec_size >= spec_size_1_0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple of 8, or whose reserved is not zero",
+          "leaves": "unchanged"
+        }
+      ],
       "returns": {
         "type": "gf_object",
         "owns": "caller"
       }
+    },
+    {
+      "name": "gf_abi.custom_controls.create.misuse.create_outputs",
+      "mode": "misuse",
+      "call": "create",
+      "violates": "not_null(spec) and not_null(object)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.custom_controls.create.misuse.create_spec_size",
+      "mode": "misuse",
+      "call": "create",
+      "violates": "spec_size >= spec_size_1_0",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
     },
     {
       "name": "gf_abi.custom_controls.notify_changed.alive",

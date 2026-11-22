@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_bindings.ic.toml",
-    "sha256": "66810849c15e0b7ff86d6da15b1a999035066b5f311788fc1aebf0969fc1ef23"
+    "sha256": "270acd13112cb37d0e5fb5ee234bf53bc2fb84fa51400734539a41334a3bcc07"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -352,6 +352,44 @@
       "id": "gf_abi.bindings.add_records.outside.disposed",
       "kind": "typestate-refusal",
       "statement": "add_records in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.requires.set_provider_provider",
+      "kind": "entry-check",
+      "statement": "set_provider runs only when not_null(provider); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_set_provider_provider, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.refusal.set_provider_provider",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(provider), set_provider changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.requires.set_provider_columns",
+      "kind": "entry-check",
+      "statement": "set_provider runs only when not_null(callbacks) or column_count == 0; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_set_provider_columns, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.refusal.set_provider_columns",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(callbacks) or column_count == 0, set_provider changes nothing observable.",
       "level": "none",
       "tool": null,
       "premises": [],

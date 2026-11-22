@@ -29,7 +29,7 @@
       "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
         "require_finite(incoming, \"scrollbar button extent must be finite\");",
-        "if (incoming < 8.0 || incoming > 64.0) throw std::invalid_argument(\"scrollbar button extent must be between 8 and 64\");"
+        "if (!ic::admits_button_extent(incoming)) throw std::invalid_argument(\"scrollbar button extent must be between 8 and 64\");"
       ],
       "sample": "20.0"
     },
@@ -50,8 +50,7 @@
       "hooks": "generated",
       "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "require_finite(incoming, \"scrollbar thumb extent must be finite\");",
-        "if (incoming < scroll_thumb_extent_least || incoming > scroll_thumb_extent_most) throw std::invalid_argument(\"scrollbar thumb extent must be between 8 and 128\");"
+        "if (!ic::admits_minimum_thumb_extent(incoming)) throw std::invalid_argument(\"scrollbar thumb extent must be finite and between 8 and 128\");"
       ],
       "sample": "24.0"
     },
