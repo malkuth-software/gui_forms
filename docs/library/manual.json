@@ -3,7 +3,6 @@
   "types": {
     "Panel": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/basic_controls_overview.png",
       "capture_note": "M4 Complete Showcase crop showing retained group surfaces that inherit Panel paint, background, border, clipping, and semantic behavior.",
       "summary": "Panel is the reusable retained scroll-capable surface primitive with theme-role rendering, explicit background/style overrides, bounded border vocabulary, visual outsets, and optional named-group semantics.",
       "methods": {
@@ -23,7 +22,6 @@
     },
     "GroupBox": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/basic_controls_overview.png",
       "capture_note": "M4 Complete Showcase crop showing repeated titled retained group surfaces and the controls they contain.",
       "summary": "GroupBox is a titled Panel specialization with validated typography, mnemonic focus routing, caption-aware border painting, and group semantics.",
       "methods": {
@@ -34,7 +32,6 @@
     },
     "PictureBox": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/picture_box.png",
       "capture_note": "M4 Complete Showcase crop showing all five PictureBox sizing policies plus renderer-neutral opacity states.",
       "summary": "PictureBox is a noninteractive Panel image presenter over Window-owned generational resources, with five canonical sizing modes, bounded opacity, inspectable image geometry, and image semantics.",
       "methods": {
@@ -52,7 +49,6 @@
     },
     "Label": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/label.png",
       "capture_note": "M4 Complete Showcase crop showing title, wrapping body, centered caption, foreground roles, and neighboring semantic controls.",
       "summary": "Label is a noninteractive retained text primitive with inherited typography roles, explicit font/color overrides, horizontal and vertical alignment, word wrapping, bounded line count, line spacing, mnemonics, and static-text semantics.",
       "methods": {
@@ -68,7 +64,6 @@
     },
     "ButtonBase": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/button_family.png",
       "capture_note": "M4 Complete Showcase crop showing inherited button content, states, focus/default cues, and LinkLabel specialization.",
       "summary": "ButtonBase is the authoritative retained command state machine for pointer, keyboard, mnemonic, semantic, and dialog activation, with theme/compatibility rendering, image-list resolution, content alignment, explicit padding, disclosure state, and lifetime-safe events.",
       "methods": {
@@ -101,7 +96,6 @@
     },
     "Button": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/button_family.png",
       "capture_note": "M4 Complete Showcase crop showing standard, flat, accent, command, disabled, and default Button presentations.",
       "summary": "Button specializes ButtonBase with accept/cancel dialog results, default-button state, four public visual policies, bounded flat-border width, and event ordering that commits dialog state before command publication.",
       "methods": {
@@ -113,7 +107,6 @@
     },
     "CheckBox": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/check_box.png",
       "capture_note": "M4 Complete Showcase crop showing classic, modern, toggle, and three-state indeterminate CheckBox states.",
       "summary": "CheckBox specializes ButtonBase with validated two/three-state selection, optional automatic cycling, three indicator families, ordered state events, and checkable semantics.",
       "methods": {
@@ -128,7 +121,6 @@
     },
     "RadioButton": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/radio_button.png",
       "capture_note": "M4 Complete Showcase crop showing classic, modern, and toggle RadioButton indicator systems in one exclusion group.",
       "summary": "RadioButton specializes ButtonBase with retained checked state, container-scoped named exclusion groups, optional automatic checking, three indicator families, ordered events, and radio semantics.",
       "methods": {
@@ -142,7 +134,6 @@
     },
     "LinkLabel": {
       "status": "OBSERVED: bundle 002 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/link_label.png",
       "capture_note": "M4 Complete Showcase crop showing the underlined LinkLabel and its visited-on-activation contract.",
       "summary": "LinkLabel is a ButtonBase command presented as underlined link text, with retained visited state committed before click publication and link semantics.",
       "methods": {
@@ -154,7 +145,6 @@
     },
     "Card": {
       "status": "OBSERVED: bundle 001 split; M4 build and focused tests pass",
-      "capture": "captures/card_collection.png",
       "capture_note": "Screen Sharing crop from the M4 File Manager Demoboard showing four Card states through the ReviewCard specialization; the first card is selected and focused.",
       "summary": "Card is a retained header/body/footer composition with explicit section ownership, theme-derived or caller-owned layout, optional interaction, selection state, painter-neutral material rendering, and semantic projection.",
       "methods": {
@@ -186,7 +176,6 @@
     },
     "MasterDetailView": {
       "status": "OBSERVED: bundle 001 split; M4 build and focused tests pass",
-      "capture": "captures/master_detail_view.png",
       "capture_note": "Screen Sharing crop from the M4 File Manager Demoboard showing the real retained master pane, splitter, detail pane, and nested ReviewCards.",
       "summary": "MasterDetailView is a content-agnostic retained shell over SplitContainer with explicit role ownership, theme-derived or explicit splitter policy, responsive compact presentation, focus-safe collapse, and inspectable presentation events.",
       "methods": {
@@ -213,7 +202,6 @@
     },
     "ScrollProperties": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/scrollable_control.png",
       "capture_note": "M4 Complete Showcase crop showing retained collection surfaces built over the same scroll/viewport contract. ScrollProperties itself is a nonvisual per-axis policy object; a scrollbar appears only when its owner resolves overflow or explicit visibility.",
       "summary": "ScrollProperties is the owner-bound, per-axis state model for enabled/visible state, authored or automatic range increments, clamped position, orientation, and inspectable snapshot projection.",
       "methods": {
@@ -237,7 +225,6 @@
     },
     "ScrollableControl": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/scrollable_control.png",
       "capture_note": "M4 Complete Showcase crop of retained collection controls composed on the shared viewport contract. The captured content fits; ScrollableControl paints its native retained scrollbar overlay only when overflow or explicit visibility makes an axis active.",
       "summary": "ScrollableControl owns the retained scrolling state machine: overflow discovery, viewport/display rectangles, two axis policies, wheel/button/track/thumb interaction, pointer capture, semantic virtual scrollbars, scroll events, and child exposure.",
       "methods": {
@@ -268,7 +255,6 @@
     },
     "ContainerControl": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/container_focus.png",
       "capture_note": "M4 Complete Showcase crop showing the active descendant, focus-scope command, retained nested composition, and a UserControl attachment surface.",
       "summary": "ContainerControl adds descendant-scoped active-control authority and inherited validation policy to ScrollableControl, making focus and validation explicit retained container state rather than incidental child behavior.",
       "methods": {
@@ -286,7 +272,6 @@
     },
     "UserControl": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/container_focus.png",
       "capture_note": "M4 Complete Showcase crop showing the lower-right reusable UserControl child-action surface after attachment was committed.",
       "summary": "UserControl is the reusable authored-container lifecycle specialization: it distinguishes current attachment from first committed load and counts successful attachment epochs without conflating construction with visibility.",
       "methods": {
@@ -299,7 +284,6 @@
     },
     "ScaledPanel": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/layout_panels.png",
       "capture_note": "M4 Complete Showcase pages are themselves composed with the ScaledPanel layout surface; this crop shows nested scaled groups remaining proportionally aligned in the retained page.",
       "summary": "ScaledPanel maps caller-authored design-space child rectangles into current content bounds, retaining slot identity independently of child order and reconciling removed children safely.",
       "methods": {
@@ -312,7 +296,6 @@
     },
     "ScaledGroupBox": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/layout_panels.png",
       "capture_note": "M4 Complete Showcase crop showing titled nested groups authored through the ScaledGroupBox alias used by the conformance pages.",
       "summary": "ScaledGroupBox combines GroupBox caption/mnemonic semantics with stable design-space child slots and proportional retained arrangement.",
       "methods": {
@@ -325,7 +308,6 @@
     },
     "FlowLayoutPanelCompat": {
       "status": "OBSERVED: bundle 003 split and item-spacing enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/layout_panels.png",
       "capture_note": "M4 Complete Showcase crop showing all four FlowDirection values, wrapping, child margins, and explicit FlowBreak behavior.",
       "summary": "FlowLayoutPanelCompat is a retained directional packing algorithm with four flow directions, optional wrapping, explicit bounded inter-item/inter-line spacing, per-child margins, stable flow breaks, and optional content-driven size.",
       "methods": {
@@ -337,7 +319,6 @@
     },
     "TableLayoutPanelCompat": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/layout_panels.png",
       "capture_note": "M4 Complete Showcase crop showing absolute, auto-size, and weighted-percent tracks, explicit and automatic cells, column spans, committed bounds, and border rendering.",
       "summary": "TableLayoutPanelCompat is a retained grid solver with bounded rows/columns, fixed/add-row/add-column growth, absolute/percent/auto tracks, explicit or automatic placement, row/column spans, cell borders, overflow inspection, and content-driven sizing.",
       "methods": {
@@ -362,7 +343,6 @@
     },
     "TabPage": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tab_control.png",
       "capture_note": "M4 Complete Showcase crop showing retained TabPage content surfaces; inactive pages remain owned but are excluded from the active visual/semantic tree.",
       "summary": "TabPage is an owned Panel surface with bounded caption text and page semantics; TabControl, not the page, owns selection and header interaction.",
       "methods": {
@@ -372,7 +352,6 @@
     },
     "TabControl": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tab_control.png",
       "capture_note": "M4 Complete Showcase crop showing interactive retained pages, selected-content quiescence, focus restoration, four alignments, and normal/flat/button appearances. The crop predates the PageStrip re-base (stage DK, phase P8).",
       "summary": "TabControl owns TabPage lifetime, selection, active-page attachment, per-page focus restoration, keyboard traversal, four header alignments, three appearances, three size modes, inspectable geometry, and semantic virtual tabs; its tabs are an internal PageStrip (caption-sized tabs painted by role, scroll and list overflow).",
       "methods": {
@@ -400,7 +379,6 @@
     },
     "SplitterPanel": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/container_focus.png",
       "capture_note": "M4 Complete Showcase crop showing both truthfully painted allocated SplitterPanel surfaces around the visible draggable seam.",
       "summary": "SplitterPanel is the allocated scroll-capable pane surface owned by SplitContainer, with explicit retained background painting so movement never exposes an invisible allocation.",
       "methods": {
@@ -410,7 +388,6 @@
     },
     "SplitContainer": {
       "status": "OBSERVED: bundle 003 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/container_focus.png",
       "capture_note": "M4 Complete Showcase crop showing vertical allocation, enlarged seam hit target, focusable splitter, collapse/restore behavior, and content-preserving two-pane composition.",
       "summary": "SplitContainer is a retained two-pane allocation state machine with lazy owned infrastructure, bounded distance and min/max constraints, fixed-pane resize preservation, independent visible/hit widths, pointer/keyboard seam input, explicit and automatic collapse origins, focus transfer, semantic range actions, and typed change events.",
       "methods": {
@@ -436,7 +413,6 @@
     },
     "SplitterGrip": {
       "status": "OBSERVED: bundle 003 source-private state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/container_focus.png",
       "capture_note": "M4 Complete Showcase crop showing the narrow visible SplitterGrip seam between panes; its wider pointer bounds and focus cue are owned separately from its painted thickness.",
       "summary": "SplitterGrip is SplitContainer's source-private retained seam control. It owns only visual/focus/cursor/collapse-tab state while SplitContainer remains the allocation and input-policy authority.",
       "methods": {
@@ -449,7 +425,6 @@
     },
     "TextSelection": {
       "status": "OBSERVED: bundle 004 split and Unicode edit-policy review; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/text_box.png",
       "capture_note": "M4 Complete Showcase crop showing selection, caret, read-only, password, Unicode, and history states driven by TextSelection boundaries.",
       "summary": "TextSelection is TextBox's normalized byte-boundary selection value. It keeps anchor and active endpoints distinct while exposing ordered ranges for mutation and painting.",
       "methods": {
@@ -462,7 +437,6 @@
     },
     "TextBox": {
       "status": "OBSERVED: bundle 004 split and maximum-length enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/text_box.png",
       "capture_note": "M4 Complete Showcase crop showing ordinary, Unicode, read-only, password, focused, selection, caret, and edit-history TextBox states.",
       "summary": "TextBox is a retained single-line Unicode editor with scalar-safe navigation, directional selection, clipboard/history commands, password projection, bounded user-input length, caret animation, semantic editing, and ordered text/selection events.",
       "methods": {
@@ -500,7 +474,6 @@
     },
     "ListBox": {
       "status": "OBSERVED: bundle 004 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/list_box_combo_box.png",
       "capture_note": "M4 Complete Showcase collection crop showing ListBox rows, focus/selection cues, scrolling, and stable semantic items beside ComboBox.",
       "summary": "ListBox is a retained virtual-row selector with single, multi-simple, and multi-extended policies; stable item identities; scroll-window projection; keyboard/pointer range selection; activation; and virtual child semantics.",
       "methods": {
@@ -530,7 +503,6 @@
     },
     "CheckedListBox": {
       "status": "OBSERVED: bundle 004 split and indicator-size enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/checked_list_box.png",
       "capture_note": "M4 Complete Showcase crop showing mixed check states, current selection, configurable indicators, and check-on-click behavior.",
       "summary": "CheckedListBox extends ListBox with an independently retained three-state check model, cancellable pre-change events, committed change events, optional check-on-click, configurable indicator geometry, and checkable virtual semantics.",
       "methods": {
@@ -550,7 +522,6 @@
     },
     "DropDownLayer": {
       "status": "OBSERVED: bundle 004 source-private state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/list_box_combo_box.png",
       "capture_note": "M4 Complete Showcase crop showing the anchored ComboBox transient surface governed by DropDownLayer dismissal policy.",
       "summary": "DropDownLayer is ComboBox's source-private transient modal boundary. It owns outside-click and Escape dismissal while leaving item selection and value commit with ComboBox.",
       "methods": {
@@ -561,7 +532,6 @@
     },
     "ComboBox": {
       "status": "OBSERVED: bundle 004 split and drop-down-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/list_box_combo_box.png",
       "capture_note": "M4 Complete Showcase collection crop showing retained field state and its bounded anchored ListBox overlay.",
       "summary": "ComboBox is a retained noneditable choice field with authoritative item selection, placeholder projection, keyboard cycling, a source-private transient ListBox, bounded item count, independent overlay width, focus-safe lifetime handling, and option semantics.",
       "methods": {
@@ -577,7 +547,6 @@
     },
     "SpinButtons": {
       "status": "OBSERVED: bundle 004 source-private state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/numeric_up_down.png",
       "capture_note": "M4 Complete Showcase crop showing the NumericUpDown trailing up/down button column painted and hit-tested by SpinButtons.",
       "summary": "SpinButtons is NumericUpDown's source-private two-part command surface. It qualifies pointer capture independently for increment and decrement and publishes only directional intent.",
       "methods": {
@@ -588,7 +557,6 @@
     },
     "NumericUpDown": {
       "status": "OBSERVED: bundle 004 split and button-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/numeric_up_down.png",
       "capture_note": "M4 Complete Showcase crop showing decimal and hexadecimal numeric editors with owned TextBox and configurable spin-button allocation.",
       "summary": "NumericUpDown is a retained composite numeric editor over an owned TextBox and source-private SpinButtons. It enforces ordered ranges, bounded step/precision/button geometry, decimal or hexadecimal formatting, commit synchronization, semantic range actions, and one authoritative value event.",
       "methods": {
@@ -605,14 +573,12 @@
     },
     "RangeScrollEvent": {
       "status": "OBSERVED: bundle 004 split and event-contract review; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase range crop showing the TrackBar and ScrollBar interactions represented by RangeScrollEvent old/new values and reasons.",
       "summary": "RangeScrollEvent is the typed transition payload shared by interactive range controls. It records the old value, committed new value, and the exact pointer, keyboard, command, or programmatic reason.",
       "methods": {}
     },
     "RangeControl": {
       "status": "OBSERVED: bundle 004 hierarchical state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing horizontal and vertical retained range specializations sharing RangeControl's constrained value law.",
       "summary": "RangeControl is the nonvisual retained authority for ordered bounds, constrained value, small/large changes, orientation, compatibility style, normalized projection, typed invalidation, and ordered value/range/scroll events.",
       "methods": {
@@ -629,7 +595,6 @@
     },
     "TrackBar": {
       "status": "OBSERVED: bundle 004 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing horizontal and vertical TrackBars with ticks, focus, theme-style geometry, and pointer-set values.",
       "summary": "TrackBar specializes RangeControl with bounded tick frequency, optional ticks, explicit visual style, orientation-aware measurement, absolute pointer positioning, keyboard movement, focus rendering, and slider semantics.",
       "methods": {
@@ -643,7 +608,6 @@
     },
     "ProgressBarAnimationAppearance": {
       "status": "OBSERVED: bundle 004 animation-value review; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing determinate and animated ProgressBar styles whose stripe geometry and alpha are carried by this value.",
       "summary": "ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.",
       "methods": {
@@ -652,7 +616,6 @@
     },
     "ProgressBar": {
       "status": "OBSERVED: bundle 004 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing determinate continuous, segmented, marquee, overlay, striped, paused, and reduced-motion progress states.",
       "summary": "ProgressBar is a noninteractive RangeControl visualization with continuous, segmented, and marquee modes; optional overlays and stripes; centralized motion-policy resolution; retained frame scheduling; deterministic phase; reduced-motion behavior; and progress semantics.",
       "methods": {
@@ -668,7 +631,6 @@
     },
     "ScrollBar": {
       "status": "OBSERVED: bundle 004 hierarchical state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing horizontal and vertical ScrollBars with buttons, track, proportional thumb, focus, and disabled ranges.",
       "summary": "ScrollBar specializes RangeControl with independently bounded button/thumb/repeat timing, inspectable part geometry, proportional thumb allocation, drag and track/button interaction, deterministic key behavior, retained auto-repeat, focus cues, and scrollbar semantics.",
       "methods": {
@@ -687,7 +649,6 @@
     },
     "HScrollBar": {
       "status": "OBSERVED: bundle 004 leaf-type split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing the horizontal ScrollBar leaf with left/right command buttons and thumb.",
       "summary": "HScrollBar is the explicit horizontal leaf type for reflection, serialization, toolbox discovery, and conventional API compatibility.",
       "methods": {
@@ -696,7 +657,6 @@
     },
     "VScrollBar": {
       "status": "OBSERVED: bundle 004 leaf-type split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/range_controls.png",
       "capture_note": "M4 Complete Showcase crop showing the vertical ScrollBar leaf with up/down command buttons and thumb.",
       "summary": "VScrollBar is the explicit vertical leaf type for reflection, serialization, toolbox discovery, and conventional API compatibility.",
       "methods": {
@@ -705,7 +665,6 @@
     },
     "DateTimeValue": {
       "status": "OBSERVED: bundle 004 value-type split and calendar arithmetic review; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/date_time_picker.png",
       "capture_note": "M4 Complete Showcase crop showing the formatted field and selected overlay day represented by DateTimeValue.",
       "summary": "DateTimeValue is DateTimePicker's timezone-free civil date/time value. Ordering is lexicographic across validated year-through-second fields so range constraint and calendar selection remain deterministic.",
       "methods": {
@@ -714,7 +673,6 @@
     },
     "DateTimeFormatProvider": {
       "status": "OBSERVED: bundle 004 value-provider split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/date_time_picker.png",
       "capture_note": "M4 Complete Showcase crop showing provider-owned month/day names and short/long/time patterns in field and calendar overlay.",
       "summary": "DateTimeFormatProvider is an immutable caller-substitutable vocabulary and pattern bundle for DateTimePicker formatting. It separates locale-shaped presentation from civil-value authority without introducing a platform locale runtime dependency.",
       "methods": {
@@ -723,7 +681,6 @@
     },
     "CalendarOverlayLayer": {
       "status": "OBSERVED: bundle 004 source-private state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/date_time_picker.png",
       "capture_note": "M4 Complete Showcase crop with DateTimePicker's calendar open; CalendarOverlayLayer supplies the full-window outside-click dismissal boundary.",
       "summary": "CalendarOverlayLayer is DateTimePicker's source-private transient boundary. It owns outside-click dismissal around the anchored CalendarOverlay while leaving date navigation and commit with the overlay and picker.",
       "methods": {
@@ -733,7 +690,6 @@
     },
     "CalendarOverlay": {
       "status": "OBSERVED: bundle 004 source-private calendar state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/date_time_picker.png",
       "capture_note": "M4 Complete Showcase crop showing the live month header, navigation buttons, weekday labels, 42 day cells, selected day, adjacent-month days, hover, and focus.",
       "summary": "CalendarOverlay is DateTimePicker's source-private retained month grid. It owns displayed month, constrained candidate selection, pointer/keyboard navigation, commit/cancel events, stable virtual day identities, and calendar semantics while the picker retains final value authority.",
       "methods": {
@@ -750,7 +706,6 @@
     },
     "DateTimePicker": {
       "status": "OBSERVED: bundle 004 split and drop-down-alignment enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/date_time_picker.png",
       "capture_note": "M4 Complete Showcase crop showing focused field, check-box policy, disclosure button, right/left anchored live calendar overlay, selected date, and navigation controls.",
       "summary": "DateTimePicker is a retained civil date/time field with validated bounds, four formatting policies, caller-supplied format vocabulary, optional check state, calendar or spin presentation, configurable overlay alignment, source-private transient ownership, keyboard/pointer/semantic control, and ordered typed events.",
       "methods": {
@@ -769,7 +724,6 @@
     },
     "TreeView": {
       "status": "OBSERVED: bundle 005 split and show-expanders enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tree_view_object_view.png",
       "capture_note": "M4 File Manager Demoboard crop showing the retained folder TreeView beside ObjectView and the MenuStrip.",
       "summary": "TreeView is a virtualized retained hierarchy over caller-owned stable item identities. It derives the visible preorder from expansion state, keeps selection and active focus distinct, supports configurable row geometry and expander presentation, and projects virtual tree-item semantics without materializing child controls.",
       "methods": {
@@ -795,7 +749,6 @@
     },
     "ObjectView": {
       "status": "OBSERVED: bundle 005 split and secondary-text enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tree_view_object_view.png",
       "capture_note": "M4 File Manager Demoboard crop showing ObjectView's icon-grid projection, selection surface, and adjacent hierarchy.",
       "summary": "ObjectView is a virtualized retained collection surface with icon-grid and details projections over one stable item model. It owns single or multiple selection, focus and range anchors, keyboard/pointer/context behavior, configurable cell geometry, optional secondary text, and virtual item semantics.",
       "methods": {
@@ -824,7 +777,6 @@
     },
     "ContextMenu": {
       "status": "OBSERVED: bundle 005 split and preferred-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/context_menu_menu_strip.png",
       "capture_note": "M4 File Manager Demoboard crop showing a live ContextMenu, keyboard-ready rows, separators, shortcut text, and its MenuStrip owner.",
       "summary": "ContextMenu is a nonvisual owner for a retained, focus-scoped overlay menu tree. Its implementation controls transient lifetime, submenu chains, enabled/check state, root handoff, outside-pointer policy, invocation ordering, and caller-configurable preferred width without exposing implementation rows as reusable public controls.",
       "methods": {
@@ -842,7 +794,6 @@
     },
     "MenuStrip": {
       "status": "OBSERVED: bundle 005 split and item-padding enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/context_menu_menu_strip.png",
       "capture_note": "M4 File Manager Demoboard crop showing the active top-level MenuStrip and its owned ContextMenu overlay.",
       "summary": "MenuStrip is the retained top-level menu coordinator. It lays out root items, tracks hot and active identities, transfers navigation across an owned ContextMenu, supports mnemonic and semantic entry, and exposes caller-controlled item padding while keeping invocation and open-state events ordered.",
       "methods": {
@@ -866,19 +817,16 @@
     },
     "AnchoredOverlayPlacement": {
       "status": "OBSERVED: bundle 005 value-policy split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/anchored_overlay_layer.png",
       "capture_note": "M4 File Manager Demoboard crop showing the resolved path-matrix overlay below and far-aligned to its path anchor.",
       "summary": "AnchoredOverlayPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping. It contains no transient ownership or rendering state."
     },
     "AnchoredOverlayPlacementResult": {
       "status": "OBSERVED: bundle 005 deterministic-result split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/anchored_overlay_layer.png",
       "capture_note": "M4 File Manager Demoboard crop showing the bounded placement represented by result bounds and clamp/side flags.",
       "summary": "AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped."
     },
     "AnchoredOverlayLayer": {
       "status": "OBSERVED: bundle 005 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/anchored_overlay_layer.png",
       "capture_note": "M4 File Manager Demoboard crop showing AnchoredOverlayLayer hosting the complete path matrix inside the window-client overlay boundary.",
       "summary": "AnchoredOverlayLayer is a renderer-neutral retained overlay boundary tied to a live anchor. It owns one content control, resolves and updates bounded client-relative geometry, centralizes click-away and Escape dismissal requests, and projects dialog semantics while the Window retains the actual overlay lease.",
       "methods": {
@@ -897,13 +845,11 @@
     },
     "ToolTipEvent": {
       "status": "OBSERVED: bundle 005 provider event split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing the visible keyboard-initiated tooltip represented by target identity, text, visibility, and input-origin fields.",
       "summary": "ToolTipEvent is the immutable publication payload for a tooltip visibility transition. It names the stable target, carries the presented text, and records shown/hidden and keyboard/pointer origin without exposing overlay internals."
     },
     "ToolTip": {
       "status": "OBSERVED: bundle 005 split and maximum-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing a focus-triggered retained tooltip, the provider controls, and an independently anchored target.",
       "summary": "ToolTip is a nonvisual window-bound provider that tokenizes help text to live controls and coordinates hover/focus/manual presentation through one scheduler-backed state machine. It owns delayed show, reshow, auto-pop, movement tracking, overlay revocation, input-transparent overlay composition, configurable maximum width, and exact visibility events.",
       "methods": {
@@ -922,7 +868,6 @@
     },
     "ToolTipLayer": {
       "status": "OBSERVED: bundle 005 source-private state-machine split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing ToolTipLayer's full-client, input-transparent overlay hosting the visible bubble.",
       "summary": "ToolTipLayer is ToolTip's source-private full-client overlay boundary. It deliberately rejects hit testing so presentation cannot intercept application input, while the provider and Window retain lifetime authority.",
       "methods": {
@@ -932,7 +877,6 @@
     },
     "ToolTipBubble": {
       "status": "OBSERVED: the window's one tooltip presenter (W tooltip build, 2026-10-31); M4 build and focused tests",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "Crop showing a plain tooltip's themed face, overlay shadow and wrapped text.",
       "summary": "ToolTipBubble is the window tooltip presenter's source-private retained visual. It holds the text already broken into measured lines, paints the tool_tip family's face and shadow and each line as a label part, rejects hit testing, and publishes the tool_tip role named by its text; waiting, placement and overlay lifetime remain in the presenter.",
       "methods": {
@@ -946,25 +890,21 @@
     },
     "ErrorProviderChange": {
       "status": "OBSERVED: bundle 005 provider event split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing the target whose error transition is represented by stable identity, text, and presence.",
       "summary": "ErrorProviderChange is the post-commit payload for a target error transition, carrying stable identity and the current message, which is empty once the error is cleared."
     },
     "ErrorIconSnapshot": {
       "status": "OBSERVED: bundle 005 diagnostic value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing the live red error glyph represented by exact bounds, availability, presentation, and blink flags.",
       "summary": "ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility."
     },
     "ErrorProviderSnapshot": {
       "status": "OBSERVED: bundle 005 diagnostic aggregate split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing one presented error within the provider aggregate represented by icon records and live/presented counts.",
       "summary": "ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts."
     },
     "ErrorProvider": {
       "status": "OBSERVED: bundle 005 split and icon-size enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing ErrorProvider's red focus-side adornment on the invalid network field beside its Clear action.",
       "summary": "ErrorProvider is a nonvisual validation-adornment provider bound to a Window lifetime. It tokenizes messages and per-target alignment/padding, composes independent source-private glyph overlays and tooltip text, schedules blink through the shared frame scheduler, mirrors policy for right-to-left layout, optionally imports binding errors, and exposes caller-configurable icon size and exact snapshots.",
       "methods": {
@@ -991,7 +931,6 @@
     },
     "ErrorLayer": {
       "status": "OBSERVED: bundle 005 source-private overlay split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing ErrorLayer's input-transparent full-client boundary around the target-side glyph.",
       "summary": "ErrorLayer is ErrorProvider's source-private full-client overlay. It hosts one ErrorGlyph at provider-resolved bounds and rejects hit testing so adornment cannot steal control input.",
       "methods": {
@@ -1001,7 +940,6 @@
     },
     "ErrorGlyph": {
       "status": "OBSERVED: bundle 005 source-private animation split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing ErrorGlyph's live red indicator at the configured middle-right target edge.",
       "summary": "ErrorGlyph is ErrorProvider's source-private retained visual and blink state machine. It renders caller imagery or the default error mark, exposes input-transparent alert semantics, gates animation on provider policy, presentation, occlusion, and reduced motion, and schedules only through the owning Window frame clock.",
       "methods": {
@@ -1019,19 +957,16 @@
     },
     "HelpRequestEvent": {
       "status": "OBSERVED: bundle 005 policy-free request value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing a help-enabled target; requests carry its identity, position, authored metadata, navigator, origin, and handled result.",
       "summary": "HelpRequestEvent is the mutable dispatch payload for policy-free help routing. It identifies the target and position, carries authored namespace/string/keyword/navigator metadata and keyboard origin, and lets a consumer mark the request handled."
     },
     "HelpProviderSnapshot": {
       "status": "OBSERVED: bundle 005 diagnostic value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing help-enabled targets summarized by total/effective mappings and request/handled counters.",
       "summary": "HelpProviderSnapshot is a deterministic diagnostic aggregate of authored mappings, effective mappings, total requests, and handled requests."
     },
     "HelpProvider": {
       "status": "OBSERVED: bundle 005 split and policy review; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing the help-enabled focus target; HelpProvider contributes semantic help text and F1 routing without opening external content.",
       "summary": "HelpProvider is a nonvisual, window-bound metadata and request router. It tokenizes per-control help strings, keywords, navigator policy, and explicit visibility; publishes semantic descriptions; owns an F1 accelerator; and emits policy-free requests that consumers or capability-gated plugins may handle. It never opens a browser, help file, or network resource itself.",
       "methods": {
@@ -1055,7 +990,6 @@
     },
     "DrawingSurface": {
       "status": "OBSERVED: bundle 006 split and background enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 Complete Showcase crop showing DrawingSurface recording a clipped, translated painter composition beside raster and material controls.",
       "summary": "DrawingSurface is the public owner-draw primitive for renderer-neutral application visuals. It retains one paint callback, explicit hit-test and semantic policy, and a caller-owned background while normal Control damage, display-list retention, and lifetime rules remain authoritative.",
       "methods": {
@@ -1069,7 +1003,6 @@
     },
     "MetricsView": {
       "status": "OBSERVED: bundle 006 split and accent-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/metrics_view.png",
       "capture_note": "M4 Complete Showcase crop showing the live retained-runtime metrics card and its configurable green accent rail.",
       "summary": "MetricsView is an input-transparent diagnostic control over Window's structured metrics snapshot. It formats bounded live counters into a retained card with caller-owned title/style/accent width and group semantics; it does not replace the snapshot as instrumentation authority.",
       "methods": {
@@ -1083,7 +1016,6 @@
     },
     "RasterCanvas": {
       "status": "OBSERVED: bundle 006 hierarchical move and transparency-cell enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 Complete Showcase crop showing RasterCanvas's transparency checker, nearest-neighbor zoom, crossed bitmap content, and canvas backplane.",
       "summary": "RasterCanvas is a retained viewport over an application-owned GUI.Drawing Bitmap. It owns resource publication/patch recovery, exact generation tracking, zoom/origin transforms, nearest or linear sampling, bounded background/checker customization, local damage projection, and image semantics; document tools, history, and selection remain outside the control.",
       "methods": {
@@ -1103,7 +1035,6 @@
     },
     "MaterialPanel": {
       "status": "OBSERVED: bundle 006 hierarchical move and material contract review; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 Complete Showcase crop showing retained nine-patch and tiled MaterialPanel specimens beside painter and raster surfaces.",
       "summary": "MaterialPanel is a content-agnostic Panel specialization that paints a validated SurfaceMaterial behind ordinary retained children. It verifies attached Window image identities/pixel sizes, publishes atomic material changes, and reports exact shadow/border outsets while material recipes retain all fill, pattern, border, radius, and shadow customization.",
       "methods": {
@@ -1115,43 +1046,36 @@
     },
     "InstrumentFieldSpec": {
       "status": "OBSERVED: bundle 006 instrument value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing choice/text field specs realized inside live criteria modules.",
       "summary": "InstrumentFieldSpec is caller-owned field identity, label, current value, editor family, choices, validation, proportional width, and required-state configuration."
     },
     "InstrumentModuleSpec": {
       "status": "OBSERVED: bundle 006 instrument value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing live, staged, enabled, removable module specifications.",
       "summary": "InstrumentModuleSpec is the authoritative caller model for one stable named module, its fields, status/state, priority, enablement, and removal policy."
     },
     "InstrumentFieldChange": {
       "status": "OBSERVED: bundle 006 event value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing editors whose staged or committed transitions carry module/field identities and old/new values.",
       "summary": "InstrumentFieldChange carries stable module and field identities, previous/current text, and whether the transition is a committed edit."
     },
     "InstrumentModuleToggle": {
       "status": "OBSERVED: bundle 006 event value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing module enable checkboxes represented by this typed event.",
       "summary": "InstrumentModuleToggle carries stable module identity and the committed enabled state."
     },
     "InstrumentModuleRequest": {
       "status": "OBSERVED: bundle 006 event value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing per-module removal controls represented by this request.",
       "summary": "InstrumentModuleRequest identifies the module for a caller-authorized action such as removal."
     },
     "InstrumentModuleMoveRequest": {
       "status": "OBSERVED: bundle 006 event value split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing ordered modules whose keyboard/semantic reorder request carries exact old and requested indices.",
       "summary": "InstrumentModuleMoveRequest carries stable module identity, previous index, and bounded requested index; the consumer remains ordering authority."
     },
     "PropertyConversionContext": {
       "status": "OBSERVED: bundle 006 conversion-policy split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing PropertyGrid formatting through an instance-owned conversion context.",
       "summary": "PropertyConversionContext is an inspector-local culture label, decimal/group separator policy, and grouping flag. It never mutates process locale, so two grids can format independently and deterministic tests remain stable.",
       "methods": {
@@ -1160,13 +1084,11 @@
     },
     "PropertyValueConverter": {
       "status": "OBSERVED: bundle 006 converter callback value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing numeric and color values formatted by registered converter callbacks.",
       "summary": "PropertyValueConverter is a renderer-neutral pair of formatting/parsing callbacks with optional context-aware variants. Formatting does not imply editability, and parsing still passes through descriptor conversion and value-tree validation."
     },
     "PropertyValueConverterRegistry": {
       "status": "OBSERVED: bundle 006 registry source split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing PropertyGrid's instance-owned invariant numeric and canonical color converters.",
       "summary": "PropertyValueConverterRegistry is an instance-owned deterministic service map from canonical names and BindingValueKind defaults to validated format/parse pairs. It bounds names and text, supports local conversion context, admits nullable/standard values, and has no process-global mutable descriptor table.",
       "methods": {
@@ -1185,25 +1107,21 @@
     },
     "PropertyEditorRequest": {
       "status": "OBSERVED: bundle 006 editor request value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing editors created from stable ID, property path, descriptor, current value, writeability, and topology metadata.",
       "summary": "PropertyEditorRequest is the complete immutable input to an editor factory: stable control identity, property path, inert descriptor, typed value, writeability, and top-level/compound position."
     },
     "PropertyEditorInputError": {
       "status": "OBSERVED: bundle 006 edit-error value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing retained text/color editors that report attempted text and explanatory failure.",
       "summary": "PropertyEditorInputError carries the exact attempted text and a user-facing validation message from a retained editor."
     },
     "PropertyEditorBinding": {
       "status": "OBSERVED: bundle 006 editor-binding value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing a registry-created ordinary control synchronized and subscribed through PropertyEditorBinding.",
       "summary": "PropertyEditorBinding bundles one unparented retained control with nonpublishing synchronization and tokenized commit/failure connection functions. PropertyList assumes ownership only after the registry validates all required seams."
     },
     "PropertyEditorRegistry": {
       "status": "OBSERVED: bundle 006 registry source split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing registry-created NumericUpDown and ColorValueEditor controls in the PropertyGrid.",
       "summary": "PropertyEditorRegistry is an instance-owned canonical service map from explicit editor names or value-kind defaults to retained-control factories. It validates returned ownership and synchronization seams, honors read-only policy, and supplies default numeric, flags, and color editors without a global mutable table.",
       "methods": {
@@ -1218,7 +1136,6 @@
     },
     "PropertyRowSpec": {
       "status": "OBSERVED: bundle 012 isolated authored-row declaration/definition; native and MinGW M4 builds pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing PropertyList rows represented by stable identity, text, editor, hierarchy, validation, and reset policy.",
       "summary": "PropertyRowSpec is the authored settings-row model: stable identity; name/value/description; stock editor/choices; validation; parent/depth disclosure; enable/required state; and reset capability.",
       "methods": {
@@ -1227,49 +1144,41 @@
     },
     "PropertyGroupSpec": {
       "status": "OBSERVED: bundle 006 authored-group value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing grouped Accessibility and Appearance rows with independent disclosure state.",
       "summary": "PropertyGroupSpec is a stable titled collection of PropertyRowSpec records plus retained expanded state."
     },
     "PropertyValueChange": {
       "status": "OBSERVED: bundle 006 event value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing row edits whose event carries stable row ID, previous/current text, and commit phase.",
       "summary": "PropertyValueChange carries stable authored row identity, previous/current text, and whether the transition is committed."
     },
     "PropertyGroupChange": {
       "status": "OBSERVED: bundle 006 event value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing grouped disclosure changes represented by stable group identity and expanded state.",
       "summary": "PropertyGroupChange carries stable group identity and committed disclosure state."
     },
     "PropertyRowExpansionChange": {
       "status": "OBSERVED: bundle 006 event value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing compound property rows whose disclosure transition is identified exactly.",
       "summary": "PropertyRowExpansionChange carries stable row identity and committed expanded state."
     },
     "PropertyResetRequest": {
       "status": "OBSERVED: bundle 006 event value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing per-row Reset buttons that emit this caller-authorized request.",
       "summary": "PropertyResetRequest identifies the stable authored row whose reset action the consumer must authorize."
     },
     "PropertyGridValueChange": {
       "status": "OBSERVED: bundle 006 typed-transaction event split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing typed commits carrying property name, previous/current BindingValue, value origin, and reset flag.",
       "summary": "PropertyGridValueChange is the post-transaction typed publication for a property edit or reset, including authoritative origin."
     },
     "PropertyGridEditError": {
       "status": "OBSERVED: bundle 006 edit-error value split; M4 build and focused tests pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing retained editors whose rejected transaction publishes exact property, attempted text, and message.",
       "summary": "PropertyGridEditError carries exact property path, attempted representation, and failure message after a rejected or rolled-back edit."
     },
     "PropertyList": {
       "status": "OBSERVED: bundle 006 control/Impl source split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing PropertyList as PropertyGrid's grouped, scroll-owning row surface with real editors, disclosures, and reset buttons.",
       "summary": "PropertyList is a lightweight retained settings/property surface over caller-authored stable groups and rows. It owns stock or replacement child editors, reset buttons, optional header content, one vertical scroll plane, validation/disclosure layout, focus reveal, typed events, renderer-neutral painting, and virtual semantics while consumers retain domain meaning.",
       "methods": {
@@ -1306,7 +1215,6 @@
     },
     "PropertyGrid": {
       "status": "OBSERVED: bundle 006 control/Impl source split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing a live metadata-driven PropertyGrid with groups, typed numeric/color editors, reset actions, and value-origin status.",
       "summary": "PropertyGrid is a metadata-driven retained inspector/editor over one or multiple selected Controls. It projects inert descriptors into PropertyList, instance-owned converters and editor factories, expands bounded compound and immutable collection values through stable paths, commits multi-owner edits atomically with rollback, preserves value origins/reset policy, and exposes the same real editors to pointer, accessibility, binding, and automation.",
       "methods": {
@@ -1343,7 +1251,6 @@
     },
     "FlagsValueEditor": {
       "status": "OBSERVED: bundle 006 split and overlay-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing the PropertyGrid service surface that owns the FlagsValueEditor; its overlay uses the same retained checked-list/focus-scope path verified on the M4.",
       "summary": "FlagsValueEditor is a compact retained editor for independent-bit enumeration values. It validates descriptor/value membership, formats canonical names, owns a source-private dismissal layer and real CheckedListBox overlay under Window overlay/focus-scope leases, synchronizes checks without feedback, commits typed values immediately, and exposes configurable overlay width.",
       "methods": {
@@ -1358,7 +1265,6 @@
     },
     "PropertyEditorDropDownLayer": {
       "status": "OBSERVED: bundle 006 source-private transient split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop of the owning PropertyGrid; PropertyEditorDropDownLayer supplies the full-client outside-click and Escape boundary for flags overlays.",
       "summary": "PropertyEditorDropDownLayer is FlagsValueEditor's source-private transient boundary. It owns no value state; it converts outside primary presses and Escape preview into a single dismissal event while the editor owns overlay and focus leases.",
       "methods": {
@@ -1369,7 +1275,6 @@
     },
     "ColorValueEditor": {
       "status": "OBSERVED: bundle 006 split and swatch-width enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/property_grid.png",
       "capture_note": "M4 Complete Showcase crop showing the live ForeColor row with checker-backed swatch and canonical #RRGGBBAA TextBox editor.",
       "summary": "ColorValueEditor is a retained compound editor that delegates selection, keyboard, clipboard, commit, and cancellation to a real TextBox while adding a checker-backed color swatch, canonical #RRGGBBAA conversion, bounded swatch width, typed change events, and exact invalid-edit feedback.",
       "methods": {
@@ -1551,7 +1456,6 @@
     "Window": {
       "status": "OBSERVED: bundle 007 retained-window hierarchy and lifecycle/dispatcher split; M4 macOS and MinGW builds, focused tests, and Screen Sharing pass",
       "method_scope": "all",
-      "capture": "captures/native_window_host.png",
       "capture_note": "M4 Screen Sharing crop of the real AppKit-hosted Complete Showcase after the lifecycle, dispatcher, host-session, and native-service split.",
       "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, overlays and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
       "methods": {
@@ -1567,7 +1471,6 @@
     },
     "UpdateScope": {
       "status": "OBSERVED: bundle 012 isolated update-transaction state owner; native and MinGW M4 builds pass",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The showcased retained tree is constructed and mutated through nested Window update transactions before host paint.",
       "summary": "UpdateScope is the move-only RAII token for one Window update-depth level; it guarantees balanced close and makes an explicit layout barrier available without opening a nested native loop.",
       "methods": {
@@ -1580,7 +1483,6 @@
     },
     "OverlayToken": {
       "status": "OBSERVED: bundle 007 token/attachment split; M4 build and focused tests pass",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The native-hosted retained window supplies the overlay ownership boundary represented by this token.",
       "summary": "OverlayToken is a move-only revocation handle for one Window-owned retained overlay root; dropping or disconnecting it closes the overlay through the same ordered state machine.",
       "methods": {
@@ -1594,7 +1496,6 @@
     },
     "AcceleratorToken": {
       "status": "OBSERVED: bundle 007 token/attachment split; M4 build and focused tests pass",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The showcased Window routes native keyboard events through retained control and accelerator arbitration.",
       "summary": "AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.",
       "methods": {
@@ -1629,7 +1530,6 @@
     "HostServices": {
       "status": "OBSERVED: bundle 007 portable service state-machine split and coalescing customization; M4 macOS/MinGW builds and focused tests pass",
       "method_scope": "all",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The M4 AppKit host supplies monitor, cursor, capture, clipboard, dialog, and semantic-sound services to this Window.",
       "summary": "HostServices centralizes portable thread, capability, UTF-8, size, modal-stack, semantic-sound, accounting, adapter-fault, and shutdown policy. Platform implementations provide only native operations, so behavioral gates remain identical headlessly, on AppKit, and on Win32.",
       "methods": {
@@ -1661,7 +1561,6 @@
     },
     "HostSession": {
       "status": "OBSERVED: bundle 007 lifecycle state-machine split; M4 macOS/MinGW builds and focused tests pass",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The captured AppKit window traversed constructed, attached, active, close-authorized, closed, and shutdown policy through this portable seam.",
       "summary": "HostSession is the foreign-boundary lifecycle machine between one native top-level presentation and one retained Window. It validates sequence, phase, geometry, typed drag payload, modal suppression, callback containment, close authorization, and terminal cleanup without admitting platform handles.",
       "methods": {
@@ -1716,7 +1615,6 @@
     "WindowsHostServices": {
       "status": "OBSERVED: bundle 007 Win32 service state-owner isolation; M4 MinGW build passes",
       "method_scope": "all",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The capture shows the equivalent AppKit consumer; WindowsHostServices implements the same portable contract and was cross-built on the M4.",
       "summary": "WindowsHostServices is the source-private Win32 adapter state owner. It binds one HWND internally, maps monitor/cursor/capture/clipboard/dialog/sound operations, and leaves all validation, modal policy, accounting, and shutdown ordering in HostServices.",
       "methods": {
@@ -1753,7 +1651,6 @@
     },
     "OverlayAttachment": {
       "status": "OBSERVED: bundle 007 source-private overlay attachment split; M4 build and focused tests pass",
-      "capture": "captures/native_window_host.png",
       "capture_note": "The captured Window owns retained overlay attachment even though this source-private state has no independent visual surface.",
       "summary": "OverlayAttachment is the source-private revocable edge among Window, weak owner, weak overlay root, and ordered close event.",
       "methods": {
@@ -1987,7 +1884,6 @@
     },
     "LiveSurfacePresentation": {
       "status": "OBSERVED: bundle 008 live compositor-placement review; focused M4 tests pass",
-      "capture": "captures/native_window_host.png",
       "capture_note": "M4 native Complete Showcase window proving the host surface into which clipped retained and live presentation lanes compose.",
       "summary": "LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment."
     },
@@ -2229,7 +2125,6 @@
     },
     "Theme": {
       "status": "OBSERVED: bundle 009 theme split; focused M4 tests and native showcase pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 native showcase crop proving layered materials and role-resolved retained visuals realized by the reviewed theme contract.",
       "method_scope": "all",
       "summary": "Theme is an immutable validated role/state recipe table plus structural spacing, geometry, typography, and motion tokens; it resolves logical visual context without exposing renderer or platform objects.",
@@ -2245,7 +2140,6 @@
     },
     "MaterialFillLayer": {
       "status": "OBSERVED: bundle 012 isolated material-fill declaration/definition; native and MinGW M4 builds pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 material demoboard showing solid, gradient, repeated, image, border, radius, and shadow realization.",
       "summary": "MaterialFillLayer is one renderer-neutral solid, gradient, or image recipe with explicit coordinate space, spread/wrap, source geometry, scale, and opacity.",
       "methods": {
@@ -2261,7 +2155,6 @@
     },
     "SurfaceMaterial": {
       "status": "OBSERVED: bundle 009 surface-material aggregate review; focused M4 tests pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 material demoboard proving bounded layered fills, borders, corner radii, and shadows.",
       "summary": "SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.",
       "methods": {
@@ -2482,7 +2375,6 @@
     },
     "Bitmap": {
       "status": "OBSERVED: bundle 009 bitmap lease/damage state-machine split; focused M4 tests pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 raster/material demoboard proving bitmap publication through GUI.Drawing and the retained GUI.Forms image path.",
       "method_scope": "all",
       "summary": "Bitmap owns bounded premultiplied pixel storage, stable identity and generation, exclusive read/write locks, rollback-capable rectangular edit leases, exact changed-byte damage derivation, bounded damage history, transforms, cloning, and immutable snapshots.",
@@ -2542,7 +2434,6 @@
     },
     "GraphicsRecorder": {
       "status": "OBSERVED: bundle 009 command-recorder state-machine split; focused M4 tests pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 demoboard proving recorded GUI.Drawing commands realized by the CPU-only Skia adapter.",
       "method_scope": "all",
       "summary": "GraphicsRecorder is a bounded thread-affine command transaction with explicit save-token stack discipline, retained transform/clip/quality state, validated resource snapshots, deterministic trace output, and a terminal close phase.",
@@ -2609,7 +2500,6 @@
     },
     "SkiaRaster": {
       "status": "OBSERVED: bundle 009 retained Skia raster split; focused M4 smoke and core tests pass",
-      "capture": "captures/drawing_raster_material.png",
       "capture_note": "M4 native material/raster showcase rendered through this CPU-only Skia Painter adapter.",
       "summary": "SkiaRaster is GUI.Forms' private CPU-only Painter terminal with explicit frame bounds, state stack, rounded clips/materials, PNG registry synchronization, live-surface sampling, fallback text through the bundled engine, and caller-readable BGRA output.",
       "methods": {
@@ -2905,7 +2795,7 @@
     "ControlValidationEvent": {"status": "OBSERVED: bundle 011 validation-state review", "summary": "ControlValidationEvent carries source, destination, bulk-validation intent, and mutable cancellation through one validation turn."},
     "LayoutTransactionState": {"status": "OBSERVED: bundle 011 layout-state review", "summary": "LayoutTransactionState exposes suspension depth, deferred work, and requested-versus-committed revisions without leaking a host layout engine."},
     "MnemonicText": {"status": "OBSERVED: bundle 011 command-text review", "summary": "MnemonicText separates rendered UTF-8 from the optional activation scalar parsed from Forms-compatible ampersand notation."},
-    "RetainedControl": {"name": "Control", "declaration_header": "include/gui_forms/control/control/control.hpp", "status": "OBSERVED: bundle 011 hierarchy-mirrored retained-control state-machine review", "capture": "captures/basic_controls_overview.png", "capture_note": "M4 Complete Showcase evidence for the retained root's layout, visibility, enabled, focus, paint, input, semantic, and child-tree services as exercised by concrete controls.", "summary": "Control is the retained visual root and invariant owner for stable/runtime identity, hierarchy, geometry, layout transactions, initialization batching, style/theme resolution, typed invalidation, input eligibility and routing hooks, validation, binding, semantic projection, dispatch, focus, lifetime, and provider extensions."},
+    "RetainedControl": {"name": "Control", "declaration_header": "include/gui_forms/control/control/control.hpp", "status": "OBSERVED: bundle 011 hierarchy-mirrored retained-control state-machine review", "capture_note": "M4 Complete Showcase evidence for the retained root's layout, visibility, enabled, focus, paint, input, semantic, and child-tree services as exercised by concrete controls.", "summary": "Control is the retained visual root and invariant owner for stable/runtime identity, hierarchy, geometry, layout transactions, initialization batching, style/theme resolution, typed invalidation, input eligibility and routing hooks, validation, binding, semantic projection, dispatch, focus, lifetime, and provider extensions."},
     "DeferredInitializationChange": {"status": "OBSERVED: bundle 011 initialization-state review", "summary": "DeferredInitializationChange holds one deduplicated event key and publication closure until the outermost initialization transaction commits."},
     "AnchorReference": {"status": "OBSERVED: bundle 011 anchor-layout review", "summary": "AnchorReference snapshots a child's arranged bounds and parent client rectangle so later resize anchoring is deterministic."},
     "SubscriptionToken": {"status": "OBSERVED: bundle 011 revocable-event review", "summary": "SubscriptionToken is the move-only RAII revocation handle for a retained Event slot; destruction and explicit disconnect are idempotent. It belongs to the deprecated subscribe(...) seam; new code observes events with on(event, owner, &Owner::method), which keeps its connection on the owner Component instead of a caller-held token."},

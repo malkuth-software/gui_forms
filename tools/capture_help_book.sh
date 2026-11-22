@@ -2,7 +2,7 @@
 # The help-book page captures (GAPS H5): the Gallery's headless capture
 # (`--page help-book --capture <png> --headless`, demo/gallery_headless_capture.hpp)
 # in the light and dark schemes at scales 1 and 2, written to
-# docs/library/captures/help_book_<scheme>_<scale>x.png.
+# <output>/help_book_<scheme>_<scale>x.png (default .build/help-book-captures, outside the documentation).
 #
 #   tools/capture_help_book.sh <gallery executable> [output directory]
 #
@@ -13,7 +13,7 @@ set -eu
 
 gallery=${1:?usage: tools/capture_help_book.sh <gallery executable> [output directory]}
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-output=${2:-"$root/docs/library/captures"}
+output=${2:-"$root/.build/help-book-captures"}
 mkdir -p "$output"
 test -x "$gallery"
 
