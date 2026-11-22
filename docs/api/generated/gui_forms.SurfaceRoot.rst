@@ -532,6 +532,10 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`cancel_frame_requests <gui_forms::SurfaceRoot::cancel_frame_requests>`
         -  
+      * - :cpp:func:`note_presentation_completed <gui_forms::SurfaceRoot::note_presentation_completed>`
+        - Called by a host whose system reports no display timing, on the window's thread, with the time each presentation completed (a copy presenter's flush, a vertical-blank waiter's wake).
+      * - :cpp:func:`reset_presentation_estimate <gui_forms::SurfaceRoot::reset_presentation_estimate>`
+        - Forgets the completions noted so far (the window moved to another display); the timing held stays until the next measured report.
       * - :cpp:func:`shutdown_dispatcher <gui_forms::SurfaceRoot::shutdown_dispatcher>`
         - Stops accepting posted work and cancels everything still queued.
       * - :cpp:func:`load_png <gui_forms::SurfaceRoot::load_png>`
@@ -1486,6 +1490,14 @@ gui_forms::SurfaceRoot
    .. cpp:function:: FramePollResult poll_frame_schedule(FrameTime now)
 
    .. cpp:function:: void cancel_frame_requests()
+
+   .. cpp:function:: bool note_presentation_completed(FrameTime completed)
+
+      Called by a host whose system reports no display timing, on the window's thread, with the time each presentation completed (a copy presenter's flush, a vertical-blank waiter's wake). The completions feed a DisplayTimingEstimator; once it reports, the measured timing is set (set_display_timing) while the window's timing is assumed, nominal or measured, so a display or fixed timing is never overridden. Returns whether a timing was set. Throws std::logic_error off the window's thread.
+
+   .. cpp:function:: void reset_presentation_estimate() noexcept
+
+      Forgets the completions noted so far (the window moved to another display); the timing held stays until the next measured report.
 
    .. cpp:function:: void shutdown_dispatcher() noexcept
 

@@ -2633,6 +2633,7 @@ using gui_forms::lend_paint_text;
 using gui_forms::line_box_metrics;
 using gui_forms::link_flow_mark_colour;
 using gui_forms::link_flow_wants_frames;
+using gui_forms::live_display_timing;
 using gui_forms::load_app_font_family;
 using gui_forms::locale_field_count;
 using gui_forms::locale_field_name;

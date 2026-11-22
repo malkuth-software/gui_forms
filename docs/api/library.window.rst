@@ -89,6 +89,8 @@ Related types
      - DisplayChunkInfo exposes immutable generation, paint plane, logical bounds, and command count for one retained recording without exposing its private commands.
    * - :cpp:class:`DisplayTiming <gui_forms::DisplayTiming>`
      - One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k.
+   * - :cpp:class:`DisplayTimingEstimator <gui_forms::DisplayTimingEstimator>`
+     - Display timing measured from the times a host's presentations completed, for a host whose system reports no timing (design note frame-source, section 4): an X11 copy presenter without Present, the shared single-surface manager, a vertical-blank waiter that stamps each refresh.
    * - :cpp:class:`FocusedControlChange <gui_forms::FocusedControlChange>`
      - Focus moved from one control to another (or to or from none) through request_focus.
    * - :cpp:class:`FocusScopeChange <gui_forms::FocusScopeChange>`
@@ -955,6 +957,40 @@ Related types
    .. cpp:member:: DisplayTimingSource source
 
       Default: ``{DisplayTimingSource::assumed}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DisplayTimingEstimator final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   Display timing measured from the times a host's presentations completed, for a host whose system reports no timing (design note frame-source, section 4): an X11 copy presenter without Present, the shared single-surface manager, a vertical-blank waiter that stamps each refresh. The period is the median of the last 16 intervals between completions; once three are known, an interval longer than 1.75 periods counts as that many whole refreshes (the window drew nothing in between) when it is within a tenth of a whole number of them, and is dropped otherwise. The timing is reported, phased at the latest completion, once 8 of the intervals agree with the median within a tenth. One instance per window, on its thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t interval_count() const noexcept
+
+      The intervals held, at most interval_capacity.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::Optional<DisplayTiming> take(FrameTime completed) noexcept
+
+      Takes a presentation that completed at ``completed``. Returns measured timing (DisplayTimingSource::measured) once the intervals agree, and nothing before. A completion within minimum_refresh_period of the last is ignored (two stamps for one refresh); one after a gap longer than maximum_refresh_period (the window rested) starts the next interval from it, keeping the intervals; one earlier than the last (another clock, a reset presenter) forgets every interval and starts again.
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets every completion (the window moved to another display).
+
+   .. cpp:member:: constexpr std::size_t interval_capacity
+
+      The intervals the median is taken over, and how many of them must agree with it before a timing is reported. Default: ``16U``.
+
+   .. cpp:member:: constexpr std::size_t agreeing_intervals
+
+      Default: ``8U``.
 
 .. cpp:namespace:: gui_forms
 

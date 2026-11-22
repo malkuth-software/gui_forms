@@ -189,6 +189,20 @@ bool SurfaceRoot::set_display_timing(const DisplayTiming& timing) {
     return true;
 }
 
+bool SurfaceRoot::note_presentation_completed(FrameTime completed) {
+    require_root_thread("presentation completion");
+    const stxlib::Optional<DisplayTiming> measured = presentation_estimator_.take(completed);
+    if (measured.absent()) return false;
+    const DisplayTimingSource held = display_timing_.source;
+    const bool replaceable = held == DisplayTimingSource::assumed || held == DisplayTimingSource::nominal ||
+        held == DisplayTimingSource::measured;
+    if (!replaceable) return false;
+    const bool result = set_display_timing(*measured.value());
+    return result;
+}
+
+void SurfaceRoot::reset_presentation_estimate() noexcept { presentation_estimator_.reset(); }
+
 bool SurfaceRoot::wants_display_frames() const noexcept {
     if (occluded_) return false;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {

@@ -391,7 +391,7 @@ void IndicatorLamp::begin_change() {
     if (on) power_ = engine_light::lamp_power(true, 0.0, false);
     const std::shared_ptr<IndicatorLamp> self = std::dynamic_pointer_cast<IndicatorLamp>(shared_from_this());
     if (!self) return;
-    change_timer_.start(*this, display_frame_interval, ChangeTick{self});
+    change_timer_.start_every_frame(*this, ChangeTick{self});
 }
 
 AnimationTickResult IndicatorLamp::advance(FrameTime now) {

@@ -328,7 +328,7 @@ void ExpandableSections::start_reveal(Entry& item, const bool open) {
     if (reveal_frames_.started()) return;
     const std::shared_ptr<ExpandableSections> self =
         std::static_pointer_cast<ExpandableSections>(shared_from_this());
-    reveal_frames_.start(*this, display_frame_interval, RevealTick{self});
+    reveal_frames_.start_every_frame(*this, RevealTick{self});
 }
 
 AnimationTickResult ExpandableSections::RevealTick::operator()(FrameTime now) const {

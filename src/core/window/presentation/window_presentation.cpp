@@ -1188,6 +1188,10 @@ PaintLeaseSnapshot SurfaceRoot::paint_lease_snapshot() const noexcept {
             dirty_after_render_};
 }
 
+void Window::report_live_surface_shown(LiveSurface& surface, const std::uint64_t generation) const noexcept {
+    surface.notify_presented(generation, live_display_timing(display_timing(), FrameClock::now()));
+}
+
 void Window::note_live_surface_presented(const LiveSurfacePresentation& presentation, const Rect presented) {
     InvalidationOverlay* const overlay = invalidation_overlay();
     if (overlay == nullptr) return;

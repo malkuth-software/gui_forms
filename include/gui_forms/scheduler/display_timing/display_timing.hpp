@@ -3,7 +3,9 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 
+#include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 
 #include <stxlib/optional.hpp>
@@ -106,6 +108,48 @@ private:
     // refreshes on is taken.
     Stamp next_anchor_{};
     Stamp last_{};
+    bool primed_{};
+};
+
+// Display timing measured from the times a host's presentations completed,
+// for a host whose system reports no timing (design note frame-source,
+// section 4): an X11 copy presenter without Present, the shared
+// single-surface manager, a vertical-blank waiter that stamps each refresh.
+// The period is the median of the last 16 intervals between completions;
+// once three are known, an interval longer than 1.75 periods counts as that
+// many whole refreshes (the window drew nothing in between) when it is
+// within a tenth of a whole number of them, and is dropped otherwise. The
+// timing is reported, phased at the latest completion, once 8 of the
+// intervals agree with the median within a tenth. One instance per window,
+// on its thread.
+class GUI_FORMS_API DisplayTimingEstimator final {
+public:
+    // The intervals the median is taken over, and how many of them must
+    // agree with it before a timing is reported.
+    static constexpr std::size_t interval_capacity = 16U;
+    static constexpr std::size_t agreeing_intervals = 8U;
+
+    // Takes a presentation that completed at `completed`. Returns measured
+    // timing (DisplayTimingSource::measured) once the intervals agree, and
+    // nothing before. A completion within minimum_refresh_period of the last
+    // is ignored (two stamps for one refresh); one after a gap longer than
+    // maximum_refresh_period (the window rested) starts the next interval
+    // from it, keeping the intervals; one earlier than the last (another
+    // clock, a reset presenter) forgets every interval and starts again.
+    [[nodiscard]] stxlib::Optional<DisplayTiming> take(FrameTime completed) noexcept;
+    // Forgets every completion (the window moved to another display).
+    void reset() noexcept;
+    // The intervals held, at most interval_capacity.
+    [[nodiscard]] std::size_t interval_count() const noexcept { return count_; }
+
+private:
+    [[nodiscard]] FrameInterval median() const noexcept;
+
+    std::array<FrameInterval, interval_capacity> intervals_{};
+    std::size_t count_{};
+    // The slot the next interval is written to (a ring once full).
+    std::size_t next_{};
+    FrameTime last_{};
     bool primed_{};
 };
 

@@ -1079,6 +1079,18 @@ public:
     // link running while this holds and may pause it once it does not; it is
     // false whenever the window is at rest.
     [[nodiscard]] bool wants_display_frames() const noexcept;
+    // Called by a host whose system reports no display timing, on the
+    // window's thread, with the time each presentation completed (a copy
+    // presenter's flush, a vertical-blank waiter's wake). The completions
+    // feed a DisplayTimingEstimator; once it reports, the measured timing is
+    // set (set_display_timing) while the window's timing is assumed, nominal
+    // or measured, so a display or fixed timing is never overridden. Returns
+    // whether a timing was set. Throws std::logic_error off the window's
+    // thread.
+    bool note_presentation_completed(FrameTime completed);
+    // Forgets the completions noted so far (the window moved to another
+    // display); the timing held stays until the next measured report.
+    void reset_presentation_estimate() noexcept;
     // Host adapters also install a paint wake seam. Retained invalidation may
     // originate from another Window's callback, so relying only on the host
     // currently dispatching input can strand valid dirty state indefinitely.
@@ -3198,6 +3210,9 @@ private:
     // latest presentation time a poll handed to its frames, which the next
     // never precedes.
     DisplayTiming display_timing_{};
+    // Measures the timing from noted presentation completions
+    // (note_presentation_completed).
+    DisplayTimingEstimator presentation_estimator_{};
     FrameTime last_presentation_time_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};

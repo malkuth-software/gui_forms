@@ -1269,6 +1269,7 @@ __ZGVZN9gui_forms22DataGridViewCellsParts*
 __ZGVZN9gui_forms22DataGridViewRowHeights*
 __ZGVZN9gui_forms22DateTimeFormatProvider*
 __ZGVZN9gui_forms22DispatchCancelledError*
+__ZGVZN9gui_forms22DisplayTimingEstimator*
 __ZGVZN9gui_forms22EffectInstanceCounters*
 __ZGVZN9gui_forms22ExpressionDependencies*
 __ZGVZN9gui_forms22FirstFrameShowSnapshot*
@@ -2959,6 +2960,7 @@ __ZGVZNK9gui_forms22DataGridViewCellsParts*
 __ZGVZNK9gui_forms22DataGridViewRowHeights*
 __ZGVZNK9gui_forms22DateTimeFormatProvider*
 __ZGVZNK9gui_forms22DispatchCancelledError*
+__ZGVZNK9gui_forms22DisplayTimingEstimator*
 __ZGVZNK9gui_forms22EffectInstanceCounters*
 __ZGVZNK9gui_forms22ExpressionDependencies*
 __ZGVZNK9gui_forms22FirstFrameShowSnapshot*
@@ -5074,6 +5076,8 @@ __ZN9gui_forms19host_sound_cue_nameB*
 __ZN9gui_forms19host_sound_cue_nameE*
 __ZN9gui_forms19is_stock_icon_imageB*
 __ZN9gui_forms19is_stock_icon_imageE*
+__ZN9gui_forms19live_display_timingB*
+__ZN9gui_forms19live_display_timingE*
 __ZN9gui_forms19locale_record_emptyB*
 __ZN9gui_forms19locale_record_emptyE*
 __ZN9gui_forms19locale_record_fieldB*
@@ -5501,6 +5505,7 @@ __ZN9gui_forms22DataGridViewCellsParts*
 __ZN9gui_forms22DataGridViewRowHeights*
 __ZN9gui_forms22DateTimeFormatProvider*
 __ZN9gui_forms22DispatchCancelledError*
+__ZN9gui_forms22DisplayTimingEstimator*
 __ZN9gui_forms22EffectInstanceCounters*
 __ZN9gui_forms22ExpressionDependencies*
 __ZN9gui_forms22FirstFrameShowSnapshot*
@@ -8051,6 +8056,7 @@ __ZNK[RO]9gui_forms22DataGridViewCellsParts*
 __ZNK[RO]9gui_forms22DataGridViewRowHeights*
 __ZNK[RO]9gui_forms22DateTimeFormatProvider*
 __ZNK[RO]9gui_forms22DispatchCancelledError*
+__ZNK[RO]9gui_forms22DisplayTimingEstimator*
 __ZNK[RO]9gui_forms22EffectInstanceCounters*
 __ZNK[RO]9gui_forms22ExpressionDependencies*
 __ZNK[RO]9gui_forms22FirstFrameShowSnapshot*
@@ -9741,6 +9747,7 @@ __ZN[KRO]9gui_forms22DataGridViewCellsParts*
 __ZN[KRO]9gui_forms22DataGridViewRowHeights*
 __ZN[KRO]9gui_forms22DateTimeFormatProvider*
 __ZN[KRO]9gui_forms22DispatchCancelledError*
+__ZN[KRO]9gui_forms22DisplayTimingEstimator*
 __ZN[KRO]9gui_forms22EffectInstanceCounters*
 __ZN[KRO]9gui_forms22ExpressionDependencies*
 __ZN[KRO]9gui_forms22FirstFrameShowSnapshot*
@@ -11431,6 +11438,7 @@ __ZT[VIST]N9gui_forms22DataGridViewCellsParts*E
 __ZT[VIST]N9gui_forms22DataGridViewRowHeights*E
 __ZT[VIST]N9gui_forms22DateTimeFormatProvider*E
 __ZT[VIST]N9gui_forms22DispatchCancelledError*E
+__ZT[VIST]N9gui_forms22DisplayTimingEstimator*E
 __ZT[VIST]N9gui_forms22EffectInstanceCounters*E
 __ZT[VIST]N9gui_forms22ExpressionDependencies*E
 __ZT[VIST]N9gui_forms22FirstFrameShowSnapshot*E
@@ -13121,6 +13129,7 @@ __ZT[hvc]*9gui_forms22DataGridViewCellsParts*
 __ZT[hvc]*9gui_forms22DataGridViewRowHeights*
 __ZT[hvc]*9gui_forms22DateTimeFormatProvider*
 __ZT[hvc]*9gui_forms22DispatchCancelledError*
+__ZT[hvc]*9gui_forms22DisplayTimingEstimator*
 __ZT[hvc]*9gui_forms22EffectInstanceCounters*
 __ZT[hvc]*9gui_forms22ExpressionDependencies*
 __ZT[hvc]*9gui_forms22FirstFrameShowSnapshot*
@@ -14811,6 +14820,7 @@ __ZZN9gui_forms22DataGridViewCellsParts*
 __ZZN9gui_forms22DataGridViewRowHeights*
 __ZZN9gui_forms22DateTimeFormatProvider*
 __ZZN9gui_forms22DispatchCancelledError*
+__ZZN9gui_forms22DisplayTimingEstimator*
 __ZZN9gui_forms22EffectInstanceCounters*
 __ZZN9gui_forms22ExpressionDependencies*
 __ZZN9gui_forms22FirstFrameShowSnapshot*
@@ -16501,6 +16511,7 @@ __ZZNK9gui_forms22DataGridViewCellsParts*
 __ZZNK9gui_forms22DataGridViewRowHeights*
 __ZZNK9gui_forms22DateTimeFormatProvider*
 __ZZNK9gui_forms22DispatchCancelledError*
+__ZZNK9gui_forms22DisplayTimingEstimator*
 __ZZNK9gui_forms22EffectInstanceCounters*
 __ZZNK9gui_forms22ExpressionDependencies*
 __ZZNK9gui_forms22FirstFrameShowSnapshot*

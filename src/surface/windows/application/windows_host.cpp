@@ -7,6 +7,7 @@
 #include "../services/windows_cursor.hpp"
 #include "../services/windows_notify_icons.hpp"
 #include "../compositor/windows_compositor.hpp"
+#include "../display/windows_vblank_clock.hpp"
 #include "../input/windows_key_translation.hpp"
 #include "../input/windows_message_queue.hpp"
 #include "../locale/windows_locale.hpp"
@@ -1715,6 +1716,9 @@ public:
         (*title_state_).window = nullptr;
         (*size_state_).host = nullptr;
         accessibility_.detach();
+        // The vertical-blank thread reads nothing of the window, but goes
+        // first: it outlives no state it was started with.
+        vblank_clock_.stop();
         // The modal live clock posts to the window: stop it first.
         if (modal_live_clock_ != nullptr) {
             stop_modal_live_clock();
@@ -1764,6 +1768,10 @@ public:
             return false;
         }
         hwnd_ = window;
+        // The monitors DWM does not time are timed by their own vertical
+        // blanks (report_display_timing); without DXGI they keep their mode
+        // rate.
+        static_cast<void>(vblank_clock_.start());
         scale_ = options_.scale_override > 0.0 ? options_.scale_override : query_scale(window);
         const gui_forms::detail::BundledFontLocation font_location = bundled_font_location();
         std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = load_bundled_fonts(font_location);
@@ -3084,7 +3092,9 @@ private:
         }
         // DWM reports the primary display's timing only (a window handle is
         // refused since Windows 8.1). A window on another display with a
-        // different refresh rate takes that display's period, at the
+        // different refresh rate takes the timing the window holds for its
+        // own monitor (report_display_timing: its vertical blanks, phased,
+        // or its mode rate) and otherwise that display's mode period, at the
         // cadence's own phase (audit N64).
         const LONGLONG window_period = window_monitor_period();
         if (window_period > 0 && (window_period * 100 < period * 99 || window_period * 100 > period * 101)) {
@@ -3092,6 +3102,19 @@ private:
             anchor = live_clock_deadline_ != 0 ? live_clock_deadline_ : now.QuadPart;
             live_timing_vblank_ = anchor;
             live_timing_source_ = LiveTimingSource::fallback;
+            const DisplayTiming held = (*model_).display_timing();
+            const LONGLONG held_period = held.paced() ? qpc_ticks(held.refresh_period) : 0;
+            if (held_period > 0 && held.source != DisplayTimingSource::nominal) {
+                // The latest presentation at or before now, in counter ticks.
+                const FrameTime steady_now = FrameClock::now();
+                const FrameTime latest =
+                    next_on_grid(held.presentation_phase, held.refresh_period, steady_now) - held.refresh_period;
+                period = held_period;
+                live_timing_vblank_ = now.QuadPart - qpc_ticks(steady_now - latest);
+                anchor = live_timing_vblank_ + period / 2;
+                live_timing_source_ = held.source == DisplayTimingSource::display ? LiveTimingSource::display_phased
+                                                                                 : LiveTimingSource::phased_timer;
+            }
         }
         live_timing_period_ = period;
         LONGLONG earliest = now.QuadPart + 1;
@@ -3116,10 +3139,13 @@ private:
     // on the display's refreshes and are drawn for the time they are shown:
     // DWM's composition timing (display timing, phased at its vertical
     // blank) where the window is on the primary display or on one of the
-    // same rate; the window's monitor's mode rate where it is on another
-    // display (nominal timing, at the phase already held, or now); nothing
-    // (the model keeps what it holds, assumed at first) where neither is
-    // known. A refused report changes nothing.
+    // same rate; elsewhere the window's own monitor's vertical blanks, as
+    // the DXGI vertical-blank thread measured them (display timing), and
+    // until those agree, or without DXGI, the monitor's mode rate (nominal
+    // timing, at the phase already held, or now); nothing (the model keeps
+    // what it holds, assumed at first) where none is known. The thread is
+    // wanted only while the window wants display frames on such a monitor.
+    // A refused report changes nothing.
     void report_display_timing() {
         if (hwnd_ == nullptr || qpc_frequency_ <= 0) return;
         LARGE_INTEGER now{};
@@ -3133,7 +3159,11 @@ private:
         const LONGLONG window_period = window_monitor_period();
         const bool other_rate = window_period > 0 && (!composed || window_period * 100 < composed_period * 99 ||
                                                       window_period * 100 > composed_period * 101);
-        if (composed && !other_rate) {
+        const bool dwm_times = composed && !other_rate;
+        const HMONITOR monitor = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST);
+        const bool frames_wanted = (*model_).wants_display_frames() || (*model_).has_live_surface_presentations();
+        vblank_clock_.want(monitor, frames_wanted && !dwm_times);
+        if (dwm_times) {
             const FrameInterval period = std::chrono::duration_cast<FrameInterval>(
                 std::chrono::nanoseconds(qpc_nanoseconds(composed_period)));
             const LONGLONG since_vblank = now.QuadPart - static_cast<LONGLONG>(timing.qpcVBlank);
@@ -3141,6 +3171,11 @@ private:
                 std::chrono::nanoseconds(qpc_nanoseconds(since_vblank)));
             const DisplayTiming reported = DisplayTiming::reported(DisplayTimingSource::display, period, vblank);
             static_cast<void>((*model_).set_display_timing(reported));
+            return;
+        }
+        const stxlib::Optional<DisplayTiming> blanks = vblank_clock_.timing(monitor);
+        if (blanks.present()) {
+            static_cast<void>((*model_).set_display_timing(*blanks.value()));
             return;
         }
         if (!other_rate) return;
@@ -3188,6 +3223,17 @@ private:
             std::chrono::nanoseconds(qpc_nanoseconds(now.QuadPart - live_timing_vblank_)));
         timing.source = live_timing_source_;
         return timing;
+    }
+
+    // A frame-clock interval as QueryPerformanceCounter ticks, split so
+    // that a long interval does not overflow.
+    [[nodiscard]] LONGLONG qpc_ticks(FrameInterval interval) const noexcept {
+        const LONGLONG nanoseconds =
+            static_cast<LONGLONG>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count());
+        const LONGLONG seconds = nanoseconds / 1'000'000'000LL;
+        const LONGLONG remainder = nanoseconds % 1'000'000'000LL;
+        const LONGLONG ticks = seconds * qpc_frequency_ + remainder * qpc_frequency_ / 1'000'000'000LL;
+        return ticks;
     }
 
     // QueryPerformanceCounter ticks as nanoseconds, split so that a long
@@ -4509,6 +4555,9 @@ private:
     LONGLONG live_timing_vblank_{};
     LONGLONG live_timing_period_{};
     LiveTimingSource live_timing_source_{LiveTimingSource::none};
+    // The vertical blanks of a monitor DWM does not time
+    // (report_display_timing); stopped first in the destructor.
+    windows_detail::WindowsVBlankClock vblank_clock_;
     DwmCompositionTimingFunction dwm_composition_timing_{};
     bool live_frame_due_{};
     // An inline composition is open in the model (audit N61): the last

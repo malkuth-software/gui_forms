@@ -1,6 +1,9 @@
 #include "gui_forms/scheduler/display_timing/display_timing.hpp"
 
+#include <algorithm>
+#include <array>
 #include <chrono>
+#include <cstddef>
 
 namespace gui_forms {
 
@@ -117,6 +120,83 @@ void RefreshCounterTiming::reset() noexcept {
     next_anchor_ = Stamp{};
     last_ = Stamp{};
     primed_ = false;
+}
+
+namespace {
+
+// Whether `interval` lies within a tenth of `period`.
+bool within_a_tenth(FrameInterval interval, FrameInterval period) noexcept {
+    const FrameInterval difference = interval > period ? interval - period : period - interval;
+    const bool result = difference * 10 <= period;
+    return result;
+}
+
+// The intervals an estimator needs before it judges a long one against the
+// median.
+constexpr std::size_t judged_after = 3U;
+
+} // namespace
+
+stxlib::Optional<DisplayTiming> DisplayTimingEstimator::take(FrameTime completed) noexcept {
+    stxlib::Optional<DisplayTiming> result;
+    if (!primed_) {
+        last_ = completed;
+        primed_ = true;
+        return result;
+    }
+    if (completed < last_) {
+        reset();
+        last_ = completed;
+        primed_ = true;
+        return result;
+    }
+    FrameInterval interval = completed - last_;
+    // Two stamps for one refresh: the earlier one stays the interval's start.
+    if (interval < minimum_refresh_period) return result;
+    last_ = completed;
+    // The window rested: this completion starts the next interval.
+    if (interval > maximum_refresh_period) return result;
+    if (count_ >= judged_after) {
+        const FrameInterval period = median();
+        // Longer than 1.75 periods: whole refreshes the window drew nothing
+        // in, or a stall that is not on the grid.
+        if (interval * 4 > period * 7) {
+            const FrameInterval::rep refreshes = (interval + period / 2) / period;
+            const FrameInterval each = interval / refreshes;
+            if (!within_a_tenth(each, period)) return result;
+            interval = each;
+        }
+    }
+    intervals_[next_] = interval;
+    next_ = (next_ + 1U) % interval_capacity;
+    if (count_ < interval_capacity) count_ = count_ + 1U;
+    if (count_ < agreeing_intervals) return result;
+    const FrameInterval period = median();
+    std::size_t agreeing = 0U;
+    for (std::size_t index = 0U; index < count_; ++index) {
+        if (within_a_tenth(intervals_[index], period)) agreeing = agreeing + 1U;
+    }
+    if (agreeing < agreeing_intervals) return result;
+    if (period < minimum_refresh_period || period > maximum_refresh_period) return result;
+    result.set(DisplayTiming::reported(DisplayTimingSource::measured, period, completed));
+    return result;
+}
+
+void DisplayTimingEstimator::reset() noexcept {
+    intervals_ = std::array<FrameInterval, interval_capacity>{};
+    count_ = 0U;
+    next_ = 0U;
+    last_ = FrameTime{};
+    primed_ = false;
+}
+
+FrameInterval DisplayTimingEstimator::median() const noexcept {
+    std::array<FrameInterval, interval_capacity> sorted = intervals_;
+    const std::size_t middle = count_ / 2U;
+    std::nth_element(sorted.begin(), sorted.begin() + static_cast<std::ptrdiff_t>(middle),
+                     sorted.begin() + static_cast<std::ptrdiff_t>(count_));
+    const FrameInterval result = sorted[middle];
+    return result;
 }
 
 } // namespace gui_forms

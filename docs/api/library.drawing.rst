@@ -4664,6 +4664,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>`` (:src:`source <include/gui_forms/live_surface/pacer/live_surface_pacer.hpp>`)
+
+.. cpp:function:: LiveDisplayTiming live_display_timing(const DisplayTiming& timing, FrameTime now) noexcept
+
+   The live display timing a presenter reports for a window that holds ``timing`` (SurfaceRoot::display_timing), at ``now``: the display's own timing as display_phased, a measured, nominal or fixed rate as phased_timer, each with its period and the latest presentation at or before ``now`` as the vertical blank; nothing (source none: the pacer's 60 Hz fallback, frames for the time they are made) for assumed timing. Hosts report it with each presentation (LiveSurface::notify_presented), so a producer paces to the same frame source as the window's own motion.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
 .. cpp:function:: LiveSurfacePixelFormat native_live_surface_pixel_format() noexcept
