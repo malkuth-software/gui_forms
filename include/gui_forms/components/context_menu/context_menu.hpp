@@ -150,6 +150,14 @@ private:
     void set_root_navigation_handler(std::function<bool(int)> handler);
     void set_outside_pointer_handler(
         std::function<bool(const PointerEvent&)> handler);
+    // For the ribbon's two-pane application menu, which opens this menu as
+    // its submenu and follows the menu rule itself: how many pointer moves
+    // the menu's rows have taken (every opening together; a change across
+    // a rest means the pointer reached the menu), and the face of the open
+    // panel at `depth` in the owner's client coordinates (none while closed
+    // or past the deepest panel).
+    [[nodiscard]] std::uint64_t pointer_moves_over_rows() const noexcept;
+    [[nodiscard]] stxlib::Optional<Rect> panel_face(std::size_t depth) const noexcept;
 
     std::string stable_id_;
     std::vector<MenuItemSpec> items_;

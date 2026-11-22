@@ -2621,16 +2621,9 @@ private:
             pointer.hover_origin = SettingOrigin::host;
         }
         pointer.native_hover = true;
-        // The menu show delay (SPI_GETMENUSHOWDELAY): how long a submenu
-        // row is rested on before its submenu opens (a DWORD, by the
-        // parameter's documentation); 0 is legal (at once).
-        DWORD menu_show = 0U;
-        if (SystemParametersInfoW(SPI_GETMENUSHOWDELAY, 0U, &menu_show, 0U) != FALSE) {
-            std::uint32_t delay = static_cast<std::uint32_t>(menu_show);
-            if (delay > maximum_menu_show_milliseconds) delay = maximum_menu_show_milliseconds;
-            pointer.menu_show_milliseconds = delay;
-            pointer.menu_show_origin = SettingOrigin::host;
-        }
+        // The menu show delay is GUI.Forms' own, 300 ms on every host
+        // (owner, 2026-11-22): SPI_GETMENUSHOWDELAY is not read, and the
+        // window keeps the delay it has (HostInputSettingsEvent).
         // The caret's blink phase (audit N75): INFINITE means the user
         // turned blinking off; 0 is a failed read, which keeps the default.
         const UINT blink = GetCaretBlinkTime();

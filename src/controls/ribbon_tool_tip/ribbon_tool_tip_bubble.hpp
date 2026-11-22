@@ -46,10 +46,22 @@ struct RibbonToolTipLayout final {
 };
 
 // Lays out `content` with `measurer`'s effective fonts and text provider,
-// wrapping the description and reason within `maximum_width` logical units.
+// wrapping the description (beside the image) at `wrap_width` logical units
+// and the reason as wide as the description's column reaches; the face is
+// as wide as its widest line, title row included, inside the margins.
 [[nodiscard]] RibbonToolTipLayout layout_ribbon_tool_tip(const Control& measurer,
                                                          const RibbonToolTipBubbleContent& content,
-                                                         double maximum_width);
+                                                         double wrap_width);
+
+// Lays out `content` at the wrap width the tooltip width rule picks
+// (tool_tip_width.hpp), as every tooltip is sized: a description and
+// reason whose widest paragraph fits the one-line width stay on one line
+// per paragraph; longer text wraps to the measured candidate whose face
+// comes nearest the golden box. `cap` and `room` bound the face's text
+// (room ignored when not positive), in logical units.
+[[nodiscard]] RibbonToolTipLayout fit_ribbon_tool_tip(const Control& measurer,
+                                                      const RibbonToolTipBubbleContent& content, double cap,
+                                                      double room);
 
 // The overlay of one enhanced tooltip: input-transparent, unfocusable, and
 // painted by role from its layout.

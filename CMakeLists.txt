@@ -771,6 +771,7 @@ add_library(gui_forms_core STATIC
     src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/tool_tips/tool_tip_width.cpp
     src/core/window/toasts/toast_presenter.cpp
     src/core/window/toasts/window_toasts.cpp
     src/core/window/tool_tips/tool_tip_subjects.cpp

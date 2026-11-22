@@ -194,6 +194,9 @@ private:
                  stxlib::Optional<std::chrono::milliseconds> duration);
     // Places the bubble that shows; false when the Splash window refused it.
     bool position(Showing& showing);
+    // The width the work area leaves for a bubble of `subject`, in logical
+    // units (the tooltip width rule's room; tool_tip_width.hpp).
+    [[nodiscard]] double wrap_room(const ToolTipSubject& subject);
     // Raises `change` (none raises nothing) and keeps its storage as the
     // spare the next open or close writes into.
     void raise(std::optional<ToolTipEvent> change);

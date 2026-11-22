@@ -1593,7 +1593,7 @@ Related types
 
    ``#include <gui_forms/window/presentation/input_settings.hpp>`` (:src:`source <include/gui_forms/window/presentation/input_settings.hpp>`)
 
-   The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off. - menu_show_milliseconds: how long the pointer rests on a menu row before its submenu opens, or before an open submenu of another row closes (Windows SPI_GETMENUSHOWDELAY; X11 and macOS publish none, so their hosts leave the default).
+   The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off. - menu_show_milliseconds: how long the pointer rests on a menu row before its submenu opens, or before an open submenu of another row closes. GUI.Forms' own, the same on every host (default_menu_show_milliseconds, origin default_value); no host reports it, and a host's input settings report leaves the value the program set (Application or Window set_presentation_settings) as it is.
 
    .. cpp:member:: double drag_width
 
@@ -2088,7 +2088,7 @@ Related types
 
    ``#include <gui_forms/window/tool_tips/tool_tips.hpp>`` (:src:`source <include/gui_forms/window/tool_tips/tool_tips.hpp>`)
 
-   How a window's one tooltip presenter behaves (owner, 2026-10-28). Every window has one presenter; it shows the plain tooltip text of controls (Control::tool_tip_text) and of authored parts (the semantic tool_tip of a strip item or a tab header). The ToolTip component sets these through the window it was made for. - initial_delay: how long the pointer rests over a thing, or keyboard focus stays on it, before its tooltip shows. - reshow_delay: the rest that shows the next tooltip while the pointer moves on from one that showed, within initial_delay of its closing. - auto_pop_delay: how long a tooltip stays; zero keeps it until the pointer leaves its thing, a press, or focus moves. - maximum_width: the widest a tooltip's text runs before it wraps, in logical units, from 80 to 2048. - show_on_hover and show_on_focus: whether a resting pointer, and keyboard focus, show tooltips. - show_when_disabled: whether a disabled control's or item's tooltip shows.
+   How a window's one tooltip presenter behaves (owner, 2026-10-28). Every window has one presenter; it shows the plain tooltip text of controls (Control::tool_tip_text) and of authored parts (the semantic tool_tip of a strip item or a tab header). The ToolTip component sets these through the window it was made for. - initial_delay: how long the pointer rests over a thing, or keyboard focus stays on it, before its tooltip shows. - reshow_delay: the rest that shows the next tooltip while the pointer moves on from one that showed, within initial_delay of its closing. - auto_pop_delay: how long a tooltip stays; zero keeps it until the pointer leaves its thing, a press, or focus moves. - maximum_width: the widest a tooltip's text may wrap to, in logical units, from 80 to 2048. Below it every tooltip's width follows its text (owner, 2026-11-22): text whose widest paragraph fits 24 ems of the tooltip's font stays on one line per paragraph, and longer text wraps to the measured width, no narrower than 16 ems, whose face comes nearest a golden-ratio box (width about 1.618 times height), within the work area. The default leaves the width to that rule. - show_on_hover and show_on_focus: whether a resting pointer, and keyboard focus, show tooltips. - show_when_disabled: whether a disabled control's or item's tooltip shows.
 
    .. cpp:member:: std::chrono::milliseconds initial_delay
 
@@ -2104,7 +2104,7 @@ Related types
 
    .. cpp:member:: double maximum_width
 
-      Default: ``{336.0}``.
+      Default: ``{2048.0}``.
 
    .. cpp:member:: bool show_on_hover
 
@@ -3828,7 +3828,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::uint32_t default_menu_show_milliseconds
 
-   How long the pointer rests on a menu's submenu row before its submenu opens, or on another row before an open submenu closes, where the host reports none: Windows' own default for SPI_GETMENUSHOWDELAY. A perceptual duration, in milliseconds; 0 opens and closes at once. Value: ``400U``.
+   How long the pointer rests on a menu's submenu row before its submenu opens, or on another row before an open submenu closes: 300 ms on every host, Windows included (owner, 2026-11-22: "feeling native and feeling consistent are two different things"). No host reads a platform setting for it (Windows' SPI_GETMENUSHOWDELAY is not read); a program may set another through its presentation settings. A perceptual duration, in milliseconds; 0 opens and closes at once. Value: ``300U``.
 
 .. cpp:var:: constexpr std::uint32_t maximum_menu_show_milliseconds
 

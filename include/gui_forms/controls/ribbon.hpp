@@ -1113,6 +1113,16 @@ private:
     // when `keyboard`; false when the item has no children or the ribbon
     // has no window.
     bool open_application_submenu(const MenuItemSpec& item, const Control& panel, Rect row, bool keyboard);
+    // The two-pane panel's top-left corner in the owner's client
+    // coordinates (the lifted panel's face, or the overlay's place).
+    [[nodiscard]] Point application_panel_origin(const Control& panel) const;
+    // The open two-pane submenu's face in the owner's client coordinates,
+    // or none; and the count of pointer moves the ribbon's menu has taken
+    // over its rows (ContextMenu::pointer_moves_over_rows).
+    [[nodiscard]] stxlib::Optional<Rect> application_submenu_face() const noexcept;
+    [[nodiscard]] std::uint64_t application_submenu_pointer_moves() const noexcept;
+    // The ribbon's menu's outside pointer handler (ribbon_file_area.cpp).
+    bool on_menu_outside_pointer(const PointerEvent& event);
     void place_backstage();
     void on_backstage_close_requested();
     void on_backstage_revoked();
