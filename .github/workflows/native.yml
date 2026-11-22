@@ -35,10 +35,6 @@ on:
         description: Build the native jobs with no compiler cache or object seed, validating afresh, and skip the programs (one cold-build measurement)
         type: boolean
         default: false
-      windows_test_pch:
-        description: Windows diagnostic, validating afresh, with the tests' shared precompiled headers back on (off on Windows), to catch a silent build with the resource sampler (projects desk WINDOWS_CI_30MIN.md)
-        type: boolean
-        default: false
       run_sanitizers:
         description: Run the whole suite under ASan, UBSan and LSan (the Sanitizers job runs only when requested)
         type: boolean
@@ -338,9 +334,10 @@ jobs:
           echo "CCACHE_DIR=$PWD/.ccache" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$PWD" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
-          # The test programs share precompiled headers
-          # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
-          # reads one only with these two relaxations.
+          # These relaxations served the tests' shared precompiled headers,
+          # which went to gui_forms_tests with the tests (its tests.yml keeps
+          # the same setting). Nothing here compiles a precompiled header or
+          # reads __DATE__ or __TIME__, so they change nothing; kept equal.
           echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=2G" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
@@ -552,11 +549,10 @@ jobs:
       runner: windows-2022
       platform: windows-x64
       shell: 'msys2 {0}'
-      force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || inputs.windows_test_pch == true || github.event_name == 'schedule' }}
+      force_validation: ${{ inputs.force_validation == true || inputs.cold_build == true || github.event_name == 'schedule' }}
       cold_build: ${{ inputs.cold_build == true }}
       package_windows_toolchain: ${{ inputs.package_windows_toolchain == true }}
       docs_only: ${{ needs.changes.outputs.docs_only == 'true' }}
-      windows_test_pch: ${{ inputs.windows_test_pch == true }}
     permissions:
       contents: write
       actions: read

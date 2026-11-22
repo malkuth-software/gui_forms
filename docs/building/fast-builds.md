@@ -102,12 +102,11 @@ one relative to the other and compilations miss.
 Two arguments are not paths `ccache` knows how to rewrite, so the build keeps
 them free of the checkout's location. The localizable-literal plugin's source
 root goes to the compiler relative to the build tree under Ninja
-(`cmake/LocalizablePlugin.cmake`), and the test programs that share a
-precompiled header run `ccache` with `sloppiness=pch_defines,time_macros` as a
-leading argument (`cmake/TestPrecompiledHeader.cmake`). Without that sloppiness
-`ccache` refuses every unit that reads a precompiled header. These settings
-come from CMake, so a local build tree caches the same units as CI whatever
-its shell exports.
+(`cmake/LocalizablePlugin.cmake`). (The test programs, which share
+precompiled headers and run `ccache` with `sloppiness=pch_defines,time_macros`
+as a leading argument, are gui_forms_tests' now, with its
+`cmake/TestPrecompiledHeader.cmake`.) These settings come from CMake, so a
+local build tree caches the same units as CI whatever its shell exports.
 
 `ccache` also rewrites the paths in each object's dependency file, relative to
 the compiler's real working directory. With the build tree behind a symlink,
@@ -170,11 +169,9 @@ deletes the generations each save supersedes.
 
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
 path or timestamp. The only sloppiness options are the two a precompiled header
-needs: the test programs share one per group of programs with equal options
-(`cmake/TestPrecompiledHeader.cmake`), which takes most of the test sources' parse
-time away; the daily build compiles the tests without it
-(`GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF`), so each test still includes what it
-uses. Most test programs link the toolkit's libraries through one static test
+needs. This tree compiles none since the tests moved to gui_forms_tests, whose
+programs share one per group with equal options; the workflows keep the same
+setting as that repository's, where it matters. Most test programs link the toolkit's libraries through one static test
 runtime (`cmake/TestRuntime.cmake`); it was a shared library, which relinked
 once per library change, until no shared object of ours could carry the static
 C++ runtime (one module), so a library change relinks each program that uses

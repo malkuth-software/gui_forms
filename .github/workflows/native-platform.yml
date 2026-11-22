@@ -32,10 +32,6 @@ on:
         description: A documentation-only pull request (tools/ci_docs_only.py) builds nothing
         type: boolean
         default: false
-      windows_test_pch:
-        description: Windows only, a diagnostic run that compiles the tests with the shared precompiled headers again (they are off on Windows), to catch a silent build with the resource sampler
-        type: boolean
-        default: false
 permissions:
   contents: read
   actions: read
@@ -287,9 +283,10 @@ jobs:
           echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
-          # The test programs share precompiled headers
-          # (cmake/TestPrecompiledHeader.cmake): ccache caches a compile that
-          # reads one only with these two relaxations.
+          # These relaxations served the tests' shared precompiled headers,
+          # which went to gui_forms_tests with the tests (its tests.yml keeps
+          # the same setting). Nothing here compiles a precompiled header or
+          # reads __DATE__ or __TIME__, so they change nothing; kept equal.
           echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
           # One full tree's objects are 0.9 to 1.2 GB; a smaller limit evicts
           # during the build (the check efficiency audit, 2b). The saved cache is
