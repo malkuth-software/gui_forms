@@ -35,6 +35,73 @@ struct EntryWiderThan final {
     bool operator()(const RibbonLadderEntry& entry, double width) const noexcept { return entry.width > width; }
 };
 
+// How many rows `layout` stacks for `group`: one per compact or hosted
+// command, a command beside the one before it continuing that row (the
+// Windows Ribbon Framework's control groups stay together). Large commands
+// and galleries are columns of their own and stack no rows.
+std::size_t row_count(const RibbonGroupSpec& group, const RibbonGroupLayout& layout) noexcept {
+    std::size_t rows = 0U;
+    bool previous_in_row = false;
+    for (std::size_t index = 0; index < group.commands.size(); ++index) {
+        const RibbonCommandSpec& command = group.commands[index];
+        const bool gallery = command.kind == RibbonCommandKind::gallery;
+        const bool large = !hosted(command.kind) && ribbon_detail::layout_command_size(layout, command, index) ==
+                                                        RibbonCommandSize::large;
+        const bool in_row = !gallery && !large;
+        if (in_row && !(command.beside_previous && previous_in_row)) ++rows;
+        previous_in_row = in_row;
+    }
+    return rows;
+}
+
+// Automatic compaction (RIBBON_SCALING_STUDY.md §1.1 and §5.4; owner
+// decisions 5, 6 and 27): from the last layout in `layouts`, the group
+// shrinks by image size, then by rows, then into its collapsed button.
+// Image size: step by step, the rightmost run of up to three large
+// button-family commands becomes compact (after WPF's default size
+// definitions, with labels kept). Rows: while the compact and hosted
+// commands fill more rows than a column stacks, each step stacks one more
+// row, up to three (placement still starts a new column for a field's
+// label that would end one, so a label stays above its field). Last, the
+// collapsed button, except for a group of one
+// command (UX7), which takes no automatic step at all. A step never drops a
+// label or a command.
+void append_compaction(const RibbonGroupSpec& group, std::vector<RibbonGroupLayout>& layouts) {
+    const std::size_t count = group.commands.size();
+    if (count <= 1U || layouts.empty()) return;
+    const RibbonGroupLayout& last = layouts.back();
+    std::vector<RibbonCommandSize> sizes;
+    sizes.reserve(count);
+    for (std::size_t index = 0; index < count; ++index) {
+        sizes.push_back(ribbon_detail::layout_command_size(last, group.commands[index], index));
+    }
+    RibbonGroupSize size = last.size;
+    const std::size_t authored_rows = last.rows;
+    for (;;) {
+        std::size_t end = count;
+        while (end > 0U && !convertible(group.commands[end - 1U], sizes[end - 1U])) --end;
+        if (end == 0U) break;
+        std::size_t converted = 0U;
+        std::size_t index = end;
+        while (index > 0U && converted < rows_per_column && convertible(group.commands[index - 1U], sizes[index - 1U])) {
+            sizes[index - 1U] = RibbonCommandSize::compact;
+            --index;
+            ++converted;
+        }
+        size = size == RibbonGroupSize::large ? RibbonGroupSize::medium : RibbonGroupSize::compact;
+        layouts.push_back(RibbonGroupLayout{size, sizes, authored_rows});
+    }
+    std::size_t rows = authored_rows;
+    while (rows < rows_per_column) {
+        RibbonGroupLayout packed{RibbonGroupSize::compact, sizes, rows};
+        if (row_count(group, packed) <= rows) break;
+        packed.rows = rows + 1U;
+        layouts.push_back(std::move(packed));
+        rows += 1U;
+    }
+    layouts.push_back(RibbonGroupLayout{RibbonGroupSize::collapsed, {}, rows});
+}
+
 stxlib::Optional<std::size_t> gallery_of(const RibbonGroupSpec& group) noexcept {
     for (std::size_t command = 0; command < group.commands.size(); ++command) {
         if (group.commands[command].kind == RibbonCommandKind::gallery) {
@@ -93,42 +160,21 @@ std::vector<RibbonGroupLayout> prepare_group_layouts(const RibbonGroupSpec& grou
         }
         // A group never vanishes (RIBBON_SCALING_STUDY §1.1: shrink, then
         // the collapsed button, then scrolling): authored layouts that stop
-        // short of the collapsed button gain it as their last step, except
-        // for a group of one command, which never collapses (UX7).
+        // short of the collapsed button continue by automatic compaction
+        // (image size, rows, then the collapsed button), except for a group
+        // of one command, which never shrinks or collapses (UX7). Layouts
+        // that end in the collapsed button are the author's whole ladder.
         std::vector<RibbonGroupLayout> authored = group.layouts;
         const bool ends_collapsed = authored.back().size == RibbonGroupSize::collapsed;
-        if (!ends_collapsed && count > 1U) {
-            authored.push_back(RibbonGroupLayout{RibbonGroupSize::collapsed, {}, authored.back().rows});
-        }
+        if (!ends_collapsed) append_compaction(group, authored);
         return authored;
     }
-    // Generated: the commands' own sizes first; then, step by step, the
-    // rightmost run of up to three large commands becomes small (after WPF's
-    // default size definitions, with labels kept); last, the collapsed
-    // button, except for a group of one command (UX7).
+    // Generated: the commands' own sizes first, then automatic compaction
+    // (append_compaction): image size, rows, the collapsed button. The
+    // first layout stacks three rows, so generated groups take no row step.
     std::vector<RibbonGroupLayout> layouts;
     layouts.push_back(RibbonGroupLayout{RibbonGroupSize::large, {}, rows_per_column});
-    if (count <= 1U) return layouts;
-    std::vector<RibbonCommandSize> sizes;
-    sizes.reserve(count);
-    for (const RibbonCommandSpec& command : group.commands) sizes.push_back(command.size);
-    bool first_conversion = true;
-    for (;;) {
-        std::size_t end = count;
-        while (end > 0U && !convertible(group.commands[end - 1U], sizes[end - 1U])) --end;
-        if (end == 0U) break;
-        std::size_t converted = 0U;
-        std::size_t index = end;
-        while (index > 0U && converted < rows_per_column && convertible(group.commands[index - 1U], sizes[index - 1U])) {
-            sizes[index - 1U] = RibbonCommandSize::compact;
-            --index;
-            ++converted;
-        }
-        const RibbonGroupSize size = first_conversion ? RibbonGroupSize::medium : RibbonGroupSize::compact;
-        layouts.push_back(RibbonGroupLayout{size, sizes, rows_per_column});
-        first_conversion = false;
-    }
-    layouts.push_back(RibbonGroupLayout{RibbonGroupSize::collapsed, {}, rows_per_column});
+    append_compaction(group, layouts);
     return layouts;
 }
 

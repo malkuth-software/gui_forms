@@ -613,6 +613,7 @@ void Ribbon::abandon_definition(HostedCarryOver& carried) noexcept {
     pressed_launcher_.reset();
     pressed_group_.reset();
     pressed_tab_.reset();
+    held_tab_.reset();
     pressed_scroll_ = Hit::Kind::none;
     stop_.reset();
     ++content_generation_;
@@ -682,6 +683,7 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     pressed_command_.reset();
     pressed_launcher_.reset();
     pressed_group_.reset();
+    held_tab_.reset();
     pressed_scroll_ = Hit::Kind::none;
     stop_.reset();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -904,9 +906,15 @@ bool Ribbon::command_visible(const RibbonCommandSpec& command) const {
     return result;
 }
 
+// A toggle's checked state, and a button's or split's whose Command is
+// checked: an application marks its selected tool on the tool's own button
+// or split (Paint's Select, Fill and Eraser are splits). Before, only a
+// toggle published `checked`, so a selected tool on a split never showed
+// its state (owner, 2026-11-22).
 bool Ribbon::command_checked(const RibbonCommandSpec& command) const {
-    const bool result = command.kind == RibbonCommandKind::toggle && command.command &&
-                        (*command.command).state().checked;
+    const bool checkable = command.kind == RibbonCommandKind::toggle || command.kind == RibbonCommandKind::button ||
+                           command.kind == RibbonCommandKind::split;
+    const bool result = checkable && command.command && (*command.command).state().checked;
     return result;
 }
 
@@ -1387,7 +1395,7 @@ AnatomyStateSet Ribbon::tab_states(std::size_t tab) const {
 }
 
 // The states a tab's hover layer is painted in (paint_tab): the tab's hot
-// and disabled states only.
+// and disabled states only (paint_tab adds `pressed` while the tab is held).
 AnatomyStateSet Ribbon::hover_layer_states(AnatomyStateSet states) noexcept {
     AnatomyStateSet result;
     if (states.contains(AnatomyState::hot)) result.insert(AnatomyState::hot);
@@ -1586,10 +1594,14 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     // (#CFE2FA in a 1-unit #6384B2 border), which then covered the selected
     // tab's face (Plan Paint finding 2 on 7c9c931: the selected tool tab
     // drawn as a bordered box). At rest the family recipe is clear.
+    // A tab held under the pointer adds `pressed` to its layer alone, so
+    // the rise shows the dithered dent (rendering reference §2) while the
+    // face keeps its own states.
     const double taper = shaped ? std::clamp(metrics.taper * effective_text_scale(), 0.0, parts.tab_hover.bounds.width) : 0.0;
     const Rect hover = parts.tab_hover.bounds;
     part.bounds = {hover.x, hover.y, hover.width - taper, hover.height};
     part.states = hover_layer_states(states);
+    if (holds(held_tab_, tab) && states.contains(AnatomyState::hot)) part.states.insert(AnatomyState::pressed);
     part.key.set(PartKey{"tab_hover", id, {}});
     paint_part(painter, *this, part);
     part.states = states;
@@ -2040,13 +2052,24 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
             static_cast<void>(show_application_menu(MenuOpenMode::pointer));
         }
     } else if (hit.kind == Hit::Kind::tab) {
+        // The held tab's hover layer shows the dithered dent until the
+        // release (rendering reference §2, "Pressed is a dent").
+        if (selectable(hit.index)) {
+            held_tab_.set(hit.index);
+            repaint_part(Hit::Kind::tab, hit.index, {});
+        }
         // On the press (Office's way), or, while tabs_activate_on_release
         // holds, on the release over the same tab.
+        const Control::Ptr lifetime = shared_from_this();
         if (tabs_activate_on_release.read()) {
             if (selectable(hit.index)) pressed_tab_.set(hit.index);
         } else {
             click_tab(hit.index);
         }
+        // Selecting a tab clears the hot part (select_tab); tabs never move
+        // sideways on selection, so the tab under the held pointer is hot
+        // again and its dent shows until the release.
+        if (is_alive() && holds(held_tab_, hit.index) && hot_.kind == Hit::Kind::none) set_hot(hit);
     } else if (hit.kind == Hit::Kind::help) {
         help_pressed_ = true;
         repaint_part(hit.kind, hit.index, hit.command);
@@ -2092,6 +2115,10 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
 // A primary release on `hit`: a click is a press and release on the same
 // part.
 void Ribbon::release(const Hit& hit, PointerEvent& event) {
+    const stxlib::Optional<std::size_t> held_tab = held_tab_;
+    held_tab_.reset();
+    const std::size_t* const released_tab = held_tab.value();
+    if (released_tab != nullptr && *released_tab < tabs_.size()) repaint_part(Hit::Kind::tab, *released_tab, {});
     const stxlib::Optional<CommandAddress> pressed_held = pressed_command_;
     const CommandAddress* const pressed = pressed_held.value();
     const CommandZone zone = pressed_zone_;
@@ -3082,8 +3109,9 @@ void Ribbon::append_group_node(SemanticNode& parent, const Layout& placed, std::
         node.bounds = to_window(absolute, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (command_enabled(item)) node.states |= SemanticState::enabled;
-        if (item.kind == RibbonCommandKind::toggle) node.states |= SemanticState::checkable;
-        if (command_checked(item)) node.states |= SemanticState::checked;
+        const bool checked = command_checked(item);
+        if (item.kind == RibbonCommandKind::toggle || checked) node.states |= SemanticState::checkable;
+        if (checked) node.states |= SemanticState::checked;
         if (holds(open_command_, address)) node.states |= SemanticState::expanded;
         const bool own_focus = focused_ && holds(stop_, stop);
         const bool overlay_focus = overlay_focused_ && holds(overlay_stop_, stop);

@@ -11,7 +11,10 @@ namespace gui_forms::engine_primitives {
 // language §3.5). The plane itself swells: a lit slope toward the upper-left
 // light, a shaded slope away from it and a faint crown, each a field
 // 1 − t^q over its own ellipse. There is no edge of any kind. `pressed`
-// turns the bulge into a dent and `active_tool` draws it in gold.
+// turns the bulge into a dent (swapped centres, reference §2 "Pressed is a
+// dent"); `active_tool`, or the `gold` parameter at 0.5 or more, draws it in
+// gold, the selected look (reference §2 "Active tool"), which the built-in
+// rules give a checked ribbon command and a selected gallery item.
 //
 // Both primitives take `amplitude`, a number in [0, 1] (default 1) that
 // multiplies the relief: 0 is the flat plane and draws nothing, 1 is the

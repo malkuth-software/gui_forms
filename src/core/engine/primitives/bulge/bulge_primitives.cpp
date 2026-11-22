@@ -123,6 +123,16 @@ void clear_destination(const PartRasterView& destination) noexcept {
 const PartRole painted_roles[] = {PartRole::face};
 const AnatomyState read_states[] = {AnatomyState::pressed, AnatomyState::active_tool};
 
+// Whether the bulge is drawn in gold (reference §2, "Active tool"): the
+// part is the active tool, or a rule sets the `gold` parameter, which the
+// built-in rules do for a checked ribbon command and a selected gallery
+// item (the selected look; ledger R12). `gold` is a number so that a rule
+// sets it with an ordinary value; half or more is gold.
+bool gold_variant(const PrimitiveTarget& target, double gold) noexcept {
+    const bool result = target.states.contains(AnatomyState::active_tool) || gold >= 0.5;
+    return result;
+}
+
 // -- the smooth form -----------------------------------------------------------
 
 enum SmoothParameter : std::size_t {
@@ -140,6 +150,7 @@ enum SmoothParameter : std::size_t {
     smooth_gold_shade_peak,
     smooth_gold_crown_colour,
     smooth_gold_crown_peak,
+    smooth_gold,
     smooth_parameter_count,
 };
 
@@ -160,6 +171,7 @@ const PrimitiveParameterDeclaration smooth_parameters[] = {
     {"gold_shade_peak", PrimitiveParameterKind::number, 0.0, 1.0, 0.30, {}},
     {"gold_crown_colour", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 214, 110, 255}},
     {"gold_crown_peak", PrimitiveParameterKind::number, 0.0, 1.0, 0.45, {}},
+    {"gold", PrimitiveParameterKind::number, 0.0, 1.0, 0.0, {}},
 };
 static_assert(sizeof(smooth_parameters) / sizeof(smooth_parameters[0]) == smooth_parameter_count);
 
@@ -230,6 +242,7 @@ enum DitheredParameter : std::size_t {
     dithered_gold_shaded_1,
     dithered_gold_shaded_2,
     dithered_gold_shaded_3,
+    dithered_gold,
     dithered_parameter_count,
 };
 
@@ -254,6 +267,7 @@ const PrimitiveParameterDeclaration dithered_parameters[] = {
     {"gold_shaded_1", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {232, 172, 62, 255}},
     {"gold_shaded_2", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {206, 142, 40, 255}},
     {"gold_shaded_3", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {170, 112, 24, 255}},
+    {"gold", PrimitiveParameterKind::number, 0.0, 1.0, 0.0, {}},
 };
 static_assert(sizeof(dithered_parameters) / sizeof(dithered_parameters[0]) == dithered_parameter_count);
 
@@ -496,7 +510,7 @@ void BulgePrimitive::fill(const PrimitiveParameterBlock& parameters, const Primi
                           std::span<const double>, const PartRasterView& destination) const noexcept {
     // Choose the variant and read every parameter before the pixel loop.
     const bool dent = target.states.contains(AnatomyState::pressed);
-    const bool gold = target.states.contains(AnatomyState::active_tool);
+    const bool gold = gold_variant(target, parameters.values[smooth_gold].number);
     const double amplitude = parameters.values[smooth_amplitude].number;
     const double exponent = parameters.values[smooth_exponent].number;
     const BulgeFields fields = bulge_fields(target.logical_size, dent);
@@ -581,7 +595,7 @@ void DitheredBulgePrimitive::fill(const PrimitiveParameterBlock& parameters, con
 
     // Choose the variant and read every parameter before the lattice loop.
     const bool dent = target.states.contains(AnatomyState::pressed);
-    const bool gold = target.states.contains(AnatomyState::active_tool);
+    const bool gold = gold_variant(target, parameters.values[dithered_gold].number);
     const ToneGains gains = tone_gains(parameters);
     const BulgeFields fields = bulge_fields(target.logical_size, dent);
     const DitherPalette palette{palette_steps(parameters, dithered_lit_1), palette_steps(parameters, dithered_shaded_1),
