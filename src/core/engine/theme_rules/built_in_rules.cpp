@@ -51,6 +51,21 @@ PropertyTransition ribbon_rise() {
     return rise;
 }
 
+// The selected look stands (rendering reference §2, "Active tool"): a
+// checked command or a selected gallery item shows its bulge at full
+// amplitude at rest as under the pointer, rising there by the same follow
+// curve when it becomes checked and falling by the hover's machine when it
+// no longer is.
+PropertyTransition selected_stands() {
+    PropertyTransition stand{};
+    stand.property = "amplitude";
+    PresentationState shown{};
+    shown.target = 1.0;
+    stand.states.push_back(shown);
+    stand.curve = MotionCurve::follow();
+    return stand;
+}
+
 ThemeRule built_in_rule(std::string label, std::string_view control_type, std::string_view part) {
     ThemeRule rule{};
     rule.label = std::move(label);
@@ -70,18 +85,31 @@ void add_dithered_rise(ThemeRuleSheet& sheet, std::string_view control_type, std
     sheet.rules.push_back(std::move(rise));
 }
 
+// A part that shows `state` (a checked command, a selected gallery item)
+// in the dithered bulge's gold, standing at full amplitude (ledger R12;
+// rendering reference §2 and §3, "Active tool"). Pressed, it is the gold
+// dent: the primitive reads `pressed` in every variant. Before this rule a
+// checked command took the menu-item family's plate, which is clear at rest
+// in the stock theme, and a selected gallery item took the hover rise
+// alone: neither showed its state (owner, 2026-11-22).
+void add_selected_gold(ThemeRuleSheet& sheet, std::string_view control_type, std::string_view part,
+                       AnatomyState state) {
+    ThemeRule gold = built_in_rule("ribbon_gold:" + std::string(part), control_type, part);
+    gold.selector.states.push_back(state);
+    gold.declarations.push_back(RuleDeclaration::primitive("dithered_bulge"));
+    gold.declarations.push_back(RuleDeclaration::number_value("gold", 1.0));
+    gold.transitions.push_back(selected_stands());
+    sheet.rules.push_back(std::move(gold));
+}
+
 // A ribbon part that takes the dithered button (RB decision 23: the large
-// elements that conventionally show a hover square), and the states in
-// which it keeps today's plate: a checked toggle and an open menu are told
-// apart by the plate, which the bulge alone would not show.
+// elements that conventionally show a hover square): the rise, a dent while
+// pressed (the primitive reads `pressed`), the gold bulge while checked, and
+// today's plate while its menu is open, which the bulge alone would not
+// tell apart.
 void add_ribbon_button(ThemeRuleSheet& sheet, std::string_view part, bool checkable) {
     add_dithered_rise(sheet, "ribbon", part);
-    if (checkable) {
-        ThemeRule checked = built_in_rule("ribbon_checked:" + std::string(part), "ribbon", part);
-        checked.selector.states.push_back(AnatomyState::checked);
-        checked.declarations.push_back(RuleDeclaration::primitive(built_in_primitive_name));
-        sheet.rules.push_back(std::move(checked));
-    }
+    if (checkable) add_selected_gold(sheet, "ribbon", part, AnatomyState::checked);
     ThemeRule open = built_in_rule("ribbon_open:" + std::string(part), "ribbon", part);
     open.selector.states.push_back(AnatomyState::open);
     open.declarations.push_back(RuleDeclaration::primitive(built_in_primitive_name));
@@ -117,6 +145,7 @@ ThemeRuleSheet make_built_in_rules() {
     // tab's own face (a theme's tab rules choose the face's material, so the
     // rise cannot be the face itself).
     add_dithered_rise(sheet, "ribbon_gallery", "item_face");
+    add_selected_gold(sheet, "ribbon_gallery", "item_face", AnatomyState::selected);
     add_dithered_rise(sheet, "ribbon", "tab_hover");
     add_menu_item(sheet);
     // The tiles' plates are engine primitives (E8): the pill plate, the gold

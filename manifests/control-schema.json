@@ -45,7 +45,8 @@
           {"name": "gold_shade_colour", "kind": "colour", "default": "#be8219ff", "animated": false},
           {"name": "gold_shade_peak", "kind": "number", "minimum": 0, "maximum": 1, "default": 0.3, "animated": false},
           {"name": "gold_crown_colour", "kind": "colour", "default": "#ffd66eff", "animated": false},
-          {"name": "gold_crown_peak", "kind": "number", "minimum": 0, "maximum": 1, "default": 0.45, "animated": false}
+          {"name": "gold_crown_peak", "kind": "number", "minimum": 0, "maximum": 1, "default": 0.45, "animated": false},
+          {"name": "gold", "kind": "number", "minimum": 0, "maximum": 1, "default": 0, "animated": false}
         ]
       },
       {
@@ -76,7 +77,8 @@
           {"name": "gold_body_3", "kind": "colour", "default": "#ffe8b2ff", "animated": false},
           {"name": "gold_shaded_1", "kind": "colour", "default": "#e8ac3eff", "animated": false},
           {"name": "gold_shaded_2", "kind": "colour", "default": "#ce8e28ff", "animated": false},
-          {"name": "gold_shaded_3", "kind": "colour", "default": "#aa7018ff", "animated": false}
+          {"name": "gold_shaded_3", "kind": "colour", "default": "#aa7018ff", "animated": false},
+          {"name": "gold", "kind": "number", "minimum": 0, "maximum": 1, "default": 0, "animated": false}
         ]
       },
       {
