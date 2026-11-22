@@ -15,6 +15,9 @@ gui_forms::SevenSegmentDisplay
 
    A segmented numeric readout: a row of cells in which each character of the reading lights the bars of a seven-segment display, as a meter, clock or instrument panel shows a value.
 
+   .. gf-preview:: controls/seven_segment_display
+      :alt: A SevenSegmentDisplay as the stock specimen shows it, in the windows-professional theme.
+
    The reading is right-aligned in :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>` cells, or in as many cells as
    it needs when :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>` is zero. Digits, the hexadecimal letters, the
    other letters a seven-segment cell can form, ``-``, ``_``, ``=``, the degree
@@ -24,9 +27,6 @@ gui_forms::SevenSegmentDisplay
    counter does, and :cpp:func:`overflowed <gui_forms::SevenSegmentDisplay::overflowed>` reports it. Use a :cpp:class:`Label <gui_forms::Label>` for text that is
    not a reading, and a :cpp:class:`LinearGauge <gui_forms::LinearGauge>` or :cpp:class:`RadialGauge <gui_forms::RadialGauge>` to show a value against
    a scale.
-
-   .. gf-preview:: controls/seven_segment_display
-      :alt: A SevenSegmentDisplay as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

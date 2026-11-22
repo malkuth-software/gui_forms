@@ -15,6 +15,9 @@ gui_forms::LinearGauge
 
    A bar gauge: the value filling a straight scale from the minimum, with scale marks, alarm segments and the value as text.
 
+   .. gf-preview:: controls/linear_gauge
+      :alt: A LinearGauge as the stock specimen shows it, in the windows-professional theme.
+
    The bar runs along the gauge's ``orientation``: left to right, or bottom to
    top. Scale marks lie beside it every ``tick_frequency``; the alarm ranges (the
    minimum to ``low_alarm``, and ``high_alarm`` to the maximum) are alarm segments
@@ -24,9 +27,6 @@ gui_forms::LinearGauge
    right and the value text at the left. :cpp:class:`GaugeBase <gui_forms::GaugeBase>` states the value, alarm
    and accessibility rules. Use a :cpp:class:`ProgressBar <gui_forms::ProgressBar>` for the progress of an
    operation.
-
-   .. gf-preview:: controls/linear_gauge
-      :alt: A LinearGauge as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

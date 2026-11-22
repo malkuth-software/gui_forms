@@ -15,13 +15,13 @@ gui_forms::HelpBook
 
    The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images.
 
+   .. gf-preview:: controls/help_book
+      :alt: A HelpBook as the stock specimen shows it, in the windows-professional theme.
+
    The book shows a :cpp:class:`HelpPageModel <gui_forms::HelpPageModel>` and scrolls vertically. It never opens a
    link itself: it raises :cpp:func:`link_activated <gui_forms::HelpBook::link_activated>`, and its owner decides; a
    :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>` handles topic and popup links and offers external ones to
    the application. A :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>` docks a book beside a program's window.
-
-   .. gf-preview:: controls/help_book
-      :alt: A HelpBook as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

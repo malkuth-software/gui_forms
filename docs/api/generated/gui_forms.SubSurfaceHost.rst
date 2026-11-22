@@ -15,6 +15,9 @@ gui_forms::SubSurfaceHost
 
    A region of a window drawn by a sub-surface: content with its own control tree on its own thread, composed into the window frame by frame.
 
+   .. gf-preview:: controls/sub_surface_host
+      :alt: A SubSurfaceHost as the stock specimen shows it, in the windows-professional theme.
+
    The host occupies the region, owns the sub-surface's thread, sizes and
    reconfigures it, and composes its :cpp:class:`LiveSurface <gui_forms::LiveSurface>` into the window. To the
    window it is one control: the sub-surface's frames never mark the window's
@@ -23,9 +26,6 @@ gui_forms::SubSurfaceHost
    stops when the host leaves the window: the thread releases the content and
    is joined. A host attached again shows nothing until it is given content
    again. Everything on the host happens on its window's UI thread.
-
-   .. gf-preview:: controls/sub_surface_host
-      :alt: A SubSurfaceHost as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

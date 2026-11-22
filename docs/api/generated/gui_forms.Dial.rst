@@ -15,15 +15,15 @@ gui_forms::Dial
 
    A rotary knob: a value in a range, set by turning.
 
+   .. gf-preview:: controls/dial
+      :alt: A Dial as the stock specimen shows it, in the windows-professional theme.
+
    The scale runs 270 degrees clockwise from the lower left (the minimum) over
    twelve o'clock to the lower right (the maximum). The knob's pointer faces
    the value, and with :cpp:member:`show_arc <gui_forms::Dial::show_arc>` the scale lights from the minimum to the
    value. Its input follows :cpp:class:`TrackBar <gui_forms::TrackBar>`'s, so a dial and a track bar can be
    swapped for the same setting. For a value that is only shown, use a
    :cpp:class:`RadialGauge <gui_forms::RadialGauge>`.
-
-   .. gf-preview:: controls/dial
-      :alt: A Dial as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

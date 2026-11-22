@@ -15,12 +15,12 @@ gui_forms::WizardPage
 
    One page of a :cpp:class:`Wizard <gui_forms::Wizard>`: a panel whose controls are the page's content, with the title and description the wizard shows, and the page's validation gate.
 
+   .. gf-preview:: controls/wizard_page
+      :alt: A WizardPage as the stock specimen shows it, in the windows-professional theme.
+
    While the page is shown, :cpp:member:`can_advance <gui_forms::WizardPage::can_advance>` enables or disables the wizard's Next
    (or Finish) button, so the page can hold the user until its fields are
    valid. A :cpp:class:`WizardPage <gui_forms::WizardPage>` outside a :cpp:class:`Wizard <gui_forms::Wizard>` is an ordinary :cpp:class:`Panel <gui_forms::Panel>`.
-
-   .. gf-preview:: controls/wizard_page
-      :alt: A WizardPage as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

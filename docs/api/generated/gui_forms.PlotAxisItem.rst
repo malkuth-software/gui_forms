@@ -15,14 +15,14 @@ gui_forms::PlotAxisItem
 
    One axis of a :cpp:class:`PlotView <gui_forms::PlotView>`, declared as a child of the plot: its direction, scale, initial range, title, fitting and following.
 
+   .. gf-preview:: controls/plot_axis_item
+      :alt: A PlotAxisItem as the stock specimen shows it, in the windows-professional theme.
+
    The first horizontal axis is drawn below the plot and a second above it;
    the first vertical axis left of the plot and a second right of it; further
    axes are ignored. A plot without a horizontal or a vertical axis item uses a
    linear one over 0 to 1. An item draws nothing, takes no input, no focus and
    no space, and publishes no accessibility node: the plot reads it.
-
-   .. gf-preview:: controls/plot_axis_item
-      :alt: A PlotAxisItem as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

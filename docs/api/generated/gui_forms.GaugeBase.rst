@@ -15,6 +15,9 @@ gui_forms::GaugeBase
 
    The shared base of the read-only gauges: a value against a scale, with units, a number of decimals and optional alarm limits.
 
+   .. gf-preview:: controls/gauge_base
+      :alt: A GaugeBase as the stock specimen shows it, in the windows-professional theme.
+
    :cpp:class:`GaugeBase <gui_forms::GaugeBase>` adds to :cpp:class:`RangeControl <gui_forms::RangeControl>`'s value, minimum and maximum the scale
    marks every :cpp:member:`tick_frequency <gui_forms::GaugeBase::tick_frequency>`, the value shown as text with its :cpp:member:`units <gui_forms::GaugeBase::units>` and
    :cpp:member:`decimal_places <gui_forms::GaugeBase::decimal_places>`, and the alarm limits :cpp:member:`low_alarm <gui_forms::GaugeBase::low_alarm>` and :cpp:member:`high_alarm <gui_forms::GaugeBase::high_alarm>`. A gauge
@@ -23,9 +26,6 @@ gui_forms::GaugeBase
    warning colours, and assistive technology hears the alarm with the value.
    :cpp:class:`LinearGauge <gui_forms::LinearGauge>` and :cpp:class:`RadialGauge <gui_forms::RadialGauge>` draw it; create one of them. For a value the
    user sets, use a :cpp:class:`Dial <gui_forms::Dial>` or a :cpp:class:`TrackBar <gui_forms::TrackBar>`.
-
-   .. gf-preview:: controls/gauge_base
-      :alt: A GaugeBase as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

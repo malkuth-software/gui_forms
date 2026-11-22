@@ -15,6 +15,9 @@ gui_forms::ModalLayer
 
    An in-window modal layer: any control shown as a modal panel inside its owner's window, without a native window.
 
+   .. gf-preview:: controls/modal_layer
+      :alt: A ModalLayer as the stock specimen shows it, in the windows-professional theme.
+
    The layer fills the client area over everything else, dims it with a scrim
    and centres the content at its measured size within a 16-unit margin. It
    takes every press, release and wheel turn outside the content, so the rest
@@ -23,9 +26,6 @@ gui_forms::ModalLayer
    stack: the latest is on top and holds focus, and closing it returns to the
    one below. :cpp:class:`TaskDialog <gui_forms::TaskDialog>`'s overlay surface works this way for its own
    content; ``ApplicationWindows::show_modal`` is the native modal path, a window of its own.
-
-   .. gf-preview:: controls/modal_layer
-      :alt: A ModalLayer as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

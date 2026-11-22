@@ -15,6 +15,9 @@ gui_forms::PlotView
 
    A retained, declarative plot: axes, series and annotations declared as item children, with panning, zooming, picking and a legend.
 
+   .. gf-preview:: controls/plot_view
+      :alt: A PlotView as the stock specimen shows it, in the windows-professional theme.
+
    A plot is declared, in a form or in C++, as a :cpp:class:`PlotView <gui_forms::PlotView>` whose children are
    items: :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>` (its axes), :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>` (what it draws) and
    :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>` (labels at data points). Other children are ignored.
@@ -23,9 +26,6 @@ gui_forms::PlotView
    through its items' properties and its own. Use a :cpp:class:`Sparkline <gui_forms::Sparkline>` for a small
    trend without axes or interaction, and a :cpp:class:`Plot3DView <gui_forms::Plot3DView>` for a surface or
    points in three dimensions.
-
-   .. gf-preview:: controls/plot_view
-      :alt: A PlotView as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

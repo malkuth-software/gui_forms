@@ -15,6 +15,9 @@ gui_forms::PlotSeriesItem
 
    One series of a :cpp:class:`PlotView <gui_forms::PlotView>`, declared as a child of the plot: what it draws, its legend label, the axes it is drawn against, and where its data comes from.
 
+   .. gf-preview:: controls/plot_series_item
+      :alt: A PlotSeriesItem as the stock specimen shows it, in the windows-professional theme.
+
    Data arrives in one of four ways, and each is a whole replacement: the last
    call chooses.
 
@@ -35,9 +38,6 @@ gui_forms::PlotSeriesItem
    no accessibility node: the plot reads it, and its legend entry toggles
    :cpp:member:`hidden <gui_forms::PlotSeriesItem::hidden>`. Everything happens on the plot's UI thread, except a producer's
    writes through the channel.
-
-   .. gf-preview:: controls/plot_series_item
-      :alt: A PlotSeriesItem as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

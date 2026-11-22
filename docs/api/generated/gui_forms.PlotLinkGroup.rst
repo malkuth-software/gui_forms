@@ -15,6 +15,9 @@ gui_forms::PlotLinkGroup
 
    A group of :cpp:class:`PlotView <gui_forms::PlotView>` controls whose first x axes, first y axes or both share one range, such as linked subplots or a plot and its overview.
 
+   .. gf-preview:: controls/plot_link_group
+      :alt: A PlotLinkGroup as the stock specimen shows it, in the windows-professional theme.
+
    When a member's view changes (by a gesture, a key, ``PlotView::set_x_range``,
    ``PlotView::set_y_range`` or ``PlotView::fit_view`` on it), the group sets the
    changed range on every other member, in the order they joined. Each member
@@ -22,9 +25,6 @@ gui_forms::PlotLinkGroup
    its own sets, so a change goes round once and the member that moved is never
    set again. A range a member refuses (one its scale cannot show) is left, and
    that member keeps its own.
-
-   .. gf-preview:: controls/plot_link_group
-      :alt: A PlotLinkGroup as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

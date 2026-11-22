@@ -15,6 +15,9 @@ gui_forms::ValueBar
 
    A value bar: one number shown as a fill (the slider form) or a field (the number form), changed by scrubbing, typing and stepping, as in Blender.
 
+   .. gf-preview:: controls/value_bar
+      :alt: A ValueBar as the stock specimen shows it, in the windows-professional theme.
+
    ``minimum`` and ``maximum`` are the hard limits; :cpp:member:`soft_minimum <gui_forms::ValueBar::soft_minimum>` and
    :cpp:member:`soft_maximum <gui_forms::ValueBar::soft_maximum>` the scrub and fill range (none means the hard limits, and a
    soft limit outside the hard range is held at it). Scrubbing stays within the
@@ -22,9 +25,6 @@ gui_forms::ValueBar
    fill then shows full or empty with an overrange marker at that end. Use a
    :cpp:class:`TrackBar <gui_forms::TrackBar>` for a slider with ticks, and a :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for a plain number
    field.
-
-   .. gf-preview:: controls/value_bar
-      :alt: A ValueBar as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

@@ -15,14 +15,14 @@ gui_forms::HelpBookViewer
 
    The three-pane help viewer: a toolbar, the navigation tabs (Contents, Index, Search and Bookmarks) and a :cpp:class:`HelpBook <gui_forms::HelpBook>`.
 
+   .. gf-preview:: controls/help_book_viewer
+      :alt: A HelpBookViewer as the stock specimen shows it, in the windows-professional theme.
+
    The toolbar holds Hide and Show, Back, Forward, Home, Print, Show in
    contents, and the way back to the program's built-in language. The viewer
    can be placed in any window or dock panel; :cpp:class:`HelpBookWindow <gui_forms::HelpBookWindow>` presents it in
    a window of its own. It shows one compiled language's help section, never opens a file
    or a network resource, and passes external links on to the application.
-
-   .. gf-preview:: controls/help_book_viewer
-      :alt: A HelpBookViewer as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

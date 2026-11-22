@@ -15,6 +15,9 @@ gui_forms::Sparkline
 
    A word-sized trend line: the newest values drawn as one line across the control, with a dot on the newest.
 
+   .. gf-preview:: controls/sparkline
+      :alt: A Sparkline as the stock specimen shows it, in the windows-professional theme.
+
    A sparkline keeps the newest :cpp:member:`capacity <gui_forms::Sparkline::capacity>` values in a ring and draws them
    across its bounds, the newest at the right, scaled to their own minimum and
    maximum, with a dot on the newest value and, with :cpp:member:`fill <gui_forms::Sparkline::fill>`, the band under the
@@ -23,9 +26,6 @@ gui_forms::Sparkline
    axes, several series or interaction. To draw the same trend inside a grid
    cell, a list item or an owner-drawn control without a :cpp:class:`Sparkline <gui_forms::Sparkline>`, call
    ``paint_sparkline``.
-
-   .. gf-preview:: controls/sparkline
-      :alt: A Sparkline as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

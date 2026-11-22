@@ -15,6 +15,9 @@ gui_forms::FormLayout
 
    A form of labelled rows: a caption column beside a column of controls.
 
+   .. gf-preview:: controls/form_layout
+      :alt: A FormLayout as the stock specimen shows it, in the windows-professional theme.
+
    Each row is as tall as its control (or its caption, if taller), or as the
    height :cpp:func:`add_row <gui_forms::FormLayout::add_row>` gave it. The caption column is as wide as the widest
    caption, or :cpp:member:`caption_width <gui_forms::FormLayout::caption_width>` when set; the controls take the rest of the
@@ -22,9 +25,6 @@ gui_forms::FormLayout
    each names its control to assistive technology: it becomes the control's
    accessible name when the control has none of its own. Use a :cpp:class:`GridPanel <gui_forms::GridPanel>` for
    a free grid, and a :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>` to edit an object's properties.
-
-   .. gf-preview:: controls/form_layout
-      :alt: A FormLayout as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

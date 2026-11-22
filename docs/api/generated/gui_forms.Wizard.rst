@@ -15,6 +15,9 @@ gui_forms::Wizard
 
    A wizard: a guided sequence of pages shown one at a time, with a header, an optional step indicator, and Back, Next (Finish on the last page) and Cancel buttons.
 
+   .. gf-preview:: controls/wizard
+      :alt: A Wizard as the stock specimen shows it, in the windows-professional theme.
+
    The pages are the :cpp:class:`WizardPage <gui_forms::WizardPage>` children in child order; other children are
    ignored. The header shows the current page's title and description, and the
    step indicator names every page by its title. Next is available while the
@@ -22,9 +25,6 @@ gui_forms::Wizard
    Finish raises :cpp:func:`finished <gui_forms::Wizard::finished>` and Cancel raises :cpp:func:`cancelled <gui_forms::Wizard::cancelled>`; the wizard itself
    stays as it is, and its owner closes it. Use a :cpp:class:`TabControl <gui_forms::TabControl>` when the user
    may visit the pages in any order.
-
-   .. gf-preview:: controls/wizard
-      :alt: A Wizard as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

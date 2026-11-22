@@ -15,6 +15,9 @@ gui_forms::CompositeControl
 
    The control that runs a composite definition: a reusable control written as a ``.control`` document of child controls, properties, rules, commands, events and an optional look.
 
+   .. gf-preview:: controls/composite_control
+      :alt: A CompositeControl as the stock specimen shows it, in the windows-professional theme.
+
    A composite's definition is compiled once, either at build time by
    ``gui_forms_add_control``, which generates a typed class deriving from
    :cpp:class:`CompositeControl <gui_forms::CompositeControl>`, or at run time by ``load_composite_definition``. Each
@@ -23,9 +26,6 @@ gui_forms::CompositeControl
    ``.control`` name, and its content goes into the composite's slot
    (the user guide's Forms page). Derive from :cpp:class:`UserControl <gui_forms::UserControl>` instead for a
    control written in C++ alone.
-
-   .. gf-preview:: controls/composite_control
-      :alt: A CompositeControl as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

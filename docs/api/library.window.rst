@@ -1257,7 +1257,7 @@ Related types
 
 .. cpp:struct:: MdiChildActivation final
 
-   ``#include <gui_forms/window/document_area/window_document_area.hpp>``
+   ``#include <gui_forms/window/document_area/window_document_area.hpp>`` (:src:`source <include/gui_forms/window/document_area/window_document_area.hpp>`)
 
    What Window::mdi_child_activate reports: the active child before and after (none when there was none, or none is left).
 
@@ -2517,7 +2517,7 @@ Related types
 
 .. cpp:class:: WindowDocumentArea
 
-   ``#include <gui_forms/window/document_area/window_document_area.hpp>``
+   ``#include <gui_forms/window/document_area/window_document_area.hpp>`` (:src:`source <include/gui_forms/window/document_area/window_document_area.hpp>`)
 
    The document area a Window presents. The docking workspace implements it (gui_forms_controls), and its main DockSite binds it to the window it is attached to (Window::bind_document_area) and unbinds it when it leaves; the window's MDI calls go through it. A window holds at most one area, and an area is bound to at most one window: binding elsewhere unbinds it first. Destroying either side unbinds them. UI thread only.
 
@@ -3063,7 +3063,7 @@ Enumerations
 
 .. cpp:enum-class:: MdiLayout
 
-   ``#include <gui_forms/window/document_area/window_document_area.hpp>``
+   ``#include <gui_forms/window/document_area/window_document_area.hpp>`` (:src:`source <include/gui_forms/window/document_area/window_document_area.hpp>`)
 
    .. cpp:enumerator:: cascade
 

@@ -15,15 +15,15 @@ gui_forms::StepIndicator
 
    A step indicator: a row of numbered steps joined by connectors, each with its name beneath.
 
+   .. gf-preview:: controls/step_indicator
+      :alt: A StepIndicator as the stock specimen shows it, in the windows-professional theme.
+
    The steps before :cpp:member:`current_step <gui_forms::StepIndicator::current_step>` are complete and show a check; the current
    step is highlighted; the steps after it are upcoming. A press on a completed
    step raises :cpp:func:`step_clicked <gui_forms::StepIndicator::step_clicked>` with its index; the indicator does not change
    :cpp:member:`current_step <gui_forms::StepIndicator::current_step>` itself, so its owner decides (a :cpp:class:`Wizard <gui_forms::Wizard>` goes back to that
    step). It takes no focus: the keyboard path is its owner's, such as a
    wizard's Back button.
-
-   .. gf-preview:: controls/step_indicator
-      :alt: A StepIndicator as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

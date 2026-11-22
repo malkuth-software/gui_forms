@@ -15,13 +15,13 @@ gui_forms::LookupComboBox
 
    A multi-column lookup: a drop-down field that chooses a row by its key and shows one of the row's cells, with a list of every column under headers when open.
 
+   .. gf-preview:: controls/lookup_combo_box
+      :alt: A LookupComboBox as the stock specimen shows it, in the windows-professional theme.
+
    The field is not editable. While the list is open, typing filters it to the
    rows any of whose cells contain the typed text (ignoring ASCII case),
    Backspace removes the last typed character, and the filter shows in the
    field. Use a :cpp:class:`ComboBox <gui_forms::ComboBox>` for a list of single values.
-
-   .. gf-preview:: controls/lookup_combo_box
-      :alt: A LookupComboBox as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

@@ -15,15 +15,15 @@ gui_forms::Plot3DView
 
    A 3D plot: surfaces, lines and scatters in a box with back panes, a grid and ticks, turned, zoomed and panned by the user.
 
+   .. gf-preview:: controls/plot3d_view
+      :alt: A Plot3DView as the stock specimen shows it, in the windows-professional theme.
+
    The plot shows a ``plots::Plot3DScene``, drawn on the CPU into one picture,
    with its tick labels, axis titles and the hovered point's readout drawn as
    themed text over it. The picture is kept: it is rendered again only when the
    view, the size, the scale, the items or the theme's colours change, once at
    one sample per pixel while a gesture moves it and again at 2 by 2 samples
    when the gesture ends. Use a :cpp:class:`PlotView <gui_forms::PlotView>` for two-dimensional data.
-
-   .. gf-preview:: controls/plot3d_view
-      :alt: A Plot3DView as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

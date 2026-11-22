@@ -15,6 +15,9 @@ gui_forms::HelpBookSystem
 
    A program's help: it holds the help text of the program's language files, compiles the help book from it and the program's windows, and shows it on F1, in What's This mode, on window cards and from the ribbon.
 
+   .. gf-preview:: controls/help_book_system
+      :alt: A HelpBookSystem as the stock specimen shows it, in the windows-professional theme.
+
    The system holds the program's language-file catalog (:cpp:class:`LocaleCatalog <gui_forms::LocaleCatalog>`: the
    built-in locale file, the help fields the attached windows' controls hold in
    code, a translation and the user's overrides) and its help view
@@ -34,9 +37,6 @@ gui_forms::HelpBookSystem
    :cpp:class:`HelpBookWindow <gui_forms::HelpBookWindow>` owned by the first attached window that has a handle. The
    system never opens a browser, a file or a network resource: external links
    and printing are raised to the program.
-
-   .. gf-preview:: controls/help_book_system
-      :alt: A HelpBookSystem as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional. *Windows Forms counterpart:* ``Help``.
 

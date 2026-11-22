@@ -15,12 +15,12 @@ gui_forms::Spinner
 
    An indeterminate busy indicator: a ring of twelve dots, three of them lit, turning while :cpp:member:`active <gui_forms::Spinner::active>`.
 
+   .. gf-preview:: controls/spinner
+      :alt: A Spinner as the stock specimen shows it, in the windows-professional theme.
+
    A spinner shows that work is under way, not how much; a :cpp:class:`ProgressRing <gui_forms::ProgressRing>` or a
    :cpp:class:`ProgressBar <gui_forms::ProgressBar>` shows an amount. An inactive spinner draws nothing. It takes
    no input and no focus.
-
-   .. gf-preview:: controls/spinner
-      :alt: A Spinner as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

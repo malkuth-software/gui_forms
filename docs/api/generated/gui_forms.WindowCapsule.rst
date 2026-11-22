@@ -15,15 +15,15 @@ gui_forms::WindowCapsule
 
    A window's controls as one capsule in three sections, worked by gestures: maximise and minimise on the left, help in the middle, move on the right, and a close that takes three clicks.
 
+   .. gf-preview:: controls/window_capsule
+      :alt: A WindowCapsule as the stock specimen shows it, in the windows-professional theme.
+
    A program without a title bar places a capsule in a corner of its own
    content. The capsule then runs the gesture on its own pointer and key input
    and raises :cpp:func:`requested <gui_forms::WindowCapsule::requested>` for each command; the program carries the command
    out on its window (:cpp:class:`ApplicationWindowHandle <gui_forms::ApplicationWindowHandle>`). A window manager that draws
    title bars can show a capsule that is not :cpp:func:`interactive <gui_forms::WindowCapsule::interactive>`, run the gesture
    itself (:cpp:class:`WindowCapsuleGesture <gui_forms::WindowCapsuleGesture>`) and give the capsule its :cpp:func:`look <gui_forms::WindowCapsule::look>`.
-
-   .. gf-preview:: controls/window_capsule
-      :alt: A WindowCapsule as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

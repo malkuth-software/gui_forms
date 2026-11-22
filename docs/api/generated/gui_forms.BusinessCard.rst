@@ -15,6 +15,9 @@ gui_forms::BusinessCard
 
    The program's business card: its vendor, product and version, website and copyright, on a card drawn through the theme, lying in a page or held in the hand.
 
+   .. gf-preview:: controls/business_card
+      :alt: A BusinessCard as the stock specimen shows it, in the windows-professional theme.
+
    The card's text is the process's identity, set once with
    ``set_program_identity``: the vendor large, a rule, the product and version,
    the website, and in the hand the copyright. Lying in a page (a help page, an
@@ -23,9 +26,6 @@ gui_forms::BusinessCard
    the dimmed window, it tilts toward the pointer, a click on the website asks
    for the website, and Escape, its close mark or a click off the card puts it
    away. Use an :cpp:class:`AboutDialog <gui_forms::AboutDialog>` for a standard About box with credits.
-
-   .. gf-preview:: controls/business_card
-      :alt: A BusinessCard as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

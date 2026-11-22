@@ -15,12 +15,12 @@ gui_forms::ColorPicker
 
    A colour picker: a saturation and brightness field for the current hue, a vertical hue track, an optional alpha track and a swatch of the value.
 
+   .. gf-preview:: controls/color_picker
+      :alt: A ColorPicker as the stock specimen shows it, in the windows-professional theme.
+
    The swatch shows the value over a checkerboard, so transparency is visible.
    :cpp:class:`ColorDialog <gui_forms::ColorDialog>`'s hosts and :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>`'s drop-down use the picker; use
    a :cpp:class:`ColorDialog <gui_forms::ColorDialog>` to ask for a colour in a dialog of its own.
-
-   .. gf-preview:: controls/color_picker
-      :alt: A ColorPicker as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

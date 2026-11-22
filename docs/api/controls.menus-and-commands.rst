@@ -2780,7 +2780,7 @@ Enumerations
 
 .. cpp:enum-class:: MenuStripFrameButton
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    .. cpp:enumerator:: minimize
 

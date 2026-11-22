@@ -15,6 +15,9 @@ gui_forms::AboutDialog
 
    An application's About box: the information icon, the product and version as the heading, the description and copyright, the credits behind an expander, and OK.
 
+   .. gf-preview:: controls/about_dialog
+      :alt: A AboutDialog as the stock specimen shows it, in the windows-professional theme.
+
    Windows Forms offers this as Visual Studio's AboutBox form template rather
    than a control. Here it is a preset over :cpp:class:`TaskDialog <gui_forms::TaskDialog>`, an owned in-window
    dialog that looks and behaves the same on every host. :cpp:func:`show <gui_forms::AboutDialog::show>` returns at
@@ -25,9 +28,6 @@ gui_forms::AboutDialog
    expander, left out when empty. An empty ``caption`` gives
    "About <product>". For the program's identity card with its links, see
    :cpp:class:`BusinessCard <gui_forms::BusinessCard>`.
-
-   .. gf-preview:: controls/about_dialog
-      :alt: A AboutDialog as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

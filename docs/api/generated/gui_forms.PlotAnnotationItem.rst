@@ -15,13 +15,13 @@ gui_forms::PlotAnnotationItem
 
    A plain-text label of a :cpp:class:`PlotView <gui_forms::PlotView>`, anchored at a data point and declared as a child of the plot.
 
+   .. gf-preview:: controls/plot_annotation_item
+      :alt: A PlotAnnotationItem as the stock specimen shows it, in the windows-professional theme.
+
    The plot places the label beside its anchor, clear of the annotations
    before it and inside the plot (``plots::layout_annotations``). The item draws
    nothing itself, takes no input, no focus and no space, and publishes no
    accessibility node: the plot reads it.
-
-   .. gf-preview:: controls/plot_annotation_item
-      :alt: A PlotAnnotationItem as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

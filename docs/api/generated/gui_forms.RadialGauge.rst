@@ -15,6 +15,9 @@ gui_forms::RadialGauge
 
    A dial gauge: a 270-degree scale arc lit from the minimum to the value, with a needle at the value, scale marks, alarm arcs and the value as text.
 
+   .. gf-preview:: controls/radial_gauge
+      :alt: A RadialGauge as the stock specimen shows it, in the windows-professional theme.
+
    The arc runs clockwise from the lower left (the minimum) over twelve
    o'clock to the lower right (the maximum). Scale marks lie outside it every
    ``tick_frequency``; the alarm ranges (the minimum to ``low_alarm``, and
@@ -22,9 +25,6 @@ gui_forms::RadialGauge
    text sits below the centre while ``show_value`` is set. :cpp:class:`GaugeBase <gui_forms::GaugeBase>` states
    the value, alarm and accessibility rules. For a dial the user turns, use a
    :cpp:class:`Dial <gui_forms::Dial>`.
-
-   .. gf-preview:: controls/radial_gauge
-      :alt: A RadialGauge as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

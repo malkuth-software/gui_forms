@@ -15,15 +15,15 @@ gui_forms::ProgressRing
 
    A circular progress indicator: a ring of forty dots lit in proportion to the progress, or a turning run of dots while the amount is unknown.
 
+   .. gf-preview:: controls/progress_ring
+      :alt: A ProgressRing as the stock specimen shows it, in the windows-professional theme.
+
    Determinate, the dots from twelve o'clock clockwise are lit in proportion to
    :cpp:member:`value <gui_forms::ProgressRing::value>` over :cpp:member:`maximum <gui_forms::ProgressRing::maximum>`, clamped to the ring. Indeterminate, a run of ten lit
    dots turns once every 1.2 seconds instead. A theme, or :cpp:member:`ring_style <gui_forms::ProgressRing::ring_style>`, can draw
    the ring as one continuous arc instead of dots. It takes no input and no
    focus. Use a :cpp:class:`ProgressBar <gui_forms::ProgressBar>` where a bar fits better, and a :cpp:class:`Spinner <gui_forms::Spinner>` for
    activity that never has an amount.
-
-   .. gf-preview:: controls/progress_ring
-      :alt: A ProgressRing as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 

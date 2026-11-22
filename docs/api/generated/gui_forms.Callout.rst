@@ -15,15 +15,15 @@ gui_forms::Callout
 
    A teaching callout: a card pointing out a target control, with an optional bold title, wrapped text, a close mark and an optional action button.
 
+   .. gf-preview:: controls/callout
+      :alt: A Callout as the stock specimen shows it, in the windows-professional theme.
+
    It opens below its target (above with :cpp:member:`prefers_above <gui_forms::Callout::prefers_above>`), aligned to the
    target's leading edge and moved to the other side when the preferred one has
    no room, in an overlay of the target's window, and it follows the target
    when the window resizes. A callout is not modal. Use a :cpp:class:`ToolTip <gui_forms::ToolTip>` for a short
    hint on hover, and a :cpp:class:`ModalLayer <gui_forms::ModalLayer>` or a :cpp:class:`TaskDialog <gui_forms::TaskDialog>` when the user must
    answer before going on.
-
-   .. gf-preview:: controls/callout
-      :alt: A Callout as the stock specimen shows it, in the windows-professional theme.
 
    *Status:* provisional.
 
