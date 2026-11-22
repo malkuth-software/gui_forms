@@ -241,7 +241,9 @@ private:
     std::vector<BenchBand> bands{};
     summarize_bench(samples, bench_band_edges, bands);
     const BenchBand whole = summarize_whole(samples, bench_first_zoom, bench_last_zoom);
-    const BenchSetting setting{(*sheet).source_name(), size.width, size.height, session.scale()};
+    const DisplayTiming timing = window.display_timing();
+    const BenchSetting setting{(*sheet).source_name(), size.width, size.height, session.scale(),
+                               timing.refresh_hertz(), display_timing_source_name(timing.source)};
     const std::string report = format_bench_report(setting, bands, whole);
     std::fputs(report.c_str(), stdout);
     std::fflush(stdout);

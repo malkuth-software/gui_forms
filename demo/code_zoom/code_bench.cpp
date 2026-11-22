@@ -105,12 +105,22 @@ std::string format_bench_report(const BenchSetting& setting, const std::span<con
     std::string report{};
     std::array<char, 256> header{};
     const std::string file(setting.file);
+    const std::string source(setting.refresh_source);
     const int written = std::snprintf(header.data(), header.size(),
-                                      "code_zoom bench: %zu frames, %.2fx to %.2fx, %s, %.0fx%.0f at scale %.2f, "
-                                      "refresh: unknown (offscreen)\n",
+                                      "code_zoom bench: %zu frames, %.2fx to %.2fx, %s, %.0fx%.0f at scale %.2f, ",
                                       whole.frames, whole.zoom_from, whole.zoom_to, file.c_str(), setting.width,
                                       setting.height, setting.scale);
     if (written > 0) report.append(header.data(), std::min(static_cast<std::size_t>(written), header.size() - 1U));
+    int refresh_written = 0;
+    if (setting.refresh_hertz > 0.0) {
+        refresh_written =
+            std::snprintf(header.data(), header.size(), "refresh: %.1f Hz (%s)\n", setting.refresh_hertz, source.c_str());
+    } else {
+        refresh_written = std::snprintf(header.data(), header.size(), "refresh: unknown (%s)\n", source.c_str());
+    }
+    if (refresh_written > 0) {
+        report.append(header.data(), std::min(static_cast<std::size_t>(refresh_written), header.size() - 1U));
+    }
     report.append("label zoom_from zoom_to frames median_ms p95_ms glyphs\n");
     for (const BenchBand& band : bands) append_band_line(report, "band", band);
     append_band_line(report, "all", whole);

@@ -10,8 +10,9 @@
 // before it drew at, as a real zoom does, and no cache keyed by size helps
 // beyond what one frame's own reuse gives.
 //
-// The report: a header line (ending with the display refresh, unknown
-// offscreen: the library reports none to a window yet), a column line, then one line per band of
+// The report: a header line (ending with the window's display refresh and
+// where it came from: "unknown (assumed)" offscreen, where no host reports
+// one), a column line, then one line per band of
 // scales (bench_band_edges: [0.1, 0.2), ... [20, 40]) holding the frames in
 // it, the median and 95th-percentile milliseconds and the mean glyphs drawn
 // per frame, then a line for the whole sweep. Percentiles are nearest-rank
@@ -58,6 +59,10 @@ struct BenchSetting final {
     double width{};
     double height{};
     double scale{};
+    // The window's display refresh (DisplayTiming::refresh_hertz), 0 when
+    // unknown, and its source's name (display_timing_source_name).
+    double refresh_hertz{};
+    std::string_view refresh_source{"assumed"};
 };
 
 // Replaces `scales` with `frames` zooms from `first` to `last` in equal
