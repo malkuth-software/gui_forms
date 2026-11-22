@@ -8,7 +8,7 @@ of the window cannot be used until it closes, and it holds keyboard focus
 inside the content (Tab cycles within it). Layers opened over one another
 stack: the latest is on top and holds focus, and closing it returns to the
 one below. `TaskDialog`'s overlay surface works this way for its own
-content; `Form::show_dialog` remains the native modal path.
+content; `ApplicationWindows::show_modal` is the native modal path, a window of its own.
 
 Parameters
 ----------
