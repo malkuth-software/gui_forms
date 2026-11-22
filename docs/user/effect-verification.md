@@ -41,14 +41,13 @@ same rules and state checks, bounded against the declared
 Every rejection is a compiler error at the construct, followed by a note
 naming the effect.
 
-On CI, the Linux native and sanitizer jobs install Clang 22's development
-headers (`llvm-22-dev` and `libclang-22-dev`), build the plugin and verify
-every effect; `tools/ci_build.py` configures them with
+On CI, the Linux builds have Clang 22's development headers (`llvm-22-dev`
+and `libclang-22-dev`), build the plugin and verify every effect;
+`tools/ci_build.py` configures them with
 `GUI_FORMS_EFFECT_VERIFY_REQUIRED=ON`, so a plugin that cannot be built or
 loaded fails the configure instead of leaving the effects unverified. The
-`effect-pass` job (`.github/workflows/effect-pass.yml`) also runs the pass's
-own cases on its own, for pull requests that touch the effect engine, the
-plugin, the effect tests or a file that registers effects.
+pass's own cases (`tests/effect_pass/`, each a source whose first line says
+whether the pass must reject, accept or warn) run in [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests).
 
 ## Visual Studio projects: clang-cl
 

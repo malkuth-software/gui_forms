@@ -367,7 +367,8 @@ Linux (X11)
 : `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
   window and event handling, Xcursor cursors, X11 clipboard selections,
   XDND drag destinations, and native ATK/AT-SPI accessibility publication.
-  The publication is checked from an AT-SPI client's side on CI:
+  The publication is checked from an AT-SPI client's side in the CI of
+  [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests):
   `gui_forms_linux_accessibility_tests` drives a small fixture, and
   `gui_forms_linux_accessibility_gallery_tests` compares every Gallery page
   with the semantic tree (role, name, states, actions, values, children)

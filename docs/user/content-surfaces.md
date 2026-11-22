@@ -135,10 +135,10 @@ find_package(GUIForms CONFIG REQUIRED COMPONENTS HostedClient)
 target_link_libraries(my_hosted_program PRIVATE GUIForms::HostedClient)
 ```
 
-`tests/hosted_client_consumer` is an installed consumer with both ends: a
+`tests/hosted_client_consumer`, in [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), is an installed consumer with both ends: a
 parent that links `GUIForms::Controls`, and a program that links only
 `GUIForms::HostedClient`. `tools/verify_install.py <prefix> --hosted-client`
-builds and runs it.
+builds and runs it from a gui_forms_tests checkout beside this one.
 
 ### Input to the hosted program
 
@@ -331,8 +331,8 @@ Win32 primitives in place of the POSIX ones:
     overlapped, so every `ReadFile` and `WriteFile` on it passes an
     `OVERLAPPED`. `gui_forms_hosted_client` is built and installed on
     Windows too, and `tests/hosted_client_consumer` runs there.
-12. **The tests.** `tests/hosted_content_tests.cpp` runs every case on
-    Windows with `tests/hosted_child.cpp`: frames, input order, crash,
+12. **The tests.** gui_forms_tests' `tests/hosted_content_tests.cpp` runs
+    every case on Windows with `tests/hosted_child.cpp`: frames, input order, crash,
     restart, hang, protocol break, oversized frame, exit status, start
     timeout, closing the window, and the command line's round trip. The
     crash case also expects `NTSTATUS 0xC000001D`, the trap the child

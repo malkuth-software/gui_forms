@@ -76,7 +76,7 @@ option off before `find_package`:
 
 ```cmake
 set(GUI_FORMS_LOCALIZABLE_LITERALS OFF)
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
+find_package(GUIForms CONFIG REQUIRED COMPONENTS Application)
 ```
 
 ## Reading the table
@@ -85,11 +85,12 @@ find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
 each shared library it has loaded. A translation unit compiled without the
 plugin adds nothing, and a program can mix the two.
 
-From the command line, `tools/dump_localizable_literals.py` prints the records
-of a linked program or library (it reads the section with `llvm-objcopy`):
+From the command line, `tools/dump_localizable_literals.py` in the
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests) repository prints the records of a linked program
+or library (it reads the section with `llvm-objcopy`):
 
 ```sh
-python3 tools/dump_localizable_literals.py build/my_forms
+python3 ../gui_forms_tests/tools/dump_localizable_literals.py build/my_forms
 ```
 
 ## What is found

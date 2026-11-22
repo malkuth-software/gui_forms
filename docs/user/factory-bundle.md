@@ -1,7 +1,7 @@
 # The factory bundle
 
 The factory bundle is the set of fonts GUI.Forms ships inside every
-program: eight families in 37 faces, checked before they ship and compiled
+program: eight families in 30 faces and nine fallback faces, checked before they ship and compiled
 into the library. Stock controls, themes and GUI.Forms' own interface (the
 window manager, dialogs, menus, tooltips, help) draw only these faces
 (`FontContext::factory_bundle`). Your composites and sub-surfaces may load
@@ -43,22 +43,25 @@ What the text faces cover:
 
 ### Fallback faces
 
-Seven Noto faces draw what the text faces lack. Fallback is chosen per
+Nine Noto faces draw what the text faces lack. Fallback is chosen per
 grapheme cluster, so a Japanese word in a Latin label takes the CJK face for
-that word only. Their coverage is generated from the faces themselves
+that word only; a Han character both CJK faces hold draws in its Japanese
+form. Their coverage is generated from the faces themselves
 (`src/core/resources/fonts/bundled_font_coverage.inc`).
 
 | Face | Scripts | Characters |
 |---|---|---|
-| Noto Sans CJK JP | Han (20,976 unified ideographs), Hiragana, Katakana, Hangul (11,172 syllables) | 44,810 |
-| Noto Sans Arabic | Arabic | 1,161 |
-| Noto Sans Devanagari | Devanagari (Hindi, Marathi, Nepali) | 272 |
-| Noto Sans Bengali | Bengali | 173 |
-| Noto Sans Gurmukhi | Gurmukhi (Punjabi) | 154 |
+| Noto Sans CJK JP (subset) | Hiragana, Katakana and the JIS X 0208 kanji (6,356 unified ideographs), Japanese forms | 7,025 |
+| Noto Sans CJK KR (subset) | Hangul (11,172 syllables) and the jamo, the KS X 1001 hanja (4,620), Korean forms | 17,421 |
+| Noto Sans CJK SC (minimal) | The common simplified hanzi the two faces above lack | 1,346 |
+| Noto Sans Arabic (minimal) | Arabic: basic letters, digits and punctuation, drawn without contextual shaping | 85 |
+| Noto Sans Devanagari (minimal) | Devanagari (Hindi, Marathi, Nepali): basic letters, digits and punctuation | 132 |
+| Noto Sans Bengali (minimal) | Bengali: basic letters, digits and punctuation | 102 |
+| Noto Sans Gurmukhi (minimal) | Gurmukhi (Punjabi): basic letters, digits and punctuation | 86 |
 | Noto Sans Hebrew | Hebrew | 145 |
 | Noto Emoji | Monochrome emoji and symbols | 887 |
 
-Together the regular faces and the fallback faces map 49,532 distinct
+Together the regular faces and the fallback faces map 25,206 distinct
 characters. The fallback faces are optional: a build configured with
 `GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` leaves them out
 ([Fallback fonts](../building/index.md#fallback-fonts)). Colour emoji are not
@@ -79,7 +82,8 @@ included.
 - **The same pixels on every host.** One shaper, one rasterizer and one
   blending rule draw the same faces on macOS, Windows and Linux
   ([Text engine](text-engine)). `gui_forms_text_identity_raster_tests`
-  compares a fixed corpus against checked-in hashes on every CI platform.
+  (in gui_forms_tests) compares a fixed corpus against checked-in hashes on
+  every CI platform.
 - **Never host fonts.** Stock controls do not enumerate or load system
   fonts, so a machine's installed fonts cannot change what they draw.
 - **Application fonts stay out of stock controls.** A family your program
@@ -96,20 +100,22 @@ byte array, so a program ships no font files, only the licences.
 | interface (Portsmouth, Carlito) | at first use of any face | 15 | 4,681,212 | 1,104,298 | 23.59% |
 | monospace (Cousine) | when text needs it | 4 | 1,210,076 | 334,559 | 27.65% |
 | families (Selawik, Arimo, Tinos) | when text needs it | 11 | 4,371,368 | 1,163,901 | 26.63% |
-| scripts (Arabic, Hebrew, Devanagari, Bengali, Gurmukhi) | when text needs it | 5 | 739,616 | 236,978 | 32.04% |
+| japanese (Noto Sans CJK JP) | when text needs it | 1 | 1,820,048 | not yet read | |
+| korean (Noto Sans CJK KR) | when text needs it | 1 | 3,027,444 | not yet read | |
+| minimal (Noto Sans CJK SC, Arabic, Hebrew, Devanagari, Bengali, Gurmukhi) | when text needs it | 6 | 468,896 | not yet read | |
 | emoji | when text needs it | 1 | 418,804 | 243,364 | 58.11% |
-| cjk | when text needs it | 1 | 16,467,736 | 8,819,191 | 53.55% |
-| **Whole pack** | | 37 | 27,888,812 | 11,903,673 | 42.68% |
+| **Whole pack** | | 39 | 15,997,848 | not yet read | |
 
 - Without the fallback groups the faces are 10,262,656 bytes, and their
   packed groups 2,602,758 bytes (25.36%).
-- The pack's header and padding are 1,382 bytes of the whole pack.
-- The licence and attribution files are 10 files, 47,678 bytes.
+- The licence and attribution files are 10 files, 50,042 bytes.
 
 How these were computed: font bytes are the files in `assets/fonts`,
 grouped by `assets/fonts/font-pack.manifest`. Packed bytes are each group's
 coded size, read from the header of the pack a macOS arm64 build wrote on
-2026-11-16. Packing is deterministic, so every build of the same faces and
+2026-11-16. The japanese, korean and minimal groups have since replaced
+that pack's cjk and scripts groups, so their packed sizes, and the whole
+pack's, wait for the next built pack to be read. Packing is deterministic, so every build of the same faces and
 manifest writes the same pack. `python3 -B tools/factory_bundle_sizes.py`
 prints every figure on this page from the tree. To read a pack you built
 yourself, add
@@ -121,9 +127,11 @@ yourself, add
 2026-11-13 on a Mac mini M4 (10 hardware threads, clang 22.1.8, `-O2`). The
 code was the font pack experiment that `stx_fontpack`, the loader GUI.Forms
 ships, was converted from. It has the same format and codec
-(`stx_fontpack/PROVENANCE.md`). The workload decodes the 37 faces from pack
+(`stx_fontpack/PROVENANCE.md`). The workload decodes the 37 faces of that date from pack
 bytes in memory to font bytes in memory, including the CRC-32 check. It used
-the same groups as above, except that Cousine was in the families group.
+the groups of that date: those above, except that Cousine was in the families
+group and one cjk group and one scripts group held the fallback faces now in
+the japanese, korean and minimal groups.
 Each figure is the median of 25 rounds in one process.
 
 | Decoded | 1 thread | 4 threads | 10 threads |
@@ -137,35 +145,14 @@ median and 6.7 ms at the slowest. The same run opened all 37 decoded faces
 with FreeType and loaded 14,698 sampled glyphs with no failure. A program
 pays for the interface group once, at the first request for any face. It
 pays for each other group only when text first needs one of that group's
-faces, so a program that never shows Japanese never decodes the CJK group.
+faces, so a program that never shows Japanese never decodes the japanese group.
 
-**Unpacking with the shipped loader.** The same workload run on
-`stx_fontpack` itself, with `stx_fontpack/tools/bench_loader.py`. The
-1-thread column uses the loader's serial executor. The other columns use
-worker threads that start for each step, so a program that lends a running
-thread pool pays less.
-
-<!-- Filled from bench_loader.py's loader-timings.md: machine, compiler, flags, date. -->
-Measured on: to be recorded.
-
-| Decoded | 1 thread | 4 threads | all threads |
-|---|---:|---:|---:|
-| interface group | | | |
-| monospace group | | | |
-| families group | | | |
-| scripts group | | | |
-| emoji group | | | |
-| cjk group | | | |
-| eager groups (`set_open`) | | | |
-| every group in turn | | | |
-
-| Eager groups, 20 fresh processes | Median | Slowest |
-|---|---:|---:|
-| 1 thread | | |
-| all threads | | |
-
-**Not yet measured.** No unpacking times are recorded yet for Windows or
-Linux hosts, or for a window's first text with the faces already decoded.
+**Not yet measured.** The same workload has not yet been run on
+`stx_fontpack`, the loader GUI.Forms ships; `stx_fontpack/tools/bench_loader.py`
+runs it, with the loader's serial executor for one thread and worker threads
+started for each step for more. No unpacking times are recorded yet for
+Windows or Linux hosts, or for a window's first text with the faces already
+decoded.
 Those are the next measurements. Until they exist, this page claims no speed
 beyond the tables above.
 

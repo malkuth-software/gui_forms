@@ -3,8 +3,9 @@
 `GUIForms::Audio` is an optional component for playing short sounds and music
 in a GUI.Forms application. It loads stereo clips, mixes up to 64 live
 voices and writes the mix to the platform's audio device. Ogg Vorbis files
-are decoded by stx_vorbis, an Ogg Vorbis I decoder that lives in this
-repository under `stx_vorbis/`. This page describes what the component
+are decoded by stx_vorbis, an Ogg Vorbis I decoder that lives in the
+[stx repository](https://github.com/malkuth-software/stx) under
+`stx_vorbis/`, at the commit `stx.lock` pins. This page describes what the component
 offers, why it has its own decoder, and how far that decoder has been
 checked.
 
@@ -142,7 +143,7 @@ differential tests on four CI platforms, and a downstream application's 424
 Ogg assets decoding with exact loop lengths. A finite corpus is not exhaustive,
 and some disagreements with the reference oracles remain open.
 
-The detailed records are in the repository:
+The detailed records are in the stx repository:
 
 - `stx_vorbis/README.md`: capabilities, streaming protocol, limits.
 - `stx_vorbis/docs/VALIDATION.md`: test coverage, fuzzing, reference
