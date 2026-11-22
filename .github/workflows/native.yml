@@ -120,6 +120,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_verify_install.py
           python3 -B -m unittest discover -s tools -p test_sdk_consumer_link.py
           python3 -B -m unittest discover -s tools -p test_drawing_bridge.py
+          python3 -B -m unittest discover -s tools -p test_factory_bundle_sizes.py
           python3 tools/control_registry.py check
           python3 tools/control_registry.py emit-cpp --check
           python3 tools/control_registry.py emit-abi --check
