@@ -86,9 +86,9 @@ extern "C" {
  * POINTER_WARP), application font families (gf_app_font_face and the
  * fonts table's load_family and unload_family) and the presentation shim's
  * host capabilities (DIRECT_BUFFERS, HOST_SCROLL and
- * REFERENCE_PRESENTATION), additions only; 1.6 adds the multiple document
- * interface (provisional: the integrator renumbers the minor in fold
- * order): the docking table's frames presentation
+ * REFERENCE_PRESENTATION), additions only; 1.6 (checkpoint cp35) adds the
+ * procedural pattern CARBON_FIBRE and the multiple document interface: the
+ * docking table's frames presentation
  * (gf_dock_document_presentation, gf_dock_frame_state,
  * gf_dock_frame_arrangement, gf_dock_frame_memory, the edit kinds SET_DOCUMENT_PRESENTATION to
  * SET_FRAME_ICON_SLOT with gf_dock_edit's 1.6 fields, and the docking slots
