@@ -48,13 +48,13 @@ Labels, images, progress and review cards.
    * - :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>`
      - Item child of a PlotView declaring a text label anchored at a data point.
    * - :cpp:class:`SevenSegmentDisplay <gui_forms::SevenSegmentDisplay>`
-     - Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.
+     - A segmented numeric readout: a row of cells in which each character of the reading lights the bars of a seven-segment display, as a meter, clock or instrument panel shows a value.
    * - :cpp:class:`GaugeBase <gui_forms::GaugeBase>`
-     - Shared read-only gauge authority from the instruments package: a RangeControl value with scale marks, units, decimals and low and high alarm limits, a meter to assistive technology, that LinearGauge and RadialGauge draw.
+     - The shared base of the read-only gauges: a value against a scale, with units, a number of decimals and optional alarm limits.
    * - :cpp:class:`LinearGauge <gui_forms::LinearGauge>`
-     - Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end.
+     - A bar gauge: the value filling a straight scale from the minimum, with scale marks, alarm segments and the value as text.
    * - :cpp:class:`RadialGauge <gui_forms::RadialGauge>`
-     - Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre.
+     - A dial gauge: a 270-degree scale arc lit from the minimum to the value, with a needle at the value, scale marks, alarm arcs and the value as text.
    * - :cpp:class:`StepIndicator <gui_forms::StepIndicator>`
      - Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
    * - :cpp:class:`HelpBook <gui_forms::HelpBook>`

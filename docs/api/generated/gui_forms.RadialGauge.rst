@@ -11,17 +11,32 @@ gui_forms::RadialGauge
 
    ``#include <gui_forms/controls/radial_gauge.hpp>``
 
-   Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre.
+   A dial gauge: a 270-degree scale arc lit from the minimum to the value, with a needle at the value, scale marks, alarm arcs and the value as text.
+
+   The arc runs clockwise from the lower left (the minimum) over twelve
+   o'clock to the lower right (the maximum). Scale marks lie outside it every
+   ``tick_frequency``; the alarm ranges (the minimum to ``low_alarm``, and
+   ``high_alarm`` to the maximum) are alarm segments on the arc; and the value as
+   text sits below the centre while ``show_value`` is set. :cpp:class:`GaugeBase <gui_forms::GaugeBase>` states
+   the value, alarm and accessibility rules. For a dial the user turns, use a
+   :cpp:class:`Dial <gui_forms::Dial>`.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
       **parts** : ``Parts``, read-only
+         The control's parts and where they lie: ``plot``, the round face;
+         ``track``, the whole scale; ``alarm_arc``, the alarm ranges (absent
+         without alarm limits); ``value_arc``, the reading (absent at the
+         minimum); ``graticule``, the scale marks; ``needle``; and ``caption``,
+         the value text (absent while ``show_value`` is clear). The arcs and the
+         needle report the square their circle is inscribed in.
 
    :Inherited:
 
@@ -30,6 +45,23 @@ gui_forms::RadialGauge
       From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`, :cpp:func:`states <gui_forms::RangeControl::states>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. seealso::
+
+      :cpp:class:`LinearGauge <gui_forms::LinearGauge>`
+         The same value filling a straight bar.
+
+      :cpp:class:`Dial <gui_forms::Dial>`
+         A knob the user turns.
+
+   .. rubric:: Notes
+
+   Every part but the caption is of the progress family, over the round
+   ``plot`` face: ``track`` is an arc, ``alarm_arc`` arcs in the invalid state,
+   ``value_arc`` an arc in the reading's states (selected, and invalid in
+   alarm), ``graticule`` the marks and ``needle`` the pointer; the caption is
+   panel text. The theme sets the arcs' thickness and the needle's width and
+   shape (``stroke-width``, ``needle-shape``).
 
 
    .. rubric:: Construction
@@ -40,6 +72,13 @@ gui_forms::RadialGauge
    .. rubric:: Properties
 
    .. cpp:function:: Parts parts() const
+
+      The control's parts and where they lie: ``plot``, the round face;
+      ``track``, the whole scale; ``alarm_arc``, the alarm ranges (absent
+      without alarm limits); ``value_arc``, the reading (absent at the
+      minimum); ``graticule``, the scale marks; ``needle``; and ``caption``,
+      the value text (absent while ``show_value`` is clear). The arcs and the
+      needle report the square their circle is inscribed in.
 
 
    .. rubric:: Extension points

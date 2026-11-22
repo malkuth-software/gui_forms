@@ -11,17 +11,33 @@ gui_forms::LinearGauge
 
    ``#include <gui_forms/controls/linear_gauge.hpp>``
 
-   Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end.
+   A bar gauge: the value filling a straight scale from the minimum, with scale marks, alarm segments and the value as text.
+
+   The bar runs along the gauge's ``orientation``: left to right, or bottom to
+   top. Scale marks lie beside it every ``tick_frequency``; the alarm ranges (the
+   minimum to ``low_alarm``, and ``high_alarm`` to the maximum) are alarm segments
+   of the field; and the value as text sits at the bar's end (to the right of a
+   horizontal bar, below a vertical one) while ``show_value`` is set. A
+   horizontal gauge in a right-to-left layout is mirrored: the minimum at the
+   right and the value text at the left. :cpp:class:`GaugeBase <gui_forms::GaugeBase>` states the value, alarm
+   and accessibility rules. Use a :cpp:class:`ProgressBar <gui_forms::ProgressBar>` for the progress of an
+   operation.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
       **parts** : ``Parts``, read-only
+         The control's parts and where they lie: ``plot``, the bar's field;
+         ``alarm_zone``, the alarm segments (absent without alarm limits inside
+         the range); ``trace``, the filled reading; ``graticule``, the band of
+         scale marks; and ``caption``, the value text (absent while ``show_value``
+         is clear).
 
    :Inherited:
 
@@ -30,6 +46,22 @@ gui_forms::LinearGauge
       From :cpp:class:`RangeControl <gui_forms::RangeControl>`: properties :cpp:member:`value <gui_forms::RangeControl::value>`, :cpp:member:`minimum <gui_forms::RangeControl::minimum>`, :cpp:member:`maximum <gui_forms::RangeControl::maximum>`, :cpp:member:`small_change <gui_forms::RangeControl::small_change>`, :cpp:member:`large_change <gui_forms::RangeControl::large_change>`, :cpp:member:`orientation <gui_forms::RangeControl::orientation>`, :cpp:func:`normalized_value <gui_forms::RangeControl::normalized_value>`, :cpp:func:`style <gui_forms::RangeControl::style>`, :cpp:func:`states <gui_forms::RangeControl::states>`; events :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>`, :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`, :cpp:func:`scroll <gui_forms::RangeControl::scroll>`; methods :cpp:func:`bind <gui_forms::RangeControl::bind>`, :cpp:func:`increment <gui_forms::RangeControl::increment>`, :cpp:func:`range_control_property_entries <gui_forms::RangeControl::range_control_property_entries>`, :cpp:func:`set_range <gui_forms::RangeControl::set_range>`, :cpp:func:`unbind <gui_forms::RangeControl::unbind>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. seealso::
+
+      :cpp:class:`RadialGauge <gui_forms::RadialGauge>`
+         The same value on a dial with a needle.
+
+      :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
+         The progress of an operation.
+
+   .. rubric:: Notes
+
+   A theme styles ``plot`` (drawn as a well), ``alarm_zone`` (a track in the
+   invalid state, over the field and under the reading), ``trace`` (the
+   reading in the selected state, invalid while in alarm) and ``graticule``,
+   all of the progress family, and ``caption`` as panel text. The alarm
+   segments are the straight counterpart of :cpp:class:`RadialGauge <gui_forms::RadialGauge>`'s alarm arc.
 
 
    .. rubric:: Construction
@@ -40,6 +72,12 @@ gui_forms::LinearGauge
    .. rubric:: Properties
 
    .. cpp:function:: Parts parts() const
+
+      The control's parts and where they lie: ``plot``, the bar's field;
+      ``alarm_zone``, the alarm segments (absent without alarm limits inside
+      the range); ``trace``, the filled reading; ``graticule``, the band of
+      scale marks; and ``caption``, the value text (absent while ``show_value``
+      is clear).
 
 
    .. rubric:: Extension points

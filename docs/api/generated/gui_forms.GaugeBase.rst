@@ -11,38 +11,57 @@ gui_forms::GaugeBase
 
    ``#include <gui_forms/controls/gauge_base.hpp>``
 
-   Shared read-only gauge authority from the instruments package: a RangeControl value with scale marks, units, decimals and low and high alarm limits, a meter to assistive technology, that LinearGauge and RadialGauge draw.
+   The shared base of the read-only gauges: a value against a scale, with units, a number of decimals and optional alarm limits.
+
+   :cpp:class:`GaugeBase <gui_forms::GaugeBase>` adds to :cpp:class:`RangeControl <gui_forms::RangeControl>`'s value, minimum and maximum the scale
+   marks every :cpp:member:`tick_frequency <gui_forms::GaugeBase::tick_frequency>`, the value shown as text with its :cpp:member:`units <gui_forms::GaugeBase::units>` and
+   :cpp:member:`decimal_places <gui_forms::GaugeBase::decimal_places>`, and the alarm limits :cpp:member:`low_alarm <gui_forms::GaugeBase::low_alarm>` and :cpp:member:`high_alarm <gui_forms::GaugeBase::high_alarm>`. A gauge
+   whose value is below :cpp:member:`low_alarm <gui_forms::GaugeBase::low_alarm>` or above :cpp:member:`high_alarm <gui_forms::GaugeBase::high_alarm>` is in alarm: its
+   reading takes the invalid state, which every stock theme draws in its
+   warning colours, and assistive technology hears the alarm with the value.
+   :cpp:class:`LinearGauge <gui_forms::LinearGauge>` and :cpp:class:`RadialGauge <gui_forms::RadialGauge>` draw it; create one of them. For a value the
+   user sets, use a :cpp:class:`Dial <gui_forms::Dial>` or a :cpp:class:`TrackBar <gui_forms::TrackBar>`.
 
    *Status:* provisional.
 
    :Properties:
 
-      **tick_frequency** : ``double``
-         Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+      **tick_frequency** : ``double``, default ``10``
+         The distance in value units between scale marks; zero draws none. A
+         negative or non-finite value throws ``std::invalid_argument``.
 
-      **units** : ``std::string``
-         The unit shown after the value, such as "kPa"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+      **units** : ``std::string``, default empty
+         The unit shown after the value, such as ``"kPa"``; empty for none. It is
+         localizable. Invalid UTF-8 throws ``std::invalid_argument``.
 
-      **decimal_places** : ``std::uint32_t``
-         Digits after the decimal point in the shown value, at most 6 (std::invalid_argument).
+      **decimal_places** : ``std::uint32_t``, default ``0``
+         The digits after the decimal point in the shown value, at most 6; more
+         throws ``std::invalid_argument``.
 
-      **show_value** : ``bool``
+      **show_value** : ``bool``, default ``true``
          Whether the value is shown as text beside the scale.
 
-      **low_alarm** : ``stxlib::Optional<double>``
-         The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+      **low_alarm** : ``stxlib::Optional<double>``, default none
+         The value below which the gauge is in alarm, or none. A present value
+         that is not finite throws ``std::invalid_argument``.
 
-      **high_alarm** : ``stxlib::Optional<double>``
-         The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+      **high_alarm** : ``stxlib::Optional<double>``, default none
+         The value above which the gauge is in alarm, or none. A present value
+         that is not finite throws ``std::invalid_argument``.
 
       **in_alarm** : ``bool``, read-only
          Whether the value lies outside the alarm limits that are set.
 
       **value_text** : ``std::string``, read-only
-         The value as shown: decimal_places digits after the point, then the units after a space when there are any.
+         The value as shown: :cpp:member:`decimal_places <gui_forms::GaugeBase::decimal_places>` digits after a point (always
+         ``.``, whatever the locale), then the units after a space when there
+         are any.
 
       **tick_ratios** : ``std::vector<double>``, read-only
-         Where the scale marks lie, as ratios from 0 to 1: one every tick_frequency from the minimum, and the maximum; none when tick_frequency is zero. At most 101 marks: a finer frequency is drawn as 101 marks across the range.
+         Where the scale marks lie, as ratios from 0 to 1: one every
+         :cpp:member:`tick_frequency <gui_forms::GaugeBase::tick_frequency>` from the minimum, and the maximum; none when
+         :cpp:member:`tick_frequency <gui_forms::GaugeBase::tick_frequency>` is zero. At most 101 marks: a finer frequency is drawn
+         as 101 marks across the range.
 
    :Inherited:
 
@@ -57,24 +76,46 @@ gui_forms::GaugeBase
       :widths: 35 65
 
       * - :cpp:func:`ratio_of <gui_forms::GaugeBase::ratio_of>`
-        - Where ``value`` lies in the range, from 0 at the minimum to 1 at the maximum, clamped; 0 for an empty range.
+        - Where a value lies in the range, from 0 at the minimum to 1 at the maximum, clamped; 0 for an empty range.
       * - :cpp:func:`gauge_base_property_entries <gui_forms::GaugeBase::gauge_base_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`LinearGauge <gui_forms::LinearGauge>`
+         The value filling a straight bar.
+
+      :cpp:class:`RadialGauge <gui_forms::RadialGauge>`
+         The value on a dial with a needle.
+
+      :cpp:class:`SevenSegmentDisplay <gui_forms::SevenSegmentDisplay>`
+         A reading without a scale.
+
+   .. rubric:: Notes
+
+   A gauge takes no focus, and a press on it does nothing; its tooltip still
+   shows. To assistive technology it is a meter (a level indicator, or a
+   progress bar on hosts without one), read-only, with its value, range and
+   value text; while in alarm the value text ends in ``(low alarm)`` or
+   ``(high alarm)`` and the gauge is marked invalid.
 
 
    .. rubric:: Properties
 
    .. cpp:member:: double tick_frequency
 
-      Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
+      The distance in value units between scale marks; zero draws none. A
+      negative or non-finite value throws ``std::invalid_argument``.
 
    .. cpp:member:: std::string units
 
-      The unit shown after the value, such as "kPa"; empty for none. Must be valid UTF-8 (std::invalid_argument).
+      The unit shown after the value, such as ``"kPa"``; empty for none. It is
+      localizable. Invalid UTF-8 throws ``std::invalid_argument``.
 
    .. cpp:member:: std::uint32_t decimal_places
 
-      Digits after the decimal point in the shown value, at most 6 (std::invalid_argument).
+      The digits after the decimal point in the shown value, at most 6; more
+      throws ``std::invalid_argument``.
 
    .. cpp:member:: bool show_value
 
@@ -82,11 +123,13 @@ gui_forms::GaugeBase
 
    .. cpp:member:: stxlib::Optional<double> low_alarm
 
-      The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+      The value below which the gauge is in alarm, or none. A present value
+      that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: stxlib::Optional<double> high_alarm
 
-      The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
+      The value above which the gauge is in alarm, or none. A present value
+      that is not finite throws ``std::invalid_argument``.
 
    .. cpp:function:: bool in_alarm() const noexcept
 
@@ -94,18 +137,24 @@ gui_forms::GaugeBase
 
    .. cpp:function:: std::string value_text() const
 
-      The value as shown: decimal_places digits after the point, then the units after a space when there are any.
+      The value as shown: :cpp:member:`decimal_places <gui_forms::GaugeBase::decimal_places>` digits after a point (always
+      ``.``, whatever the locale), then the units after a space when there
+      are any.
 
    .. cpp:function:: std::vector<double> tick_ratios() const
 
-      Where the scale marks lie, as ratios from 0 to 1: one every tick_frequency from the minimum, and the maximum; none when tick_frequency is zero. At most 101 marks: a finer frequency is drawn as 101 marks across the range.
+      Where the scale marks lie, as ratios from 0 to 1: one every
+      :cpp:member:`tick_frequency <gui_forms::GaugeBase::tick_frequency>` from the minimum, and the maximum; none when
+      :cpp:member:`tick_frequency <gui_forms::GaugeBase::tick_frequency>` is zero. At most 101 marks: a finer frequency is drawn
+      as 101 marks across the range.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: double ratio_of(double value) const noexcept
 
-      Where ``value`` lies in the range, from 0 at the minimum to 1 at the maximum, clamped; 0 for an empty range.
+      Where a value lies in the range, from 0 at the minimum to 1 at the
+      maximum, clamped; 0 for an empty range.
 
    .. cpp:function:: static const std::array<PropertyEntry, gauge_base_property_count>& gauge_base_property_entries() noexcept
 
