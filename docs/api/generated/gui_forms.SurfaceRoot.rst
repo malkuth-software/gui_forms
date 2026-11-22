@@ -207,6 +207,12 @@ gui_forms::SurfaceRoot
          painting and paint wake-ups are suspended, and motion values jump to
          their ends without scheduling frames.
 
+      **display_timing** : ``DisplayTiming``
+         The display timing this window's frames are paced to (DisplayTiming; design note frame-source): what its host last reported, or a test's fixed rate; DisplayTiming::assumed() until either.
+
+      **wants_display_frames** : ``bool``, read-only
+         Whether this window wants frames at its display's rate now: a display-paced request is connected (motion moves, or an animation timer ticks) and the window is not occluded. A host keeps its display link running while this holds and may pause it once it does not; it is false whenever the window is at rest.
+
       **image_resources** : ``ImageRegistry``, read-only
          Returns the renderer-neutral image registry.
 
@@ -946,6 +952,18 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_occluded(bool occluded, FrameTime transition_time)
 
       Sets :cpp:func:`occluded <gui_forms::SurfaceRoot::occluded>`; see the property's description above.
+
+   .. cpp:function:: DisplayTiming display_timing() const noexcept
+
+      The display timing this window's frames are paced to (DisplayTiming; design note frame-source): what its host last reported, or a test's fixed rate; DisplayTiming::assumed() until either.
+
+   .. cpp:function:: bool set_display_timing(const DisplayTiming& timing)
+
+      Called by the host on the window's thread whenever the display's timing is known or changes (a display link's tick, a move to another display), and by tests, benches and offscreen hosts with DisplayTiming::fixed_rate. Returns false, changing nothing, when the timing is not valid (DisplayTiming::valid). Otherwise it is stored (an assumed report as DisplayTiming::assumed() itself), and each display-paced request (the motion clock's, the animation timers') takes the new refresh period and moves its deadline to the nearest point of the new grid, unless it lies within an eighth of a period of it: a report that restates the phase, with a display link's jitter, moves nothing. A moved deadline calls the schedule wake seam. Throws std::logic_error off the window's thread.
+
+   .. cpp:function:: bool wants_display_frames() const noexcept
+
+      Whether this window wants frames at its display's rate now: a display-paced request is connected (motion moves, or an animation timer ticks) and the window is not occluded. A host keeps its display link running while this holds and may pause it once it does not; it is false whenever the window is at rest.
 
    .. cpp:function:: const ImageRegistry& image_resources() const noexcept
 

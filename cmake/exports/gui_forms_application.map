@@ -338,6 +338,7 @@
     _ZGVZN9gui_forms13ControlLookup*;
     _ZGVZN9gui_forms13CursorMetrics*;
     _ZGVZN9gui_forms13DateTimeValue*;
+    _ZGVZN9gui_forms13DisplayTiming*;
     _ZGVZN9gui_forms13DisposedError*;
     _ZGVZN9gui_forms13DockNavigator*;
     _ZGVZN9gui_forms13DockWorkspace*;
@@ -2026,6 +2027,7 @@
     _ZGVZNK9gui_forms13ControlLookup*;
     _ZGVZNK9gui_forms13CursorMetrics*;
     _ZGVZNK9gui_forms13DateTimeValue*;
+    _ZGVZNK9gui_forms13DisplayTiming*;
     _ZGVZNK9gui_forms13DisposedError*;
     _ZGVZNK9gui_forms13DockNavigator*;
     _ZGVZNK9gui_forms13DockWorkspace*;
@@ -3809,6 +3811,8 @@
     _ZN9gui_forms12marker_linesE*;
     _ZN9gui_forms12merge_stripsB*;
     _ZN9gui_forms12merge_stripsE*;
+    _ZN9gui_forms12next_on_gridB*;
+    _ZN9gui_forms12next_on_gridE*;
     _ZN9gui_forms12revert_mergeB*;
     _ZN9gui_forms12revert_mergeE*;
     _ZN9gui_forms12scene_framedB*;
@@ -3842,6 +3846,7 @@
     _ZN9gui_forms13ControlLookup*;
     _ZN9gui_forms13CursorMetrics*;
     _ZN9gui_forms13DateTimeValue*;
+    _ZN9gui_forms13DisplayTiming*;
     _ZN9gui_forms13DisposedError*;
     _ZN9gui_forms13DockNavigator*;
     _ZN9gui_forms13DockWorkspace*;
@@ -4626,6 +4631,8 @@
     _ZN9gui_forms17locale_xml_limitsE*;
     _ZN9gui_forms17measure_paragraphB*;
     _ZN9gui_forms17measure_paragraphE*;
+    _ZN9gui_forms17next_presentationB*;
+    _ZN9gui_forms17next_presentationE*;
     _ZN9gui_forms17paint_canvas_lampB*;
     _ZN9gui_forms17paint_canvas_lampE*;
     _ZN9gui_forms17paint_canvas_linkB*;
@@ -6003,6 +6010,8 @@
     _ZN9gui_forms26content_layout_result_nameE*;
     _ZN9gui_forms26copy_failure_shadow_framesB*;
     _ZN9gui_forms26copy_failure_shadow_framesE*;
+    _ZN9gui_forms26display_timing_source_nameB*;
+    _ZN9gui_forms26display_timing_source_nameE*;
     _ZN9gui_forms26end_surface_material_shapeB*;
     _ZN9gui_forms26end_surface_material_shapeE*;
     _ZN9gui_forms26engine_sine_cosine_degreesB*;
@@ -7108,6 +7117,7 @@
     _ZNK[RO]9gui_forms13ControlLookup*;
     _ZNK[RO]9gui_forms13CursorMetrics*;
     _ZNK[RO]9gui_forms13DateTimeValue*;
+    _ZNK[RO]9gui_forms13DisplayTiming*;
     _ZNK[RO]9gui_forms13DisposedError*;
     _ZNK[RO]9gui_forms13DockNavigator*;
     _ZNK[RO]9gui_forms13DockWorkspace*;
@@ -8796,6 +8806,7 @@
     _ZN[KRO]9gui_forms13ControlLookup*;
     _ZN[KRO]9gui_forms13CursorMetrics*;
     _ZN[KRO]9gui_forms13DateTimeValue*;
+    _ZN[KRO]9gui_forms13DisplayTiming*;
     _ZN[KRO]9gui_forms13DisposedError*;
     _ZN[KRO]9gui_forms13DockNavigator*;
     _ZN[KRO]9gui_forms13DockWorkspace*;
@@ -10484,6 +10495,7 @@
     _ZT[VIST]N9gui_forms13ControlLookup*E;
     _ZT[VIST]N9gui_forms13CursorMetrics*E;
     _ZT[VIST]N9gui_forms13DateTimeValue*E;
+    _ZT[VIST]N9gui_forms13DisplayTiming*E;
     _ZT[VIST]N9gui_forms13DisposedError*E;
     _ZT[VIST]N9gui_forms13DockNavigator*E;
     _ZT[VIST]N9gui_forms13DockWorkspace*E;
@@ -12172,6 +12184,7 @@
     _ZT[hvc]*9gui_forms13ControlLookup*;
     _ZT[hvc]*9gui_forms13CursorMetrics*;
     _ZT[hvc]*9gui_forms13DateTimeValue*;
+    _ZT[hvc]*9gui_forms13DisplayTiming*;
     _ZT[hvc]*9gui_forms13DisposedError*;
     _ZT[hvc]*9gui_forms13DockNavigator*;
     _ZT[hvc]*9gui_forms13DockWorkspace*;
@@ -13860,6 +13873,7 @@
     _ZZN9gui_forms13ControlLookup*;
     _ZZN9gui_forms13CursorMetrics*;
     _ZZN9gui_forms13DateTimeValue*;
+    _ZZN9gui_forms13DisplayTiming*;
     _ZZN9gui_forms13DisposedError*;
     _ZZN9gui_forms13DockNavigator*;
     _ZZN9gui_forms13DockWorkspace*;
@@ -15548,6 +15562,7 @@
     _ZZNK9gui_forms13ControlLookup*;
     _ZZNK9gui_forms13CursorMetrics*;
     _ZZNK9gui_forms13DateTimeValue*;
+    _ZZNK9gui_forms13DisplayTiming*;
     _ZZNK9gui_forms13DisposedError*;
     _ZZNK9gui_forms13DockNavigator*;
     _ZZNK9gui_forms13DockWorkspace*;

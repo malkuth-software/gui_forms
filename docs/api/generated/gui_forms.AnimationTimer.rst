@@ -44,6 +44,8 @@ gui_forms::AnimationTimer
 
       * - :cpp:func:`start <gui_forms::AnimationTimer::start>`
         - ``start(Control& owner, FrameInterval interval, Tick tick)`` starts, or restarts, ticking ``tick`` every :cpp:func:`interval <gui_forms::AnimationTimer::interval>` for ``owner``.
+      * - :cpp:func:`start_every_frame <gui_forms::AnimationTimer::start_every_frame>`
+        - Starts (or restarts) ticking ``tick`` once per refresh of the owner's display, at its rate (120 times a second at 120 Hz), for continuous motion; every assumed_refresh_period while the window's timing is assumed.
       * - :cpp:func:`stop <gui_forms::AnimationTimer::stop>`
         - Stops the timer.
       * - :cpp:func:`note_painted <gui_forms::AnimationTimer::note_painted>`
@@ -110,6 +112,10 @@ gui_forms::AnimationTimer
       a window or not shown, the timer waits for its next paint. An interval
       shorter than 1 ms, or an empty ``tick``, throws ``std::invalid_argument`` and
       leaves the timer as it was.
+
+   .. cpp:function:: void start_every_frame(Control& owner, Tick tick)
+
+      Starts (or restarts) ticking ``tick`` once per refresh of the owner's display, at its rate (120 times a second at 120 Hz), for continuous motion; every assumed_refresh_period while the window's timing is assumed. interval() then answers zero. An empty ``tick`` throws std::invalid_argument and leaves the timer as it was.
 
    .. cpp:function:: void stop() noexcept
 

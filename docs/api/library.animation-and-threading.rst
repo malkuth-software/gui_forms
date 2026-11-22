@@ -271,4 +271,4 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr FrameInterval display_frame_interval
 
-   The display interval an animation paces to when it needs every frame. Value: ``std::chrono::milliseconds(16)``.
+   The interval of a stepped animation that moves at the pace of a 60 Hz display; on a faster display it still ticks about 60 times a second (AnimationTimer::start rounds it to whole refreshes). Continuous motion that should use every refresh calls AnimationTimer::start_every_frame. Value: ``std::chrono::milliseconds(16)``.

@@ -748,6 +748,7 @@ add_library(gui_forms_core STATIC
     src/core/thread_records/thread_records_end.cpp
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
+    src/core/scheduler/display_timing/display_timing.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
     src/core/surface_root/dispatcher/surface_root_dispatcher.cpp
     src/core/surface_root/surface_root.cpp
