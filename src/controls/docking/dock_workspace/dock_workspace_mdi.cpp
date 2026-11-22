@@ -152,7 +152,7 @@ DockTransactionResult DockWorkspace::set_frame_bounds(const DockPanelId& documen
 DockTransactionResult DockWorkspace::arrange_frames(DockFrameArrangement arrangement, DockEditOrigin origin) {
     DockTransaction transaction{};
     if (site_ != nullptr) {
-        const Rect area = (*site_).document_area_;
+        const Rect area = (*site_).document_area_bounds();
         transaction = plan_frame_arrangement(layout_, arrangement, Size{area.width, area.height}, frame_metrics());
     }
     transaction.origin = origin;

@@ -446,6 +446,9 @@ public:
     // text), the icon width and the workspace's icon edge
     // (DockWorkspace::frame_icons_at_bottom).
     [[nodiscard]] DockFrameMetrics frame_metrics() const;
+    // The document area's bounds after the last layout pass, in the site's
+    // coordinates: where the frames are arranged (DockWorkspace::arrange_frames).
+    [[nodiscard]] Rect document_area_bounds() const noexcept { return document_area_; }
 
     // The PageView realizing a stack of this site, or null.
     [[nodiscard]] std::shared_ptr<PageView> stack_view(DockNodeId stack) const;

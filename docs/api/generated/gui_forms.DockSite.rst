@@ -69,6 +69,9 @@ gui_forms::DockSite
       **frame_metrics** : ``DockFrameMetrics``, read-only
          What the frames are laid out with: the caption height (scaled with the text), the icon width and the workspace's icon edge (DockWorkspace::frame_icons_at_bottom).
 
+      **document_area_bounds** : ``Rect``, read-only
+         The document area's bounds after the last layout pass, in the site's coordinates: where the frames are arranged (DockWorkspace::arrange_frames).
+
       **realized_stacks** : ``std::vector<DockNodeId>``, read-only
          The stacks shown, collapsed ones included, in tree order, then the
          auto-hidden stacks in layout order.
@@ -555,6 +558,10 @@ gui_forms::DockSite
 
       What the frames are laid out with: the caption height (scaled with the text), the icon width and the workspace's icon edge (DockWorkspace::frame_icons_at_bottom).
 
+   .. cpp:function:: Rect document_area_bounds() const noexcept
+
+      The document area's bounds after the last layout pass, in the site's coordinates: where the frames are arranged (DockWorkspace::arrange_frames).
+
    .. cpp:function:: std::vector<DockNodeId> realized_stacks() const
 
       The stacks shown, collapsed ones included, in tree order, then the
@@ -923,7 +930,7 @@ gui_forms::DockSite
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 50 supported, 0 deferred, 0 excluded, 7 unclassified; 57 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 51 supported, 0 deferred, 0 excluded, 7 unclassified; 58 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -937,6 +944,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 50 s
    * - property
      - GUI.Forms-only
      - ``collapsed_stacks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``document_area_bounds``
      - supported
    * - property
      - GUI.Forms-only

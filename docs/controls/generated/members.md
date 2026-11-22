@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2374 | 3 | 370 | 4132 | 2487 |
+| 2375 | 3 | 370 | 4132 | 2488 |
 
 ## GUI.Forms types
 
@@ -84,7 +84,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `PageStrip` | GUI.Forms-only | 30 | 0 | 0 | 7 | 37 |
 | `PageView` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
 | `NavigationPane` | GUI.Forms-only | 17 | 0 | 0 | 3 | 20 |
-| `DockSite` | GUI.Forms-only | 50 | 0 | 0 | 7 | 57 |
+| `DockSite` | GUI.Forms-only | 51 | 0 | 0 | 7 | 58 |
 | `DockNavigator` | GUI.Forms-only | 10 | 0 | 0 | 4 | 14 |
 | `TabPage` | `TabPage` | 4 | 0 | 0 | 16 | 0 |
 | `FlexPanel` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |

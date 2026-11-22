@@ -3244,6 +3244,7 @@
     ]},
     {"type": "DockSite", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "collapsed_stacks", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_auto_hide_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "document_area_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mdi_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "document_area_maximized", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "document_frames_shown", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mdi_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "drag_announcement", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_drag_tests.cpp"},
