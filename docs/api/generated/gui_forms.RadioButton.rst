@@ -298,7 +298,7 @@ gui_forms::RadioButton
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``RadioButton``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 11 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``RadioButton``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 12 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -364,6 +364,10 @@ Counterpart: ``RadioButton``. Members declared here and by the counterpart: 4 su
    * - property
      - GUI.Forms-only
      - ``indicator_style``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``lamp_color``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
