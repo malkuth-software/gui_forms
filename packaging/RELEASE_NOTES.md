@@ -6,7 +6,8 @@
 
 ## Focus
 
-Towards **1.0 (backend)**: the library, its C ABI and its C# bindings. 0.5,
+Towards **1.0**: the library, its C ABI and its C# bindings, brought to the
+point where 1.0 can be declared; the tools follow it as 1.x releases. 0.5,
 the ABI and API seal, was declared done on 2026-11-08 (see the 0.5 notes).
 Everything since builds on the sealed interfaces additively. A change to a
 sealed interface needs a recorded owner decision.
@@ -17,7 +18,7 @@ under it is `v0.6.1541` (checkpoints 29 to 31). Under the 0.2 number the
 series was tagged `v0.2.N`; the stages 0.3 to 0.5 were not tagged
 separately. Those tags are kept.
 
-These notes cover checkpoints 24 to 31 (pull requests #474 to #482).
+These notes cover pull requests #474 to #486.
 
 ## Breaking changes
 
@@ -62,6 +63,52 @@ These notes cover checkpoints 24 to 31 (pull requests #474 to #482).
   registry writes.
 - **The 0.x C ABI is retired.** The sealed C ABI (`gf_abi.h`,
   `GUIForms::CAbi`) is the one C surface; `c_api.h` is gone.
+
+Since pull request #483:
+
+- **Form documents are XML.** A form is an element in the
+  `urn:gui-forms:form:1` namespace; each object is an element named by its
+  type, with its stable ID in `id`. A document in the old syntax is refused
+  (E821, `form_xml_invalid`). `tools/convert_form_to_xml.py` converts a
+  document once; `tools/verify_form_conversion.py` checks that the
+  generated header is unchanged. See
+  [Forms](https://gui-forms.readthedocs.io/en/latest/user/forms.html).
+- **FreeType and HarfBuzz are gone.** STXlib's glyph library, text layout
+  and Markdown reader replace FreeType, HarfBuzz, SheenBidi, libunibreak
+  and MD4C. The package's `FreeType` and `HarfBuzz` components and
+  `GUI_FORMS_INSTALL_TEXT_STACK` no longer exist; a program that needs
+  either links its own copy.
+- **Fonts are compiled in.** Every bundled face is part of `Core` as one
+  font pack. No face file is installed or packaged: the `fonts/` folder
+  beside a program holds the fonts' licences only, and
+  `GUI_FORMS_FONT_DIR` is read only by a build configured with
+  `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY`.
+- **STXlib types at the public surface.** Public signatures move from
+  `std::optional` to `stxlib::Optional` (for example, `Window::paint`
+  returns `stxlib::Optional<PaintReceipt>`), and more standard types follow
+  before 1.0. The package finds STXlib (`find_dependency(stxlib)`), which is
+  installed with the stx packages.
+- **Alignments are spelled `start` and `end`,** as CSS spells them.
+  `HorizontalAlignment`, `VerticalAlignment`, `OverlayHorizontalAlignment`
+  and GUI.Drawing's `StringAlignment` replace `near` and `far`, and mirror
+  under right to left as before; the properties' values in form documents
+  and the control schema follow. `DateTimeDropDownAlignment`'s `left` and
+  `right` are `start` and `end`, `RibbonCommandSize::small` is `compact`
+  and `SplitSeamState::near` is `nearby`. In the C ABI,
+  `GF_ANCHORED_OVERLAY_ALIGN_FAR` is `GF_ANCHORED_OVERLAY_ALIGN_END` and
+  `GD_STRING_NEAR` and `GD_STRING_FAR` are `GD_STRING_START` and
+  `GD_STRING_END`, with their values unchanged.
+- **The Ribbon's help event is `help_button_clicked`,** apart from
+  `Control::help_requested`, which F1 raises.
+
+Since pull request #484:
+
+- **The tests left this repository.** They live in
+  [`malkuth-software/gui_forms_tests`](https://github.com/malkuth-software/gui_forms_tests)
+  and build against the test cache CI publishes for each commit
+  (`test-cache-<commit>`). This tree registers no tests (only the fuzz
+  targets, when fuzzers are enabled), and the test CMake options are gone.
+  The C conformance kit's sources are in `src/abi/conformance`.
 
 ## Other changes
 
@@ -225,3 +272,105 @@ These notes cover checkpoints 24 to 31 (pull requests #474 to #482).
   noise).
 - **API traps closed:** a direct child `arrange()` during a layout pass is
   refused and counted; stale image ids are reported.
+
+### Pull request #483
+
+**Text and fonts**
+- STXlib's glyph library reads, shapes and hints every face, and its text
+  layout handles bidirectional text, line breaks and script runs.
+- The embedded font pack, with smaller fallback subsets for Chinese,
+  Japanese, Korean, Arabic and Indic scripts.
+- The font family registry: `FontFamilyId`, family stacks with a theme
+  fallback that warns instead of refusing, and nearest faces, across the C
+  ABI and C#.
+- Application font families: a program loads its own families for its
+  composites and sub-surfaces; stock controls and themes never draw them.
+  See [Application font families](https://gui-forms.readthedocs.io/en/latest/user/app-fonts.html).
+
+**Content boundary**
+- Content surfaces on their own execution context, with stale frames, a
+  watchdog and termination; the content editing mode, in which the program
+  draws the text and GUI.Forms supplies the caret, input, undo and
+  accessibility; hosted content, the content program in its own process,
+  on macOS, Linux and Windows (`GUIForms::HostedClient`). See
+  [Content surfaces](https://gui-forms.readthedocs.io/en/latest/user/content-surfaces.html).
+
+**Windows, input and presentation**
+- The window band's per-edge reservations, colour roles, cycling and
+  textures, the control border as schema properties, and window shaping.
+  See [The window band](https://gui-forms.readthedocs.io/en/latest/user/window-band.html).
+- The business card, which shows the program's identity
+  (`application.set_program_identity` in the C ABI), and the diagnostic
+  overlay's counters card.
+- Relative pointer mode, with raw motion, confinement and warping where the
+  host offers them. See
+  [Relative pointer mode](https://gui-forms.readthedocs.io/en/latest/user/relative-pointer.html).
+- One presentation layer on every host, with host scroll copies; a new
+  window stays off screen until its first frame is painted, on macOS and
+  X11. See [Presentation](https://gui-forms.readthedocs.io/en/latest/user/presentation.html).
+- Modal loops wake for work scheduled outside them; click-through on macOS;
+  VoiceOver follows keyboard focus.
+- The user's locale is read from the host on macOS, Windows and Linux.
+- Windows: native MessageBox icons, file dialog check and create flags that
+  follow the request, and scroll copies through `ScrollWindowEx`.
+
+**Controls**
+- DataGridView on VirtualRowsView's row engine, with frozen rows and
+  columns, click events, cell tooltips, hit testing, full-column selection
+  and auto-generated columns.
+- Menus jump to an item by its first letter when it has no mnemonic.
+- Ribbon: the minimized popup, the Quick Access Toolbar on the tab row or
+  below it, and the help button.
+- Composite controls written as `.control` documents and named in form
+  documents. See [Forms](https://gui-forms.readthedocs.io/en/latest/user/forms.html).
+- Plot3DView, 3D plotting over `stx_raster3d`.
+- Stock icons from Heroicons, baked from embedded path records.
+- ProgressRing draws a continuous arc as well as dots; an HSV colour
+  picker.
+
+**Themes and drawing**
+- Content effects on a control and its descendants: filters, masks, blend
+  modes, `backdrop-filter` and colour stages (`fill()`, `duotone()`,
+  `tritone()`).
+- Linear-light gradients from exact tables; dithered gradients keep their
+  level between bytes.
+- Curved paths, trimmed strokes, text at any angle and shaded triangles in
+  the Painter and in GUI.Drawing.
+- Forced high contrast keeps content fills.
+
+**C ABI, drawing ABI and host protocol** (additions only)
+- C ABI 1.4: the content boundary (`GF_TABLE_CONTENT`,
+  `GF_HOST_CAPABILITY_HOSTED_CONTENT`).
+- C ABI 1.5: the window outer band and shaping, the window's pointer
+  location, the list view table (`GF_TABLE_LIST_VIEW`), failure detail
+  (`diagnostics.failure_detail`), composite controls, the business card and
+  the diagnostic overlay, relative pointer mode, application font families,
+  the presentation capabilities and the control's content effect.
+- The drawing ABI (`gd_*`) is sealed at 1.0; 1.1, provisional, adds path
+  flattening and the raster's entry in the table (`raster_initialize`),
+  which replaces the `gdr_initialize` export.
+- Host protocol 14 carries the locale, 15 relative pointer mode.
+
+**Library and consumers**
+- STXlib is pinned with the stx packages through `stx.lock`; the row
+  height index is STXlib's `stx_btree`.
+- The C++20 module `import gui_forms;` (`GUIForms::Module`, with
+  `GUI_FORMS_BUILD_MODULE`), and a shield that keeps a consumer's macros
+  out of GUI.Forms' headers.
+- A program is one module: a C++ program links GUI.Forms statically, and a
+  C or C# program loads only the C ABI library, which contains the drawing
+  ABI.
+
+### Pull requests #484 to #486
+- CI builds with warnings as errors (`GUI_FORMS_WARNINGS_AS_ERRORS`, which
+  `tools/ci_build.py` sets); the CI tree builds without LTO, and SDK builds
+  keep it.
+- Each push to `main` publishes its test cache as the release
+  `test-cache-<commit>`, which the tests repository pins.
+- Ribbon: the group divider's width is themeable through `min-width` on
+  `ribbon::part(group-divider)`, in whole units from 1 to 8.
+- Bitmap ids are unique across the toolkit; some public records gain
+  default initializers, with no layout change.
+- The installed-notices check requires `THIRD_PARTY_NOTICES.md` and still
+  refuses GPL text.
+- The README's documentation badge points at Read the Docs' new host.
