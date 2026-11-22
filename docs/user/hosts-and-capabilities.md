@@ -368,7 +368,7 @@ Linux (X11)
   window and event handling, Xcursor cursors, X11 clipboard selections,
   XDND drag destinations, and native ATK/AT-SPI accessibility publication.
   The publication is checked from an AT-SPI client's side in the CI of
-  [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests):
+  `malkuth-software/gui_forms_tests`:
   `gui_forms_linux_accessibility_tests` drives a small fixture, and
   `gui_forms_linux_accessibility_gallery_tests` compares every Gallery page
   with the semantic tree (role, name, states, actions, values, children)

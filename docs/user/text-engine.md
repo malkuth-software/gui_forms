@@ -40,7 +40,7 @@ Glyph memory
   policy.
 
 A cross-platform identity test, in
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
+`malkuth-software/gui_forms_tests`,
 renders a fixed corpus and compares the output against checked-in hashes on
 every CI platform. A change that alters one
 pixel on one platform fails that test.

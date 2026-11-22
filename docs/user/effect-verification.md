@@ -47,7 +47,7 @@ and `libclang-22-dev`), build the plugin and verify every effect;
 `GUI_FORMS_EFFECT_VERIFY_REQUIRED=ON`, so a plugin that cannot be built or
 loaded fails the configure instead of leaving the effects unverified. The
 pass's own cases (`tests/effect_pass/`, each a source whose first line says
-whether the pass must reject, accept or warn) run in [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests).
+whether the pass must reject, accept or warn) run in `malkuth-software/gui_forms_tests`.
 
 ## Visual Studio projects: clang-cl
 

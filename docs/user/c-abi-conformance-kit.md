@@ -6,7 +6,7 @@ your flags. It is a set of C11 checks of ownership, threads, callbacks,
 events, values, the control schema, themes, host services, the control
 families and the window run. A product that consumes the C ABI runs it in
 its own test suite; GUI.Forms runs the same kit in its tests, which live in
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests).
+`malkuth-software/gui_forms_tests`.
 
 ## What is installed
 

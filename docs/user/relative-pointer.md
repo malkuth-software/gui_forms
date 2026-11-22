@@ -178,4 +178,4 @@ the events.
 
 The example `examples/relative_pointer` (an orbit toy with the shell's capsule
 as its release region) runs natively and, headless, in
-`tests/relative_pointer_example_tests.cpp` in [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests).
+`tests/relative_pointer_example_tests.cpp` in `malkuth-software/gui_forms_tests`.

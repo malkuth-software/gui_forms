@@ -128,7 +128,7 @@ cmake --install build
 
 The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout.
 This tree registers no tests: they live in their own repository,
-[malkuth-software/gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
+`malkuth-software/gui_forms_tests`,
 and run against the test cache a build packs
 ([Building from source](../building/index.md#tests)).
 
@@ -343,5 +343,5 @@ cmake --build build-examples --parallel
 ctest --test-dir build-examples --output-on-failure
 ```
 
-Each example links `Application` alone, as the linking rule in
-[Consume the SDK](consume-the-sdk.md#the-one-linking-rule) asks.
+No example links the static core beside `Application`, as the linking rule
+in [Consume the SDK](consume-the-sdk.md#the-one-linking-rule) asks.

@@ -136,6 +136,6 @@ gui_forms_compositor_lab_windows --backdrop window_material,transparent
 
 Each grant is printed as one JSON line: the host's capabilities, the
 compositor state, the request, the grant and its reason.
-`tools/t5_gate_record.py`, in [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), runs the lab for each request with `--capture`
+`tools/t5_gate_record.py`, in `malkuth-software/gui_forms_tests`, runs the lab for each request with `--capture`
 and records the grants beside the presented frame's alpha, which is how
 stage T5's gate is recorded on each host.

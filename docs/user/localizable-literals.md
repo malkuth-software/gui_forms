@@ -86,7 +86,7 @@ each shared library it has loaded. A translation unit compiled without the
 plugin adds nothing, and a program can mix the two.
 
 From the command line, `tools/dump_localizable_literals.py` in the
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests) repository prints the records of a linked program
+`malkuth-software/gui_forms_tests` repository prints the records of a linked program
 or library (it reads the section with `llvm-objcopy`):
 
 ```sh

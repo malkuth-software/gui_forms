@@ -135,7 +135,7 @@ find_package(GUIForms CONFIG REQUIRED COMPONENTS HostedClient)
 target_link_libraries(my_hosted_program PRIVATE GUIForms::HostedClient)
 ```
 
-`tests/hosted_client_consumer`, in [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), is an installed consumer with both ends: a
+`tests/hosted_client_consumer`, in `malkuth-software/gui_forms_tests`, is an installed consumer with both ends: a
 parent that links `GUIForms::Controls`, and a program that links only
 `GUIForms::HostedClient`. `tools/verify_install.py <prefix> --hosted-client`
 builds and runs it from a gui_forms_tests checkout beside this one.

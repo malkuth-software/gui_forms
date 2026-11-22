@@ -167,7 +167,7 @@ the declarations the library was built with. In a build without a native host
 the two targets carry a static Core instead, for hostless programs, and
 cannot be combined with an Application library.
 `tests/application_text_consumer/` in the
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
+`malkuth-software/gui_forms_tests`
 repository is a consumer of this shape.
 
 ## Your own HarfBuzz and FreeType

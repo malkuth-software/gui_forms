@@ -84,7 +84,7 @@ Each takes a window from `windows.create`, or any control in a window. Records a
 
 ## Windows 11: the contract for the native border (hand-back)
 
-The Windows host does not yet set any border attribute. This is the contract its implementation follows:
+The Windows host sets the corner preference only; it does not yet set the border colour. This is the contract its implementation follows:
 
 1. **Corner preference (implemented).**
    - `DWMWA_WINDOW_CORNER_PREFERENCE` (33) is set from the window's preference: `system` gives `DWMWCP_DEFAULT`, `square` gives `DWMWCP_DONOTROUND`, `round` gives `DWMWCP_ROUND`.

@@ -5,7 +5,7 @@ whole program (a theme package) and one control (an inline style). This page
 describes what the language admits, how a sheet is compiled and what
 happens when it is wrong. The conformance corpus,
 `tests/theme_language/conformance/` in the
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
+`malkuth-software/gui_forms_tests`
 repository, holds one compiled example of every
 form below, with its expected result; its coverage table,
 `COVERAGE.tsv`, lists each form and its example.

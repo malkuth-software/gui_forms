@@ -4,7 +4,7 @@
 in a GUI.Forms application. It loads stereo clips, mixes up to 64 live
 voices and writes the mix to the platform's audio device. Ogg Vorbis files
 are decoded by stx_vorbis, an Ogg Vorbis I decoder that lives in the
-[stx repository](https://github.com/malkuth-software/stx) under
+stx repository (`malkuth-software/stx`) under
 `stx_vorbis/`, at the commit `stx.lock` pins. This page describes what the component
 offers, why it has its own decoder, and how far that decoder has been
 checked.
