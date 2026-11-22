@@ -1,15 +1,15 @@
 # Fast, reproducible builds
 
 GUI.Forms builds the same way on macOS, Windows and Linux, and CI keeps those
-builds quick by not compiling or testing the same thing twice wherever it can
+builds quick by not compiling the same thing twice wherever it can
 prove it is the same. That is not one trick, such as a cache or a newer
 compiler. It is three parts used together:
 
 - **the configuration**: one pinned LLVM 22 toolchain, one fixed directory
   layout and one set of `ccache` settings, identical on every platform;
-- **the reuse**: a source tree that already passed its tests on a platform
-  is recognised and not rebuilt;
-- **the caching**: each platform's tested object cache is published, so a
+- **the reuse**: a source tree that a platform's job already built and
+  checked is recognised and not rebuilt;
+- **the caching**: each platform's checked object cache is published, so a
   fresh checkout, a later commit or another project starts warm.
 
 Each part depends on the other two. A cache built under a different layout or
@@ -26,18 +26,24 @@ build. `.github/workflows/native.yml` runs one job per platform (`macos-15`,
 `ubuntu-24.04`, `ubuntu-24.04-arm`, `windows-2022`). Each job:
 
 1. reuses an earlier successful result for the identical tree if one exists;
-2. otherwise restores the closest object cache, compiles only what changed,
-   and runs every native, installed-SDK and development-profile test (on a
-   pull request, `--test-targets-only --changed-from HEAD^1`: the tests the
-   change can affect, built without installing anything; a pull request
-   that changes only documentation builds nothing);
-3. uploads its tested cache archive and a validation receipt;
-4. on `main`, publishes that archive to the `build-<sha>` pre-release at
-   once, without waiting for the other platforms.
+2. otherwise restores the closest object cache, compiles only what changed
+   (`tools/ci_build.py --test-cache`), installs the SDK, builds and runs the
+   installed reference examples against it, and packs the test cache; a
+   pull request that changes only documentation builds nothing;
+3. uploads its cache archive, the test cache and a validation receipt;
+4. on `main`, publishes the cache archive to the `build-<sha>` pre-release
+   at once, without waiting for the other platforms, and the test cache to
+   the `test-cache-<sha>` pre-release.
 
-`.github/workflows/release.yml` builds and smoke-launches the packaged
-programs on all four platforms, starting from the object caches the native
-jobs saved, and on a push to `main` publishes a tested `v*` release. What you
+The tests do not run in this repository's jobs. They live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), build
+against the test cache of the commit their `gui_forms.lock` names, and run in
+that repository's CI ([Build from source](index.md#tests)).
+
+`.github/workflows/release.yml` builds the demonstration programs on all
+four platforms, starting from the object caches the native jobs saved, packs
+the programs test cache, packages and smoke-launches the programs, and on a
+push to `main` publishes a `v*` release. What you
 get back is a result per platform, a published cache per platform, and
 release packages. A new push to the same branch cancels the run still in
 progress (`concurrency: cancel-in-progress`).
@@ -102,12 +108,8 @@ one relative to the other and compilations miss.
 Two arguments are not paths `ccache` knows how to rewrite, so the build keeps
 them free of the checkout's location. The localizable-literal plugin's source
 root goes to the compiler relative to the build tree under Ninja
-(`cmake/LocalizablePlugin.cmake`), and the test programs that share a
-precompiled header run `ccache` with `sloppiness=pch_defines,time_macros` as a
-leading argument (`cmake/TestPrecompiledHeader.cmake`). Without that sloppiness
-`ccache` refuses every unit that reads a precompiled header. These settings
-come from CMake, so a local build tree caches the same units as CI whatever
-its shell exports.
+(`cmake/LocalizablePlugin.cmake`). The setting comes from CMake, so a local
+build tree caches the same units as CI whatever its shell exports.
 
 `ccache` also rewrites the paths in each object's dependency file, relative to
 the compiler's real working directory. With the build tree behind a symlink,
@@ -163,22 +165,16 @@ The limit is above one full tree's objects (0.9 to 1.2 GB), so nothing is
 evicted during a build; the sanitizer and profile jobs use the same limit.
 The saved cache holds only the entries the build used (`ci_cache.py evict`).
 Main saves its objects after a passing build. A pull request saves its own,
-after a failed build or test too, under the family
+after a failed build too, under the family
 `gui-objects-v2-<platform>-<compiler>-pr<number>-`, and its next push
 restores that before main's; `cache-prune-pull-request` in `native.yml`
 deletes the generations each save supersedes.
 
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
-path or timestamp. The only sloppiness options are the two a precompiled header
-needs: the test programs share one per group of programs with equal options
-(`cmake/TestPrecompiledHeader.cmake`), which takes most of the test sources' parse
-time away; the daily build compiles the tests without it
-(`GUI_FORMS_TEST_PRECOMPILED_HEADER=OFF`), so each test still includes what it
-uses. Most test programs link the toolkit's libraries through one static test
-runtime (`cmake/TestRuntime.cmake`); it was a shared library, which relinked
-once per library change, until no shared object of ours could carry the static
-C++ runtime (one module), so a library change relinks each program that uses
-it. Each program is its own process, so the tests stay independent. The Objective-C++ launcher
+path or timestamp. The two sloppiness options are those a precompiled header
+needs. They date from the time the test programs, which share precompiled
+headers, were built here; no unit of this tree reads a precompiled header
+now, so they change no hash. The Objective-C++ launcher
 matters on macOS, where the AppKit host is Objective-C++. The CPU renderer and the
 text stack come from the stx package (`cmake/Stx.cmake`), which CI restores from an
 Actions cache keyed by `stx.lock`, the package recipe, the platform and the compiler;
@@ -194,11 +190,14 @@ ccache --show-stats --verbose
 ## What the cache proves
 
 `tools/prove_compiler_cache.py` copies a clean source tree to two different
-directories, builds the retained-control event test `gui_forms_owned_event_tests`
-in both with one cache, and requires byte-identical executables. It then
-edits one source file, one header and one compiler option, and fails unless
-each causes misses. `.github/workflows/cache-proof.yml` runs it weekly on
-Linux x64 and on demand. Recorded run, LLVM 22.1.8 on an Apple M4 Mac mini
+directories, builds the form compiler (the core, the controls and the form
+language, with no renderer or platform code) in both with one cache, and
+requires byte-identical executables. It then edits one source file, one
+header and one compiler option, and fails unless each causes misses.
+`.github/workflows/cache-proof.yml` runs it weekly on Linux x64 and on
+demand. The recorded run below built the retained-control event test, the
+fixture before the tests moved to gui_forms_tests; LLVM 22.1.8 on an Apple M4
+Mac mini
 ([`experiments/llvm22-platform-contract/cache-proof-summary.json`](https://github.com/malkuth-software/notes/blob/gui_forms/experiments/llvm22-platform-contract/cache-proof-summary.json)):
 
 | Step | Change | Missed compilations | Build time |
