@@ -1627,6 +1627,7 @@ using gui_forms::RadioButtonCapabilities;
 using gui_forms::RadioButtonCheckedCapability;
 using gui_forms::RadioButtonGroupNameCapability;
 using gui_forms::RadioButtonIndicatorStyleCapability;
+using gui_forms::RadioButtonLampColorCapability;
 using gui_forms::RangeAction;
 using gui_forms::RangeControl;
 using gui_forms::RangeControlCapabilities;

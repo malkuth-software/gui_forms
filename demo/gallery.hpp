@@ -46,7 +46,7 @@ bool select_gallery_page(Window& window, std::string_view page_id);
 // The id of the page currently shown, or empty when `window` is not a Gallery.
 [[nodiscard]] std::string_view selected_gallery_page(const Window& window);
 
-// Capture staging (the Gallery's --reveal and --open-menu options), applied
+// Capture staging (the Gallery's --reveal, --open-menu and --check options), applied
 // after select_gallery_page and before the window is shown, so the first
 // captured frame shows them.
 //
@@ -61,5 +61,11 @@ bool reveal_gallery_control(Window& window, std::string_view stable_id);
 // Ribbon's drop-down named `item`. Returns false when there is no such
 // control, it is of another kind, or the menu did not open.
 bool open_gallery_menu(Window& window, std::string_view stable_id, std::string_view item);
+
+// check_gallery_control sets the check box with `stable_id` on the shown
+// page, as a click would, so its page reacts (the industrial-surfaces
+// page's industrial theme). Returns false when the shown page has no
+// check box of that id; one already set stays set.
+bool check_gallery_control(Window& window, std::string_view stable_id);
 
 }  // namespace gui_forms::gallery

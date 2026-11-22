@@ -11,7 +11,10 @@ namespace gui_forms::engine_primitives {
 // language §3.5). The plane itself swells: a lit slope toward the upper-left
 // light, a shaded slope away from it and a faint crown, each a field
 // 1 − t^q over its own ellipse. There is no edge of any kind. `pressed`
-// turns the bulge into a dent and `active_tool` draws it in gold.
+// turns the bulge into a dent (swapped centres, reference §2 "Pressed is a
+// dent"); `active_tool`, or the `gold` parameter at 0.5 or more, draws it in
+// gold, the selected look (reference §2 "Active tool"), which the built-in
+// rules give a checked ribbon command and a selected gallery item.
 //
 // Both primitives take `amplitude`, a number in [0, 1] (default 1) that
 // multiplies the relief: 0 is the flat plane and draws nothing, 1 is the
@@ -21,7 +24,9 @@ namespace gui_forms::engine_primitives {
 // primitive parameter, not a vocabulary atom.
 //
 // Both primitives paint an overlay: they write premultiplied pixels that are
-// transparent wherever the plane beneath should show.
+// transparent wherever the plane beneath should show. The one exception is
+// the dithered form in gold, which draws the gold plate under its dots
+// (below).
 
 // The smooth form (reference §2): white, blue-grey and white layered over
 // the plane in that order, each weighted by its field, its peak and the
@@ -56,6 +61,14 @@ private:
 // from the part's device origin, its fields are sampled at logical
 // (2n + 1)·k / s, and its threshold is indexed by n. At integer scales this
 // is the studies' rule exactly: 1-logical-px dots at odd logical positions.
+//
+// In gold the dots alone read as noise (owner, 2026-11-22), so the gold form
+// draws the selected look's plate first (reference §1, "active tool"): a
+// vertical gradient, #FFEDBA to #FFCF66 (pressed, the gold plate's pressed
+// face), inside a one-keyline border #C49332 with corner radius 2; the
+// gradient's ends and the border are the `gold_plate_*` parameters. Its dots shade the plate and stay inside the
+// face; a dot that reaches a rounded corner is blended by the face's
+// coverage. At amplitude 0 the gold form, like the others, draws nothing.
 class DitheredBulgePrimitive final : public EnginePrimitive {
 public:
     [[nodiscard]] const PrimitiveDescriptor& descriptor() const noexcept override;

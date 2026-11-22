@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -66,6 +67,62 @@ struct MenuSnapshot final {
 [[nodiscard]] inline FontSpec menu_shortcut_font() noexcept {
     const FontSpec font{FontRole::content, 10.0, 400, false};
     return font;
+}
+
+// -- Submenus opening and closing by themselves (every menu surface) ------
+//
+// The rule every menu surface follows (owner, 2026-11-22): resting on a
+// submenu row for the menu show delay (PointerSettings::menu_show_milliseconds,
+// 300 ms on every host unless the program sets another) opens its
+// submenu; resting on another row of the same panel for the delay closes
+// a submenu that row's panel opened; a move from the open submenu's row
+// toward the submenu across other rows (the safe triangle) leaves the rows
+// as they are. ContextMenu (and so MenuStrip, ToolStrip and the ribbon's
+// drop-down menus) and the ribbon's two-pane application menu share the
+// geometry and the times below.
+
+// A settle timer is one-shot: it is disconnected when it fires, so its
+// interval is never reached.
+inline constexpr std::chrono::hours menu_settle_interval{24};
+
+// The least time a pointer resting inside the aim triangle waits before the
+// row under it takes over, so that a zero menu show delay (open and close at
+// once) still lets the pointer cross other rows to its open submenu.
+inline constexpr std::chrono::milliseconds minimum_aim_rest{100};
+
+// Which side of the line from `from` to `to` the point `at` lies on: the z
+// component of the cross product of (to - from) and (at - from); 0 on the
+// line.
+[[nodiscard]] inline double side_of_line(const Point at, const Point from, const Point to) noexcept {
+    const double side = (to.x - from.x) * (at.y - from.y) - (to.y - from.y) * (at.x - from.x);
+    return side;
+}
+
+// Whether `at` lies in the triangle `a`, `b`, `c` or on its edges, whichever
+// way round its corners run.
+[[nodiscard]] inline bool triangle_holds(const Point at, const Point a, const Point b, const Point c) noexcept {
+    const double ab = side_of_line(at, a, b);
+    const double bc = side_of_line(at, b, c);
+    const double ca = side_of_line(at, c, a);
+    const bool negative = ab < 0.0 || bc < 0.0 || ca < 0.0;
+    const bool positive = ab > 0.0 || bc > 0.0 || ca > 0.0;
+    const bool inside = !(negative && positive);
+    return inside;
+}
+
+// The safe triangle: whether a move from `from` to `to` heads for the
+// submenu whose face is `child`, opened from the panel whose face is
+// `parent` (all in one coordinate space): `to` lies in the triangle from
+// `from` to the two corners of the child face's edge nearer the parent (its
+// left edge when it opened rightward, else its right edge).
+[[nodiscard]] inline bool aiming_at_submenu_face(const Rect parent, const Rect child, const Point from,
+                                                 const Point to) noexcept {
+    const bool rightward = child.x >= parent.x;
+    const double edge = rightward ? child.x : child.x + child.width;
+    const Point top{edge, child.y};
+    const Point bottom{edge, child.y + child.height};
+    const bool aiming = triangle_holds(to, from, top, bottom);
+    return aiming;
 }
 
 struct ConsecutiveSeparators final {

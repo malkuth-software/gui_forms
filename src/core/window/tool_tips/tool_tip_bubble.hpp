@@ -28,6 +28,8 @@ struct ToolTipLines final {
     std::string scratch{};
     FontSpec font{};
     double text_width{};
+    // The lines' widths summed, in logical units.
+    double total_width{};
     double line_height{};
 };
 
@@ -39,6 +41,17 @@ struct ToolTipLines final {
 // are assigned in place, never destroyed and rebuilt) and returns nothing.
 void break_tool_tip_lines(const Control& measurer, std::string_view text, double maximum_width,
                           ToolTipLines& lines);
+
+// Breaks `text` as break_tool_tip_lines does, at the width the tooltip
+// width rule picks (tool_tip_width.hpp): one line per paragraph for text
+// whose widest paragraph fits the one-line width, else the candidate
+// width whose face comes nearest the golden box. `cap` is the program's
+// ToolTipSettings::maximum_width and `room` the width the work area leaves
+// for the face (ignored when not positive), both in logical units. Breaks
+// into `lines` several times over (its storage reused) and leaves it holding
+// the chosen width's lines.
+void wrap_tool_tip_lines(const Control& measurer, std::string_view text, double cap, double room,
+                         ToolTipLines& lines);
 
 // The face's size for `lines`: the text block inside the margins.
 [[nodiscard]] Size tool_tip_face_size(const ToolTipLines& lines) noexcept;

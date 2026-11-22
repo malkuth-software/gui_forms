@@ -19,8 +19,10 @@
 //   --headless          The Gallery draws the window offscreen, with no host
 //                       window, and writes --capture's PNG
 //                       (gallery_headless_capture.hpp): a still of the
-//                       staged page at --size and --scale. Other programs
-//                       ignore it.
+//                       staged page at --size and --scale. The
+//                       process-control demonstrator draws its window the
+//                       same way (process_control_program.hpp). Other
+//                       programs ignore it.
 //   --size <W>x<H>      Create the window at this logical size.
 //   --scale <factor>    Recorded as a hint only; hosts take the device scale
 //                       from the display.
@@ -47,9 +49,15 @@
 //                       menu at index <item> (0 by default), or a
 //                       ToolStrip's or a Ribbon's drop-down <item>. Other
 //                       programs ignore it.
+//   --check <id>        The Gallery sets the check box with this stable id
+//                       on the shown page before showing the window, as a
+//                       click would (capture staging: the industrial-
+//                       surfaces page's industrial theme). The
+//                       process-control demonstrator sets its own check
+//                       boxes the same way. Other programs ignore it.
 //
-// Every host's Gallery main applies --page, --reveal, --open-menu and
-// --scheme through gallery_staging.hpp.
+// Every host's Gallery main applies --page, --reveal, --open-menu, --check
+// and --scheme through gallery_staging.hpp.
 //
 // The user-theme options every GUI.Forms program takes (--theme
 // <name|built-in|path.css> and --export-themes [folder];
@@ -95,16 +103,18 @@ struct ProgramOptions final {
     // --scheme light|dark: the window's colour-scheme override; empty
     // follows the host's setting.
     std::string scheme;
-    // --reveal and --open-menu (capture staging); empty when not given.
+    // --reveal, --open-menu and --check (capture staging); empty when not
+    // given.
     std::string reveal;
     std::string open_menu;
+    std::string check;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] [--headless] "
                  "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
-                 "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]]\n"
+                 "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]] [--check <id>]\n"
                  "       [--theme <name|built-in|path.css>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
@@ -174,7 +184,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                                  argument == "--scale" || argument == "--page" ||
                                  argument == "--backdrop" || argument == "--theme-base" ||
                                  argument == "--scheme" || argument == "--reveal" ||
-                                 argument == "--open-menu";
+                                 argument == "--open-menu" || argument == "--check";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -215,15 +225,17 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.scheme = std::string(value);
-        } else if (argument == "--reveal" || argument == "--open-menu") {
+        } else if (argument == "--reveal" || argument == "--open-menu" || argument == "--check") {
             if (value.empty()) {
                 print_program_usage(program);
                 return std::nullopt;
             }
             if (argument == "--reveal") {
                 options.reveal = std::string(value);
-            } else {
+            } else if (argument == "--open-menu") {
                 options.open_menu = std::string(value);
+            } else {
+                options.check = std::string(value);
             }
         } else if (argument == "--size") {
             Size size{};

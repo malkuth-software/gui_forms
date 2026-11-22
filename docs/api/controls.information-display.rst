@@ -18,7 +18,7 @@ Labels, images, progress and review cards.
    * - :cpp:class:`Badge <gui_forms::Badge>`
      - A small count or dot, such as the number of unread messages beside a mailbox.
    * - :cpp:class:`IndicatorLamp <gui_forms::IndicatorLamp>`
-     - An indicator lamp: a round lens in a bezel that shows off, on or error, with an optional legend beside it, such as a coolant or fault lamp on a machine panel.
+     - An indicator lamp: a round lens in a bezel that shows off, on, error or fault, with an optional legend beside it, such as a coolant or fault lamp on a machine panel.
    * - :cpp:class:`InfoBanner <gui_forms::InfoBanner>`
      - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
    * - :cpp:class:`EmptyState <gui_forms::EmptyState>`
@@ -243,7 +243,7 @@ Related types
    * - :cpp:class:`IndicatorLampLightPlanesCapability <gui_forms::IndicatorLampLightPlanesCapability>`
      - The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise).
    * - :cpp:class:`IndicatorLampStateChoiceCapability <gui_forms::IndicatorLampStateChoiceCapability>`
-     - Whether the lamp is off, on or showing an error.
+     - Whether the lamp is off, on, showing an error, or failing (fault: lit in the error colour, flickering and stuttering as a failing lamp does, steady under reduced motion).
    * - :cpp:class:`IndicatorLampTextCapability <gui_forms::IndicatorLampTextCapability>`
      - The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone.
    * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
@@ -1941,7 +1941,7 @@ Related types
 
    .. cpp:member:: IndicatorLampState state
 
-      Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+      Whether the lamp is off, on, showing an error, or failing (fault: lit in the error colour, flickering and stuttering as a failing lamp does, steady under reduced motion). The lens warms up on a change to a lit state and cools down on a change to off, at once under reduced motion.
 
    .. cpp:member:: std::string text
 
@@ -2012,7 +2012,7 @@ Related types
 
    ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp_capabilities.hpp>`)
 
-   Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+   Whether the lamp is off, on, showing an error, or failing (fault: lit in the error colour, flickering and stuttering as a failing lamp does, steady under reduced motion). The lens warms up on a change to a lit state and cools down on a change to off, at once under reduced motion.
 
 
    .. rubric:: Methods
@@ -4801,6 +4801,8 @@ Enumerations
    .. cpp:enumerator:: on
 
    .. cpp:enumerator:: error
+
+   .. cpp:enumerator:: fault
 
 .. cpp:namespace:: gui_forms
 

@@ -174,13 +174,18 @@ session and one undo group, which Escape rolls back.
 ## Indicator lamps and danger buttons
 
 `IndicatorLamp` (`<gui_forms/controls/indicator_lamp.hpp>`) is a round lens
-in a bezel that shows `state`: `IndicatorLampState::off`, `on` or `error`,
-with an optional legend in `text`. It takes no focus and passes the pointer
-through. To assistive technology it is static text whose value is the state
-("off", "on" or "error"), so the state never rests on colour alone. Themes
-style it through `indicator-lamp::part(lens):state(on)`. `light_planes`
-names a baked light-plane set from the window's resources, and
-`lamp_color` sets the colour the bake is lit in.
+in a bezel that shows `state`: `IndicatorLampState::off`, `on`, `error` or
+`fault`, with an optional legend in `text`. A lamp in `fault` is failing:
+lit in the error colour, it flickers and stutters as a breaking lamp does,
+the same way in every run (seeded by its stable id), under three flashes a
+second, and steadily lit under reduced motion. It takes no focus and passes
+the pointer through. To assistive technology it is static text whose value
+is the state ("off", "on", "error" or "fault"), so the state never rests on
+colour alone. Themes style it through
+`indicator-lamp::part(lens):state(on)`. `light_planes` names a baked
+light-plane set from the window's resources, and `lamp_color` sets the
+colour the bake is lit in. A `RadioButton` in the lamp look takes a
+`lamp_color` too.
 
 A `Button` that marks a dangerous or irreversible action sets `danger`:
 

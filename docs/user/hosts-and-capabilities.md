@@ -208,6 +208,14 @@ its origin. `native_hover` says the host reports hover itself
 | Linux X11 | `Net/DndDragThreshold` (a rectangle twice the threshold) | the window's timer, 400 ms default |
 | Headless | the defaults | the window's timer |
 
+`PointerSettings::menu_show_milliseconds` is the time the pointer rests on a
+menu row before its submenu opens, or before the open submenu of another row
+closes. It is GUI.Forms' own: 300 ms on every host, Windows included
+(`default_menu_show_milliseconds`). No host reads a platform setting for it
+(Windows' `SPI_GETMENUSHOWDELAY` is not read), and a host's report leaves the
+value as it is, so a program that sets another delay through
+`Application::set_presentation_settings` keeps it.
+
 The record also carries `caret` (`CaretSettings`, protocol version 13): how
 long a text caret stays shown or hidden before it toggles, 530 ms by default
 (`default_caret_blink_milliseconds`, Windows' own default), at most 10000 ms;

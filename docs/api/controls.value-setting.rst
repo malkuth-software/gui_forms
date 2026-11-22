@@ -258,6 +258,8 @@ Related types
      - The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group.
    * - :cpp:class:`RadioButtonIndicatorStyleCapability <gui_forms::RadioButtonIndicatorStyleCapability>`
      - How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).
+   * - :cpp:class:`RadioButtonLampColorCapability <gui_forms::RadioButtonLampColorCapability>`
+     - The colour the lamp look's jewel lights in while the option is chosen, as sRGB, or empty for lamp green.
    * - :cpp:class:`RangeControl::Parts <gui_forms::RangeControl::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RangeControl::States <gui_forms::RangeControl::States>`
@@ -2171,7 +2173,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> RadioButtonCapabilities : public RadioButtonCheckedCapability<Declaring>, public RadioButtonGroupNameCapability<Declaring>, public RadioButtonAutoCheckCapability<Declaring>, public RadioButtonIndicatorStyleCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> RadioButtonCapabilities : public RadioButtonCheckedCapability<Declaring>, public RadioButtonGroupNameCapability<Declaring>, public RadioButtonAutoCheckCapability<Declaring>, public RadioButtonIndicatorStyleCapability<Declaring>, public RadioButtonLampColorCapability<Declaring>
 
    ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
 
@@ -2195,6 +2197,10 @@ Related types
    .. cpp:member:: ChoiceIndicatorStyle indicator_style
 
       How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).
+
+   .. cpp:member:: stxlib::Optional<Color> lamp_color
+
+      The colour the lamp look's jewel lights in while the option is chosen, as sRGB, or empty for lamp green. The jewel's bake is achromatic, so one bake serves every colour: the colour tints the jewel's glass when dark and drives its lamp when lit. Read only by the lamp look (ChoiceIndicatorStyle::lamp), and not in forced high contrast.
 
 .. cpp:namespace:: gui_forms
 
@@ -2244,6 +2250,21 @@ Related types
    .. cpp:member:: PropertyCell<ChoiceIndicatorStyle, RadioButtonIndicatorStyleCapability<Declaring>> indicator_style
 
       Default: ``{ChoiceIndicatorStyle::classic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> RadioButtonLampColorCapability
+
+   ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
+
+   The colour the lamp look's jewel lights in while the option is chosen, as sRGB, or empty for lamp green. The jewel's bake is achromatic, so one bake serves every colour: the colour tints the jewel's glass when dark and drives its lamp when lit. Read only by the lamp look (ChoiceIndicatorStyle::lamp), and not in forced high contrast.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(RadioButtonLampColorCapability& capability, stxlib::Optional<Color> incoming)
+
+   .. cpp:member:: PropertyCell<stxlib::Optional<Color>, RadioButtonLampColorCapability<Declaring>> lamp_color
 
 .. cpp:namespace:: gui_forms
 

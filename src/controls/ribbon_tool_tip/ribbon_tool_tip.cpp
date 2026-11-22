@@ -23,9 +23,9 @@ namespace {
 
 std::atomic<std::uint64_t> next_provider_id{1U};
 
-// The overlay's maximum width and its distance from its anchor, in logical
-// units.
-constexpr double maximum_bubble_width = 318.0;
+// The overlay's distance from its anchor and from the client's edges, in
+// logical units. Its width follows its text (fit_ribbon_tool_tip), within
+// the client and below the window's ToolTipSettings::maximum_width.
 constexpr double anchor_gap = 4.0;
 constexpr double client_inset = 4.0;
 
@@ -483,8 +483,9 @@ void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::
     shown.disabled_reason = resolved.disabled_reason;
     if (!resolved.help_topic.empty()) shown.help_line = help_line_text.read();
     shown.image = resolved.image;
+    const double room = (*owner).client_size().width - client_inset * 2.0;
     const RibbonToolTipLayout layout =
-        layout_ribbon_tool_tip(*target, shown, maximum_bubble_width * (*target).effective_text_scale());
+        fit_ribbon_tool_tip(*target, shown, (*owner).tool_tip_settings().maximum_width, room);
     const Size size = layout.size;
 
     const std::string prefix = "ribbon-tooltip." + std::to_string(provider_id_) + "." +

@@ -3780,6 +3780,8 @@
     _ZN9gui_forms12engine_light11LightPlanes*;
     _ZN9gui_forms12engine_light11lamp_cooledB*;
     _ZN9gui_forms12engine_light11lamp_cooledE*;
+    _ZN9gui_forms12engine_light12jewel_filterB*;
+    _ZN9gui_forms12engine_light12jewel_filterE*;
     _ZN9gui_forms12engine_light12lamp_settledB*;
     _ZN9gui_forms12engine_light12lamp_settledE*;
     _ZN9gui_forms12engine_light13key_press_mixB*;
@@ -3794,6 +3796,8 @@
     _ZN9gui_forms12engine_light17read_light_planesE*;
     _ZN9gui_forms12engine_light18lamp_cooling_powerB*;
     _ZN9gui_forms12engine_light18lamp_cooling_powerE*;
+    _ZN9gui_forms12engine_light18lamp_fault_flickerB*;
+    _ZN9gui_forms12engine_light18lamp_fault_flickerE*;
     _ZN9gui_forms12engine_light20lit_key_lean_degreesB*;
     _ZN9gui_forms12engine_light20lit_key_lean_degreesE*;
     _ZN9gui_forms12engine_light21lamp_colour_from_srgbB*;
@@ -3802,6 +3806,10 @@
     _ZN9gui_forms12engine_light22composite_light_planesE*;
     _ZN9gui_forms12engine_light22light_plane_name_validB*;
     _ZN9gui_forms12engine_light22light_plane_name_validE*;
+    _ZN9gui_forms12engine_light22read_light_plane_storeB*;
+    _ZN9gui_forms12engine_light22read_light_plane_storeE*;
+    _ZN9gui_forms12engine_light25shipped_light_plane_storeB*;
+    _ZN9gui_forms12engine_light25shipped_light_plane_storeE*;
     _ZN9gui_forms12engine_light9LampDrive*;
     _ZN9gui_forms12engine_powerB*;
     _ZN9gui_forms12engine_powerE*;

@@ -140,6 +140,8 @@ const char* glint_preset_name(GlintPreset preset) noexcept {
     case GlintPreset::iridescent: return "iridescent";
     case GlintPreset::coarse_grit: return "coarse_grit";
     case GlintPreset::painted_sand: return "painted_sand";
+    case GlintPreset::blasted_enamel: return "blasted_enamel";
+    case GlintPreset::blasted_enamel_heavy: return "blasted_enamel_heavy";
     }
     return "unknown";
 }

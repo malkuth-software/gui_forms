@@ -179,7 +179,9 @@ bool valid_glint_preset(GlintPreset preset) noexcept {
     case GlintPreset::sand_blast:
     case GlintPreset::iridescent:
     case GlintPreset::coarse_grit:
-    case GlintPreset::painted_sand: return true;
+    case GlintPreset::painted_sand:
+    case GlintPreset::blasted_enamel:
+    case GlintPreset::blasted_enamel_heavy: return true;
     }
     // A preset outside the enumeration is not fitted.
     return false;

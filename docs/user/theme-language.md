@@ -262,6 +262,26 @@ drawing primitive for the part and its parameters are then properties by
 their registered names (`primitive: bulge; amplitude: 0.5`); a rule declaring
 only material fields selects the `material` primitive.
 
+`primitive: light-map` draws a part from a baked light map the library
+ships: the room's light, the lamps' and the key's coverage, baked without
+colour, so the lamp colour is chosen when the part is drawn. `bake` is
+`dialog-ok` (clear over a frosted back) or `dialog-cancel` (white plastic
+over red lamps), each baked up and down; `lamp-colour` is the lamps'
+colour (its alpha scales their power), `lamp-power` their power from 0 to
+2 (1 as baked, 0 by default), `press` how far the key is down from 0 to 1,
+mixing the up bake toward the down one, and `room` the room light's gain
+from 0 to 2 (1 by default). The bake stretches over the part, its
+coverage as the part's alpha. None of these is animated, so a change of
+state switches the look at once. A parameter cascades among the rules
+that select the same primitive, so each rule names it. A pressable lit
+key, its lamps put out by a class:
+
+```css
+.lit-ok::part(face) { primitive: light-map; bake: dialog-ok; lamp-colour: #6fff89; lamp-power: 1; }
+.lit-ok.lamp-off::part(face) { primitive: light-map; lamp-power: 0; }
+.lit-ok:active::part(face) { primitive: light-map; press: 1; }
+```
+
 | Area | Properties |
 |---|---|
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
@@ -507,10 +527,15 @@ dust's), `flat` (the paint as a plain solid) and `cloth-weave` (a plain
 weave; the paint is the warp's colour and the second the weft's). The
 glints are blasted metal drawn from its facets' glints rather than its
 relief: `bead-blast-glint`, `sand-blast-glint`, `iridescent-glint`,
-`coarse-grit-glint` and `painted-sand-glint` (the sand blast under a thin
-coat of the paint); for a glint the second colour is the metal's (the
-fitted presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a
-finish, and a part too large for it falls back to its built-in look. The
+`coarse-grit-glint`, `painted-sand-glint` (the sand blast under a thin
+coat of the paint), and the owner's blasted enamel, `blasted-enamel-glint`
+and `blasted-enamel-heavy-glint` (the study's process-control dialog: the
+sand blast under a thinner and a heavier coat, lit from a lamp above the
+part's upper left, so the sheen falls away from that corner whatever the
+part's size); for a glint the second colour is the metal's (the fitted
+presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a finish;
+a part too large to bake with it is painted from the finish's world tiles
+instead, anchored at the part's corner. The
 seed, a whole number from 0 to 2147483647 (7 by default), chooses the
 noise; the grain, a number from 0.5 to 4 (1 by default), scales every
 feature. A finish layer, like a pattern, takes no position, size or

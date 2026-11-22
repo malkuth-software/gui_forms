@@ -382,7 +382,13 @@ void HostSession::DispatchVisitor::operator()(
         PresentationSettings settings = (*window).presentation_base();
         settings.double_click_milliseconds = payload.double_click_milliseconds;
         settings.double_click_origin = payload.double_click_origin;
+        // The menu show delay is no host's (owner, 2026-11-22: 300 ms on
+        // every host): the window's, default or set by the program, stays.
+        const std::uint32_t menu_show = settings.pointer.menu_show_milliseconds;
+        const SettingOrigin menu_show_origin = settings.pointer.menu_show_origin;
         settings.pointer = payload.pointer;
+        settings.pointer.menu_show_milliseconds = menu_show;
+        settings.pointer.menu_show_origin = menu_show_origin;
         settings.caret = payload.caret;
         detail::SurfaceHostAccess::set_host_presentation(*window, settings);
     } else if constexpr (std::is_same_v<Payload, HostContextRequestEvent>) {

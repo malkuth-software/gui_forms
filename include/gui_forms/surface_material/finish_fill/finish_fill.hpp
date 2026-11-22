@@ -52,7 +52,9 @@ enum class FinishKind : std::uint8_t {
 
 // The glint's presets, fitted by the industrial-surfaces study against
 // photographs of blasted discs (glint_kernel.js, PRESETS) at display scale
-// 2 with the light 900 and the eye 700 logical units above the surface.
+// 2 with the light 900 and the eye 700 logical units above the surface:
+// above its centre, except for the owner's blasted enamel, which is lit as
+// the study's dialog is.
 enum class GlintPreset : std::uint8_t {
     // Many facets a pixel: a satin with faint, even grain (fitted; metal
     // #a5a5a5).
@@ -68,6 +70,17 @@ enum class GlintPreset : std::uint8_t {
     // The sand blast under a thin satin coat of `paint` (not fitted;
     // #a3a3a3).
     painted_sand,
+    // The owner's paint (owner, 2026-11-22): the blasted teal-grey enamel
+    // of the study's process-control dialog (demo.html; ГОСТ 397 there),
+    // the painted sand under a thinner coat with stronger glints, lit from
+    // a lamp above the upper left of the room the surface's origin begins
+    // (light 100 units across and 15.5 down, eye 250 and 155, as the
+    // dialog's 500 × 310 body has them), so the sheen falls away from the
+    // upper left on a panel of any size.
+    blasted_enamel,
+    // The same under a heavier coat (the dialog's title band, ГОСТ 832
+    // there).
+    blasted_enamel_heavy,
 };
 
 // One finish's parameters. The defaults are the study's: its paint (#2f6e6c,

@@ -157,9 +157,14 @@ inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU;
 // `image` is the icon of the group's collapsed button (none: the first
 // command image). `layouts` are its size definitions, largest first; empty
 // layouts are generated (Ribbon::group_layouts). Authored layouts that do
-// not end in the collapsed button gain it as their last step, so that a
-// group never vanishes from a narrow plane (a group of one command never
-// collapses). `modes` are the application modes it shows in.
+// not end in the collapsed button continue by automatic compaction, as
+// generated layouts do: image size (the rightmost run of up to three large
+// commands becomes compact, step by step), then rows (one more row per
+// column, up to three, while the rows do not fit), then the collapsed
+// button, so that a group never vanishes from a narrow plane (a group of
+// one command never shrinks or collapses). Authored layouts that end in
+// the collapsed button are the group's whole ladder. `modes` are the
+// application modes it shows in.
 struct GUI_FORMS_API RibbonGroupSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string caption{};
@@ -417,9 +422,12 @@ public:
     // availability). Throws std::out_of_range for a tab past the end.
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
     // A group's layouts, largest first: as authored, or generated when none
-    // were (each step makes the rightmost run of up to three large commands
-    // compact, then the group collapses unless it holds one command). Throws
-    // std::out_of_range for a tab or group past the end.
+    // were, with automatic compaction after the last authored or first
+    // generated layout unless the author ended in the collapsed button
+    // (each image-size step makes the rightmost run of up to three large
+    // commands compact; each row step stacks one more row, up to three,
+    // while the rows do not fit; then the group collapses unless it holds
+    // one command). Throws std::out_of_range for a tab or group past the end.
     [[nodiscard]] std::span<const RibbonGroupLayout> group_layouts(std::size_t tab, std::size_t group) const;
     // A tab's reduction ladder at the current font, text scale and theme,
     // built if needed. Throws std::out_of_range for a tab past the end.
@@ -1113,6 +1121,16 @@ private:
     // when `keyboard`; false when the item has no children or the ribbon
     // has no window.
     bool open_application_submenu(const MenuItemSpec& item, const Control& panel, Rect row, bool keyboard);
+    // The two-pane panel's top-left corner in the owner's client
+    // coordinates (the lifted panel's face, or the overlay's place).
+    [[nodiscard]] Point application_panel_origin(const Control& panel) const;
+    // The open two-pane submenu's face in the owner's client coordinates,
+    // or none; and the count of pointer moves the ribbon's menu has taken
+    // over its rows (ContextMenu::pointer_moves_over_rows).
+    [[nodiscard]] stxlib::Optional<Rect> application_submenu_face() const noexcept;
+    [[nodiscard]] std::uint64_t application_submenu_pointer_moves() const noexcept;
+    // The ribbon's menu's outside pointer handler (ribbon_file_area.cpp).
+    bool on_menu_outside_pointer(const PointerEvent& event);
     void place_backstage();
     void on_backstage_close_requested();
     void on_backstage_revoked();
@@ -1143,6 +1161,9 @@ private:
     stxlib::Optional<std::size_t> pressed_launcher_{};
     // The tab pressed while tabs_activate_on_release holds, until the release.
     stxlib::Optional<std::size_t> pressed_tab_{};
+    // The tab under any primary press, until the release: its hover layer
+    // shows the dithered dent while the pointer stays on it.
+    stxlib::Optional<std::size_t> held_tab_{};
     stxlib::Optional<std::size_t> pressed_group_{};
     Hit::Kind pressed_scroll_{Hit::Kind::none};
     bool application_pressed_{};

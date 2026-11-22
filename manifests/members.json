@@ -445,7 +445,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "surface_slot", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_table_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "theme_override", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_instance_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "theme_sheet", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "theme_sheet_pending", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/theme_sheet_package_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "theme_sheet_pending", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/process_control_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "tool_tip_presentation", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "tool_tip_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "visual_status", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
@@ -496,7 +496,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "fold_content_regions", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_table_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "gather_content_regions", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_table_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "has_bindable_property", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/binding_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "has_class", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/theme_cascade_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "has_class", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/industrial-surfaces_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "has_style", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/invalidation_damage_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "hit_test_local", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/abi/custom/gf_abi_custom_paint.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "insert_child", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_depth_tests.cpp"},
@@ -2551,6 +2551,7 @@
       {"kind": "method", "winforms": "PerformClick", "scope": "admitted", "gui_forms": "perform_click", "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "group_name", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "indicator_style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "lamp_color", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "radio_button_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "ToggleSwitch", "winforms": null, "gui_forms_base": "ButtonBase", "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp", "members": [

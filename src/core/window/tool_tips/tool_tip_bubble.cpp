@@ -1,10 +1,13 @@
 #include "tool_tip_bubble.hpp"
+#include "tool_tip_width.hpp"
 
 #include "gui_forms/text/text_store/text_store.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <limits>
 
 namespace gui_forms::detail {
 
@@ -95,6 +98,7 @@ void break_paragraph(const Control& measurer, std::string_view paragraph, double
 void break_tool_tip_lines(const Control& measurer, std::string_view text, double maximum_width,
                           ToolTipLines& lines) {
     lines.text_width = 0.0;
+    lines.total_width = 0.0;
     // The count of lines written so far; the kept strings past it are
     // dropped at the end.
     std::size_t filled = 0U;
@@ -116,9 +120,42 @@ void break_tool_tip_lines(const Control& measurer, std::string_view text, double
     for (const std::string& measured : lines.lines) {
         const ResolvedTextLayout layout = measurer.resolve_text_layout_utf8(measured, lines.font);
         lines.text_width = std::max(lines.text_width, layout.logical_size.width);
+        lines.total_width += layout.logical_size.width;
         line_height = std::max(line_height, layout.logical_size.height);
     }
     lines.line_height = line_height;
+}
+
+void wrap_tool_tip_lines(const Control& measurer, std::string_view text, double cap, double room,
+                         ToolTipLines& lines) {
+    const Size chrome{ToolTipBubble::horizontal_margin * 2.0, ToolTipBubble::vertical_margin * 2.0};
+    const ToolTipWrapRange range = tool_tip_wrap_range(lines.font.size, cap, room - chrome.width);
+    // The paragraphs as wide as the range allows: their widths, and the
+    // lines themselves when every paragraph fits the one-line width.
+    break_tool_tip_lines(measurer, text, range.maximum, lines);
+    ToolTipWrapInput input{};
+    input.total_width = lines.total_width;
+    input.widest_width = lines.text_width;
+    input.line_height = lines.line_height;
+    input.chrome = chrome;
+    input.range = range;
+    const ToolTipWrapCandidates candidates = tool_tip_wrap_candidates(input);
+    if (candidates.count == 1U && lines.text_width <= range.one_line) return;
+    double chosen = candidates.widths[0];
+    double chosen_error = std::numeric_limits<double>::infinity();
+    std::size_t last = candidates.count;
+    for (std::size_t index = 0U; index < candidates.count; ++index) {
+        break_tool_tip_lines(measurer, text, candidates.widths[index], lines);
+        const double error = tool_tip_aspect_error(tool_tip_face_size(lines));
+        last = index;
+        if (error < chosen_error) {
+            chosen_error = error;
+            chosen = candidates.widths[index];
+        }
+    }
+    // The lines of the width last broken are already there.
+    if (last < candidates.count && candidates.widths[last] == chosen) return;
+    break_tool_tip_lines(measurer, text, chosen, lines);
 }
 
 ToolTipBubble::ToolTipBubble(StableId stable_id, std::string text, ToolTipLines lines)

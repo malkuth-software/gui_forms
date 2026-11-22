@@ -25,8 +25,13 @@ namespace gui_forms {
 //   moves on from one that showed, within initial_delay of its closing.
 // - auto_pop_delay: how long a tooltip stays; zero keeps it until the
 //   pointer leaves its thing, a press, or focus moves.
-// - maximum_width: the widest a tooltip's text runs before it wraps, in
-//   logical units, from 80 to 2048.
+// - maximum_width: the widest a tooltip's text may wrap to, in logical
+//   units, from 80 to 2048. Below it every tooltip's width follows its text
+//   (owner, 2026-11-22): text whose widest paragraph fits 24 ems of the
+//   tooltip's font stays on one line per paragraph, and longer text wraps
+//   to the measured width, no narrower than 16 ems, whose face comes
+//   nearest a golden-ratio box (width about 1.618 times height), within
+//   the work area. The default leaves the width to that rule.
 // - show_on_hover and show_on_focus: whether a resting pointer, and
 //   keyboard focus, show tooltips.
 // - show_when_disabled: whether a disabled control's or item's tooltip
@@ -35,7 +40,7 @@ struct GUI_FORMS_API ToolTipSettings final {
     std::chrono::milliseconds initial_delay{500};
     std::chrono::milliseconds reshow_delay{100};
     std::chrono::milliseconds auto_pop_delay{5000};
-    double maximum_width{336.0};
+    double maximum_width{2048.0};
     bool show_on_hover{true};
     bool show_on_focus{true};
     bool show_when_disabled{false};

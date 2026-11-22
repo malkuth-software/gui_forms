@@ -45,7 +45,10 @@ namespace gui_forms::gallery {
 
 // Idle frames the settle may take: one procedural pattern a frame, and
 // finish tiles by effort; a page needing more shows the remaining grounds.
-inline constexpr std::size_t maximum_headless_settle_frames = 64U;
+// A glint tile is past one frame's effort, so it takes a frame of its own:
+// the industrial-surfaces page's dialog enamel and title band take some
+// 48 at scale 2 (owner, 2026-11-22), with room to spare here.
+inline constexpr std::size_t maximum_headless_settle_frames = 128U;
 
 namespace detail {
 

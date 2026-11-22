@@ -1257,6 +1257,18 @@ namespace {
 // 8192 device pixels. A larger area draws nothing.
 constexpr std::uint64_t maximum_finish_tiles_per_paint = 4096U;
 
+// The finish a refused part is painted with from world tiles: the lent
+// material's only fill, when that is a finish at full opacity, and the
+// part has a record for the tiles to wake; null otherwise.
+const FinishFill* tiled_finish_of(const SurfaceMaterial* material, bool recorded) noexcept {
+    if (material == nullptr || !recorded) return nullptr;
+    if ((*material).fills.size() != 1U) return nullptr;
+    const MaterialFillLayer& layer = (*material).fills.front();
+    const bool whole = layer.kind == MaterialFillKind::finish && layer.opacity >= 1.0;
+    if (!whole) return nullptr;
+    return &layer.finish;
+}
+
 } // namespace
 
 bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const {
@@ -1373,7 +1385,48 @@ struct ThemeEngine::PartPaintRun final {
     std::shared_ptr<const PartRaster> raster{};
     std::shared_ptr<const PartRaster> fading_from{};
     Outcome outcome{Outcome::nothing};
+    // A material of one finish the primitive refused, as its bake would
+    // pass the budget (a glint on a large panel): drawn over the built-in
+    // recipe from the window's world finish tiles, anchored at the part's
+    // corner (borrowed from the lent material for this paint); null for
+    // any other part.
+    const FinishFill* tiled_finish{};
 };
+
+// A refused part of one finish (PartPaintRun::tiled_finish): the finish
+// from the window's world tiles over the part inside its border, clipped
+// to its corners, at its presented opacity, with world (0, 0) at the
+// part's corner, so it reads as the part's own surface (an in-room glint
+// lights it from its upper left) and the tiles stand for the bake the
+// budget refused. Until the tiles are made the built-in recipe shows.
+void ThemeEngine::paint_tiled_finish(Painter& painter, const Control& control, const PartPaint& part,
+                                     const PartPaintRun& run) const {
+    if (run.opacity <= 0.0) return;
+    const SurfaceMaterial& material = *run.request.target.material;
+    double inset = 0.0;
+    if (material.border.present()) inset = std::max(0.0, (*material.border.value()).width);
+    const Rect bounds = run.shown.bounds;
+    const Rect inside{bounds.x + inset, bounds.y + inset, std::max(0.0, bounds.width - 2.0 * inset),
+                      std::max(0.0, bounds.height - 2.0 * inset)};
+    if (!part_bounds_paintable(inside)) return;
+    FinishTiles tiles{};
+    tiles.key = *part.key.value();
+    tiles.finish = run.tiled_finish;
+    tiles.anchor = Point{bounds.x, bounds.y};
+    tiles.zoom = 1.0;
+    tiles.area = inside;
+    const double radius = std::max(0.0, material.corner_radius - inset);
+    PaintGroup group{};
+    group.bounds = inside;
+    group.opacity = std::min(1.0, run.opacity);
+    group.isolated = run.opacity < 1.0;
+    painter.begin_group(group);
+    painter.save();
+    painter.clip_rounded_rect(inside, radius);
+    static_cast<void>(paint_finish_tiles(painter, control, tiles));
+    painter.restore();
+    painter.end_group();
+}
 
 void ThemeEngine::paint_planned(Painter& painter, const Control& control, const PartPaint& part,
                                 const PartPlan& decided, const std::span<const Rect> clips,
@@ -1886,6 +1939,7 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
         if (newly_refused) (*window).metrics().record_engine_primitive_refusal();
         (*window).metrics().record_engine_built_in_fallback();
         run.outcome = PartPaintRun::Outcome::built_in;
+        run.tiled_finish = tiled_finish_of(request.target.material, run.record.present());
         return;
     }
     if (run.record.present()) {
@@ -1918,6 +1972,7 @@ void ThemeEngine::draw_part_paint(Painter& painter, const Control& control, cons
                                   const PartPaintRun& run) const {
     if (run.outcome == PartPaintRun::Outcome::built_in) {
         paint_built_in(painter, control, run.shown, run.opacity, run.resolved_material);
+        if (run.tiled_finish != nullptr) paint_tiled_finish(painter, control, part, run);
         return;
     }
     const std::shared_ptr<const PartRaster>& raster = run.raster;

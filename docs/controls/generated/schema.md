@@ -55,8 +55,8 @@ Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each
 
 | Primitive | Since | Paints | Reads | Cost per device pixel | Parameters |
 |---|---|---|---|---|---|
-| `bulge` | 0.1 | `face` | `pressed`, `active_tool` | 320 | `amplitude`, `exponent`, `light_colour`, `light_peak`, `shade_colour`, `shade_peak`, `crown_colour`, `crown_peak`, `gold_light_colour`, `gold_light_peak`, `gold_shade_colour`, `gold_shade_peak`, `gold_crown_colour`, `gold_crown_peak` |
-| `dithered_bulge` | 0.1 | `face` | `pressed`, `active_tool` | 80 | `amplitude`, `exponent`, `lit_1`, `lit_2`, `lit_3`, `shaded_1`, `shaded_2`, `shaded_3`, `lit_gain`, `shade_gain`, `crown_gain`, `gold_lit_1`, `gold_lit_2`, `gold_lit_3`, `gold_body_1`, `gold_body_2`, `gold_body_3`, `gold_shaded_1`, `gold_shaded_2`, `gold_shaded_3` |
+| `bulge` | 0.1 | `face` | `pressed`, `active_tool` | 320 | `amplitude`, `exponent`, `light_colour`, `light_peak`, `shade_colour`, `shade_peak`, `crown_colour`, `crown_peak`, `gold_light_colour`, `gold_light_peak`, `gold_shade_colour`, `gold_shade_peak`, `gold_crown_colour`, `gold_crown_peak`, `gold` |
+| `dithered_bulge` | 0.1 | `face`, `actuator` | `pressed`, `active_tool` | 90 | `amplitude`, `exponent`, `lit_1`, `lit_2`, `lit_3`, `shaded_1`, `shaded_2`, `shaded_3`, `lit_gain`, `shade_gain`, `crown_gain`, `gold_lit_1`, `gold_lit_2`, `gold_lit_3`, `gold_body_1`, `gold_body_2`, `gold_body_3`, `gold_shaded_1`, `gold_shaded_2`, `gold_shaded_3`, `gold`, `gold_plate_top`, `gold_plate_bottom`, `gold_plate_border` |
 | `pill_plate` | 0.2 | `face`, `actuator`, `thumb`, `chip` | `hot`, `pressed`, `disabled`, `preselect` | 256 | `shape`, `corner_radius`, `face_top`, `face_bottom`, `border`, `upper_line`, `lower_line`, `contact_shadow`, `hot_face_top`, `hot_face_bottom`, `hot_border`, `pressed_face_top`, `pressed_face_bottom`, `pressed_upper_line`, `pressed_lower_line`, `disabled_face_top`, `disabled_face_bottom`, `disabled_border`, `disabled_upper_line`, `perimeter`, `text_padding` |
 | `gold_plate` | 0.2 | `face`, `actuator`, `chip` | `pressed` | 192 | `shape`, `corner_radius`, `face_top`, `face_bottom`, `border`, `pressed_face_top`, `pressed_face_bottom`, `upper_line`, `left_line`, `lower_line`, `text_padding` |
 | `inset_well` | 0.2 | `well`, `track`, `plot` | none | 160 | `shape`, `corner_radius`, `face_top`, `face_bottom`, `border`, `inner_shade`, `outer_highlight`, `text_padding` |
@@ -67,6 +67,7 @@ Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each
 | `overlay_shadow` | 0.2 | `shadow` | none | 512 | none |
 | `sheen` | 0.2 | `sheen` | none | 16 | `colour`, `width`, `rest` |
 | `glass` | 0.2 | `region`, `face`, `well`, `plot` | none | 48 | `blur`, `tint`, `corner`, `recipe`, `layers` |
+| `light_map` | 0.3 | `region`, `face`, `well`, `actuator` | none | 320 | `bake`, `lamp_colour`, `lamp_power`, `press`, `room` |
 
 Bounded expressions: at most 64 operations and a stack of 16, from `constant`, `input`, `state`, `parameter`, `negate`, `add`, `subtract`, `multiply`, `divide`, `minimum`, `maximum`, `less`, `less_equal`, `greater`, `greater_equal`, `equal`, `not_equal`, `clamp`, `mix`, `smoothstep`, `choose`.
 
@@ -431,7 +432,7 @@ Interactions beyond every control's: none.
 | `lens` | indicator |  |  |
 | `label` | label |  |  |
 
-States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`.
+States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`, `fault`.
 
 Properties beyond every control's: `lamp_color` (color), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
 
@@ -1335,7 +1336,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 
 States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `lamp`.
 
-Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `lamp_color` (color), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
