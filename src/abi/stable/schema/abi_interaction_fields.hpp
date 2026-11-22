@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 202> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 203> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -72,6 +72,7 @@ inline constexpr std::array<InteractionFieldsEntry, 202> interaction_fields{{
     {"DockNavigatorChoice", "panel: text, list: enumeration"},
     {"DragInteraction", "mode: enumeration, has_candidate: boolean, candidate: unsigned_integer, has_value: boolean, value: number, pointer: point, end: enumeration"},
     {"DropDownButton", ""},
+    {"EditButtonClick", "button_id: text"},
     {"ErrorProviderChange", "target_stable_id: text, error: text"},
     {"FileDialogOk", "file_names: collection, cancel: boolean"},
     {"FocusedControlChange", "previous_id: unsigned_integer, current_id: unsigned_integer, stable_id: text"},

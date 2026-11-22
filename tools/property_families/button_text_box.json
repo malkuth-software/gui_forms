@@ -1,0 +1,127 @@
+{
+  "family": "ButtonTextBox",
+  "step": "DX-2",
+  "declaring": "ButtonTextBox",
+  "header": "include/gui_forms/controls/button_text_box.hpp",
+  "source": "src/controls/button_text_box/button_text_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/button_text_box_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "ButtonTextBoxText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The text: a view onto the inner editor's text (see TextBox). A change raises text_changed.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": null,
+      "event": "text_changed_",
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The field's text.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's text; the editor's text_changed is published again as the field's"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "placeholder_text",
+      "capability": "ButtonTextBoxPlaceholderText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The hint the empty field shows: a view onto the inner editor's placeholder (see TextBox).",
+      "getter": "placeholder_text",
+      "setter": "set_placeholder_text",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": "placeholder",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The hint the empty field shows.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's placeholder"
+      ],
+      "storage": "view"
+    },
+    {
+      "name": "read_only",
+      "capability": "ButtonTextBoxReadOnly",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the user may select and copy the text but not change it (ReadOnly): a view onto the inner editor's. The buttons still act.",
+      "getter": "read_only",
+      "setter": "set_read_only",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the user may select and copy the text but not change it.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "a view onto the inner editor's read_only"
+      ],
+      "storage": "view",
+      "sample": "true"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "editor",
+      "reason": "the owned inner TextBox, made after construction"
+    },
+    {
+      "name": "buttons",
+      "reason": "records kept by stable ID, set through set_buttons"
+    }
+  ],
+  "test": {
+    "type": "ButtonTextBox",
+    "include": "gui_forms/controls/button_text_box.hpp"
+  }
+}

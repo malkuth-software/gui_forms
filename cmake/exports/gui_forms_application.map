@@ -84,6 +84,7 @@
     _ZGVZN9gui_forms10DockSiteId*;
     _ZGVZN9gui_forms10DragLimits*;
     _ZGVZN9gui_forms10DragTarget*;
+    _ZGVZN9gui_forms10EditButton*;
     _ZGVZN9gui_forms10EffectCost*;
     _ZGVZN9gui_forms10EmptyState*;
     _ZGVZN9gui_forms10FinishFill*;
@@ -331,6 +332,7 @@
     _ZGVZN9gui_forms13BindingSchema*;
     _ZGVZN9gui_forms13BindingSource*;
     _ZGVZN9gui_forms13BlockFlowLine*;
+    _ZGVZN9gui_forms13ButtonTextBox*;
     _ZGVZN9gui_forms13CaretSettings*;
     _ZGVZN9gui_forms13CommandTarget*;
     _ZGVZN9gui_forms13ContentRegion*;
@@ -569,6 +571,7 @@
     _ZGVZN9gui_forms15DockWindowFrame*;
     _ZGVZN9gui_forms15DocumentMapSpan*;
     _ZGVZN9gui_forms15DragInteraction*;
+    _ZGVZN9gui_forms15EditButtonClick*;
     _ZGVZN9gui_forms15EffectSelection*;
     _ZGVZN9gui_forms15EnginePartTable*;
     _ZGVZN9gui_forms15EnginePrimitive*;
@@ -1785,6 +1788,7 @@
     _ZGVZNK9gui_forms10DockSiteId*;
     _ZGVZNK9gui_forms10DragLimits*;
     _ZGVZNK9gui_forms10DragTarget*;
+    _ZGVZNK9gui_forms10EditButton*;
     _ZGVZNK9gui_forms10EffectCost*;
     _ZGVZNK9gui_forms10EmptyState*;
     _ZGVZNK9gui_forms10FinishFill*;
@@ -2032,6 +2036,7 @@
     _ZGVZNK9gui_forms13BindingSchema*;
     _ZGVZNK9gui_forms13BindingSource*;
     _ZGVZNK9gui_forms13BlockFlowLine*;
+    _ZGVZNK9gui_forms13ButtonTextBox*;
     _ZGVZNK9gui_forms13CaretSettings*;
     _ZGVZNK9gui_forms13CommandTarget*;
     _ZGVZNK9gui_forms13ContentRegion*;
@@ -2270,6 +2275,7 @@
     _ZGVZNK9gui_forms15DockWindowFrame*;
     _ZGVZNK9gui_forms15DocumentMapSpan*;
     _ZGVZNK9gui_forms15DragInteraction*;
+    _ZGVZNK9gui_forms15EditButtonClick*;
     _ZGVZNK9gui_forms15EffectSelection*;
     _ZGVZNK9gui_forms15EnginePartTable*;
     _ZGVZNK9gui_forms15EnginePrimitive*;
@@ -3540,6 +3546,7 @@
     _ZN9gui_forms10DockSiteId*;
     _ZN9gui_forms10DragLimits*;
     _ZN9gui_forms10DragTarget*;
+    _ZN9gui_forms10EditButton*;
     _ZN9gui_forms10EffectCost*;
     _ZN9gui_forms10EmptyState*;
     _ZN9gui_forms10FinishFill*;
@@ -3861,6 +3868,7 @@
     _ZN9gui_forms13BindingSchema*;
     _ZN9gui_forms13BindingSource*;
     _ZN9gui_forms13BlockFlowLine*;
+    _ZN9gui_forms13ButtonTextBox*;
     _ZN9gui_forms13CaretSettings*;
     _ZN9gui_forms13CommandTarget*;
     _ZN9gui_forms13ContentRegion*;
@@ -4171,6 +4179,7 @@
     _ZN9gui_forms15DockWindowFrame*;
     _ZN9gui_forms15DocumentMapSpan*;
     _ZN9gui_forms15DragInteraction*;
+    _ZN9gui_forms15EditButtonClick*;
     _ZN9gui_forms15EffectSelection*;
     _ZN9gui_forms15EnginePartTable*;
     _ZN9gui_forms15EnginePrimitive*;
@@ -6899,6 +6908,7 @@
     _ZNK[RO]9gui_forms10DockSiteId*;
     _ZNK[RO]9gui_forms10DragLimits*;
     _ZNK[RO]9gui_forms10DragTarget*;
+    _ZNK[RO]9gui_forms10EditButton*;
     _ZNK[RO]9gui_forms10EffectCost*;
     _ZNK[RO]9gui_forms10EmptyState*;
     _ZNK[RO]9gui_forms10FinishFill*;
@@ -7146,6 +7156,7 @@
     _ZNK[RO]9gui_forms13BindingSchema*;
     _ZNK[RO]9gui_forms13BindingSource*;
     _ZNK[RO]9gui_forms13BlockFlowLine*;
+    _ZNK[RO]9gui_forms13ButtonTextBox*;
     _ZNK[RO]9gui_forms13CaretSettings*;
     _ZNK[RO]9gui_forms13CommandTarget*;
     _ZNK[RO]9gui_forms13ContentRegion*;
@@ -7384,6 +7395,7 @@
     _ZNK[RO]9gui_forms15DockWindowFrame*;
     _ZNK[RO]9gui_forms15DocumentMapSpan*;
     _ZNK[RO]9gui_forms15DragInteraction*;
+    _ZNK[RO]9gui_forms15EditButtonClick*;
     _ZNK[RO]9gui_forms15EffectSelection*;
     _ZNK[RO]9gui_forms15EnginePartTable*;
     _ZNK[RO]9gui_forms15EnginePrimitive*;
@@ -8600,6 +8612,7 @@
     _ZN[KRO]9gui_forms10DockSiteId*;
     _ZN[KRO]9gui_forms10DragLimits*;
     _ZN[KRO]9gui_forms10DragTarget*;
+    _ZN[KRO]9gui_forms10EditButton*;
     _ZN[KRO]9gui_forms10EffectCost*;
     _ZN[KRO]9gui_forms10EmptyState*;
     _ZN[KRO]9gui_forms10FinishFill*;
@@ -8847,6 +8860,7 @@
     _ZN[KRO]9gui_forms13BindingSchema*;
     _ZN[KRO]9gui_forms13BindingSource*;
     _ZN[KRO]9gui_forms13BlockFlowLine*;
+    _ZN[KRO]9gui_forms13ButtonTextBox*;
     _ZN[KRO]9gui_forms13CaretSettings*;
     _ZN[KRO]9gui_forms13CommandTarget*;
     _ZN[KRO]9gui_forms13ContentRegion*;
@@ -9085,6 +9099,7 @@
     _ZN[KRO]9gui_forms15DockWindowFrame*;
     _ZN[KRO]9gui_forms15DocumentMapSpan*;
     _ZN[KRO]9gui_forms15DragInteraction*;
+    _ZN[KRO]9gui_forms15EditButtonClick*;
     _ZN[KRO]9gui_forms15EffectSelection*;
     _ZN[KRO]9gui_forms15EnginePartTable*;
     _ZN[KRO]9gui_forms15EnginePrimitive*;
@@ -10301,6 +10316,7 @@
     _ZT[VIST]N9gui_forms10DockSiteId*E;
     _ZT[VIST]N9gui_forms10DragLimits*E;
     _ZT[VIST]N9gui_forms10DragTarget*E;
+    _ZT[VIST]N9gui_forms10EditButton*E;
     _ZT[VIST]N9gui_forms10EffectCost*E;
     _ZT[VIST]N9gui_forms10EmptyState*E;
     _ZT[VIST]N9gui_forms10FinishFill*E;
@@ -10548,6 +10564,7 @@
     _ZT[VIST]N9gui_forms13BindingSchema*E;
     _ZT[VIST]N9gui_forms13BindingSource*E;
     _ZT[VIST]N9gui_forms13BlockFlowLine*E;
+    _ZT[VIST]N9gui_forms13ButtonTextBox*E;
     _ZT[VIST]N9gui_forms13CaretSettings*E;
     _ZT[VIST]N9gui_forms13CommandTarget*E;
     _ZT[VIST]N9gui_forms13ContentRegion*E;
@@ -10786,6 +10803,7 @@
     _ZT[VIST]N9gui_forms15DockWindowFrame*E;
     _ZT[VIST]N9gui_forms15DocumentMapSpan*E;
     _ZT[VIST]N9gui_forms15DragInteraction*E;
+    _ZT[VIST]N9gui_forms15EditButtonClick*E;
     _ZT[VIST]N9gui_forms15EffectSelection*E;
     _ZT[VIST]N9gui_forms15EnginePartTable*E;
     _ZT[VIST]N9gui_forms15EnginePrimitive*E;
@@ -12002,6 +12020,7 @@
     _ZT[hvc]*9gui_forms10DockSiteId*;
     _ZT[hvc]*9gui_forms10DragLimits*;
     _ZT[hvc]*9gui_forms10DragTarget*;
+    _ZT[hvc]*9gui_forms10EditButton*;
     _ZT[hvc]*9gui_forms10EffectCost*;
     _ZT[hvc]*9gui_forms10EmptyState*;
     _ZT[hvc]*9gui_forms10FinishFill*;
@@ -12249,6 +12268,7 @@
     _ZT[hvc]*9gui_forms13BindingSchema*;
     _ZT[hvc]*9gui_forms13BindingSource*;
     _ZT[hvc]*9gui_forms13BlockFlowLine*;
+    _ZT[hvc]*9gui_forms13ButtonTextBox*;
     _ZT[hvc]*9gui_forms13CaretSettings*;
     _ZT[hvc]*9gui_forms13CommandTarget*;
     _ZT[hvc]*9gui_forms13ContentRegion*;
@@ -12487,6 +12507,7 @@
     _ZT[hvc]*9gui_forms15DockWindowFrame*;
     _ZT[hvc]*9gui_forms15DocumentMapSpan*;
     _ZT[hvc]*9gui_forms15DragInteraction*;
+    _ZT[hvc]*9gui_forms15EditButtonClick*;
     _ZT[hvc]*9gui_forms15EffectSelection*;
     _ZT[hvc]*9gui_forms15EnginePartTable*;
     _ZT[hvc]*9gui_forms15EnginePrimitive*;
@@ -13703,6 +13724,7 @@
     _ZZN9gui_forms10DockSiteId*;
     _ZZN9gui_forms10DragLimits*;
     _ZZN9gui_forms10DragTarget*;
+    _ZZN9gui_forms10EditButton*;
     _ZZN9gui_forms10EffectCost*;
     _ZZN9gui_forms10EmptyState*;
     _ZZN9gui_forms10FinishFill*;
@@ -13950,6 +13972,7 @@
     _ZZN9gui_forms13BindingSchema*;
     _ZZN9gui_forms13BindingSource*;
     _ZZN9gui_forms13BlockFlowLine*;
+    _ZZN9gui_forms13ButtonTextBox*;
     _ZZN9gui_forms13CaretSettings*;
     _ZZN9gui_forms13CommandTarget*;
     _ZZN9gui_forms13ContentRegion*;
@@ -14188,6 +14211,7 @@
     _ZZN9gui_forms15DockWindowFrame*;
     _ZZN9gui_forms15DocumentMapSpan*;
     _ZZN9gui_forms15DragInteraction*;
+    _ZZN9gui_forms15EditButtonClick*;
     _ZZN9gui_forms15EffectSelection*;
     _ZZN9gui_forms15EnginePartTable*;
     _ZZN9gui_forms15EnginePrimitive*;
@@ -15404,6 +15428,7 @@
     _ZZNK9gui_forms10DockSiteId*;
     _ZZNK9gui_forms10DragLimits*;
     _ZZNK9gui_forms10DragTarget*;
+    _ZZNK9gui_forms10EditButton*;
     _ZZNK9gui_forms10EffectCost*;
     _ZZNK9gui_forms10EmptyState*;
     _ZZNK9gui_forms10FinishFill*;
@@ -15651,6 +15676,7 @@
     _ZZNK9gui_forms13BindingSchema*;
     _ZZNK9gui_forms13BindingSource*;
     _ZZNK9gui_forms13BlockFlowLine*;
+    _ZZNK9gui_forms13ButtonTextBox*;
     _ZZNK9gui_forms13CaretSettings*;
     _ZZNK9gui_forms13CommandTarget*;
     _ZZNK9gui_forms13ContentRegion*;
@@ -15889,6 +15915,7 @@
     _ZZNK9gui_forms15DockWindowFrame*;
     _ZZNK9gui_forms15DocumentMapSpan*;
     _ZZNK9gui_forms15DragInteraction*;
+    _ZZNK9gui_forms15EditButtonClick*;
     _ZZNK9gui_forms15EffectSelection*;
     _ZZNK9gui_forms15EnginePartTable*;
     _ZZNK9gui_forms15EnginePrimitive*;

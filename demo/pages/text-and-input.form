@@ -2,7 +2,7 @@
 <!-- The Gallery's text-and-input page (stage FD, phase FD6.3): TextBox
    states, a CommandBar of editing commands, MaskedTextBoxes, auto-complete
    in a TextBox and an editable ComboBox, a TokenBox, a RichTextBox over
-   markdown, a SearchField and a ContentTextEditor whose text the page lays
+   markdown, a SearchField, a ButtonTextBox and a ContentTextEditor whose text the page lays
    out and draws with its own toy engine. gui_forms_add_form() compiles this document into
    text-and-input_form.hpp at build time.
 
@@ -11,10 +11,10 @@
    in design coordinates. The page keeps in code the protected field's
    password character, the CommandBar's items and Commands, the masks, the
    auto-complete sources and modes, the ComboBox's items and style, the
-   initial token, the markdown, the content editor's engine, every event
+   initial token, the markdown, the button field's buttons, the content editor's engine, every event
    handler and the status lines' reports. -->
 <scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.text.document"
-    design-size="1000 1830">
+    design-size="1000 1982">
 
   <label id="gallery.text.heading"
       text="TEXT AND INPUT"
@@ -198,10 +198,29 @@
         bounds="154 86 700 26"/>
   </scaled-group-box>
 
+  <scaled-group-box id="gallery.text.buttons"
+      text="ButtonTextBox · a field with buttons in its frame"
+      design-size="930 132"
+      bounds="24 1556 930 132"
+      classes="paper group-caption">
+    <label id="gallery.text.buttons.caption"
+        text="Folder"
+        classes="muted emphasis"
+        bounds="24 42 130 24"/>
+    <button-text-box id="gallery.text.buttons.field"
+        accessible-name="Folder"
+        placeholder-text="Type a folder, or browse with the button or F4"
+        bounds="154 36 700 36"/>
+    <label id="gallery.text.buttons.status"
+        text="Browse, clear or press F4"
+        classes="positive emphasis"
+        bounds="154 86 700 26"/>
+  </scaled-group-box>
+
   <scaled-group-box id="gallery.text.content-editor"
       text="ContentTextEditor · text the page lays out and draws itself"
       design-size="930 250"
-      bounds="24 1556 930 250"
+      bounds="24 1708 930 250"
       classes="paper group-caption">
     <label id="gallery.text.content-editor.caption"
         text="Notes"

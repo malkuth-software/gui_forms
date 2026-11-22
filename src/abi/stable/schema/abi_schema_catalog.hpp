@@ -38,6 +38,7 @@
 #include "gui_forms/controls/breadcrumb_trail.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
@@ -168,7 +169,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 156> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 157> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -178,6 +179,7 @@ inline constexpr std::array<SchemaCatalogEntry, 156> schema_catalog{{
     {"text_box", "TextBox", &describe_type<TextBox>, &create_type<TextBox>, &is_exact_type<TextBox>, CatalogConstruction::stable_id},
     {"token_box", "TokenBox", &describe_type<TokenBox>, &create_type<TokenBox>, &is_exact_type<TokenBox>, CatalogConstruction::stable_id},
     {"search_field", "SearchField", &describe_type<SearchField>, &create_type<SearchField>, &is_exact_type<SearchField>, CatalogConstruction::stable_id},
+    {"button_text_box", "ButtonTextBox", &describe_type<ButtonTextBox>, &create_type<ButtonTextBox>, &is_exact_type<ButtonTextBox>, CatalogConstruction::stable_id},
     {"masked_text_box", "MaskedTextBox", &describe_type<MaskedTextBox>, &create_type<MaskedTextBox>, &is_exact_type<MaskedTextBox>, CatalogConstruction::stable_id},
     {"rich_text_box", "RichTextBox", &describe_type<RichTextBox>, &create_type<RichTextBox>, &is_exact_type<RichTextBox>, CatalogConstruction::stable_id},
     {"label", "Label", &describe_type<Label>, &create_type<Label>, &is_exact_type<Label>, CatalogConstruction::stable_id},

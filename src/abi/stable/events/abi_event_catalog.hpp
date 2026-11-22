@@ -42,6 +42,7 @@
 #include "gui_forms/controls/breadcrumb_trail.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/calendar_values.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
@@ -1432,6 +1433,7 @@ void append_field(EventFields& fields, std::string_view name, const DockLayoutCh
 void append_field(EventFields& fields, std::string_view name, const DockNavigatorChoice& value);
 void append_field(EventFields& fields, std::string_view name, const DockPanelId& value);
 void append_field(EventFields& fields, std::string_view name, const DragInteraction& value);
+void append_field(EventFields& fields, std::string_view name, const EditButtonClick& value);
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
@@ -2319,6 +2321,12 @@ inline void append_field(EventFields& fields, std::string_view name, const DragI
     append_field(fields, "value", value.value);
     append_field(fields, "pointer", value.pointer);
     append_field(fields, "end", value.end);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const EditButtonClick& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "button_id", value.button_id);
     fields.leave(prefix);
 }
 
@@ -4113,6 +4121,15 @@ inline SubscriptionToken connect_help_book_viewer_built_in_language_requested(Co
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).built_in_language_requested(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_button_text_box_button_clicked(Component& source, const EventSink& sink) {
+    ButtonTextBox* typed = dynamic_cast<ButtonTextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).button_clicked(), sink);
     return token;
 }
 
@@ -7050,6 +7067,15 @@ inline SubscriptionToken connect_button_base_text_changed(Component& source, con
     return token;
 }
 
+inline SubscriptionToken connect_button_text_box_text_changed(Component& source, const EventSink& sink) {
+    ButtonTextBox* typed = dynamic_cast<ButtonTextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_label_text_changed(Component& source, const EventSink& sink) {
     Label* typed = dynamic_cast<Label*>(&source);
     if (typed == nullptr) {
@@ -7424,7 +7450,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 389> event_connectors{{
+inline constexpr std::array<EventConnector, 391> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7451,6 +7477,7 @@ inline constexpr std::array<EventConnector, 389> event_connectors{{
     {"bookmarks_changed", "HelpBookViewer", &connect_help_book_viewer_bookmarks_changed},
     {"bookmarks_changed", "HelpBookSystem", &connect_help_book_system_bookmarks_changed},
     {"built_in_language_requested", "HelpBookViewer", &connect_help_book_viewer_built_in_language_requested},
+    {"button_clicked", "ButtonTextBox", &connect_button_text_box_button_clicked},
     {"button_clicked", "TaskDialog", &connect_task_dialog_button_clicked},
     {"camera_changed", "Plot3DView", &connect_plot3_d_view_camera_changed},
     {"cancelled", "TextBox", &connect_text_box_cancelled},
@@ -7773,6 +7800,7 @@ inline constexpr std::array<EventConnector, 389> event_connectors{{
     {"text_changed", "TextBox", &connect_text_box_text_changed},
     {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
+    {"text_changed", "ButtonTextBox", &connect_button_text_box_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
     {"text_changed", "SearchField", &connect_search_field_text_changed},
     {"text_changed", "SevenSegmentDisplay", &connect_seven_segment_display_text_changed},

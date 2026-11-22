@@ -299,6 +299,34 @@ Properties beyond every control's: `busy` (boolean), `placeholder_text` (text), 
 | `search_requested` | `std::string` |
 | `cleared` | none |
 
+## `button_text_box` (ButtonTextBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `content` | content | `text_box` |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `button`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `button` | face |  |  |
+| `button_glyph` | glyph |  |  |
+| `button_label` | label |  |  |
+
+Item states: `hot`, `pressed`, `disabled`.
+
+Properties beyond every control's: `placeholder_text` (text), `read_only` (boolean), `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `text_changed` | `std::string` |
+| `button_clicked` | `EditButtonClick` |
+
 ## `masked_text_box` (MaskedTextBox, control)
 
 | Part | Role | Reuses | Own states |

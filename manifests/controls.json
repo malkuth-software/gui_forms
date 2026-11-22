@@ -108,6 +108,17 @@
       "doc": "api/generated/gui_forms.SearchField.rst"
     },
     {
+      "id": "button_text_box",
+      "type": "ButtonTextBox",
+      "header": "gui_forms/controls/button_text_box.hpp",
+      "category": "Text editing",
+      "purpose": "Text field with buttons in its frame at either end (ellipsis, drop-down, close, search or caption): an inner TextBox, buttons kept by stable ID raising button_clicked on click, F4 or Alt+Down; a text box with button children to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "text-and-input",
+      "doc": "api/generated/gui_forms.ButtonTextBox.rst"
+    },
+    {
       "id": "masked_text_box",
       "type": "MaskedTextBox",
       "header": "gui_forms/controls/masked_text_box.hpp",

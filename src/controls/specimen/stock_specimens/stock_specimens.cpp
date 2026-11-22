@@ -439,6 +439,21 @@ StockSpecimenInstance make_sparkline(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+// A folder field with its text, a browse button and a clear button.
+StockSpecimenInstance make_button_text_box(const StockSpecimen& specimen, StableId id) {
+    const std::shared_ptr<ButtonTextBox> control = make_control<ButtonTextBox>(std::move(id));
+    set_sample_text(*control, specimen.sample_text);
+    std::vector<EditButton> buttons;
+    buttons.push_back({.stable_id = "browse", .kind = EditButtonKind::ellipsis, .caption = "Browse",
+                       .description = {}, .placement = EditButtonPlacement::trailing, .enabled = true,
+                       .visible = true});
+    buttons.push_back({.stable_id = "clear", .kind = EditButtonKind::close, .caption = "Clear", .description = {},
+                       .placement = EditButtonPlacement::trailing, .enabled = true, .visible = true});
+    (*control).set_buttons(std::move(buttons));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 // A disk-usage breakdown: four fixed slices in the theme's series colours,
 // as a doughnut with its shares inside.
 StockSpecimenInstance make_pie_chart(const StockSpecimen&, StableId id) {

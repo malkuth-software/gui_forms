@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2399 | 3 | 370 | 4142 | 2522 |
+| 2400 | 3 | 370 | 4157 | 2538 |
 
 ## GUI.Forms types
 
@@ -25,6 +25,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBox` | `TextBox` | 25 | 0 | 0 | 26 | 31 |
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 2 | 14 |
 | `SearchField` | GUI.Forms-only | 6 | 0 | 0 | 6 | 12 |
+| `ButtonTextBox` | GUI.Forms-only | 1 | 0 | 0 | 15 | 16 |
 | `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
 | `RichTextBox` | `RichTextBox` | 26 | 0 | 2 | 55 | 20 |
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
@@ -315,5 +316,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 969 |
+| `untested` | 984 |
 | `w-open` | 5 |

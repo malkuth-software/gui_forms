@@ -10,6 +10,7 @@
     {"text_box", "Text editing", Size{224.0, 30.0}, "Harbour Quay", &make_text<TextBox>, nullptr, ""},
     {"token_box", "Text editing", Size{300.0, 32.0}, "Token box", &make_token_box, nullptr, ""},
     {"search_field", "Text editing", Size{224.0, 30.0}, "lighthouse", &make_text<SearchField>, nullptr, ""},
+    {"button_text_box", "Text editing", Size{240.0, 30.0}, "Documents/Harbour", &make_button_text_box, nullptr, ""},
     {"masked_text_box", "Text editing", Size{224.0, 30.0}, "Masked text box", &make_masked_text_box, nullptr, ""},
     {"rich_text_box", "Text editing", Size{300.0, 110.0}, "Tide tables for the harbour, updated each morning.", &make_text<RichTextBox>, nullptr, ""},
     {"label", "Information display", Size{160.0, 24.0}, "Display name", &make_text<Label>, nullptr, ""},

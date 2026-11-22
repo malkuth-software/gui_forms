@@ -38,6 +38,7 @@
 #include "gui_forms/controls/breadcrumb_trail.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
@@ -168,7 +169,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 156> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 157> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -178,6 +179,7 @@ inline constexpr std::array<FormCatalogEntry, 156> form_catalog{{
     {"text_box", "TextBox", "gui_forms/controls/text_box.hpp", &add_catalog_type<TextBox>, CatalogConstruction::stable_id},
     {"token_box", "TokenBox", "gui_forms/controls/token_box.hpp", &add_catalog_type<TokenBox>, CatalogConstruction::stable_id},
     {"search_field", "SearchField", "gui_forms/controls/search_field.hpp", &add_catalog_type<SearchField>, CatalogConstruction::stable_id},
+    {"button_text_box", "ButtonTextBox", "gui_forms/controls/button_text_box.hpp", &add_catalog_type<ButtonTextBox>, CatalogConstruction::stable_id},
     {"masked_text_box", "MaskedTextBox", "gui_forms/controls/masked_text_box.hpp", &add_catalog_type<MaskedTextBox>, CatalogConstruction::stable_id},
     {"rich_text_box", "RichTextBox", "gui_forms/controls/rich_text_box.hpp", &add_catalog_type<RichTextBox>, CatalogConstruction::stable_id},
     {"label", "Label", "gui_forms/controls/label.hpp", &add_catalog_type<Label>, CatalogConstruction::stable_id},
