@@ -201,7 +201,7 @@ it. The SDK installs the whole font directory.
 
 ## Metric snapshots (stage F gate)
 
-`tools/font_metrics_differential/reference_snapshots/` holds one text file
+gui_forms_tests' `tools/font_metrics_differential/reference_snapshots/` holds one text file
 per gated request (owner decision F4-1, stage F decision 18). Each is the
 bundled engine's measurement of one Windows reference face: its advances in
 font units, its line metrics, and the corpus line widths, line breaks and

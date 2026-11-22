@@ -4090,7 +4090,7 @@ private:
         }
         if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
         // The invalidation overlay on, off, or following the program's
-        // switch (tools/contention_fuzz.py toggles it under load).
+        // switch (gui_forms_tests tools/contention_fuzz.py toggles it under load).
         if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
             stxlib::Optional<bool> enabled{};
             if (command == "overlay on") enabled.set(true);

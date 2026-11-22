@@ -1,4 +1,0 @@
-/* forms: property.gradient-dither */
-button { gradient-dither: blue-noise }
-button::part(face) { gradient-dither: ordered }
-track-bar { gradient-dither: none }

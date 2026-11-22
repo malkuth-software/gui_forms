@@ -459,13 +459,6 @@ with the change that needs it.
   pack's coded group sizes.
   `python3 -B tools/factory_bundle_sizes.py --pack <build>/generated/bundled_fonts/bundled_fonts.fpk`
 
-`tools/png_admission_probe/`
-: A standalone consumer of an installed SDK that times `validate_png` and
-  `ImageRegistry::load_png` separately on generated uncompressed PNGs and
-  prints six samples without a threshold. `fixture.py` writes the fixtures and
-  refuses to overwrite them. Its `README.md` has the full procedure.
-  `python3 tools/png_admission_probe/fixture.py .build/png-admission-data`
-
 `tools/unicode/generate_grapheme_tables.py`
 : Regenerates the Unicode 17.0.0 grapheme-break tables
   (`src/core/text/unicode/unicode_grapheme_data.hpp`) and the conformance

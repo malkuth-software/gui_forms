@@ -279,11 +279,6 @@ ${_gui_stx_stamp}"
             VERBATIM)
     endif()
 endif()
-if(GUI_FORMS_BUILD_FUZZERS AND GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
-    # The fuzzers compile stx_zlib's and stx_png's sources with their own
-    # instrumentation, so they need the source whether or not the package was built.
-    _gui_stx_fetch_source()
-endif()
 
 # The package root this configure links, which nested generations of this
 # source (cmake/ApplicationText.cmake's consumer checks) link as their prefix.

@@ -63,7 +63,6 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the nine Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
 | `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
-| `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_BUILD_C_ABI` | ON | Build the C ABI library, `gui_forms_abi` (`cmake/CAbi.cmake`) |
 | `GUI_FORMS_BUILD_MODULE` | OFF | Build and install the `gui_forms` C++20 module (`import gui_forms;`, `GUIForms::Module`); needs CMake 3.28 or later with Ninja or a Visual Studio generator (`cmake/Module.cmake`) |
 | `GUI_FORMS_ENABLE_WAYLAND_PRESENT` | OFF | Build the Wayland `wl_shm` presentation path; there is no Wayland host |

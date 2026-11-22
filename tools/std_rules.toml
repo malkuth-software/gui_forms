@@ -8,7 +8,7 @@
 format = 1
 root = ".."
 profile = "consumer"
-paths = ["src", "include", "examples", "demo", "benchmarks", "fuzz", "lab"]
+paths = ["src", "include", "examples", "demo", "benchmarks", "lab"]
 # Native code, where the host-only rules (pthread, wchar_t and the rest)
 # do not apply: the platform hosts. (The tests, with the probes that drive a
 # native host directly, are gui_forms_tests', checked there with its own

@@ -1,7 +1,7 @@
 // The Gallery run as an application (Application::run), so that its menus,
 // drop-downs and pickers open in warm Popup windows as a program's do: the
 // single-window Gallery runner has no application run and shows them as
-// overlays. A development probe for tools/menu_probe.py, which drives it
+// overlays. A development probe for gui_forms_tests tools/menu_probe.py, which drives it
 // through the automation channel on a private desktop and captures the
 // owner with its Popups composed (capture-composite). It opts in to the
 // automation environment (accept_automation_environment), so the variable
