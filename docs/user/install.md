@@ -46,11 +46,14 @@ Linux (Ubuntu 24.04)
   libc++ 22 and libc++abi on Linux, as on macOS and Windows, never the
   distribution's libstdc++, and the C++ runtime is the harness's own, not
   the distribution's libc++ packages: that clang only bootstraps it. Build
-  it once with that compiler and point `GUI_FORMS_LLVM_RUNTIME` at it:
+  it once with that compiler and point `GUI_FORMS_LLVM_RUNTIME` at it. The
+  two scripts belong to the template harness, checked out beside this
+  repository at the commit `harness.lock` pins
+  ([GUI.Forms builds through template_harness](../building/template-harness)):
 
   ```sh
-  runtime="$PWD/.build/toolchain/$(python3 template_harness/harness/linux_runtime_manifest.py --directory-name)"
-  python3 template_harness/harness/build_linux_runtimes.py --work "$PWD/.build/llvm-runtimes" \
+  runtime="$PWD/.build/toolchain/$(python3 ../template_harness/harness/linux_runtime_manifest.py --directory-name)"
+  python3 ../template_harness/harness/build_linux_runtimes.py --work "$PWD/.build/llvm-runtimes" \
       --prefix "$runtime" --jobs 4
   export GUI_FORMS_LLVM_RUNTIME="$runtime"
   ```
@@ -67,7 +70,7 @@ Linux (Ubuntu 24.04)
 
 Windows
 : Install MSYS2 and, in the CLANG64 environment, the packages listed in
-  `tools/windows_toolchain.json` (clang 22.1.8, lld, cmake, ninja, ccache,
+  the template harness's `harness/windows_toolchain.json` (clang 22.1.8, lld, cmake, ninja, ccache,
   winpthreads). Build from the CLANG64 shell.
 
 On every platform export the compiler explicitly:
@@ -116,17 +119,18 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DGUI_FORMS_ENABLE_WINDOWS_HOST=ON
 ```
 
-Build, test and install the selected configuration:
+Build and install the selected configuration:
 
 ```sh
 cmake --build build --parallel
-ctest --test-dir build --output-on-failure
 cmake --install build
 ```
 
 The CPU renderer, `stx_skia/`, builds with the tree from the stx checkout.
-Linux native tests need an X11 display;
-use `xvfb-run -a ctest --test-dir build --output-on-failure` on a headless runner.
+This tree registers no tests: they live in their own repository,
+[malkuth-software/gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
+and run against the test cache a build packs
+([Building from source](../building/index.md#tests)).
 
 Pass the absolute path to the same `cmake/llvm22.cmake` to every consumer
 project. On macOS the toolchain also fixes the SDK, the arm64
@@ -174,6 +178,7 @@ message saying which build provides it.
 | `AudioLoopTransport` | `GUIForms::AudioLoopTransport` | `GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT` with audio (`build_sdk.py --features all`) |
 | `CAbi` | `GUIForms::CAbi` | A native host is enabled: the C ABI library, which links `Application` |
 | `CAbiConformance` | `GUIForms::CAbiConformance` | With `CAbi`: the C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)) |
+| `HostedClient` | `GUIForms::HostedClient` | On macOS, Linux and Windows: the library a hosted content program links, and nothing of the interface ([Content surfaces](content-surfaces.md)) |
 | `GalleryModel`, `Lab`, `DemoControls` | `GUIForms::GalleryModel`, `::Lab`, `::DemoControls` | `GUI_FORMS_INSTALL_GALLERY_MODEL` with `GUI_FORMS_INSTALL_LAB` (`build_sdk.py --features all`): the Gallery's model, for a project that builds the Gallery program from an installed SDK |
 
 `TextMasks` is an interface on `Application`, which already contains the
@@ -183,13 +188,18 @@ and `gui_forms/text_mask/`. It also installs the prepared-text types, layout
 and service headers that the text-mask API includes for its vocabulary;
 the prepared-text service itself is not installed.
 
+The C++20 module, `GUIForms::Module` (`import gui_forms;`), is a target
+rather than a component: an SDK built with `GUI_FORMS_BUILD_MODULE=ON`
+installs it, and `find_package` defines it whenever the prefix holds it
+([Consume the SDK](consume-the-sdk.md#import-gui_forms)).
+
 `AudioLoopTransport` names an `Audio` library built with the loop transport.
 That `Audio` carries the `GUI_FORMS_AUDIO_LOOP_TRANSPORT` definition, which
 `audio.hpp` needs to declare the transport, and installs
 `gui_forms/audio/loop_transport/`.
 
 ```cmake
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application TextMasks Audio AudioLoopTransport)
+find_package(GUIForms CONFIG REQUIRED COMPONENTS Application TextMasks Audio AudioLoopTransport)
 target_link_libraries(my_app PRIVATE GUIForms::Application GUIForms::TextMasks GUIForms::AudioLoopTransport)
 ```
 
@@ -333,7 +343,5 @@ cmake --build build-examples --parallel
 ctest --test-dir build-examples --output-on-failure
 ```
 
-Three of those tests deliberately configure a consumer that links both the
-static core and `Application`; they pass only when CMake rejects the
-combination. That rejection is the installed SDK working as intended. See
-[Consume the SDK](consume-the-sdk) for the linking rule behind it.
+Each example links `Application` alone, as the linking rule in
+[Consume the SDK](consume-the-sdk.md#the-one-linking-rule) asks.

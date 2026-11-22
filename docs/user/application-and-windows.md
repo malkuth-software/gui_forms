@@ -197,6 +197,49 @@ still takes what came at launch. A program may hand its own command line to
 `request_open_files`. On Windows and Linux, files arrive on a new process's
 command line, as before.
 
+## The business card
+
+Every GUI.Forms program can show one business card, drawn by the library
+through the theme engine: the product, its version, the vendor, a website,
+the copyright and the credits. The program names its identity once, then
+places a card on a page or shows one in the hand:
+
+```cpp
+#include <gui_forms/components/business_card/business_card.hpp>
+
+gf::ProgramIdentity identity{};
+identity.product = "Ledger";
+identity.version = "2.1";
+identity.vendor = "Example Works";
+identity.website = "https://example.com";  // https only; empty for no link
+gf::set_program_identity(identity);
+
+gf::show_business_card(window);            // in the hand, over the window
+```
+
+- `set_program_identity` checks the whole record before it replaces the
+  previous one: text that is not UTF-8, or a website that is neither empty
+  nor an `https://` address, throws `std::invalid_argument` and leaves the
+  identity as it was. Empty fields are left off the card. UI thread.
+- `show_business_card(window)` shows the card in a modal layer of the window
+  itself, so it behaves the same on every host: the window behind is dimmed
+  and takes no input until Escape, the card's close mark or a press beside
+  it puts the card away. It returns false when the window already shows it.
+  `hide_business_card` puts it away. The window capsule's help entry calls
+  `show_business_card` by default.
+- A `BusinessCard` control placed on a page (an About pane, a help page)
+  lies still and rises a little under the pointer; a click, Enter or Space
+  asks to open it in the hand.
+- In the hand, the card turns in three dimensions when dragged, Left and
+  Right turn it over, and its website opens in the user's browser where the
+  host reports `open_url` ([Hosts and capabilities](hosts-and-capabilities.md)).
+  Reduced motion ends each turn at once.
+- `set_business_card_remark_source` names an optional function that writes
+  short remarks, which rise and fade around the card while the pointer is
+  over it.
+- Holding D and pressing the secondary button on the vendor name turns the
+  diagnostic overlay on or off ([The counters card](debugging.md#the-counters-card)).
+
 ## Tests and headless use
 
 Construct the window without running it: `my_app::MainWindow window(settings);`.
@@ -230,5 +273,21 @@ program overrides a stock class's raisers (`on_click`, `on_key_down`,
 `on_paint_background` and the rest) for the objects it makes, as a C++
 subclass overrides them ([Overriding the raisers](input-and-focus.md#overriding-the-raisers)).
 The tables are generated into `gui_forms/c/gf_abi_classes.h`, which
-`gf_abi.h` includes. See the C ABI header `gui_forms/c/gf_abi.h` and
+`gf_abi.h` includes.
+
+Since 1.4, `GF_TABLE_CONTENT` carries the content boundary: content
+surfaces and hosted content ([Content surfaces](content-surfaces.md)).
+
+Since 1.5, additively:
+- `windows.declare_band`, `undeclare_band` and the other band slots reserve
+  and drive the window outer band, and the window shaping slots ask for and
+  report corner shapes ([The window band](window-band.md));
+- `windows.pointer_location` reads where the pointer is, as a window last
+  saw it;
+- `application.set_program_identity` (`gf_program_identity`) and
+  `windows.show_business_card` give the business card above, and
+  `diagnostics.set_diagnostic_overlay` and `toggle_diagnostic_overlay` its
+  counters card.
+
+See the C ABI header `gui_forms/c/gf_abi.h` and
 [The C ABI conformance kit](c-abi-conformance-kit).

@@ -5,7 +5,8 @@ behaves as its header promises in your process, built with your compiler and
 your flags. It is a set of C11 checks of ownership, threads, callbacks,
 events, values, the control schema, themes, host services, the control
 families and the window run. A product that consumes the C ABI runs it in
-its own test suite; GUI.Forms runs the same kit in its own tests.
+its own test suite; GUI.Forms runs the same kit in its tests, which live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests).
 
 ## What is installed
 
@@ -62,6 +63,16 @@ Without a display the kit checks, on created windows and controls:
   the entry runs once per raise before the subscribers, that code after
   `base` runs after them, that an entry which skips `base` suppresses them,
   and the refusals after disposal and from another thread;
+- the content table (`GF_TABLE_CONTENT`, since 1.4): a content surface's
+  channel driven from the caller's own code, a content program on the
+  library's thread with its sink and its failure, the content text editor's
+  layout handshake, and the hosted-content refusals and every other refusal
+  that needs no window;
+- since 1.5: the program identity (`application.set_program_identity`),
+  composite controls, the relative pointer and content effect slots of the
+  controls table, the
+  window outer band and shaping on a window that has not run, the diagnostic
+  overlay switch and the failure detail;
 - the host services, the diagnostics, and the refusals of the modal-window,
   window-property, focus and splashscreen calls.
 
@@ -94,7 +105,7 @@ int main(int argc, char** argv) {
 ```
 
 ```cmake
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS CAbiConformance)
+find_package(GUIForms CONFIG REQUIRED COMPONENTS CAbiConformance)
 add_executable(c_abi_conformance c_abi_conformance.c)
 set_target_properties(c_abi_conformance PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
 target_link_libraries(c_abi_conformance PRIVATE GUIForms::CAbiConformance)
@@ -134,4 +145,4 @@ part. GUI.Forms runs its own TSan pass with `tools/abi_tsan.py`
   `gui_forms_abi_msvc_consumer` test (the layout probe, the reference
   consumer and the C++ wrappers compiled with `cl`).
 - The C++ wrappers (`gui_forms/c/gf_abi.hpp`) and the C# interop have their
-  own tests in GUI.Forms; the kit exercises the C header alone.
+  own tests in gui_forms_tests; the kit exercises the C header alone.

@@ -68,6 +68,30 @@ on Linux) and stops with the last outline. On macOS a fade step asks AppKit
 to draw the outlined areas; with nothing owed that draw copies the raster and
 paints nothing.
 
+## The counters card
+
+The diagnostic overlay is the invalidation overlay with a counters card at
+each window's top left: the renderer, the controls and stable ids, measure
+and arrange passes, paints and damage rectangles, input and focus, wakes and
+timer ticks, presents and the worst present, the figures the Gallery's
+Diagnostics panel shows. It is the same process switch as the invalidation
+overlay, so whenever the outlines are on for the program, the card shows
+too. It draws nothing into the program's controls and takes no input; a
+window shows a change at its next present, and the card's figures are those
+of the last paint.
+
+| Where | How |
+|---|---|
+| C++ | `set_diagnostic_overlay(bool)`, `diagnostic_overlay()` and `toggle_diagnostic_overlay()`, which returns the new state (`gui_forms/components/business_card/business_card.hpp`). Any thread. |
+| C ABI | `gf_diagnostics_table.set_diagnostic_overlay(enabled)` and `toggle_diagnostic_overlay(&enabled)` (since ABI 1.5). Any thread. |
+| Gesture | Hold D and press the secondary button on the business card's vendor name ([Application and windows](application-and-windows.md#the-business-card)); the same gesture turns it off, and the program keeps running. |
+
+The card's lines are bounded in number and length
+(`maximum_overlay_counter_lines`, `maximum_overlay_counter_characters` in
+`gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp`). Its label font
+has letters (shown upper case), digits and the punctuation
+`. - _ : / ( ) # [ ] , ?`; any other character shows as `?`.
+
 # Native exceptions in a binding
 
 An exception inside the library that reaches a C ABI function refuses the
@@ -78,7 +102,7 @@ unwound). `gf_diagnostics_table.failure_snapshot` copies it out after the
 call has returned; `clear_failure_snapshot` forgets it.
 
 A development build of the library also keeps the exception's C++ type and
-the native return addresses at the throw (C ABI 1.4):
+the native return addresses at the throw (since C ABI 1.5):
 `gf_diagnostics_table.failure_detail` copies them out for the same failure.
 In C#, `GuiFormsException.native_detail` carries them (`exception_type`,
 `trace`), also as the `native_exception_type` and `native_trace` entries of

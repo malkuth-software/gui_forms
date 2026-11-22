@@ -2,8 +2,8 @@
 
 An application consumes GUI.Forms through the installed CMake package. There
 are no private include paths, no archive filenames to list and no generated
-glue: `find_package` resolves the components you ask for and CMake checks
-that the combination is one the toolkit supports.
+glue: `find_package` resolves the components you ask for, and fails at
+configure time, naming the build that provides it, when the prefix lacks one.
 
 ## Minimal consumer project
 
@@ -11,7 +11,7 @@ that the combination is one the toolkit supports.
 cmake_minimum_required(VERSION 3.25)
 project(MyForms LANGUAGES CXX)
 
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
+find_package(GUIForms CONFIG REQUIRED COMPONENTS Application)
 
 add_executable(my_forms main.cpp)
 target_compile_features(my_forms PRIVATE cxx_std_20)
@@ -35,6 +35,10 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE=/path/to/gui_forms/cmake/llvm22.cmake
 cmake --build build
 ```
+
+To require a version, name it after the package
+(`find_package(GUIForms <version> CONFIG ...)`); this SDK is version
+{{ gf_version }}.
 
 `examples/reference/` in the repository is a complete consumer of this shape
 and is built against the installed SDK by CI on every platform.
@@ -93,8 +97,13 @@ the form headers that name it, so its `USED_BY` lists those forms' sources.
 | `Audio` | `GUIForms::Audio` | static | PCM clips, Ogg decoding and a device backend. Links `Threading` only. |
 | `CAbi` | `GUIForms::CAbi` | shared | The C ABI (`gui_forms/c/gf_abi.h`), for C, C# and other languages: one self-contained library holding its own engine, the drawing ABI and, on Windows, the Win32 compatibility shim. A process uses it or a statically linked C++ engine, never both. |
 | `CAbiConformance` | `GUIForms::CAbiConformance` | static | The C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)). |
+| `HostedClient` | `GUIForms::HostedClient` | static | The program end of hosted content: a program started by `make_hosted_content` links it, and nothing of the interface ([Content surfaces](content-surfaces.md)). |
 
-Two consumer shapes follow from the table:
+`GUIForms::Module`, the C++20 module (below), is a target rather than a
+component: `find_package` defines it when the SDK was built with
+`GUI_FORMS_BUILD_MODULE=ON`.
+
+Three consumer shapes follow from the table:
 
 - **Renderer-free consumers** (tests, model code, headless automation) link
   `GUIForms::Controls` or `GUIForms::Core`. They construct and mutate a
@@ -114,9 +123,8 @@ Never link `GUIForms::Core`, `Controls` or `Drawing` into a program that also
 links `GUIForms::Application`, directly or through an adapter library.
 `Application` already contains one copy of the retained engine; a second copy
 means two sets of control registries, two dispatchers and undefined
-behaviour. CMake enforces this at generation time and stops with a diagnostic
-naming `ERROR_do_not_link_static_Core_with_Application`. That is a deliberate
-rejection, not a missing component.
+behaviour. The package does not check this for you, so keep to the rule in
+your own CMake.
 
 The rule has one practical consequence for component libraries. An audio
 adapter that only needs `Worker` and `AudioClip` links `GUIForms::Audio`,
@@ -153,14 +161,14 @@ Application:
 target_link_libraries(my_forms PRIVATE GUIForms::Application GUIForms::TextMasks)
 ```
 
-Adding `GUIForms::Core` to that program fails at generation time with a
-Core-linkage diagnostic. With `PreparedText` enabled, Application also passes
+Do not add `GUIForms::Core` to that program. With `PreparedText` enabled, Application also passes
 the `GUI_FORMS_PREPARED_TEXT` definition to its consumers, so your code sees
 the declarations the library was built with. In a build without a native host
 the two targets carry a static Core instead, for hostless programs, and
 cannot be combined with an Application library.
-`tests/application_text_consumer/` in the repository is a consumer of this
-shape.
+`tests/application_text_consumer/` in the
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
+repository is a consumer of this shape.
 
 ## Your own HarfBuzz and FreeType
 
@@ -194,8 +202,8 @@ The public headers still mark their declarations with `GUI_FORMS_API` and
 archives, and on macOS and Linux they are default visibility, so your own
 export policy decides. The C ABI library exports exactly the `gf_*` entry
 points of its allowlist (`share/GUIForms/abi/gf_abi_exports.txt`) and
-`gd_get_api_v0`; there is no `gdr_*` export
-and keeps libc++, STXlib, Skia and the text stack hidden inside it.
+`gd_get_api_v0`, with no `gdr_*` export, and keeps libc++, STXlib, Skia and
+the text stack hidden inside it.
 
 ## Your macros and GUI.Forms' names
 
@@ -213,7 +221,7 @@ GUI.Forms, has undefined results:
   and `index` are the exceptions: GUI.Forms survives macros of those names.
 
 Any other macro cannot change what GUI.Forms means. A test
-(`tests/hostile_macros/`) defines every other identifier GUI.Forms' headers
+(`tests/hostile_macros/` in gui_forms_tests) defines every other identifier GUI.Forms' headers
 use as a macro that fails the compile, then uses GUI.Forms, and must compile.
 
 GUI.Forms' headers do not remove or change your macros. Your own code still
@@ -229,7 +237,7 @@ files reaches it, and it exports no macro to you:
 
 ```cmake
 cmake_minimum_required(VERSION 3.28)
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
+find_package(GUIForms CONFIG REQUIRED COMPONENTS Application)
 add_executable(my_forms main.cpp)
 target_link_libraries(my_forms PRIVATE GUIForms::Module)
 ```
