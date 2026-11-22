@@ -1644,6 +1644,9 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
         if (group_collapsed(placed, group)) {
             part.family = ControlVisualRole::menu_item;
             part.states = parts.group_button.states;
+            // With its group open over the plane it shows the dent, as a
+            // command with its menu open does.
+            if (part.states.contains(AnatomyState::open)) part.states.insert(AnatomyState::pressed);
             part.role = PartRole::face;
             part.bounds = parts.group_button.bounds;
             // The engine's built-in rules raise its dithered bulge while it
@@ -1728,21 +1731,26 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             if (hosted(spec.kind) || !command_part.command_face.present) continue;
             const std::string_view command_id = spec.stable_id;
             const AnatomyStateSet states = command_states(address);
-            // A split's face and arrow press apart, as ToolStrip's do.
+            // Pressed, or with its menu open, a command shows the dent
+            // (rendering reference §2, "Pressed is a dent"; owner,
+            // 2026-11-22): its face is painted pressed. A split shows it
+            // over the whole button, both halves, whichever half was
+            // pressed: the face takes the command's full bounds and the
+            // arrow is left out. The published parts keep their own bounds.
+            const bool held = states.contains(AnatomyState::pressed) || states.contains(AnatomyState::open);
+            const bool split_held = held && spec.kind == RibbonCommandKind::split;
             AnatomyStateSet face_states = states;
-            if (spec.kind == RibbonCommandKind::split && pressed_zone_ != CommandZone::main) {
-                face_states.erase(AnatomyState::pressed);
-            }
+            if (held) face_states.insert(AnatomyState::pressed);
             part.family = ControlVisualRole::menu_item;
             part.role = PartRole::face;
             part.states = face_states;
-            part.bounds = command_part.command_face.bounds;
+            part.bounds = split_held ? command_part.command_focus.bounds : command_part.command_face.bounds;
             // The engine's built-in rules draw its dithered bulge, flat at
             // rest and rising while it is hot (GIVEN D3-1, G4-1), unless a
             // theme authors the face (defect 2).
             part.key.set(PartKey{"command_face", command_id, {}});
             paint_part(painter, *this, part);
-            if (command_part.command_arrow.present) {
+            if (command_part.command_arrow.present && !split_held) {
                 part.role = PartRole::actuator;
                 part.states = command_part.command_arrow.states;
                 part.bounds = command_part.command_arrow.bounds;

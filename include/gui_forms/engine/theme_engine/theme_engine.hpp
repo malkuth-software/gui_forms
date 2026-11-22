@@ -94,8 +94,9 @@ struct GUI_FORMS_API FinishTiles final {
 // contrast. In every other case the built-in recipe draws it: the body
 // paint_part had before the engine existed. A theme with no rules of its
 // own draws every part with the built-in recipe except those the built-in
-// rules address: the ribbon's command faces and group buttons, which take
-// the dithered bulge and its rise, and the docking tiles, which fade in.
+// rules address: the ribbon's command faces, split arrows and group
+// buttons, which take the dithered bulge and its rise, and the docking
+// tiles, which fade in.
 //
 // A keyed part's transitions run on its window's motion clock (E7): the
 // part's states select each machine's state, the property moves toward it,
