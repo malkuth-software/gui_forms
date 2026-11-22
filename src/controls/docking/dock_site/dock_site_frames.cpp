@@ -722,6 +722,9 @@ void DockSite::on_strip_frame_button(MenuStripFrameButton button) {
     case MenuStripFrameButton::close:
         static_cast<void>(run_frame_button(maximized, FramePart::close));
         return;
+    default:
+        // A value outside the enumeration presses no frame button.
+        return;
     }
 }
 

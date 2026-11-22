@@ -60,6 +60,9 @@ void paint_frame_button(Painter& painter, const Control& surface, Rect button, R
     case FrameButtonGlyph::close:
         part.mark = PartMark::close;
         break;
+    default:
+        // A value outside the enumeration paints the button without a mark.
+        break;
     }
     paint_part(painter, surface, part);
 }
