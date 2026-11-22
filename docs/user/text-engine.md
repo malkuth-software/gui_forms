@@ -39,8 +39,10 @@ Glyph memory
   them and released with it. There is no global glyph cache or eviction
   policy.
 
-A cross-platform identity test renders a fixed corpus and compares the output
-against checked-in hashes on every CI platform. A change that alters one
+A cross-platform identity test, in
+`malkuth-software/gui_forms_tests`,
+renders a fixed corpus and compares the output against checked-in hashes on
+every CI platform. A change that alters one
 pixel on one platform fails that test.
 
 ## What was deliberately left out
@@ -71,7 +73,8 @@ guarantees, its size and its measured unpacking times are on
 | Face | Role | Licence |
 |---|---|---|
 | Portsmouth Rapids (regular, bold) | `FontRole::control`: titles, buttons, labels, menus | Owner's MIT grant (`assets/fonts/LICENSE-PortsmouthRapids.txt`) |
-| Portsmouth Rapids (light, italic, bold italic), Portsmouth (five styles), Portsmouth Mono | Installed with the SDK; not registered by the hosts | Owner's MIT grant |
+| Portsmouth Mono | A bundled family (`Portsmouth Mono`), the substitution table's nearest face to Consolas; one face for every weight and slant | Owner's MIT grant |
+| Portsmouth Rapids (light, italic, bold italic), Portsmouth (five styles) | In the font pack's interface group; no role or family names them yet | Owner's MIT grant |
 | Carlito (four styles) | `FontRole::content`: editable text, lists, fields; metric-compatible with Calibri | SIL OFL |
 | Cousine (four styles) | `FontRole::monospace` | SIL OFL |
 | Selawik (regular, semibold, bold) | A bundled family a theme names with `font-family: Selawik` (the Segoe UI-like face of `windows-professional`); read the first time text asks for it. It has no italic | SIL OFL |
@@ -166,11 +169,14 @@ Its storage is counted under `AllocationSubsystem::text_layout`
 ## Text input
 
 Committed text arrives through `Window::dispatch_text` as UTF-8. Composition
-(IME) is a host capability. macOS bridges preedit composition. Windows does
-not advertise `HostCapability::text_composition`: the system input method
-draws its own composition and candidate windows, placed at the focused
-control's caret, and committed `WM_CHAR` text arrives without a preedit
-session. The X11 host does not advertise the flag either. Multiline `TextBox` reports its document extent through the
+(IME) is a host capability, `HostCapability::text_composition`. macOS
+bridges preedit composition through NSTextInputClient. Windows composes
+inline through IMM32: the composition string reaches the focused control as
+composing text, which each update replaces, the result string arrives as
+committed input, the system's own composition window is turned off and its
+candidate window is placed below the caret
+([Hosts and capabilities](hosts-and-capabilities.md)). The X11 host does not
+advertise the flag: it asks the input method for no preedit. Multiline `TextBox` reports its document extent through the
 shared scrolling base, so it gets real scrollbars, wheel and keyboard paging.
 
 ## Open edges

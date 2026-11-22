@@ -1,10 +1,11 @@
 # Download
 
 GUI.Forms ships three demonstration programs so you can see the toolkit
-before you build it. Every push to `main` that passes the build, the tests and
-a launch of each packaged program is published as a release on the project's
-GitHub Releases page, tagged `vX.Y.Z` (`v0.6.N` for the current 0.6 series). If no `v` release is listed yet, build
-the programs yourself; see [Build it yourself instead](#build-it-yourself-instead).
+before you build it. Every push to `main` that passes the build and a launch
+of each packaged program is published as a release on the project's GitHub
+Releases page, tagged `vX.Y.Z`, where X.Y is the package version (now
+{{ gf_version }}). If no `v` release is listed yet, build the programs
+yourself; see [Build it yourself instead](#build-it-yourself-instead).
 
 The `build-<sha>` pre-releases on the same page are compiler-cache archives
 used by CI and by downstream projects. They are not application downloads.
@@ -45,8 +46,8 @@ Each program is published for four platforms:
 | Linux x64, Linux arm64 | `.tar.gz` holding the program folder | `.deb` |
 
 File names follow `gui-forms-<program>-<version>-<platform>`, for example
-`gui-forms-gallery-0.6.0-windows-x64.zip`. Each release also carries
-`SHA256SUMS.txt`, the test and smoke receipts the pipeline produced, and
+`gui-forms-gallery-<version>-windows-x64.zip`. Each release also carries
+`SHA256SUMS.txt`, the packaging and smoke receipts the pipeline produced, and
 the source SDK, `gui-forms-sdk-<version>-source.tar.gz`, from which you build
 GUI.Forms for your own platform (see
 [The source SDK](install.md#the-source-sdk)).
@@ -63,8 +64,8 @@ macOS
 Windows
 : Windows 10 or newer, x64. Builds are **unsigned**. SmartScreen warns that
   the publisher is unknown; choose "More info" and then "Run anyway" if you
-  decide to trust the download. Keep the `fonts/` directory beside the
-  executable.
+  decide to trust the download. The `fonts/` folder holds the fonts'
+  licences; the faces themselves are compiled into the program.
 
 Linux
 : Ubuntu 24.04 on x64 and arm64 is the tested target. The programs need an
@@ -91,7 +92,7 @@ shasum -a 256 -c SHA256SUMS.txt --ignore-missing
 On Windows:
 
 ```bat
-certutil -hashfile gui-forms-gallery-0.6.0-windows-x64.zip SHA256
+certutil -hashfile gui-forms-gallery-<version>-windows-x64.zip SHA256
 ```
 
 ## Build it yourself instead

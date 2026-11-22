@@ -28,7 +28,7 @@ buffer to write into and presents that buffer itself:
 |---|---|
 | macOS | IOSurfaces as the contents of a layer over the view, locked for CPU writing |
 | Linux X11 | MIT-SHM pixmaps presented with the Present extension (`XPresentPixmap`) |
-| Linux Wayland | `wl_shm` buffers attached to the surface with `wl_surface_damage_buffer` (written; GUI.Forms has no Wayland host yet) |
+| Linux Wayland | `wl_shm` buffers attached to the surface with `wl_surface_damage_buffer` (written, built only with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`; there is no Wayland-native host and none is planned: Wayland sessions run the X11 host through XWayland) |
 | The window manager | the surface its host supplies (the reference) |
 | Windows | none: its existing GDI surfaces, with host scroll through `ScrollWindowEx` (owner, 2026-11-16: no GPU surfaces) |
 

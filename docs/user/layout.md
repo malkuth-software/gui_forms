@@ -407,7 +407,7 @@ Two patterns point to wasted work:
 
 The CSS containers are checked against a pinned Chromium, which runs only
 when the reference boxes are captured, never inside GUI.Forms. The corpus
-is in `tests/layout_corpus/`.
+is in `tests/layout_corpus/` in the `malkuth-software/gui_forms_tests` repository.
 - It holds 211 fixtures: flex, grid, block, positioning, the two
   compatibility containers, and 30 text fixtures whose leaves are
   `TextBlock`s laid out by the bundled text engine and faces.

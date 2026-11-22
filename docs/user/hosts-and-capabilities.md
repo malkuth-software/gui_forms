@@ -9,7 +9,7 @@ advertised protocol surface; some native integrations are not advertised yet.
 
 ## The host protocol
 
-`HostCapabilities` carries `protocol_version` (currently 13; one row per version in
+`HostCapabilities` carries `protocol_version` (currently {{ gf_host_protocol }}; one row per version in
 `host_protocol_revisions`), a `platform`
 string, a bit set of `HostCapability` flags and the host's keyboard-command
 defaults (`key_map`, below). `Application::capabilities()`
@@ -54,12 +54,13 @@ whole record for logs.
 | `window_state_reports` | the native window's state reported (`HostWindowStateEvent`): full screen, which hides a band declared `WindowBandFullScreen::hides`, and the maximize, snap and restore changes that can reshape its corners (C: `GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS`) | yes | yes (full screen: a captionless window covering its monitor) | yes (`_NET_WM_STATE_FULLSCREEN`, or the host's own fallback) |
 | `locale` | the platform's locale (`HostCapabilities::locale`: date and time patterns, month and weekday names, AM and PM, number separators, first day of the week), which seeds the application's locale for the DateTimePicker, MonthCalendar and NumericUpDown (host protocol version 14) | yes (CFLocale) | yes (the user's locale through `GetLocaleInfoEx`, with their Region overrides) | yes (the POSIX locale the environment names) |
 | `hosted_content` | a sub-surface program in its own process (`make_hosted_content`, [Content surfaces](content-surfaces.md)): frames through shared memory, input through a channel, its crash leaving the application running (C ABI `GF_HOST_CAPABILITY_HOSTED_CONTENT`, since 1.4) | yes | yes | yes |
-| `relative_pointer` | motion deltas sent per native sample (`HostRelativeMotionEvent`, protocol version 15) for relative pointer mode ([Relative pointer mode](relative-pointer.md); C: `GF_HOST_CAPABILITY_RELATIVE_POINTER`) | yes | not yet (contract in that page) | yes, with XI 2 |
-| `raw_pointer_motion` | unaccelerated deltas where asked (C: `GF_HOST_CAPABILITY_RAW_POINTER_MOTION`) | no (AppKit's deltas are accelerated) | not yet | yes, with XI 2 |
-| `pointer_confinement` | the pointer kept inside a rectangle, or held still and hidden (C: `GF_HOST_CAPABILITY_POINTER_CONFINEMENT`) | yes (warped back; locked disassociates) | not yet | yes (a confined grab) |
-| `pointer_warp` | the pointer moved by request (`HostServices::warp_pointer`; C: `GF_HOST_CAPABILITY_POINTER_WARP`) | yes | not yet | yes |
-| `direct_buffers` | frames written with CPU pixels into buffers the window system gives, with the copy path as the fallback on any refusal or loss ([Presentation](presentation.md); C: `GF_HOST_CAPABILITY_DIRECT_BUFFERS`) | with `GUI_FORMS_PRESENT=direct` (IOSurface) | not yet | with `GUI_FORMS_PRESENT=direct` and libXpresent (Present with MIT-SHM pixmaps) |
+| `relative_pointer` | motion deltas sent per native sample (`HostRelativeMotionEvent`, protocol version 15) for relative pointer mode ([Relative pointer mode](relative-pointer.md); C: `GF_HOST_CAPABILITY_RELATIVE_POINTER`) | yes | no (contract in [Relative pointer mode](relative-pointer.md)) | yes, with XI 2 |
+| `raw_pointer_motion` | unaccelerated deltas where asked (C: `GF_HOST_CAPABILITY_RAW_POINTER_MOTION`) | no (AppKit's deltas are accelerated) | no (contract in [Relative pointer mode](relative-pointer.md)) | yes, with XI 2 |
+| `pointer_confinement` | the pointer kept inside a rectangle, or held still and hidden (C: `GF_HOST_CAPABILITY_POINTER_CONFINEMENT`) | yes (warped back; locked disassociates) | no (contract in [Relative pointer mode](relative-pointer.md)) | yes (a confined grab) |
+| `pointer_warp` | the pointer moved by request (`HostServices::warp_pointer`; C: `GF_HOST_CAPABILITY_POINTER_WARP`) | yes | no (contract in [Relative pointer mode](relative-pointer.md)) | yes |
+| `direct_buffers` | frames written with CPU pixels into buffers the window system gives, with the copy path as the fallback on any refusal or loss ([Presentation](presentation.md); C: `GF_HOST_CAPABILITY_DIRECT_BUFFERS`) | with `GUI_FORMS_PRESENT=direct` (IOSurface) | no, by design (host scroll only) | with `GUI_FORMS_PRESENT=direct` and libXpresent (Present with MIT-SHM pixmaps) |
 | `host_scroll` | a scroll copy moves the pixels already presented and only the exposed band is copied (C: `GF_HOST_CAPABILITY_HOST_SCROLL`) | no | with `GUI_FORMS_PRESENT=scroll` (`ScrollWindowEx`; refused under a child window or the invalidation overlay) | with `GUI_FORMS_PRESENT=scroll` (`XCopyArea`, while a compositing manager runs) |
+| `open_url` | a web or mail address (`https://`, `http://`, `mailto:`) opened in the user's own browser or mail program (`HostServices::open_url`; the business card's website; C: `GF_HOST_CAPABILITY_OPEN_URL`) | yes (NSWorkspace) | yes (`ShellExecuteW`) | yes (`xdg-open`, found when the address is opened) |
 | `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
 
 The table reflects the bits each adapter currently advertises; read
@@ -308,8 +309,8 @@ macOS (AppKit)
   owns a custom view that presents the CPU raster; a display link drives
   scheduled frames; NSTextInputClient bridges IME composition; Retina scale
   arrives as a scale notification. Pointer capture maps onto the native
-  implicit drag sequence rather than a global event tap. Fonts are read from
-  the bundle.
+  implicit drag sequence rather than a global event tap. Fonts come from the
+  font pack compiled into the library.
 
 Windows (Win32)
 : `src/surface/windows/`, the only place Win32 and COM types are allowed. An
@@ -321,9 +322,11 @@ Windows (Win32)
   suggested window rectangle. The PNG resources the core has already
   validated are decoded by the shared owned PNG decoder, as on every host
   (no WIC). Text comes from the shared engine, not GDI, using the
-  bundled faces in `fonts\` beside the executable, or in the directory
-  `GUI_FORMS_FONT_DIR` names; with an incomplete font pack the renderer name
-  says so and no text metrics provider is installed. An opt-in `WM_COPYDATA`
+  faces of the font pack compiled into the library; only a development build
+  (`GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY`) reads face files, from the
+  directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
+  the pack does not open, the renderer name says so and no text metrics
+  provider is installed. An opt-in `WM_COPYDATA`
   automation channel, off unless the host options set `automation_enabled`
   (the gallery sets it from `--automation`), addresses controls by stable
   ID; it accepts commands of at most 4096 bytes with the prefix
@@ -364,13 +367,13 @@ Linux (X11)
 : `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
   window and event handling, Xcursor cursors, X11 clipboard selections,
   XDND drag destinations, and native ATK/AT-SPI accessibility publication.
-  The publication is checked from an AT-SPI client's side on CI:
+  The publication is checked from an AT-SPI client's side in the CI of
+  `malkuth-software/gui_forms_tests`:
   `gui_forms_linux_accessibility_tests` drives a small fixture, and
   `gui_forms_linux_accessibility_gallery_tests` compares every Gallery page
   with the semantic tree (role, name, states, actions, values, children)
   and performs one default action per control type
-  ([`results/2026-10-20-a-l2-linux-gallery`](https://github.com/malkuth-software/notes/tree/gui_forms/results/2026-10-20-a-l2-linux-gallery)). A text box's text is published
-  whole; editable text ranges are not implemented.
+  ([`results/2026-10-20-a-l2-linux-gallery`](https://github.com/malkuth-software/notes/tree/gui_forms/results/2026-10-20-a-l2-linux-gallery)).
   The CPU raster is presented through X11 images. There is no Wayland adapter;
   Wayland sessions run the X11 host through XWayland.
   The device scale comes from `Xft.dpi` (audit N66, option a): the
@@ -402,8 +405,9 @@ Linux (X11)
   The common 32-bit BGRX visual takes the raster's rows as they are, with no
   per-pixel conversion (audit G4/N67).
   Honest X11 limits (audit N69): the wheel is core buttons 4 to 7 at a fixed
-  40 units a notch, with no XInput2, so touchpads do not scroll smoothly and
-  touch arrives only as the server's pointer emulation; the live clock is a
+  40 units a notch (XInput 2 is used only for relative pointer motion), so
+  touchpads do not scroll smoothly and touch arrives only as the server's
+  pointer emulation; the live clock is a
   16 ms poll, not phased to the display, and rests while no live surface
   publishes.
 

@@ -115,7 +115,7 @@ and republishes the damage so a later pass can retry. A mutation made during
 paint increments `content_revision` and survives as one later pass rather
 than reentering the current one.
 
-`Window::paint(painter, requested_damage)` returns `std::optional<PaintReceipt>`:
+`Window::paint(painter, requested_damage)` returns `stxlib::Optional<PaintReceipt>`:
 there is no receipt when no frame is produced. A receipt is returned only after
 the backend has replayed every command and the window has re-validated the
 surface epoch. The host presents that exact receipt and then calls

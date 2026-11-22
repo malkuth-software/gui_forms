@@ -4,7 +4,9 @@ A GUI.Forms theme is written in a subset of CSS. The same language styles a
 whole program (a theme package) and one control (an inline style). This page
 describes what the language admits, how a sheet is compiled and what
 happens when it is wrong. The conformance corpus,
-`tests/theme_language/conformance/`, holds one compiled example of every
+`tests/theme_language/conformance/` in the
+`malkuth-software/gui_forms_tests`
+repository, holds one compiled example of every
 form below, with its expected result; its coverage table,
 `COVERAGE.tsv`, lists each form and its example.
 
@@ -656,9 +658,9 @@ panel family or the face role alone paints none. Under forced high contrast the 
 palette's focus colour, solid and unflashing; reduced motion and turned-off
 ambient motion still a flash at its lit colour. For example,
 `window { band-width: 2px; band-lit-color: #c0392b; band-effect: flash }`.
-In 0.5 the band is a steady colour or the built-in flash only. Effect
-programs and textures on the band are planned after 0.5 (owner ruling,
-2026-11-08). The band never takes a resize-edge role: a frameless window
+A theme gives the band a steady colour or the built-in flash; the
+program's `Window::set_band_appearance` adds cycling, colour roles, a
+frequency and textures ([The window band](window-band.md)). The band never takes a resize-edge role: a frameless window
 stays frameless.
 
 `rotate`, `transform-origin` and the other `transform-` longhands, text
@@ -940,5 +942,7 @@ rewrite it. A program that parses its own arguments passes them over with
 
 - A gradient positioned at the pointer, which the plan lowers to the `sheen`
   primitive, is refused (`E405`).
-- Procedural backgrounds (`felt()` and the rest) are warnings until the
-  engine registers them.
+- Procedural backgrounds are written `pattern(felt, ...)` and the like
+  (above); a bare `felt()` or another pattern called as a function of its
+  own is an unknown function, warning W103 (`unknown_function`), and is
+  dropped.
