@@ -20,9 +20,9 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    * - :cpp:class:`ThreadExceptionDialog <gui_forms::ThreadExceptionDialog>`
      - The dialog for an exception the application did not handle.
    * - :cpp:class:`Callout <gui_forms::Callout>`
-     - Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss.
+     - A teaching callout: a card pointing out a target control, with an optional bold title, wrapped text, a close mark and an optional action button.
    * - :cpp:class:`ModalLayer <gui_forms::ModalLayer>`
-     - In-window modal layer: any control shown centred over a scrim dimming its owner's window, taking every press outside it and holding focus, closed with a DialogResult through a cancellable closing.
+     - An in-window modal layer: any control shown as a modal panel inside its owner's window, without a native window.
    * - :cpp:class:`AboutDialog <gui_forms::AboutDialog>`
      - An application's About box: a TaskDialog preset with the information icon, the product and version, description and copyright, credits behind an expander, and OK.
    * - :cpp:class:`FolderBrowserDialog <gui_forms::FolderBrowserDialog>`

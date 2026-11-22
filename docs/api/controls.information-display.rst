@@ -30,9 +30,9 @@ Labels, images, progress and review cards.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
      - A bar that shows how far an operation has progressed.
    * - :cpp:class:`ProgressRing <gui_forms::ProgressRing>`
-     - Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.
+     - A circular progress indicator: a ring of forty dots lit in proportion to the progress, or a turning run of dots while the amount is unknown.
    * - :cpp:class:`Spinner <gui_forms::Spinner>`
-     - Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.
+     - An indeterminate busy indicator: a ring of twelve dots, three of them lit, turning while ``active``.
    * - :cpp:class:`SweepScope <gui_forms::SweepScope>`
      - A read-only scope that draws a level as a trace on a graticule.
    * - :cpp:class:`Sparkline <gui_forms::Sparkline>`
@@ -56,7 +56,7 @@ Labels, images, progress and review cards.
    * - :cpp:class:`RadialGauge <gui_forms::RadialGauge>`
      - A dial gauge: a 270-degree scale arc lit from the minimum to the value, with a needle at the value, scale marks, alarm arcs and the value as text.
    * - :cpp:class:`StepIndicator <gui_forms::StepIndicator>`
-     - Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
+     - A step indicator: a row of numbered steps joined by connectors, each with its name beneath.
    * - :cpp:class:`HelpBook <gui_forms::HelpBook>`
      - Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
    * - :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
