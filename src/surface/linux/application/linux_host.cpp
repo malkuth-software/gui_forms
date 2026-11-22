@@ -2248,6 +2248,16 @@ void Runtime::dispatch(XEvent &event) {
     return;
   }
   if (event.type == SelectionClear) {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Losing XdndSelection ends a drag's offer, never the clipboard.
+    if (event.xselectionclear.selection == atom("XdndSelection")) {
+      drag_offer_owner = 0;
+      drag_offer.clear();
+      return;
+    }
+#endif
+    if (event.xselectionclear.selection != atom("CLIPBOARD"))
+      return;
     clipboard_owner = 0;
     clipboard_text.clear();
     clipboard_image = {};
@@ -2653,6 +2663,8 @@ HostCapabilities linux_capabilities() {
               HostCapability::clipboard | HostCapability::clipboard_images |
               HostCapability::dialogs | HostCapability::sound_cues |
               HostCapability::typed_drag_destination |
+              // XDND both ways (linux_drag_drop.cpp).
+              HostCapability::typed_drag_source |
               HostCapability::runtime_windows | HostCapability::window_frames |
               HostCapability::screen_pointer | HostCapability::window_at_point |
               HostCapability::window_ordering |

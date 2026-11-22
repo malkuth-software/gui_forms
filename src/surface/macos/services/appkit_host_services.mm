@@ -5,6 +5,7 @@
 
 #include "macos_host.hpp"
 #include "appkit_clipboard_image.hpp"
+#include "appkit_drag_release.hpp"
 #include "appkit_status_items.hpp"
 #include "appkit_relative_pointer.hpp"
 #include "../compositor/macos_compositor.hpp"
@@ -129,6 +130,9 @@ using gui_forms::render::SkiaRaster;
 @property(nonatomic, assign) gui_forms::HostServices* services;
 @property(nonatomic, assign) std::uint64_t sessionId;
 @property(nonatomic, assign) NSDragOperation allowedOperations;
+// The press or move the session started from: its button's release is sent
+// to the window when the session ends.
+@property(nonatomic, assign) NSEventType startType;
 - (NSDragOperation)draggingSession:(NSDraggingSession*)session
     sourceOperationMaskForDraggingContext:(NSDraggingContext)context;
 - (void)draggingSession:(NSDraggingSession*)session
@@ -136,7 +140,7 @@ using gui_forms::render::SkiaRaster;
               operation:(NSDragOperation)operation;
 // The bodies of this class's native entries: each entry calls its answer
 // through the fail-fast boundary (call_failing_fast).
-- (void)answerDraggingSessionEndedWithOperation:(NSDragOperation)operation;
+- (void)answerDraggingSessionEndedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation;
 @end
 #endif
 
@@ -765,6 +769,7 @@ protected:
         source.services = this;
         source.sessionId = session_id;
         source.allowedOperations = native_drag_operations(request.allowed_effects);
+        source.startType = event.type;
         NSDraggingSession* const session = [view beginDraggingSessionWithItems:items event:event source:source];
         if (session == nil) return {HostServiceError::backend_failure};
         session.animatesToStartingPositionsOnCancelOrFail = YES;
@@ -1177,13 +1182,18 @@ protected:
 
 public:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
-    // GuiFormsDragSource's report of the drag's end.
-    void finish_drag(std::uint64_t session_id, gui_forms::DragEffect performed_effect) {
+    // GuiFormsDragSource's report of the drag's end, at `screen_point`: the
+    // end is reported, then the window receives the release of the button
+    // the drag started with, which the dragging session consumed.
+    void finish_drag(std::uint64_t session_id, gui_forms::DragEffect performed_effect, NSPoint screen_point,
+                     NSEventType start_type) {
         if (drag_source_ != nil && drag_source_.sessionId == session_id) {
             drag_source_.services = nullptr;
             drag_source_ = nil;
         }
         publish_drag_source_end(gui_forms::HostDragSourceEnd{session_id, performed_effect});
+        NSView* const view = backdrop_view_;
+        if (view != nil) gui_forms::host::detail::deliver_drag_release(view, start_type, screen_point);
     }
 #endif
 
@@ -1351,8 +1361,8 @@ NSDragOperation run_drag_source_mask(GuiFormsDragSource* object) {
     return object.allowedOperations;
 }
 
-void run_drag_source_ended(GuiFormsDragSource* object, NSDragOperation operation) {
-    [object answerDraggingSessionEndedWithOperation:operation];
+void run_drag_source_ended(GuiFormsDragSource* object, NSPoint screen_point, NSDragOperation operation) {
+    [object answerDraggingSessionEndedAtPoint:screen_point operation:operation];
 }
 
 // The one portable effect a destination performed, or none.
@@ -1377,20 +1387,59 @@ gui_forms::DragEffect performed_drag_effect(NSDragOperation operation) noexcept 
            endedAtPoint:(NSPoint)screenPoint
               operation:(NSDragOperation)operation {
     (void)session;
-    (void)screenPoint;
     gui_forms::detail::call_failing_fast(
-        "macos.drag_source.draggingSession:endedAtPoint:operation:", &run_drag_source_ended, self, operation);
+        "macos.drag_source.draggingSession:endedAtPoint:operation:", &run_drag_source_ended, self, screenPoint,
+        operation);
 }
 
-- (void)answerDraggingSessionEndedWithOperation:(NSDragOperation)operation {
+- (void)answerDraggingSessionEndedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation {
     AppKitHostServices* const services = dynamic_cast<AppKitHostServices*>(self.services);
     if (services == nullptr) return;
-    (*services).finish_drag(self.sessionId, performed_drag_effect(operation));
+    (*services).finish_drag(self.sessionId, performed_drag_effect(operation), screenPoint, self.startType);
 }
 @end
 #endif
 
 namespace gui_forms::host::detail {
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+NSEvent* drag_release_event(NSWindow* window, NSEventType start_type, NSPoint screen_point) {
+    if (window == nil) return nil;
+    NSEventType release = NSEventTypeLeftMouseUp;
+    switch (start_type) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeLeftMouseDragged: release = NSEventTypeLeftMouseUp; break;
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeRightMouseDragged: release = NSEventTypeRightMouseUp; break;
+    case NSEventTypeOtherMouseDown:
+    case NSEventTypeOtherMouseDragged: release = NSEventTypeOtherMouseUp; break;
+    default: return nil;
+    }
+    const NSPoint location = [window convertPointFromScreen:screen_point];
+    NSEvent* const event = [NSEvent mouseEventWithType:release
+                                              location:location
+                                         modifierFlags:NSEvent.modifierFlags
+                                             timestamp:NSProcessInfo.processInfo.systemUptime
+                                          windowNumber:window.windowNumber
+                                               context:nil
+                                           eventNumber:0
+                                            clickCount:1
+                                              pressure:0.0];
+    return event;
+}
+
+void deliver_drag_release(NSView* view, NSEventType start_type, NSPoint screen_point) {
+    NSEvent* const event = view == nil ? nil : drag_release_event(view.window, start_type, screen_point);
+    if (event == nil) return;
+    if (event.type == NSEventTypeRightMouseUp) {
+        [view rightMouseUp:event];
+    } else if (event.type == NSEventTypeOtherMouseUp) {
+        [view otherMouseUp:event];
+    } else {
+        [view mouseUp:event];
+    }
+}
+#endif
 
 void bind_macos_backdrop_view(HostServices& services, NSView* raster) {
     AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);

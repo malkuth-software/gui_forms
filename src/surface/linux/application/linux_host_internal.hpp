@@ -121,6 +121,43 @@ private:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 DragFileListData local_files(const std::vector<std::byte>& data);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// The XDND source (linux_drag_drop.cpp). Not compiled in a high-integrity
+// build (cmake/HighIntegrity.cmake).
+//
+// A local path as a file URI: "file://" and the path's bytes, each byte
+// outside RFC 3986's unreserved set and '/' percent-encoded, so local_files
+// reads it back unchanged.
+[[nodiscard]] std::string xdnd_file_uri(std::string_view path);
+// A file list as text/uri-list: one file URI a line, each line ended by
+// CR LF.
+[[nodiscard]] std::vector<std::byte> xdnd_uri_list(const DragFileListData& files);
+// The effect a drag asks for under the modifier `state` (an X key-button
+// mask): Shift and Control together link, Shift moves, Control copies,
+// as GTK and Qt do; with neither, or when the asked effect is not allowed,
+// the first allowed of copy, move and link.
+[[nodiscard]] DragEffect xdnd_requested_effect(unsigned state, DragEffect allowed) noexcept;
+// How a drag from the program ended: the effect the destination took
+// (none when cancelled), the failure that kept it from starting, and the
+// button release that ended it, which the window receives after the end is
+// reported (the drag's pointer grab took it from the window).
+struct XdndDragOutcome final {
+  HostServiceStatus status;
+  DragEffect performed_effect{DragEffect::none};
+  std::optional<XEvent> release;
+};
+// Runs a drag of `request` (validated by HostServices::start_drag) from
+// `window` until it ends: XdndSelection owned with the request's targets,
+// the pointer and keyboard grabbed, XdndEnter, XdndPosition and XdndLeave
+// sent to the XDND-aware window under the pointer (through its XdndProxy),
+// XdndStatus honoured, XdndDrop on the release of the buttons held at the
+// start and XdndFinished awaited for at most 5 seconds; Escape cancels.
+// Other events are dispatched as the run loop would, so the program's own
+// windows take part as destinations and selection requests are answered.
+// backend_failure when no button is held or the grab or the selection is
+// refused. UI thread.
+[[nodiscard]] XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request);
+#endif
 #endif
 // A present's source: the raster's premultiplied BGRA8 pixels, row_bytes
 // apart, and the window's alpha mask, presented when present_alpha (a
@@ -230,6 +267,9 @@ protected:
   HostClipboardImageResult read_clipboard_image_impl() override;
   HostClipboardFilesResult read_clipboard_files_impl() override;
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+  // A drag to other programs (run_xdnd_drag): the drag ends, and is
+  // reported, before this returns; then the window receives the release.
+  HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest &request) override;
 #endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
   HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest &) override;
@@ -678,6 +718,26 @@ public:
   std::vector<SelectionTransfer> transfers;
   void selection_property(const XPropertyEvent &event);
   void selection_request(const XSelectionRequestEvent &request);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // One target a drag from the program offers on XdndSelection, and its
+  // bytes.
+  struct DragOfferTarget final {
+    Atom target{};
+    std::vector<std::byte> bytes;
+  };
+  // The window owning XdndSelection for a running drag (0 when none) and
+  // what it offers; set and cleared by run_xdnd_drag.
+  ::Window drag_offer_owner{};
+  std::vector<DragOfferTarget> drag_offer;
+  // The offered bytes for `target`, or nullptr when it is not offered.
+  [[nodiscard]] const std::vector<std::byte> *drag_offer_bytes(Atom target) const noexcept;
+#endif
+
+private:
+  // Writes `bytes` to the requestor's `property` for `request` (by INCR
+  // above 64 KiB); false when the transfer table is full or the requestor
+  // is gone, and the request is refused.
+  bool write_selection_reply(const XSelectionRequestEvent &request, Atom property, std::vector<std::byte> bytes);
 };
 HostDialogResult retained_dialog(NativeWindow &owner,
                                  const HostDialogRequest &request);

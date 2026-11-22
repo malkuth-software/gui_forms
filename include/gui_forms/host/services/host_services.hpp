@@ -155,11 +155,12 @@ public:
     // another drag from these services runs; backend_failure when the
     // platform refuses (no button held, no pointer event to start from).
     // An accepted drag ends exactly once, through drag_source_ended. On
-    // Windows the drag runs a modal loop (DoDragDrop) and ends before
-    // start_drag returns; on macOS it ends later, from the run loop. The
-    // pointer's press is the platform's from the start: the window sees no
-    // release for it, and a control holding capture should end its own
-    // drag when the end arrives. UI thread.
+    // Windows (DoDragDrop) and X11 (the XDND source's loop) the drag runs a
+    // modal loop and ends before start_drag returns; on macOS it ends later,
+    // from the run loop. The platform takes the press's release; on macOS
+    // and X11 the window receives it right after the end is reported, so
+    // pressed and capture state end as after any press (Windows ends the
+    // capture with WM_CAPTURECHANGED). UI thread.
     [[nodiscard]] HostDragSourceResult start_drag(const HostDragSourceRequest& request);
     // Raised on the UI thread once for each accepted start_drag.
     [[nodiscard]] Event<const HostDragSourceEnd&>& drag_source_ended() noexcept {

@@ -39,7 +39,7 @@ whole record for logs.
 | `menus` | native menu-bar publication | no | no | no |
 | `font_discovery` | host font enumeration | no, by design | no, by design | no, by design |
 | `accessibility` | native accessibility publication of the semantic tree, verified by client tests | yes | yes | yes |
-| `typed_drag_source` | drags to other programs (`HostServices::start_drag`) | yes | yes | no |
+| `typed_drag_source` | drags to other programs (`HostServices::start_drag`) | yes | yes | yes |
 | `runtime_windows` | owned windows opened and destroyed while the application runs | yes | yes | yes |
 | `window_frames` | window frames read and requested in desktop logical units, with a report for every move and resize | yes | yes | yes (the window manager decides) |
 | `screen_pointer` | the pointer's desktop position | yes | yes | yes |
@@ -281,14 +281,16 @@ and the effects the source allows. The window answers with one effect
 |---|---|---|---|
 | macOS | the window's view (`NSDraggingDestination`) | file URLs, string, `public.data` | `NSDraggingSource`, items written as file URLs, strings and pasteboard types |
 | Windows | `RegisterDragDrop` (`IDropTarget`) | `CF_HDROP`, `CF_UNICODETEXT`, `PNG` | `DoDragDrop` (`IDropSource`, `IDataObject` offering `CF_HDROP`, `CF_UNICODETEXT` and media types) |
-| Linux X11 | XDND (versions up to 5) | `text/uri-list` (local files) | none |
+| Linux X11 | XDND (versions up to 5) | `text/uri-list` (local files) | XDND versions 3 to 5: `XdndSelection` offering `text/uri-list`, `UTF8_STRING`, `text/plain;charset=utf-8` and media types; `XdndStatus` and `XdndFinished` honoured |
 
 `HostServices::start_drag` starts a drag from the program
 (`typed_drag_source`), called while a pointer press or a move with a button
 held is being handled. Its end arrives once through `drag_source_ended`, with
 the effect the destination took (none when cancelled); the program removes
-its own copy only on `move`. On Windows the drag runs a modal loop and ends
-before `start_drag` returns; on macOS it ends later, from the run loop. The
+its own copy only on `move`. On Windows and X11 the drag runs a modal loop and
+ends before `start_drag` returns; on macOS it ends later, from the run loop.
+The platform takes the button's release; on macOS and X11 the window receives
+it right after the end is reported. The
 program's own windows are destinations too, so a drag can be dropped back
 into the window it started from. A high-integrity build compiles none of this
 and reports neither capability.
@@ -393,7 +395,7 @@ Windows (Win32)
 Linux (X11)
 : `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
   window and event handling, Xcursor cursors, X11 clipboard selections,
-  XDND drag destinations, and native ATK/AT-SPI accessibility publication.
+  XDND drag and drop both ways, and native ATK/AT-SPI accessibility publication.
   The publication is checked from an AT-SPI client's side in the CI of
   `malkuth-software/gui_forms_tests`:
   `gui_forms_linux_accessibility_tests` drives a small fixture, and
