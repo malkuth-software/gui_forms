@@ -41,7 +41,7 @@ static void viewport_fit_values(gf_kit* kit, gf_object control) {
                  read.answer == GF_OVERFLOW_ANSWER_CONTAIN && read.minimum_scale == 0.0 && read.maximum_scale == 1.0 &&
                      read.below_minimum == GF_OVERFLOW_ANSWER_SCROLL &&
                      read.alignment == GF_CONTENT_ALIGNMENT_MIDDLE_CENTER,
-                 "the default viewport fit is contain, 0 to 1, scroll below, centred");
+                 "a panel's default viewport fit is contain, 0 to 1, scroll below, centred");
 
     gf_viewport_fit written = viewport_fit_record(GF_OVERFLOW_ANSWER_COVER, 0.5, 2.0);
     written.alignment = GF_CONTENT_ALIGNMENT_TOP_LEFT;
@@ -131,7 +131,9 @@ void gf_kit_viewport(gf_kit* kit) {
     if (!tables_have_viewport(kit)) {
         return;
     }
-    const gf_object loose = gf_kit_create(kit, "Button", "kit.viewport.loose");
+    /* A panel: Windows Forms panels contain by default (decision 4); a
+     * plain control clips. */
+    const gf_object loose = gf_kit_create(kit, "Panel", "kit.viewport.loose");
     viewport_fit_values(kit, loose);
 
     const gf_object root = gf_kit_create(kit, "Panel", "kit.viewport");

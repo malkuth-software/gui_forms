@@ -32,6 +32,8 @@ std::shared_ptr<const PropertyEnumDescriptor> border_style_enum() {
 
 Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::backplane);
+    // A Windows Forms panel contains what overflows it (stage VA, decision 4).
+    viewport_fit = panel_viewport_fit;
 }
 
 void Panel::on_attached_to_window() {

@@ -205,6 +205,10 @@ gui_forms::PictureBox
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
 
+   .. cpp:function:: bool shows_media_content() const noexcept override
+
+      Media (stage VA, section 8): its contain has no floor but its fit's.
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override

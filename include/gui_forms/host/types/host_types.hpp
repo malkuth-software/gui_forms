@@ -10,6 +10,7 @@
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp"
 #include "gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 
@@ -559,6 +560,15 @@ struct GUI_FORMS_API HostScaleEvent final {
     double scale{1.0};
 };
 
+// The edges of the client area the host or the device hides, in logical
+// units (stage VA; capability safe_insets, host protocol version 16):
+// reported after attach and whenever they change. The window's root slot
+// keeps clear of them (SurfaceRoot::set_safe_insets). Refused as
+// invalid_geometry unless valid_safe_insets holds.
+struct GUI_FORMS_API HostSafeInsetsEvent final {
+    SafeInsets insets{};
+};
+
 struct GUI_FORMS_API HostActivationEvent final {
     bool active{};
 };
@@ -734,7 +744,8 @@ using HostEventPayload = std::variant<
     HostContextRequestEvent,
     HostHoverEvent,
     HostWindowStateEvent,
-    HostRelativeMotionEvent>;
+    HostRelativeMotionEvent,
+    HostSafeInsetsEvent>;
 
 struct GUI_FORMS_API HostEvent final {
     std::uint64_t sequence{};

@@ -727,8 +727,8 @@ void ContentTextEditor::handle_key(KeyEvent& event) {
 
 void ContentTextEditor::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
         const Utf8Offset position = position_at(local);

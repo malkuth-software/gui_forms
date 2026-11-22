@@ -147,8 +147,13 @@ enum class HostCapability : std::uint64_t {
     // Bits 46 to 48 are reserved, never reported and never reassigned: they
     // held the GPU-backed buffer routes (CAMetalLayer drawables, X11 DRI3
     // pixmaps, Wayland linux-dmabuf), withdrawn before the C ABI seal
-    // because GUI.Forms has no GPU surfaces (owner, 2026-11-16). The next
-    // flag is 1ULL << 49U.
+    // because GUI.Forms has no GPU surfaces (owner, 2026-11-16).
+    // safe_insets: the host reports the edges of the client area it or the
+    // device hides (HostSafeInsetsEvent; stage VA): a notch or rounded
+    // corners in full screen on macOS, the part of the canvas the browser
+    // does not show on the web. Host protocol version 16. The next flag is
+    // 1ULL << 50U.
+    safe_insets = 1ULL << 49U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

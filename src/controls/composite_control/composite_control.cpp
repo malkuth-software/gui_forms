@@ -790,11 +790,11 @@ void CompositeControl::on_mouse_down(MouseEventArgs& arguments) {
             // A press on a part that presses is the composite's.
             if (declared.press != 0U) arguments.handled = true;
             if (pressing(declared, ControlPress::drag) && drag_ != nullptr && declared.drag) {
-                const Rect own = absolute_bounds();
+                const ScaleFrame own_frame = window_frame();
                 const Rect box = geometry_.published[(*part.value())];
                 DragStart start{};
                 start.key = static_cast<std::uint64_t>((*part.value()));
-                start.source.set(Rect{own.x + box.x, own.y + box.y, box.width, box.height});
+                start.source.set(frame_to_outer(own_frame, box));
                 start.threshold = (*definition_).drags[*declared.drag].threshold;
                 drag_state_ = DragState{};
                 drag_state_.part = part;

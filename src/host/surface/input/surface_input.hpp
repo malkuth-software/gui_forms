@@ -13,6 +13,7 @@
 // futex) holds the lock only briefly.
 
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/types.hpp"
 
 #include <chrono>
@@ -45,6 +46,10 @@ enum class SurfaceInputKind : std::uint8_t {
     clipboard,
     // The surface's logical size (`extent`) and device scale (`scale`).
     resize,
+    // The edges of the surface the host or the device hides (`insets`,
+    // logical units; stage VA): on the web, the part of the canvas outside
+    // the browser's visual viewport.
+    safe_insets,
     // The surface gained (`down` true) or lost the keyboard.
     focus,
     // The surface was hidden (`down` true) or shown again.
@@ -105,6 +110,7 @@ struct SurfaceInputRecord final {
     SurfaceWheelUnit wheel_unit{SurfaceWheelUnit::lines};
     Size extent{};
     double scale{1.0};
+    SafeInsets insets{};
     double time{};
     std::uint64_t request{};
     SurfaceDialogOutcome outcome{SurfaceDialogOutcome::cancelled};

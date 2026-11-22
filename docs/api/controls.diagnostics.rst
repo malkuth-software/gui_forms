@@ -937,6 +937,14 @@ Related types
 
    .. cpp:member:: LayoutTransactionState transaction
 
+   .. cpp:member:: double effective_scale
+
+      The visible-area guarantee's layout reasons (stage VA, section 10; what MCP's inspect reads, MCP study 18.1): the scale the control is seen at (its window frame's), the frame the window applies to its children while it carries out a contain or cover, and the overflows it owns now, as SurfaceRoot::overflow_records lists them. The JSON writes them as "viewport" only when one differs from the default. Default: ``{1.0}``.
+
+   .. cpp:member:: ScaleFrame content_frame
+
+   .. cpp:member:: stxlib::Vector<OverflowRecord> overflows
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: VisualControlStateSnapshot final

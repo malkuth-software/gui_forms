@@ -489,8 +489,7 @@ void DockSite::place_flyout() {
     StackSlot& slot = stacks_[index];
     slot.bounds = placed.full;
     slot.caption = placed.caption;
-    const Rect absolute = absolute_bounds();
-    const Rect window_bounds = moved(placed.revealed, Point{absolute.x, absolute.y});
+    const Rect window_bounds = rectangle_to_window(placed.revealed);
     if (!((*flyout_).requested_bounds() == window_bounds)) (*flyout_).set_requested_bounds(window_bounds);
     (*flyout_).invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     invalidate(Dirty::paint | Dirty::semantics);
@@ -841,8 +840,8 @@ DockSite::Hit DockSite::flyout_hit(Point local) const {
 void DockSite::on_flyout_pointer(PointerEvent& event) {
     const std::size_t index = flyout_slot_index();
     if (index >= stacks_.size() || !flyout_) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const DockSide edge = stacks_[index].edge;
     if (event.action == PointerAction::leave) {
         if (!grip_captured_ && hot_.index == index && hot_.zone != Zone::seam) {

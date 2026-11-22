@@ -237,7 +237,12 @@ SubSurfaceHost::SubSurfaceHost(StableId stable_id)
     focusable = true;
     // The sub-surface's tooltip requests are this host's tooltip parts.
     set_publishes_item_tool_tips(true);
+    // Media: a design size is contained with no floor and enlarged up to
+    // maximum_viewport_scale (stage VA, section 8).
+    viewport_fit = media_viewport_fit;
 }
+
+bool SubSurfaceHost::shows_media_content() const noexcept { return true; }
 
 SubSurfaceHost::~SubSurfaceHost() {
     // Notices already posted find the host gone; the stop below posts one
@@ -454,9 +459,11 @@ std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes = (*semantics_).roots;
     std::string prefix(stable_id().value());
     prefix += '.';
-    const Rect bounds = absolute_bounds();
-    const Point origin{bounds.x + placement_.destination.x, bounds.y + placement_.destination.y};
-    translate_sub_surface_nodes(nodes, prefix, origin, placement_.scale, keyboard_inside_);
+    // Through the host's window frame too (stage VA): a host inside a
+    // contained subtree publishes its nodes where they are seen.
+    const ScaleFrame frame = window_frame();
+    const Point origin = frame_to_outer(frame, Point{placement_.destination.x, placement_.destination.y});
+    translate_sub_surface_nodes(nodes, prefix, origin, placement_.scale * frame.scale, keyboard_inside_);
     return nodes;
 }
 
@@ -726,7 +733,6 @@ std::vector<SemanticNode> SubSurfaceHost::tool_tip_items() const {
     std::vector<SemanticNode> items;
     if (requests_.empty()) return items;
     items.reserve(requests_.size());
-    const Rect origin = absolute_bounds();
     for (const SubSurfaceRequest& request : requests_) {
         SemanticNode item;
         item.runtime_id = runtime_id().value;
@@ -737,7 +743,7 @@ std::vector<SemanticNode> SubSurfaceHost::tool_tip_items() const {
         item.states = SemanticState::enabled;
         if (request.origin != SubSurfaceToolTipOrigin::program) {
             const Rect anchor = local_rectangle(request.anchor);
-            item.bounds = Rect{origin.x + anchor.x, origin.y + anchor.y, anchor.width, anchor.height};
+            item.bounds = rectangle_to_window(anchor);
         }
         if (request.origin == SubSurfaceToolTipOrigin::keyboard) item.states |= SemanticState::focused;
         items.push_back(std::move(item));
@@ -785,9 +791,7 @@ void SubSurfaceHost::receive_request(const SubSurfaceRequest& request) {
     requests_.erase(kept, requests_.end());
     requests_.push_back(request);
     if (request.origin == SubSurfaceToolTipOrigin::program) {
-        const Rect origin = absolute_bounds();
-        const Rect placed = local_rectangle(request.anchor);
-        const Rect anchor{origin.x + placed.x, origin.y + placed.y, placed.width, placed.height};
+        const Rect anchor = rectangle_to_window(local_rectangle(request.anchor));
         detail::SurfaceRequestAccess::show_requested_tool_tip(*window, shared_from_this(), request_item_id(request.id),
                                                               request.text, anchor, request.duration);
         return;

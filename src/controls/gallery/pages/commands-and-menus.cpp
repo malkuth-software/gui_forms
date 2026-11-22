@@ -658,8 +658,9 @@ private:
     }
 
     void on_context_requested(ButtonBase& source) {
-        const Rect bounds = source.absolute_bounds();
-        context_menu_.show(source.shared_from_this(), {bounds.x + 12.0, bounds.y + bounds.height},
+        const ScaleFrame bounds_frame = source.window_frame();
+        const Rect bounds = frame_to_outer(bounds_frame, source.client_rectangle());
+        context_menu_.show(source.shared_from_this(), frame_to_outer(bounds_frame, Point{12.0, bounds.height}),
                            MenuOpenMode::keyboard);
     }
 

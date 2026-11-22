@@ -4,6 +4,7 @@
 #include "gui_forms/control/runtime_id/runtime_id.hpp"
 #include "gui_forms/controls/button_content_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/scale_frame/scale_frame.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -81,6 +82,20 @@ struct GUI_FORMS_API ViewportFit final {
         return different;
     }
 };
+
+// The defaults per kind of owner (section 8; owner decision 4). Control's
+// own default is clip, recorded: a control that places parts of its own
+// answers its overflow itself (strips, the ribbon, navigation).
+// Windows Forms panels (Panel and its kinds, UserControl, SplitterPanel)
+// contain: content outside them is scaled to fit, a deliberate difference
+// from Windows Forms, which clips; never enlarged.
+inline constexpr ViewportFit panel_viewport_fit{OverflowAnswer::contain, 0.0, 1.0};
+// Media (PictureBox, RasterCanvas, a SubSurfaceHost with a design size)
+// contains with no floor and up to maximum_viewport_scale.
+inline constexpr ViewportFit media_viewport_fit{OverflowAnswer::contain, 0.0, maximum_viewport_scale};
+// CSS panels (FlexPanel, GridPanel, BlockPanel) reflow, then scroll: an
+// overflow they cannot scroll (auto_scroll off) is recorded unanswered.
+inline constexpr ViewportFit reflowing_viewport_fit{OverflowAnswer::scroll, 0.0, 1.0};
 
 // Whether `fit` is one a viewport owner accepts: both answers in the
 // enumeration, below_minimum scroll or clip, minimum_scale finite and not
@@ -211,5 +226,16 @@ struct GUI_FORMS_API SafeInsets final {
 
 // Whether every edge is finite and not negative.
 [[nodiscard]] GUI_FORMS_API bool valid_safe_insets(const SafeInsets& insets) noexcept;
+
+// The frame that carries out `placement` for content occupying `content`
+// in its own coordinates: the content's top left goes to the destination's
+// top left, at the placement's scale.
+[[nodiscard]] GUI_FORMS_API ScaleFrame placement_frame(Rect content, const ViewportPlacement& placement) noexcept;
+// `fit` with its scale bounds expressed for an owner whose ancestors
+// already scale by `outer_scale` (positive): the bounds of a ViewportFit
+// are on the effective scale, so a nested contain cannot escape the floor
+// by nesting. Both bounds are divided by `outer_scale` and kept at most
+// maximum_viewport_scale, the maximum at least the minimum.
+[[nodiscard]] GUI_FORMS_API ViewportFit fit_within_outer_scale(const ViewportFit& fit, double outer_scale) noexcept;
 
 } // namespace gui_forms

@@ -3804,16 +3804,28 @@ Dirty Control::subtree_dirty() const {
 }
 
 Rect Control::absolute_bounds() const {
+    const ScaleFrame frame = window_frame();
+    const Rect local{0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height};
+    const Rect result = frame_to_outer(frame, local);
+    return result;
+}
+
+ScaleFrame Control::window_frame() const {
     if (surface_root_) {
         detail::SurfaceTreeAccess::ensure_layout(*surface_root_, true);
-        return detail::SurfaceTreeAccess::absolute_bounds_of(*surface_root_, *this);
+        const ScaleFrame placed = detail::SurfaceTreeAccess::local_frame_of(*surface_root_, *this);
+        return placed;
     }
-    Rect result = arranged_bounds_;
+    // Detached: the positions and content frames up the chain, as the
+    // window composes them (SurfaceRoot::local_frame_of), with no root
+    // frame above.
+    ScaleFrame frame{Point{arranged_bounds_.x, arranged_bounds_.y}, 1.0};
     for (const Control* ancestor = parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
-        result.x += (*ancestor).arranged_bounds_.x;
-        result.y += (*ancestor).arranged_bounds_.y;
+        const ScaleFrame placed{Point{(*ancestor).arranged_bounds_.x, (*ancestor).arranged_bounds_.y}, 1.0};
+        const ScaleFrame ancestor_frame = compose_frames(placed, (*ancestor).content_frame_);
+        frame = compose_frames(ancestor_frame, frame);
     }
-    return result;
+    return frame;
 }
 
 MouseEventArgs Control::mouse_event_arguments(const PointerEvent& event) const {
@@ -3821,9 +3833,8 @@ MouseEventArgs Control::mouse_event_arguments(const PointerEvent& event) const {
         const MouseEventArgs routed = (*surface_root_).mouse_event_arguments(*this, event);
         return routed;
     }
-    const Rect bounds = absolute_bounds();
-    const Point origin{bounds.x, bounds.y};
-    const MouseEventArgs detached = gui_forms::mouse_event_arguments(event, origin, event.click_count);
+    const ScaleFrame frame = window_frame();
+    const MouseEventArgs detached = gui_forms::mouse_event_arguments(event, frame, event.click_count);
     return detached;
 }
 
@@ -3832,31 +3843,32 @@ PointerLocation Control::pointer_location() const {
     // Detached, or in a window that has seen no pointer event: all zero.
     if (surface_root_ == nullptr || !detail::SurfaceTreeAccess::pointer_seen(*surface_root_)) return location;
     location = (*surface_root_).pointer_location();
-    const Rect bounds = absolute_bounds();
-    location.location = Point{location.window_position.x - bounds.x, location.window_position.y - bounds.y};
+    location.location = point_from_window(location.window_position);
     return location;
 }
 
 Point Control::point_to_window(Point local) const {
-    const Rect absolute = absolute_bounds();
-    return {absolute.x + local.x, absolute.y + local.y};
+    const ScaleFrame frame = window_frame();
+    const Point placed = frame_to_outer(frame, local);
+    return placed;
 }
 
 Point Control::point_from_window(Point window_point) const {
-    const Rect absolute = absolute_bounds();
-    return {window_point.x - absolute.x, window_point.y - absolute.y};
+    const ScaleFrame frame = window_frame();
+    const Point local = frame_to_inner(frame, window_point);
+    return local;
 }
 
 Rect Control::rectangle_to_window(Rect local) const {
-    const Point origin = point_to_window({local.x, local.y});
-    return {origin.x, origin.y, local.width, local.height};
+    const ScaleFrame frame = window_frame();
+    const Rect placed = frame_to_outer(frame, local);
+    return placed;
 }
 
 Rect Control::rectangle_from_window(Rect window_rectangle) const {
-    const Point origin = point_from_window(
-        {window_rectangle.x, window_rectangle.y});
-    return {origin.x, origin.y, window_rectangle.width,
-            window_rectangle.height};
+    const ScaleFrame frame = window_frame();
+    const Rect local = frame_to_inner(frame, window_rectangle);
+    return local;
 }
 
 bool Control::contains(const Control& candidate) const noexcept {
@@ -4261,8 +4273,7 @@ bool Control::has_relative_pointer() const noexcept {
 bool Control::warp_pointer(Point position) {
     require_mutable();
     if (!has_relative_pointer()) return false;
-    const Rect bounds = absolute_bounds();
-    const Point in_window{position.x + bounds.x, position.y + bounds.y};
+    const Point in_window = point_to_window(position);
     const bool warped = (*surface_root_).warp_pointer(in_window);
     return warped;
 }
@@ -4668,8 +4679,21 @@ bool Control::sizes_unrequested_extents_from_content() const noexcept { return f
 
 bool Control::content_scrolls() const noexcept { return false; }
 
+bool Control::shows_media_content() const noexcept { return false; }
+
 stxlib::Optional<double> Control::applied_viewport_scale() const noexcept {
     return stxlib::Optional<double>::none();
+}
+
+Rect Control::content_layout_rectangle() const noexcept {
+    const Rect viewport = child_viewport_rectangle();
+    const Size design = design_size.read();
+    const bool designed = design.width > 0.0 && design.height > 0.0;
+    const OverflowAnswer answer = viewport_fit.read().answer;
+    const bool scales = answer == OverflowAnswer::contain || answer == OverflowAnswer::cover;
+    if (!designed || !scales || content_scrolls() || applied_viewport_scale().present()) return viewport;
+    const Rect designed_viewport{viewport.x, viewport.y, design.width, design.height};
+    return designed_viewport;
 }
 
 LayoutDirection Control::effective_layout_direction() const noexcept {
@@ -4688,7 +4712,11 @@ void Control::arrange(Rect final_bounds) {
 
     const std::vector<Ptr> retained = snapshot_layout_children();
 
-    const Rect viewport = child_viewport_rectangle();
+    // The children are laid out in the child viewport, or, while this
+    // control contains or covers content of a design size, in that size at
+    // the viewport's origin: the window's content frame scales it into the
+    // viewport (stage VA).
+    const Rect viewport = content_layout_rectangle();
     const Rect client{
         viewport.x + padding.read().left,
         viewport.y + padding.read().top,

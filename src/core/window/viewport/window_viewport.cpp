@@ -6,8 +6,16 @@
 // with the root slot, and keeps one record per overflow: what overflowed,
 // why, and whether the owner's answer is carried out. The checks read
 // committed geometry only and lay nothing out.
+//
+// A contain or cover is carried out here, as the owner's content frame
+// (Control::content_frame) or, for the root, the window's root frame: one
+// uniform scale and a translation the walks place the owner's children
+// through (sections 5 and 9). Layout never reads a frame, so a frame
+// changes nothing the check measures, and the check is stable.
 
 #include "gui_forms/surface_root/surface_root.hpp"
+
+#include "../../control/control/control_tree_walk.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -16,8 +24,10 @@
 #include <exception>
 #include <memory>
 #include <new>
+#include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <stxlib/optional.hpp>
 
@@ -46,26 +56,50 @@ Rect union_of(Rect first, Rect second) noexcept {
     return joined;
 }
 
-// The answer an owner gives and whether it is carried out: an owner that
-// scrolls its content answers by scrolling; otherwise its viewport_fit's
-// answer, carried out for clip always and for contain and cover while the
-// owner applies a scale.
+// The answer an owner gives, whether it is carried out, and the frame
+// that carries out a contain or cover (the identity for any other answer).
 struct OwnerAnswer final {
     OverflowAnswer answer{OverflowAnswer::contain};
     bool answered{};
     double effective_scale{1.0};
+    ScaleFrame frame{};
 };
 
-OwnerAnswer answer_of(const Control& owner, bool may_scroll) noexcept {
+// The owner's fit with its floor (decision 5): media is bounded by its own
+// minimum_scale; controls also by the presentation settings' floor. The
+// maximum is raised to the floor where it lay below it, so the fit stays
+// valid.
+ViewportFit floored_fit(const Control& owner, double content_floor) noexcept {
+    ViewportFit fit = owner.viewport_fit.read();
+    if (!owner.shows_media_content()) fit.minimum_scale = std::max(fit.minimum_scale, content_floor);
+    fit.maximum_scale = std::max(fit.maximum_scale, fit.minimum_scale);
+    return fit;
+}
+
+// The answer of an owner whose `content` (its own coordinates) overflows
+// `viewport`. An owner that scrolls its content (when it `may_scroll`)
+// answers by scrolling; one that scales its content itself
+// (applied_viewport_scale) answers a contain or cover while it does;
+// otherwise the window carries out its viewport_fit: a clip as it is, a
+// contain or cover through a frame whose scale keeps within the fit's
+// bounds on the effective scale (`outer_scale` is the scale above the
+// owner), and a scroll not at all. A contain below its floor takes
+// below_minimum at the floor: a clip there is answered, a scroll is not.
+OwnerAnswer answer_of(const Control& owner, bool may_scroll, Rect content, Rect viewport, double outer_scale,
+                      double content_floor) noexcept {
     OwnerAnswer result{};
-    const stxlib::Optional<double> applied = owner.applied_viewport_scale();
-    if (applied.present()) result.effective_scale = *applied.value();
     if (may_scroll && owner.content_scrolls()) {
         result.answer = OverflowAnswer::scroll;
         result.answered = true;
         return result;
     }
     result.answer = owner.viewport_fit.read().answer;
+    const stxlib::Optional<double> applied = owner.applied_viewport_scale();
+    if (applied.present()) {
+        result.effective_scale = *applied.value();
+        result.answered = result.answer != OverflowAnswer::scroll;
+        return result;
+    }
     switch (result.answer) {
     case OverflowAnswer::scroll:
         // An owner that does not scroll cannot carry a scroll out.
@@ -75,9 +109,15 @@ OwnerAnswer answer_of(const Control& owner, bool may_scroll) noexcept {
         result.answered = true;
         break;
     case OverflowAnswer::contain:
-    case OverflowAnswer::cover:
-        result.answered = applied.present();
+    case OverflowAnswer::cover: {
+        const ViewportFit fit = fit_within_outer_scale(floored_fit(owner, content_floor), outer_scale);
+        const ViewportPlacement placement =
+            place_viewport_content(Size{content.width, content.height}, viewport, fit);
+        result.frame = placement_frame(content, placement);
+        result.effective_scale = placement.scale;
+        result.answered = placement.applied != OverflowAnswer::scroll;
         break;
+    }
     default:
         // Not an answer of the enumeration (viewport_fit refuses one):
         // unanswered.
@@ -112,15 +152,32 @@ void SurfaceRoot::queue_viewport_check(Control& owner) {
 }
 
 void SurfaceRoot::check_viewports() {
-    // By index: the list's storage stays the window's for the next flush.
+    // The root first: its frame is the outermost scale every owner's floor
+    // is measured against.
+    if (root_ && (*root_).viewport_check_pass_ == viewport_check_sequence_) check_root_slot();
+    // By index, the count read each step: a frame that changes lists the
+    // framed owners below it again (requeue_framed_descendants). The list's
+    // storage stays the window's for the next flush.
     for (stxlib::usize index = 0U; index < viewport_checks_.count(); ++index) {
         const Control::Ptr owner = viewport_checks_[index].lock();
         if (!owner || !(*owner).is_alive() || (*owner).surface_root_ != this) continue;
         check_viewport_owner(owner);
     }
     viewport_checks_.clear();
-    if (root_ && (*root_).viewport_check_pass_ == viewport_check_sequence_) check_root_slot();
     prune_overflow_records();
+}
+
+void SurfaceRoot::requeue_framed_descendants(Control& owner) {
+    // In fixed storage (the depth rule); listing changes no child list.
+    detail::SubtreeWalk walk(owner);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        if (current == &owner || is_identity_frame((*current).content_frame_)) continue;
+        // Listed whatever its pass: its floor and bounds are measured
+        // against the scale above it, which has just changed. A list that
+        // cannot grow leaves its frame until its next arrangement.
+        const stxlib::OperationStatus listed = viewport_checks_.push((*current).weak_from_this());
+        static_cast<void>(listed);
+    }
 }
 
 void SurfaceRoot::check_viewport_owner(const Control::Ptr& owner) {
@@ -128,6 +185,11 @@ void SurfaceRoot::check_viewport_owner(const Control::Ptr& owner) {
     const bool shown = control.visible.read() && !control.layout_collapsed_;
     const Rect viewport = control.child_viewport_rectangle();
     const Size viewport_extent{viewport.width, viewport.height};
+    // Where the children were laid out: the viewport, or the design
+    // rectangle of an owner that contains its design (Control::
+    // content_layout_rectangle). Children beyond it overflow; the design
+    // itself is checked against the viewport below.
+    const Rect laid_out = control.content_layout_rectangle();
     // The children: their arranged bounds, in the owner's coordinates, as
     // the window places them (placed_bounds). Visual outsets (shadows,
     // focus rings) are decoration and do not count.
@@ -146,7 +208,7 @@ void SurfaceRoot::check_viewport_owner(const Control::Ptr& owner) {
             const Rect bounds = (*child).committed_arranged_bounds();
             content = any_child ? union_of(content, bounds) : bounds;
             any_child = true;
-            if (!reaches_past(bounds, viewport)) continue;
+            if (!reaches_past(bounds, laid_out)) continue;
             children_overflow = true;
             // A child the dock and anchor engine placed was placed by its
             // position; one a layout container placed did not fit after
@@ -154,9 +216,29 @@ void SurfaceRoot::check_viewport_owner(const Control::Ptr& owner) {
             if ((*child).arranged_by_dock_layout_) placed_child = true;
         }
     }
+    // The design size: content designed larger than the viewport, laid out
+    // at the viewport's origin (Control::arrange lays the children of a
+    // containing owner out at it).
+    const Size design = control.design_size.read();
+    const bool has_design = design.width > 0.0 && design.height > 0.0;
+    const bool design_overflow = shown && has_design &&
+                                 (design.width > viewport.width + overflow_tolerance ||
+                                  design.height > viewport.height + overflow_tolerance);
+
+    // One answer for both kinds: the content is everything that must show,
+    // the viewport itself, the children and the design rectangle.
+    OwnerAnswer answer{};
+    if (children_overflow || design_overflow) {
+        Rect whole = viewport;
+        if (children_overflow) whole = union_of(whole, content);
+        if (design_overflow) whole = union_of(whole, Rect{viewport.x, viewport.y, design.width, design.height});
+        const double outer_scale = local_frame_of(control).scale;
+        answer = answer_of(control, true, whole, viewport, outer_scale, presentation_settings_.minimum_content_scale);
+    }
+    set_content_frame(owner, answer.frame);
+
     OverflowRecord children_record{};
     if (children_overflow) {
-        const OwnerAnswer answer = answer_of(control, true);
         children_record.owner = control.runtime_id();
         children_record.cause = placed_child ? OverflowCause::placed_child_outside_viewport
                                              : OverflowCause::minimum_content_exceeds_viewport;
@@ -168,15 +250,8 @@ void SurfaceRoot::check_viewport_owner(const Control::Ptr& owner) {
     }
     update_overflow_record(owner, OverflowScope::children, children_overflow, children_record);
 
-    // The design size: content designed larger than the viewport.
-    const Size design = control.design_size.read();
-    const bool has_design = design.width > 0.0 && design.height > 0.0;
-    const bool design_overflow = shown && has_design &&
-                                 (design.width > viewport.width + overflow_tolerance ||
-                                  design.height > viewport.height + overflow_tolerance);
     OverflowRecord design_record{};
     if (design_overflow) {
-        const OwnerAnswer answer = answer_of(control, true);
         design_record.owner = control.runtime_id();
         design_record.cause = OverflowCause::design_size_exceeds_viewport;
         design_record.content_extent = design;
@@ -194,18 +269,27 @@ void SurfaceRoot::check_root_slot() {
     const Rect arranged = (*root).committed_arranged_bounds();
     const bool shown = (*root).visible.read() && !(*root).layout_collapsed_;
     // The root is arranged at the slot; it is larger only where its minimum
-    // size exceeds the slot (Control::arrange keeps the minimum), and then
+    // size exceeds the slot (Control::arrange keeps the minimum), or where
+    // it is laid out at its design size (root_layout_rectangle), and then
     // its far edges lie outside the client area.
     const bool overflowing = shown && (arranged.width > slot.width + overflow_tolerance ||
                                        arranged.height > slot.height + overflow_tolerance);
+    // The root cannot scroll itself within its slot: only its own
+    // viewport_fit answers, a contain or cover through the window's root
+    // frame (the owner's game case: a root taller than a small window is
+    // shown whole).
+    OwnerAnswer answer{};
+    if (overflowing) {
+        answer = answer_of(*root, false, arranged, slot, 1.0, presentation_settings_.minimum_content_scale);
+    }
+    set_root_frame(answer.frame);
     OverflowRecord record{};
     if (overflowing) {
-        // The root cannot scroll itself: only its own viewport_fit answers,
-        // and a contain or cover of the root by the window is not carried
-        // out yet (the in-tree scale frame, VA2).
-        const OwnerAnswer answer = answer_of(*root, false);
+        const Size design = (*root).design_size.read();
+        const bool designed = design.width > 0.0 && design.height > 0.0;
         record.owner = (*root).runtime_id();
-        record.cause = OverflowCause::minimum_content_exceeds_viewport;
+        record.cause = designed ? OverflowCause::design_size_exceeds_viewport
+                                : OverflowCause::minimum_content_exceeds_viewport;
         record.content_extent = Size{arranged.width, arranged.height};
         record.viewport_extent = Size{slot.width, slot.height};
         record.answer = answer.answer;
@@ -213,6 +297,30 @@ void SurfaceRoot::check_root_slot() {
         record.answered = answer.answered;
     }
     update_overflow_record(root, OverflowScope::root_slot, overflowing, record);
+}
+
+void SurfaceRoot::set_content_frame(const Control::Ptr& owner, const ScaleFrame& frame) {
+    if ((*owner).content_frame_ == frame) return;
+    // Where the children were shown, then where they will be: both inside
+    // the owner's child viewport, which is all they paint in. Each child is
+    // recorded again at its new scale when it paints (recorded_frame_scale_)
+    // and its semantic bounds move.
+    const DamageCauseScope cause(*this, InvalidationCause::layout, owner.get());
+    add_subtree_damage(owner);
+    (*owner).content_frame_ = frame;
+    settle_subtree(*owner, Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+    ++semantic_generation_;
+    requeue_framed_descendants(*owner);
+}
+
+void SurfaceRoot::set_root_frame(const ScaleFrame& frame) {
+    if (root_frame_ == frame || !root_) return;
+    const DamageCauseScope cause(*this, InvalidationCause::layout, root_.get());
+    add_subtree_damage(root_);
+    root_frame_ = frame;
+    settle_subtree(*root_, Dirty::paint | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+    ++semantic_generation_;
+    requeue_framed_descendants(*root_);
 }
 
 void SurfaceRoot::update_overflow_record(const Control::Ptr& owner, OverflowScope scope, bool overflowing,
@@ -273,6 +381,26 @@ void SurfaceRoot::update_overflow_record(const Control::Ptr& owner, OverflowScop
         // Counted above; only the diagnostic is lost.
         ++dropped_layout_diagnostics_;
     }
+}
+
+void SurfaceRoot::fill_overlay_overflows() {
+    overflow_outline_scratch_.clear();
+    for (stxlib::usize index = 0U; index < overflow_records_.count(); ++index) {
+        const OverflowRecord& record = overflow_records_[index];
+        const bool clipped = record.answered && record.answer == OverflowAnswer::clip;
+        if (record.answered && !clipped) continue;
+        const Control::Ptr owner = overflow_record_keys_[index].owner.lock();
+        if (!owner || (*owner).surface_root_ != this) continue;
+        OverflowOutline outline{};
+        outline.kind = clipped ? OverflowOutlineKind::clipped : OverflowOutlineKind::unanswered;
+        outline.bounds = overflow_record_keys_[index].scope == OverflowScope::root_slot
+                             ? root_slot()
+                             : absolute_child_viewport_of(*owner);
+        // An outline the scratch cannot hold is not shown this paint.
+        const stxlib::OperationStatus kept = overflow_outline_scratch_.push_copy(outline);
+        if (kept.failed() || overflow_outline_scratch_.count() >= maximum_overflow_outlines) break;
+    }
+    (*invalidation_overlay_).set_overflow_outlines(overflow_outline_scratch_.view());
 }
 
 void SurfaceRoot::remove_overflow_record(std::size_t index) noexcept {

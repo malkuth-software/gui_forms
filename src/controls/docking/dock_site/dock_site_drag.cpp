@@ -227,9 +227,9 @@ void DockSite::on_tab_drag(DockNodeId stack, PageDragStart& start) {
     if (!strip || (*strip).reorder_enabled.read()) return;
     const DockNode* const node = (*workspace_).layout().find_node(stack);
     if (node == nullptr) return;
-    const Rect absolute = absolute_bounds();
-    const Point press{start.press_point.x - absolute.x, start.press_point.y - absolute.y};
-    const Point pointer{start.pointer.x - absolute.x, start.pointer.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point press = frame_to_inner(local_frame, start.press_point);
+    const Point pointer = frame_to_inner(local_frame, start.pointer);
     const DockSubject subject = DockSubject::of_panel(DockPanelId(start.page.value));
     const bool panel_only = (*node).panels.size() >= 2U;
     if (begin_drag(subject, stack, panel_only, press, pointer, false, 1U)) start.claimed = true;
@@ -252,8 +252,8 @@ bool DockSite::tear_off_document_tab(const PointerEvent& event) {
         const DockSubject subject = DockSubject::of_panel(DockPanelId((*dragged).value));
         const bool panel_only = (*node).panels.size() >= 2U;
         static_cast<void>((*strip).cancel_drag());
-        const Rect absolute = absolute_bounds();
-        const Point pointer{event.position.x - absolute.x, event.position.y - absolute.y};
+        const ScaleFrame local_frame = window_frame();
+        const Point pointer = frame_to_inner(local_frame, event.position);
         const bool started = begin_drag(subject, stack, panel_only, pointer, pointer, false, event.pointer_id);
         return started;
     }

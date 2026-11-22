@@ -78,6 +78,9 @@ gui_forms::SurfaceRoot
       **visible_client_rectangle** : ``Rect``, read-only
          The client rectangle less, on each edge, the larger of the outer band and the safe inset: the part of the client area content may count on being seen, in client coordinates. Empty on an axis they cover.
 
+      **root_frame** : ``ScaleFrame``, read-only
+         The frame the window places its root through (stage VA): the identity, or, while the root is larger than its slot and its viewport_fit answers contain or cover, that answer carried out (the root's arranged bounds into the slot). Control::window_frame and every walk compose it above the root.
+
       **scale** : ``double``, default ``1.0``, read-only
          Device pixels per logical unit. The host sets it from the display; a
          value that is not finite and positive throws ``std::invalid_argument``.
@@ -774,6 +777,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Rect visible_client_rectangle() const noexcept
 
       The client rectangle less, on each edge, the larger of the outer band and the safe inset: the part of the client area content may count on being seen, in client coordinates. Empty on an axis they cover.
+
+   .. cpp:function:: ScaleFrame root_frame() const noexcept
+
+      The frame the window places its root through (stage VA): the identity, or, while the root is larger than its slot and its viewport_fit answers contain or cover, that answer carried out (the root's arranged bounds into the slot). Control::window_frame and every walk compose it above the root.
 
    .. cpp:function:: double scale() const noexcept
 

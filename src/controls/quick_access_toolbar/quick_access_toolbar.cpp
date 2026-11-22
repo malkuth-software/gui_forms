@@ -242,10 +242,10 @@ QuickAccessToolbar::CustomizeGeometry QuickAccessToolbar::customize_geometry() c
 }
 
 bool QuickAccessToolbar::customize_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect button = customize_geometry().button;
     const bool result = !button.empty() &&
-        button.contains(Point{window_point.x - absolute.x, window_point.y - absolute.y});
+        button.contains(frame_to_inner(local_frame, window_point));
     return result;
 }
 
@@ -260,8 +260,8 @@ bool QuickAccessToolbar::show_customize_menu(MenuOpenMode mode) {
     close_drop_down();
     rebuild_menu();
     (*menu_).set_items(menu_items_);
-    const Rect absolute = absolute_bounds();
-    const Point anchor{absolute.x + button.x, absolute.y + button.y + button.height};
+    const ScaleFrame local_frame = window_frame();
+    const Point anchor = frame_to_outer(local_frame, Point{button.x, button.y + button.height});
     (*menu_).show(shared_from_this(), anchor, mode);
     // A menu with nothing visible stays closed (A-gf-controls-06-F3).
     if (!(*menu_).is_open()) return false;
@@ -399,14 +399,14 @@ std::vector<SemanticNode> QuickAccessToolbar::semantic_virtual_children() const 
     std::vector<SemanticNode> nodes = ToolStrip::semantic_virtual_children();
     const Rect button = customize_geometry().button;
     if (button.empty()) return nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     SemanticNode node{};
     node.stable_id = std::string(stable_id().value()) + ".customize";
     node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
     node.name = "Customize Quick Access Toolbar";
     node.role = SemanticRole::menu_button;
     node.has_popup = true;
-    node.bounds = {absolute.x + button.x, absolute.y + button.y, button.width, button.height};
+    node.bounds = frame_to_outer(local_frame, button);
     node.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
     if (customize_open_) node.states |= SemanticState::expanded;
     node.actions = {SemanticAction::press, SemanticAction::expand, SemanticAction::collapse};

@@ -87,9 +87,11 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
     append_json_string(stream, node.tool_tip);
     stream << ",\"announces_on_appearance\":" << (node.announces_on_appearance ? "true" : "false");
     stream << ",\"bounds\":[" << detail::JsonNumber{node.bounds.x} << ',' << detail::JsonNumber{node.bounds.y}
-           << ',' << detail::JsonNumber{node.bounds.width} << ',' << detail::JsonNumber{node.bounds.height}
-           << "],\"states\":"
-           << static_cast<std::uint32_t>(node.states) << ",\"actions\":[";
+           << ',' << detail::JsonNumber{node.bounds.width} << ',' << detail::JsonNumber{node.bounds.height} << ']';
+    // Written only under a contain or cover (stage VA), so a snapshot of a
+    // window that scales nothing reads as before.
+    if (node.effective_scale != 1.0) stream << ",\"effective_scale\":" << detail::JsonNumber{node.effective_scale};
+    stream << ",\"states\":" << static_cast<std::uint32_t>(node.states) << ",\"actions\":[";
     for (std::size_t index = 0; index < node.actions.size(); ++index) {
         if (index != 0U) stream << ',';
         append_json_string(stream, semantic_action_name(node.actions[index]));

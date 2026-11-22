@@ -803,7 +803,7 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
 
 std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Geometry layout = geometry();
     const std::string prefix(stable_id().value());
     const std::optional<std::string> selected = selected_id.read();
@@ -837,7 +837,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
             node.name = item.label.empty() ? item.stable_id : item.label;
             if (in_view) {
                 const Rect cell = Rect::intersection(cell_bounds(position, layout), layout.viewport);
-                node.bounds = {absolute.x + cell.x, absolute.y + cell.y, cell.width, cell.height};
+                node.bounds = frame_to_outer(local_frame, cell);
             }
             node.states = SemanticState::visible | SemanticState::focusable;
             if (item_enabled(position)) node.states |= SemanticState::enabled;
@@ -867,8 +867,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         up.runtime_id = virtual_semantic_runtime_id(up.stable_id);
         up.role = SemanticRole::button;
         up.name = "Scroll up";
-        up.bounds = {absolute.x + placed.scroll_up.bounds.x, absolute.y + placed.scroll_up.bounds.y,
-                     placed.scroll_up.bounds.width, placed.scroll_up.bounds.height};
+        up.bounds = frame_to_outer(local_frame, placed.scroll_up.bounds);
         up.states = SemanticState::visible;
         if (can_scroll_up()) up.states |= SemanticState::enabled;
         up.actions = {SemanticAction::press};
@@ -878,8 +877,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         down.runtime_id = virtual_semantic_runtime_id(down.stable_id);
         down.role = SemanticRole::button;
         down.name = "Scroll down";
-        down.bounds = {absolute.x + placed.scroll_down.bounds.x, absolute.y + placed.scroll_down.bounds.y,
-                       placed.scroll_down.bounds.width, placed.scroll_down.bounds.height};
+        down.bounds = frame_to_outer(local_frame, placed.scroll_down.bounds);
         down.states = SemanticState::visible;
         if (can_scroll_down()) down.states |= SemanticState::enabled;
         down.actions = {SemanticAction::press};
@@ -892,8 +890,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         more.role = SemanticRole::menu_button;
         more.name = "More";
         more.has_popup = true;
-        more.bounds = {absolute.x + placed.more_button.bounds.x, absolute.y + placed.more_button.bounds.y,
-                       placed.more_button.bounds.width, placed.more_button.bounds.height};
+        more.bounds = frame_to_outer(local_frame, placed.more_button.bounds);
         more.states = SemanticState::visible | SemanticState::enabled;
         if (more_gallery_ && (*more_gallery_).overlay_open()) more.states |= SemanticState::expanded;
         more.actions = {SemanticAction::press, SemanticAction::expand};

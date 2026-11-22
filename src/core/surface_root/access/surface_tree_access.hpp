@@ -93,6 +93,10 @@ public:
         const Rect result = root.absolute_bounds_of(control);
         return result;
     }
+    [[nodiscard]] static ScaleFrame local_frame_of(const SurfaceRoot& root, const Control& control) {
+        const ScaleFrame result = root.local_frame_of(control);
+        return result;
+    }
 
     static void note_containing_block(SurfaceRoot& root, const Control& child, const Control& ancestor) {
         root.note_containing_block(child, ancestor);

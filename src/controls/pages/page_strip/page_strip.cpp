@@ -1310,9 +1310,10 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
 
 PageStrip::Hit PageStrip::hit_at(Point window_point) const {
     Hit hit{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const Rect absolute = frame_to_outer(local_frame, client_rectangle());
     if (!absolute.contains(window_point)) return hit;
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = frame_to_inner(local_frame, window_point);
     const Layout& placed = layout();
     if (placed.overflow) {
         if (placed.scroll_back.contains(local)) hit.zone = Zone::scroll_back;
@@ -1548,12 +1549,12 @@ double PageStrip::main_length(Rect bounds) const noexcept {
 }
 
 double PageStrip::local_main(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const Point point = point_from_window(window_point);
     if (mirrored()) {
-        const double local = layout_.key.surface.width - (window_point.x - absolute.x);
+        const double local = layout_.key.surface.width - point.x;
         return local;
     }
-    const double local = horizontal() ? window_point.x - absolute.x : window_point.y - absolute.y;
+    const double local = horizontal() ? point.x : point.y;
     return local;
 }
 
@@ -1784,13 +1785,13 @@ Point PageStrip::keyboard_menu_anchor(std::size_t position) {
     Rect target = placed.tabs[position].bounds;
     if (target.empty()) target = placed.list_button;
     if (target.empty()) target = placed.rail;
-    const Rect absolute = absolute_bounds();
-    Point anchor{absolute.x + target.x, absolute.y + target.y + target.height};
-    if (placement.read() == PageStripPlacement::bottom) anchor = {absolute.x + target.x, absolute.y + target.y};
+    const ScaleFrame local_frame = window_frame();
+    Point anchor = frame_to_outer(local_frame, Point{target.x, target.y + target.height});
+    if (placement.read() == PageStripPlacement::bottom) anchor = frame_to_outer(local_frame, Point{target.x, target.y});
     if (placement.read() == PageStripPlacement::left) {
-        anchor = {absolute.x + target.x + target.width, absolute.y + target.y + target.height};
+        anchor = frame_to_outer(local_frame, Point{target.x + target.width, target.y + target.height});
     }
-    if (placement.read() == PageStripPlacement::right) anchor = {absolute.x + target.x, absolute.y + target.y};
+    if (placement.read() == PageStripPlacement::right) anchor = frame_to_outer(local_frame, Point{target.x, target.y});
     return anchor;
 }
 
@@ -2151,7 +2152,8 @@ bool PageStrip::show_page_list(MenuOpenMode mode) {
         rows.back().italic = placed.tabs[position].bounds.empty();
     }
     (*list_).set_items(std::move(rows));
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const Rect absolute = frame_to_outer(local_frame, client_rectangle());
     const Rect button = placed.list_button;
     const double right = absolute.x + button.x + button.width;
     // Right-aligned below the list button (beside it on a side strip, on the
@@ -2159,10 +2161,10 @@ bool PageStrip::show_page_list(MenuOpenMode mode) {
     Point anchor{std::max(absolute.x, right - (*list_).preferred_width.read()), absolute.y + button.y + button.height};
     // A mirrored strip's list button is at its left: the list opens
     // left-aligned below it.
-    if (mirrored()) anchor = {absolute.x + button.x, absolute.y + button.y + button.height};
+    if (mirrored()) anchor = frame_to_outer(local_frame, Point{button.x, button.y + button.height});
     if (placement.read() == PageStripPlacement::left) anchor = {right, absolute.y + button.y};
     if (placement.read() == PageStripPlacement::right) {
-        anchor = {absolute.x + button.x - (*list_).preferred_width.read(), absolute.y + button.y};
+        anchor = frame_to_outer(local_frame, Point{button.x - (*list_).preferred_width.read(), button.y});
     }
     (*list_).show(shared_from_this(), anchor, mode);
     // A list with nothing visible stays closed (A-gf-controls-06-F3).

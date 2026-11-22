@@ -2183,8 +2183,8 @@ void Ribbon::on_pointer_preview(PointerEvent& event) {
     Control::on_pointer_preview(event);
     if (event.action != PointerAction::down || event.button != PointerButton::primary) return;
     if (overlay_group_.absent() && !application_overlay_open_ && !backstage_open_ && !plane_popup_open_) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Layout placed = layout();
     const Hit hit = hit_test(placed, local);
     // The minimized ribbon's popup closes; a press on a tab, the File tab,
@@ -2219,8 +2219,8 @@ void Ribbon::overlay_pointer(PointerEvent& event, Rect panel) {
         set_hot(Hit{});
         return;
     }
-    const Rect absolute = (*group_overlay_).absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = (*group_overlay_).window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Layout placed = overlay_layout(panel);
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
@@ -2542,14 +2542,14 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
     close_plane_popup();
     const Layout placed = layout();
     (*overlay_).set_items(application_menu_);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     // Over the ribbon, below the File tab (owner decision 23).
     // show opens a focus scope whose handlers run before it returns; one
     // may close the menu (A-gf-controls-11-F2): the File tab is marked open
     // only for a menu still open.
     const Control::Ptr self = shared_from_this();
-    (*overlay_).show(self, {absolute.x + placed.application.x, absolute.y + placed.application.y +
-                                                                  placed.application.height},
+    (*overlay_).show(self, frame_to_outer(local_frame, Point{placed.application.x, placed.application.y +
+                                                                  placed.application.height}),
                    mode);
     if (!is_alive() || !(*overlay_).is_open()) return false;
     application_open_ = true;
@@ -2687,7 +2687,6 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     move_hosted_to_overlay(group);
     // The content runs from the ribbon's left edge (start alignment) to the
     // panel's right; the panel starts under the group's button.
-    const Rect absolute = absolute_bounds();
     const Size panel = overlay_panel_size();
     AnchoredOverlayPlacement placement;
     placement.preferred_size = {placed.groups[group].x + panel.width, panel.height};
@@ -2697,7 +2696,7 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     sync_overlay_themes();
     (*group_layer_).set_anchor(self);
     (*group_layer_).placement = placement;
-    (*group_overlay_).set_anchor_x(absolute.x + placed.groups[group].x);
+    (*group_overlay_).set_anchor_x(point_to_window(Point{placed.groups[group].x, 0.0}).x);
     const Size client = (*window).client_size();
     (*group_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     group_overlay_token_ = (*window).open_overlay(self, group_layer_);
@@ -2865,8 +2864,8 @@ void Ribbon::popup_pointer(PointerEvent& event, Rect panel) {
         set_hot(Hit{});
         return;
     }
-    const Rect absolute = (*plane_popup_).absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = (*plane_popup_).window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Layout placed = popup_layout(panel);
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {

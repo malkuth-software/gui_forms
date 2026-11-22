@@ -611,6 +611,12 @@ public:
     // and the safe inset: the part of the client area content may count on
     // being seen, in client coordinates. Empty on an axis they cover.
     [[nodiscard]] Rect visible_client_rectangle() const noexcept;
+    // The frame the window places its root through (stage VA): the
+    // identity, or, while the root is larger than its slot and its
+    // viewport_fit answers contain or cover, that answer carried out (the
+    // root's arranged bounds into the slot). Control::window_frame and every
+    // walk compose it above the root.
+    [[nodiscard]] ScaleFrame root_frame() const noexcept { return root_frame_; }
     [[nodiscard]] double scale() const noexcept { return scale_; }
     // The settings in force: the window's own (presentation_base) with its
     // overrides applied.
@@ -2392,7 +2398,8 @@ private:
     // (effect_reach_above), accumulated down the walk in `parent_reach`,
     // the reach above and at `parent`.
     void add_subtree_damage(const Control::Ptr& control);
-    void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered, double parent_reach);
+    void add_descendant_damage(const Control& parent, const ScaleFrame& parent_frame, Rect covered,
+                               double parent_reach);
     void ensure_layout(bool read_barrier);
     // The bodies of the frame entries (shadow frames, ShadowFrameCall): each
     // entry opens its frame, calls its body and marks the frame returned.
@@ -2431,10 +2438,10 @@ private:
     [[nodiscard]] Control::Ptr drop_target_at(Point position);
     [[nodiscard]] DragDispatchResult route_drag(const Control::Ptr& target,
                                                 DragEvent event);
-    // `parent_origin` is the window position of `control`'s parent's
-    // origin (parent_origin_of), passed down the descent so that no level
+    // `parent_frame` is the frame `control`'s parent places its children
+    // through (parent_frame_of), passed down the descent so that no level
     // walks its ancestors (audit N83).
-    [[nodiscard]] Control::Ptr hit_test_recursive(const Control::Ptr& control, Point parent_origin,
+    [[nodiscard]] Control::Ptr hit_test_recursive(const Control::Ptr& control, const ScaleFrame& parent_frame,
                                                   Point window_position) const;
     // Paints the window's backplane into one painted rectangle of the
     // candidate, in a copy group when the window starts clear.
@@ -2461,7 +2468,7 @@ private:
     // leaves every device pixel of `damage` opaque (its opaque cover hint),
     // looking in `control`'s subtree as paint_recursive(control) paints it.
     // When there is one, appends the path to it, `control` first.
-    [[nodiscard]] bool find_paint_cover(const Control::Ptr& control, Point parent_origin, Rect damage,
+    [[nodiscard]] bool find_paint_cover(const Control::Ptr& control, const ScaleFrame& parent_frame, Rect damage,
                                         PaintPlane plane, std::vector<Control::Ptr>& path) const;
     // Paints `damage` in `plane` as paint_recursive(path.front()) would,
     // from path.back() on: what it paints before path.back() lies beneath
@@ -2482,7 +2489,7 @@ private:
     // `control`'s child viewport in window coordinates.
     [[nodiscard]] Rect absolute_child_viewport_of(const Control& control) const;
     void paint_recursive(const Control::Ptr& control,
-                         Point parent_origin,
+                         const ScaleFrame& parent_frame,
                          Painter& painter,
                          Rect window_damage,
                          PaintPlane plane,
@@ -2550,6 +2557,21 @@ private:
     void check_viewports();
     void check_viewport_owner(const Control::Ptr& owner);
     void check_root_slot();
+    // Carry out a contain or cover (window_viewport.cpp): set `owner`'s
+    // content frame, or the root frame, to `frame` (the identity ends one).
+    // A change damages where the children were and settles paint, hit
+    // testing, semantics and accessibility on the subtree, so each control
+    // records again at its new scale, and lists the framed owners below for
+    // this flush's check again (requeue_framed_descendants), their floors
+    // being measured against the scale above them.
+    void set_content_frame(const Control::Ptr& owner, const ScaleFrame& frame);
+    void set_root_frame(const ScaleFrame& frame);
+    void requeue_framed_descendants(Control& owner);
+    // The rectangle the root is laid out in: the root slot, or, for a root
+    // with a design size whose answer is a contain or cover, that size at
+    // the slot's origin (stage VA): the root frame then scales it into the
+    // slot.
+    [[nodiscard]] Rect root_layout_rectangle() const;
     // Adds, replaces or updates the record of (`owner`, `scope`) with
     // `record` (overflowing), or removes it (`overflowing` false).
     void update_overflow_record(const Control::Ptr& owner, OverflowScope scope, bool overflowing,
@@ -2576,10 +2598,15 @@ private:
     // commit_layout_requests_recursive does over the whole tree; keeps the
     // others listed.
     void commit_layout_requests() noexcept;
-    // The window position of `control`'s parent's origin, which a descent
-    // from the root passes down to `control` (audit N83); the origin for a
-    // control without a parent.
-    [[nodiscard]] Point parent_origin_of(const Control& control) const;
+    // The frame `control`'s parent places its children through, into
+    // window coordinates, which a descent from the root passes down to
+    // `control` (audit N83): each ancestor's position and content frame
+    // (stage VA), and root_frame_ above the root. For an overlay root or a
+    // control without a parent, the identity.
+    [[nodiscard]] ScaleFrame parent_frame_of(const Control& control) const;
+    // `control`'s window frame (Control::window_frame): parent_frame_of and
+    // its position.
+    [[nodiscard]] ScaleFrame local_frame_of(const Control& control) const;
     [[nodiscard]] Dirty recompute_subtree_dirty(const Control::Ptr& control) noexcept;
     // Recomputes `first`'s subtree flags from its own flags and its
     // children's subtree flags, then each ancestor's, stopping at the first
@@ -2644,6 +2671,10 @@ private:
     Insets chrome_insets_{};
     // The host's safe insets (set_safe_insets; stage VA); zero until reported.
     SafeInsets safe_insets_{};
+    // The frame the window places its root through (stage VA): the
+    // identity, or the contain or cover of a root larger than its slot
+    // (check_root_slot). parent_frame_of composes it above the root.
+    ScaleFrame root_frame_{};
     // The window outer band (Window::declare_band; gui_forms/window/band/
     // window_band.hpp). Only a Window declares one, so a sub-surface's
     // stays undeclared and reserves nothing.
@@ -2942,6 +2973,13 @@ private:
     // while the overlay is on, so the card shows the figures as of the last
     // paint. The line storage is the overlay's and is reused.
     void fill_overlay_counters();
+    // Writes the overflow outlines (stage VA, section 10) into the overlay
+    // from the overflow records, as fill_overlay_counters does the card:
+    // each unanswered overflow's owner in red, each clipped one in amber,
+    // at its child viewport (the root slot for the root's). The outline
+    // storage is reused (overflow_outline_scratch_).
+    void fill_overlay_overflows();
+    stxlib::Vector<OverflowOutline> overflow_outline_scratch_{};
     std::unique_ptr<InvalidationOverlay> invalidation_overlay_{};
     stxlib::Optional<bool> invalidation_overlay_setting_{};
     std::uint64_t invalidation_overlay_generation_{};

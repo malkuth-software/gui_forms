@@ -1274,8 +1274,10 @@ typedef uint32_t gf_content_alignment;
  * struct_size the caller sets, at least the 1.7 size. minimum_scale and
  * maximum_scale bound the effective scale of CONTAIN and COVER; a CONTAIN
  * whose ratio falls below minimum_scale takes below_minimum (SCROLL or
- * CLIP) at minimum_scale. The default is CONTAIN, 0, 1, SCROLL,
- * MIDDLE_CENTER. */
+ * CLIP) at minimum_scale. The default depends on the kind: a plain
+ * control CLIP; Windows Forms panels (Panel, UserControl, SplitterPanel)
+ * CONTAIN, 0, 1, SCROLL, MIDDLE_CENTER; media (PictureBox, RasterCanvas,
+ * SubSurfaceHost) CONTAIN up to 1024; CSS panels SCROLL. */
 typedef struct gf_viewport_fit {
     uint32_t struct_size;
     gf_overflow_answer answer;
@@ -2152,6 +2154,9 @@ typedef uint64_t gf_host_capability;
  * are reserved: no host reports them and no constant will take them.
  * GUI.Forms has no GPU surfaces (owner, 2026-11-16), and the GPU-backed
  * buffer routes that held them before the seal were withdrawn. */
+/* Since 1.7 (stage VA): the host reports the client area's safe insets
+ * (windows.safe_insets reads them). */
+#define GF_HOST_CAPABILITY_SAFE_INSETS 562949953421312ull
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its

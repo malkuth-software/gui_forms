@@ -163,6 +163,8 @@ Related types
      - What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer).
    * - :cpp:class:`HostResizeEvent <gui_forms::HostResizeEvent>`
      - HostResizeEvent carries a validated logical client extent for an attached session.
+   * - :cpp:class:`HostSafeInsetsEvent <gui_forms::HostSafeInsetsEvent>`
+     - The edges of the client area the host or the device hides, in logical units (stage VA; capability safe_insets, host protocol version 16): reported after attach and whenever they change.
    * - :cpp:class:`HostSaveFileDialogRequest <gui_forms::HostSaveFileDialogRequest>`
      - HostSaveFileDialogRequest declares portable title/location/name/default extension/filter and overwrite policy.
    * - :cpp:class:`HostScaleEvent <gui_forms::HostScaleEvent>`
@@ -1532,6 +1534,16 @@ Related types
    HostResizeEvent carries a validated logical client extent for an attached session.
 
    .. cpp:member:: Size client_size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostSafeInsetsEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   The edges of the client area the host or the device hides, in logical units (stage VA; capability safe_insets, host protocol version 16): reported after attach and whenever they change. The window's root slot keeps clear of them (SurfaceRoot::set_safe_insets). Refused as invalid_geometry unless valid_safe_insets holds.
+
+   .. cpp:member:: SafeInsets insets
 
 .. cpp:namespace:: gui_forms
 
@@ -4033,6 +4045,8 @@ Enumerations
 
    .. cpp:enumerator:: reference_presentation
 
+   .. cpp:enumerator:: safe_insets
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -4652,9 +4666,9 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 8> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 9> host_protocol_revisions
 
-   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}, {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and " "warp_pointer) and pointer event timestamps and scroll phases"}}}``.
+   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}, {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and " "warp_pointer) and pointer event timestamps and scroll phases"}, {16U, "the client area's safe insets (HostSafeInsetsEvent, HostCapability::safe_insets; stage VA)"}}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4724,7 +4738,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent, HostSafeInsetsEvent>
 
 .. cpp:namespace:: gui_forms
 

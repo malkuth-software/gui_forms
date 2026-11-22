@@ -401,18 +401,51 @@ overflow, and the window records every overflow (stage VA).
   within `minimum_scale` and `maximum_scale`, aligned in the leftover
   space), `cover` (the larger ratio, the excess cropped), `clip` (cut, by
   explicit choice) or `scroll`. A control that scrolls its content (a panel
-  with `auto_scroll`) answers by scrolling. The default is `contain`.
+  with `auto_scroll`) answers by scrolling.
+- The default depends on the kind (`panel_viewport_fit`,
+  `media_viewport_fit`, `reflowing_viewport_fit`): Windows Forms panels
+  (`Panel` and its kinds, `UserControl`, `SplitterPanel`) contain, never
+  enlarging, a deliberate difference from Windows Forms, which clips; media
+  (`PictureBox`, `RasterCanvas`, `SubSurfaceHost`) contains with no floor;
+  CSS panels (`FlexPanel`, `GridPanel`, `BlockPanel`) reflow, then scroll; a
+  plain control clips, recorded, as strips and the ribbon answer their own
+  overflow.
 - `Window::overflow_records()` lists the overflows now; each new or changed
   one is diagnosed as `content_overflow` in `layout_diagnostics()` and
   counted in `MetricsSnapshot::overflow_*`. `unanswered_overflow_count()` is
   the guarantee's evidence: zero when every overflow is answered.
-- In this phase contain and cover are carried out by `SubSurfaceHost` (with a
-  design size, its sub-surface is laid out at that size and scaled into its
-  region at the real pixel size) and by the scaled panels' stretch. Inside a
-  window they are recorded unanswered until the in-tree scale frame (VA2).
+- Contain and cover are carried out on any control, the window's root
+  included, through the in-tree scale frame: one uniform scale and a
+  translation the window places the owner's children through
+  (`Control::content_frame`; for the root, `Window::root_frame`). Layout is
+  untouched: a contained subtree is laid out at its own size (at its
+  `design_size` when it has one), then recorded again at the window's scale
+  times the frame's, so text stays sharp, and replayed through the frame.
+  Hit testing, the pointer's location (handlers see their own, unscaled
+  coordinates), captures, the input method's caret, tooltips, popup
+  anchors, semantic bounds and damage all map through it;
+  `Control::window_frame` is a control's whole map and `point_to_window`,
+  `point_from_window`, `rectangle_to_window` and `rectangle_from_window`
+  use it.
+- The scale bounds are on the effective scale (the product of every contain
+  above and at the owner), so a nested contain cannot escape the floor.
+  Controls are not contained below `PresentationSettings::
+  minimum_content_scale` (0.5 by default); media is bounded by its own
+  `minimum_scale` only. Below the floor the fit's `below_minimum` answers at
+  the floor: `clip` is answered, `scroll` only by an owner that scrolls.
+- `SubSurfaceHost` with a design size lays its sub-surface out at that size
+  and scales it into its region at the real pixel size; the scaled panels
+  stretch. Each reports the scale it applies itself.
 - The root slot keeps clear of the window's safe insets (`safe_insets()`,
-  zero until a host reports hidden edges), and hosts shrink a window larger
-  than its monitor's work area (not a full-screen one).
+  zero until a host reports hidden edges; `HostSafeInsetsEvent`, capability
+  `safe_insets`): the screen's safe area in full screen on macOS, and on the
+  web the part of the canvas outside the browser's visual viewport. Hosts
+  shrink a window larger than its monitor's work area (not a full-screen
+  one).
+- The diagnostic overlay outlines each unanswered overflow's owner in red
+  and each clipped one in amber, and its card counts the overflows; the
+  visual inspection snapshot lists each control's overflows, its effective
+  scale and its content frame (`"viewport"` in its JSON).
 
 ```cpp
 std::shared_ptr<gf::Panel> viewer = gf::make_control<gf::Panel>(gf::StableId("viewer"));
@@ -422,10 +455,17 @@ std::shared_ptr<gf::Label> page = gf::make_control<gf::Label>(gf::StableId("view
 
 gf::Window window(viewer, {300.0, 200.0});
 window.perform_layout();
-// overflow_records(): viewer, placed_child_outside_viewport, contain, unanswered
+// overflow_records(): viewer, placed_child_outside_viewport, contain; 900 tall
+// in 200 is below the floor of 0.5, so unanswered (shown at 0.5, cut)
 (*viewer).auto_scroll = true;
 window.perform_layout();
 // the same overflow, now answered by scroll; unanswered_overflow_count() is 0
+
+std::shared_ptr<gf::Panel> game = gf::make_control<gf::Panel>(gf::StableId("game"));
+(*game).design_size = gf::Size{800.0, 600.0};
+gf::Window small(game, {400.0, 300.0});
+small.perform_layout();
+// the root is laid out at 800 x 600 and shown whole at one half: root_frame()
 ```
 
 ## Instrumentation

@@ -359,7 +359,7 @@ void ListBox::invalidate_row(std::size_t index) {
 stxlib::Optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute)) return stxlib::Optional<std::size_t>::none();
-    const double local_y = absolute.y - bounds.y - well_inset;
+    const double local_y = point_from_window(absolute).y - well_inset;
     if (local_y < 0.0) return stxlib::Optional<std::size_t>::none();
     const double row_height = item_height.read() * effective_text_scale();
     const std::size_t index = top_index_ +
@@ -601,7 +601,8 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     // Paint realizes one row past the fully visible ones; so does this.
     const std::size_t end = std::min(count, first + visible_count + 1U);
     nodes.reserve(end - first);
-    const Rect list_bounds = absolute_bounds();
+    const ScaleFrame list_frame = window_frame();
+    const Rect list_area = client_rectangle();
     const double row_height = item_height.read() * effective_text_scale();
     for (std::size_t index = first; index < end; ++index) {
         SemanticNode node;
@@ -612,13 +613,12 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
         node.value = items.read()[index];
         node.position_in_set.set(index + 1U);
         node.set_size.set(count);
-        const double row_y = list_bounds.y + well_inset +
+        const double row_y = well_inset +
             (static_cast<double>(index) - static_cast<double>(top_index_)) *
                 row_height;
-        node.bounds = Rect::intersection(
-            {list_bounds.x + well_inset, row_y, std::max(0.0, list_bounds.width - well_insets),
-             row_height},
-            list_bounds);
+        const Rect row = Rect::intersection(
+            {well_inset, row_y, std::max(0.0, list_area.width - well_insets), row_height}, list_area);
+        node.bounds = frame_to_outer(list_frame, row);
         if (effectively_enabled()) node.states |= SemanticState::enabled;
         node.states |= SemanticState::focusable;
         if (index >= top_index_ && index < visible_end) {

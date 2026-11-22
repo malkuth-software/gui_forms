@@ -125,6 +125,7 @@ __ZGVZN9gui_forms10RoutedLink*
 __ZGVZN9gui_forms10RuleAction*
 __ZGVZN9gui_forms10RuleFiring*
 __ZGVZN9gui_forms10SafeInsets*
+__ZGVZN9gui_forms10ScaleFrame*
 __ZGVZN9gui_forms10SceneCubic*
 __ZGVZN9gui_forms10ScopeSweep*
 __ZGVZN9gui_forms10ScrollCopy*
@@ -605,6 +606,7 @@ __ZGVZN9gui_forms15NodeEditRequest*
 __ZGVZN9gui_forms15NodeGraphEdited*
 __ZGVZN9gui_forms15NotifyIconClick*
 __ZGVZN9gui_forms15OffscreenRaster*
+__ZGVZN9gui_forms15OverflowOutline*
 __ZGVZN9gui_forms15PageDoubleClick*
 __ZGVZN9gui_forms15PageViewOptions*
 __ZGVZN9gui_forms15PartCornerRadii*
@@ -1040,6 +1042,7 @@ __ZGVZN9gui_forms19HostActivationEvent*
 __ZGVZN9gui_forms19HostCompositorEvent*
 __ZGVZN9gui_forms19HostDialogHelpEvent*
 __ZGVZN9gui_forms19HostModalTransition*
+__ZGVZN9gui_forms19HostSafeInsetsEvent*
 __ZGVZN9gui_forms19HostSessionSnapshot*
 __ZGVZN9gui_forms19HostSoundCueRequest*
 __ZGVZN9gui_forms19HostTrayIconRequest*
@@ -1817,6 +1820,7 @@ __ZGVZNK9gui_forms10RoutedLink*
 __ZGVZNK9gui_forms10RuleAction*
 __ZGVZNK9gui_forms10RuleFiring*
 __ZGVZNK9gui_forms10SafeInsets*
+__ZGVZNK9gui_forms10ScaleFrame*
 __ZGVZNK9gui_forms10SceneCubic*
 __ZGVZNK9gui_forms10ScopeSweep*
 __ZGVZNK9gui_forms10ScrollCopy*
@@ -2297,6 +2301,7 @@ __ZGVZNK9gui_forms15NodeEditRequest*
 __ZGVZNK9gui_forms15NodeGraphEdited*
 __ZGVZNK9gui_forms15NotifyIconClick*
 __ZGVZNK9gui_forms15OffscreenRaster*
+__ZGVZNK9gui_forms15OverflowOutline*
 __ZGVZNK9gui_forms15PageDoubleClick*
 __ZGVZNK9gui_forms15PageViewOptions*
 __ZGVZNK9gui_forms15PartCornerRadii*
@@ -2732,6 +2737,7 @@ __ZGVZNK9gui_forms19HostActivationEvent*
 __ZGVZNK9gui_forms19HostCompositorEvent*
 __ZGVZNK9gui_forms19HostDialogHelpEvent*
 __ZGVZNK9gui_forms19HostModalTransition*
+__ZGVZNK9gui_forms19HostSafeInsetsEvent*
 __ZGVZNK9gui_forms19HostSessionSnapshot*
 __ZGVZNK9gui_forms19HostSoundCueRequest*
 __ZGVZNK9gui_forms19HostTrayIconRequest*
@@ -3563,6 +3569,7 @@ __ZN9gui_forms10RoutedLink*
 __ZN9gui_forms10RuleAction*
 __ZN9gui_forms10RuleFiring*
 __ZN9gui_forms10SafeInsets*
+__ZN9gui_forms10ScaleFrame*
 __ZN9gui_forms10SceneCubic*
 __ZN9gui_forms10ScopeSweep*
 __ZN9gui_forms10ScrollCopy*
@@ -4067,6 +4074,8 @@ __ZN9gui_forms14ToolTipRequest*
 __ZN9gui_forms14TreeListColumn*
 __ZN9gui_forms14UserThemeFiles*
 __ZN9gui_forms14XmlWriteResult*
+__ZN9gui_forms14compose_framesB*
+__ZN9gui_forms14compose_framesE*
 __ZN9gui_forms14declares_stateB*
 __ZN9gui_forms14declares_stateE*
 __ZN9gui_forms14dock_drop_editB*
@@ -4085,6 +4094,10 @@ __ZN9gui_forms14fold_help_textB*
 __ZN9gui_forms14fold_help_textE*
 __ZN9gui_forms14font_role_nameB*
 __ZN9gui_forms14font_role_nameE*
+__ZN9gui_forms14frame_to_innerB*
+__ZN9gui_forms14frame_to_innerE*
+__ZN9gui_forms14frame_to_outerB*
+__ZN9gui_forms14frame_to_outerE*
 __ZN9gui_forms14gloss_materialB*
 __ZN9gui_forms14gloss_materialE*
 __ZN9gui_forms14has_stock_iconB*
@@ -4185,6 +4198,7 @@ __ZN9gui_forms15NodeEditRequest*
 __ZN9gui_forms15NodeGraphEdited*
 __ZN9gui_forms15NotifyIconClick*
 __ZN9gui_forms15OffscreenRaster*
+__ZN9gui_forms15OverflowOutline*
 __ZN9gui_forms15PageDoubleClick*
 __ZN9gui_forms15PageViewOptions*
 __ZN9gui_forms15PartCornerRadii*
@@ -4266,6 +4280,8 @@ __ZN9gui_forms15paint_paragraphB*
 __ZN9gui_forms15paint_paragraphE*
 __ZN9gui_forms15paint_sparklineB*
 __ZN9gui_forms15paint_sparklineE*
+__ZN9gui_forms15placement_frameB*
+__ZN9gui_forms15placement_frameE*
 __ZN9gui_forms15plan_help_printB*
 __ZN9gui_forms15plan_help_printE*
 __ZN9gui_forms15proportion_rectB*
@@ -4626,6 +4642,8 @@ __ZN9gui_forms17graph_status_nameB*
 __ZN9gui_forms17graph_status_nameE*
 __ZN9gui_forms17help_callout_nameB*
 __ZN9gui_forms17help_callout_nameE*
+__ZN9gui_forms17is_identity_frameB*
+__ZN9gui_forms17is_identity_frameE*
 __ZN9gui_forms17item_content_textB*
 __ZN9gui_forms17item_content_textE*
 __ZN9gui_forms17known_font_familyB*
@@ -4952,6 +4970,7 @@ __ZN9gui_forms19HostActivationEvent*
 __ZN9gui_forms19HostCompositorEvent*
 __ZN9gui_forms19HostDialogHelpEvent*
 __ZN9gui_forms19HostModalTransition*
+__ZN9gui_forms19HostSafeInsetsEvent*
 __ZN9gui_forms19HostSessionSnapshot*
 __ZN9gui_forms19HostSoundCueRequest*
 __ZN9gui_forms19HostTrayIconRequest*
@@ -5587,6 +5606,8 @@ __ZN9gui_forms22file_dialog_text_validB*
 __ZN9gui_forms22file_dialog_text_validE*
 __ZN9gui_forms22find_item_custom_stateB*
 __ZN9gui_forms22find_item_custom_stateE*
+__ZN9gui_forms22fit_within_outer_scaleB*
+__ZN9gui_forms22fit_within_outer_scaleE*
 __ZN9gui_forms22grid_span_extent_validB*
 __ZN9gui_forms22grid_span_extent_validE*
 __ZN9gui_forms22help_locale_error_nameB*
@@ -5601,6 +5622,8 @@ __ZN9gui_forms22measure_available_sizeB*
 __ZN9gui_forms22measure_available_sizeE*
 __ZN9gui_forms22nearest_device_monitorB*
 __ZN9gui_forms22nearest_device_monitorE*
+__ZN9gui_forms22overflow_outline_styleB*
+__ZN9gui_forms22overflow_outline_styleE*
 __ZN9gui_forms22overlay_shadow_outsetsB*
 __ZN9gui_forms22overlay_shadow_outsetsE*
 __ZN9gui_forms22paint_help_print_sheetB*
@@ -6919,6 +6942,7 @@ __ZNK[RO]9gui_forms10RoutedLink*
 __ZNK[RO]9gui_forms10RuleAction*
 __ZNK[RO]9gui_forms10RuleFiring*
 __ZNK[RO]9gui_forms10SafeInsets*
+__ZNK[RO]9gui_forms10ScaleFrame*
 __ZNK[RO]9gui_forms10SceneCubic*
 __ZNK[RO]9gui_forms10ScopeSweep*
 __ZNK[RO]9gui_forms10ScrollCopy*
@@ -7399,6 +7423,7 @@ __ZNK[RO]9gui_forms15NodeEditRequest*
 __ZNK[RO]9gui_forms15NodeGraphEdited*
 __ZNK[RO]9gui_forms15NotifyIconClick*
 __ZNK[RO]9gui_forms15OffscreenRaster*
+__ZNK[RO]9gui_forms15OverflowOutline*
 __ZNK[RO]9gui_forms15PageDoubleClick*
 __ZNK[RO]9gui_forms15PageViewOptions*
 __ZNK[RO]9gui_forms15PartCornerRadii*
@@ -7834,6 +7859,7 @@ __ZNK[RO]9gui_forms19HostActivationEvent*
 __ZNK[RO]9gui_forms19HostCompositorEvent*
 __ZNK[RO]9gui_forms19HostDialogHelpEvent*
 __ZNK[RO]9gui_forms19HostModalTransition*
+__ZNK[RO]9gui_forms19HostSafeInsetsEvent*
 __ZNK[RO]9gui_forms19HostSessionSnapshot*
 __ZNK[RO]9gui_forms19HostSoundCueRequest*
 __ZNK[RO]9gui_forms19HostTrayIconRequest*
@@ -8611,6 +8637,7 @@ __ZN[KRO]9gui_forms10RoutedLink*
 __ZN[KRO]9gui_forms10RuleAction*
 __ZN[KRO]9gui_forms10RuleFiring*
 __ZN[KRO]9gui_forms10SafeInsets*
+__ZN[KRO]9gui_forms10ScaleFrame*
 __ZN[KRO]9gui_forms10SceneCubic*
 __ZN[KRO]9gui_forms10ScopeSweep*
 __ZN[KRO]9gui_forms10ScrollCopy*
@@ -9091,6 +9118,7 @@ __ZN[KRO]9gui_forms15NodeEditRequest*
 __ZN[KRO]9gui_forms15NodeGraphEdited*
 __ZN[KRO]9gui_forms15NotifyIconClick*
 __ZN[KRO]9gui_forms15OffscreenRaster*
+__ZN[KRO]9gui_forms15OverflowOutline*
 __ZN[KRO]9gui_forms15PageDoubleClick*
 __ZN[KRO]9gui_forms15PageViewOptions*
 __ZN[KRO]9gui_forms15PartCornerRadii*
@@ -9526,6 +9554,7 @@ __ZN[KRO]9gui_forms19HostActivationEvent*
 __ZN[KRO]9gui_forms19HostCompositorEvent*
 __ZN[KRO]9gui_forms19HostDialogHelpEvent*
 __ZN[KRO]9gui_forms19HostModalTransition*
+__ZN[KRO]9gui_forms19HostSafeInsetsEvent*
 __ZN[KRO]9gui_forms19HostSessionSnapshot*
 __ZN[KRO]9gui_forms19HostSoundCueRequest*
 __ZN[KRO]9gui_forms19HostTrayIconRequest*
@@ -10303,6 +10332,7 @@ __ZT[VIST]N9gui_forms10RoutedLink*E
 __ZT[VIST]N9gui_forms10RuleAction*E
 __ZT[VIST]N9gui_forms10RuleFiring*E
 __ZT[VIST]N9gui_forms10SafeInsets*E
+__ZT[VIST]N9gui_forms10ScaleFrame*E
 __ZT[VIST]N9gui_forms10SceneCubic*E
 __ZT[VIST]N9gui_forms10ScopeSweep*E
 __ZT[VIST]N9gui_forms10ScrollCopy*E
@@ -10783,6 +10813,7 @@ __ZT[VIST]N9gui_forms15NodeEditRequest*E
 __ZT[VIST]N9gui_forms15NodeGraphEdited*E
 __ZT[VIST]N9gui_forms15NotifyIconClick*E
 __ZT[VIST]N9gui_forms15OffscreenRaster*E
+__ZT[VIST]N9gui_forms15OverflowOutline*E
 __ZT[VIST]N9gui_forms15PageDoubleClick*E
 __ZT[VIST]N9gui_forms15PageViewOptions*E
 __ZT[VIST]N9gui_forms15PartCornerRadii*E
@@ -11218,6 +11249,7 @@ __ZT[VIST]N9gui_forms19HostActivationEvent*E
 __ZT[VIST]N9gui_forms19HostCompositorEvent*E
 __ZT[VIST]N9gui_forms19HostDialogHelpEvent*E
 __ZT[VIST]N9gui_forms19HostModalTransition*E
+__ZT[VIST]N9gui_forms19HostSafeInsetsEvent*E
 __ZT[VIST]N9gui_forms19HostSessionSnapshot*E
 __ZT[VIST]N9gui_forms19HostSoundCueRequest*E
 __ZT[VIST]N9gui_forms19HostTrayIconRequest*E
@@ -11995,6 +12027,7 @@ __ZT[hvc]*9gui_forms10RoutedLink*
 __ZT[hvc]*9gui_forms10RuleAction*
 __ZT[hvc]*9gui_forms10RuleFiring*
 __ZT[hvc]*9gui_forms10SafeInsets*
+__ZT[hvc]*9gui_forms10ScaleFrame*
 __ZT[hvc]*9gui_forms10SceneCubic*
 __ZT[hvc]*9gui_forms10ScopeSweep*
 __ZT[hvc]*9gui_forms10ScrollCopy*
@@ -12475,6 +12508,7 @@ __ZT[hvc]*9gui_forms15NodeEditRequest*
 __ZT[hvc]*9gui_forms15NodeGraphEdited*
 __ZT[hvc]*9gui_forms15NotifyIconClick*
 __ZT[hvc]*9gui_forms15OffscreenRaster*
+__ZT[hvc]*9gui_forms15OverflowOutline*
 __ZT[hvc]*9gui_forms15PageDoubleClick*
 __ZT[hvc]*9gui_forms15PageViewOptions*
 __ZT[hvc]*9gui_forms15PartCornerRadii*
@@ -12910,6 +12944,7 @@ __ZT[hvc]*9gui_forms19HostActivationEvent*
 __ZT[hvc]*9gui_forms19HostCompositorEvent*
 __ZT[hvc]*9gui_forms19HostDialogHelpEvent*
 __ZT[hvc]*9gui_forms19HostModalTransition*
+__ZT[hvc]*9gui_forms19HostSafeInsetsEvent*
 __ZT[hvc]*9gui_forms19HostSessionSnapshot*
 __ZT[hvc]*9gui_forms19HostSoundCueRequest*
 __ZT[hvc]*9gui_forms19HostTrayIconRequest*
@@ -13687,6 +13722,7 @@ __ZZN9gui_forms10RoutedLink*
 __ZZN9gui_forms10RuleAction*
 __ZZN9gui_forms10RuleFiring*
 __ZZN9gui_forms10SafeInsets*
+__ZZN9gui_forms10ScaleFrame*
 __ZZN9gui_forms10SceneCubic*
 __ZZN9gui_forms10ScopeSweep*
 __ZZN9gui_forms10ScrollCopy*
@@ -14167,6 +14203,7 @@ __ZZN9gui_forms15NodeEditRequest*
 __ZZN9gui_forms15NodeGraphEdited*
 __ZZN9gui_forms15NotifyIconClick*
 __ZZN9gui_forms15OffscreenRaster*
+__ZZN9gui_forms15OverflowOutline*
 __ZZN9gui_forms15PageDoubleClick*
 __ZZN9gui_forms15PageViewOptions*
 __ZZN9gui_forms15PartCornerRadii*
@@ -14602,6 +14639,7 @@ __ZZN9gui_forms19HostActivationEvent*
 __ZZN9gui_forms19HostCompositorEvent*
 __ZZN9gui_forms19HostDialogHelpEvent*
 __ZZN9gui_forms19HostModalTransition*
+__ZZN9gui_forms19HostSafeInsetsEvent*
 __ZZN9gui_forms19HostSessionSnapshot*
 __ZZN9gui_forms19HostSoundCueRequest*
 __ZZN9gui_forms19HostTrayIconRequest*
@@ -15379,6 +15417,7 @@ __ZZNK9gui_forms10RoutedLink*
 __ZZNK9gui_forms10RuleAction*
 __ZZNK9gui_forms10RuleFiring*
 __ZZNK9gui_forms10SafeInsets*
+__ZZNK9gui_forms10ScaleFrame*
 __ZZNK9gui_forms10SceneCubic*
 __ZZNK9gui_forms10ScopeSweep*
 __ZZNK9gui_forms10ScrollCopy*
@@ -15859,6 +15898,7 @@ __ZZNK9gui_forms15NodeEditRequest*
 __ZZNK9gui_forms15NodeGraphEdited*
 __ZZNK9gui_forms15NotifyIconClick*
 __ZZNK9gui_forms15OffscreenRaster*
+__ZZNK9gui_forms15OverflowOutline*
 __ZZNK9gui_forms15PageDoubleClick*
 __ZZNK9gui_forms15PageViewOptions*
 __ZZNK9gui_forms15PartCornerRadii*
@@ -16294,6 +16334,7 @@ __ZZNK9gui_forms19HostActivationEvent*
 __ZZNK9gui_forms19HostCompositorEvent*
 __ZZNK9gui_forms19HostDialogHelpEvent*
 __ZZNK9gui_forms19HostModalTransition*
+__ZZNK9gui_forms19HostSafeInsetsEvent*
 __ZZNK9gui_forms19HostSessionSnapshot*
 __ZZNK9gui_forms19HostSoundCueRequest*
 __ZZNK9gui_forms19HostTrayIconRequest*

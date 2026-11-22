@@ -1563,6 +1563,12 @@ Types
 
    .. cpp:member:: Rect bounds
 
+      In window coordinates, as the node is seen: under a contain or cover above it, the scaled rectangle (stage VA).
+
+   .. cpp:member:: double effective_scale
+
+      The scale the node is seen at (its control's Control::window_frame scale): 1 outside every contain or cover; below 1 its targets are that much smaller than authored (stage VA, section 9). Default: ``{1.0}``.
+
    .. cpp:member:: SemanticState states
 
       Default: ``{SemanticState::none}``.
@@ -2391,9 +2397,13 @@ Functions, constants and aliases
 
    The routed pointer event a MouseEventArgs carries, for code that takes the routed form (a gesture engine, ScrollableControl's bar and wheel handling): the window position, the action, the button and the rest, with click_count from clicks. The caller copies handled back.
 
+.. cpp:function:: inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, const ScaleFrame& control_frame, std::uint32_t press_clicks) noexcept
+
+   The MouseEventArgs a routed pointer event carries on a control whose window frame is ``control_frame`` (Control::window_frame): the record the window hands the mouse raisers. location is the event's position in the control's local coordinates (mapped back through the frame, so a handler sees unscaled coordinates under a contain), window_position the event's position; clicks is ``press_clicks`` for a press or release (the window passes the count the host reported for the press, which a release carries) and zero otherwise; the button, wheel delta, modifiers, action, wheel unit, wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click is false. The window builds its raisers' arguments with this, so the routed and raiser forms cannot drift apart; Control:: mouse_event_arguments fills the origin and click count for a handler of the routed form. The caller copies handled (and a release's suppress_click) back.
+
 .. cpp:function:: inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, Point control_origin, std::uint32_t press_clicks) noexcept
 
-   The MouseEventArgs a routed pointer event carries on a control whose absolute bounds start at ``control_origin`` (window coordinates): the record the window hands the mouse raisers. location is the event's position less control_origin, window_position the event's position; clicks is ``press_clicks`` for a press or release (the window passes the count the host reported for the press, which a release carries) and zero otherwise; the button, wheel delta, modifiers, action, wheel unit, wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click is false. The window builds its raisers' arguments with this, so the routed and raiser forms cannot drift apart; Control:: mouse_event_arguments fills the origin and click count for a handler of the routed form. The caller copies handled (and a release's suppress_click) back.
+   The same for a control at ``control_origin`` at scale 1: its frame is that translation alone.
 
 .. cpp:namespace:: gui_forms
 

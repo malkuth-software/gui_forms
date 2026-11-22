@@ -393,6 +393,8 @@
       {"kind": "property", "winforms": null, "gui_forms": "command_target", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "committed_arranged_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "content_effect", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/paint_group_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "content_frame", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "content_layout_rectangle", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "declares_clarity", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_chunk_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "dirty", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_core_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "display_chunk_info", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_chunk_tests.cpp"},
@@ -449,6 +451,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "tool_tip_presentation", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "tool_tip_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "visual_status", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "window_frame", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "arranged_bounds_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "context_menu_requested", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mouse_events_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "focus_observed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_controls_tests.cpp"},
@@ -579,6 +582,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_theme_overrides", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/theme_sheet_package_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "should_serialize_child_property", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/command_overflow_panel_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "should_serialize_property", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/active_border_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "shows_media_content", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "size_depends_on_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_contract_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "sizes_children_from_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_contract_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "sizes_unrequested_extents_from_content", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -4478,7 +4482,8 @@
       {"kind": "method", "winforms": null, "gui_forms": "client_to_bitmap", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_transparency_colors", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/canvas_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_view", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/canvas_raster_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "synchronize_bitmap", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/canvas_raster_tests.cpp"}
+      {"kind": "method", "winforms": null, "gui_forms": "synchronize_bitmap", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/canvas_raster_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "view_whole_bitmap", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "NodeCanvas", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/canvas_look_raster_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "announcement", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/node_canvas_tests.cpp"},
@@ -5465,6 +5470,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "relative_pointer_support", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/relative_pointer_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "resources", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_instance_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "root", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "root_frame", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "root_slot", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/window_band_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "safe_insets", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": "Control.Scale", "scope": "excluded", "overloads": 3, "catalogue_reason": "obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete", "gui_forms": "scale", "status": "excluded", "reason": "Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.", "basis": "catalogue"},

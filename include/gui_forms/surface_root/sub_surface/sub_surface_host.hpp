@@ -195,6 +195,8 @@ public:
     // window's scale, as before. Reports the placement's scale while it
     // carries out a contain or cover; none otherwise.
     [[nodiscard]] stxlib::Optional<double> applied_viewport_scale() const noexcept override;
+    // Media (stage VA, section 8): its contain has no floor but its fit's.
+    [[nodiscard]] bool shows_media_content() const noexcept override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // A pane of its own, named by the accessible name ("Sub-surface"
     // without one), whose default action focuses it: the host is the tab

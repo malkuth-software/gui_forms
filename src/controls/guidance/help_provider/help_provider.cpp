@@ -281,9 +281,9 @@ bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
     const Entry* entry = find_entry(*target);
     if (!entry || !entry_effective(*entry)) return false;
     if (keyboard_initiated) {
-        const Rect bounds = (*target).absolute_bounds();
-        position = {bounds.x + bounds.width * 0.5,
-                    bounds.y + bounds.height * 0.5};
+        const ScaleFrame bounds_frame = (*target).window_frame();
+        const Rect bounds = frame_to_outer(bounds_frame, (*target).client_rectangle());
+        position = frame_to_outer(bounds_frame, Point{bounds.width * 0.5, bounds.height * 0.5});
     }
     TargetHelpText text = target_help_text(target);
     HelpRequestEvent request{

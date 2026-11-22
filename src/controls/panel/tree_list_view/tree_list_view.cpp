@@ -1572,9 +1572,9 @@ TreeListView::Hit TreeListView::hit_test(const Layout& placed, Point local) cons
 }
 
 std::optional<std::string> TreeListView::node_id_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Layout placed = layout();
-    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point drawn = frame_to_inner(local_frame, window_point);
     const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
     const Hit hit = hit_test(placed, local);
     if (hit.zone != HitZone::row && hit.zone != HitZone::expander) return std::nullopt;
@@ -1614,8 +1614,8 @@ std::size_t TreeListView::drop_position(const Layout& placed, std::size_t column
 
 void TreeListView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point drawn = frame_to_inner(local_frame, event.position);
     // In reading order from here on (right to left, the drawn view mirrors);
     // the two values are copied, since the kept layout is remade later.
     const Rect frame = layout().well;
@@ -2039,7 +2039,7 @@ SemanticDescriptor TreeListView::semantic_descriptor() const {
 std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
     std::vector<SemanticNode> children{};
     const Layout placed = layout();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::string view_id(stable_id().value());
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
@@ -2056,7 +2056,7 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
         node.name = columns_[column].text;
         if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::ascending) node.value = "ascending";
         if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::descending) node.value = "descending";
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | enabled_state;
         node.actions = {SemanticAction::press};
         children.push_back(std::move(node));
@@ -2086,7 +2086,7 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
             node.position_in_set.set(sibling_position_[index] + 1U);
             node.set_size.set(child_begin_[slot + 1U] - child_begin_[slot]);
         }
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (enabled && item.enabled) node.states |= SemanticState::enabled;
         if (selected == stxlib::Optional<std::size_t>::of(row)) node.states |= SemanticState::selected;
@@ -2107,7 +2107,7 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
 void TreeListView::append_row_cells(const Layout& placed, std::size_t row, SemanticNode& row_semantics) const {
     TreeListNode scratch;
     const TreeListNode& item = row_node(row, scratch);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect line = row_bounds(placed, row);
     const bool enabled = effectively_enabled() && item.enabled;
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
@@ -2125,7 +2125,7 @@ void TreeListView::append_row_cells(const Layout& placed, std::size_t row, Seman
         cell.value = std::string(column_text(item, column));
         cell.row_index.set(row + 1U);
         cell.column_index.set(column_position_[column] + 1U);
-        cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        cell.bounds = frame_to_outer(local_frame, bounds);
         cell.states = SemanticState::visible | enabled_state;
         row_semantics.children.push_back(std::move(cell));
     }

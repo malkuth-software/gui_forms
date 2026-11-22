@@ -176,10 +176,10 @@ struct MaximumSizeCapability {
     }
 };
 
-// What this control does when its content, after layout, does not fit its viewport (stage VA): contain by default; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+// What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
 template <typename Declaring>
 struct ViewportFitCapability {
-    PropertyCell<ViewportFit, ViewportFitCapability<Declaring>> viewport_fit{ViewportFit{}};
+    PropertyCell<ViewportFit, ViewportFitCapability<Declaring>> viewport_fit{ViewportFit{OverflowAnswer::clip}};
 
     static void assign(ViewportFitCapability& capability, ViewportFit incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

@@ -313,6 +313,19 @@ Rect SurfaceRoot::root_slot() const noexcept {
     return slot;
 }
 
+Rect SurfaceRoot::root_layout_rectangle() const {
+    const Rect slot = root_slot();
+    if (!root_) return slot;
+    const Control& root = *root_;
+    const Size design = root.design_size.read();
+    const bool designed = design.width > 0.0 && design.height > 0.0;
+    const OverflowAnswer answer = root.viewport_fit.read().answer;
+    const bool scales = answer == OverflowAnswer::contain || answer == OverflowAnswer::cover;
+    if (!designed || !scales) return slot;
+    const Rect laid_out{slot.x, slot.y, design.width, design.height};
+    return laid_out;
+}
+
 Rect SurfaceRoot::visible_client_rectangle() const noexcept {
     const Insets& band = band_.reserved;
     const double left = std::max(band.left, safe_insets_.left);
@@ -436,6 +449,10 @@ void validate_presentation_settings(const PresentationSettings& settings) {
         settings.text_scale < 0.5 || settings.text_scale > 4.0) {
         throw std::invalid_argument(
             "GUI.Forms text scale must be finite and between 0.5 and 4.0");
+    }
+    if (!std::isfinite(settings.minimum_content_scale) || !(settings.minimum_content_scale > 0.0) ||
+        settings.minimum_content_scale > 1.0) {
+        throw std::invalid_argument("GUI.Forms minimum content scale must be above 0 and at most 1");
     }
     if (settings.double_click_milliseconds == 0U ||
         settings.double_click_milliseconds > maximum_double_click_milliseconds) {

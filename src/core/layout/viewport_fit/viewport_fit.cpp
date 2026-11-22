@@ -155,4 +155,20 @@ bool valid_safe_insets(const SafeInsets& insets) noexcept {
     return valid;
 }
 
+ScaleFrame placement_frame(Rect content, const ViewportPlacement& placement) noexcept {
+    const double scale = placement.scale;
+    const Point origin{placement.destination.x - scale * content.x, placement.destination.y - scale * content.y};
+    const ScaleFrame frame{origin, scale};
+    return frame;
+}
+
+ViewportFit fit_within_outer_scale(const ViewportFit& fit, double outer_scale) noexcept {
+    ViewportFit adjusted = fit;
+    // Both kept within [0, maximum_viewport_scale], so the result is valid.
+    adjusted.minimum_scale = std::min(fit.minimum_scale / outer_scale, maximum_viewport_scale);
+    const double maximum = std::min(fit.maximum_scale / outer_scale, maximum_viewport_scale);
+    adjusted.maximum_scale = std::max(maximum, adjusted.minimum_scale);
+    return adjusted;
+}
+
 } // namespace gui_forms

@@ -398,6 +398,9 @@ void HostSession::DispatchVisitor::operator()(
         // reservation before the corners' strips are damaged.
         (*window).report_full_screen(payload.full_screen);
         (*window).apply_corner_preference();
+    } else if constexpr (std::is_same_v<Payload, HostSafeInsetsEvent>) {
+        // Validated with the geometry above (stage VA).
+        (*window).set_safe_insets(payload.insets);
     }
 }
 
@@ -452,6 +455,9 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
     } else if (const HostDisplayEvent* display =
                    std::get_if<HostDisplayEvent>(&event.payload)) {
         invalid_geometry = !valid_monitor_set((*display).monitors);
+    } else if (const HostSafeInsetsEvent* safe =
+                   std::get_if<HostSafeInsetsEvent>(&event.payload)) {
+        invalid_geometry = !valid_safe_insets((*safe).insets);
     }
     if (invalid_geometry) {
         result.error = HostDispatchError::invalid_geometry;

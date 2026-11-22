@@ -28,7 +28,11 @@ RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = true;
     tab_stop = true;
     cursor = stxlib::Optional<CursorKind>::of(CursorKind::crosshair);
+    // Media: contained with no floor (stage VA, section 8).
+    viewport_fit = media_viewport_fit;
 }
+
+bool RasterCanvas::shows_media_content() const noexcept { return true; }
 
 // The bitmap is a view onto bitmap_, so disposal can drop it without a
 // write. A new bitmap drops the old tiles and, when attached, publishes
@@ -264,6 +268,27 @@ bool RasterCanvas::synchronize_bitmap() {
     }
     presented_generation_ = snapshot.generation;
     return true;
+}
+
+void RasterCanvas::view_whole_bitmap() {
+    require_mutable();
+    if (!bitmap_) return;
+    const Rect client = client_rectangle();
+    const Size extent{static_cast<double>((*bitmap_).width()), static_cast<double>((*bitmap_).height())};
+    if (client.empty() || !(extent.width > 0.0) || !(extent.height > 0.0)) return;
+    // The canvas's own zoom bounds within the fit's: a contain that falls
+    // below 1/64 shows the bitmap at 1/64.
+    ViewportFit fit = viewport_fit.read();
+    fit.answer = OverflowAnswer::contain;
+    fit.minimum_scale = std::max(fit.minimum_scale, 1.0 / 64.0);
+    fit.maximum_scale = std::clamp(fit.maximum_scale, fit.minimum_scale, 256.0);
+    const ViewportPlacement placed = place_viewport_content(extent, client, fit);
+    // The bitmap's top left lands at the destination's: (0 - origin) *
+    // zoom = destination, so origin = -destination / zoom.
+    const double zoom = placed.scale;
+    const gui_drawing::PointF origin{-(placed.destination.x - client.x) / zoom,
+                                     -(placed.destination.y - client.y) / zoom};
+    set_view(zoom, origin);
 }
 
 Rect RasterCanvas::bitmap_to_client(gui_drawing::RectI pixels) const noexcept {

@@ -510,8 +510,9 @@ bool BreadcrumbTrail::raised_face_contains(Rect bounds, Point local) const noexc
 
 stxlib::Optional<std::size_t> BreadcrumbTrail::visible_index_at(
     Point absolute) const noexcept {
-    const Rect bounds = absolute_bounds();
-    const Point local{absolute.x - bounds.x, absolute.y - bounds.y};
+    const ScaleFrame bounds_frame = window_frame();
+    const Rect bounds = frame_to_outer(bounds_frame, client_rectangle());
+    const Point local = frame_to_inner(bounds_frame, absolute);
     for (std::size_t index = visible_items_.size(); index > 0U; --index) {
         const VisibleItem& item = visible_items_[index - 1U];
         if (!item.bounds.contains(local)) continue;
@@ -655,14 +656,13 @@ std::vector<SemanticNode> BreadcrumbTrail::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     if (editing.read()) return nodes;
     nodes.reserve(visible_items_.size());
-    const Rect trail = absolute_bounds();
+    const ScaleFrame trail_frame = window_frame();
     for (const VisibleItem& item : visible_items_) {
         SemanticNode node{};
         node.stable_id = std::string(visible_stable_id(item));
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::button;
-        node.bounds = {trail.x + item.bounds.x, trail.y + item.bounds.y,
-                       item.bounds.width, item.bounds.height};
+        node.bounds = frame_to_outer(trail_frame, item.bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (effectively_enabled()) node.states |= SemanticState::enabled;
         if (focused_ && node.stable_id == active_id_) {

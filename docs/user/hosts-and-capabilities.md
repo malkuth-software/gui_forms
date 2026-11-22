@@ -62,6 +62,7 @@ whole record for logs.
 | `host_scroll` | a scroll copy moves the pixels already presented and only the exposed band is copied (C: `GF_HOST_CAPABILITY_HOST_SCROLL`) | no | with `GUI_FORMS_PRESENT=scroll` (`ScrollWindowEx`; refused under a child window or the invalidation overlay) | with `GUI_FORMS_PRESENT=scroll` (`XCopyArea`, while a compositing manager runs) |
 | `open_url` | a web or mail address (`https://`, `http://`, `mailto:`) opened in the user's own browser or mail program (`HostServices::open_url`; the business card's website; C: `GF_HOST_CAPABILITY_OPEN_URL`) | yes (NSWorkspace) | yes (`ShellExecuteW`) | yes (`xdg-open`, found when the address is opened) |
 | `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
+| `safe_insets` | the edges of the client area the host or the device hides (`HostSafeInsetsEvent`, protocol version 16; `SurfaceRoot::safe_insets`, the root slot keeps clear of them; C: `GF_HOST_CAPABILITY_SAFE_INSETS`, since 1.7). The browser host reports the part of the canvas outside the visual viewport | yes (the screen's safe area in full screen, macOS 12 and later) | no | no |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

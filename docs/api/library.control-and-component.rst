@@ -305,7 +305,7 @@ Related types
    * - :cpp:class:`ViewportFit <gui_forms::ViewportFit>`
      - A viewport owner's policy (Control::viewport_fit).
    * - :cpp:class:`ViewportFitCapability <gui_forms::ViewportFitCapability>`
-     - What this control does when its content, after layout, does not fit its viewport (stage VA): contain by default; an owner that scrolls its content answers by scrolling.
+     - What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling.
    * - :cpp:class:`ViewportPlacement <gui_forms::ViewportPlacement>`
      - Where content of extent ``content`` goes in ``viewport`` under ``fit``: the pure computation every owner that carries out contain or cover uses.
    * - :cpp:class:`VisibleCapability <gui_forms::VisibleCapability>`
@@ -1287,7 +1287,7 @@ Related types
 
    .. cpp:member:: ViewportFit viewport_fit
 
-      What this control does when its content, after layout, does not fit its viewport (stage VA): contain by default; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+      What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
 
    .. cpp:member:: Size design_size
 
@@ -3187,7 +3187,7 @@ Related types
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
-   What this control does when its content, after layout, does not fit its viewport (stage VA): contain by default; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+   What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
 
 
    .. rubric:: Methods
@@ -3196,7 +3196,7 @@ Related types
 
    .. cpp:member:: PropertyCell<ViewportFit, ViewportFitCapability<Declaring>> viewport_fit
 
-      Default: ``{ViewportFit{}}``.
+      Default: ``{ViewportFit{OverflowAnswer::clip}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4706,9 +4706,29 @@ Functions, constants and aliases
 
    Whether every edge is finite and not negative.
 
+.. cpp:function:: ScaleFrame placement_frame(Rect content, const ViewportPlacement& placement) noexcept
+
+   The frame that carries out ``placement`` for content occupying ``content`` in its own coordinates: the content's top left goes to the destination's top left, at the placement's scale.
+
+.. cpp:function:: ViewportFit fit_within_outer_scale(const ViewportFit& fit, double outer_scale) noexcept
+
+   ``fit`` with its scale bounds expressed for an owner whose ancestors already scale by ``outer_scale`` (positive): the bounds of a ViewportFit are on the effective scale, so a nested contain cannot escape the floor by nesting. Both bounds are divided by ``outer_scale`` and kept at most maximum_viewport_scale, the maximum at least the minimum.
+
 .. cpp:var:: constexpr double maximum_viewport_scale
 
    The largest scale a ViewportFit may allow: content shown up to 1024 times its design size. Value: ``1024.0``.
+
+.. cpp:var:: constexpr ViewportFit panel_viewport_fit
+
+   The defaults per kind of owner (section 8; owner decision 4). Control's own default is clip, recorded: a control that places parts of its own answers its overflow itself (strips, the ribbon, navigation). Windows Forms panels (Panel and its kinds, UserControl, SplitterPanel) contain: content outside them is scaled to fit, a deliberate difference from Windows Forms, which clips; never enlarged. Value: ``{OverflowAnswer::contain, 0.0, 1.0}``.
+
+.. cpp:var:: constexpr ViewportFit media_viewport_fit
+
+   Media (PictureBox, RasterCanvas, a SubSurfaceHost with a design size) contains with no floor and up to maximum_viewport_scale. Value: ``{OverflowAnswer::contain, 0.0, maximum_viewport_scale}``.
+
+.. cpp:var:: constexpr ViewportFit reflowing_viewport_fit
+
+   CSS panels (FlexPanel, GridPanel, BlockPanel) reflow, then scroll: an overflow they cannot scroll (auto_scroll off) is recorded unanswered. Value: ``{OverflowAnswer::scroll, 0.0, 1.0}``.
 
 .. cpp:var:: constexpr std::size_t maximum_overflow_records
 

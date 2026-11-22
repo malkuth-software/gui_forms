@@ -621,6 +621,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
     src/core/layout/viewport_fit/viewport_fit.cpp
+    src/core/types/scale_frame/scale_frame.cpp
     src/core/diagnostics/shadow_frames/shadow_frames.cpp
     src/core/diagnostics/blend_study/blend_study.cpp
     src/core/diagnostics/blend_study/count_display_blend.cpp

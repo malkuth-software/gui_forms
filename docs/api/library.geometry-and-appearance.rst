@@ -436,6 +436,8 @@ Types
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
      - A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+   * - :cpp:class:`ScaleFrame <gui_forms::ScaleFrame>`
+     - A uniform scale and a translation: the map of the in-tree scale frame (stage VA).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -6440,6 +6442,20 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ScaleFrame final
+
+   ``#include <gui_forms/types/scale_frame/scale_frame.hpp>`` (:src:`source <include/gui_forms/types/scale_frame/scale_frame.hpp>`)
+
+   A uniform scale and a translation: the map of the in-tree scale frame (stage VA). A point p of the inner coordinates lies at origin + scale * p in the outer ones, so rectangles map to rectangles and nothing turns. The default is the identity. scale is positive and finite wherever the window makes a frame. A control's window frame (Control::window_frame) maps its local coordinates into its window's; its content frame (Control:: content_frame) maps its children's coordinates into its own, and is the identity unless the window carries out a contain or cover of its viewport.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ScopedCondition final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
@@ -11737,3 +11753,27 @@ Functions, constants and aliases
 .. cpp:type:: ThreadId = std::thread::id
 
    A thread's identity (an owner thread, a UI thread); default-constructed, no thread.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/scale_frame/scale_frame.hpp>`` (:src:`source <include/gui_forms/types/scale_frame/scale_frame.hpp>`)
+
+.. cpp:function:: bool is_identity_frame(const ScaleFrame& frame) noexcept
+
+   Whether ``frame`` is the identity: no translation and scale 1.
+
+.. cpp:function:: Point frame_to_outer(const ScaleFrame& frame, Point inner) noexcept
+
+   An inner point or rectangle in the outer coordinates.
+
+.. cpp:function:: Rect frame_to_outer(const ScaleFrame& frame, Rect inner) noexcept
+
+.. cpp:function:: Point frame_to_inner(const ScaleFrame& frame, Point outer) noexcept
+
+   An outer point or rectangle in the inner coordinates: the inverse map. ``frame``'s scale must be positive.
+
+.. cpp:function:: Rect frame_to_inner(const ScaleFrame& frame, Rect outer) noexcept
+
+.. cpp:function:: ScaleFrame compose_frames(const ScaleFrame& outer, const ScaleFrame& inner) noexcept
+
+   The frame that maps as ``inner`` and then ``outer``: frame_to_outer(compose_frames(outer, inner), p) is frame_to_outer(outer, frame_to_outer(inner, p)).

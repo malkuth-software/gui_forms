@@ -64,6 +64,9 @@ HostCapabilities macos_capabilities() {
                 // (apply_window_corners_impl in appkit_host_services.mm).
                 HostCapability::window_corners |
                 HostCapability::window_state_reports |
+                // The screen's safe area in full screen (macOS 12 and
+                // later; zero before, and outside full screen).
+                HostCapability::safe_insets |
                 HostCapability::hosted_content |
                 // Relative pointer mode (services/appkit_relative_pointer.hpp);
                 // no raw_pointer_motion: AppKit's deltas are accelerated.

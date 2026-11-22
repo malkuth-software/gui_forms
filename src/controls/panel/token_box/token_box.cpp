@@ -417,8 +417,8 @@ void TokenBox::on_paint(Painter& painter, Rect) {
 
 TokenBox::TokenHit TokenBox::hit_token(Point window_point) const {
     TokenHit hit;
-    const Rect absolute = absolute_bounds();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, window_point);
     const Layout placed = layout();
     for (const TokenPlacement& placement : placed.tokens) {
         if (!placement.face.contains(local)) continue;
@@ -594,7 +594,7 @@ SemanticDescriptor TokenBox::semantic_descriptor() const {
 
 std::vector<SemanticNode> TokenBox::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Layout placed = layout();
     nodes.reserve(placed.tokens.size());
     for (const TokenPlacement& placement : placed.tokens) {
@@ -606,8 +606,7 @@ std::vector<SemanticNode> TokenBox::semantic_virtual_children() const {
         node.name = token.text;
         node.position_in_set.set(placement.index + 1U);
         node.set_size.set(tokens_.size());
-        node.bounds = Rect{absolute.x + placement.face.x, absolute.y + placement.face.y,
-                           placement.face.width, placement.face.height};
+        node.bounds = frame_to_outer(local_frame, placement.face);
         node.states = SemanticState::visible;
         if (effectively_enabled()) node.states |= SemanticState::enabled;
         if (holds_token(selected_, token.id)) node.states |= SemanticState::selected;
@@ -619,8 +618,7 @@ std::vector<SemanticNode> TokenBox::semantic_virtual_children() const {
         remove.runtime_id = virtual_semantic_runtime_id(remove.stable_id);
         remove.role = SemanticRole::button;
         remove.name = "Remove " + token.text;
-        remove.bounds = Rect{absolute.x + placement.close.x, absolute.y + placement.close.y,
-                             placement.close.width, placement.close.height};
+        remove.bounds = frame_to_outer(local_frame, placement.close);
         remove.states = SemanticState::visible;
         if (effectively_enabled()) remove.states |= SemanticState::enabled;
         remove.actions = {SemanticAction::press};

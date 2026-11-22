@@ -439,9 +439,9 @@ bool RibbonApplicationMenu::hit_test_local(Point local_point) const {
     if (!ribbon_alive()) return false;
     if (mode_ == Mode::panel) return layout().panel.contains(local_point);
     const Ribbon& ribbon = *ribbon_;
-    const Rect ribbon_bounds = ribbon.absolute_bounds();
+    const ScaleFrame ribbon_bounds_frame = ribbon.window_frame();
     const Rect file = ribbon.layout().application;
-    const Rect window_file{ribbon_bounds.x + file.x, ribbon_bounds.y + file.y, file.width, file.height};
+    const Rect window_file = frame_to_outer(ribbon_bounds_frame, file);
     return !window_file.contains(local_point);
 }
 

@@ -5,6 +5,7 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 
 #include <stxlib/optional.hpp>
+#include <stxlib/vector.hpp>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -161,6 +162,15 @@ struct GUI_FORMS_API VisualControlLayoutSnapshot final {
     bool fully_clipped{};
     std::size_t ancestor_clip_count{};
     LayoutTransactionState transaction{};
+    // The visible-area guarantee's layout reasons (stage VA, section 10;
+    // what MCP's inspect reads, MCP study 18.1): the scale the control is
+    // seen at (its window frame's), the frame the window applies to its
+    // children while it carries out a contain or cover, and the overflows
+    // it owns now, as SurfaceRoot::overflow_records lists them. The JSON
+    // writes them as "viewport" only when one differs from the default.
+    double effective_scale{1.0};
+    ScaleFrame content_frame{};
+    stxlib::Vector<OverflowRecord> overflows{};
 };
 
 struct GUI_FORMS_API VisualControlInspection final {

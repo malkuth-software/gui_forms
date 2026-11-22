@@ -118,6 +118,15 @@ GF_WEB_EXPORT void gf_web_post_resize(double width, double height, double scale)
     post(std::move(record));
 }
 
+// The part of the canvas the browser does not show, CSS pixels from each
+// edge (stage VA): the canvas less the visual viewport (web_host.js).
+GF_WEB_EXPORT void gf_web_post_safe_insets(double left, double top, double right, double bottom) {
+    SurfaceInputRecord record;
+    record.kind = SurfaceInputKind::safe_insets;
+    record.insets = gui_forms::SafeInsets{left, top, right, bottom};
+    post(std::move(record));
+}
+
 GF_WEB_EXPORT void gf_web_post_focus(int focused) {
     SurfaceInputRecord record;
     record.kind = SurfaceInputKind::focus;

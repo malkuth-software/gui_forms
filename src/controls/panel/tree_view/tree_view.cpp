@@ -302,7 +302,8 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
         return;
     }
     const TreeViewItem& item = items_[visible_[visible_row]];
-    const Rect bounds = absolute_bounds();
+    const ScaleFrame bounds_frame = window_frame();
+    const Rect bounds = frame_to_outer(bounds_frame, client_rectangle());
     const double row_height = item_height.read() * effective_text_scale();
     const double y = 2.0 + static_cast<double>(visible_row - top_row_) * row_height;
     const double left = text_left(item, row_height);
@@ -325,8 +326,8 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
     if (!item.enabled) paint.states.insert(AnatomyState::disabled);
     detail::CutOffText revealed{};
     revealed.key = item.stable_id;
-    revealed.row = {bounds.x + left - 2.0, bounds.y + y, clip_right - left + 2.0, row_height};
-    revealed.cell = {bounds.x + left, bounds.y + y, clip_right - left, row_height};
+    revealed.row = frame_to_outer(bounds_frame, Rect{left - 2.0, y, clip_right - left + 2.0, row_height});
+    revealed.cell = frame_to_outer(bounds_frame, Rect{left, y, clip_right - left, row_height});
     revealed.text = item.text;
     revealed.font = row_font;
     revealed.paint = paint;
@@ -347,10 +348,11 @@ std::size_t TreeView::visible_row_count() const noexcept {
 
 stxlib::Optional<std::size_t> TreeView::visible_row_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
-    if (!bounds.contains(absolute) || absolute.y < bounds.y + 2.0) return stxlib::Optional<std::size_t>::none();
+    const double local_y = point_from_window(absolute).y;
+    if (!bounds.contains(absolute) || local_y < 2.0) return stxlib::Optional<std::size_t>::none();
     const double row_height = item_height.read() * effective_text_scale();
     const std::size_t row = top_row_ + static_cast<std::size_t>(
-        std::floor((absolute.y - bounds.y - 2.0) / row_height));
+        std::floor((local_y - 2.0) / row_height));
     if (row >= visible_.size()) return stxlib::Optional<std::size_t>::none();
     const stxlib::Optional<std::size_t> result = stxlib::Optional<std::size_t>::of(row);
     return result;
@@ -550,11 +552,10 @@ void TreeView::handle_pointer(PointerEvent& event) {
         if (pressed_row_.absent()) return;
         const std::size_t pressed = *pressed_row_.value();
         const TreeViewItem& item = items_[visible_[pressed]];
-        const Rect absolute = absolute_bounds();
-        const double pointer_x = event.position.x - absolute.x;
+        const double pointer_x = point_from_window(event.position).x;
         // Measured from the right edge in a right-to-left view.
         const double local_x = effective_layout_direction() == LayoutDirection::right_to_left
-            ? absolute.width - pointer_x : pointer_x;
+            ? arranged_bounds().width - pointer_x : pointer_x;
         const double arrow_x = 7.0 + static_cast<double>(item.depth) *
             indentation.read() * effective_text_scale();
         if (show_expanders.read() && item.expandable && local_x >= arrow_x - 3.0 &&
@@ -725,7 +726,8 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
     const std::size_t end = std::min(visible_.size(), top_row_ + visible_row_count());
     nodes.reserve(end - std::min(top_row_, end));
-    const Rect tree_bounds = absolute_bounds();
+    const ScaleFrame tree_bounds_frame = window_frame();
+    const Rect tree_bounds = frame_to_outer(tree_bounds_frame, client_rectangle());
     const double row_height = item_height.read() * effective_text_scale();
     for (std::size_t row = top_row_; row < end; ++row) {
         const TreeViewItem& item = items_[visible_[row]];
@@ -737,10 +739,9 @@ std::vector<SemanticNode> TreeView::semantic_virtual_children() const {
         // The items are published flat, in display order; the level says
         // how deep each one is (counting from one at the top level).
         node.level.set(item.depth + 1U);
-        node.bounds = {tree_bounds.x + 2.0,
-                       tree_bounds.y + 2.0 +
-                           static_cast<double>(row - top_row_) * row_height,
-                       std::max(0.0, tree_bounds.width - 4.0), row_height};
+        const double row_top = 2.0 + static_cast<double>(row - top_row_) * row_height;
+        node.bounds =
+            frame_to_outer(tree_bounds_frame, Rect{2.0, row_top, std::max(0.0, tree_bounds.width - 4.0), row_height});
         node.states = SemanticState::visible | SemanticState::focusable;
         if (effectively_enabled() && item.enabled) node.states |= SemanticState::enabled;
         if (item.stable_id == selected_id_) node.states |= SemanticState::selected;

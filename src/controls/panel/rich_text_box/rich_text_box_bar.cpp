@@ -311,9 +311,9 @@ void RichTextBox::open_heading_menu() {
     (*heading_menu_).set_items(std::move(items));
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const Rect button = buttons[static_cast<std::size_t>(RichTextBarButton::heading)];
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     (*heading_menu_).preferred_width = 160.0;
-    (*heading_menu_).show(shared_from_this(), {absolute.x + button.x, absolute.y + button.y + button.height},
+    (*heading_menu_).show(shared_from_this(), frame_to_outer(local_frame, Point{button.x, button.y + button.height}),
                           MenuOpenMode::pointer);
 }
 
@@ -338,7 +338,7 @@ std::vector<SemanticNode> RichTextBox::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     const std::size_t count = realized_item_count();
     if (count == 0U) return nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const RichTextFormat format = selection_format();
     const bool usable = enabled.read() && !read_only.read();
@@ -350,7 +350,7 @@ std::vector<SemanticNode> RichTextBox::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = std::string(bar_button_texts[index].name);
         const Rect bounds = buttons[index];
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible;
         if (usable) node.states |= SemanticState::enabled;
         if (button == RichTextBarButton::heading) {
