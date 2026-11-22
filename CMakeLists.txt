@@ -3079,6 +3079,35 @@ if(TARGET gui_forms_application AND GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_preview_capture PRIVATE gui_forms_application)
 endif()
 
+# MCP G7: the Windows Forms converter (tools/winforms_converter/README.md): a
+# WinForms project's forms read and written as form documents, theme sheets
+# and C# bindings, with the tools a model drives a conversion with. Built
+# with the form compiler, whose registry schema it converts against; it
+# links the Application library for its headless preview, so only where
+# that library exists. Never installed.
+set(GUI_FORMS_WINFORMS_CONVERTER_SOURCES
+    tools/winforms_converter/conversion_diagnostics.cpp
+    tools/winforms_converter/converter_tools.cpp
+    tools/winforms_converter/csharp_classes.cpp
+    tools/winforms_converter/csharp_lexer.cpp
+    tools/winforms_converter/designer_reader.cpp
+    tools/winforms_converter/form_document_diff.cpp
+    tools/winforms_converter/resx_reader.cpp
+    tools/winforms_converter/winforms_conversion.cpp
+    tools/winforms_converter/winforms_mapping.cpp
+    tools/winforms_converter/winforms_project.cpp
+)
+if(GUI_FORMS_BUILD_FORM_COMPILER AND TARGET gui_forms_application)
+    add_executable(gui_forms_winforms_converter
+        ${GUI_FORMS_WINFORMS_CONVERTER_SOURCES}
+        tools/winforms_converter/form_preview.cpp
+        tools/winforms_converter/winforms_converter_main.cpp
+        tools/form_compiler/form_catalog.cpp
+        tools/form_compiler/form_core_catalog.cpp
+    )
+    target_link_libraries(gui_forms_winforms_converter PRIVATE gui_forms_application)
+endif()
+
 if(GUI_FORMS_BUILD_BENCHMARKS)
     if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
         message(FATAL_ERROR

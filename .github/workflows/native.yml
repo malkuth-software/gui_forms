@@ -197,6 +197,8 @@ jobs:
           # 1.0 condition 3: every control and member, supported, deferred or excluded.
           python3 -B -m unittest discover -s tools -p test_member_manifest.py
           python3 -B tools/control_registry.py members --check
+          # The Windows Forms converter's name table is the ledgers' (MCP G7).
+          python3 -B tools/winforms_converter/emit_member_table.py --check
   # Documentation-only pull requests (owner, 2026-11-09): when every changed
   # path is documentation no test reads (tools/ci_docs_only.py), the four
   # native jobs report success without building (their build job is
