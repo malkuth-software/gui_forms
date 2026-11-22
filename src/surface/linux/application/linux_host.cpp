@@ -1088,6 +1088,9 @@ Runtime::~Runtime() {
   for (std::size_t i = 0; i < windows.size(); ++i)
     (*windows[i]).close(HostCloseReason::application, true);
   windows.clear();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  drag_held_windows.clear();
+#endif
   compositor.reset();
   input_settings.reset();
   actions.reset();
@@ -1179,6 +1182,10 @@ void Runtime::report_activation() {
     (*windowing).report_application_active(any);
 }
 void Runtime::reclaim() {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // The run loop's turn is over: no drag's frame holds these windows now.
+  drag_held_windows.clear();
+#endif
   for (std::size_t i = windows.size(); i > 0; --i) {
     const NativeWindow &window = *windows[i - 1];
     if (window.initial || !window.closed)
@@ -1896,7 +1903,10 @@ void NativeWindow::update() {
   static_cast<void>((*entry.model).drain_posted_work());
   static_cast<void>(
       (*entry.model).poll_frame_schedule(std::chrono::steady_clock::now()));
-  if (accessibility && !closed) { (*accessibility).update(); }
+  // A timer's handler may close the window.
+  if (closed)
+    return;
+  if (accessibility) { (*accessibility).update(); }
   // Gather before taking damage: a new frame beneath an overlay damages the
   // overlay's share (#69), and that damage is taken with the rest.
   const bool regions_taken = gather_live_frames();

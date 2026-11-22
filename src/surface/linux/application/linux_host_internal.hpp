@@ -156,6 +156,21 @@ struct XdndDragOutcome final {
 // backend_failure when no button is held or the grab or the selection is
 // refused. UI thread.
 [[nodiscard]] XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request);
+// Where a drag from the program starts: the buttons held (an X button mask,
+// not empty), the pointer's root position and the key-button state.
+struct XdndDragStart final {
+  unsigned buttons{};
+  int root_x{};
+  int root_y{};
+  unsigned state{};
+};
+// run_xdnd_drag after the pointer query, from `start` (a test drives it
+// without a held button). The window is held to the end of the run loop's
+// turn (Runtime::drag_held_windows); when it closes during the drag, which
+// a timer or queued action can do, the drag is cancelled: XdndLeave to the
+// target, XdndSelection and the grabs given up, the effect none.
+[[nodiscard]] XdndDragOutcome run_xdnd_drag_from(NativeWindow &window, const HostDragSourceRequest &request,
+                                                 const XdndDragStart &start);
 // One turn of the program's own work under a drag (run_xdnd_drag's loop):
 // the queued actions and accessibility work, then every window's timers,
 // frames and paint (Runtime::service_windows). Returns how long the loop
@@ -273,6 +288,7 @@ protected:
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
   // A drag to other programs (run_xdnd_drag): the drag ends, and is
   // reported, before this returns; then the window receives the release.
+  // A window closed during its drag reports it cancelled (effect none).
   HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest &request) override;
 #endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
@@ -756,6 +772,11 @@ public:
   std::vector<DragOfferTarget> drag_offer;
   // The offered bytes for `target`, or nullptr when it is not offered.
   [[nodiscard]] const std::vector<std::byte> *drag_offer_bytes(Atom target) const noexcept;
+  // The windows drags from the program started from, held until the run
+  // loop's turn ends (reclaim) so a handler that closes a source window
+  // during its drag (whose loop runs the program's timers and actions) frees
+  // nothing the drag or its services still use.
+  std::vector<std::shared_ptr<NativeWindow>> drag_held_windows;
 #endif
 
 private:

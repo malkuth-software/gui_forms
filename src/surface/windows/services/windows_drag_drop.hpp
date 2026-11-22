@@ -95,12 +95,23 @@ struct WindowsDragOutcome final {
     DragEffect performed_effect{DragEffect::none};
 };
 
+// The drop source of a drag from the program: QueryContinueDrag drops
+// when none of `buttons` (OLE key-state bits) is held, and cancels on
+// Escape or once `source_closed` is true. `source_closed` must outlive the
+// source. Returned with one reference the caller owns (Release), or
+// nullptr when out of memory.
+[[nodiscard]] IDropSource* make_windows_drop_source(DWORD buttons, const bool& source_closed);
+
 // Runs a drag of `request` (validated by HostServices::start_drag) through
 // DoDragDrop and returns when it ends. The drag follows the mouse buttons
-// held when it starts and drops when they are all released; Escape cancels.
-// backend_failure when no button is held, OLE cannot start, or the data
-// cannot be built. UI thread.
-[[nodiscard]] WindowsDragOutcome run_windows_drag(const HostDragSourceRequest& request);
+// held when it starts and drops when they are all released; Escape cancels,
+// and so does the source window's destruction: the host sets
+// `source_closed` at WM_DESTROY, which DoDragDrop's loop can dispatch (a
+// timer or posted action whose handler destroys the window), and the drag
+// ends cancelled. backend_failure when no button is held, OLE cannot start,
+// or the data cannot be built. UI thread.
+[[nodiscard]] WindowsDragOutcome run_windows_drag(const HostDragSourceRequest& request,
+                                                  const bool& source_closed);
 
 #endif
 } // namespace gui_forms::host::detail

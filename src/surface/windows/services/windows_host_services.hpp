@@ -10,6 +10,12 @@ public:
     ~WindowsHostServices() override { shutdown(); }
 
     void bind_owner(HWND owner, Window& model) { owner_ = owner; cursor_model_ = model.window_ref(); }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // WM_DESTROY of the owner window: a drag from it, running in
+    // DoDragDrop's loop, ends cancelled at OLE's next QueryContinueDrag, and
+    // no later drag starts.
+    void source_window_destroyed() noexcept { source_window_destroyed_ = true; }
+#endif
     // WM_HELP at the owner window: a help request of the open message box,
     // if one is open. F1 held down tells the key from the Help button.
     bool publish_message_help() {
@@ -400,9 +406,13 @@ protected:
     // A drag to other programs (windows_drag_drop.hpp): DoDragDrop runs its
     // modal loop here, so the drag ends, and is reported, before this
     // returns. The window's own drop target takes part like any other.
+    // A window destroyed during its drag (WM_DESTROY, source_window_destroyed)
+    // ends the drag cancelled; these services outlive it (the run releases a
+    // window's state only at the end of an outermost loop turn).
     HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest& request) override {
+        if (source_window_destroyed_) return {HostServiceError::backend_failure};
         const gui_forms::host::detail::WindowsDragOutcome outcome =
-            gui_forms::host::detail::run_windows_drag(request);
+            gui_forms::host::detail::run_windows_drag(request, source_window_destroyed_);
         if (!outcome.status.accepted()) return outcome.status;
         publish_drag_source_end(HostDragSourceEnd{session_id, outcome.performed_effect});
         return {};
@@ -692,6 +702,10 @@ private:
     }
 
     HWND owner_{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The owner window was destroyed (source_window_destroyed).
+    bool source_window_destroyed_{};
+#endif
     // The owner window's model, observed: null once it is destroyed, and
     // then every cursor call reports stale_window and touches nothing.
     WindowRef cursor_model_;

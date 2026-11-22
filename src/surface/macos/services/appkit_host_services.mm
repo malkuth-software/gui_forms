@@ -123,8 +123,9 @@ using gui_forms::render::SkiaRaster;
 // The source of a drag to other programs (HostServices::start_drag): it
 // offers the request's effects to every destination, inside the program or
 // outside, and reports the end to the services that started it. The
-// services hold it for the drag's length and detach it at shutdown, after
-// which an end reports nothing. Not compiled in a high-integrity build
+// services hold it for the drag's length and detach it at shutdown or when
+// their window closes, after which an end reports nothing; it holds itself
+// until AppKit's session ends. Not compiled in a high-integrity build
 // (cmake/HighIntegrity.cmake).
 @interface GuiFormsDragSource : NSObject <NSDraggingSource>
 @property(nonatomic, assign) gui_forms::HostServices* services;
@@ -133,6 +134,10 @@ using gui_forms::render::SkiaRaster;
 // The press or move the session started from: its button's release is sent
 // to the window when the session ends.
 @property(nonatomic, assign) NSEventType startType;
+// The source itself, from the start until the session ends: AppKit's end
+// reaches a live source even after the services that started it are gone
+// (detached at shutdown, so that end reports nothing).
+@property(nonatomic, strong) GuiFormsDragSource* holdUntilEnd;
 - (NSDragOperation)draggingSession:(NSDraggingSession*)session
     sourceOperationMaskForDraggingContext:(NSDraggingContext)context;
 - (void)draggingSession:(NSDraggingSession*)session
@@ -730,6 +735,12 @@ protected:
     // run loop; GuiFormsDragSource reports its end.
     HostServiceStatus start_drag_impl(std::uint64_t session_id,
                                       const gui_forms::HostDragSourceRequest& request) override {
+        if (drag_without_session_) {
+            // macos_start_drag_for_testing: the source without a session.
+            drag_without_session_ = false;
+            drag_source_ = make_drag_source(session_id, request.allowed_effects, NSEventTypeLeftMouseDragged);
+            return {};
+        }
         NSView* const view = backdrop_view_;
         NSEvent* const event = [NSApp currentEvent];
         if (view == nil || view.window == nil || event == nil || event.window != view.window ||
@@ -765,13 +776,13 @@ protected:
             }
         }
         if (items.count == 0) return {HostServiceError::invalid_argument};
-        GuiFormsDragSource* const source = [[GuiFormsDragSource alloc] init];
-        source.services = this;
-        source.sessionId = session_id;
-        source.allowedOperations = native_drag_operations(request.allowed_effects);
-        source.startType = event.type;
+        GuiFormsDragSource* const source = make_drag_source(session_id, request.allowed_effects, event.type);
         NSDraggingSession* const session = [view beginDraggingSessionWithItems:items event:event source:source];
-        if (session == nil) return {HostServiceError::backend_failure};
+        if (session == nil) {
+            source.services = nullptr;
+            source.holdUntilEnd = nil;
+            return {HostServiceError::backend_failure};
+        }
         session.animatesToStartingPositionsOnCancelOrFail = YES;
         drag_source_ = source;
         return {};
@@ -1182,6 +1193,16 @@ protected:
 
 public:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The window closed (macos_drag_source_window_closed): a running drag
+    // ends now, reported cancelled, and is detached, so AppKit's later end
+    // reports nothing and sends no release to the closed window's view.
+    void source_window_closed() {
+        if (drag_source_ == nil) return;
+        const std::uint64_t session_id = drag_source_.sessionId;
+        drag_source_.services = nullptr;
+        drag_source_ = nil;
+        publish_drag_source_end(gui_forms::HostDragSourceEnd{session_id, gui_forms::DragEffect::none});
+    }
     // GuiFormsDragSource's report of the drag's end, at `screen_point`: the
     // end is reported, then the window receives the release of the button
     // the drag started with, which the dragging session consumed.
@@ -1336,6 +1357,22 @@ private:
     // The running drag's source, held for the drag's length (nil when no
     // drag runs).
     __strong GuiFormsDragSource* drag_source_{};
+    // The next start_drag makes its source without an AppKit session
+    // (macos_start_drag_for_testing).
+    bool drag_without_session_{};
+
+    // A drag's source, reporting to these services and holding itself until
+    // AppKit's session ends.
+    GuiFormsDragSource* make_drag_source(std::uint64_t session_id, gui_forms::DragEffect allowed,
+                                         NSEventType start_type) {
+        GuiFormsDragSource* const source = [[GuiFormsDragSource alloc] init];
+        source.services = this;
+        source.sessionId = session_id;
+        source.allowedOperations = native_drag_operations(allowed);
+        source.startType = start_type;
+        source.holdUntilEnd = source;
+        return source;
+    }
 #endif
     // Relative pointer mode as applied (appkit_relative_pointer.hpp), the
     // NSCursor hide it balances, and AppKit's coalescing before it.
@@ -1347,6 +1384,10 @@ private:
     bool opened_minimum_known_{};
 
     friend void gui_forms::host::detail::bind_macos_backdrop_view(HostServices& services, NSView* raster);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    friend id<NSDraggingSource> gui_forms::host::detail::macos_start_drag_for_testing(
+        HostServices& services, const gui_forms::HostDragSourceRequest& request);
+#endif
     friend gui_forms::host::detail::MacRelativePointerState
     gui_forms::host::detail::macos_relative_pointer_state(const HostServices& services) noexcept;
 };
@@ -1387,9 +1428,12 @@ gui_forms::DragEffect performed_drag_effect(NSDragOperation operation) noexcept 
            endedAtPoint:(NSPoint)screenPoint
               operation:(NSDragOperation)operation {
     (void)session;
+    // Kept alive past dropping its own hold below.
+    GuiFormsDragSource* const kept = self;
     gui_forms::detail::call_failing_fast(
-        "macos.drag_source.draggingSession:endedAtPoint:operation:", &run_drag_source_ended, self, screenPoint,
+        "macos.drag_source.draggingSession:endedAtPoint:operation:", &run_drag_source_ended, kept, screenPoint,
         operation);
+    kept.holdUntilEnd = nil;
 }
 
 - (void)answerDraggingSessionEndedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation {
@@ -1438,6 +1482,24 @@ void deliver_drag_release(NSView* view, NSEventType start_type, NSPoint screen_p
     } else {
         [view mouseUp:event];
     }
+}
+#endif
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+void macos_drag_source_window_closed(HostServices& services) {
+    AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);
+    if (appkit == nullptr) return;
+    (*appkit).source_window_closed();
+}
+
+id<NSDraggingSource> macos_start_drag_for_testing(HostServices& services, const HostDragSourceRequest& request) {
+    AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);
+    if (appkit == nullptr) return nil;
+    (*appkit).drag_without_session_ = true;
+    const HostDragSourceResult started = services.start_drag(request);
+    (*appkit).drag_without_session_ = false;
+    if (!started.status.accepted()) return nil;
+    return (*appkit).drag_source_;
 }
 #endif
 

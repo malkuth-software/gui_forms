@@ -7,6 +7,8 @@
 
 #import <AppKit/AppKit.h>
 
+#include "gui_forms/host/services/host_services.hpp"
+
 namespace gui_forms::host::detail {
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 
@@ -20,6 +22,19 @@ namespace gui_forms::host::detail {
 // Sends drag_release_event for `view`'s window to `view` (mouseUp:,
 // rightMouseUp: or otherMouseUp:). Nothing for a view without a window.
 void deliver_drag_release(NSView* view, NSEventType start_type, NSPoint screen_point);
+
+// The window of `services` (AppKitHostServices) closed: a drag from it ends
+// now, reported cancelled (effect none). AppKit's session, which cannot be
+// ended early, ends later and then reports nothing and sends no release to
+// the view. Called by the view's notifyClosedWithReason:. UI thread.
+void macos_drag_source_window_closed(HostServices& services);
+
+// Test seam: starts a drag on `services` (AppKitHostServices) through
+// start_drag, without the AppKit session (which needs a held button), and
+// returns the drag's source; the test calls its
+// draggingSession:endedAtPoint:operation: as AppKit would. Nil when refused.
+[[nodiscard]] id<NSDraggingSource> macos_start_drag_for_testing(HostServices& services,
+                                                                const HostDragSourceRequest& request);
 
 #endif
 } // namespace gui_forms::host::detail

@@ -394,11 +394,13 @@ public:
     moved(root_x, root_y, state, CurrentTime);
     std::chrono::steady_clock::time_point deadline{};
     while (phase_ != XdndPhase::ended) {
+      source_closed();
       while (phase_ != XdndPhase::ended && XPending(runtime_.display) > 0) {
         XEvent event{};
         XNextEvent(runtime_.display, &event);
         const bool was_dragging = phase_ == XdndPhase::dragging;
         handle(event);
+        source_closed();
         if (was_dragging && phase_ == XdndPhase::dropping)
           deadline = std::chrono::steady_clock::now() + finish_wait;
       }
@@ -424,6 +426,10 @@ public:
         limit = static_cast<int>(std::clamp(remaining + 1LL, 0LL, longest));
       }
       const int wait = xdnd_drag_turn(runtime_, limit);
+      // A timer or action of this turn may have closed the source window.
+      source_closed();
+      if (phase_ == XdndPhase::ended)
+        break;
       if (XPending(runtime_.display) > 0 || wait == 0)
         continue;
       runtime_.wait_for_work(wait);
@@ -549,6 +555,22 @@ private:
     phase_ = XdndPhase::dropping;
   }
 
+  // A source window closed during the drag (by a handler its events,
+  // timers or actions ran) cancels it; the window is held, so its xid and
+  // these services stay valid until the drag has given everything up.
+  // After XdndDrop no XdndLeave is sent: giving up XdndSelection fails the
+  // target's transfer instead.
+  void source_closed() {
+    if (!window_.closed)
+      return;
+    if (phase_ == XdndPhase::dragging) {
+      cancelled();
+    } else if (phase_ == XdndPhase::dropping) {
+      outcome_.performed_effect = DragEffect::none;
+      phase_ = XdndPhase::ended;
+    }
+  }
+
   void cancelled() {
     if (target_.has_value())
       send(*target_, "XdndLeave", 0, 0, 0, 0);
@@ -667,15 +689,28 @@ int xdnd_drag_turn(Runtime &runtime, int maximum_wait) {
 XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request) {
   XdndDragOutcome refused;
   refused.status = {HostServiceError::backend_failure};
-  Runtime &runtime = window.runtime;
   ::Window root{}, child{};
-  int root_x{}, root_y{}, x{}, y{};
-  unsigned state{};
-  if (XQueryPointer(runtime.display, window.xid, &root, &child, &root_x, &root_y, &x, &y, &state) == False)
+  XdndDragStart start;
+  int x{}, y{};
+  if (XQueryPointer(window.runtime.display, window.xid, &root, &child, &start.root_x, &start.root_y, &x, &y,
+                    &start.state) == False)
     return refused;
-  const unsigned buttons = state & all_buttons;
-  if (buttons == 0U)
+  start.buttons = start.state & all_buttons;
+  if (start.buttons == 0U)
     return refused;
+  XdndDragOutcome outcome = run_xdnd_drag_from(window, request, start);
+  return outcome;
+}
+XdndDragOutcome run_xdnd_drag_from(NativeWindow &window, const HostDragSourceRequest &request,
+                                   const XdndDragStart &start) {
+  XdndDragOutcome refused;
+  refused.status = {HostServiceError::backend_failure};
+  Runtime &runtime = window.runtime;
+  if (window.closed || start.buttons == 0U)
+    return refused;
+  // Held past the drag: Services::start_drag_impl, which runs it, lives in
+  // the window.
+  runtime.drag_held_windows.push_back(window.shared_from_this());
   std::vector<Runtime::DragOfferTarget> offer = drag_offer(runtime, request);
   if (offer.empty())
     return refused;
@@ -703,8 +738,8 @@ XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest 
                   reinterpret_cast<const unsigned char *>(types.data()), static_cast<int>(types.size()));
   XFlush(runtime.display);
 
-  XdndSource source(window, request, buttons, std::move(types));
-  XdndDragOutcome outcome = source.run(root_x, root_y, state);
+  XdndSource source(window, request, start.buttons, std::move(types));
+  XdndDragOutcome outcome = source.run(start.root_x, start.root_y, start.state);
   return outcome;
 }
 

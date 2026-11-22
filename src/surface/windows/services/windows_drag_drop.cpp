@@ -367,11 +367,14 @@ private:
 };
 
 // The drop source of a drag from the program: it drops when every button
-// held at the start is released, cancels on Escape, and leaves the cursor
-// to OLE's default effect cursors.
+// held at the start is released, cancels on Escape or once the source
+// window is destroyed (`source_closed`, which DoDragDrop's loop can set by
+// dispatching a handler that destroys it), and leaves the cursor to OLE's
+// default effect cursors.
 class WindowsDropSource final : public IDropSource {
 public:
-    explicit WindowsDropSource(DWORD buttons) noexcept : buttons_(buttons) {}
+    WindowsDropSource(DWORD buttons, const bool& source_closed) noexcept
+        : buttons_(buttons), source_closed_(source_closed) {}
     WindowsDropSource(const WindowsDropSource&) = delete;
     WindowsDropSource& operator=(const WindowsDropSource&) = delete;
 
@@ -396,7 +399,7 @@ public:
         return count;
     }
     HRESULT STDMETHODCALLTYPE QueryContinueDrag(BOOL escape_pressed, DWORD key_state) noexcept override {
-        if (escape_pressed != FALSE) return DRAGDROP_S_CANCEL;
+        if (escape_pressed != FALSE || source_closed_) return DRAGDROP_S_CANCEL;
         if ((key_state & buttons_) == 0U) return DRAGDROP_S_DROP;
         return S_OK;
     }
@@ -407,6 +410,9 @@ private:
 
     std::atomic<ULONG> references_{1U};
     const DWORD buttons_;
+    // Set when the source window is destroyed (observing; the window's
+    // services own it and outlive the drag).
+    const bool& source_closed_;
 };
 
 // The mouse buttons held now, as OLE key-state bits.
@@ -706,7 +712,12 @@ void WindowsDropRegistration::revoke() noexcept {
     }
 }
 
-WindowsDragOutcome run_windows_drag(const HostDragSourceRequest& request) {
+IDropSource* make_windows_drop_source(DWORD buttons, const bool& source_closed) {
+    IDropSource* const source = new (std::nothrow) WindowsDropSource(buttons, source_closed);
+    return source;
+}
+
+WindowsDragOutcome run_windows_drag(const HostDragSourceRequest& request, const bool& source_closed) {
     WindowsDragOutcome outcome;
     const DWORD buttons = held_buttons();
     if (buttons == 0U) {
@@ -720,7 +731,7 @@ WindowsDragOutcome run_windows_drag(const HostDragSourceRequest& request) {
     }
     IDataObject* const data = make_windows_drag_data(request.items);
     const ReleaseScope data_reference(data);
-    WindowsDropSource* const source = data == nullptr ? nullptr : new (std::nothrow) WindowsDropSource(buttons);
+    IDropSource* const source = data == nullptr ? nullptr : make_windows_drop_source(buttons, source_closed);
     const ReleaseScope source_reference(source);
     if (data == nullptr || source == nullptr) {
         outcome.status = {HostServiceError::backend_failure};

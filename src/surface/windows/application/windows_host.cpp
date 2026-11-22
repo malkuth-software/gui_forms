@@ -2376,6 +2376,9 @@ public:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
             // While the window still exists (RevokeDragDrop needs it).
             drop_registration_.revoke();
+            // A drag from this window, if one runs (a handler DoDragDrop's
+            // loop dispatched destroyed it), ends cancelled.
+            services_.source_window_destroyed();
 #endif
             if (!closed_) {
                 const HostLifecyclePhase phase = session_.snapshot().phase;
