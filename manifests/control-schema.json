@@ -52,10 +52,10 @@
       {
         "name": "dithered_bulge",
         "introduced": "0.1",
-        "roles": ["face"],
+        "roles": ["face", "actuator"],
         "states_read": ["pressed", "active_tool"],
         "inputs_read": [],
-        "cost": {"per_device_pixel": 80, "fixed": 64, "preparation_per_device_pixel": 250},
+        "cost": {"per_device_pixel": 90, "fixed": 64, "preparation_per_device_pixel": 250},
         "outsets": [0, 0, 0, 0],
         "parameters": [
           {"name": "amplitude", "kind": "number", "minimum": 0, "maximum": 1, "default": 1, "animated": true},
@@ -78,7 +78,13 @@
           {"name": "gold_shaded_1", "kind": "colour", "default": "#e8ac3eff", "animated": false},
           {"name": "gold_shaded_2", "kind": "colour", "default": "#ce8e28ff", "animated": false},
           {"name": "gold_shaded_3", "kind": "colour", "default": "#aa7018ff", "animated": false},
-          {"name": "gold", "kind": "number", "minimum": 0, "maximum": 1, "default": 0, "animated": false}
+          {"name": "gold", "kind": "number", "minimum": 0, "maximum": 1, "default": 0, "animated": false},
+          {"name": "gold_plate_top", "kind": "colour", "default": "#ffedbaff", "animated": false},
+          {"name": "gold_plate_bottom", "kind": "colour", "default": "#ffcf66ff", "animated": false},
+          {"name": "gold_plate_border", "kind": "colour", "default": "#c49332ff", "animated": false},
+          {"name": "gold_plate_pressed_top", "kind": "colour", "default": "#f6c15bff", "animated": false},
+          {"name": "gold_plate_pressed_bottom", "kind": "colour", "default": "#ffe297ff", "animated": false},
+          {"name": "gold_plate_corner_radius", "kind": "number", "minimum": 0, "maximum": 64, "default": 2, "animated": false}
         ]
       },
       {

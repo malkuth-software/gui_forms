@@ -36,15 +36,24 @@ PropertyTransition tile_fade() {
 // ribbon button is flat at rest, and while it is hot its dithered bulge's
 // amplitude rises from 0 to 1 by the exponential approach (the follow
 // curve, 75 ms), falling back when it is no longer hot. Hover is the rise:
-// there is no brightness lift.
+// there is no brightness lift. A press is not a hover: pressed, the part
+// stands at full amplitude at once (the dent, reference §2 "Pressed is a
+// dent"), so that a press without a settled hover (a click that arrives
+// with the pointer, a touch, a capture) still shows the dent rather than
+// the flat plane it would rise from (owner, 2026-11-22).
 PropertyTransition ribbon_rise() {
     PropertyTransition rise{};
     rise.property = "amplitude";
+    PresentationState pressed{};
+    pressed.when.push_back(AnatomyState::pressed);
+    pressed.target = 1.0;
+    pressed.enter_from.set(1.0);
     PresentationState hot{};
     hot.when.push_back(AnatomyState::hot);
     hot.target = 1.0;
     PresentationState rest{};
     rest.target = 0.0;
+    rise.states.push_back(pressed);
     rise.states.push_back(hot);
     rise.states.push_back(rest);
     rise.curve = MotionCurve::follow();
@@ -104,16 +113,13 @@ void add_selected_gold(ThemeRuleSheet& sheet, std::string_view control_type, std
 
 // A ribbon part that takes the dithered button (RB decision 23: the large
 // elements that conventionally show a hover square): the rise, a dent while
-// pressed (the primitive reads `pressed`), the gold bulge while checked, and
-// today's plate while its menu is open, which the bulge alone would not
-// tell apart.
+// pressed (the primitive reads `pressed`) and the gold bulge while checked.
+// While its menu is open the ribbon paints the part pressed, so the dent
+// stands for the open menu; the plate it took before showed as a flat blue
+// plate where the study draws the dent (owner, 2026-11-22).
 void add_ribbon_button(ThemeRuleSheet& sheet, std::string_view part, bool checkable) {
     add_dithered_rise(sheet, "ribbon", part);
     if (checkable) add_selected_gold(sheet, "ribbon", part, AnatomyState::checked);
-    ThemeRule open = built_in_rule("ribbon_open:" + std::string(part), "ribbon", part);
-    open.selector.states.push_back(AnatomyState::open);
-    open.declarations.push_back(RuleDeclaration::primitive(built_in_primitive_name));
-    sheet.rules.push_back(std::move(open));
 }
 
 // A menu item (the menu strip anatomy's `menu_item` part, which the menu
@@ -140,6 +146,12 @@ ThemeRuleSheet make_built_in_rules() {
     ThemeRuleSheet sheet{};
     add_ribbon_button(sheet, "command_face", true);
     add_ribbon_button(sheet, "group_button", false);
+    // A split's arrow half hovers as the soft dither too: without a rule of
+    // its own it took the button family's hover plate, a flat light-blue
+    // plate with a border under the bulge of the other half. While the split
+    // is pressed or its menu is open the ribbon paints the face across both
+    // halves and leaves the arrow out, so the dent covers the whole button.
+    add_dithered_rise(sheet, "ribbon", "command_arrow");
     // The soft dither is every ribbon hover (owner, 2026-11-09): a gallery's
     // items, and the tabs through their hover layer, which lies over the
     // tab's own face (a theme's tab rules choose the face's material, so the

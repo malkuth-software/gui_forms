@@ -1,6 +1,9 @@
 #include "bulge_primitives.hpp"
 
+#include "../kernel/pixel_kernel.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/engine/part_shape/part_shape.hpp"
+#include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
 #include <array>
@@ -121,6 +124,9 @@ void clear_destination(const PartRasterView& destination) noexcept {
 }
 
 const PartRole painted_roles[] = {PartRole::face};
+// The dithered form also paints an actuator: a ribbon split's arrow half,
+// which hovers as the soft dither as its face does.
+const PartRole dithered_roles[] = {PartRole::face, PartRole::actuator};
 const AnatomyState read_states[] = {AnatomyState::pressed, AnatomyState::active_tool};
 
 // Whether the bulge is drawn in gold (reference §2, "Active tool"): the
@@ -243,6 +249,12 @@ enum DitheredParameter : std::size_t {
     dithered_gold_shaded_2,
     dithered_gold_shaded_3,
     dithered_gold,
+    dithered_plate_top,
+    dithered_plate_bottom,
+    dithered_plate_border,
+    dithered_plate_pressed_top,
+    dithered_plate_pressed_bottom,
+    dithered_plate_corner_radius,
     dithered_parameter_count,
 };
 
@@ -268,6 +280,14 @@ const PrimitiveParameterDeclaration dithered_parameters[] = {
     {"gold_shaded_2", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {206, 142, 40, 255}},
     {"gold_shaded_3", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {170, 112, 24, 255}},
     {"gold", PrimitiveParameterKind::number, 0.0, 1.0, 0.0, {}},
+    // The gold form's plate (reference §1, "active tool"): the gold plate
+    // primitive's face, border, pressed face and radius.
+    {"gold_plate_top", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 237, 186, 255}},
+    {"gold_plate_bottom", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 207, 102, 255}},
+    {"gold_plate_border", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {196, 147, 50, 255}},
+    {"gold_plate_pressed_top", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {246, 193, 91, 255}},
+    {"gold_plate_pressed_bottom", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 226, 151, 255}},
+    {"gold_plate_corner_radius", PrimitiveParameterKind::number, 0.0, 64.0, 2.0, {}},
 };
 static_assert(sizeof(dithered_parameters) / sizeof(dithered_parameters[0]) == dithered_parameter_count);
 
@@ -279,11 +299,13 @@ static_assert(sizeof(dithered_parameters) / sizeof(dithered_parameters[0]) == di
 // whole dot per pixel, which put a 142-unit ribbon tab's rise over the
 // animated frame budget at scale 2 (14 904 pixels x 280 > 4 million), so
 // the plan dropped it to the built-in recipe and the menu-item plate
-// covered the selected tab (Plan Paint, owner 2026-11-17). The preparation
-// is bounded per device pixel as before; it runs once per geometry.
+// covered the selected tab (Plan Paint, owner 2026-11-17). The gold form
+// adds its plate: one more write per pixel (about 10), and the shape's
+// coverage only in the four corner squares, so 90. The preparation is
+// bounded per device pixel as before; it runs once per geometry.
 const PrimitiveDescriptor dithered_descriptor{
-    "dithered_bulge", EngineVersion{0, 1}, painted_roles, read_states, dithered_parameters,
-    PrimitiveCost{80U, 64U, 250U}, Insets{}, 3U,
+    "dithered_bulge", EngineVersion{0, 1}, dithered_roles, read_states, dithered_parameters,
+    PrimitiveCost{90U, 64U, 250U}, Insets{}, 3U,
 };
 
 // What the dithered form's preparation derives (reference §3, "Rescaled
@@ -488,6 +510,160 @@ DotChoice gold_dot(const DitherPalette& palette, const ToneExtremes& extremes, d
     return choice;
 }
 
+// -- the gold form's plate -----------------------------------------------------
+
+// The selected look's body (owner, 2026-11-22; reference §1, "active tool":
+// gold #FFEDBA to #FFCF66, border #C49332, radius 2). The dots alone read as
+// noise on the plane, so the gold form first draws the gold plate, a
+// vertical gradient inside a one-keyline border, and its dots shade the
+// plate. Pressed, the plate takes the gold plate primitive's pressed face,
+// as the dots take the dent.
+//
+// All in device pixels. The part's device box has integer sides and the
+// keyline is a whole number of pixels, so every pixel outside the four
+// corner squares is wholly border or wholly face; only the corner squares,
+// `corner` pixels on a side, take the shapes' coverage.
+struct GoldPlate final {
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::uint32_t line{};
+    std::uint32_t corner{};
+    PartShape outer{};
+    PartShape inner{};
+    Rect outer_box{};
+    Rect inner_box{};
+    Color border{};
+    Color face_top{};
+    Color face_bottom{};
+};
+
+GoldPlate gold_plate(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target, bool pressed,
+                     DeviceExtent extent) noexcept {
+    GoldPlate plate{};
+    plate.width = extent.width;
+    plate.height = extent.height;
+    const std::uint32_t half = std::min(extent.width, extent.height) / 2U;
+    // keyline_width is 1 or 2.
+    plate.line = std::min(static_cast<std::uint32_t>(keyline_width(target.scale.value)), half);
+    const double line = static_cast<double>(plate.line);
+    const double radius = parameters.values[dithered_plate_corner_radius].number * target.scale.value;
+    plate.outer.kind = PartShapeKind::rounded_rectangle;
+    plate.outer.corner_radius = radius;
+    plate.inner.kind = PartShapeKind::rounded_rectangle;
+    plate.inner.corner_radius = std::max(0.0, radius - line);
+    const double width = static_cast<double>(extent.width);
+    const double height = static_cast<double>(extent.height);
+    plate.outer_box = Rect{0.0, 0.0, width, height};
+    plate.inner_box = Rect{line, line, std::max(0.0, width - line * 2.0), std::max(0.0, height - line * 2.0)};
+    // The radius is at most 64 · 8 device pixels, so its ceiling fits.
+    const std::uint32_t reach = static_cast<std::uint32_t>(std::ceil(std::max(0.0, radius)));
+    plate.corner = std::min(reach, half);
+    plate.border = parameters.values[dithered_plate_border].colour;
+    const std::size_t top = pressed ? dithered_plate_pressed_top : dithered_plate_top;
+    const std::size_t bottom = pressed ? dithered_plate_pressed_bottom : dithered_plate_bottom;
+    plate.face_top = parameters.values[top].colour;
+    plate.face_bottom = parameters.values[bottom].colour;
+    return plate;
+}
+
+// The face's colour on device row `row`: the vertical gradient from top to
+// bottom of the face, interpolated in linear light as every gradient is.
+Color plate_face_colour(const GoldPlate& plate, std::uint32_t row) noexcept {
+    const double height = plate.inner_box.height;
+    const double t = height > 0.0 ? (static_cast<double>(row) + 0.5 - plate.inner_box.y) / height : 0.0;
+    const Color colour = interpolate_linear_light(plate.face_top, plate.face_bottom, linear_light_weight(t));
+    return colour;
+}
+
+// One pixel of the plate by its shapes' coverage: the border's shape, and
+// the face over it.
+Unit plate_pixel(const GoldPlate& plate, Color face, std::uint32_t x, std::uint32_t y) noexcept {
+    const std::int64_t column = static_cast<std::int64_t>(x);
+    const std::int64_t row = static_cast<std::int64_t>(y);
+    Unit pixel = premultiply(plate.border, shape_coverage(plate.outer, plate.outer_box, 1.0, column, row));
+    blend_over(pixel, premultiply(face, shape_coverage(plate.inner, plate.inner_box, 1.0, column, row)));
+    return pixel;
+}
+
+// Pixels [first, end) of device row `row`, all `unit`.
+void store_span(const PartRasterView& destination, std::uint32_t row, std::uint32_t first, std::uint32_t end,
+                const Unit& unit) noexcept {
+    const std::size_t row_start = static_cast<std::size_t>(row) * destination.row_bytes;
+    for (std::uint32_t column = first; column < end; ++column) {
+        store(destination, row_start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, unit);
+    }
+}
+
+// Pixels [first, end) of device row `row` by the shapes' coverage.
+void store_covered_span(const PartRasterView& destination, const GoldPlate& plate, Color face, std::uint32_t row,
+                        std::uint32_t first, std::uint32_t end) noexcept {
+    const std::size_t row_start = static_cast<std::size_t>(row) * destination.row_bytes;
+    for (std::uint32_t column = first; column < end; ++column) {
+        const Unit pixel = plate_pixel(plate, face, column, row);
+        store(destination, row_start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel);
+    }
+}
+
+// Writes every pixel of the destination, row by row. A row in the corner
+// squares' height takes the coverage at both ends and is border or face
+// between them; any other row is border for a keyline at each end and face
+// between.
+void fill_gold_plate(const GoldPlate& plate, const PartRasterView& destination) noexcept {
+    const Unit border = premultiply(plate.border, 1.0);
+    const std::uint32_t corner_end = plate.width - plate.corner;
+    const std::uint32_t line_end = plate.width - plate.line;
+    for (std::uint32_t row = 0U; row < plate.height; ++row) {
+        const Color face_colour = plate_face_colour(plate, row);
+        const Unit face = premultiply(face_colour, 1.0);
+        const bool corner_row = row < plate.corner || row >= plate.height - plate.corner;
+        const bool border_row = row < plate.line || row >= plate.height - plate.line;
+        if (corner_row) {
+            store_covered_span(destination, plate, face_colour, row, 0U, plate.corner);
+            store_span(destination, row, plate.corner, corner_end, border_row ? border : face);
+            store_covered_span(destination, plate, face_colour, row, corner_end, plate.width);
+            continue;
+        }
+        store_span(destination, row, 0U, plate.line, border);
+        store_span(destination, row, plate.line, line_end, face);
+        store_span(destination, row, line_end, plate.width, border);
+    }
+}
+
+// A dot's premultiplied colour as a unit, at `coverage`.
+Unit dot_unit(PremultipliedPixel pixel, double coverage) noexcept {
+    const Unit unit{static_cast<double>(pixel.red) / 255.0 * coverage,
+                    static_cast<double>(pixel.green) / 255.0 * coverage,
+                    static_cast<double>(pixel.blue) / 255.0 * coverage,
+                    static_cast<double>(pixel.alpha) / 255.0 * coverage};
+    return unit;
+}
+
+// A gold dot that reaches into a corner square: each of its pixels is the
+// plate with the dot over it at the face's coverage, so that no dot shows
+// outside the rounded face.
+void store_cornered_dot(const PartRasterView& destination, const GoldPlate& plate, DotSpan rows, DotSpan columns,
+                        PremultipliedPixel dot) noexcept {
+    for (std::uint32_t row = rows.first; row < rows.end; ++row) {
+        const Color face = plate_face_colour(plate, row);
+        const std::size_t row_start = static_cast<std::size_t>(row) * destination.row_bytes;
+        for (std::uint32_t column = columns.first; column < columns.end; ++column) {
+            Unit pixel = plate_pixel(plate, face, column, row);
+            const double coverage = shape_coverage(plate.inner, plate.inner_box, 1.0, static_cast<std::int64_t>(column),
+                                                   static_cast<std::int64_t>(row));
+            blend_over(pixel, dot_unit(dot, coverage));
+            store(destination, row_start + static_cast<std::size_t>(column) * part_raster_bytes_per_pixel, pixel);
+        }
+    }
+}
+
+// Whether a dot's pixels reach into one of the plate's corner squares.
+bool dot_in_corner(const GoldPlate& plate, DotSpan rows, DotSpan columns) noexcept {
+    const bool across = columns.first < plate.corner || columns.end > plate.width - plate.corner;
+    const bool down = rows.first < plate.corner || rows.end > plate.height - plate.corner;
+    const bool inside = across && down;
+    return inside;
+}
+
 } // namespace
 
 // -- BulgePrimitive ------------------------------------------------------------
@@ -586,16 +762,31 @@ void DitheredBulgePrimitive::derive(const PrimitiveParameterBlock& parameters, c
 
 void DitheredBulgePrimitive::fill(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target,
                                   std::span<const double> prepared, const PartRasterView& destination) const noexcept {
-    clear_destination(destination);
     // Amplitude 0 is the flat plane in every variant (reference §2: a ribbon
     // button is flat at rest). Without this exit the gold form would still
-    // show its body colour wherever the tone is negative.
+    // show its plate and its body colour.
     const double amplitude = parameters.values[dithered_amplitude].number;
-    if (amplitude == 0.0) return;
+    if (amplitude == 0.0) {
+        clear_destination(destination);
+        return;
+    }
 
     // Choose the variant and read every parameter before the lattice loop.
     const bool dent = target.states.contains(AnatomyState::pressed);
     const bool gold = gold_variant(target, parameters.values[dithered_gold].number);
+    // The gold form's plate writes every pixel; the plain form's dots lie on
+    // the clear plane. The gold dots stay inside the plate's face: the first
+    // dot starts at k ≥ the keyline, so only the far ends need the limit.
+    const GoldPlate plate = gold_plate(parameters, target, dent, destination.extent);
+    std::uint32_t column_limit = destination.extent.width;
+    std::uint32_t row_limit = destination.extent.height;
+    if (gold) {
+        fill_gold_plate(plate, destination);
+        column_limit = plate.width - plate.line;
+        row_limit = plate.height - plate.line;
+    } else {
+        clear_destination(destination);
+    }
     const ToneGains gains = tone_gains(parameters);
     const BulgeFields fields = bulge_fields(target.logical_size, dent);
     const DitherPalette palette{palette_steps(parameters, dithered_lit_1), palette_steps(parameters, dithered_shaded_1),
@@ -607,12 +798,12 @@ void DitheredBulgePrimitive::fill(const PrimitiveParameterBlock& parameters, con
     const DitherLattice lattice = dither_lattice(target);
 
     for (std::size_t j = 0U; j < lattice.rows; ++j) {
-        const DotSpan rows = dot_span(lattice, j, destination.extent.height);
+        const DotSpan rows = dot_span(lattice, j, row_limit);
         // Rows of dots below the destination's last row draw nothing.
         if (rows.first >= rows.end) break;
         const double y = lattice_sample(lattice, j);
         for (std::size_t i = 0U; i < lattice.columns; ++i) {
-            const DotSpan columns = dot_span(lattice, i, destination.extent.width);
+            const DotSpan columns = dot_span(lattice, i, column_limit);
             if (columns.first >= columns.end) break;
             const double x = lattice_sample(lattice, i);
             const DotTone tone = dot_tone(fields, gains, x, y);
@@ -623,6 +814,10 @@ void DitheredBulgePrimitive::fill(const PrimitiveParameterBlock& parameters, con
             const DotChoice choice = gold ? gold_dot(palette, extremes, amplitude, tone, threshold)
                                           : plain_dot(palette, extremes, amplitude, tone, threshold);
             if (!choice.shown) continue;
+            if (gold && dot_in_corner(plate, rows, columns)) {
+                store_cornered_dot(destination, plate, rows, columns, choice.pixel);
+                continue;
+            }
             for (std::uint32_t row = rows.first; row < rows.end; ++row) {
                 const std::size_t row_start = static_cast<std::size_t>(row) * destination.row_bytes;
                 for (std::uint32_t column = columns.first; column < columns.end; ++column) {
