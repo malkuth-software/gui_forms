@@ -29,6 +29,11 @@
 //   motion;
 // - the lamp radio row (RadioButton's lamp look) with its colour set at run
 //   time, and the coolant flow pinpoint.
+// The window is laid out by flex panels (owner, 2026-11-22: the controls
+// follow the window): the dialog grows with the window, never below the
+// study's 500 x 310, keeping its type and lamps at the study's places from
+// its upper left and its keys at their size at its lower right; the strip
+// keeps its width beside it.
 // The program's theme is one sheet set on the root (Control::
 // set_theme_sheet), rebuilt when the paint or the seed changes.
 //
@@ -40,7 +45,8 @@
 namespace gui_forms::process_control {
 
 inline constexpr std::string_view program_name = "GUI.Forms Process Control";
-// The window's logical size: the study's 500 x 310 dialog and the strip.
+// The window's first logical size, and its least: the study's 500 x 310
+// dialog, the message under it and the strip beside it.
 inline constexpr Size window_size{840.0, 440.0};
 
 // One ГОСТ paint the enamel can be laid over (demo/themes/gost_paints,
