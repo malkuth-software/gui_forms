@@ -218,7 +218,7 @@ gui_forms::Wizard
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 14 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 13 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -316,7 +316,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 11 s
    * - method
      - GUI.Forms-only
      - ``go_to``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
