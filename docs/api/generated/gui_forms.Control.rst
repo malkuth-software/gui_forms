@@ -420,6 +420,8 @@ gui_forms::Control
       **initialization_depth** : ``std::uint64_t``, read-only
          How many :cpp:func:`begin_init <gui_forms::Control::begin_init>` calls are still unmatched.
 
+      **gesture_input** : ``bool``
+
       **data_bindings** : ``ControlBindingsCollection``, read-only
 
       **bindable_property_names** : ``std::vector<std::string>``, read-only
@@ -1347,6 +1349,12 @@ gui_forms::Control
 
       How many :cpp:func:`begin_init <gui_forms::Control::begin_init>` calls are still unmatched.
 
+   .. cpp:function:: bool gesture_input() const noexcept
+
+   .. cpp:function:: void set_gesture_input(bool requested) noexcept
+
+      Whether this control handles touchpad gestures: a control that overrides on_gesture or subscribes to gesture() sets it, so that its window asks its host for them (SurfaceRoot::gesture_input_requested; on Windows that engages DirectManipulation, which a window without a gesture handler never does).
+
    .. cpp:function:: const ControlBindingsCollection& data_bindings() const
 
       The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
@@ -2113,7 +2121,7 @@ gui_forms::Control
 
       *Protected.*
 
-      A touchpad gesture (gesture_events.hpp), routed as the wheel: the target's on_gesture, then each ancestor's (arguments.phase bubble), until one sets handled. The base raises gesture.
+      A touchpad gesture (gesture_events.hpp), routed as the wheel: the target's on_gesture, then each ancestor's (arguments.phase bubble), until one sets handled. The base raises gesture. A control that overrides it calls set_gesture_input(true), so that its window asks the host for gestures.
 
    .. cpp:function:: virtual void on_mouse_enter()
 
@@ -2509,7 +2517,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 251 supported, 0 deferred, 12 excluded, 324 unclassified; 230 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 253 supported, 0 deferred, 12 excluded, 323 unclassified; 231 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4138,6 +4146,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 251 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``gesture_input``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``has_composite_look``
      - unclassified (untested)
    * - property
@@ -4603,7 +4615,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 251 supp
    * - method
      - GUI.Forms-only
      - ``on_gesture``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``on_key_bubble``

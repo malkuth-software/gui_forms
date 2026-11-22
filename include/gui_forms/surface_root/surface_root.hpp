@@ -1495,6 +1495,15 @@ public:
     // until one handles it. Returns whether one did. Nothing else is
     // derived from an unhandled gesture. During a paint, as dispatch_pointer.
     bool dispatch_gesture(GestureEvent event);
+    // Whether the window wants touchpad gestures: set here (an explicit
+    // opt-in), or by a control in its tree that asked with
+    // Control::set_gesture_input. A host whose gesture source changes other
+    // input engages it only while this holds (the Windows host's
+    // DirectManipulation, which also takes the two-finger pan); every other
+    // window keeps the platform's plain wheel path. Hosts whose gestures
+    // add events without changing others (macOS, X11) report them always.
+    void set_gesture_input(bool requested) noexcept;
+    [[nodiscard]] bool gesture_input_requested() const noexcept;
     // A context-menu request (owner's mouse-event rule): from the host's
     // HostContextRequestEvent, or a test. A pointer request goes to the
     // control under `position` (window coordinates; the captured control
@@ -2535,6 +2544,8 @@ private:
     // Keeps display_cache_entries_ as `control`'s chunk changes from
     // `had_chunk` to what it holds now.
     void note_display_chunk_change(const Control& control, bool had_chunk) noexcept;
+    // Keeps gesture_input_controls_ as `control`'s gesture_input_ changes.
+    void note_gesture_input_change(const Control& control) noexcept;
     void compact_frame_requests() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
     // Whether `control` and every ancestor have been arranged (non-empty
@@ -2805,6 +2816,10 @@ private:
     // The control the current touchpad gesture began over (dispatch_gesture),
     // as wheel_latch_ for scrolling. Observed; empty between gestures.
     Control::WeakPtr gesture_latch_;
+    // The window's own gesture opt-in, and how many attached controls asked
+    // (gesture_input_requested).
+    bool gesture_input_{};
+    std::uint64_t gesture_input_controls_{};
     // The input state (detail::InteractionState), made by the first pointer
     // or key event; the clock it reads, borrowed (null for the steady
     // clock); and the wake for a pending hover.

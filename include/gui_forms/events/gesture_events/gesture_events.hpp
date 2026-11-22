@@ -37,6 +37,14 @@
 // Ctrl+wheel or anything else (a platform that synthesizes Ctrl+wheel from
 // a pinch by itself, as Windows does for a window without
 // DirectManipulation, delivers wheel events, not gestures).
+//
+// A window asks for gestures (SurfaceRoot::gesture_input_requested) by its
+// own opt-in or through a control that set Control::set_gesture_input. The
+// Windows host engages DirectManipulation, which also takes over the
+// two-finger pan, only for such a window, and never when
+// GUI_FORMS_DIRECT_MANIPULATION=0; every other window keeps Windows' plain
+// wheel path. macOS and X11 report gestures to every window, since that
+// changes no other input.
 
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/export/application_export.hpp"

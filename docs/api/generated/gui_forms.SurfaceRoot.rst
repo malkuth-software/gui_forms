@@ -321,6 +321,8 @@ gui_forms::SurfaceRoot
       **hovered_control** : ``Control::Ptr``, read-only
          The control the pointer is over, or null.
 
+      **gesture_input_requested** : ``bool``, read-only
+
       **interaction_snapshot** : ``InteractionSnapshot``, read-only
          A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
          keys in press order with their press times, the modifiers, the pointer
@@ -672,6 +674,8 @@ gui_forms::SurfaceRoot
         - Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake).
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
+      * - :cpp:func:`set_gesture_input <gui_forms::SurfaceRoot::set_gesture_input>`
+        - Whether the window wants touchpad gestures: set here (an explicit opt-in), or by a control in its tree that asked with Control::set_gesture_input.
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
         - Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
@@ -1107,6 +1111,8 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr hovered_control() const noexcept
 
       The control the pointer is over, or null.
+
+   .. cpp:function:: bool gesture_input_requested() const noexcept
 
    .. cpp:function:: InteractionSnapshot interaction_snapshot() const
 
@@ -1855,6 +1861,10 @@ gui_forms::SurfaceRoot
       (``Control::set_command_target``), and naming it throws
       ``std::invalid_argument``. ``command_target(stage)`` returns the named
       target while it lives.
+
+   .. cpp:function:: void set_gesture_input(bool requested) noexcept
+
+      Whether the window wants touchpad gestures: set here (an explicit opt-in), or by a control in its tree that asked with Control::set_gesture_input. A host whose gesture source changes other input engages it only while this holds (the Windows host's DirectManipulation, which also takes the two-finger pan); every other window keeps the platform's plain wheel path. Hosts whose gestures add events without changing others (macOS, X11) report them always.
 
    .. cpp:function:: void set_input_time_source(const InputTimeSource* source) noexcept
 
