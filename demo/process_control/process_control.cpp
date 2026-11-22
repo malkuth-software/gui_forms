@@ -592,8 +592,8 @@ void ProcessControlRoot::on_cancel() {
 std::string process_control_sheet(std::size_t paint, std::uint32_t seed) {
     const EnamelPaint& chosen = enamel_paints[paint % enamel_paints.size()];
     // The seed, then the grain (paint_grain, written as finish() reads it).
-    const std::string seed_and_grain = std::to_string(seed) + ", 1.5";
-    static_assert(paint_grain == 1.5, "the sheet writes paint_grain as 1.5");
+    const std::string seed_and_grain = std::to_string(seed) + ", 2";
+    static_assert(paint_grain == 2.0, "the sheet writes paint_grain as 2");
     std::string sheet{};
     sheet += "/* The process-control demonstrator's theme (demo/process_control). */\n";
     sheet += ".blasted-enamel::part(face) { background: finish(blasted-enamel-glint, ";
