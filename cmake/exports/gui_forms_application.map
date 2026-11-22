@@ -550,6 +550,7 @@
     _ZGVZN9gui_forms15BindingSnapshot*;
     _ZGVZN9gui_forms15BreadcrumbTrail*;
     _ZGVZN9gui_forms15BundledFontFace*;
+    _ZGVZN9gui_forms15CheckedComboBox*;
     _ZGVZN9gui_forms15CollapsedMargin*;
     _ZGVZN9gui_forms15CollectionDirty*;
     _ZGVZN9gui_forms15ColourSchemeSet*;
@@ -667,6 +668,7 @@
     _ZGVZN9gui_forms16BlendHeatMapView*;
     _ZGVZN9gui_forms16BlendStudyPlanes*;
     _ZGVZN9gui_forms16CachedPartRaster*;
+    _ZGVZN9gui_forms16CheckedComboItem*;
     _ZGVZN9gui_forms16ColorValueEditor*;
     _ZGVZN9gui_forms16CompositeControl*;
     _ZGVZN9gui_forms16ContainerControl*;
@@ -1274,6 +1276,7 @@
     _ZGVZN9gui_forms22BindingNavigatorAddNew*;
     _ZGVZN9gui_forms22BlockFlowSharedMargins*;
     _ZGVZN9gui_forms22BundledFontDiagnostics*;
+    _ZGVZN9gui_forms22CheckedComboItemChange*;
     _ZGVZN9gui_forms22ContentLayoutTransform*;
     _ZGVZN9gui_forms22ControlValidationEvent*;
     _ZGVZN9gui_forms22CustomStateDeclaration*;
@@ -2256,6 +2259,7 @@
     _ZGVZNK9gui_forms15BindingSnapshot*;
     _ZGVZNK9gui_forms15BreadcrumbTrail*;
     _ZGVZNK9gui_forms15BundledFontFace*;
+    _ZGVZNK9gui_forms15CheckedComboBox*;
     _ZGVZNK9gui_forms15CollapsedMargin*;
     _ZGVZNK9gui_forms15CollectionDirty*;
     _ZGVZNK9gui_forms15ColourSchemeSet*;
@@ -2373,6 +2377,7 @@
     _ZGVZNK9gui_forms16BlendHeatMapView*;
     _ZGVZNK9gui_forms16BlendStudyPlanes*;
     _ZGVZNK9gui_forms16CachedPartRaster*;
+    _ZGVZNK9gui_forms16CheckedComboItem*;
     _ZGVZNK9gui_forms16ColorValueEditor*;
     _ZGVZNK9gui_forms16CompositeControl*;
     _ZGVZNK9gui_forms16ContainerControl*;
@@ -2980,6 +2985,7 @@
     _ZGVZNK9gui_forms22BindingNavigatorAddNew*;
     _ZGVZNK9gui_forms22BlockFlowSharedMargins*;
     _ZGVZNK9gui_forms22BundledFontDiagnostics*;
+    _ZGVZNK9gui_forms22CheckedComboItemChange*;
     _ZGVZNK9gui_forms22ContentLayoutTransform*;
     _ZGVZNK9gui_forms22ControlValidationEvent*;
     _ZGVZNK9gui_forms22CustomStateDeclaration*;
@@ -4162,6 +4168,7 @@
     _ZN9gui_forms15BindingSnapshot*;
     _ZN9gui_forms15BreadcrumbTrail*;
     _ZN9gui_forms15BundledFontFace*;
+    _ZN9gui_forms15CheckedComboBox*;
     _ZN9gui_forms15CollapsedMargin*;
     _ZN9gui_forms15CollectionDirty*;
     _ZN9gui_forms15ColourSchemeSet*;
@@ -4331,6 +4338,7 @@
     _ZN9gui_forms16BlendHeatMapView*;
     _ZN9gui_forms16BlendStudyPlanes*;
     _ZN9gui_forms16CachedPartRaster*;
+    _ZN9gui_forms16CheckedComboItem*;
     _ZN9gui_forms16ColorValueEditor*;
     _ZN9gui_forms16CompositeControl*;
     _ZN9gui_forms16ContainerControl*;
@@ -5540,6 +5548,7 @@
     _ZN9gui_forms22BindingNavigatorAddNew*;
     _ZN9gui_forms22BlockFlowSharedMargins*;
     _ZN9gui_forms22BundledFontDiagnostics*;
+    _ZN9gui_forms22CheckedComboItemChange*;
     _ZN9gui_forms22ContentLayoutTransform*;
     _ZN9gui_forms22ControlValidationEvent*;
     _ZN9gui_forms22CustomStateDeclaration*;
@@ -7380,6 +7389,7 @@
     _ZNK[RO]9gui_forms15BindingSnapshot*;
     _ZNK[RO]9gui_forms15BreadcrumbTrail*;
     _ZNK[RO]9gui_forms15BundledFontFace*;
+    _ZNK[RO]9gui_forms15CheckedComboBox*;
     _ZNK[RO]9gui_forms15CollapsedMargin*;
     _ZNK[RO]9gui_forms15CollectionDirty*;
     _ZNK[RO]9gui_forms15ColourSchemeSet*;
@@ -7497,6 +7507,7 @@
     _ZNK[RO]9gui_forms16BlendHeatMapView*;
     _ZNK[RO]9gui_forms16BlendStudyPlanes*;
     _ZNK[RO]9gui_forms16CachedPartRaster*;
+    _ZNK[RO]9gui_forms16CheckedComboItem*;
     _ZNK[RO]9gui_forms16ColorValueEditor*;
     _ZNK[RO]9gui_forms16CompositeControl*;
     _ZNK[RO]9gui_forms16ContainerControl*;
@@ -8104,6 +8115,7 @@
     _ZNK[RO]9gui_forms22BindingNavigatorAddNew*;
     _ZNK[RO]9gui_forms22BlockFlowSharedMargins*;
     _ZNK[RO]9gui_forms22BundledFontDiagnostics*;
+    _ZNK[RO]9gui_forms22CheckedComboItemChange*;
     _ZNK[RO]9gui_forms22ContentLayoutTransform*;
     _ZNK[RO]9gui_forms22ControlValidationEvent*;
     _ZNK[RO]9gui_forms22CustomStateDeclaration*;
@@ -9086,6 +9098,7 @@
     _ZN[KRO]9gui_forms15BindingSnapshot*;
     _ZN[KRO]9gui_forms15BreadcrumbTrail*;
     _ZN[KRO]9gui_forms15BundledFontFace*;
+    _ZN[KRO]9gui_forms15CheckedComboBox*;
     _ZN[KRO]9gui_forms15CollapsedMargin*;
     _ZN[KRO]9gui_forms15CollectionDirty*;
     _ZN[KRO]9gui_forms15ColourSchemeSet*;
@@ -9203,6 +9216,7 @@
     _ZN[KRO]9gui_forms16BlendHeatMapView*;
     _ZN[KRO]9gui_forms16BlendStudyPlanes*;
     _ZN[KRO]9gui_forms16CachedPartRaster*;
+    _ZN[KRO]9gui_forms16CheckedComboItem*;
     _ZN[KRO]9gui_forms16ColorValueEditor*;
     _ZN[KRO]9gui_forms16CompositeControl*;
     _ZN[KRO]9gui_forms16ContainerControl*;
@@ -9810,6 +9824,7 @@
     _ZN[KRO]9gui_forms22BindingNavigatorAddNew*;
     _ZN[KRO]9gui_forms22BlockFlowSharedMargins*;
     _ZN[KRO]9gui_forms22BundledFontDiagnostics*;
+    _ZN[KRO]9gui_forms22CheckedComboItemChange*;
     _ZN[KRO]9gui_forms22ContentLayoutTransform*;
     _ZN[KRO]9gui_forms22ControlValidationEvent*;
     _ZN[KRO]9gui_forms22CustomStateDeclaration*;
@@ -10792,6 +10807,7 @@
     _ZT[VIST]N9gui_forms15BindingSnapshot*E;
     _ZT[VIST]N9gui_forms15BreadcrumbTrail*E;
     _ZT[VIST]N9gui_forms15BundledFontFace*E;
+    _ZT[VIST]N9gui_forms15CheckedComboBox*E;
     _ZT[VIST]N9gui_forms15CollapsedMargin*E;
     _ZT[VIST]N9gui_forms15CollectionDirty*E;
     _ZT[VIST]N9gui_forms15ColourSchemeSet*E;
@@ -10909,6 +10925,7 @@
     _ZT[VIST]N9gui_forms16BlendHeatMapView*E;
     _ZT[VIST]N9gui_forms16BlendStudyPlanes*E;
     _ZT[VIST]N9gui_forms16CachedPartRaster*E;
+    _ZT[VIST]N9gui_forms16CheckedComboItem*E;
     _ZT[VIST]N9gui_forms16ColorValueEditor*E;
     _ZT[VIST]N9gui_forms16CompositeControl*E;
     _ZT[VIST]N9gui_forms16ContainerControl*E;
@@ -11516,6 +11533,7 @@
     _ZT[VIST]N9gui_forms22BindingNavigatorAddNew*E;
     _ZT[VIST]N9gui_forms22BlockFlowSharedMargins*E;
     _ZT[VIST]N9gui_forms22BundledFontDiagnostics*E;
+    _ZT[VIST]N9gui_forms22CheckedComboItemChange*E;
     _ZT[VIST]N9gui_forms22ContentLayoutTransform*E;
     _ZT[VIST]N9gui_forms22ControlValidationEvent*E;
     _ZT[VIST]N9gui_forms22CustomStateDeclaration*E;
@@ -12498,6 +12516,7 @@
     _ZT[hvc]*9gui_forms15BindingSnapshot*;
     _ZT[hvc]*9gui_forms15BreadcrumbTrail*;
     _ZT[hvc]*9gui_forms15BundledFontFace*;
+    _ZT[hvc]*9gui_forms15CheckedComboBox*;
     _ZT[hvc]*9gui_forms15CollapsedMargin*;
     _ZT[hvc]*9gui_forms15CollectionDirty*;
     _ZT[hvc]*9gui_forms15ColourSchemeSet*;
@@ -12615,6 +12634,7 @@
     _ZT[hvc]*9gui_forms16BlendHeatMapView*;
     _ZT[hvc]*9gui_forms16BlendStudyPlanes*;
     _ZT[hvc]*9gui_forms16CachedPartRaster*;
+    _ZT[hvc]*9gui_forms16CheckedComboItem*;
     _ZT[hvc]*9gui_forms16ColorValueEditor*;
     _ZT[hvc]*9gui_forms16CompositeControl*;
     _ZT[hvc]*9gui_forms16ContainerControl*;
@@ -13222,6 +13242,7 @@
     _ZT[hvc]*9gui_forms22BindingNavigatorAddNew*;
     _ZT[hvc]*9gui_forms22BlockFlowSharedMargins*;
     _ZT[hvc]*9gui_forms22BundledFontDiagnostics*;
+    _ZT[hvc]*9gui_forms22CheckedComboItemChange*;
     _ZT[hvc]*9gui_forms22ContentLayoutTransform*;
     _ZT[hvc]*9gui_forms22ControlValidationEvent*;
     _ZT[hvc]*9gui_forms22CustomStateDeclaration*;
@@ -14204,6 +14225,7 @@
     _ZZN9gui_forms15BindingSnapshot*;
     _ZZN9gui_forms15BreadcrumbTrail*;
     _ZZN9gui_forms15BundledFontFace*;
+    _ZZN9gui_forms15CheckedComboBox*;
     _ZZN9gui_forms15CollapsedMargin*;
     _ZZN9gui_forms15CollectionDirty*;
     _ZZN9gui_forms15ColourSchemeSet*;
@@ -14321,6 +14343,7 @@
     _ZZN9gui_forms16BlendHeatMapView*;
     _ZZN9gui_forms16BlendStudyPlanes*;
     _ZZN9gui_forms16CachedPartRaster*;
+    _ZZN9gui_forms16CheckedComboItem*;
     _ZZN9gui_forms16ColorValueEditor*;
     _ZZN9gui_forms16CompositeControl*;
     _ZZN9gui_forms16ContainerControl*;
@@ -14928,6 +14951,7 @@
     _ZZN9gui_forms22BindingNavigatorAddNew*;
     _ZZN9gui_forms22BlockFlowSharedMargins*;
     _ZZN9gui_forms22BundledFontDiagnostics*;
+    _ZZN9gui_forms22CheckedComboItemChange*;
     _ZZN9gui_forms22ContentLayoutTransform*;
     _ZZN9gui_forms22ControlValidationEvent*;
     _ZZN9gui_forms22CustomStateDeclaration*;
@@ -15910,6 +15934,7 @@
     _ZZNK9gui_forms15BindingSnapshot*;
     _ZZNK9gui_forms15BreadcrumbTrail*;
     _ZZNK9gui_forms15BundledFontFace*;
+    _ZZNK9gui_forms15CheckedComboBox*;
     _ZZNK9gui_forms15CollapsedMargin*;
     _ZZNK9gui_forms15CollectionDirty*;
     _ZZNK9gui_forms15ColourSchemeSet*;
@@ -16027,6 +16052,7 @@
     _ZZNK9gui_forms16BlendHeatMapView*;
     _ZZNK9gui_forms16BlendStudyPlanes*;
     _ZZNK9gui_forms16CachedPartRaster*;
+    _ZZNK9gui_forms16CheckedComboItem*;
     _ZZNK9gui_forms16ColorValueEditor*;
     _ZZNK9gui_forms16CompositeControl*;
     _ZZNK9gui_forms16ContainerControl*;
@@ -16634,6 +16660,7 @@
     _ZZNK9gui_forms22BindingNavigatorAddNew*;
     _ZZNK9gui_forms22BlockFlowSharedMargins*;
     _ZZNK9gui_forms22BundledFontDiagnostics*;
+    _ZZNK9gui_forms22CheckedComboItemChange*;
     _ZZNK9gui_forms22ContentLayoutTransform*;
     _ZZNK9gui_forms22ControlValidationEvent*;
     _ZZNK9gui_forms22CustomStateDeclaration*;

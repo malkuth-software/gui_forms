@@ -117,6 +117,7 @@
     {"modal_layer", "Dialogs and overlays", Size{340.0, 210.0}, "Modal layer", &make_modal_layer, &present_modal_layer, ""},
     {"lookup_combo_box", "Selection from a list", Size{224.0, 30.0}, "Lookup combo box", &make_lookup_combo_box, nullptr, ""},
     {"popup_container_box", "Selection from a list", Size{240.0, 144.0}, "Next Tuesday", &make_text<PopupContainerBox>, nullptr, ""},
+    {"checked_combo_box", "Selection from a list", Size{224.0, 26.0}, "Checked combo box", &make_checked_combo_box, nullptr, ""},
     {"drawing_surface", "Drawing", Size{240.0, 144.0}, "Drawing surface", &make_drawing_surface, nullptr, ""},
     {"raster_canvas", "Drawing", Size{240.0, 144.0}, "Raster canvas", &make_raster_canvas, nullptr, ""},
     {"node_canvas", "Drawing", Size{368.0, 152.0}, "Node canvas", &make_node_canvas, nullptr, ""},

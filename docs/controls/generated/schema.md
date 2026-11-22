@@ -3598,6 +3598,26 @@ Properties beyond every control's: `text` (text).
 | `popup_closed` | `PopupClosed` |
 | `text_changed` | `std::string` |
 
+## `checked_combo_box` (CheckedComboBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `pressed`.
+
+Properties beyond every control's: `max_drop_down_items` (unsigned_integer), `placeholder_text` (text), `separator` (text).
+
+| Interaction | Payload |
+|---|---|
+| `item_check_changed` | `CheckedComboItemChange` |
+| `drop_down_changed` | `bool` |
+
 ## `about_dialog` (AboutDialog, component)
 
 | Interaction | Payload |

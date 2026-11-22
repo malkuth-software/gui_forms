@@ -548,6 +548,7 @@ __ZGVZN9gui_forms15BindingProvider*
 __ZGVZN9gui_forms15BindingSnapshot*
 __ZGVZN9gui_forms15BreadcrumbTrail*
 __ZGVZN9gui_forms15BundledFontFace*
+__ZGVZN9gui_forms15CheckedComboBox*
 __ZGVZN9gui_forms15CollapsedMargin*
 __ZGVZN9gui_forms15CollectionDirty*
 __ZGVZN9gui_forms15ColourSchemeSet*
@@ -665,6 +666,7 @@ __ZGVZN9gui_forms16BindingPredicate*
 __ZGVZN9gui_forms16BlendHeatMapView*
 __ZGVZN9gui_forms16BlendStudyPlanes*
 __ZGVZN9gui_forms16CachedPartRaster*
+__ZGVZN9gui_forms16CheckedComboItem*
 __ZGVZN9gui_forms16ColorValueEditor*
 __ZGVZN9gui_forms16CompositeControl*
 __ZGVZN9gui_forms16ContainerControl*
@@ -1272,6 +1274,7 @@ __ZGVZN9gui_forms22ApplicationThemeConfig*
 __ZGVZN9gui_forms22BindingNavigatorAddNew*
 __ZGVZN9gui_forms22BlockFlowSharedMargins*
 __ZGVZN9gui_forms22BundledFontDiagnostics*
+__ZGVZN9gui_forms22CheckedComboItemChange*
 __ZGVZN9gui_forms22ContentLayoutTransform*
 __ZGVZN9gui_forms22ControlValidationEvent*
 __ZGVZN9gui_forms22CustomStateDeclaration*
@@ -2254,6 +2257,7 @@ __ZGVZNK9gui_forms15BindingProvider*
 __ZGVZNK9gui_forms15BindingSnapshot*
 __ZGVZNK9gui_forms15BreadcrumbTrail*
 __ZGVZNK9gui_forms15BundledFontFace*
+__ZGVZNK9gui_forms15CheckedComboBox*
 __ZGVZNK9gui_forms15CollapsedMargin*
 __ZGVZNK9gui_forms15CollectionDirty*
 __ZGVZNK9gui_forms15ColourSchemeSet*
@@ -2371,6 +2375,7 @@ __ZGVZNK9gui_forms16BindingPredicate*
 __ZGVZNK9gui_forms16BlendHeatMapView*
 __ZGVZNK9gui_forms16BlendStudyPlanes*
 __ZGVZNK9gui_forms16CachedPartRaster*
+__ZGVZNK9gui_forms16CheckedComboItem*
 __ZGVZNK9gui_forms16ColorValueEditor*
 __ZGVZNK9gui_forms16CompositeControl*
 __ZGVZNK9gui_forms16ContainerControl*
@@ -2978,6 +2983,7 @@ __ZGVZNK9gui_forms22ApplicationThemeConfig*
 __ZGVZNK9gui_forms22BindingNavigatorAddNew*
 __ZGVZNK9gui_forms22BlockFlowSharedMargins*
 __ZGVZNK9gui_forms22BundledFontDiagnostics*
+__ZGVZNK9gui_forms22CheckedComboItemChange*
 __ZGVZNK9gui_forms22ContentLayoutTransform*
 __ZGVZNK9gui_forms22ControlValidationEvent*
 __ZGVZNK9gui_forms22CustomStateDeclaration*
@@ -4160,6 +4166,7 @@ __ZN9gui_forms15BindingProvider*
 __ZN9gui_forms15BindingSnapshot*
 __ZN9gui_forms15BreadcrumbTrail*
 __ZN9gui_forms15BundledFontFace*
+__ZN9gui_forms15CheckedComboBox*
 __ZN9gui_forms15CollapsedMargin*
 __ZN9gui_forms15CollectionDirty*
 __ZN9gui_forms15ColourSchemeSet*
@@ -4329,6 +4336,7 @@ __ZN9gui_forms16BindingPredicate*
 __ZN9gui_forms16BlendHeatMapView*
 __ZN9gui_forms16BlendStudyPlanes*
 __ZN9gui_forms16CachedPartRaster*
+__ZN9gui_forms16CheckedComboItem*
 __ZN9gui_forms16ColorValueEditor*
 __ZN9gui_forms16CompositeControl*
 __ZN9gui_forms16ContainerControl*
@@ -5538,6 +5546,7 @@ __ZN9gui_forms22ApplicationThemeConfig*
 __ZN9gui_forms22BindingNavigatorAddNew*
 __ZN9gui_forms22BlockFlowSharedMargins*
 __ZN9gui_forms22BundledFontDiagnostics*
+__ZN9gui_forms22CheckedComboItemChange*
 __ZN9gui_forms22ContentLayoutTransform*
 __ZN9gui_forms22ControlValidationEvent*
 __ZN9gui_forms22CustomStateDeclaration*
@@ -7378,6 +7387,7 @@ __ZNK[RO]9gui_forms15BindingProvider*
 __ZNK[RO]9gui_forms15BindingSnapshot*
 __ZNK[RO]9gui_forms15BreadcrumbTrail*
 __ZNK[RO]9gui_forms15BundledFontFace*
+__ZNK[RO]9gui_forms15CheckedComboBox*
 __ZNK[RO]9gui_forms15CollapsedMargin*
 __ZNK[RO]9gui_forms15CollectionDirty*
 __ZNK[RO]9gui_forms15ColourSchemeSet*
@@ -7495,6 +7505,7 @@ __ZNK[RO]9gui_forms16BindingPredicate*
 __ZNK[RO]9gui_forms16BlendHeatMapView*
 __ZNK[RO]9gui_forms16BlendStudyPlanes*
 __ZNK[RO]9gui_forms16CachedPartRaster*
+__ZNK[RO]9gui_forms16CheckedComboItem*
 __ZNK[RO]9gui_forms16ColorValueEditor*
 __ZNK[RO]9gui_forms16CompositeControl*
 __ZNK[RO]9gui_forms16ContainerControl*
@@ -8102,6 +8113,7 @@ __ZNK[RO]9gui_forms22ApplicationThemeConfig*
 __ZNK[RO]9gui_forms22BindingNavigatorAddNew*
 __ZNK[RO]9gui_forms22BlockFlowSharedMargins*
 __ZNK[RO]9gui_forms22BundledFontDiagnostics*
+__ZNK[RO]9gui_forms22CheckedComboItemChange*
 __ZNK[RO]9gui_forms22ContentLayoutTransform*
 __ZNK[RO]9gui_forms22ControlValidationEvent*
 __ZNK[RO]9gui_forms22CustomStateDeclaration*
@@ -9084,6 +9096,7 @@ __ZN[KRO]9gui_forms15BindingProvider*
 __ZN[KRO]9gui_forms15BindingSnapshot*
 __ZN[KRO]9gui_forms15BreadcrumbTrail*
 __ZN[KRO]9gui_forms15BundledFontFace*
+__ZN[KRO]9gui_forms15CheckedComboBox*
 __ZN[KRO]9gui_forms15CollapsedMargin*
 __ZN[KRO]9gui_forms15CollectionDirty*
 __ZN[KRO]9gui_forms15ColourSchemeSet*
@@ -9201,6 +9214,7 @@ __ZN[KRO]9gui_forms16BindingPredicate*
 __ZN[KRO]9gui_forms16BlendHeatMapView*
 __ZN[KRO]9gui_forms16BlendStudyPlanes*
 __ZN[KRO]9gui_forms16CachedPartRaster*
+__ZN[KRO]9gui_forms16CheckedComboItem*
 __ZN[KRO]9gui_forms16ColorValueEditor*
 __ZN[KRO]9gui_forms16CompositeControl*
 __ZN[KRO]9gui_forms16ContainerControl*
@@ -9808,6 +9822,7 @@ __ZN[KRO]9gui_forms22ApplicationThemeConfig*
 __ZN[KRO]9gui_forms22BindingNavigatorAddNew*
 __ZN[KRO]9gui_forms22BlockFlowSharedMargins*
 __ZN[KRO]9gui_forms22BundledFontDiagnostics*
+__ZN[KRO]9gui_forms22CheckedComboItemChange*
 __ZN[KRO]9gui_forms22ContentLayoutTransform*
 __ZN[KRO]9gui_forms22ControlValidationEvent*
 __ZN[KRO]9gui_forms22CustomStateDeclaration*
@@ -10790,6 +10805,7 @@ __ZT[VIST]N9gui_forms15BindingProvider*E
 __ZT[VIST]N9gui_forms15BindingSnapshot*E
 __ZT[VIST]N9gui_forms15BreadcrumbTrail*E
 __ZT[VIST]N9gui_forms15BundledFontFace*E
+__ZT[VIST]N9gui_forms15CheckedComboBox*E
 __ZT[VIST]N9gui_forms15CollapsedMargin*E
 __ZT[VIST]N9gui_forms15CollectionDirty*E
 __ZT[VIST]N9gui_forms15ColourSchemeSet*E
@@ -10907,6 +10923,7 @@ __ZT[VIST]N9gui_forms16BindingPredicate*E
 __ZT[VIST]N9gui_forms16BlendHeatMapView*E
 __ZT[VIST]N9gui_forms16BlendStudyPlanes*E
 __ZT[VIST]N9gui_forms16CachedPartRaster*E
+__ZT[VIST]N9gui_forms16CheckedComboItem*E
 __ZT[VIST]N9gui_forms16ColorValueEditor*E
 __ZT[VIST]N9gui_forms16CompositeControl*E
 __ZT[VIST]N9gui_forms16ContainerControl*E
@@ -11514,6 +11531,7 @@ __ZT[VIST]N9gui_forms22ApplicationThemeConfig*E
 __ZT[VIST]N9gui_forms22BindingNavigatorAddNew*E
 __ZT[VIST]N9gui_forms22BlockFlowSharedMargins*E
 __ZT[VIST]N9gui_forms22BundledFontDiagnostics*E
+__ZT[VIST]N9gui_forms22CheckedComboItemChange*E
 __ZT[VIST]N9gui_forms22ContentLayoutTransform*E
 __ZT[VIST]N9gui_forms22ControlValidationEvent*E
 __ZT[VIST]N9gui_forms22CustomStateDeclaration*E
@@ -12496,6 +12514,7 @@ __ZT[hvc]*9gui_forms15BindingProvider*
 __ZT[hvc]*9gui_forms15BindingSnapshot*
 __ZT[hvc]*9gui_forms15BreadcrumbTrail*
 __ZT[hvc]*9gui_forms15BundledFontFace*
+__ZT[hvc]*9gui_forms15CheckedComboBox*
 __ZT[hvc]*9gui_forms15CollapsedMargin*
 __ZT[hvc]*9gui_forms15CollectionDirty*
 __ZT[hvc]*9gui_forms15ColourSchemeSet*
@@ -12613,6 +12632,7 @@ __ZT[hvc]*9gui_forms16BindingPredicate*
 __ZT[hvc]*9gui_forms16BlendHeatMapView*
 __ZT[hvc]*9gui_forms16BlendStudyPlanes*
 __ZT[hvc]*9gui_forms16CachedPartRaster*
+__ZT[hvc]*9gui_forms16CheckedComboItem*
 __ZT[hvc]*9gui_forms16ColorValueEditor*
 __ZT[hvc]*9gui_forms16CompositeControl*
 __ZT[hvc]*9gui_forms16ContainerControl*
@@ -13220,6 +13240,7 @@ __ZT[hvc]*9gui_forms22ApplicationThemeConfig*
 __ZT[hvc]*9gui_forms22BindingNavigatorAddNew*
 __ZT[hvc]*9gui_forms22BlockFlowSharedMargins*
 __ZT[hvc]*9gui_forms22BundledFontDiagnostics*
+__ZT[hvc]*9gui_forms22CheckedComboItemChange*
 __ZT[hvc]*9gui_forms22ContentLayoutTransform*
 __ZT[hvc]*9gui_forms22ControlValidationEvent*
 __ZT[hvc]*9gui_forms22CustomStateDeclaration*
@@ -14202,6 +14223,7 @@ __ZZN9gui_forms15BindingProvider*
 __ZZN9gui_forms15BindingSnapshot*
 __ZZN9gui_forms15BreadcrumbTrail*
 __ZZN9gui_forms15BundledFontFace*
+__ZZN9gui_forms15CheckedComboBox*
 __ZZN9gui_forms15CollapsedMargin*
 __ZZN9gui_forms15CollectionDirty*
 __ZZN9gui_forms15ColourSchemeSet*
@@ -14319,6 +14341,7 @@ __ZZN9gui_forms16BindingPredicate*
 __ZZN9gui_forms16BlendHeatMapView*
 __ZZN9gui_forms16BlendStudyPlanes*
 __ZZN9gui_forms16CachedPartRaster*
+__ZZN9gui_forms16CheckedComboItem*
 __ZZN9gui_forms16ColorValueEditor*
 __ZZN9gui_forms16CompositeControl*
 __ZZN9gui_forms16ContainerControl*
@@ -14926,6 +14949,7 @@ __ZZN9gui_forms22ApplicationThemeConfig*
 __ZZN9gui_forms22BindingNavigatorAddNew*
 __ZZN9gui_forms22BlockFlowSharedMargins*
 __ZZN9gui_forms22BundledFontDiagnostics*
+__ZZN9gui_forms22CheckedComboItemChange*
 __ZZN9gui_forms22ContentLayoutTransform*
 __ZZN9gui_forms22ControlValidationEvent*
 __ZZN9gui_forms22CustomStateDeclaration*
@@ -15908,6 +15932,7 @@ __ZZNK9gui_forms15BindingProvider*
 __ZZNK9gui_forms15BindingSnapshot*
 __ZZNK9gui_forms15BreadcrumbTrail*
 __ZZNK9gui_forms15BundledFontFace*
+__ZZNK9gui_forms15CheckedComboBox*
 __ZZNK9gui_forms15CollapsedMargin*
 __ZZNK9gui_forms15CollectionDirty*
 __ZZNK9gui_forms15ColourSchemeSet*
@@ -16025,6 +16050,7 @@ __ZZNK9gui_forms16BindingPredicate*
 __ZZNK9gui_forms16BlendHeatMapView*
 __ZZNK9gui_forms16BlendStudyPlanes*
 __ZZNK9gui_forms16CachedPartRaster*
+__ZZNK9gui_forms16CheckedComboItem*
 __ZZNK9gui_forms16ColorValueEditor*
 __ZZNK9gui_forms16CompositeControl*
 __ZZNK9gui_forms16ContainerControl*
@@ -16632,6 +16658,7 @@ __ZZNK9gui_forms22ApplicationThemeConfig*
 __ZZNK9gui_forms22BindingNavigatorAddNew*
 __ZZNK9gui_forms22BlockFlowSharedMargins*
 __ZZNK9gui_forms22BundledFontDiagnostics*
+__ZZNK9gui_forms22CheckedComboItemChange*
 __ZZNK9gui_forms22ContentLayoutTransform*
 __ZZNK9gui_forms22ControlValidationEvent*
 __ZZNK9gui_forms22CustomStateDeclaration*

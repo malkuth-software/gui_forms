@@ -48,6 +48,7 @@
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/check_box_values.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -1384,6 +1385,7 @@ void append_field(EventFields& fields, std::string_view name, const BusinessCard
 void read_field(EventFields& fields, std::string_view name, BusinessCardRequest& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
 void append_field(EventFields& fields, std::string_view name, const CaretSettings& value);
+void append_field(EventFields& fields, std::string_view name, const CheckedComboItemChange& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
 void append_field(EventFields& fields, std::string_view name, const CommandState& value);
@@ -1757,6 +1759,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Caret
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "blink_milliseconds", value.blink_milliseconds);
     append_field(fields, "origin", value.origin);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const CheckedComboItemChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "item_id", value.item_id);
+    append_field(fields, "checked", value.checked);
     fields.leave(prefix);
 }
 
@@ -5164,6 +5173,15 @@ inline SubscriptionToken connect_flags_value_editor_drop_down_changed(Component&
     return token;
 }
 
+inline SubscriptionToken connect_checked_combo_box_drop_down_changed(Component& source, const EventSink& sink) {
+    CheckedComboBox* typed = dynamic_cast<CheckedComboBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drop_down_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_lookup_combo_box_drop_down_changed(Component& source, const EventSink& sink) {
     LookupComboBox* typed = dynamic_cast<LookupComboBox*>(&source);
     if (typed == nullptr) {
@@ -5628,6 +5646,15 @@ inline SubscriptionToken connect_tree_list_view_item_activated(Component& source
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).item_activated(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_checked_combo_box_item_check_changed(Component& source, const EventSink& sink) {
+    CheckedComboBox* typed = dynamic_cast<CheckedComboBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).item_check_changed(), sink);
     return token;
 }
 
@@ -7496,7 +7523,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 394> event_connectors{{
+inline constexpr std::array<EventConnector, 396> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7636,6 +7663,7 @@ inline constexpr std::array<EventConnector, 394> event_connectors{{
     {"drop_down_changed", "ComboBox", &connect_combo_box_drop_down_changed},
     {"drop_down_changed", "DateTimePicker", &connect_date_time_picker_drop_down_changed},
     {"drop_down_changed", "FlagsValueEditor", &connect_flags_value_editor_drop_down_changed},
+    {"drop_down_changed", "CheckedComboBox", &connect_checked_combo_box_drop_down_changed},
     {"drop_down_changed", "LookupComboBox", &connect_lookup_combo_box_drop_down_changed},
     {"drop_down_close_requested", "DropDownButton", &connect_drop_down_button_drop_down_close_requested},
     {"drop_down_item_invoked", "Ribbon", &connect_ribbon_drop_down_item_invoked},
@@ -7687,6 +7715,7 @@ inline constexpr std::array<EventConnector, 394> event_connectors{{
     {"item_activated", "TreeView", &connect_tree_view_item_activated},
     {"item_activated", "ListView", &connect_list_view_item_activated},
     {"item_activated", "TreeListView", &connect_tree_list_view_item_activated},
+    {"item_check_changed", "CheckedComboBox", &connect_checked_combo_box_item_check_changed},
     {"item_check_state_changed", "CheckedListBox", &connect_checked_list_box_item_check_state_changed},
     {"item_checked", "ListView", &connect_list_view_item_checked},
     {"item_checking", "CheckedListBox", &connect_checked_list_box_item_checking},

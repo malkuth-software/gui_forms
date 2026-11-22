@@ -17,6 +17,7 @@
     "CalloutCloseReason": "value: enumeration",
     "Card": "",
     "CheckState": "value: enumeration",
+    "CheckedComboItemChange": "item_id: text, checked: boolean",
     "Color": "value: color",
     "CommandInvocation": "command_id: text, source_id: text, sequence: unsigned_integer",
     "CommandItem": "id: signed_integer, glyph: text, shortcut.physical_key: unsigned_integer optional, shortcut.modifiers: enumeration optional, command: object",

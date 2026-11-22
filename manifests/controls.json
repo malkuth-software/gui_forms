@@ -1376,6 +1376,17 @@
       "doc": "api/generated/gui_forms.PopupContainerBox.rst"
     },
     {
+      "id": "checked_combo_box",
+      "type": "CheckedComboBox",
+      "header": "gui_forms/controls/checked_combo_box.hpp",
+      "category": "Selection from a list",
+      "purpose": "Drop-down field whose list has a tick box on each item: items kept by stable ID, the checked items' texts joined in the field, each change applied at once; a combo box over a check list to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "checked-collections",
+      "doc": "api/generated/gui_forms.CheckedComboBox.rst"
+    },
+    {
       "id": "about_dialog",
       "type": "AboutDialog",
       "header": "gui_forms/components/about_dialog/about_dialog.hpp",

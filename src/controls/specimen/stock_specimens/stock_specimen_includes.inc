@@ -117,6 +117,7 @@
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/popup_container_box.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/drawing_surface.hpp"
 #include "gui_forms/controls/raster_canvas.hpp"
 #include "gui_forms/controls/node_canvas.hpp"

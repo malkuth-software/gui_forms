@@ -42,6 +42,7 @@
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -170,7 +171,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 158> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 159> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -295,6 +296,7 @@ inline constexpr std::array<FormCatalogEntry, 158> form_catalog{{
     {"modal_layer", "ModalLayer", "gui_forms/controls/modal_layer.hpp", &add_catalog_type<ModalLayer>, CatalogConstruction::stable_id},
     {"lookup_combo_box", "LookupComboBox", "gui_forms/controls/lookup_combo_box.hpp", &add_catalog_type<LookupComboBox>, CatalogConstruction::stable_id},
     {"popup_container_box", "PopupContainerBox", "gui_forms/controls/popup_container_box.hpp", &add_catalog_type<PopupContainerBox>, CatalogConstruction::stable_id},
+    {"checked_combo_box", "CheckedComboBox", "gui_forms/controls/checked_combo_box.hpp", &add_catalog_type<CheckedComboBox>, CatalogConstruction::stable_id},
     {"about_dialog", "AboutDialog", "gui_forms/components/about_dialog/about_dialog.hpp", &add_catalog_type<AboutDialog>, CatalogConstruction::stable_id},
     {"folder_browser_dialog", "FolderBrowserDialog", "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp", &add_catalog_type<FolderBrowserDialog>, CatalogConstruction::stable_id},
     {"color_dialog", "ColorDialog", "gui_forms/components/color_dialog/color_dialog.hpp", &add_catalog_type<ColorDialog>, CatalogConstruction::stable_id},

@@ -42,6 +42,7 @@
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -170,7 +171,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 158> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 159> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -295,6 +296,7 @@ inline constexpr std::array<SchemaCatalogEntry, 158> schema_catalog{{
     {"modal_layer", "ModalLayer", &describe_type<ModalLayer>, &create_type<ModalLayer>, &is_exact_type<ModalLayer>, CatalogConstruction::stable_id},
     {"lookup_combo_box", "LookupComboBox", &describe_type<LookupComboBox>, &create_type<LookupComboBox>, &is_exact_type<LookupComboBox>, CatalogConstruction::stable_id},
     {"popup_container_box", "PopupContainerBox", &describe_type<PopupContainerBox>, &create_type<PopupContainerBox>, &is_exact_type<PopupContainerBox>, CatalogConstruction::stable_id},
+    {"checked_combo_box", "CheckedComboBox", &describe_type<CheckedComboBox>, &create_type<CheckedComboBox>, &is_exact_type<CheckedComboBox>, CatalogConstruction::stable_id},
     {"about_dialog", "AboutDialog", &describe_type<AboutDialog>, &create_type<AboutDialog>, &is_exact_type<AboutDialog>, CatalogConstruction::stable_id},
     {"folder_browser_dialog", "FolderBrowserDialog", &describe_type<FolderBrowserDialog>, &create_type<FolderBrowserDialog>, &is_exact_type<FolderBrowserDialog>, CatalogConstruction::stable_id},
     {"color_dialog", "ColorDialog", &describe_type<ColorDialog>, &create_type<ColorDialog>, &is_exact_type<ColorDialog>, CatalogConstruction::stable_id},

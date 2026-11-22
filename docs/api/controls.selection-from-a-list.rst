@@ -37,6 +37,8 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
      - A multi-column lookup: a drop-down field that chooses a row by its key and shows one of the row's cells, with a list of every column under headers when open.
    * - :cpp:class:`PopupContainerBox <gui_forms::PopupContainerBox>`
      - A drop-down field whose popup is a control the application gives it.
+   * - :cpp:class:`CheckedComboBox <gui_forms::CheckedComboBox>`
+     - A drop-down field whose list has a tick box on each item.
    * - :cpp:class:`ListControl <gui_forms::ListControl>`
      - The shared base of the list controls.
 
@@ -56,6 +58,7 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    generated/gui_forms.BreadcrumbTrail
    generated/gui_forms.LookupComboBox
    generated/gui_forms.PopupContainerBox
+   generated/gui_forms.CheckedComboBox
    generated/gui_forms.ListControl
 
 Related types
@@ -85,6 +88,20 @@ Related types
      - Whether the exact-path editor replaces the segments.
    * - :cpp:class:`BreadcrumbTrailTabCompletionAvailableCapability <gui_forms::BreadcrumbTrailTabCompletionAvailableCapability>`
      - Whether Tab in the path editor requests completion (edit_completion_requested).
+   * - :cpp:class:`CheckedComboBox::Parts <gui_forms::CheckedComboBox::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`CheckedComboBoxCapabilities <gui_forms::CheckedComboBoxCapabilities>`
+     - Every CheckedComboBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`CheckedComboBoxMaxDropDownItemsCapability <gui_forms::CheckedComboBoxMaxDropDownItemsCapability>`
+     - The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems).
+   * - :cpp:class:`CheckedComboBoxPlaceholderTextCapability <gui_forms::CheckedComboBoxPlaceholderTextCapability>`
+     - The hint the field shows while nothing is checked, such as "Any colour".
+   * - :cpp:class:`CheckedComboBoxSeparatorCapability <gui_forms::CheckedComboBoxSeparatorCapability>`
+     - What the field's text puts between the checked items' texts, ", " by default.
+   * - :cpp:class:`CheckedComboItem <gui_forms::CheckedComboItem>`
+     - One item.
+   * - :cpp:class:`CheckedComboItemChange <gui_forms::CheckedComboItemChange>`
+     - An item checked or unchecked, after it happened.
    * - :cpp:class:`CheckedListBox::Item <gui_forms::CheckedListBox::Item>`
      -  
    * - :cpp:class:`CheckedListBox::ItemParts <gui_forms::CheckedListBox::ItemParts>`
@@ -803,6 +820,124 @@ Related types
    .. cpp:function:: static void assign(BreadcrumbTrailTabCompletionAvailableCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, BreadcrumbTrailTabCompletionAvailableCapability<Declaring>> tab_completion_available
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckedComboBox::Parts final
+
+   ``#include <gui_forms/controls/checked_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box.hpp>`)
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``label`` its text, ``actuator`` the drop-down button and ``glyph`` its arrow; the box is ``open`` while the list is.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxCapabilities : public CheckedComboBoxSeparatorCapability<Declaring>, public CheckedComboBoxPlaceholderTextCapability<Declaring>, public CheckedComboBoxMaxDropDownItemsCapability<Declaring>
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   Every CheckedComboBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string separator
+
+      What the field's text puts between the checked items' texts, ", " by default. Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the field shows while nothing is checked, such as "Any colour". Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::uint32_t max_drop_down_items
+
+      The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems). A change applies the next time the list opens.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxMaxDropDownItemsCapability
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems). A change applies the next time the list opens.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedComboBoxMaxDropDownItemsCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, CheckedComboBoxMaxDropDownItemsCapability<Declaring>> max_drop_down_items
+
+      Default: ``{8U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   The hint the field shows while nothing is checked, such as "Any colour". Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedComboBoxPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CheckedComboBoxPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxSeparatorCapability
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   What the field's text puts between the checked items' texts, ", " by default. Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedComboBoxSeparatorCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CheckedComboBoxSeparatorCapability<Declaring>> separator
+
+      Default: ``{std::string(", ")}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckedComboItem final
+
+   ``#include <gui_forms/controls/checked_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box.hpp>`)
+
+   One item. ``stable_id`` is unique within the box and names the item in item_check_changed and checked_ids.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: bool checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckedComboItemChange final
+
+   ``#include <gui_forms/controls/checked_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box.hpp>`)
+
+   An item checked or unchecked, after it happened.
+
+   .. cpp:member:: std::string item_id
+
+   .. cpp:member:: bool checked
 
 .. cpp:namespace:: gui_forms
 

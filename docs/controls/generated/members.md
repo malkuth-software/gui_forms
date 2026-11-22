@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2418 | 3 | 370 | 4150 | 2549 |
+| 2418 | 3 | 370 | 4167 | 2566 |
 
 ## GUI.Forms types
 
@@ -140,6 +140,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
 | `LookupComboBox` | GUI.Forms-only | 9 | 0 | 0 | 7 | 16 |
 | `PopupContainerBox` | GUI.Forms-only | 9 | 0 | 0 | 2 | 11 |
+| `CheckedComboBox` | GUI.Forms-only | 0 | 0 | 0 | 17 | 17 |
 | `AboutDialog` | GUI.Forms-only | 5 | 0 | 0 | 1 | 6 |
 | `FolderBrowserDialog` | `FolderBrowserDialog` | 6 | 0 | 0 | 15 | 3 |
 | `ColorDialog` | `ColorDialog` | 5 | 0 | 0 | 9 | 2 |
@@ -317,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 977 |
+| `untested` | 994 |
 | `w-open` | 5 |

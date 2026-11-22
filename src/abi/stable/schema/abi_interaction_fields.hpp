@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 204> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 205> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -32,6 +32,7 @@ inline constexpr std::array<InteractionFieldsEntry, 204> interaction_fields{{
     {"CalloutCloseReason", "value: enumeration"},
     {"Card", ""},
     {"CheckState", "value: enumeration"},
+    {"CheckedComboItemChange", "item_id: text, checked: boolean"},
     {"Color", "value: color"},
     {"CommandInvocation", "command_id: text, source_id: text, sequence: unsigned_integer"},
     {"CommandItem", "id: signed_integer, glyph: text, shortcut.physical_key: unsigned_integer optional, shortcut.modifiers: enumeration optional, command: object"},

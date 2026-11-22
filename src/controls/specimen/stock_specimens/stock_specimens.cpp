@@ -454,6 +454,18 @@ StockSpecimenInstance make_button_text_box(const StockSpecimen& specimen, Stable
     return instance;
 }
 
+// Three weekdays, two of them checked: the field reads "Monday, Wednesday".
+StockSpecimenInstance make_checked_combo_box(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<CheckedComboBox> control = make_control<CheckedComboBox>(std::move(id));
+    std::vector<CheckedComboItem> items;
+    items.push_back({.stable_id = "monday", .text = "Monday", .checked = true});
+    items.push_back({.stable_id = "tuesday", .text = "Tuesday", .checked = false});
+    items.push_back({.stable_id = "wednesday", .text = "Wednesday", .checked = true});
+    (*control).set_items(std::move(items));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 // A disk-usage breakdown: four fixed slices in the theme's series colours,
 // as a doughnut with its shares inside.
 StockSpecimenInstance make_pie_chart(const StockSpecimen&, StableId id) {
