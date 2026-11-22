@@ -1512,7 +1512,13 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     change.stable_id = state.stable_id;
     change.depth = depth;
     change.opened = true;
+    // A focus_scope_changed handler may close and destroy this window:
+    // nothing of it is read after that (the scope's identity is the
+    // caller's own copy).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     focus_scope_changed_.emit(change);
+    if (window_destroyed(*lifetime, presenting)) return state.id;
     if (tool_tips_) (*tool_tips_).scope_changed();
 
     bool remains_active = false;
@@ -2353,6 +2359,12 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     const bool key_down = event.action == KeyAction::down;
+    // A raiser below (key_state_changed, the popup's route, the relative
+    // pointer's end, the drag, the key route) may close and destroy this
+    // window: nothing of it is read once its lifetime says it is gone, and
+    // the key counts as taken.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     // The input state sees the key before any control does; a change of a
     // key's held state is raised raw (key_state_changed) before any route
     // can consume the key.
@@ -2364,20 +2376,23 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
         change.scan_code = event.scan_code;
         change.modifiers = event.modifiers;
         change.down = key_down;
-        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
-        Window* const presenting = (*lifetime).window;
         key_state_changed_.emit(change);
-        if ((*lifetime).window != presenting) return true;
+        if (window_destroyed(*lifetime, presenting)) return true;
     }
     // A lifted drop-down or picker's Popup window takes the key first.
-    if (forward_to_popup(event)) return true;
+    if (forward_to_popup(event) || window_destroyed(*lifetime, presenting)) return true;
     // Escape ends a relative pointer mode, and the key goes no further.
-    if (relative_pointer_takes_key(event)) return true;
+    if (relative_pointer_takes_key(event) || window_destroyed(*lifetime, presenting)) return true;
     // A running drag takes the keys it uses (Escape; the keyboard mode's
     // arrows, Tab and Enter) before the rules and the focused control.
-    if (drag_engine_ && (*drag_engine_).key(event)) return true;
+    if ((drag_engine_ && (*drag_engine_).key(event)) || window_destroyed(*lifetime, presenting)) {
+        return true;
+    }
     const bool escape = key_down && event.physical_key == PhysicalKey::escape;
     const bool handled = route_key(std::move(event));
+    // A key_down handler or the focused control's own handling that closed
+    // the window leaves tool_tips_ freed (hostile_handlers, destroy_window).
+    if (window_destroyed(*lifetime, presenting)) return handled;
     // Escape dismisses a bubble. Any other key may have moved the keyboard
     // within the focused control, or shown the focus cue: the presenter
     // looks at what focus is on again.
