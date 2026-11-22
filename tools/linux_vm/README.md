@@ -23,7 +23,7 @@ limactl start gui-forms-linux
 limactl shell gui-forms-linux
 ```
 
-`~/Developer/CodexBuilds` is mounted read-only at `/mnt/codexbuilds`. Copy or
+`~/Developer/work/codex-builds` is mounted read-only at `/mnt/codexbuilds`. Copy or
 build from there into the guest's home directory; never write the mount.
 
 Clang 22 lives in `/usr/lib/llvm22/bin`:

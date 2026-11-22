@@ -18,7 +18,7 @@ disk: 24GiB
 # Source arrives read-only from the host's build mirrors; build outputs stay
 # inside the guest (~/build) so the host tree is never written.
 mounts:
-- location: "{{.Home}}/Developer/CodexBuilds"
+- location: "{{.Home}}/Developer/work/codex-builds"
   mountPoint: /mnt/codexbuilds
   writable: false
 mountType: virtiofs
