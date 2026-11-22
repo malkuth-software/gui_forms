@@ -467,15 +467,16 @@ with the change that needs it.
   downloaded Unicode data files, whose hashes it checks.
   `python3 tools/unicode/generate_grapheme_tables.py --grapheme GraphemeBreakProperty.txt --derived DerivedCoreProperties.txt --emoji emoji-data.txt --test GraphemeBreakTest.txt --tables-output src/core/text/unicode/unicode_grapheme_data.hpp --tests-output ../gui_forms_tests/tests/unicode_grapheme_break_cases.hpp`
 
-`tools/profile_hot_paths.py`
-: On Linux, builds the recorded workloads (the Gallery painted
-  through the CPU Skia adapter, `benchmarks/paint_profile_workload.cpp`; the
-  text engine and DocumentView benchmarks) with frame pointers, samples each
-  under `perf record`, and writes `hot-paths.json` and `hot-paths.md`: every
-  function's share of the samples, self and inclusive, and each area's
-  (GUI.Forms, Skia, STXlib, the C and C++ runtimes, the kernel). Shares,
-  not timings. `.github/workflows/profile-linux.yml` runs it weekly and on demand.
-  `python3 gui_forms/tools/profile_hot_paths.py run --output hot-paths --jobs 4`
+`tools/profile_cache.py`
+: The toolkit half of the Linux hot-path profile: builds GUI.Forms at
+  Release with frame pointers and line tables (shipped arithmetic, no
+  link-time optimisation) in `.build/native-<platform>/gui-forms-profile`,
+  packs it as a `profile` test cache, and runs gui_forms_tests'
+  `tools/profile_hot_paths.py`, which builds the recorded workloads against
+  it, samples them under `perf record` and lists every function's share of
+  the samples. The workloads, the profiler and its weekly workflow
+  (`profile-linux.yml`) are in gui_forms_tests since 2026-11-22.
+  `python3 -B tools/profile_cache.py --tests-checkout ../gui_forms_tests --jobs 4`
 
 `tools/linux_vm/`
 : A Lima definition for an Alpine aarch64 (musl) guest with Clang 22 and

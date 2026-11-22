@@ -4,7 +4,7 @@ Draft for `planning/` on the notes `gui_forms` branch, written in the study
 branch `claude/blend-study-1` (`build-notes/BLENDING_RULE.md`). The raster
 coder (patterns and geometry, `claude/raster-patterns-1`) builds on the rule
 in section 3. It describes the code at `claude/batch-cp33` 051e41ac5; the
-numbers the study measures come later, from `tools/blend_study.py`.
+numbers the study measures come later, from gui_forms_tests `tools/blend_study.py`.
 
 ## 1. What GUI.Forms blends today
 
@@ -134,7 +134,7 @@ frame the copy branch of the rule would take: `copied_pixels` against
 `blended_pixels`, the overdraw that copies hide, opaque fills issued
 source-over (which a kernel following the rule turns into copies), and
 opaque images drawn blended (which the decode flag removes). The numbers
-come from `tools/blend_study.py` on the M4; this note is updated with them
+come from gui_forms_tests `tools/blend_study.py` on the M4; this note is updated with them
 once the integrator has run it.
 
 ## 5. Owner decisions (2026-11-16)

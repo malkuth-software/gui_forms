@@ -143,10 +143,6 @@ else()
     set(GUI_FORMS_FORM_COMPILER_DEFAULT ON)
 endif()
 option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI_FORMS_FORM_COMPILER_DEFAULT})
-option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
-option(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK "Build the shared text engine cost benchmark" OFF)
-option(GUI_FORMS_BUILD_PAINT_PROFILE "Build the Gallery paint workload that the Linux profiling job samples" OFF)
-option(GUI_FORMS_BUILD_BLEND_STUDY "Build the Gallery blend and opaque study workload (tools/blend_study.py)" OFF)
 option(GUI_FORMS_BUILD_PREPARED_TEXT "Build the development prepared-text service" OFF)
 option(GUI_FORMS_BUILD_TEXT_MASKS "Build the development logical text-mask service" OFF)
 option(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS "Instrument private text shaping phases" OFF)
@@ -2930,48 +2926,6 @@ if(GUI_FORMS_BUILD_GALLERY)
     include(demo/correspondence/correspondence.cmake)
 endif()
 
-
-if(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK)
-    add_executable(gui_forms_text_engine_benchmark benchmarks/text_engine_benchmark.cpp)
-    target_link_libraries(gui_forms_text_engine_benchmark PRIVATE gui_forms_text_engine gui_forms_core)
-endif()
-
-if(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK)
-    add_executable(gui_forms_document_view_benchmark benchmarks/document_view_benchmark.cpp)
-    target_link_libraries(gui_forms_document_view_benchmark PRIVATE gui_forms_core)
-endif()
-
-# Phase E, E5: the Gallery painted through the CPU Skia adapter, for
-# .github/workflows/profile-linux.yml to sample (tools/profile_hot_paths.py).
-if(GUI_FORMS_BUILD_PAINT_PROFILE)
-    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR "The paint profile workload requires Skia and GUI_FORMS_BUILD_GALLERY")
-    endif()
-    add_executable(gui_forms_paint_profile_workload benchmarks/paint_profile_workload.cpp)
-    target_compile_definitions(gui_forms_paint_profile_workload PRIVATE
-        GUI_FORMS_PROFILE_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-    target_link_libraries(gui_forms_paint_profile_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
-endif()
-
-# The blend and opaque study (2026-11-16): the Gallery's blend counters and
-# frame times through the CPU Skia adapter, for tools/blend_study.py.
-if(GUI_FORMS_BUILD_BLEND_STUDY)
-    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR "The blend study workload requires Skia and GUI_FORMS_BUILD_GALLERY")
-    endif()
-    add_executable(gui_forms_blend_study_workload benchmarks/blend_study_workload.cpp)
-    target_compile_definitions(gui_forms_blend_study_workload PRIVATE
-        GUI_FORMS_BLEND_STUDY_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-    target_link_libraries(gui_forms_blend_study_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
-endif()
-
-
-# SK2: the time each host spends presenting a frame, which the native jobs
-# measure (.github/workflows/native-platform.yml). Built only when asked for.
-if(TARGET gui_forms_application)
-    add_executable(gui_forms_present_profile_workload EXCLUDE_FROM_ALL benchmarks/present_profile_workload.cpp)
-    target_link_libraries(gui_forms_present_profile_workload PRIVATE gui_forms_application)
-endif()
 
 # D2: the documentation's control previews, one PNG per stock specimen in the
 # windows-professional theme (tools/preview_capture/preview_capture.cpp), run
