@@ -11,7 +11,7 @@ open the same controls to other languages.
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://app.readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
 <!-- numbers:start -->
-- **Status:** the package version is 0.6 (C ABI 1.5, host protocol 15,
+- **Status:** the package version is 0.6 (C ABI 1.6, host protocol 15,
   drawing ABI 1.0). 1.0 is next: the library, its C ABI and its C#
   bindings, declared once its stability conditions hold. See the
   [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
