@@ -1373,9 +1373,13 @@ void ModelBuilder::read_child_binding(const std::uint32_t index, const std::opti
                    schema_.types[*parent_type].name + " has no property " + std::string(written));
         }
     } else {
-        if (!(*descriptor).bindable || !(*descriptor).writable) {
+        // A composite wires its own children, so any writable property of a
+        // child takes a bind, as the bound attributes did before <bind>
+        // (stepper-field binds the text box's read-only); a form's binding
+        // still needs a bindable property.
+        if (!(*descriptor).writable) {
             report(DiagnosticCode::form_binding_invalid, property_offset, bind_name, written,
-                   std::string(written) + " is not bindable");
+                   std::string(written) + " is read-only");
         }
         if (binding.mode == "two-way" && (*descriptor).binding_direction != PropertyBindingDirection::two_way) {
             report(DiagnosticCode::form_binding_option_invalid,
