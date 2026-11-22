@@ -35,9 +35,8 @@ struct FrameChromePaint final {
 
 void paint_frame_chrome(Painter& painter, const Control& surface, const FrameChromePaint& chrome);
 
-// A caption button's glyph. The vocabulary has no window-state marks: the
-// minimize button draws the underline mark, maximize the dock-shape mark
-// (its whole-pane region), restore the dialog-launcher mark.
+// A caption button's glyph: the window-state marks (PartMark::minimize,
+// maximize and restore) and close.
 enum class FrameButtonGlyph : std::uint8_t { minimize, maximize, restore, close };
 
 // One caption button: its plate (flat at rest, a plate when hot or pressed)

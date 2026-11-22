@@ -452,6 +452,65 @@ void paint_dock_shape(Painter& painter, Rect box, DockShapeRegion region, Color 
     painter.fill_rect(filled, ink);
 }
 
+// The window-state marks share one span: six tenths of the square, centred
+// (close's span), so a caption's three buttons draw marks of one size.
+Rect window_mark_span(Rect box) noexcept {
+    const Rect square = square_in(box);
+    const double span = std::floor(square.width * 0.6);
+    const double x = std::floor(square.x + (square.width - span) * 0.5);
+    const double y = std::floor(square.y + (square.height - span) * 0.5);
+    const Rect spanned{x, y, span, span};
+    return spanned;
+}
+
+// A one-unit outline of `frame` with a two-unit top edge (a window's
+// caption), its strokes on whole units.
+void paint_window_outline(Painter& painter, Rect frame, Color ink) {
+    painter.fill_rect({frame.x, frame.y, frame.width, 2.0}, ink);
+    const double left = frame.x + 0.5;
+    const double right = frame.x + frame.width - 0.5;
+    const double bottom = frame.y + frame.height - 0.5;
+    painter.draw_line({left, frame.y + 2.0}, {left, bottom}, ink, 1.0);
+    painter.draw_line({right, frame.y + 2.0}, {right, bottom}, ink, 1.0);
+    painter.draw_line({left, bottom}, {right, bottom}, ink, 1.0);
+}
+
+// Minimize: a one-unit rule across the span, two thirds of the way down.
+void paint_minimize(Painter& painter, Rect box, Color ink) {
+    const Rect span = window_mark_span(box);
+    if (span.width < 4.0) return;
+    const double y = std::floor(span.y + span.height * (2.0 / 3.0)) + 0.5;
+    painter.draw_line({span.x, y}, {span.x + span.width, y}, ink, 1.0);
+}
+
+// Maximize: the span as one window outline.
+void paint_maximize(Painter& painter, Rect box, Color ink) {
+    const Rect span = window_mark_span(box);
+    if (span.width < 5.0) return;
+    paint_window_outline(painter, span, ink);
+}
+
+// Restore: two window outlines a quarter of the span apart, the front one
+// at the lower left; of the back one (a one-unit top) only its top and right
+// edges and the stubs of its left and bottom edges beyond the front one
+// show.
+void paint_restore(Painter& painter, Rect box, Color ink) {
+    const Rect span = window_mark_span(box);
+    if (span.width < 7.0) return;
+    const double offset = std::max(2.0, std::floor(span.width * 0.25));
+    const double side = span.width - offset;
+    const Rect front{span.x, span.y + offset, side, side};
+    const Rect back{span.x + offset, span.y, side, side};
+    painter.fill_rect({back.x, back.y, back.width, 1.0}, ink);
+    const double back_right = back.x + back.width - 0.5;
+    const double back_bottom = back.y + back.height - 0.5;
+    painter.draw_line({back_right, back.y + 1.0}, {back_right, back_bottom}, ink, 1.0);
+    painter.draw_line({front.x + front.width, back_bottom}, {back_right, back_bottom}, ink, 1.0);
+    const double back_left = back.x + 0.5;
+    painter.draw_line({back_left, back.y + 1.0}, {back_left, front.y}, ink, 1.0);
+    paint_window_outline(painter, front, ink);
+}
+
 void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
     const Rect box = part.bounds;
     const Color ink = recipe.glyph;
@@ -636,6 +695,15 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
         painter.draw_line(corner, end, ink, 1.5);
         return;
     }
+    case PartMark::minimize:
+        paint_minimize(painter, box, ink);
+        return;
+    case PartMark::maximize:
+        paint_maximize(painter, box, ink);
+        return;
+    case PartMark::restore:
+        paint_restore(painter, box, ink);
+        return;
     case PartMark::underline: {
         // A one-unit rule whose lower edge is the box's bottom edge.
         const double y = box.y + box.height - 0.5;
@@ -1096,6 +1164,9 @@ std::string_view part_mark_name(PartMark mark) noexcept {
     case PartMark::chevron_down: return "chevron_down";
     case PartMark::chevron_right: return "chevron_right";
     case PartMark::chevron_left: return "chevron_left";
+    case PartMark::minimize: return "minimize";
+    case PartMark::maximize: return "maximize";
+    case PartMark::restore: return "restore";
     case PartMark::close: return "close";
     case PartMark::grip_dots: return "grip_dots";
     case PartMark::dialog_launcher: return "dialog_launcher";

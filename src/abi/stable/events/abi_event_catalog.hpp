@@ -911,7 +911,7 @@ struct EnumerationChoices<PageSelectionCause> {
 template <>
 struct EnumerationChoices<PartMark> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 29> choices{{
+    static constexpr std::array<EnumerationChoice, 32> choices{{
         {"none", static_cast<std::int64_t>(PartMark::none)},
         {"check", static_cast<std::int64_t>(PartMark::check)},
         {"indeterminate", static_cast<std::int64_t>(PartMark::indeterminate)},
@@ -940,6 +940,9 @@ struct EnumerationChoices<PartMark> {
         {"warning", static_cast<std::int64_t>(PartMark::warning)},
         {"success", static_cast<std::int64_t>(PartMark::success)},
         {"chevron_left", static_cast<std::int64_t>(PartMark::chevron_left)},
+        {"minimize", static_cast<std::int64_t>(PartMark::minimize)},
+        {"maximize", static_cast<std::int64_t>(PartMark::maximize)},
+        {"restore", static_cast<std::int64_t>(PartMark::restore)},
         {"count", static_cast<std::int64_t>(PartMark::count)},
     }};
 };

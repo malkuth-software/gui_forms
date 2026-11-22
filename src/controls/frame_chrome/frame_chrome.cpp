@@ -48,14 +48,13 @@ void paint_frame_button(Painter& painter, const Control& surface, Rect button, R
     part.bounds = glyph;
     switch (mark) {
     case FrameButtonGlyph::minimize:
-        part.mark = PartMark::underline;
+        part.mark = PartMark::minimize;
         break;
     case FrameButtonGlyph::maximize:
-        part.mark = PartMark::dock_shape;
-        part.dock_region = DockShapeRegion::tab_into;
+        part.mark = PartMark::maximize;
         break;
     case FrameButtonGlyph::restore:
-        part.mark = PartMark::dialog_launcher;
+        part.mark = PartMark::restore;
         break;
     case FrameButtonGlyph::close:
         part.mark = PartMark::close;

@@ -9073,6 +9073,12 @@ Enumerations
 
    .. cpp:enumerator:: chevron_left
 
+   .. cpp:enumerator:: minimize
+
+   .. cpp:enumerator:: maximize
+
+   .. cpp:enumerator:: restore
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
