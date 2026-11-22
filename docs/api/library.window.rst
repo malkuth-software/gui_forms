@@ -165,6 +165,8 @@ Related types
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
    * - :cpp:class:`PressTrace <gui_forms::PressTrace>`
      - The last primary press: where it landed and how the route treated it.
+   * - :cpp:class:`RefreshCounterTiming <gui_forms::RefreshCounterTiming>`
+     - Display timing from a presenter's completion stamps that count the display's refreshes (X11 Present's ust and msc; design note frame-source, section 3): each stamp is the time a frame was shown and the refresh it was shown on.
    * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
@@ -1900,6 +1902,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: RefreshCounterTiming final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   Display timing from a presenter's completion stamps that count the display's refreshes (X11 Present's ust and msc; design note frame-source, section 3): each stamp is the time a frame was shown and the refresh it was shown on. The period is the time between an anchor stamp and the latest over the refreshes between them, so it is as fine as a long span makes it; the anchor moves forward every 240 refreshes, to a stamp taken 120 or more after it, so the span stays between 120 and 240 refreshes once that many have passed. One instance per window, on its thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::Optional<DisplayTiming> take(FrameTime shown, std::uint64_t count) noexcept
+
+      Takes a frame shown at ``shown`` on refresh ``count``. Returns display timing with that period, phased at ``shown``; nothing for the first stamp, and nothing (starting again from this stamp) when the count does not advance or the time does not (a reset presenter, another display).
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets every stamp (the window moved to another display).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ScrollCopy final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
@@ -3059,6 +3080,8 @@ Enumerations
 
    .. cpp:enumerator:: measured
 
+   .. cpp:enumerator:: nominal
+
    .. cpp:enumerator:: fixed
 
 .. cpp:namespace:: gui_forms
@@ -3716,7 +3739,7 @@ Functions, constants and aliases
 
 .. cpp:function:: const char* display_timing_source_name(DisplayTimingSource source) noexcept
 
-   A short label of the source for diagnostics and benches: "assumed", "display", "measured" or "fixed".
+   A short label of the source for diagnostics and benches: "assumed", "display", "measured", "nominal" or "fixed".
 
 .. cpp:var:: constexpr FrameInterval assumed_refresh_period
 

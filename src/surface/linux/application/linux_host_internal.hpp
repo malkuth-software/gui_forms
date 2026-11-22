@@ -12,6 +12,7 @@
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
 #include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/platform/linux_host.hpp"
+#include "gui_forms/scheduler/display_timing/display_timing.hpp"
 #include <X11/Xlib.h>
 #include <signal.h>
 #include <array>
@@ -307,6 +308,14 @@ public:
   void ready();
   void event(XEvent &event);
   void update();
+  // A frame presented through the direct path was shown at `ust`
+  // (microseconds of CLOCK_MONOTONIC) on refresh `msc`: the display's
+  // timing it gives reaches the model (set_display_timing).
+  void present_completed(std::uint64_t ust, std::uint64_t msc);
+  // Reads the nominal refresh rate of the monitor under the window
+  // (x11_refresh_period_at) and reports it as nominal timing, unless the
+  // model already holds the display's own timing at that rate.
+  void report_nominal_rate();
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
   // XDND drops (linux_drag_drop.cpp): not compiled in a high-integrity build.
   bool drag_message(const XClientMessageEvent &message);
@@ -528,6 +537,12 @@ public:
   // null while the presentation policy leaves it off. Receives the
   // window's PresentIdleNotify events (Runtime::dispatch).
   X11PresentPath *direct_path{};
+  // The display's timing from the direct path's completions (Present's ust
+  // and msc; present_completed), and whether the nominal rate of the
+  // monitor under the window was read since the window last moved or the
+  // screens changed (report_nominal_rate).
+  RefreshCounterTiming refresh_timing;
+  bool nominal_rate_read{};
   // The presentation policy turned host scroll on (set with the shim).
   bool host_scroll_policy{};
   std::vector<presentation::PresentRect> present_rects;
@@ -687,6 +702,12 @@ HostDialogResult retained_dialog(NativeWindow &owner,
 // Every scale is the desktop's (Runtime::desktop_scale, from Xft.dpi). Device
 // units. UI thread.
 void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result);
+// The nominal refresh period of the RandR mode of the first enabled CRTC
+// containing root point (`x`, `y`) in X pixels (design note frame-source,
+// section 3): the mode's pixel clock over the pixels a refresh scans. Zero
+// without RandR, outside every CRTC, or for a rate outside 1 to 1000 Hz.
+// UI thread.
+[[nodiscard]] FrameInterval x11_refresh_period_at(Display *display, int x, int y);
 // The run's open operation (LinuxOpenWindow). Only the UI thread reaches the
 // windowing, and only while the run lives.
 struct RunOpenState final {

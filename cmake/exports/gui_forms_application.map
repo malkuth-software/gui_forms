@@ -1161,6 +1161,7 @@
     _ZGVZN9gui_forms20PropertyObjectMember*;
     _ZGVZN9gui_forms20PropertyRegistration*;
     _ZGVZN9gui_forms20PropertyResetRequest*;
+    _ZGVZN9gui_forms20RefreshCounterTiming*;
     _ZGVZN9gui_forms20RelativePointerEnded*;
     _ZGVZN9gui_forms20RelativePointerGrant*;
     _ZGVZN9gui_forms20ResponsiveTrackPanel*;
@@ -2850,6 +2851,7 @@
     _ZGVZNK9gui_forms20PropertyObjectMember*;
     _ZGVZNK9gui_forms20PropertyRegistration*;
     _ZGVZNK9gui_forms20PropertyResetRequest*;
+    _ZGVZNK9gui_forms20RefreshCounterTiming*;
     _ZGVZNK9gui_forms20RelativePointerEnded*;
     _ZGVZNK9gui_forms20RelativePointerGrant*;
     _ZGVZNK9gui_forms20ResponsiveTrackPanel*;
@@ -5203,6 +5205,7 @@
     _ZN9gui_forms20PropertyObjectMember*;
     _ZN9gui_forms20PropertyRegistration*;
     _ZN9gui_forms20PropertyResetRequest*;
+    _ZN9gui_forms20RefreshCounterTiming*;
     _ZN9gui_forms20RelativePointerEnded*;
     _ZN9gui_forms20RelativePointerGrant*;
     _ZN9gui_forms20ResponsiveTrackPanel*;
@@ -7940,6 +7943,7 @@
     _ZNK[RO]9gui_forms20PropertyObjectMember*;
     _ZNK[RO]9gui_forms20PropertyRegistration*;
     _ZNK[RO]9gui_forms20PropertyResetRequest*;
+    _ZNK[RO]9gui_forms20RefreshCounterTiming*;
     _ZNK[RO]9gui_forms20RelativePointerEnded*;
     _ZNK[RO]9gui_forms20RelativePointerGrant*;
     _ZNK[RO]9gui_forms20ResponsiveTrackPanel*;
@@ -9629,6 +9633,7 @@
     _ZN[KRO]9gui_forms20PropertyObjectMember*;
     _ZN[KRO]9gui_forms20PropertyRegistration*;
     _ZN[KRO]9gui_forms20PropertyResetRequest*;
+    _ZN[KRO]9gui_forms20RefreshCounterTiming*;
     _ZN[KRO]9gui_forms20RelativePointerEnded*;
     _ZN[KRO]9gui_forms20RelativePointerGrant*;
     _ZN[KRO]9gui_forms20ResponsiveTrackPanel*;
@@ -11318,6 +11323,7 @@
     _ZT[VIST]N9gui_forms20PropertyObjectMember*E;
     _ZT[VIST]N9gui_forms20PropertyRegistration*E;
     _ZT[VIST]N9gui_forms20PropertyResetRequest*E;
+    _ZT[VIST]N9gui_forms20RefreshCounterTiming*E;
     _ZT[VIST]N9gui_forms20RelativePointerEnded*E;
     _ZT[VIST]N9gui_forms20RelativePointerGrant*E;
     _ZT[VIST]N9gui_forms20ResponsiveTrackPanel*E;
@@ -13007,6 +13013,7 @@
     _ZT[hvc]*9gui_forms20PropertyObjectMember*;
     _ZT[hvc]*9gui_forms20PropertyRegistration*;
     _ZT[hvc]*9gui_forms20PropertyResetRequest*;
+    _ZT[hvc]*9gui_forms20RefreshCounterTiming*;
     _ZT[hvc]*9gui_forms20RelativePointerEnded*;
     _ZT[hvc]*9gui_forms20RelativePointerGrant*;
     _ZT[hvc]*9gui_forms20ResponsiveTrackPanel*;
@@ -14696,6 +14703,7 @@
     _ZZN9gui_forms20PropertyObjectMember*;
     _ZZN9gui_forms20PropertyRegistration*;
     _ZZN9gui_forms20PropertyResetRequest*;
+    _ZZN9gui_forms20RefreshCounterTiming*;
     _ZZN9gui_forms20RelativePointerEnded*;
     _ZZN9gui_forms20RelativePointerGrant*;
     _ZZN9gui_forms20ResponsiveTrackPanel*;
@@ -16385,6 +16393,7 @@
     _ZZNK9gui_forms20PropertyObjectMember*;
     _ZZNK9gui_forms20PropertyRegistration*;
     _ZZNK9gui_forms20PropertyResetRequest*;
+    _ZZNK9gui_forms20RefreshCounterTiming*;
     _ZZNK9gui_forms20RelativePointerEnded*;
     _ZZNK9gui_forms20RelativePointerGrant*;
     _ZZNK9gui_forms20ResponsiveTrackPanel*;

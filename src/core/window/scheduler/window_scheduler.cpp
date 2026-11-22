@@ -156,7 +156,17 @@ FrameRequestToken SurfaceRoot::schedule_animation_frames(Component& owner, Frame
 bool SurfaceRoot::set_display_timing(const DisplayTiming& timing) {
     require_root_thread("display timing");
     if (!timing.valid()) return false;
-    display_timing_ = timing.paced() ? timing : DisplayTiming::assumed();
+    DisplayTiming accepted = timing.paced() ? timing : DisplayTiming::assumed();
+    // A display link measures each refresh afresh, a few nanoseconds apart:
+    // a period within a thousandth of the held one keeps the held one, so
+    // such a report re-derives no interval.
+    if (accepted.paced() && display_timing_.paced()) {
+        const FrameInterval held = display_timing_.refresh_period;
+        const FrameInterval change =
+            accepted.refresh_period > held ? accepted.refresh_period - held : held - accepted.refresh_period;
+        if (change * 1000 <= held) accepted.refresh_period = held;
+    }
+    display_timing_ = accepted;
     bool moved = false;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
         if (!(*request).connected() || !(*request).paced_to_display) continue;

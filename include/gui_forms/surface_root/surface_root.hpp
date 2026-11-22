@@ -1062,7 +1062,10 @@ public:
     // display), and by tests, benches and offscreen hosts with
     // DisplayTiming::fixed_rate. Returns false, changing nothing, when the
     // timing is not valid (DisplayTiming::valid). Otherwise it is stored
-    // (an assumed report as DisplayTiming::assumed() itself), and each
+    // (an assumed report as DisplayTiming::assumed() itself; a paced
+    // report whose period is within a thousandth of the held paced one
+    // keeps the held period, so a display link's per-tick measurement does
+    // not re-derive every interval), and each
     // display-paced request (the motion clock's, the animation timers')
     // takes the new refresh period and moves its deadline to the nearest
     // point of the new grid, unless it lies within an eighth of a period of

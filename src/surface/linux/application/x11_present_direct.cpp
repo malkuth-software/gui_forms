@@ -57,17 +57,29 @@ int x11_present_opcode(Display *display) noexcept {
 bool read_x11_present_event(Display *display, int opcode, XEvent &event, X11PresentEvent &read) {
   if (opcode < 0 || event.type != GenericEvent || event.xcookie.extension != opcode) return false;
   if (!XGetEventData(display, &event.xcookie)) return false;
-  bool idle = false;
+  bool taken = false;
   if (event.xcookie.evtype == PresentIdleNotify) {
     const XPresentIdleNotifyEvent &notice = *static_cast<const XPresentIdleNotifyEvent *>(event.xcookie.data);
     read.idle = true;
     read.window = notice.window;
     read.pixmap = notice.pixmap;
     read.serial = notice.serial_number;
-    idle = true;
+    taken = true;
+  } else if (event.xcookie.evtype == PresentCompleteNotify) {
+    const XPresentCompleteNotifyEvent &notice =
+        *static_cast<const XPresentCompleteNotifyEvent *>(event.xcookie.data);
+    // A NotifyMSC completion answers no present of ours.
+    if (notice.kind == PresentCompleteKindPixmap) {
+      read.complete = true;
+      read.window = notice.window;
+      read.serial = notice.serial_number;
+      read.ust = static_cast<std::uint64_t>(notice.ust);
+      read.msc = static_cast<std::uint64_t>(notice.msc);
+      taken = true;
+    }
   }
   XFreeEventData(display, &event.xcookie);
-  return idle;
+  return taken;
 }
 
 X11PresentPath::X11PresentPath(Display *display, ::Window window, Visual *visual, int depth) noexcept
@@ -92,7 +104,7 @@ bool X11PresentPath::usable() {
   opcodes_[0] = x11_extension_opcode(display_, "MIT-SHM");
   opcodes_[1] = x11_extension_opcode(display_, "Present");
   opcodes_[2] = x11_extension_opcode(display_, "XFIXES");
-  selection_ = XPresentSelectInput(display_, window_, PresentIdleNotifyMask);
+  selection_ = XPresentSelectInput(display_, window_, PresentIdleNotifyMask | PresentCompleteNotifyMask);
   checked_ = Check::usable;
   return true;
 }

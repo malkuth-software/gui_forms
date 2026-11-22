@@ -46,6 +46,7 @@
 #include <poll.h>
 #include <span>
 #include <stdexcept>
+#include <time.h>
 #include <unistd.h>
 
 namespace gui_forms::host::linux_detail {
@@ -1683,7 +1684,9 @@ void NativeWindow::event(XEvent &event) {
         damage.add({0, 0, size.width, size.height});
       }
     }
-    // A move onto a monitor of another scale re-rasters there.
+    // A move onto a monitor of another scale re-rasters there, and the
+    // monitor's refresh rate is read again at the next update.
+    nominal_rate_read = false;
     apply_scale(scale_here());
     if (closed)
       return;
@@ -1894,6 +1897,8 @@ void NativeWindow::update() {
   if (closed)
     return;
   static_cast<void>((*entry.model).drain_posted_work());
+  if (!nominal_rate_read)
+    report_nominal_rate();
   static_cast<void>(
       (*entry.model).poll_frame_schedule(std::chrono::steady_clock::now()));
   if (accessibility && !closed) { (*accessibility).update(); }
@@ -2231,6 +2236,9 @@ void Runtime::dispatch(XEvent &event) {
 #if defined(GUI_FORMS_HAVE_XRANDR)
   if (randr_event_base >= 0 && event.type == randr_event_base + RRScreenChangeNotify) {
     XRRUpdateConfiguration(&event);
+    // Modes may have changed: every window reads its monitor's rate again.
+    for (std::size_t i = 0; i < windows.size(); ++i)
+      (*windows[i]).nominal_rate_read = false;
     report_displays();
     return;
   }
@@ -2306,13 +2314,18 @@ void Runtime::dispatch(XEvent &event) {
   }
 #endif
   // A Present idle notice frees one of a window's direct pixmaps for
-  // writing (x11_present_direct.hpp).
+  // writing (x11_present_direct.hpp); a completion stamps the display's
+  // timing (NativeWindow::present_completed).
   X11PresentEvent present_event{};
   if (read_x11_present_event(display, present_opcode, event, present_event)) {
     for (std::size_t i = 0; i < windows.size(); ++i) {
       NativeWindow &receiving = *windows[i];
-      if (receiving.xid == present_event.window && receiving.direct_path != nullptr)
+      if (receiving.xid != present_event.window)
+        continue;
+      if (present_event.idle && receiving.direct_path != nullptr)
         (*receiving.direct_path).idle(present_event.pixmap, present_event.serial);
+      if (present_event.complete)
+        receiving.present_completed(present_event.ust, present_event.msc);
     }
     return;
   }
@@ -2550,6 +2563,47 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
                     static_cast<unsigned>(hints.height));
   XFlush(runtime.display);
   return {};
+}
+void NativeWindow::present_completed(std::uint64_t ust, std::uint64_t msc) {
+  if (closed)
+    return;
+  // ust is CLOCK_MONOTONIC time: its age now carries it to the steady clock.
+  timespec monotonic{};
+  if (clock_gettime(CLOCK_MONOTONIC, &monotonic) != 0)
+    return;
+  const FrameTime steady_now = FrameClock::now();
+  const std::int64_t now_microseconds =
+      static_cast<std::int64_t>(monotonic.tv_sec) * 1'000'000 + static_cast<std::int64_t>(monotonic.tv_nsec) / 1'000;
+  const std::int64_t age_microseconds = now_microseconds - static_cast<std::int64_t>(ust);
+  const FrameTime shown =
+      steady_now - std::chrono::duration_cast<FrameInterval>(std::chrono::microseconds(age_microseconds));
+  const stxlib::Optional<DisplayTiming> timing = refresh_timing.take(shown, msc);
+  const DisplayTiming *const reported = timing.value();
+  if (reported != nullptr)
+    static_cast<void>((*entry.model).set_display_timing(*reported));
+}
+void NativeWindow::report_nominal_rate() {
+  nominal_rate_read = true;
+  int x{}, y{};
+  ::Window child{};
+  if (!XTranslateCoordinates(runtime.display, xid, DefaultRootWindow(runtime.display), 0, 0, &x, &y, &child))
+    return;
+  const FrameInterval period = x11_refresh_period_at(runtime.display, x + device_width / 2, y + device_height / 2);
+  if (period <= FrameInterval::zero())
+    return;
+  const DisplayTiming held = (*entry.model).display_timing();
+  // Present's stamps time the display itself: a nominal rate within a
+  // hundredth of theirs leaves them; another rate means another display,
+  // whose stamps start again.
+  const FrameInterval difference =
+      period > held.refresh_period ? period - held.refresh_period : held.refresh_period - period;
+  const bool same_rate = difference * 100 <= held.refresh_period;
+  if (held.source == DisplayTimingSource::display && same_rate)
+    return;
+  refresh_timing.reset();
+  const FrameTime phase = held.paced() ? held.presentation_phase : FrameClock::now();
+  const DisplayTiming nominal = DisplayTiming::reported(DisplayTimingSource::nominal, period, phase);
+  static_cast<void>((*entry.model).set_display_timing(nominal));
 }
 double NativeWindow::scale_here() const {
   int x{}, y{};

@@ -35,17 +35,25 @@ struct X11PresentEvent final {
   // A PresentIdleNotify: `pixmap` of `window`, presented with `serial`, is
   // no longer read by the server.
   bool idle{};
+  // A PresentCompleteNotify for a pixmap present: the frame presented with
+  // `serial` was shown at `ust` (microseconds of the server's monotonic
+  // clock, CLOCK_MONOTONIC on Linux) on refresh `msc` of the window's
+  // CRTC (design note frame-source, section 3).
+  bool complete{};
   ::Window window{};
   Pixmap pixmap{};
   std::uint32_t serial{};
+  std::uint64_t ust{};
+  std::uint64_t msc{};
 };
 
 // The Present extension's major opcode on `display`, or -1 without it (or
 // in a build without libXpresent).
 [[nodiscard]] int x11_present_opcode(Display *display) noexcept;
 // Reads `event` when it is a GenericEvent of the Present extension
-// (`opcode`): returns true and fills `read` for an idle notice; false for
-// any other event, which is left as it was.
+// (`opcode`): returns true and fills `read` for an idle notice or a
+// pixmap present's completion; false for any other event, which is left as
+// it was.
 [[nodiscard]] bool read_x11_present_event(Display *display, int opcode, XEvent &event, X11PresentEvent &read);
 // Whether `visual` at `depth` stores the raster's pixel: 32-bit words with
 // red, green and blue in bytes 2, 1 and 0, read little-endian by the
@@ -70,6 +78,8 @@ public:
   void release() noexcept override;
 
   // A PresentIdleNotify for this window: the pixmap may be written again.
+  // (The path also selects PresentCompleteNotify; the host reads those for
+  // the display's timing, X11PresentEvent::complete.)
   // A pixmap this path no longer holds (released, or remade at a new
   // size) is ignored.
   void idle(Pixmap pixmap, std::uint32_t serial) noexcept;

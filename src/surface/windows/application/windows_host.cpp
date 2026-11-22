@@ -2952,6 +2952,7 @@ private:
     void collect_damage() {
         // Nothing to collect for a destroyed window (A-gf-host-03-F8).
         if (hwnd_ == nullptr) return;
+        report_display_timing();
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
         accessibility_.notify(scale_);
         DamageRegion damage = (*model_).take_damage();
@@ -3108,6 +3109,47 @@ private:
         live_clock_armed_ = SetWaitableTimer(live_frame_clock_, &due, 0, nullptr, nullptr,
                                              FALSE) != FALSE;
         if (live_clock_armed_) live_clock_deadline_ = deadline;
+    }
+
+    // Reports the display's timing to the model before each poll (design
+    // note frame-source, section 3), so that its display-paced frames fall
+    // on the display's refreshes and are drawn for the time they are shown:
+    // DWM's composition timing (display timing, phased at its vertical
+    // blank) where the window is on the primary display or on one of the
+    // same rate; the window's monitor's mode rate where it is on another
+    // display (nominal timing, at the phase already held, or now); nothing
+    // (the model keeps what it holds, assumed at first) where neither is
+    // known. A refused report changes nothing.
+    void report_display_timing() {
+        if (hwnd_ == nullptr || qpc_frequency_ <= 0) return;
+        LARGE_INTEGER now{};
+        QueryPerformanceCounter(&now);
+        const FrameTime steady_now = FrameClock::now();
+        DWM_TIMING_INFO timing{};
+        timing.cbSize = sizeof(timing);
+        const bool composed = dwm_composition_timing_ != nullptr && dwm_composition_timing_(nullptr, &timing) == S_OK &&
+                              timing.qpcRefreshPeriod > 0U && timing.qpcVBlank > 0U;
+        const LONGLONG composed_period = composed ? static_cast<LONGLONG>(timing.qpcRefreshPeriod) : 0;
+        const LONGLONG window_period = window_monitor_period();
+        const bool other_rate = window_period > 0 && (!composed || window_period * 100 < composed_period * 99 ||
+                                                      window_period * 100 > composed_period * 101);
+        if (composed && !other_rate) {
+            const FrameInterval period = std::chrono::duration_cast<FrameInterval>(
+                std::chrono::nanoseconds(qpc_nanoseconds(composed_period)));
+            const LONGLONG since_vblank = now.QuadPart - static_cast<LONGLONG>(timing.qpcVBlank);
+            const FrameTime vblank = steady_now - std::chrono::duration_cast<FrameInterval>(
+                std::chrono::nanoseconds(qpc_nanoseconds(since_vblank)));
+            const DisplayTiming reported = DisplayTiming::reported(DisplayTimingSource::display, period, vblank);
+            static_cast<void>((*model_).set_display_timing(reported));
+            return;
+        }
+        if (!other_rate) return;
+        const FrameInterval period =
+            std::chrono::duration_cast<FrameInterval>(std::chrono::nanoseconds(qpc_nanoseconds(window_period)));
+        const DisplayTiming held = (*model_).display_timing();
+        const FrameTime phase = held.paced() ? held.presentation_phase : steady_now;
+        const DisplayTiming reported = DisplayTiming::reported(DisplayTimingSource::nominal, period, phase);
+        static_cast<void>((*model_).set_display_timing(reported));
     }
 
     // The refresh period, in counter ticks, of the display the window is on

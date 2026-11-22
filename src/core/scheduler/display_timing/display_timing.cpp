@@ -69,12 +69,54 @@ const char* display_timing_source_name(DisplayTimingSource source) noexcept {
         return "display";
     case DisplayTimingSource::measured:
         return "measured";
+    case DisplayTimingSource::nominal:
+        return "nominal";
     case DisplayTimingSource::fixed:
         return "fixed";
     case DisplayTimingSource::assumed:
     default:
         return "assumed";
     }
+}
+
+namespace {
+
+// The refreshes after which a counter timing's anchor moves on, and the
+// least span its next anchor needs.
+constexpr std::uint64_t anchor_span_limit = 240U;
+constexpr std::uint64_t next_anchor_span = 120U;
+
+} // namespace
+
+stxlib::Optional<DisplayTiming> RefreshCounterTiming::take(FrameTime shown, std::uint64_t count) noexcept {
+    stxlib::Optional<DisplayTiming> result;
+    const Stamp stamp{shown, count};
+    const bool advanced = primed_ && count > last_.count && shown > last_.shown;
+    if (!advanced) {
+        anchor_ = stamp;
+        next_anchor_ = stamp;
+        last_ = stamp;
+        primed_ = true;
+        return result;
+    }
+    last_ = stamp;
+    const std::uint64_t span = count - anchor_.count;
+    const FrameInterval elapsed = shown - anchor_.shown;
+    const FrameInterval period = elapsed / static_cast<FrameInterval::rep>(span);
+    if (next_anchor_.count == anchor_.count && span >= next_anchor_span) next_anchor_ = stamp;
+    if (span >= anchor_span_limit) {
+        anchor_ = next_anchor_;
+        next_anchor_ = stamp;
+    }
+    result.set(DisplayTiming::reported(DisplayTimingSource::display, period, shown));
+    return result;
+}
+
+void RefreshCounterTiming::reset() noexcept {
+    anchor_ = Stamp{};
+    next_anchor_ = Stamp{};
+    last_ = Stamp{};
+    primed_ = false;
 }
 
 } // namespace gui_forms

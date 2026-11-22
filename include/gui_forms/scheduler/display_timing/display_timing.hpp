@@ -6,6 +6,8 @@
 #include <chrono>
 #include <cstdint>
 
+#include <stxlib/optional.hpp>
+
 namespace gui_forms {
 
 // Where a window's display timing came from (DisplayTiming::source).
@@ -19,6 +21,10 @@ enum class DisplayTimingSource : std::uint8_t {
     // Estimated from the times the host's presentations completed, where the
     // system reports no timing.
     measured,
+    // The display mode's nominal refresh rate, without the display's phase:
+    // the frames keep the phase already held (a monitor DWM does not time,
+    // RandR's mode rate).
+    nominal,
     // A rate chosen by a test, a bench or an offscreen host.
     fixed,
 };
@@ -68,7 +74,39 @@ struct GUI_FORMS_API DisplayTiming final {
 // after `now`, or `now` itself for timing that is not paced.
 [[nodiscard]] GUI_FORMS_API FrameTime next_presentation(const DisplayTiming& timing, FrameTime now) noexcept;
 // A short label of the source for diagnostics and benches: "assumed",
-// "display", "measured" or "fixed".
+// "display", "measured", "nominal" or "fixed".
 [[nodiscard]] GUI_FORMS_API const char* display_timing_source_name(DisplayTimingSource source) noexcept;
+
+// Display timing from a presenter's completion stamps that count the
+// display's refreshes (X11 Present's ust and msc; design note frame-source,
+// section 3): each stamp is the time a frame was shown and the refresh it
+// was shown on. The period is the time between an anchor stamp and the
+// latest over the refreshes between them, so it is as fine as a long span
+// makes it; the anchor moves forward every 240 refreshes, to a stamp taken
+// 120 or more after it, so the span stays between 120 and 240 refreshes
+// once that many have passed. One instance per window, on its thread.
+class GUI_FORMS_API RefreshCounterTiming final {
+public:
+    // Takes a frame shown at `shown` on refresh `count`. Returns display
+    // timing with that period, phased at `shown`; nothing for the first
+    // stamp, and nothing (starting again from this stamp) when the count
+    // does not advance or the time does not (a reset presenter, another
+    // display).
+    [[nodiscard]] stxlib::Optional<DisplayTiming> take(FrameTime shown, std::uint64_t count) noexcept;
+    // Forgets every stamp (the window moved to another display).
+    void reset() noexcept;
+
+private:
+    struct Stamp final {
+        FrameTime shown{};
+        std::uint64_t count{};
+    };
+    Stamp anchor_{};
+    // The stamp the anchor moves to next; the anchor itself until one 120
+    // refreshes on is taken.
+    Stamp next_anchor_{};
+    Stamp last_{};
+    bool primed_{};
+};
 
 } // namespace gui_forms
