@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "../../failure/fail_fast.hpp"
 #include "../../surface_root/access/surface_host_access.hpp"
+#include "session_directory.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -214,6 +215,9 @@ HostSession::HostSession(Window& window,
     snapshot_.capabilities = std::move(capabilities);
     // The window's non-opaque declaration is fixed from here (stage T5).
     detail::SurfaceHostAccess::mark_session_bound(window);
+    // The automation core finds the session of a window here
+    // (session_directory.hpp); forgotten in shutdown and the destructor.
+    detail::note_window_session(window, *this);
     if (services_ != nullptr) {
         if (window.host_services() != nullptr && window.host_services() != services_) {
             throw std::logic_error("GUI.Forms Window already has an active host service seam");
@@ -245,6 +249,7 @@ HostSession::HostSession(Window& window,
 
 HostSession::~HostSession() {
     shutdown();
+    detail::forget_window_session(*this);
 }
 
 void HostSession::observe_pointer_capture(
@@ -437,7 +442,67 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         observed_.emit(event, result);
         return result;
     }
+    result = admit(event, InputOrigin::user);
+    return result;
+}
 
+namespace {
+// The payloads a model may send through dispatch_model_input: the user's
+// own kinds of input, without drags (a model drags with pointer moves) and
+// relative motion (a mode a program asks of the host).
+bool model_input_payload(const HostEventPayload& payload) noexcept {
+    const bool admitted = std::holds_alternative<PointerEvent>(payload) ||
+                          std::holds_alternative<KeyEvent>(payload) ||
+                          std::holds_alternative<TextInputEvent>(payload) ||
+                          std::holds_alternative<HostHoverEvent>(payload) ||
+                          std::holds_alternative<HostContextRequestEvent>(payload);
+    return admitted;
+}
+
+// Whether a payload is the user's input, which a modal window and the user
+// input gate hold back.
+bool input_payload(const HostEventPayload& payload) noexcept {
+    const bool input = std::holds_alternative<PointerEvent>(payload) ||
+                       std::holds_alternative<KeyEvent>(payload) ||
+                       std::holds_alternative<TextInputEvent>(payload) ||
+                       std::holds_alternative<DragEvent>(payload) ||
+                       std::holds_alternative<HostContextRequestEvent>(payload) ||
+                       std::holds_alternative<HostHoverEvent>(payload) ||
+                       std::holds_alternative<HostRelativeMotionEvent>(payload);
+    return input;
+}
+} // namespace
+
+HostDispatchResult HostSession::dispatch_model_input(HostEventPayload payload, std::uint64_t timestamp_nanoseconds) {
+    HostDispatchResult result;
+    if (std::this_thread::get_id() != ui_thread_) {
+        result.error = HostDispatchError::wrong_thread;
+        return result;
+    }
+    // Sequence zero: the model's events take no place in the host's
+    // sequence, and observers see them as the model's.
+    HostEvent event{0U, timestamp_nanoseconds, std::move(payload)};
+    if (!model_input_payload(event.payload)) {
+        result.error = HostDispatchError::invalid_payload;
+    } else if (!snapshot_.shutdown && window_.get() == nullptr) {
+        end_without_window();
+        result.error = HostDispatchError::after_shutdown;
+    } else if (snapshot_.shutdown) {
+        result.error = HostDispatchError::after_shutdown;
+    } else {
+        result.error = lifecycle_refusal(snapshot_.phase, false, false, false, false);
+    }
+    if (!result.accepted()) {
+        ++snapshot_.events_rejected;
+        observed_.emit(event, result);
+        return result;
+    }
+    result = admit(event, InputOrigin::model);
+    return result;
+}
+
+HostDispatchResult HostSession::admit(HostEvent& event, InputOrigin origin) {
+    HostDispatchResult result;
     bool invalid_geometry = false;
     if (const HostAttachEvent* attach =
             std::get_if<HostAttachEvent>(&event.payload)) {
@@ -501,18 +566,25 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         return result;
     }
 
-    snapshot_.last_sequence = event.sequence;
+    if (origin == InputOrigin::user) {
+        snapshot_.last_sequence = event.sequence;
+    } else {
+        ++snapshot_.model_input_events;
+    }
     ++snapshot_.events_accepted;
-    const bool modal_input = snapshot_.modal_depth != 0 &&
-        (std::holds_alternative<PointerEvent>(event.payload) ||
-         std::holds_alternative<KeyEvent>(event.payload) ||
-         std::holds_alternative<TextInputEvent>(event.payload) ||
-         std::holds_alternative<DragEvent>(event.payload) ||
-         std::holds_alternative<HostContextRequestEvent>(event.payload) ||
-         std::holds_alternative<HostHoverEvent>(event.payload) ||
-         std::holds_alternative<HostRelativeMotionEvent>(event.payload));
+    const bool input = input_payload(event.payload);
+    const bool modal_input = snapshot_.modal_depth != 0 && input;
     if (modal_input) {
         ++snapshot_.modal_input_suppressions;
+        observed_.emit(event, result);
+        return result;
+    }
+    // A model holds the interface (model.directed or suspend_input): the
+    // user's input is counted and dropped, never the model's. The window is
+    // alive here (dispatch and dispatch_model_input saw it).
+    Window* const gated = window_.get();
+    if (origin == InputOrigin::user && input && gated != nullptr && detail::user_input_held(*gated)) {
+        ++snapshot_.user_input_held;
         observed_.emit(event, result);
         return result;
     }
@@ -574,11 +646,13 @@ void HostSession::shutdown() noexcept {
         capture_observation_.disconnect();
         modal_observation_.disconnect();
     }
+    detail::forget_window_session(*this);
     snapshot_.shutdown = true;
     snapshot_.phase = HostLifecyclePhase::shutdown;
 }
 
 void HostSession::end_without_window() noexcept {
+    detail::forget_window_session(*this);
     snapshot_.active = false;
     snapshot_.attached = false;
     snapshot_.occluded = false;

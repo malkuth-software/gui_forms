@@ -79,7 +79,8 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
 | `GUI_FORMS_EFFECT_VERIFY_REQUIRED` | OFF | Fail the configure when effect programs cannot be verified, instead of building them unverified; Linux CI sets it |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
-| `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT` | ON | Let a Windows program that calls `host::accept_automation_environment` turn on automation from `GUI_FORMS_WINDOWS_AUTOMATION=1`; turn it off for a build that must stay closed to the variable |
+| `GUI_FORMS_MCP` | ON | Build the automation and MCP capability; a launch with `--mcp` (or `GUI_FORMS_MCP=1`) serves MCP on standard input and output, and `--mcp-script <file.jsonl>` runs an automation script. The transport needs STXlib's `stxlib::mcp`; without it `--mcp` says so. Off in a high-integrity build |
+| `GUI_FORMS_MCP_TEST_CONTROLS` | ON in Debug, else OFF | Build the automation's test controls (`control suspend_input`); never in a shipped program |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
 `GUI_FORMS_BUILD_TEXT_MASKS` options build development-only text services and
@@ -297,21 +298,22 @@ macOS package bundles the LLVM runtime dylibs and nothing else.
 
 Windows builds target the Windows 10 API level (`_WIN32_WINNT=0x0A00`). A
 Windows host build produces `GUI.Forms Gallery.exe` (one module), the
-automation client `gui_forms_windows_probe.exe` and a `fonts/` directory of
-font licences, all in the build directory.
+and a `fonts/` directory of font licences, all in the build directory.
 
 To run a Windows build under Wine, copy its build directory to the Mac and
 run the program from there: it loads no DLL of its own and no runtime
 DLL. Run `wine "GUI.Forms Gallery.exe"`; add
-`--automation` to accept commands from the probe.
+`--mcp-script <file.jsonl>` to run an automation script (one tool call a
+line, the library's MCP automation).
 
-`tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with
-`--automation`, clicks three page rows and three controls by stable ID,
-captures the framebuffer, closes through the real `WM_CLOSE` path and checks
-the structured log: six handled clicks, a saved capture, the Win32 DIB
+`tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with an
+automation script (`--mcp-script`) that clicks three page rows and three
+controls by stable ID and captures the window; the run then closes through
+the real `WM_CLOSE` path, and the script checks the log: six clicks, the
+script's capture, the Win32 DIB
 renderer with bundled fonts, no rejected host events, exactly one close
 request, and a closed, shut-down host. The log and capture
-(`wine-gallery-smoke.jsonl`, `gallery-automation.bmp`) go to the build
+(`wine-gallery-smoke.jsonl`, `wine-gallery-smoke-script.jsonl.1.png`) go to the build
 directory or `GUI_FORMS_EVIDENCE_DIR`. `tools/run_windows_gallery_text_smoke.sh`
 runs the Windows text test program (`gui_forms_windows_text_tests.exe`, built
 by gui_forms_tests and copied into the build directory) under Wine before

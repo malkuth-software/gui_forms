@@ -1,6 +1,9 @@
 #include "gui_forms/application.hpp"
 #include "../../core/application/application_state.hpp"
 #include "../../core/application/splashscreen_surface.hpp"
+#if defined(GUI_FORMS_MCP_BUILT)
+#include "../automation/automation_run.hpp"
+#endif
 
 #include <atomic>
 #include <optional>
@@ -447,6 +450,11 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     if (shut_down.load()) return {ApplicationError::after_shutdown};
     ApplicationResult result = validate(windows);
     if (!result.accepted()) return result;
+#if defined(GUI_FORMS_MCP_BUILT)
+    // The automation (src/runtime/automation): with --mcp or --mcp-script it
+    // joins every window as it becomes ready, and ends after the windowing.
+    const automation::AutomationRunScope automation_scope{};
+#endif
     // Before any native window exists (stage T5).
     for (ApplicationWindow& entry : windows) {
         if (entry.options.non_opaque) static_cast<void>((*entry.model).declare_non_opaque());

@@ -14,7 +14,6 @@ int main(int argc, char** argv) {
     options.initial_size = {1160.0, 700.0};
     options.minimum_size = {980.0, 620.0};
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     return gui_forms::host::run_windows(
         gui_forms::visual_inspector_lab::make_visual_inspector_lab(),
         std::move(options));

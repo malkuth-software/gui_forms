@@ -28,7 +28,7 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(manifest.program("explore").enabled)
         self.assertTrue(manifest.program("correspondence").enabled)
         self.assertEqual(manifest.program("gallery").required_platforms, ("macos-arm64", "windows-x64"))
-        self.assertEqual(manifest.program("gallery").automation_flag, "--automation")
+        self.assertEqual(manifest.program("gallery").automation_flag, "--mcp")
         self.assertIsNone(manifest.program("explore").automation_flag)
         self.assertIn("--product-only", manifest.program("explore").smoke["extra_arguments"])
 

@@ -268,6 +268,16 @@ public static unsafe partial class Exports
         }
     }
 
+    /// <summary>Negotiates gf_automation_table at the manifest's version; a refusal leaves it zeroed.</summary>
+    public static gf_status get_automation_table(out gf_automation_table table)
+    {
+        table = default;
+        fixed (gf_automation_table* storage = &table)
+        {
+            return gf_abi_get_table(Constants.GF_TABLE_AUTOMATION, Constants.GF_ABI_MAJOR, Constants.GF_ABI_MINOR, storage, (ulong)sizeof(gf_automation_table));
+        }
+    }
+
     /// <summary>Negotiates gf_windows_paint_endpoint_table at the manifest's version; a refusal leaves it zeroed.</summary>
     public static gf_status get_windows_paint_endpoint_table(out gf_windows_paint_endpoint_table table)
     {

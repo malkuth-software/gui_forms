@@ -44,7 +44,6 @@ struct GUI_FORMS_API WindowsHostOptions final {
     // the monitor and its DPI changes.
     double scale_override{};
     bool print_metrics_on_close{true};
-    bool automation_enabled{};
     bool close_after_launch_for_testing{};
     bool quit_thread_on_close{true};
     bool popup_window{};
@@ -70,7 +69,6 @@ struct GUI_FORMS_API WindowsHostOptions final {
     // unsupported. The new size arrives through the host's resize event.
     std::function<void(std::function<HostServiceStatus(Size)>)> client_size_ready;
     Point initial_position{};
-    std::function<std::shared_ptr<Control>(std::string_view)> automation_resolve;
     std::function<void(HostCloseRequest&)> close_request;
     std::function<void(std::function<void()> wake,
                        std::function<void()> request_close,
@@ -112,17 +110,6 @@ struct GUI_FORMS_API WindowsApplicationOptions final {
     // down and released.
     std::function<void()> windowing_ended;
 };
-
-// Development opt-in, Windows only: after this call, a later
-// run_windows_application (and so Application::run) honours
-// GUI_FORMS_WINDOWS_AUTOMATION=1 in the process environment by turning on
-// the automation channel (automation_enabled) in every window. Without the
-// call the variable is ignored, and a build configured without
-// GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT ignores it even after the call.
-// It is for test probes that run through the portable Application API,
-// whose options cannot ask for automation; a shipped program does not call
-// it. Process-wide, callable from any thread, and never withdrawn.
-GUI_FORMS_API void accept_automation_environment() noexcept;
 
 [[nodiscard]] GUI_FORMS_API HostCapabilities windows_capabilities();
 GUI_FORMS_API int run_windows(std::unique_ptr<Window> window, WindowsHostOptions options = {});

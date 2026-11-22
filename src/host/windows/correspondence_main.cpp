@@ -15,7 +15,6 @@ int main(int argc, char** argv) {
     options.initial_size = {1120.0, 720.0};
     options.minimum_size = {600.0, 420.0};
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     std::unique_ptr<gui_forms::Window> window = gui_forms::correspondence::make_correspondence();
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
