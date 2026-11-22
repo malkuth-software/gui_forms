@@ -1,6 +1,5 @@
 #include "code_sheet.hpp"
 
-#include "cpp_language.hpp"
 
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
@@ -141,19 +140,32 @@ struct RunStartsBefore final {
 
 } // namespace
 
-SheetColour colour_of(const code_highlight::TokenKind kind) noexcept {
+// STXlib's kinds onto the sheet's palette: the kinds the palette has no colour
+// of its own for share the nearest one (a control word is a keyword, a
+// directive the preprocessor's colour, a function the text's).
+SheetColour colour_of(const stxlib::syntax::TokenKind kind) noexcept {
+    using stxlib::syntax::TokenKind;
     switch (kind) {
-    case code_highlight::TokenKind::comment: return SheetColour::comment;
-    case code_highlight::TokenKind::string: return SheetColour::string;
-    case code_highlight::TokenKind::character: return SheetColour::character;
-    case code_highlight::TokenKind::number: return SheetColour::number;
-    case code_highlight::TokenKind::keyword: return SheetColour::keyword;
-    case code_highlight::TokenKind::type: return SheetColour::type;
-    case code_highlight::TokenKind::preprocessor: return SheetColour::preprocessor;
-    case code_highlight::TokenKind::attribute: return SheetColour::attribute;
-    case code_highlight::TokenKind::punctuation: return SheetColour::punctuation;
-    case code_highlight::TokenKind::operator_symbol: return SheetColour::punctuation;
-    case code_highlight::TokenKind::invalid: return SheetColour::invalid;
+    case TokenKind::comment: return SheetColour::comment;
+    case TokenKind::documentation: return SheetColour::comment;
+    case TokenKind::string: return SheetColour::string;
+    case TokenKind::regex: return SheetColour::string;
+    case TokenKind::character: return SheetColour::character;
+    case TokenKind::number: return SheetColour::number;
+    case TokenKind::color: return SheetColour::number;
+    case TokenKind::keyword: return SheetColour::keyword;
+    case TokenKind::control: return SheetColour::keyword;
+    case TokenKind::constant: return SheetColour::keyword;
+    case TokenKind::tag: return SheetColour::keyword;
+    case TokenKind::type: return SheetColour::type;
+    case TokenKind::directive: return SheetColour::preprocessor;
+    case TokenKind::macro: return SheetColour::preprocessor;
+    case TokenKind::attribute: return SheetColour::attribute;
+    case TokenKind::label: return SheetColour::attribute;
+    case TokenKind::selector: return SheetColour::attribute;
+    case TokenKind::punctuation: return SheetColour::punctuation;
+    case TokenKind::operator_symbol: return SheetColour::punctuation;
+    case TokenKind::invalid: return SheetColour::invalid;
     default: return SheetColour::text;
     }
 }
@@ -162,13 +174,17 @@ CodeSheet::CodeSheet(StableId stable_id) : Control(std::move(stable_id)) {}
 
 bool CodeSheet::load_source(const std::string_view name, const std::string_view source) {
     if (source.size() > maximum_source_bytes) return false;
-    const code_highlight::CppLanguage& language = code_highlight::cpp_language();
+    // The language the name selects; C++ when it selects none (the embedded
+    // sheet and unnamed sources are C++).
+    const stxlib::syntax::Language selected = stxlib::syntax::language_for_file_name(stxlib::View<char>(name.data(), name.size()));
+    const stxlib::syntax::Language language = selected == stxlib::syntax::Language::plain ? stxlib::syntax::Language::cpp : selected;
     std::vector<SheetLine> lines{};
     std::vector<SheetRun> runs{};
     std::string digits{};
-    std::vector<code_highlight::LineToken> tokens{};
+    std::vector<stxlib::syntax::LineToken> tokens{};
+    std::array<stxlib::syntax::LineToken, 64U> batch{};
     runs.reserve(source.size() / 4U + 16U);
-    code_highlight::LexState state = language.initial_state();
+    stxlib::syntax::LineState state{};
     std::uint32_t widest = 0U;
     std::size_t line_start = 0U;
     while (line_start <= source.size()) {
@@ -179,7 +195,15 @@ bool CodeSheet::load_source(const std::string_view name, const std::string_view 
         // A final newline ends the last line; it starts none.
         if (newline == std::string_view::npos && line_start == source.size() && line_start != 0U) break;
         tokens.clear();
-        state = language.lex_line(line, state, tokens);
+        // STXlib lexes into a fixed buffer and resumes; a line's tokens are
+        // gathered here because the runs are built once at load.
+        stxlib::syntax::LineCursor cursor = stxlib::syntax::LineCursor::at_line_start(state);
+        while (!cursor.done) {
+            const std::size_t written = stxlib::syntax::lex_line(language, stxlib::View<char>(line.data(), line.size()), cursor,
+                                                                 stxlib::MutableView<stxlib::syntax::LineToken>(batch.data(), batch.size()));
+            tokens.insert(tokens.end(), batch.begin(), batch.begin() + static_cast<std::ptrdiff_t>(written));
+        }
+        state = cursor.state;
         SheetLine sheet_line{};
         sheet_line.first_run = static_cast<std::uint32_t>(runs.size());
         // The line number, right-aligned before the gutter's space.
@@ -190,7 +214,7 @@ bool CodeSheet::load_source(const std::string_view name, const std::string_view 
         runs.push_back(number);
         RunBuilder builder(runs, static_cast<std::uint32_t>(line_start));
         std::size_t covered = 0U;
-        for (const code_highlight::LineToken& token : tokens) {
+        for (const stxlib::syntax::LineToken& token : tokens) {
             builder.add(line, covered, token.column, SheetColour::text);
             builder.add(line, token.column, token.column + token.length, colour_of(token.kind));
             covered = token.column + token.length;

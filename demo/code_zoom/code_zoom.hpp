@@ -2,8 +2,8 @@
 
 // The code-zoom demonstrator (owner, 2026-11-22): a dark editor window
 // showing one of GUI.Forms' own C++ sources, embedded at build time
-// (GUI_FORMS_CODE_ZOOM_SOURCE in CMakeLists.txt) and highlighted by the C++
-// language (cpp_language.hpp), zoomed smoothly from the whole file as a
+// (GUI_FORMS_CODE_ZOOM_SOURCE in CMakeLists.txt) and highlighted by STXlib's
+// highlighter (stxlib/syntax.hpp), zoomed smoothly from the whole file as a
 // minimap (0.1x) to a few characters filling the window (40x) with every
 // frame's text rasterized at its true size (code_sheet.hpp). F toggles the
 // frame-time readout. The program steps (--headless --capture's stills at

@@ -2548,7 +2548,7 @@ if(GUI_FORMS_BUILD_GALLERY)
 
     # The code-zoom demonstrator (owner, 2026-11-22): one of GUI.Forms' own
     # C++ sources, embedded at build time and highlighted
-    # (demo/code_zoom/cpp_language.hpp), zoomed from a minimap to a few
+    # (stxlib/syntax.hpp), zoomed from a minimap to a few
     # characters with every frame's text rasterized at its true size
     # (demo/code_zoom/code_zoom.hpp). GUI_FORMS_CODE_ZOOM_SOURCE names the
     # file, relative to this tree.
@@ -2569,7 +2569,6 @@ if(GUI_FORMS_BUILD_GALLERY)
         COMMENT "Embedding the code-zoom demonstrator's source"
         VERBATIM)
     add_library(gui_forms_code_zoom_model STATIC
-        demo/code_zoom/cpp_language.cpp
         demo/code_zoom/zoom_model.cpp
         demo/code_zoom/code_bench.cpp
         demo/code_zoom/code_sheet.cpp
@@ -2582,8 +2581,11 @@ if(GUI_FORMS_BUILD_GALLERY)
     )
     target_include_directories(gui_forms_code_zoom_model PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom)
+    # The sheet's highlighter is stxlib::syntax (stxlib/syntax.hpp), which
+    # needs an STXlib pin that carries it (STXlib claude/wizardly-nobel-2fdd86
+    # fe53940 or later).
     target_link_libraries(gui_forms_code_zoom_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls stxlib::algorithms)
 
     add_library(gui_forms_typography_scale_lab_model STATIC
         demo/typography_scale_lab.cpp

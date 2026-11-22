@@ -1,8 +1,9 @@
 #pragma once
 
 // The code-zoom demonstrator's sheet (owner, 2026-11-22): a dark editor
-// page showing one C++ source, highlighted by the C++ language
-// (cpp_language.hpp), zoomed by the ZoomModel (zoom_model.hpp).
+// page showing one source, highlighted by STXlib's syntax highlighter
+// (stxlib/syntax.hpp; the language is chosen from the source's name, C++
+// when the name selects none), zoomed by the ZoomModel (zoom_model.hpp).
 //
 // Drawing. Every paint lays the visible text out at the zoom's true size:
 // one monospace FontSpec of base_font_size * zoom, its advance measured
@@ -33,7 +34,6 @@
 // raster, since the readout last updated), the paint rate over the last
 // second, the glyphs the last paint drew, and the zoom.
 
-#include "code_highlight.hpp"
 #include "zoom_model.hpp"
 
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
@@ -41,6 +41,7 @@
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "stxlib/syntax.hpp"
 
 #include <array>
 #include <cstddef>
@@ -83,7 +84,7 @@ enum class SheetColour : std::uint8_t {
 inline constexpr std::size_t sheet_colour_count = 12U;
 
 // The colour a token kind draws in.
-[[nodiscard]] SheetColour colour_of(code_highlight::TokenKind kind) noexcept;
+[[nodiscard]] SheetColour colour_of(stxlib::syntax::TokenKind kind) noexcept;
 
 // One run: the sheet text's bytes [offset, offset + length) drawn in one
 // colour from `column` (gutter included), covering `columns` columns, with
@@ -109,7 +110,8 @@ public:
     explicit CodeSheet(StableId stable_id);
 
     // Replaces the sheet's text with `source` (copied), named `name` (shown
-    // nowhere yet but kept for the bench), lexed as C++. Lines end at LF; a
+    // nowhere yet but kept for the bench), lexed in the language `name`
+    // selects by its ending (C++ when it selects none). Lines end at LF; a
     // CR before it is dropped. False, leaving the sheet as it was, when the
     // source is larger than a run's 32-bit offsets can address.
     bool load_source(std::string_view name, std::string_view source);
