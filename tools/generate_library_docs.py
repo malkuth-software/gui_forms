@@ -98,8 +98,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "constraints, intrinsic sizes and layout direction among them), and the "
           "anatomy each control publishes: named parts, part roles and states, "
           "and the interactions each type raises; composite controls, the "
-          "control types a `.control` document defines.",
-          ("control", "component", "anatomy", "schema", "layout", "borrow", "composites")),
+          "control types a `.control` document defines; and form documents "
+          "for tools: the schema, a document's check and a preview window.",
+          ("control", "component", "anatomy", "schema", "layout", "borrow", "composites", "forms")),
     Group("events-values-and-commands", "Events, values and commands",
           "Retained events and owned handlers, application-owned `Value` state, "
           "command bindings, a window's rules (a trigger, conditions and "
@@ -113,9 +114,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           ("pages",)),
     Group("input-and-semantics", "Input and semantics",
           "Pointer, keyboard, text and drag event records, the public drag "
-          "client, and the semantic tree published to accessibility and "
-          "automation.",
-          ("events", "drag", "semantics")),
+          "client, the semantic tree published to accessibility and "
+          "automation, and a program's own model tools.",
+          ("events", "drag", "semantics", "automation")),
     Group("data-binding", "Data binding",
           "Bindings between control properties and data sources, currency "
           "management and binding events.",

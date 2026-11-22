@@ -1,11 +1,11 @@
-#include "model_tools.hpp"
+#include "model_form_tools.hpp"
 
-#include "../../src/controls/automation/core/automation_internal.hpp"
-#include "../../src/controls/form_document_export/process_form_exports.hpp"
-#include "../../src/core/form_language/form_model/form_model.hpp"
-#include "../../src/core/model_inspection/model_tool_specs.hpp"
-#include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
-#include "../form_compiler/form_catalog.hpp"
+#include "../core/automation_internal.hpp"
+#include "../../form_catalog/form_catalog.hpp"
+#include "../../form_document_export/process_form_exports.hpp"
+#include "../../../core/form_language/form_model/form_model.hpp"
+#include "../../../core/model_inspection/model_tool_specs.hpp"
+#include "../../../core/theme_language/diagnostics/theme_diagnostics.hpp"
 
 #include "gui_forms/window/window.hpp"
 
@@ -18,12 +18,10 @@ namespace gui_forms::automation {
 
 namespace {
 
-// The registry schema, never destroyed: made on the UI thread by
-// register_model_tools before any call reads it.
+// The process's registry schema (made by the first call, on the UI
+// thread, where every forms tool runs).
 const form_language::FormSchema& model_tools_schema() {
-    static const form_language::FormSchema* const schema =
-        new form_language::FormSchema(form_compiler::registry_form_schema());
-    return *schema;
+    return form_catalog::process_registry_schema();
 }
 
 // `text` as a JSON string, quoted and escaped.
@@ -233,9 +231,7 @@ void reply_tool(void* context, const ModelToolCall& call, ModelToolReply& reply)
 
 } // namespace
 
-std::size_t register_model_tools(ToolRegistry& tools) {
-    // Made here, on the UI thread, before any call reads it.
-    static_cast<void>(model_tools_schema());
+std::size_t register_model_form_tools(ToolRegistry& tools) {
     std::size_t added = 0U;
     const ToolHandler forms_handlers[] = {&reply_tool<&forms_export_tool>, &reply_tool<&forms_validate_tool>,
                                           &reply_tool<&forms_apply_tool>, &reply_tool<&forms_revert_tool>};

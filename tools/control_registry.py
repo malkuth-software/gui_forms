@@ -20,7 +20,7 @@ controls table consume. This module has three jobs:
 - ``emit-abi``: write ``src/abi/stable/schema/abi_schema_catalog.hpp``, the
   C ABI's table of every type with the recipes it describes and creates the
   type by, or prove the committed file is current with ``--check``;
-- ``emit-forms``: write ``tools/form_compiler/form_compiler_catalog.hpp``, the
+- ``emit-forms``: write ``src/controls/form_catalog/form_registry_catalog.hpp``, the
   form compiler's table of every type with its C++ class and header, or prove
   the committed file is current with ``--check``.
 
@@ -53,7 +53,7 @@ README_START: str = "<!-- controls:start -->"
 README_END: str = "<!-- controls:end -->"
 GALLERY_CATALOG_PATH: Path = ROOT / "demo" / "gallery_catalog.inc"
 ABI_CATALOG_PATH: Path = ROOT / "src" / "abi" / "stable" / "schema" / "abi_schema_catalog.hpp"
-FORMS_CATALOG_PATH: Path = ROOT / "tools" / "form_compiler" / "form_compiler_catalog.hpp"
+FORMS_CATALOG_PATH: Path = ROOT / "src" / "controls" / "form_catalog" / "form_registry_catalog.hpp"
 
 # Fixed WinForms-style by-function categories, in render order.
 CATEGORIES: tuple[str, ...] = (
@@ -606,7 +606,7 @@ def render_abi_catalog(registry: Registry) -> str:
 
 
 def render_forms_catalog(registry: Registry) -> str:
-    """The form compiler's type catalog (see tools/form_compiler/form_catalog.hpp).
+    """The registry's form type catalog (see src/controls/form_catalog/form_catalog.hpp).
 
     Records keep registry order. Each entry names the type's C++ class and
     public header for generated code, and instantiates the recipe that adds
@@ -629,7 +629,7 @@ def render_forms_catalog(registry: Registry) -> str:
     lines.append("")
     lines.append("#include <array>")
     lines.append("")
-    lines.append("namespace gui_forms::form_compiler {")
+    lines.append("namespace gui_forms::form_catalog {")
     lines.append("")
     lines.append(f"inline constexpr std::array<FormCatalogEntry, {len(registry.records)}> form_catalog{{{{")
     for record in registry.records:
@@ -639,7 +639,7 @@ def render_forms_catalog(registry: Registry) -> str:
         )
     lines.append("}};")
     lines.append("")
-    lines.append("} // namespace gui_forms::form_compiler")
+    lines.append("} // namespace gui_forms::form_catalog")
     lines.append("")
     return "\n".join(lines)
 
@@ -854,7 +854,7 @@ def build_parser() -> argparse.ArgumentParser:
     emit_abi.add_argument("--check", action="store_true", help="fail when the committed header is stale")
     emit_abi.set_defaults(run=_command_emit_abi)
     emit_forms: argparse.ArgumentParser = subparsers.add_parser(
-        "emit-forms", help="write or check tools/form_compiler/form_compiler_catalog.hpp")
+        "emit-forms", help="write or check src/controls/form_catalog/form_registry_catalog.hpp")
     emit_forms.add_argument("--out", type=Path, default=FORMS_CATALOG_PATH, help="output header path")
     emit_forms.add_argument("--check", action="store_true", help="fail when the committed header is stale")
     emit_forms.set_defaults(run=_command_emit_forms)

@@ -164,7 +164,7 @@
 
 #include <array>
 
-namespace gui_forms::form_compiler {
+namespace gui_forms::form_catalog {
 
 inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>, CatalogConstruction::stable_id},
@@ -323,4 +323,4 @@ inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"business_card", "BusinessCard", "gui_forms/components/business_card/business_card.hpp", &add_catalog_type<BusinessCard>, CatalogConstruction::stable_id},
 }};
 
-} // namespace gui_forms::form_compiler
+} // namespace gui_forms::form_catalog

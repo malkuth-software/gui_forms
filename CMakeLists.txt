@@ -1206,7 +1206,8 @@ gui_forms_verify_effects(gui_forms_plot_primitives
 add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
     src/controls/form_document_export/form_document_export.cpp
-    src/controls/automation/model_extensions/model_inspect_sections.cpp
+    src/controls/form_documents/form_documents.cpp
+    src/controls/form_catalog/form_catalog.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp
     src/controls/panel/group_box/group_box.cpp
@@ -2214,6 +2215,8 @@ if(GUI_FORMS_MCP)
         src/controls/automation/core/automation_input.cpp
         src/controls/automation/core/automation_reads.cpp
         src/controls/automation/core/automation_core.cpp
+        src/controls/automation/model_extensions/model_form_tools.cpp
+        src/controls/automation/model_extensions/model_inspect_sections.cpp
         src/controls/automation/presenter/stock_presenter.cpp)
     target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
     if(GUI_FORMS_MCP_TEST_CONTROLS)
@@ -3127,19 +3130,6 @@ endif()
 if(TARGET gui_forms_application AND GUI_FORMS_BUILD_GALLERY)
     add_executable(gui_forms_preview_capture tools/preview_capture/preview_capture.cpp)
     target_link_libraries(gui_forms_preview_capture PRIVATE gui_forms_application)
-endif()
-
-# MCP G6: the forms.* tools a program registers with its automation
-# (tools/model_tools/model_tools.hpp), over the process's form documents,
-# with the form compiler's catalog they read against. A program links it
-# and calls register_model_tools.
-if(GUI_FORMS_BUILD_FORM_COMPILER)
-    add_library(gui_forms_model_tools STATIC
-        tools/form_compiler/form_catalog.cpp
-        tools/form_compiler/form_core_catalog.cpp
-        tools/model_tools/model_tools.cpp
-    )
-    target_link_libraries(gui_forms_model_tools PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
 endif()
 
 if(GUI_FORMS_BUILD_BENCHMARKS)

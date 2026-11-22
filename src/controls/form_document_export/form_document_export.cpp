@@ -2,6 +2,11 @@
 
 #include "process_form_exports.hpp"
 
+#if defined(GUI_FORMS_MCP)
+#include "../automation/model_extensions/model_form_tools.hpp"
+#include "../automation/tools/automation_tools.hpp"
+#endif
+
 #include "../../core/form_language/form_loader/form_loader.hpp"
 
 #include <memory>
@@ -154,6 +159,14 @@ FormDocumentRegistration register_form_document(const Control::Ptr& root, const 
     owned.sources = std::move(made);
     kept.push_back(std::move(owned));
     exports.sources = std::move(kept);
+    // The forms.* tools serve registered documents only, so they join the
+    // process's model tools with the first one: a program built without
+    // GUI_FORMS_FORM_EXPORT carries neither them nor the registry catalog.
+    // A later call finds the names taken and adds nothing. A build without
+    // the automation (GUI_FORMS_MCP off) has no tools to add.
+#if defined(GUI_FORMS_MCP)
+    static_cast<void>(automation::register_model_form_tools(automation::model_tool_registry()));
+#endif
     return FormDocumentRegistration::registered;
 }
 

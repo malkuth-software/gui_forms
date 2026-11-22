@@ -700,6 +700,7 @@ __ZGVZN9gui_forms16FlattenedContour*
 __ZGVZN9gui_forms16FocusScopeChange*
 __ZGVZN9gui_forms16FontDialogResult*
 __ZGVZN9gui_forms16FontFamilyRecord*
+__ZGVZN9gui_forms16FormDocumentType*
 __ZGVZN9gui_forms16HelpContentsLine*
 __ZGVZN9gui_forms16HelpContentsNode*
 __ZGVZN9gui_forms16HelpContentsTree*
@@ -810,6 +811,7 @@ __ZGVZN9gui_forms17ErrorIconSnapshot*
 __ZGVZN9gui_forms17FocusScopeOptions*
 __ZGVZN9gui_forms17FontFallbackMatch*
 __ZGVZN9gui_forms17FontFamilyStackId*
+__ZGVZN9gui_forms17FormDocumentCheck*
 __ZGVZN9gui_forms17FrameRequestToken*
 __ZGVZN9gui_forms17GenericFontFamily*
 __ZGVZN9gui_forms17GridTemplateAreas*
@@ -927,7 +929,9 @@ __ZGVZN9gui_forms18FirstFrameShowGate*
 __ZGVZN9gui_forms18FirstFrameShowStep*
 __ZGVZN9gui_forms18FlexContainerInput*
 __ZGVZN9gui_forms18FlexContainerStyle*
+__ZGVZN9gui_forms18FormDocumentSchema*
 __ZGVZN9gui_forms18FormDocumentSource*
+__ZGVZN9gui_forms18FormDocumentWindow*
 __ZGVZN9gui_forms18GridContainerInput*
 __ZGVZN9gui_forms18GridContainerStyle*
 __ZGVZN9gui_forms18GuiFormsThemeBuild*
@@ -1276,6 +1280,7 @@ __ZGVZN9gui_forms22DispatchCancelledError*
 __ZGVZN9gui_forms22EffectInstanceCounters*
 __ZGVZN9gui_forms22ExpressionDependencies*
 __ZGVZN9gui_forms22FirstFrameShowSnapshot*
+__ZGVZN9gui_forms22FormDocumentDiagnostic*
 __ZGVZN9gui_forms22HelpBookCompileOptions*
 __ZGVZN9gui_forms22HelpBookSystemSnapshot*
 __ZGVZN9gui_forms22HelpBookViewerSnapshot*
@@ -2394,6 +2399,7 @@ __ZGVZNK9gui_forms16FlattenedContour*
 __ZGVZNK9gui_forms16FocusScopeChange*
 __ZGVZNK9gui_forms16FontDialogResult*
 __ZGVZNK9gui_forms16FontFamilyRecord*
+__ZGVZNK9gui_forms16FormDocumentType*
 __ZGVZNK9gui_forms16HelpContentsLine*
 __ZGVZNK9gui_forms16HelpContentsNode*
 __ZGVZNK9gui_forms16HelpContentsTree*
@@ -2504,6 +2510,7 @@ __ZGVZNK9gui_forms17ErrorIconSnapshot*
 __ZGVZNK9gui_forms17FocusScopeOptions*
 __ZGVZNK9gui_forms17FontFallbackMatch*
 __ZGVZNK9gui_forms17FontFamilyStackId*
+__ZGVZNK9gui_forms17FormDocumentCheck*
 __ZGVZNK9gui_forms17FrameRequestToken*
 __ZGVZNK9gui_forms17GenericFontFamily*
 __ZGVZNK9gui_forms17GridTemplateAreas*
@@ -2621,7 +2628,9 @@ __ZGVZNK9gui_forms18FirstFrameShowGate*
 __ZGVZNK9gui_forms18FirstFrameShowStep*
 __ZGVZNK9gui_forms18FlexContainerInput*
 __ZGVZNK9gui_forms18FlexContainerStyle*
+__ZGVZNK9gui_forms18FormDocumentSchema*
 __ZGVZNK9gui_forms18FormDocumentSource*
+__ZGVZNK9gui_forms18FormDocumentWindow*
 __ZGVZNK9gui_forms18GridContainerInput*
 __ZGVZNK9gui_forms18GridContainerStyle*
 __ZGVZNK9gui_forms18GuiFormsThemeBuild*
@@ -2970,6 +2979,7 @@ __ZGVZNK9gui_forms22DispatchCancelledError*
 __ZGVZNK9gui_forms22EffectInstanceCounters*
 __ZGVZNK9gui_forms22ExpressionDependencies*
 __ZGVZNK9gui_forms22FirstFrameShowSnapshot*
+__ZGVZNK9gui_forms22FormDocumentDiagnostic*
 __ZGVZNK9gui_forms22HelpBookCompileOptions*
 __ZGVZNK9gui_forms22HelpBookSystemSnapshot*
 __ZGVZNK9gui_forms22HelpBookViewerSnapshot*
@@ -4382,6 +4392,7 @@ __ZN9gui_forms16FlattenedContour*
 __ZN9gui_forms16FocusScopeChange*
 __ZN9gui_forms16FontDialogResult*
 __ZN9gui_forms16FontFamilyRecord*
+__ZN9gui_forms16FormDocumentType*
 __ZN9gui_forms16HelpContentsLine*
 __ZN9gui_forms16HelpContentsNode*
 __ZN9gui_forms16HelpContentsTree*
@@ -4568,6 +4579,7 @@ __ZN9gui_forms17ErrorIconSnapshot*
 __ZN9gui_forms17FocusScopeOptions*
 __ZN9gui_forms17FontFallbackMatch*
 __ZN9gui_forms17FontFamilyStackId*
+__ZN9gui_forms17FormDocumentCheck*
 __ZN9gui_forms17FrameRequestToken*
 __ZN9gui_forms17GenericFontFamily*
 __ZN9gui_forms17GridTemplateAreas*
@@ -4771,7 +4783,9 @@ __ZN9gui_forms18FirstFrameShowGate*
 __ZN9gui_forms18FirstFrameShowStep*
 __ZN9gui_forms18FlexContainerInput*
 __ZN9gui_forms18FlexContainerStyle*
+__ZN9gui_forms18FormDocumentSchema*
 __ZN9gui_forms18FormDocumentSource*
+__ZN9gui_forms18FormDocumentWindow*
 __ZN9gui_forms18GridContainerInput*
 __ZN9gui_forms18GridContainerStyle*
 __ZN9gui_forms18GuiFormsThemeBuild*
@@ -5089,6 +5103,8 @@ __ZN9gui_forms19business_card_shownB*
 __ZN9gui_forms19business_card_shownE*
 __ZN9gui_forms19canvas_texture_fillB*
 __ZN9gui_forms19canvas_texture_fillE*
+__ZN9gui_forms19check_form_documentB*
+__ZN9gui_forms19check_form_documentE*
 __ZN9gui_forms19composite_type_nameB*
 __ZN9gui_forms19composite_type_nameE*
 __ZN9gui_forms19current_colours_fitB*
@@ -5560,6 +5576,7 @@ __ZN9gui_forms22DispatchCancelledError*
 __ZN9gui_forms22EffectInstanceCounters*
 __ZN9gui_forms22ExpressionDependencies*
 __ZN9gui_forms22FirstFrameShowSnapshot*
+__ZN9gui_forms22FormDocumentDiagnostic*
 __ZN9gui_forms22HelpBookCompileOptions*
 __ZN9gui_forms22HelpBookSystemSnapshot*
 __ZN9gui_forms22HelpBookViewerSnapshot*
@@ -6006,6 +6023,8 @@ __ZN9gui_forms25installed_effect_registryB*
 __ZN9gui_forms25installed_effect_registryE*
 __ZN9gui_forms25load_composite_definitionB*
 __ZN9gui_forms25load_composite_definitionE*
+__ZN9gui_forms25load_form_document_windowB*
+__ZN9gui_forms25load_form_document_windowE*
 __ZN9gui_forms25paint_canvas_link_previewB*
 __ZN9gui_forms25paint_canvas_link_previewE*
 __ZN9gui_forms25paint_data_grid_view_cellB*
@@ -7536,6 +7555,7 @@ __ZNK[RO]9gui_forms16FlattenedContour*
 __ZNK[RO]9gui_forms16FocusScopeChange*
 __ZNK[RO]9gui_forms16FontDialogResult*
 __ZNK[RO]9gui_forms16FontFamilyRecord*
+__ZNK[RO]9gui_forms16FormDocumentType*
 __ZNK[RO]9gui_forms16HelpContentsLine*
 __ZNK[RO]9gui_forms16HelpContentsNode*
 __ZNK[RO]9gui_forms16HelpContentsTree*
@@ -7646,6 +7666,7 @@ __ZNK[RO]9gui_forms17ErrorIconSnapshot*
 __ZNK[RO]9gui_forms17FocusScopeOptions*
 __ZNK[RO]9gui_forms17FontFallbackMatch*
 __ZNK[RO]9gui_forms17FontFamilyStackId*
+__ZNK[RO]9gui_forms17FormDocumentCheck*
 __ZNK[RO]9gui_forms17FrameRequestToken*
 __ZNK[RO]9gui_forms17GenericFontFamily*
 __ZNK[RO]9gui_forms17GridTemplateAreas*
@@ -7763,7 +7784,9 @@ __ZNK[RO]9gui_forms18FirstFrameShowGate*
 __ZNK[RO]9gui_forms18FirstFrameShowStep*
 __ZNK[RO]9gui_forms18FlexContainerInput*
 __ZNK[RO]9gui_forms18FlexContainerStyle*
+__ZNK[RO]9gui_forms18FormDocumentSchema*
 __ZNK[RO]9gui_forms18FormDocumentSource*
+__ZNK[RO]9gui_forms18FormDocumentWindow*
 __ZNK[RO]9gui_forms18GridContainerInput*
 __ZNK[RO]9gui_forms18GridContainerStyle*
 __ZNK[RO]9gui_forms18GuiFormsThemeBuild*
@@ -8112,6 +8135,7 @@ __ZNK[RO]9gui_forms22DispatchCancelledError*
 __ZNK[RO]9gui_forms22EffectInstanceCounters*
 __ZNK[RO]9gui_forms22ExpressionDependencies*
 __ZNK[RO]9gui_forms22FirstFrameShowSnapshot*
+__ZNK[RO]9gui_forms22FormDocumentDiagnostic*
 __ZNK[RO]9gui_forms22HelpBookCompileOptions*
 __ZNK[RO]9gui_forms22HelpBookSystemSnapshot*
 __ZNK[RO]9gui_forms22HelpBookViewerSnapshot*
@@ -9230,6 +9254,7 @@ __ZN[KRO]9gui_forms16FlattenedContour*
 __ZN[KRO]9gui_forms16FocusScopeChange*
 __ZN[KRO]9gui_forms16FontDialogResult*
 __ZN[KRO]9gui_forms16FontFamilyRecord*
+__ZN[KRO]9gui_forms16FormDocumentType*
 __ZN[KRO]9gui_forms16HelpContentsLine*
 __ZN[KRO]9gui_forms16HelpContentsNode*
 __ZN[KRO]9gui_forms16HelpContentsTree*
@@ -9340,6 +9365,7 @@ __ZN[KRO]9gui_forms17ErrorIconSnapshot*
 __ZN[KRO]9gui_forms17FocusScopeOptions*
 __ZN[KRO]9gui_forms17FontFallbackMatch*
 __ZN[KRO]9gui_forms17FontFamilyStackId*
+__ZN[KRO]9gui_forms17FormDocumentCheck*
 __ZN[KRO]9gui_forms17FrameRequestToken*
 __ZN[KRO]9gui_forms17GenericFontFamily*
 __ZN[KRO]9gui_forms17GridTemplateAreas*
@@ -9457,7 +9483,9 @@ __ZN[KRO]9gui_forms18FirstFrameShowGate*
 __ZN[KRO]9gui_forms18FirstFrameShowStep*
 __ZN[KRO]9gui_forms18FlexContainerInput*
 __ZN[KRO]9gui_forms18FlexContainerStyle*
+__ZN[KRO]9gui_forms18FormDocumentSchema*
 __ZN[KRO]9gui_forms18FormDocumentSource*
+__ZN[KRO]9gui_forms18FormDocumentWindow*
 __ZN[KRO]9gui_forms18GridContainerInput*
 __ZN[KRO]9gui_forms18GridContainerStyle*
 __ZN[KRO]9gui_forms18GuiFormsThemeBuild*
@@ -9806,6 +9834,7 @@ __ZN[KRO]9gui_forms22DispatchCancelledError*
 __ZN[KRO]9gui_forms22EffectInstanceCounters*
 __ZN[KRO]9gui_forms22ExpressionDependencies*
 __ZN[KRO]9gui_forms22FirstFrameShowSnapshot*
+__ZN[KRO]9gui_forms22FormDocumentDiagnostic*
 __ZN[KRO]9gui_forms22HelpBookCompileOptions*
 __ZN[KRO]9gui_forms22HelpBookSystemSnapshot*
 __ZN[KRO]9gui_forms22HelpBookViewerSnapshot*
@@ -10924,6 +10953,7 @@ __ZT[VIST]N9gui_forms16FlattenedContour*E
 __ZT[VIST]N9gui_forms16FocusScopeChange*E
 __ZT[VIST]N9gui_forms16FontDialogResult*E
 __ZT[VIST]N9gui_forms16FontFamilyRecord*E
+__ZT[VIST]N9gui_forms16FormDocumentType*E
 __ZT[VIST]N9gui_forms16HelpContentsLine*E
 __ZT[VIST]N9gui_forms16HelpContentsNode*E
 __ZT[VIST]N9gui_forms16HelpContentsTree*E
@@ -11034,6 +11064,7 @@ __ZT[VIST]N9gui_forms17ErrorIconSnapshot*E
 __ZT[VIST]N9gui_forms17FocusScopeOptions*E
 __ZT[VIST]N9gui_forms17FontFallbackMatch*E
 __ZT[VIST]N9gui_forms17FontFamilyStackId*E
+__ZT[VIST]N9gui_forms17FormDocumentCheck*E
 __ZT[VIST]N9gui_forms17FrameRequestToken*E
 __ZT[VIST]N9gui_forms17GenericFontFamily*E
 __ZT[VIST]N9gui_forms17GridTemplateAreas*E
@@ -11151,7 +11182,9 @@ __ZT[VIST]N9gui_forms18FirstFrameShowGate*E
 __ZT[VIST]N9gui_forms18FirstFrameShowStep*E
 __ZT[VIST]N9gui_forms18FlexContainerInput*E
 __ZT[VIST]N9gui_forms18FlexContainerStyle*E
+__ZT[VIST]N9gui_forms18FormDocumentSchema*E
 __ZT[VIST]N9gui_forms18FormDocumentSource*E
+__ZT[VIST]N9gui_forms18FormDocumentWindow*E
 __ZT[VIST]N9gui_forms18GridContainerInput*E
 __ZT[VIST]N9gui_forms18GridContainerStyle*E
 __ZT[VIST]N9gui_forms18GuiFormsThemeBuild*E
@@ -11500,6 +11533,7 @@ __ZT[VIST]N9gui_forms22DispatchCancelledError*E
 __ZT[VIST]N9gui_forms22EffectInstanceCounters*E
 __ZT[VIST]N9gui_forms22ExpressionDependencies*E
 __ZT[VIST]N9gui_forms22FirstFrameShowSnapshot*E
+__ZT[VIST]N9gui_forms22FormDocumentDiagnostic*E
 __ZT[VIST]N9gui_forms22HelpBookCompileOptions*E
 __ZT[VIST]N9gui_forms22HelpBookSystemSnapshot*E
 __ZT[VIST]N9gui_forms22HelpBookViewerSnapshot*E
@@ -12618,6 +12652,7 @@ __ZT[hvc]*9gui_forms16FlattenedContour*
 __ZT[hvc]*9gui_forms16FocusScopeChange*
 __ZT[hvc]*9gui_forms16FontDialogResult*
 __ZT[hvc]*9gui_forms16FontFamilyRecord*
+__ZT[hvc]*9gui_forms16FormDocumentType*
 __ZT[hvc]*9gui_forms16HelpContentsLine*
 __ZT[hvc]*9gui_forms16HelpContentsNode*
 __ZT[hvc]*9gui_forms16HelpContentsTree*
@@ -12728,6 +12763,7 @@ __ZT[hvc]*9gui_forms17ErrorIconSnapshot*
 __ZT[hvc]*9gui_forms17FocusScopeOptions*
 __ZT[hvc]*9gui_forms17FontFallbackMatch*
 __ZT[hvc]*9gui_forms17FontFamilyStackId*
+__ZT[hvc]*9gui_forms17FormDocumentCheck*
 __ZT[hvc]*9gui_forms17FrameRequestToken*
 __ZT[hvc]*9gui_forms17GenericFontFamily*
 __ZT[hvc]*9gui_forms17GridTemplateAreas*
@@ -12845,7 +12881,9 @@ __ZT[hvc]*9gui_forms18FirstFrameShowGate*
 __ZT[hvc]*9gui_forms18FirstFrameShowStep*
 __ZT[hvc]*9gui_forms18FlexContainerInput*
 __ZT[hvc]*9gui_forms18FlexContainerStyle*
+__ZT[hvc]*9gui_forms18FormDocumentSchema*
 __ZT[hvc]*9gui_forms18FormDocumentSource*
+__ZT[hvc]*9gui_forms18FormDocumentWindow*
 __ZT[hvc]*9gui_forms18GridContainerInput*
 __ZT[hvc]*9gui_forms18GridContainerStyle*
 __ZT[hvc]*9gui_forms18GuiFormsThemeBuild*
@@ -13194,6 +13232,7 @@ __ZT[hvc]*9gui_forms22DispatchCancelledError*
 __ZT[hvc]*9gui_forms22EffectInstanceCounters*
 __ZT[hvc]*9gui_forms22ExpressionDependencies*
 __ZT[hvc]*9gui_forms22FirstFrameShowSnapshot*
+__ZT[hvc]*9gui_forms22FormDocumentDiagnostic*
 __ZT[hvc]*9gui_forms22HelpBookCompileOptions*
 __ZT[hvc]*9gui_forms22HelpBookSystemSnapshot*
 __ZT[hvc]*9gui_forms22HelpBookViewerSnapshot*
@@ -14312,6 +14351,7 @@ __ZZN9gui_forms16FlattenedContour*
 __ZZN9gui_forms16FocusScopeChange*
 __ZZN9gui_forms16FontDialogResult*
 __ZZN9gui_forms16FontFamilyRecord*
+__ZZN9gui_forms16FormDocumentType*
 __ZZN9gui_forms16HelpContentsLine*
 __ZZN9gui_forms16HelpContentsNode*
 __ZZN9gui_forms16HelpContentsTree*
@@ -14422,6 +14462,7 @@ __ZZN9gui_forms17ErrorIconSnapshot*
 __ZZN9gui_forms17FocusScopeOptions*
 __ZZN9gui_forms17FontFallbackMatch*
 __ZZN9gui_forms17FontFamilyStackId*
+__ZZN9gui_forms17FormDocumentCheck*
 __ZZN9gui_forms17FrameRequestToken*
 __ZZN9gui_forms17GenericFontFamily*
 __ZZN9gui_forms17GridTemplateAreas*
@@ -14539,7 +14580,9 @@ __ZZN9gui_forms18FirstFrameShowGate*
 __ZZN9gui_forms18FirstFrameShowStep*
 __ZZN9gui_forms18FlexContainerInput*
 __ZZN9gui_forms18FlexContainerStyle*
+__ZZN9gui_forms18FormDocumentSchema*
 __ZZN9gui_forms18FormDocumentSource*
+__ZZN9gui_forms18FormDocumentWindow*
 __ZZN9gui_forms18GridContainerInput*
 __ZZN9gui_forms18GridContainerStyle*
 __ZZN9gui_forms18GuiFormsThemeBuild*
@@ -14888,6 +14931,7 @@ __ZZN9gui_forms22DispatchCancelledError*
 __ZZN9gui_forms22EffectInstanceCounters*
 __ZZN9gui_forms22ExpressionDependencies*
 __ZZN9gui_forms22FirstFrameShowSnapshot*
+__ZZN9gui_forms22FormDocumentDiagnostic*
 __ZZN9gui_forms22HelpBookCompileOptions*
 __ZZN9gui_forms22HelpBookSystemSnapshot*
 __ZZN9gui_forms22HelpBookViewerSnapshot*
@@ -16006,6 +16050,7 @@ __ZZNK9gui_forms16FlattenedContour*
 __ZZNK9gui_forms16FocusScopeChange*
 __ZZNK9gui_forms16FontDialogResult*
 __ZZNK9gui_forms16FontFamilyRecord*
+__ZZNK9gui_forms16FormDocumentType*
 __ZZNK9gui_forms16HelpContentsLine*
 __ZZNK9gui_forms16HelpContentsNode*
 __ZZNK9gui_forms16HelpContentsTree*
@@ -16116,6 +16161,7 @@ __ZZNK9gui_forms17ErrorIconSnapshot*
 __ZZNK9gui_forms17FocusScopeOptions*
 __ZZNK9gui_forms17FontFallbackMatch*
 __ZZNK9gui_forms17FontFamilyStackId*
+__ZZNK9gui_forms17FormDocumentCheck*
 __ZZNK9gui_forms17FrameRequestToken*
 __ZZNK9gui_forms17GenericFontFamily*
 __ZZNK9gui_forms17GridTemplateAreas*
@@ -16233,7 +16279,9 @@ __ZZNK9gui_forms18FirstFrameShowGate*
 __ZZNK9gui_forms18FirstFrameShowStep*
 __ZZNK9gui_forms18FlexContainerInput*
 __ZZNK9gui_forms18FlexContainerStyle*
+__ZZNK9gui_forms18FormDocumentSchema*
 __ZZNK9gui_forms18FormDocumentSource*
+__ZZNK9gui_forms18FormDocumentWindow*
 __ZZNK9gui_forms18GridContainerInput*
 __ZZNK9gui_forms18GridContainerStyle*
 __ZZNK9gui_forms18GuiFormsThemeBuild*
@@ -16582,6 +16630,7 @@ __ZZNK9gui_forms22DispatchCancelledError*
 __ZZNK9gui_forms22EffectInstanceCounters*
 __ZZNK9gui_forms22ExpressionDependencies*
 __ZZNK9gui_forms22FirstFrameShowSnapshot*
+__ZZNK9gui_forms22FormDocumentDiagnostic*
 __ZZNK9gui_forms22HelpBookCompileOptions*
 __ZZNK9gui_forms22HelpBookSystemSnapshot*
 __ZZNK9gui_forms22HelpBookViewerSnapshot*

@@ -90,7 +90,7 @@ class RealRegistryTests(unittest.TestCase):
         self.assertEqual(
             committed,
             cr.render_forms_catalog(registry),
-            "tools/form_compiler/form_compiler_catalog.hpp is stale; run `python3 tools/control_registry.py emit-forms`",
+            "src/controls/form_catalog/form_registry_catalog.hpp is stale; run `python3 tools/control_registry.py emit-forms`",
         )
 
     def test_gallery_pages_are_assigned_to_real_records(self) -> None:
