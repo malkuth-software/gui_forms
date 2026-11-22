@@ -151,6 +151,15 @@ static void band_appearances(gf_kit* kit, gf_object window, gf_logical_rect rese
     gf_kit_status(kit, (*kit).windows.set_band_appearance(window, &hatched), GF_STATUS_OK, "hatch the band");
     report = band_report(kit, window, "band_report hatched");
     gf_kit_check(kit, (report.status & GF_WINDOW_BAND_TEXTURED) != 0u, "the band draws its hatch");
+    gf_window_band_appearance woven = appearance;
+    woven.texture_kind = GF_PROCEDURAL_PATTERN_CARBON_FIBRE;
+    woven.texture_seed = 7u;
+    woven.texture_primary = 0x1C1D20FFu;
+    woven.texture_secondary = 0x6A6E75FFu;
+    woven.texture_tile = 16.0;
+    gf_kit_status(kit, (*kit).windows.set_band_appearance(window, &woven), GF_STATUS_OK, "weave the band");
+    report = band_report(kit, window, "band_report woven");
+    gf_kit_check(kit, (report.status & GF_WINDOW_BAND_TEXTURED) != 0u, "the band draws its carbon fibre");
     gf_window_band_appearance refused = hatched;
     refused.texture_seed = GF_HATCH_STYLE_DIAGONAL_CROSS + 1u;
     gf_kit_status(kit, (*kit).windows.set_band_appearance(window, &refused), GF_STATUS_INVALID_ARGUMENT,

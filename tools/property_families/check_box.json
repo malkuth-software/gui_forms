@@ -155,7 +155,7 @@
       "capability": "CheckBoxIndicatorStyle",
       "value": "ChoiceIndicatorStyle",
       "initial": "ChoiceIndicatorStyle::classic",
-      "comment": "How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).",
+      "comment": "How the check mark draws: classic, modern or toggle (std::invalid_argument outside them; lamp too, as lamps form a radio choice, never a check box).",
       "getter": "indicator_style",
       "setter": "set_indicator_style",
       "clear": null,

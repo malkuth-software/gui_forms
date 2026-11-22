@@ -69,7 +69,7 @@ struct RadioButtonAutoCheckCapability {
     }
 };
 
-// How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+// How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).
 template <typename Declaring>
 struct RadioButtonIndicatorStyleCapability {
     PropertyCell<ChoiceIndicatorStyle, RadioButtonIndicatorStyleCapability<Declaring>> indicator_style{ChoiceIndicatorStyle::classic};

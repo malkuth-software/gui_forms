@@ -124,13 +124,32 @@ constexpr std::array<PartDeclaration, 6> radio_button_parts =
 constexpr std::array<AnatomyState, 10> radio_button_states =
     state_declarations(radio_button_state_fields);
 
+// "lamp" names the lamp look (ChoiceIndicatorStyle::lamp) for a theme's
+// selectors: `radio-button::part(well):state(lamp)` is the bezel and
+// `radio-button:checked::part(indicator):state(lamp)` the lit lens.
+constexpr std::array<CustomStateDeclaration, 1> radio_button_custom_states{{
+    {.name = "lamp"},
+}};
+constexpr CustomStateIndex lamp_state{0U};
+
 constexpr ControlAnatomy radio_button_anatomy{
     .control_id = "radio_button",
     .parts = radio_button_parts,
     .states = radio_button_states,
-    .custom_states = {},
+    .custom_states = radio_button_custom_states,
     .item_systems = {},
 };
+
+// The lamp look's bezel ring around the lens, in logical units: the lens
+// is the 15-unit well less the ring on each side, as an IndicatorLamp's.
+constexpr double lamp_bezel_ring = 2.0;
+
+// The lamp look's lens inside the well laid out at `laid_well`.
+Rect lamp_lens(Rect laid_well) noexcept {
+    const Rect lens{laid_well.x + lamp_bezel_ring, laid_well.y + lamp_bezel_ring,
+                    laid_well.width - 2.0 * lamp_bezel_ring, laid_well.height - 2.0 * lamp_bezel_ring};
+    return lens;
+}
 
 } // namespace
 
@@ -144,11 +163,14 @@ void RadioButton::publish_part_geometry(std::span<PartGeometry> geometry) const 
         indicator_style.read() == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
     const Rect laid_well{1.0, top, indicator_width, 15.0};
-    // The toggle's knob, or the round dot drawn inside the 15-unit disc.
+    // The toggle's knob, the lamp's lens (shown dark or lit, so always
+    // present), or the round dot drawn inside the 15-unit disc.
     Rect laid_mark{};
     if (indicator_style.read() == ChoiceIndicatorStyle::toggle) {
         const double knob_x = checked_ ? laid_well.x + laid_well.width - 13.0 : laid_well.x + 2.0;
         laid_mark = {knob_x, laid_well.y + 2.0, 11.0, 11.0};
+    } else if (indicator_style.read() == ChoiceIndicatorStyle::lamp) {
+        laid_mark = lamp_lens(laid_well);
     } else if (checked_) {
         laid_mark = {laid_well.x + 4.0, laid_well.y + 4.0, 7.0, 7.0};
     }
@@ -181,6 +203,7 @@ AnatomyStateSet RadioButton::anatomy_states() const {
     if (checked_) {
         states.insert(AnatomyState::checked);
     }
+    if (indicator_style.read() == ChoiceIndicatorStyle::lamp) states.insert(lamp_state);
     return states;
 }
 
@@ -197,14 +220,23 @@ RadioButton::States RadioButton::states() const {
     return record;
 }
 
-// The well, its mark (the dot, or the toggle's knob) and the focus cue are
-// parts the theme's engine draws, in the control's anatomy states; a style
-// override supplies the well's ground and the ink of the mark and the label
-// as authored colours (T4-1), and a disabled radio button keeps the theme's
-// disabled text.
+// The well, its mark (the dot, the toggle's knob or the lamp's lens) and
+// the focus cue are parts the theme's engine draws, in the control's
+// anatomy states; a style override supplies the well's ground and the ink
+// of the mark and the label as authored colours (T4-1), and a disabled
+// radio button keeps the theme's disabled text.
+//
+// The lamp look (owner, 2026-11-21) draws the well as a lamp's bezel (the
+// panel family, as an IndicatorLamp's) and the mark as its lens, always:
+// dark while the option is not chosen, and lit while it is, in the checked
+// state and, for a theme without lamp rules, the progress family, as an
+// IndicatorLamp's lit lens. The row still takes the click, as every radio
+// button's does; the lamp only shows the choice. A lit lens comes on at
+// once: a radio choice answers the click, so it has no warm-up.
 void RadioButton::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const bool toggle = indicator_style.read() == ChoiceIndicatorStyle::toggle;
+    const bool lamp = indicator_style.read() == ChoiceIndicatorStyle::lamp;
     const double indicator_width = toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
     // Laid out left to right; a radio button that resolves right to left
@@ -222,7 +254,7 @@ void RadioButton::on_paint(Painter& painter, Rect) {
         ink.set(colors.text);
     }
     PartPaint well;
-    well.family = ControlVisualRole::choice;
+    well.family = lamp ? ControlVisualRole::panel : ControlVisualRole::choice;
     well.role = PartRole::well;
     well.bounds = box;
     well.states = states;
@@ -230,7 +262,22 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     well.authored_background = ground;
     well.key.set(PartKey{"well", {}, {}});
     paint_part(painter, *this, well);
-    if (toggle || checked_) {
+    if (lamp) {
+        const Rect laid_lens = lamp_lens(laid_box);
+        PartPaint lens;
+        lens.family = checked_ ? ControlVisualRole::progress : ControlVisualRole::choice;
+        lens.role = PartRole::indicator;
+        lens.states = states;
+        lens.bounds = mirrored ? horizontally_mirrored(laid_lens, bounds) : laid_lens;
+        lens.corner_radius.set(laid_lens.width * 0.5);
+        // The lit lens keeps its own record, so the dark lens's stays.
+        if (checked_) {
+            lens.key.set(PartKey{"indicator", "lit", {}});
+        } else {
+            lens.key.set(PartKey{"indicator", {}, {}});
+        }
+        paint_part(painter, *this, lens);
+    } else if (toggle || checked_) {
         PartPaint indicator;
         indicator.family = ControlVisualRole::choice;
         indicator.role = PartRole::indicator;
@@ -356,7 +403,7 @@ PropertyDescriptor radio_button_indicator_style_descriptor() {
     descriptor.name = "indicator_style";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
-    descriptor.description = "How the choice mark draws: classic, modern or toggle.";
+    descriptor.description = "How the choice mark draws: classic, modern, toggle or lamp.";
     descriptor.default_value = BindingValue{PropertyEnumValue{"indicator_style", "classic", 0}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
@@ -416,7 +463,7 @@ void RadioButton::written(const decltype(auto_check)&) {
 
 void RadioButton::prepare_write(const decltype(indicator_style)&, ChoiceIndicatorStyle& incoming) {
     require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument("RadioButton indicator style is invalid");
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::lamp)) throw std::invalid_argument("RadioButton indicator style is invalid");
 }
 
 void RadioButton::written(const decltype(indicator_style)&) {

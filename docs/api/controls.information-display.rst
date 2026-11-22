@@ -238,6 +238,8 @@ Related types
      - Every IndicatorLamp capability, in the order the declaring class takes them.
    * - :cpp:class:`IndicatorLampLampColorCapability <gui_forms::IndicatorLampLampColorCapability>`
      - The colour the lens lights in while on, as sRGB, or empty for the theme's.
+   * - :cpp:class:`IndicatorLampLampStyleCapability <gui_forms::IndicatorLampLampStyleCapability>`
+     - How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them).
    * - :cpp:class:`IndicatorLampLightPlanesCapability <gui_forms::IndicatorLampLightPlanesCapability>`
      - The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise).
    * - :cpp:class:`IndicatorLampStateChoiceCapability <gui_forms::IndicatorLampStateChoiceCapability>`
@@ -1916,7 +1918,7 @@ Related types
 
    ``#include <gui_forms/controls/indicator_lamp.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp.hpp>`)
 
-   Stage T1 anatomy, as dot members (see Control::Parts). ``bezel`` is the ring the lens sits in, ``lens`` the glass that lights, and ``label`` the legend, absent while the text is empty.
+   Stage T1 anatomy, as dot members (see Control::Parts). ``bezel`` is the ring the lens sits in (absent for a pinpoint), ``lens`` the glass that lights (a pinpoint's dot), and ``label`` the legend, absent while the text is empty.
 
    .. cpp:member:: PartGeometry region
 
@@ -1928,7 +1930,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>, public IndicatorLampLightPlanesCapability<Declaring>, public IndicatorLampLampColorCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>, public IndicatorLampLightPlanesCapability<Declaring>, public IndicatorLampLampColorCapability<Declaring>, public IndicatorLampLampStyleCapability<Declaring>
 
    ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp_capabilities.hpp>`)
 
@@ -1953,6 +1955,10 @@ Related types
 
       The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
 
+   .. cpp:member:: IndicatorLampStyle lamp_style
+
+      How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them). Never clickable either way.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> IndicatorLampLampColorCapability
@@ -1967,6 +1973,23 @@ Related types
    .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, stxlib::Optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<stxlib::Optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampLampStyleCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them). Never clickable either way.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampLampStyleCapability& capability, IndicatorLampStyle incoming)
+
+   .. cpp:member:: PropertyCell<IndicatorLampStyle, IndicatorLampLampStyleCapability<Declaring>> lamp_style
+
+      Default: ``{IndicatorLampStyle::lens}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4778,6 +4801,16 @@ Enumerations
    .. cpp:enumerator:: on
 
    .. cpp:enumerator:: error
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: IndicatorLampStyle
+
+   ``#include <gui_forms/controls/indicator_lamp_values.hpp>``
+
+   .. cpp:enumerator:: lens
+
+   .. cpp:enumerator:: pinpoint
 
 .. cpp:namespace:: gui_forms
 

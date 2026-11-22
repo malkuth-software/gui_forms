@@ -39,6 +39,11 @@ indicator_style : default ``ChoiceIndicatorStyle::classic``
     draws a switch instead of the round indicator. `modern` draws the
     checked indicator in the accent colour, but only for a button given its
     own style with `set_style`; under the theme it looks like `classic`.
+    `ChoiceIndicatorStyle::lamp` draws an indicator lamp: the well is a
+    lamp's bezel and the mark its lens, dark while the option is not chosen
+    and lit while it is. The whole row, lamp and caption, takes the click;
+    the lamp only shows which option is chosen. A theme styles it through
+    the custom state ``lamp`` (``radio-button:checked::part(indicator):state(lamp)``).
 
 Events
 ------

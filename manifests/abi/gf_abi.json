@@ -667,6 +667,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_PROCEDURAL_PATTERN_CARBON_FIBRE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
       "name": "GF_HATCH_STYLE_HORIZONTAL",
       "value": 0,
       "type": "uint32"

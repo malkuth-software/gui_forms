@@ -497,6 +497,176 @@ void generate_hatch(const ProceduralFill& fill, const PatternInputs& inputs, con
     }
 }
 
+// Carbon fibre: a 2/2 twill of tows 4 logical units wide. The tile holds
+// `repeats` whole 16-unit repeats, so `tows` = 4 × repeats tows across it
+// and down it, and every term below wraps with the tile. At crossing
+// (tow column i, tow row j), p = (i + j) mod 4 says which tow floats over:
+// p of 0 or 1, the tow down the tile (column i), in the first or second
+// tow of its float; p of 2 or 3, the tow across it (row j), in the first
+// or second tow of its float. So each tow floats over two and under two,
+// and the floats step one tow a row: the twill's diagonals.
+//
+// A pixel's weight about the ground, in 2^16: its tow's light (the tow
+// across catches carbon_across_level, the tow down carbon_down_level)
+// times its rounded profile across the tow and along the float, plus its
+// tow's fibre streak and its crossing's tone. The weight lies within
+// [−0.09, 0.75] of the full contrast, so it never leaves [−65536, 65536].
+constexpr double carbon_repeat_length = 16.0;
+constexpr std::uint32_t carbon_tows_per_repeat = 4U;
+constexpr std::uint32_t carbon_fibres_per_tow = 6U;
+constexpr std::int64_t carbon_across_level = 41943;      // 0.64
+constexpr std::int64_t carbon_down_level = 18350;        // 0.28
+constexpr std::int64_t carbon_edge_floor = 16384;        // 0.25 of the light at a tow's edge
+constexpr std::int64_t carbon_end_floor = 26214;         // 0.40 of it where a float dives under
+constexpr std::int64_t carbon_streak_amplitude = 4588;   // ± 0.07
+constexpr std::int64_t carbon_crossing_amplitude = 2621; // ± 0.04
+
+// A tow's rounded profile across its width at `fraction` (in [0, 65535]):
+// the edge floor at its edges, rising as 1 − t² to 1 at its middle, where
+// t runs from −1 to 1 across the tow. In [carbon_edge_floor, 65536].
+std::int32_t carbon_across_profile(std::uint32_t fraction) noexcept {
+    const std::int64_t t = 2 * static_cast<std::int64_t>(fraction) + 1 - 65536;
+    const std::int64_t bulge = 65536 - ((t * t) >> 16);
+    const std::int64_t profile = carbon_edge_floor + (((65536 - carbon_edge_floor) * bulge) >> 16);
+    return static_cast<std::int32_t>(profile);
+}
+
+// A float's profile along its two tows at `position` (in [0, 131072), the
+// first tow then the second): 1 at its middle, falling as d⁴ to the end
+// floor where it dives under, d running from −1 to 1 along the float. In
+// [carbon_end_floor, 65536].
+std::int32_t carbon_along_profile(std::uint32_t position) noexcept {
+    const std::int64_t d = static_cast<std::int64_t>(position) - 65536;
+    const std::int64_t squared = (d * d) >> 16;
+    const std::int64_t fourth = (squared * squared) >> 16;
+    const std::int64_t profile = 65536 - (((65536 - carbon_end_floor) * fourth) >> 16);
+    return static_cast<std::int32_t>(profile);
+}
+
+// The fibre streak at `fraction` across tow `tow` under `key`: one of
+// carbon_fibres_per_tow seeded fibres across the tow, within
+// ± carbon_streak_amplitude.
+std::int32_t carbon_streak(std::uint32_t key, std::uint32_t tow, std::uint32_t fraction) noexcept {
+    const std::uint32_t fibre = (fraction * carbon_fibres_per_tow) >> 16U;
+    const std::uint32_t hashed = mix(key ^ mix(tow * carbon_fibres_per_tow + fibre + golden)) >> 16U;
+    const std::int64_t streak = ((static_cast<std::int64_t>(hashed) - 32768) * carbon_streak_amplitude) >> 15;
+    return static_cast<std::int32_t>(streak);
+}
+
+// Where the carbon fibre's terms lie in the scratch's weave_terms, for a
+// `width` × `height` tile of `tows` tows each way. Per pixel column: the
+// profile across a tow down the tile, the profiles along a float of a tow
+// across it (its first tow, then `width` more for its second) and the
+// streak of a tow down it; per pixel row, the same for the other
+// direction; then each tow column's first pixel column (tows + 1 entries,
+// the last the width), and each crossing's tone, row-major by tow row.
+struct WeaveLayout final {
+    std::size_t column_across{};
+    std::size_t column_along{};
+    std::size_t column_streak{};
+    std::size_t row_across{};
+    std::size_t row_along{};
+    std::size_t row_streak{};
+    std::size_t column_runs{};
+    std::size_t crossings{};
+    std::size_t total{};
+};
+
+WeaveLayout weave_layout(std::uint32_t width, std::uint32_t height, std::uint32_t tows) noexcept {
+    WeaveLayout layout{};
+    layout.column_across = 0U;
+    layout.column_along = layout.column_across + width;
+    layout.column_streak = layout.column_along + 2U * std::size_t{width};
+    layout.row_across = layout.column_streak + width;
+    layout.row_along = layout.row_across + height;
+    layout.row_streak = layout.row_along + 2U * std::size_t{height};
+    layout.column_runs = layout.row_streak + height;
+    layout.crossings = layout.column_runs + tows + 1U;
+    layout.total = layout.crossings + std::size_t{tows} * tows;
+    return layout;
+}
+
+// Fills one axis's terms for `length` pixels holding `tows` tows: at
+// `across`, each pixel's profile across its tow; at `along`, its profile
+// along a float in the float's first tow and, `length` entries on, in its
+// second; at `streak`, its tow's streak under `key`.
+void fill_weave_axis(std::uint32_t length, std::uint32_t tows, std::uint32_t key, std::size_t across,
+                     std::size_t along, std::size_t streak, std::vector<std::int32_t>& terms) noexcept {
+    for (std::uint32_t index = 0U; index < length; ++index) {
+        const std::uint64_t position = centre_position(index, length, tows);
+        const std::uint32_t tow = static_cast<std::uint32_t>(position >> 16U);
+        const std::uint32_t fraction = static_cast<std::uint32_t>(position & fraction_mask);
+        terms[across + index] = carbon_across_profile(fraction);
+        terms[along + index] = carbon_along_profile(fraction);
+        terms[along + length + index] = carbon_along_profile(fixed_one + fraction);
+        terms[streak + index] = carbon_streak(key, tow, fraction);
+    }
+}
+
+void generate_carbon_fibre(const ProceduralFill& fill, const PatternInputs& inputs, const PartRasterView& destination,
+                           ProceduralScratch& scratch) {
+    const std::uint32_t tows = cells_across(fill.tile, carbon_repeat_length) * carbon_tows_per_repeat;
+    const std::uint32_t down_key = octave_key(fill.seed, 0U);
+    const std::uint32_t across_key = octave_key(fill.seed, 1U);
+    const std::uint32_t crossing_key = octave_key(fill.seed, 2U);
+    const WeaveLayout layout = weave_layout(inputs.width, inputs.height, tows);
+    std::vector<std::int32_t>& terms = scratch.weave_terms;
+    terms.resize(layout.total);
+    // The tows down the tile run along the pixel rows' axis: their profile
+    // across and their streak are the column's; their profile along the
+    // float is the row's. The tows across the tile, the other way round.
+    fill_weave_axis(inputs.width, tows, down_key, layout.column_across, layout.column_along, layout.column_streak,
+                    terms);
+    fill_weave_axis(inputs.height, tows, across_key, layout.row_across, layout.row_along, layout.row_streak, terms);
+    // Each tow column's pixel columns, so that the pixel loop walks one tow
+    // at a time and decides which tow floats once per crossing. A tile
+    // narrower than its tows leaves some tow columns without pixels.
+    std::uint32_t next_tow = 0U;
+    for (std::uint32_t x = 0U; x < inputs.width; ++x) {
+        const std::uint32_t tow = static_cast<std::uint32_t>(centre_position(x, inputs.width, tows) >> 16U);
+        for (; next_tow <= tow; ++next_tow) terms[layout.column_runs + next_tow] = static_cast<std::int32_t>(x);
+    }
+    for (; next_tow <= tows; ++next_tow) terms[layout.column_runs + next_tow] = static_cast<std::int32_t>(inputs.width);
+    for (std::uint32_t row = 0U; row < tows; ++row) {
+        for (std::uint32_t column = 0U; column < tows; ++column) {
+            const std::uint32_t hashed = mix(crossing_key ^ mix(column ^ mix(row + golden))) >> 16U;
+            const std::int64_t tone = ((static_cast<std::int64_t>(hashed) - 32768) * carbon_crossing_amplitude) >> 15;
+            terms[layout.crossings + std::size_t{row} * tows + column] = static_cast<std::int32_t>(tone);
+        }
+    }
+    for (std::uint32_t y = 0U; y < inputs.height; ++y) {
+        const std::uint32_t row_tow = static_cast<std::uint32_t>(centre_position(y, inputs.height, tows) >> 16U);
+        const std::int64_t lit_row = (carbon_across_level * terms[layout.row_across + y]) >> 16;
+        const std::int64_t row_streak = terms[layout.row_streak + y];
+        for (std::uint32_t column_tow = 0U; column_tow < tows; ++column_tow) {
+            const std::uint32_t phase = (column_tow + row_tow) & 3U;
+            const std::uint32_t start = static_cast<std::uint32_t>(terms[layout.column_runs + column_tow]);
+            const std::uint32_t end = static_cast<std::uint32_t>(terms[layout.column_runs + column_tow + 1U]);
+            const std::int64_t crossing = terms[layout.crossings + std::size_t{row_tow} * tows + column_tow];
+            if (phase < 2U) {
+                // The tow down the tile floats over, in tow `phase` of its float.
+                const std::int64_t along = terms[layout.row_along + std::size_t{phase} * inputs.height + y];
+                for (std::uint32_t x = start; x < end; ++x) {
+                    const std::int64_t shade = (terms[layout.column_across + x] * along) >> 16;
+                    const std::int64_t weight =
+                        ((carbon_down_level * shade) >> 16) + terms[layout.column_streak + x] + crossing;
+                    const std::int32_t scaled = scaled_weight(weight, inputs.strength);
+                    store_channels(pixel_at(destination, x, y), mix_channels(inputs.ground, inputs.figure, scaled));
+                }
+                continue;
+            }
+            // The tow across the tile floats over, in tow `phase` − 2 of its float.
+            const std::size_t along_column = layout.column_along + std::size_t{phase - 2U} * inputs.width;
+            for (std::uint32_t x = start; x < end; ++x) {
+                const std::int64_t shade = (lit_row * terms[along_column + x]) >> 16;
+                const std::int64_t weight = shade + row_streak + crossing;
+                const std::int32_t scaled = scaled_weight(weight, inputs.strength);
+                store_channels(pixel_at(destination, x, y), mix_channels(inputs.ground, inputs.figure, scaled));
+            }
+        }
+    }
+}
+
 // One fresco bloom: its centre and radii in doubled device pixels (pixel
 // centres are odd there).
 struct Bloom final {
@@ -602,6 +772,7 @@ std::uint64_t generation_weight(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::fresco: return weights.fresco;
     case ProceduralPattern::checker: return weights.checker;
     case ProceduralPattern::hatch: return weights.hatch;
+    case ProceduralPattern::carbon_fibre: return weights.carbon_fibre;
     }
     // A pattern outside the enumeration is never accepted
     // (valid_surface_material): one pixel of it is past the budget.
@@ -671,6 +842,9 @@ void generate_procedural(const ProceduralFill& fill, double scale, const PartRas
         return;
     case ProceduralPattern::hatch:
         generate_hatch(fill, inputs, destination);
+        return;
+    case ProceduralPattern::carbon_fibre:
+        generate_carbon_fibre(fill, inputs, destination, scratch);
         return;
     }
     // A pattern outside the enumeration is never accepted: the ground.

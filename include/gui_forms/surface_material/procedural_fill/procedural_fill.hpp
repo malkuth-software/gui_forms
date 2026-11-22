@@ -42,6 +42,16 @@ enum class ProceduralPattern : std::uint8_t {
     // floor(8c / side) = x. No noise. The painter path draws it with
     // Painter::fill_hatch.
     hatch,
+    // Carbon fibre (owner, 2026-11-01 and 2026-11-22): a 2/2 twill of tows
+    // 4 logical units wide, a whole number of 16-unit repeats across the
+    // tile (at least one), each tow floating over two crossing tows and
+    // under two, the floats stepping one tow per row, so the weave runs in
+    // diagonals. Its sheen is anisotropic: the tows across the tile catch
+    // the light (the figure) and the tows down it stay near the ground;
+    // each tow is rounded across (darker at its edges, where it meets its
+    // neighbours) and along its float (darker where it dives under), with
+    // seeded fibre streaks along it and a seeded tone per crossing.
+    carbon_fibre,
 };
 
 // One procedural fill's parameters. The pattern is generated per display

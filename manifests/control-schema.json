@@ -1788,7 +1788,7 @@
         {"name": "label", "role": "label", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled"],
-      "custom_states": ["on", "error"],
+      "custom_states": ["on", "error", "pinpoint"],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -1822,6 +1822,7 @@
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "lamp_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
+        {"name": "lamp_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_lamp_style", "choices": ["lens", "pinpoint"], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
         {"name": "light_planes", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -4881,7 +4882,7 @@
         {"name": "help_line", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "image", "kind": "image", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
-        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle", "lamp"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
@@ -4955,7 +4956,7 @@
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
       ],
       "states": ["normal", "hot", "pressed", "checked", "enabled", "disabled", "focused", "focus_visible", "open", "closed"],
-      "custom_states": [],
+      "custom_states": ["lamp"],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -4991,7 +4992,7 @@
         {"name": "help_line", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "image", "kind": "image", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
-        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle", "lamp"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},

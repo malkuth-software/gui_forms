@@ -238,6 +238,12 @@ void procedural_checker(const FeatureSampleInputs&, ThemeDefinition& definition)
     draw_procedural(definition, ProceduralPattern::checker, 0x0E11F007U, "procedural_checker");
 }
 
+// Carbon fibre (owner, 2026-11-22): a 32-unit tile, two twill repeats of
+// 4-unit tows each way.
+void procedural_carbon_fibre(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_procedural(definition, ProceduralPattern::carbon_fibre, 0x0E11F009U, "procedural_carbon_fibre");
+}
+
 // The hatch (raster patterns, owner 2026-11-16) in its default style,
 // horizontal: a 32-unit tile, a whole number of its 8 × 8 squares.
 void procedural_hatch(const FeatureSampleInputs&, ThemeDefinition& definition) {
@@ -728,6 +734,7 @@ constexpr EngineFeatureSample samples[] = {
     {"procedural_fresco", "material", PartRole::face, Drive::rest, procedural_fresco},
     {"procedural_checker", "material", PartRole::face, Drive::rest, procedural_checker},
     {"procedural_hatch", "material", PartRole::face, Drive::rest, procedural_hatch},
+    {"procedural_carbon_fibre", "material", PartRole::face, Drive::rest, procedural_carbon_fibre},
     {"finish_dusty_matte", "material", PartRole::face, Drive::rest, finish_dusty_matte},
     {"finish_orange_peel", "material", PartRole::face, Drive::rest, finish_orange_peel},
     {"finish_hammertone", "material", PartRole::face, Drive::rest, finish_hammertone},

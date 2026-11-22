@@ -248,13 +248,14 @@ struct NamedPattern final {
     HatchStyle hatch_style{HatchStyle::horizontal};
 };
 
-constexpr std::array<NamedPattern, 12> pattern_names{{
+constexpr std::array<NamedPattern, 13> pattern_names{{
     {.name = "checker", .pattern = ProceduralPattern::checker, .tile = 2.0},
     {.name = "felt", .pattern = ProceduralPattern::felt, .tile = 64.0},
     {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain, .tile = 64.0},
     {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre, .tile = 64.0},
     {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe, .tile = 4.0},
     {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal, .tile = 64.0},
+    {.name = "carbon-fibre", .pattern = ProceduralPattern::carbon_fibre, .tile = 32.0},
     {.name = "hatch-horizontal", .pattern = ProceduralPattern::hatch, .tile = 8.0,
      .hatch_style = HatchStyle::horizontal},
     {.name = "hatch-vertical", .pattern = ProceduralPattern::hatch, .tile = 8.0, .hatch_style = HatchStyle::vertical},
@@ -724,12 +725,13 @@ struct CanvasTextureKind final {
     HatchStyle hatch_style{HatchStyle::horizontal};
 };
 
-constexpr std::array<CanvasTextureKind, 12> canvas_texture_kinds{{
+constexpr std::array<CanvasTextureKind, 13> canvas_texture_kinds{{
     {.name = "felt", .pattern = ProceduralPattern::felt},
     {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain},
     {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre},
     {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe},
     {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal},
+    {.name = "carbon-fibre", .pattern = ProceduralPattern::carbon_fibre},
     {.name = "checker", .pattern = ProceduralPattern::checker},
     {.name = "hatch-horizontal", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::horizontal},
     {.name = "hatch-vertical", .pattern = ProceduralPattern::hatch, .hatch_style = HatchStyle::vertical},
@@ -1504,7 +1506,7 @@ bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "checker, felt, wood-grain, paper-fibre, pinstripe, brushed-metal or a hatch-* style");
+                    "checker, felt, wood-grain, paper-fibre, pinstripe, brushed-metal, carbon-fibre or a hatch-* style");
     }
     ProceduralFill fill{};
     fill.pattern = (*named).pattern;
@@ -3957,7 +3959,7 @@ bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& laye
     }
     if (named == nullptr) {
         return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
-                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal, checker or a hatch-* style");
+                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal, carbon-fibre, checker or a hatch-* style");
     }
     const ValueComponent& seed = value_.components[arguments[1].first];
     const bool whole = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none &&

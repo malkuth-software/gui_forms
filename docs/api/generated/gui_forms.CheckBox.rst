@@ -63,7 +63,8 @@ gui_forms::CheckBox
 
       **indicator_style** : ``ChoiceIndicatorStyle``, default ``ChoiceIndicatorStyle::classic``
          The indicator drawn for :cpp:member:`appearance <gui_forms::CheckBox::appearance>` ``normal``: a classic box, a modern
-         box or a toggle switch.
+         box or a toggle switch. :cpp:enumerator:`ChoiceIndicatorStyle::lamp <gui_forms::ChoiceIndicatorStyle::lamp>` throws
+         ``std::invalid_argument``: lamps form a radio choice, never a check box.
 
       **parts** : ``Parts``, read-only
 
@@ -188,7 +189,8 @@ gui_forms::CheckBox
    .. cpp:member:: ChoiceIndicatorStyle indicator_style
 
       The indicator drawn for :cpp:member:`appearance <gui_forms::CheckBox::appearance>` ``normal``: a classic box, a modern
-      box or a toggle switch.
+      box or a toggle switch. :cpp:enumerator:`ChoiceIndicatorStyle::lamp <gui_forms::ChoiceIndicatorStyle::lamp>` throws
+      ``std::invalid_argument``: lamps form a radio choice, never a check box.
 
    .. cpp:function:: Parts parts() const
 

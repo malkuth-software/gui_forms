@@ -113,6 +113,7 @@ const char* procedural_pattern_name(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::fresco: return "fresco";
     case ProceduralPattern::checker: return "checker";
     case ProceduralPattern::hatch: return "hatch";
+    case ProceduralPattern::carbon_fibre: return "carbon_fibre";
     }
     return "unknown";
 }

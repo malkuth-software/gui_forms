@@ -14,7 +14,11 @@
    and grain is one line there. The swatches are small because a bake
    has a budget: past it (a hammertone past about 22,000 device pixels, a
    glint past about 10,000) the built-in look draws instead, so at 3x the
-   hammertone and the glints show that. Behaviour stays in the page
+   hammertone and the glints show that. Beside the glints, two procedural
+   patterns, carbon fibre and brushed metal (the theme's `pattern-*`
+   classes). The preview's feed choice is a radio group drawn with lamps
+   (indicator-style="lamp": the row takes the click, the lamp shows the
+   choice), and its coolant flow lamp a pinpoint. Behaviour stays in the page
    (src/controls/gallery/pages/industrial-surfaces.cpp): the lit keys,
    which it places inside gallery.industrial.keys, the Lamps check box,
    and the check box that puts the industrial theme on the preview. -->
@@ -127,10 +131,24 @@
         text="Painted-sand glint"
         classes="muted note"
         bounds="476 168 100 16"/>
+    <panel id="gallery.industrial.pattern.carbon-fibre"
+        classes="pattern-carbon-fibre"
+        bounds="590 124 60 40"/>
+    <label id="gallery.industrial.pattern.carbon-fibre.caption"
+        text="Carbon fibre"
+        classes="muted note"
+        bounds="590 168 100 16"/>
+    <panel id="gallery.industrial.pattern.brushed-metal"
+        classes="pattern-brushed-metal"
+        bounds="704 124 60 40"/>
+    <label id="gallery.industrial.pattern.brushed-metal.caption"
+        text="Brushed metal"
+        classes="muted note"
+        bounds="704 168 100 16"/>
     <label id="gallery.industrial.glint.note"
         text="The glints are blasted metal drawn from its facets' glints; they stand still and cost some eight times a finish."
         classes="muted note"
-        bounds="600 124 320 48"/>
+        bounds="818 120 124 104"/>
   </scaled-group-box>
 
   <scaled-group-box id="gallery.industrial.lit-keys"
@@ -178,6 +196,7 @@
     <indicator-lamp id="gallery.industrial.preview.coolant-lamp"
         text="Coolant flow"
         state="on"
+        lamp-style="pinpoint"
         bounds="284 196 166 24"/>
     <check-box id="gallery.industrial.preview.coolant"
         text="Coolant"
@@ -186,11 +205,13 @@
     <radio-button id="gallery.industrial.preview.manual"
         text="Manual feed"
         group-name="gallery-industrial-feed"
+        indicator-style="lamp"
         checked="true"
         bounds="16 166 200 24"/>
     <radio-button id="gallery.industrial.preview.automatic"
         text="Automatic feed"
         group-name="gallery-industrial-feed"
+        indicator-style="lamp"
         bounds="16 196 200 24"/>
     <label id="gallery.industrial.preview.state"
         text=""
