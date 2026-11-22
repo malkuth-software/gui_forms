@@ -3039,6 +3039,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "design_size", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "add_at", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "design_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_panel_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "scaled_group_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "set_design_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "MaterialPanel", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp", "members": [
@@ -3469,6 +3470,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "design_size", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "add_at", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "design_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_panel_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "scaled_panel_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "set_design_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "SplitContainer", "winforms": "SplitContainer", "gui_forms_base": "ContainerControl", "winforms_base": "ContainerControl", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp", "members": [

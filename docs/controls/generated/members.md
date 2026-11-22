@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2375 | 3 | 370 | 4145 | 2501 |
+| 2375 | 3 | 370 | 4147 | 2503 |
 
 ## GUI.Forms types
 
@@ -73,7 +73,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `MonthCalendar` | `MonthCalendar` | 21 | 0 | 1 | 45 | 9 |
 | `Panel` | `Panel` | 8 | 0 | 0 | 8 | 7 |
 | `GroupBox` | `GroupBox` | 4 | 0 | 0 | 21 | 1 |
-| `ScaledGroupBox` | GUI.Forms-only | 3 | 0 | 0 | 1 | 4 |
+| `ScaledGroupBox` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
 | `MaterialPanel` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `Card` | GUI.Forms-only | 10 | 0 | 0 | 1 | 11 |
 | `ExpandableSections` | GUI.Forms-only | 7 | 0 | 0 | 0 | 7 |
@@ -94,7 +94,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TableLayoutPanelCompat` | `TableLayoutPanel` | 13 | 0 | 0 | 26 | 13 |
 | `ResponsiveTrackPanel` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
 | `FormLayout` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
-| `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 1 | 4 |
+| `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
 | `SplitContainer` | `SplitContainer` | 12 | 0 | 0 | 37 | 14 |
 | `SplitterPanel` | `SplitterPanel` | 4 | 0 | 0 | 19 | 0 |
 | `Splitter` | `Splitter` | 9 | 0 | 0 | 19 | 5 |
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 972 |
+| `untested` | 974 |
 | `w-open` | 5 |

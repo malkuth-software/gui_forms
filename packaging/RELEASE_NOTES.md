@@ -419,6 +419,9 @@ Visible-area guarantee (stage VA):
   (`PresentationSettings::minimum_content_scale`, 0.5).
 - `PictureBox`'s zoom, `RasterCanvas::view_whole_bitmap` and `scene_framed`
   use the one contain computation.
+- `ScaledPanel` and `ScaledGroupBox` stay an explicit stretch and gain
+  `aspect` (`ScaledAspect::stretch`, the default, or `uniform`: one scale
+  keeping the design's proportions, aligned by `viewport_fit`'s alignment).
 - Safe insets from hosts (`HostSafeInsetsEvent`, `HostCapability::
   safe_insets`, host protocol 16): macOS in full screen, and the web host's
   visual viewport.

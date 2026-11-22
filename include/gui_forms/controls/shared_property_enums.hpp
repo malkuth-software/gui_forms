@@ -3,6 +3,7 @@
 #include "gui_forms/binding/property_type/property_type.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/label_values.hpp"
+#include "gui_forms/controls/scaled_layout_values.hpp"
 
 namespace gui_forms {
 
@@ -23,6 +24,13 @@ struct PropertyValueTraits<HorizontalAlignment> {
     static PropertyType type();
     static BindingValue to_binding(HorizontalAlignment value);
     static HorizontalAlignment from_binding(const BindingValue& value);
+};
+
+template <>
+struct PropertyValueTraits<ScaledAspect> {
+    static PropertyType type();
+    static BindingValue to_binding(ScaledAspect value);
+    static ScaledAspect from_binding(const BindingValue& value);
 };
 
 } // namespace gui_forms
