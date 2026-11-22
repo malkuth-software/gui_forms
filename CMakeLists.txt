@@ -704,6 +704,8 @@ add_library(gui_forms_core STATIC
     src/core/docking/dock_layout/dock_layout_edits.cpp
     src/core/docking/dock_layout/dock_layout_model.cpp
     src/core/docking/dock_layout/dock_layout_persistence.cpp
+    src/core/docking/dock_layout/dock_layout_frames.cpp
+    src/core/docking/dock_frames/dock_frames.cpp
     src/core/docking/dock_drop_targets/dock_drop_targets.cpp
     src/core/host/image/host_image.cpp
     src/core/host/image/host_image_pixels.cpp
