@@ -205,6 +205,65 @@ HostTrayMenuResult HeadlessHostServices::show_tray_menu_impl(HostTrayIconId icon
     return result;
 }
 
+const HostDesktopNotificationRequest* HeadlessHostServices::desktop_notification(
+    HostDesktopNotificationId notification_id) const noexcept {
+    for (const DesktopNotification& notification : desktop_notifications_) {
+        if (notification.id == notification_id) return &notification.request;
+    }
+    return nullptr;
+}
+
+void HeadlessHostServices::simulate_desktop_notification_event(HostDesktopNotificationEvent event) {
+    publish_desktop_notification_event(event);
+}
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+namespace {
+
+const char* urgency_name(HostDesktopNotificationUrgency urgency) noexcept {
+    switch (urgency) {
+    case HostDesktopNotificationUrgency::low:
+        return "low";
+    case HostDesktopNotificationUrgency::normal:
+        return "normal";
+    case HostDesktopNotificationUrgency::critical:
+        return "critical";
+    }
+    // HostServices refuses an urgency outside the enumeration first.
+    return "normal";
+}
+
+} // namespace
+
+HostServiceStatus HeadlessHostServices::show_desktop_notification_impl(
+    HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request) {
+    if (fail_next_desktop_notification_) {
+        fail_next_desktop_notification_ = false;
+        return {HostServiceError::backend_failure};
+    }
+    desktop_notifications_.push_back({notification_id, request});
+    std::ostringstream line;
+    line << "notification show id=" << notification_id.value << " urgency=" << urgency_name(request.urgency)
+         << " silent=" << (request.silent ? 1 : 0) << " title=" << request.title << " text=" << request.text
+         << '\n';
+    desktop_notification_trace_ += line.str();
+    return {};
+}
+
+void HeadlessHostServices::withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept {
+    for (std::size_t index = 0; index < desktop_notifications_.size(); ++index) {
+        if (desktop_notifications_[index].id == notification_id) {
+            desktop_notifications_.erase(desktop_notifications_.begin() + static_cast<std::ptrdiff_t>(index));
+            break;
+        }
+    }
+    try {
+        desktop_notification_trace_ += "notification withdraw id=" + std::to_string(notification_id.value) + '\n';
+    } catch (...) {
+    }
+}
+#endif
+
 void HeadlessHostServices::shutdown_impl() noexcept {
     tray_menu_choices_.clear();
     clipboard_text_.clear();

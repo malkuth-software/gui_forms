@@ -27,6 +27,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
@@ -167,7 +168,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 155> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 156> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -307,6 +308,7 @@ inline constexpr std::array<FormCatalogEntry, 155> form_catalog{{
     {"timer", "Timer", "gui_forms/timer/timer/timer.hpp", &add_catalog_type<Timer>, CatalogConstruction::stable_id},
     {"background_worker", "BackgroundWorker", "gui_forms/background_worker/background_worker.hpp", &add_catalog_type<BackgroundWorker>, CatalogConstruction::stable_id},
     {"notify_icon", "NotifyIcon", "gui_forms/components/notify_icon/notify_icon.hpp", &add_catalog_type<NotifyIcon>, CatalogConstruction::stable_id},
+    {"toast_notification", "ToastNotification", "gui_forms/components/toast_notification/toast_notification.hpp", &add_catalog_type<ToastNotification>, CatalogConstruction::stable_id},
     {"open_file_dialog", "OpenFileDialog", "gui_forms/components/open_file_dialog/open_file_dialog.hpp", &add_catalog_type<OpenFileDialog>, CatalogConstruction::stable_id},
     {"save_file_dialog", "SaveFileDialog", "gui_forms/components/save_file_dialog/save_file_dialog.hpp", &add_catalog_type<SaveFileDialog>, CatalogConstruction::stable_id},
     {"image_list", "ImageList", "gui_forms/image_list/image_list/image_list.hpp", &add_catalog_type<ImageList>, CatalogConstruction::stable_id},

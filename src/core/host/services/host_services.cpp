@@ -1154,6 +1154,110 @@ HostTrayMenuResult HostServices::show_tray_menu(HostTrayIconId icon_id, const Ho
     return result;
 }
 
+// -- desktop notifications ----------------------------------------------------
+
+bool HostServices::desktop_notification_live(HostDesktopNotificationId notification_id) const noexcept {
+    const bool live = std::find(desktop_notifications_.begin(), desktop_notifications_.end(), notification_id) !=
+                      desktop_notifications_.end();
+    return live;
+}
+
+HostDesktopNotificationResult HostServices::show_desktop_notification(const HostDesktopNotificationRequest& request) {
+    HostDesktopNotificationResult result;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(request);
+    result.status = validate_request(HostCapability::desktop_notifications);
+    return result;
+#else
+    result.status = validate_request(HostCapability::desktop_notifications);
+    if (!result.status.accepted()) return result;
+    if (request.title.size() > maximum_desktop_notification_title_bytes ||
+        request.text.size() > maximum_desktop_notification_text_bytes) {
+        result.status = reject(HostServiceError::too_large);
+        return result;
+    }
+    if (!valid_utf8(request.title) || !valid_utf8(request.text)) {
+        result.status = reject(HostServiceError::invalid_utf8);
+        return result;
+    }
+    const bool has_nul = request.title.find('\0') != std::string::npos || request.text.find('\0') != std::string::npos;
+    const bool known_urgency = request.urgency == HostDesktopNotificationUrgency::low ||
+                               request.urgency == HostDesktopNotificationUrgency::normal ||
+                               request.urgency == HostDesktopNotificationUrgency::critical;
+    if (request.text.empty() || has_nul || !known_urgency) {
+        result.status = reject(HostServiceError::invalid_argument);
+        return result;
+    }
+    // At the bound the oldest goes first, so the list never grows past it.
+    if (desktop_notifications_.size() >= maximum_live_desktop_notifications) {
+        const HostDesktopNotificationId oldest = desktop_notifications_.front();
+        desktop_notifications_.erase(desktop_notifications_.begin());
+        withdraw_desktop_notification_impl(oldest);
+        ++snapshot_.desktop_notification_withdrawals;
+    }
+    const HostDesktopNotificationId notification_id{next_desktop_notification_id_};
+    HostServiceStatus shown{HostServiceError::backend_failure};
+    try {
+        shown = show_desktop_notification_impl(notification_id, request);
+    } catch (const std::exception&) {
+        shown = {HostServiceError::backend_failure};
+    }
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    if (!shown.accepted()) {
+        result.status = reject(shown.error);
+        return result;
+    }
+    ++next_desktop_notification_id_;
+    desktop_notifications_.push_back(notification_id);
+    ++snapshot_.desktop_notifications;
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    result.notification_id = notification_id;
+    return result;
+#endif
+}
+
+HostServiceStatus HostServices::withdraw_desktop_notification(HostDesktopNotificationId notification_id) {
+    const HostServiceStatus status = validate_request(HostCapability::desktop_notifications);
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    static_cast<void>(notification_id);
+    return status;
+#else
+    if (!status.accepted()) return status;
+    const std::vector<HostDesktopNotificationId>::iterator found =
+        std::find(desktop_notifications_.begin(), desktop_notifications_.end(), notification_id);
+    if (found == desktop_notifications_.end()) return reject(HostServiceError::invalid_argument);
+    desktop_notifications_.erase(found);
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    ++snapshot_.desktop_notification_withdrawals;
+    withdraw_desktop_notification_impl(notification_id);
+    return status;
+#endif
+}
+
+void HostServices::publish_desktop_notification_event(const HostDesktopNotificationEvent& event) {
+    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) return;
+    const std::vector<HostDesktopNotificationId>::iterator found =
+        std::find(desktop_notifications_.begin(), desktop_notifications_.end(), event.notification_id);
+    if (found == desktop_notifications_.end()) return;
+    // The identity is finished before any handler runs, so a handler that
+    // shows another notification sees the list as it is.
+    desktop_notifications_.erase(found);
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    ++snapshot_.desktop_notification_events;
+    desktop_notification_events_.emit(event);
+}
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+HostServiceStatus HostServices::show_desktop_notification_impl(HostDesktopNotificationId,
+                                                               const HostDesktopNotificationRequest&) {
+    return {HostServiceError::unsupported};
+}
+
+void HostServices::withdraw_desktop_notification_impl(HostDesktopNotificationId) noexcept {}
+#endif
+
 bool HostServices::publish_dialog_help(const HostDialogHelpEvent& event) {
     if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) return false;
     const bool open = std::find(modal_stack_.begin(), modal_stack_.end(), event.request_id) != modal_stack_.end();
@@ -1203,6 +1307,10 @@ void HostServices::shutdown() noexcept {
     for (const HostTrayIconId icon_id : tray_icons_) remove_tray_icon_impl(icon_id);
     tray_icons_.clear();
     snapshot_.tray_icons = 0U;
+    // Notifications stay in the platform's list; their identities end here,
+    // so a late report is dropped.
+    desktop_notifications_.clear();
+    snapshot_.desktop_notifications_live = 0U;
     snapshot_.shutdown = true;
     shutdown_impl();
     active_cursor_images_.reset();

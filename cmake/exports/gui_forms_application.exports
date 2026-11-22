@@ -876,6 +876,7 @@ __ZGVZN9gui_forms17TextStoreSnapshot*
 __ZGVZN9gui_forms17ThemeBackdropBase*
 __ZGVZN9gui_forms17ThemeExportReport*
 __ZGVZN9gui_forms17ThemeMotionTokens*
+__ZGVZN9gui_forms17ToastNotification*
 __ZGVZN9gui_forms17ToolStripItemSpec*
 __ZGVZN9gui_forms17TreeListRowSource*
 __ZGVZN9gui_forms17TreeListRowSplice*
@@ -1386,6 +1387,7 @@ __ZGVZN9gui_forms25ControlBindingsCollection*
 __ZGVZN9gui_forms25DataGridViewCellsProvided*
 __ZGVZN9gui_forms25DataGridViewCellsSnapshot*
 __ZGVZN9gui_forms25DataGridViewRowPaintParts*
+__ZGVZN9gui_forms25HostDesktopNotificationId*
 __ZGVZN9gui_forms25HostOpenFileDialogRequest*
 __ZGVZN9gui_forms25HostSaveFileDialogRequest*
 __ZGVZN9gui_forms25InvalidationOverlayTarget*
@@ -1432,12 +1434,14 @@ __ZGVZN9gui_forms28DataGridViewRowPrePaintEvent*
 __ZGVZN9gui_forms28DataGridViewRowsChangedEvent*
 __ZGVZN9gui_forms28DataGridViewScrollStatistics*
 __ZGVZN9gui_forms28DataGridViewSortCompareEvent*
+__ZGVZN9gui_forms28HostDesktopNotificationEvent*
 __ZGVZN9gui_forms28NavigationPaneOptionsRequest*
 __ZGVZN9gui_forms28VisualPaintOperationSnapshot*
 __ZGVZN9gui_forms28WindowChromeRegionValidation*
 __ZGVZN9gui_forms29DataGridViewCellValueProvider*
 __ZGVZN9gui_forms29DataGridViewCellsTextProvider*
 __ZGVZN9gui_forms29DataGridViewRowPostPaintEvent*
+__ZGVZN9gui_forms29HostDesktopNotificationResult*
 __ZGVZN9gui_forms29PrimitiveParameterDeclaration*
 __ZGVZN9gui_forms30AnchoredOverlayPlacementResult*
 __ZGVZN9gui_forms30ConnectedControlVisualGeometry*
@@ -1445,6 +1449,7 @@ __ZGVZN9gui_forms30DataGridViewColumnChangedEvent*
 __ZGVZN9gui_forms30DataGridViewRowOrderModeChange*
 __ZGVZN9gui_forms30DataGridViewRowOrderStatistics*
 __ZGVZN9gui_forms30DataGridViewRowOrderThresholds*
+__ZGVZN9gui_forms30HostDesktopNotificationRequest*
 __ZGVZN9gui_forms30MasterDetailPresentationChange*
 __ZGVZN9gui_forms30ProgressBarAnimationAppearance*
 __ZGVZN9gui_forms30PropertyValueConverterRegistry*
@@ -2572,6 +2577,7 @@ __ZGVZNK9gui_forms17TextStoreSnapshot*
 __ZGVZNK9gui_forms17ThemeBackdropBase*
 __ZGVZNK9gui_forms17ThemeExportReport*
 __ZGVZNK9gui_forms17ThemeMotionTokens*
+__ZGVZNK9gui_forms17ToastNotification*
 __ZGVZNK9gui_forms17ToolStripItemSpec*
 __ZGVZNK9gui_forms17TreeListRowSource*
 __ZGVZNK9gui_forms17TreeListRowSplice*
@@ -3082,6 +3088,7 @@ __ZGVZNK9gui_forms25ControlBindingsCollection*
 __ZGVZNK9gui_forms25DataGridViewCellsProvided*
 __ZGVZNK9gui_forms25DataGridViewCellsSnapshot*
 __ZGVZNK9gui_forms25DataGridViewRowPaintParts*
+__ZGVZNK9gui_forms25HostDesktopNotificationId*
 __ZGVZNK9gui_forms25HostOpenFileDialogRequest*
 __ZGVZNK9gui_forms25HostSaveFileDialogRequest*
 __ZGVZNK9gui_forms25InvalidationOverlayTarget*
@@ -3128,12 +3135,14 @@ __ZGVZNK9gui_forms28DataGridViewRowPrePaintEvent*
 __ZGVZNK9gui_forms28DataGridViewRowsChangedEvent*
 __ZGVZNK9gui_forms28DataGridViewScrollStatistics*
 __ZGVZNK9gui_forms28DataGridViewSortCompareEvent*
+__ZGVZNK9gui_forms28HostDesktopNotificationEvent*
 __ZGVZNK9gui_forms28NavigationPaneOptionsRequest*
 __ZGVZNK9gui_forms28VisualPaintOperationSnapshot*
 __ZGVZNK9gui_forms28WindowChromeRegionValidation*
 __ZGVZNK9gui_forms29DataGridViewCellValueProvider*
 __ZGVZNK9gui_forms29DataGridViewCellsTextProvider*
 __ZGVZNK9gui_forms29DataGridViewRowPostPaintEvent*
+__ZGVZNK9gui_forms29HostDesktopNotificationResult*
 __ZGVZNK9gui_forms29PrimitiveParameterDeclaration*
 __ZGVZNK9gui_forms30AnchoredOverlayPlacementResult*
 __ZGVZNK9gui_forms30ConnectedControlVisualGeometry*
@@ -3141,6 +3150,7 @@ __ZGVZNK9gui_forms30DataGridViewColumnChangedEvent*
 __ZGVZNK9gui_forms30DataGridViewRowOrderModeChange*
 __ZGVZNK9gui_forms30DataGridViewRowOrderStatistics*
 __ZGVZNK9gui_forms30DataGridViewRowOrderThresholds*
+__ZGVZNK9gui_forms30HostDesktopNotificationRequest*
 __ZGVZNK9gui_forms30MasterDetailPresentationChange*
 __ZGVZNK9gui_forms30ProgressBarAnimationAppearance*
 __ZGVZNK9gui_forms30PropertyValueConverterRegistry*
@@ -4598,6 +4608,7 @@ __ZN9gui_forms17TextStoreSnapshot*
 __ZN9gui_forms17ThemeBackdropBase*
 __ZN9gui_forms17ThemeExportReport*
 __ZN9gui_forms17ThemeMotionTokens*
+__ZN9gui_forms17ToastNotification*
 __ZN9gui_forms17ToolStripItemSpec*
 __ZN9gui_forms17TreeListRowSource*
 __ZN9gui_forms17TreeListRowSplice*
@@ -5910,6 +5921,7 @@ __ZN9gui_forms25ControlBindingsCollection*
 __ZN9gui_forms25DataGridViewCellsProvided*
 __ZN9gui_forms25DataGridViewCellsSnapshot*
 __ZN9gui_forms25DataGridViewRowPaintParts*
+__ZN9gui_forms25HostDesktopNotificationId*
 __ZN9gui_forms25HostOpenFileDialogRequest*
 __ZN9gui_forms25HostSaveFileDialogRequest*
 __ZN9gui_forms25InvalidationOverlayTarget*
@@ -6136,6 +6148,7 @@ __ZN9gui_forms28DataGridViewRowPrePaintEvent*
 __ZN9gui_forms28DataGridViewRowsChangedEvent*
 __ZN9gui_forms28DataGridViewScrollStatistics*
 __ZN9gui_forms28DataGridViewSortCompareEvent*
+__ZN9gui_forms28HostDesktopNotificationEvent*
 __ZN9gui_forms28NavigationPaneOptionsRequest*
 __ZN9gui_forms28VisualPaintOperationSnapshot*
 __ZN9gui_forms28WindowChromeRegionValidation*
@@ -6172,6 +6185,7 @@ __ZN9gui_forms28window_band_appearance_validE*
 __ZN9gui_forms29DataGridViewCellValueProvider*
 __ZN9gui_forms29DataGridViewCellsTextProvider*
 __ZN9gui_forms29DataGridViewRowPostPaintEvent*
+__ZN9gui_forms29HostDesktopNotificationResult*
 __ZN9gui_forms29PrimitiveParameterDeclaration*
 __ZN9gui_forms29animation_interval_for_travelB*
 __ZN9gui_forms29animation_interval_for_travelE*
@@ -6205,6 +6219,7 @@ __ZN9gui_forms30DataGridViewColumnChangedEvent*
 __ZN9gui_forms30DataGridViewRowOrderModeChange*
 __ZN9gui_forms30DataGridViewRowOrderStatistics*
 __ZN9gui_forms30DataGridViewRowOrderThresholds*
+__ZN9gui_forms30HostDesktopNotificationRequest*
 __ZN9gui_forms30MasterDetailPresentationChange*
 __ZN9gui_forms30ProgressBarAnimationAppearance*
 __ZN9gui_forms30PropertyValueConverterRegistry*
@@ -7676,6 +7691,7 @@ __ZNK[RO]9gui_forms17TextStoreSnapshot*
 __ZNK[RO]9gui_forms17ThemeBackdropBase*
 __ZNK[RO]9gui_forms17ThemeExportReport*
 __ZNK[RO]9gui_forms17ThemeMotionTokens*
+__ZNK[RO]9gui_forms17ToastNotification*
 __ZNK[RO]9gui_forms17ToolStripItemSpec*
 __ZNK[RO]9gui_forms17TreeListRowSource*
 __ZNK[RO]9gui_forms17TreeListRowSplice*
@@ -8186,6 +8202,7 @@ __ZNK[RO]9gui_forms25ControlBindingsCollection*
 __ZNK[RO]9gui_forms25DataGridViewCellsProvided*
 __ZNK[RO]9gui_forms25DataGridViewCellsSnapshot*
 __ZNK[RO]9gui_forms25DataGridViewRowPaintParts*
+__ZNK[RO]9gui_forms25HostDesktopNotificationId*
 __ZNK[RO]9gui_forms25HostOpenFileDialogRequest*
 __ZNK[RO]9gui_forms25HostSaveFileDialogRequest*
 __ZNK[RO]9gui_forms25InvalidationOverlayTarget*
@@ -8232,12 +8249,14 @@ __ZNK[RO]9gui_forms28DataGridViewRowPrePaintEvent*
 __ZNK[RO]9gui_forms28DataGridViewRowsChangedEvent*
 __ZNK[RO]9gui_forms28DataGridViewScrollStatistics*
 __ZNK[RO]9gui_forms28DataGridViewSortCompareEvent*
+__ZNK[RO]9gui_forms28HostDesktopNotificationEvent*
 __ZNK[RO]9gui_forms28NavigationPaneOptionsRequest*
 __ZNK[RO]9gui_forms28VisualPaintOperationSnapshot*
 __ZNK[RO]9gui_forms28WindowChromeRegionValidation*
 __ZNK[RO]9gui_forms29DataGridViewCellValueProvider*
 __ZNK[RO]9gui_forms29DataGridViewCellsTextProvider*
 __ZNK[RO]9gui_forms29DataGridViewRowPostPaintEvent*
+__ZNK[RO]9gui_forms29HostDesktopNotificationResult*
 __ZNK[RO]9gui_forms29PrimitiveParameterDeclaration*
 __ZNK[RO]9gui_forms30AnchoredOverlayPlacementResult*
 __ZNK[RO]9gui_forms30ConnectedControlVisualGeometry*
@@ -8245,6 +8264,7 @@ __ZNK[RO]9gui_forms30DataGridViewColumnChangedEvent*
 __ZNK[RO]9gui_forms30DataGridViewRowOrderModeChange*
 __ZNK[RO]9gui_forms30DataGridViewRowOrderStatistics*
 __ZNK[RO]9gui_forms30DataGridViewRowOrderThresholds*
+__ZNK[RO]9gui_forms30HostDesktopNotificationRequest*
 __ZNK[RO]9gui_forms30MasterDetailPresentationChange*
 __ZNK[RO]9gui_forms30ProgressBarAnimationAppearance*
 __ZNK[RO]9gui_forms30PropertyValueConverterRegistry*
@@ -9372,6 +9392,7 @@ __ZN[KRO]9gui_forms17TextStoreSnapshot*
 __ZN[KRO]9gui_forms17ThemeBackdropBase*
 __ZN[KRO]9gui_forms17ThemeExportReport*
 __ZN[KRO]9gui_forms17ThemeMotionTokens*
+__ZN[KRO]9gui_forms17ToastNotification*
 __ZN[KRO]9gui_forms17ToolStripItemSpec*
 __ZN[KRO]9gui_forms17TreeListRowSource*
 __ZN[KRO]9gui_forms17TreeListRowSplice*
@@ -9882,6 +9903,7 @@ __ZN[KRO]9gui_forms25ControlBindingsCollection*
 __ZN[KRO]9gui_forms25DataGridViewCellsProvided*
 __ZN[KRO]9gui_forms25DataGridViewCellsSnapshot*
 __ZN[KRO]9gui_forms25DataGridViewRowPaintParts*
+__ZN[KRO]9gui_forms25HostDesktopNotificationId*
 __ZN[KRO]9gui_forms25HostOpenFileDialogRequest*
 __ZN[KRO]9gui_forms25HostSaveFileDialogRequest*
 __ZN[KRO]9gui_forms25InvalidationOverlayTarget*
@@ -9928,12 +9950,14 @@ __ZN[KRO]9gui_forms28DataGridViewRowPrePaintEvent*
 __ZN[KRO]9gui_forms28DataGridViewRowsChangedEvent*
 __ZN[KRO]9gui_forms28DataGridViewScrollStatistics*
 __ZN[KRO]9gui_forms28DataGridViewSortCompareEvent*
+__ZN[KRO]9gui_forms28HostDesktopNotificationEvent*
 __ZN[KRO]9gui_forms28NavigationPaneOptionsRequest*
 __ZN[KRO]9gui_forms28VisualPaintOperationSnapshot*
 __ZN[KRO]9gui_forms28WindowChromeRegionValidation*
 __ZN[KRO]9gui_forms29DataGridViewCellValueProvider*
 __ZN[KRO]9gui_forms29DataGridViewCellsTextProvider*
 __ZN[KRO]9gui_forms29DataGridViewRowPostPaintEvent*
+__ZN[KRO]9gui_forms29HostDesktopNotificationResult*
 __ZN[KRO]9gui_forms29PrimitiveParameterDeclaration*
 __ZN[KRO]9gui_forms30AnchoredOverlayPlacementResult*
 __ZN[KRO]9gui_forms30ConnectedControlVisualGeometry*
@@ -9941,6 +9965,7 @@ __ZN[KRO]9gui_forms30DataGridViewColumnChangedEvent*
 __ZN[KRO]9gui_forms30DataGridViewRowOrderModeChange*
 __ZN[KRO]9gui_forms30DataGridViewRowOrderStatistics*
 __ZN[KRO]9gui_forms30DataGridViewRowOrderThresholds*
+__ZN[KRO]9gui_forms30HostDesktopNotificationRequest*
 __ZN[KRO]9gui_forms30MasterDetailPresentationChange*
 __ZN[KRO]9gui_forms30ProgressBarAnimationAppearance*
 __ZN[KRO]9gui_forms30PropertyValueConverterRegistry*
@@ -11068,6 +11093,7 @@ __ZT[VIST]N9gui_forms17TextStoreSnapshot*E
 __ZT[VIST]N9gui_forms17ThemeBackdropBase*E
 __ZT[VIST]N9gui_forms17ThemeExportReport*E
 __ZT[VIST]N9gui_forms17ThemeMotionTokens*E
+__ZT[VIST]N9gui_forms17ToastNotification*E
 __ZT[VIST]N9gui_forms17ToolStripItemSpec*E
 __ZT[VIST]N9gui_forms17TreeListRowSource*E
 __ZT[VIST]N9gui_forms17TreeListRowSplice*E
@@ -11578,6 +11604,7 @@ __ZT[VIST]N9gui_forms25ControlBindingsCollection*E
 __ZT[VIST]N9gui_forms25DataGridViewCellsProvided*E
 __ZT[VIST]N9gui_forms25DataGridViewCellsSnapshot*E
 __ZT[VIST]N9gui_forms25DataGridViewRowPaintParts*E
+__ZT[VIST]N9gui_forms25HostDesktopNotificationId*E
 __ZT[VIST]N9gui_forms25HostOpenFileDialogRequest*E
 __ZT[VIST]N9gui_forms25HostSaveFileDialogRequest*E
 __ZT[VIST]N9gui_forms25InvalidationOverlayTarget*E
@@ -11624,12 +11651,14 @@ __ZT[VIST]N9gui_forms28DataGridViewRowPrePaintEvent*E
 __ZT[VIST]N9gui_forms28DataGridViewRowsChangedEvent*E
 __ZT[VIST]N9gui_forms28DataGridViewScrollStatistics*E
 __ZT[VIST]N9gui_forms28DataGridViewSortCompareEvent*E
+__ZT[VIST]N9gui_forms28HostDesktopNotificationEvent*E
 __ZT[VIST]N9gui_forms28NavigationPaneOptionsRequest*E
 __ZT[VIST]N9gui_forms28VisualPaintOperationSnapshot*E
 __ZT[VIST]N9gui_forms28WindowChromeRegionValidation*E
 __ZT[VIST]N9gui_forms29DataGridViewCellValueProvider*E
 __ZT[VIST]N9gui_forms29DataGridViewCellsTextProvider*E
 __ZT[VIST]N9gui_forms29DataGridViewRowPostPaintEvent*E
+__ZT[VIST]N9gui_forms29HostDesktopNotificationResult*E
 __ZT[VIST]N9gui_forms29PrimitiveParameterDeclaration*E
 __ZT[VIST]N9gui_forms30AnchoredOverlayPlacementResult*E
 __ZT[VIST]N9gui_forms30ConnectedControlVisualGeometry*E
@@ -11637,6 +11666,7 @@ __ZT[VIST]N9gui_forms30DataGridViewColumnChangedEvent*E
 __ZT[VIST]N9gui_forms30DataGridViewRowOrderModeChange*E
 __ZT[VIST]N9gui_forms30DataGridViewRowOrderStatistics*E
 __ZT[VIST]N9gui_forms30DataGridViewRowOrderThresholds*E
+__ZT[VIST]N9gui_forms30HostDesktopNotificationRequest*E
 __ZT[VIST]N9gui_forms30MasterDetailPresentationChange*E
 __ZT[VIST]N9gui_forms30ProgressBarAnimationAppearance*E
 __ZT[VIST]N9gui_forms30PropertyValueConverterRegistry*E
@@ -12764,6 +12794,7 @@ __ZT[hvc]*9gui_forms17TextStoreSnapshot*
 __ZT[hvc]*9gui_forms17ThemeBackdropBase*
 __ZT[hvc]*9gui_forms17ThemeExportReport*
 __ZT[hvc]*9gui_forms17ThemeMotionTokens*
+__ZT[hvc]*9gui_forms17ToastNotification*
 __ZT[hvc]*9gui_forms17ToolStripItemSpec*
 __ZT[hvc]*9gui_forms17TreeListRowSource*
 __ZT[hvc]*9gui_forms17TreeListRowSplice*
@@ -13274,6 +13305,7 @@ __ZT[hvc]*9gui_forms25ControlBindingsCollection*
 __ZT[hvc]*9gui_forms25DataGridViewCellsProvided*
 __ZT[hvc]*9gui_forms25DataGridViewCellsSnapshot*
 __ZT[hvc]*9gui_forms25DataGridViewRowPaintParts*
+__ZT[hvc]*9gui_forms25HostDesktopNotificationId*
 __ZT[hvc]*9gui_forms25HostOpenFileDialogRequest*
 __ZT[hvc]*9gui_forms25HostSaveFileDialogRequest*
 __ZT[hvc]*9gui_forms25InvalidationOverlayTarget*
@@ -13320,12 +13352,14 @@ __ZT[hvc]*9gui_forms28DataGridViewRowPrePaintEvent*
 __ZT[hvc]*9gui_forms28DataGridViewRowsChangedEvent*
 __ZT[hvc]*9gui_forms28DataGridViewScrollStatistics*
 __ZT[hvc]*9gui_forms28DataGridViewSortCompareEvent*
+__ZT[hvc]*9gui_forms28HostDesktopNotificationEvent*
 __ZT[hvc]*9gui_forms28NavigationPaneOptionsRequest*
 __ZT[hvc]*9gui_forms28VisualPaintOperationSnapshot*
 __ZT[hvc]*9gui_forms28WindowChromeRegionValidation*
 __ZT[hvc]*9gui_forms29DataGridViewCellValueProvider*
 __ZT[hvc]*9gui_forms29DataGridViewCellsTextProvider*
 __ZT[hvc]*9gui_forms29DataGridViewRowPostPaintEvent*
+__ZT[hvc]*9gui_forms29HostDesktopNotificationResult*
 __ZT[hvc]*9gui_forms29PrimitiveParameterDeclaration*
 __ZT[hvc]*9gui_forms30AnchoredOverlayPlacementResult*
 __ZT[hvc]*9gui_forms30ConnectedControlVisualGeometry*
@@ -13333,6 +13367,7 @@ __ZT[hvc]*9gui_forms30DataGridViewColumnChangedEvent*
 __ZT[hvc]*9gui_forms30DataGridViewRowOrderModeChange*
 __ZT[hvc]*9gui_forms30DataGridViewRowOrderStatistics*
 __ZT[hvc]*9gui_forms30DataGridViewRowOrderThresholds*
+__ZT[hvc]*9gui_forms30HostDesktopNotificationRequest*
 __ZT[hvc]*9gui_forms30MasterDetailPresentationChange*
 __ZT[hvc]*9gui_forms30ProgressBarAnimationAppearance*
 __ZT[hvc]*9gui_forms30PropertyValueConverterRegistry*
@@ -14460,6 +14495,7 @@ __ZZN9gui_forms17TextStoreSnapshot*
 __ZZN9gui_forms17ThemeBackdropBase*
 __ZZN9gui_forms17ThemeExportReport*
 __ZZN9gui_forms17ThemeMotionTokens*
+__ZZN9gui_forms17ToastNotification*
 __ZZN9gui_forms17ToolStripItemSpec*
 __ZZN9gui_forms17TreeListRowSource*
 __ZZN9gui_forms17TreeListRowSplice*
@@ -14970,6 +15006,7 @@ __ZZN9gui_forms25ControlBindingsCollection*
 __ZZN9gui_forms25DataGridViewCellsProvided*
 __ZZN9gui_forms25DataGridViewCellsSnapshot*
 __ZZN9gui_forms25DataGridViewRowPaintParts*
+__ZZN9gui_forms25HostDesktopNotificationId*
 __ZZN9gui_forms25HostOpenFileDialogRequest*
 __ZZN9gui_forms25HostSaveFileDialogRequest*
 __ZZN9gui_forms25InvalidationOverlayTarget*
@@ -15016,12 +15053,14 @@ __ZZN9gui_forms28DataGridViewRowPrePaintEvent*
 __ZZN9gui_forms28DataGridViewRowsChangedEvent*
 __ZZN9gui_forms28DataGridViewScrollStatistics*
 __ZZN9gui_forms28DataGridViewSortCompareEvent*
+__ZZN9gui_forms28HostDesktopNotificationEvent*
 __ZZN9gui_forms28NavigationPaneOptionsRequest*
 __ZZN9gui_forms28VisualPaintOperationSnapshot*
 __ZZN9gui_forms28WindowChromeRegionValidation*
 __ZZN9gui_forms29DataGridViewCellValueProvider*
 __ZZN9gui_forms29DataGridViewCellsTextProvider*
 __ZZN9gui_forms29DataGridViewRowPostPaintEvent*
+__ZZN9gui_forms29HostDesktopNotificationResult*
 __ZZN9gui_forms29PrimitiveParameterDeclaration*
 __ZZN9gui_forms30AnchoredOverlayPlacementResult*
 __ZZN9gui_forms30ConnectedControlVisualGeometry*
@@ -15029,6 +15068,7 @@ __ZZN9gui_forms30DataGridViewColumnChangedEvent*
 __ZZN9gui_forms30DataGridViewRowOrderModeChange*
 __ZZN9gui_forms30DataGridViewRowOrderStatistics*
 __ZZN9gui_forms30DataGridViewRowOrderThresholds*
+__ZZN9gui_forms30HostDesktopNotificationRequest*
 __ZZN9gui_forms30MasterDetailPresentationChange*
 __ZZN9gui_forms30ProgressBarAnimationAppearance*
 __ZZN9gui_forms30PropertyValueConverterRegistry*
@@ -16156,6 +16196,7 @@ __ZZNK9gui_forms17TextStoreSnapshot*
 __ZZNK9gui_forms17ThemeBackdropBase*
 __ZZNK9gui_forms17ThemeExportReport*
 __ZZNK9gui_forms17ThemeMotionTokens*
+__ZZNK9gui_forms17ToastNotification*
 __ZZNK9gui_forms17ToolStripItemSpec*
 __ZZNK9gui_forms17TreeListRowSource*
 __ZZNK9gui_forms17TreeListRowSplice*
@@ -16666,6 +16707,7 @@ __ZZNK9gui_forms25ControlBindingsCollection*
 __ZZNK9gui_forms25DataGridViewCellsProvided*
 __ZZNK9gui_forms25DataGridViewCellsSnapshot*
 __ZZNK9gui_forms25DataGridViewRowPaintParts*
+__ZZNK9gui_forms25HostDesktopNotificationId*
 __ZZNK9gui_forms25HostOpenFileDialogRequest*
 __ZZNK9gui_forms25HostSaveFileDialogRequest*
 __ZZNK9gui_forms25InvalidationOverlayTarget*
@@ -16712,12 +16754,14 @@ __ZZNK9gui_forms28DataGridViewRowPrePaintEvent*
 __ZZNK9gui_forms28DataGridViewRowsChangedEvent*
 __ZZNK9gui_forms28DataGridViewScrollStatistics*
 __ZZNK9gui_forms28DataGridViewSortCompareEvent*
+__ZZNK9gui_forms28HostDesktopNotificationEvent*
 __ZZNK9gui_forms28NavigationPaneOptionsRequest*
 __ZZNK9gui_forms28VisualPaintOperationSnapshot*
 __ZZNK9gui_forms28WindowChromeRegionValidation*
 __ZZNK9gui_forms29DataGridViewCellValueProvider*
 __ZZNK9gui_forms29DataGridViewCellsTextProvider*
 __ZZNK9gui_forms29DataGridViewRowPostPaintEvent*
+__ZZNK9gui_forms29HostDesktopNotificationResult*
 __ZZNK9gui_forms29PrimitiveParameterDeclaration*
 __ZZNK9gui_forms30AnchoredOverlayPlacementResult*
 __ZZNK9gui_forms30ConnectedControlVisualGeometry*
@@ -16725,6 +16769,7 @@ __ZZNK9gui_forms30DataGridViewColumnChangedEvent*
 __ZZNK9gui_forms30DataGridViewRowOrderModeChange*
 __ZZNK9gui_forms30DataGridViewRowOrderStatistics*
 __ZZNK9gui_forms30DataGridViewRowOrderThresholds*
+__ZZNK9gui_forms30HostDesktopNotificationRequest*
 __ZZNK9gui_forms30MasterDetailPresentationChange*
 __ZZNK9gui_forms30ProgressBarAnimationAppearance*
 __ZZNK9gui_forms30PropertyValueConverterRegistry*

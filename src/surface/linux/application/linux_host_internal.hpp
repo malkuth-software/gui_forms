@@ -6,6 +6,9 @@
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "../../../render/skia/raster/skia_splash_bake.hpp"
 #include "../services/x11_tray_icons.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/linux_desktop_notifications.hpp"
+#endif
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
@@ -230,6 +233,11 @@ protected:
   HostClipboardImageResult read_clipboard_image_impl() override;
   HostClipboardFilesResult read_clipboard_files_impl() override;
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+  // Desktop notifications through the freedesktop notification service
+  // (LinuxDesktopNotifications), created with the first.
+  HostServiceStatus show_desktop_notification_impl(HostDesktopNotificationId notification_id,
+                                                   const HostDesktopNotificationRequest &request) override;
+  void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept override;
 #endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
   HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest &) override;
@@ -246,6 +254,9 @@ private:
     ::Cursor native;
   };
   void forward_tray_event(const HostTrayIconEvent &event) { publish_tray_icon_event(event); }
+  void forward_notification_event(const HostDesktopNotificationEvent &event) {
+    publish_desktop_notification_event(event);
+  }
   // Gives the pointer back: ungrabbed, shown, raw motion deselected, the
   // confine window destroyed. Cannot fail in a way that keeps it.
   void release_relative_pointer() noexcept;
@@ -261,6 +272,10 @@ private:
   int lock_y_{};
   // Created with the first icon.
   std::unique_ptr<X11TrayIcons> tray_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Created with the first desktop notification.
+  std::unique_ptr<LinuxDesktopNotifications> notifications_;
+#endif
 };
 // The run's wake pipe (A-gf-host-01-F8): both ends, closed when the last
 // holder goes. The Runtime and every Wake copy (the model's wake handlers,

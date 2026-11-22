@@ -18,6 +18,7 @@
 #include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/dock_site.hpp"
@@ -85,7 +86,7 @@ struct WindowRecipe final {
     WindowMaker make = nullptr;
 };
 
-constexpr std::array<WindowRecipe, 11> window_recipes{{
+constexpr std::array<WindowRecipe, 12> window_recipes{{
     {"background_worker", &make_on_window<BackgroundWorker>},
     {"binding_context", &make_on_window<BindingContext>},
     {"binding_source", &make_on_window<BindingSource>},
@@ -96,6 +97,7 @@ constexpr std::array<WindowRecipe, 11> window_recipes{{
     {"ribbon_tool_tip", &make_on_window<RibbonToolTip>},
     {"semantic_feedback", &make_on_window<SemanticFeedback>},
     {"timer", &make_on_window<Timer>},
+    {"toast_notification", &make_on_window<ToastNotification>},
     {"tool_tip", &make_on_window<ToolTip>},
 }};
 

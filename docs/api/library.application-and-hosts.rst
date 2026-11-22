@@ -109,6 +109,14 @@ Related types
      - The host's compositor and preference state (stage T5): reported once after attach and again whenever it changes (capability compositor_notifications).
    * - :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`
      - The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click).
+   * - :cpp:class:`HostDesktopNotificationEvent <gui_forms::HostDesktopNotificationEvent>`
+     -  
+   * - :cpp:class:`HostDesktopNotificationId <gui_forms::HostDesktopNotificationId>`
+     - Desktop notifications (capability desktop_notifications): a notification the platform's own notification service shows outside the application's windows, kept in its notification list where it has one: macOS's UNUserNotificationCenter, Windows' toast notifications and the freedesktop notification service (org.freedesktop.Notifications).
+   * - :cpp:class:`HostDesktopNotificationRequest <gui_forms::HostDesktopNotificationRequest>`
+     - A notification: a title of at most 255 bytes and text of 1 to 1023 bytes of UTF-8, without NUL.
+   * - :cpp:class:`HostDesktopNotificationResult <gui_forms::HostDesktopNotificationResult>`
+     -  
    * - :cpp:class:`HostDialogHelpEvent <gui_forms::HostDialogHelpEvent>`
      - The user asked for help in an open message dialog: its Help button, or F1.
    * - :cpp:class:`HostDialogRequest <gui_forms::HostDialogRequest>`
@@ -1022,6 +1030,61 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostDesktopNotificationEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:member:: HostDesktopNotificationId notification_id
+
+   .. cpp:member:: HostDesktopNotificationAction action
+
+      Default: ``{HostDesktopNotificationAction::activated}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDesktopNotificationId final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   Desktop notifications (capability desktop_notifications): a notification the platform's own notification service shows outside the application's windows, kept in its notification list where it has one: macOS's UNUserNotificationCenter, Windows' toast notifications and the freedesktop notification service (org.freedesktop.Notifications). No tray icon is needed. A notification is named by the identity HostServices::show_desktop_notification returns; no native handle enters the portable contract.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool valid() const noexcept
+
+   .. cpp:member:: std::uint64_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDesktopNotificationRequest final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   A notification: a title of at most 255 bytes and text of 1 to 1023 bytes of UTF-8, without NUL. ``silent`` asks the platform not to play its sound.
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: HostDesktopNotificationUrgency urgency
+
+      Default: ``{HostDesktopNotificationUrgency::normal}``.
+
+   .. cpp:member:: bool silent
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDesktopNotificationResult final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: HostDesktopNotificationId notification_id
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostDialogHelpEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
@@ -1634,6 +1697,10 @@ Related types
 
       Raised on the UI thread for each user action on a live tray icon.
 
+   .. cpp:function:: Event<const HostDesktopNotificationEvent&>& desktop_notification_events() noexcept
+
+      Raised on the UI thread, once per live notification, when it is activated, dismissed or fails; the identity is no longer live when the event is raised.
+
    .. cpp:function:: Event<const HostDialogHelpEvent&>& dialog_help_requested() noexcept
 
       Raised on the UI thread when the user asks for help in an open message dialog (its Help button, or F1 where the host's dialog takes it), with the dialog's request identity; the dialog stays open. Handlers run inside the host's modal loop: they may open other windows but cannot close the dialog.
@@ -1714,6 +1781,18 @@ Related types
       Capability notification_area_menus. Shows a native menu at the icon and returns when it closes, as show_dialog does.
 
    .. cpp:function:: bool tray_icon_live(HostTrayIconId icon_id) const noexcept
+
+   .. cpp:function:: HostDesktopNotificationResult show_desktop_notification(const HostDesktopNotificationRequest& request)
+
+      Desktop notifications (capability desktop_notifications), shown by the platform's notification service outside the application's windows. show_desktop_notification hands the request to the platform and returns its identity, assigned from 1 and never reused by this HostServices; the platform may still refuse it later, which arrives as a ``failed`` event. Refused, changing nothing: unsupported without the capability (always in a high-integrity build, which compiles the service out); too_large for a title or text past its maximum; invalid_utf8 for either not valid UTF-8; invalid_argument for empty text, a NUL, or an urgency outside the enumeration; backend_failure when the platform's service could not take it. With maximum_live_desktop_notifications live, the oldest is withdrawn first. UI thread.
+
+   .. cpp:function:: HostServiceStatus withdraw_desktop_notification(HostDesktopNotificationId notification_id)
+
+      Takes a live notification back from the platform's list, raising no event. invalid_argument for an identity that is not live.
+
+   .. cpp:function:: bool desktop_notification_live(HostDesktopNotificationId notification_id) const noexcept
+
+      Whether the identity is shown and not yet activated, dismissed, failed or withdrawn. Shutdown forgets every identity and leaves the notifications in the platform's list, as platforms keep them.
 
    .. cpp:function:: bool publish_dialog_help(const HostDialogHelpEvent& event)
 
@@ -1844,6 +1923,16 @@ Related types
 
       *Protected.*
 
+   .. cpp:function:: virtual HostServiceStatus show_desktop_notification_impl(HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request)
+
+      *Protected.*
+
+      Desktop notification adapters: called with a validated request and the identity the base class assigned, on a host that advertises desktop_notifications. The defaults refuse as unsupported. Withdraw must not fail in a way that leaves the notification in the platform's list where the platform can take it back.
+
+   .. cpp:function:: virtual void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept
+
+      *Protected.*
+
    .. cpp:function:: virtual HostDialogResult show_dialog_impl(const HostDialogRequest& request) = 0
 
       *Protected.*
@@ -1910,6 +1999,12 @@ Related types
 
       Adapters report native tray events here, on the UI thread. Events for identities that are not live are dropped.
 
+   .. cpp:function:: void publish_desktop_notification_event(const HostDesktopNotificationEvent& event)
+
+      *Protected.*
+
+      Adapters report what became of a desktop notification here, on the UI thread. The identity stops being live before the event is raised; events for identities that are not live are dropped (a second report, or one for a withdrawn notification).
+
    .. cpp:member:: constexpr std::size_t maximum_clipboard_text_bytes
 
       Default: ``16U * 1024U * 1024U``.
@@ -1965,6 +2060,18 @@ Related types
    .. cpp:member:: constexpr std::size_t maximum_tray_menu_items
 
       Default: ``64U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_desktop_notification_title_bytes
+
+      Default: ``255U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_desktop_notification_text_bytes
+
+      Default: ``1023U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_live_desktop_notifications
+
+      Live notification identities a HostServices keeps; showing one more withdraws the oldest (development bound, not measured capacity). Default: ``32U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2046,6 +2153,16 @@ Related types
    .. cpp:member:: std::uint64_t tray_menus
 
    .. cpp:member:: std::uint64_t tray_events
+
+   .. cpp:member:: std::uint64_t desktop_notifications
+
+      Desktop notifications: the accepted shows and withdrawals, the live identities now, and the events published.
+
+   .. cpp:member:: std::uint64_t desktop_notification_withdrawals
+
+   .. cpp:member:: std::uint64_t desktop_notifications_live
+
+   .. cpp:member:: std::uint64_t desktop_notification_events
 
    .. cpp:member:: std::uint64_t rejected_requests
 
@@ -4027,6 +4144,8 @@ Enumerations
 
    .. cpp:enumerator:: reference_presentation
 
+   .. cpp:enumerator:: desktop_notifications
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -4042,6 +4161,30 @@ Enumerations
    .. cpp:enumerator:: test
 
    .. cpp:enumerator:: quit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostDesktopNotificationAction
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:enumerator:: activated
+
+   .. cpp:enumerator:: dismissed
+
+   .. cpp:enumerator:: failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostDesktopNotificationUrgency
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:enumerator:: low
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: critical
 
 .. cpp:namespace:: gui_forms
 
@@ -4662,7 +4805,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr HostCapability high_integrity_compiled_out_capabilities
 
-   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination``.
+   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, desktop notifications, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination | HostCapability::desktop_notifications``.
 
 .. cpp:namespace:: gui_forms
 

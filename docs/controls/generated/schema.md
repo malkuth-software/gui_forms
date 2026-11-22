@@ -3751,6 +3751,14 @@ Interactions: none.
 | `balloon_tip_closed` | none |
 | `menu_item_invoked` | `MenuItemInvocation` |
 
+## `toast_notification` (ToastNotification, component)
+
+| Interaction | Payload |
+|---|---|
+| `activated` | none |
+| `dismissed` | none |
+| `failed` | none |
+
 ## `open_file_dialog` (OpenFileDialog, component)
 
 | Interaction | Payload |

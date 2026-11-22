@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2390 | 3 | 370 | 4142 | 2513 |
+| 2399 | 3 | 370 | 4142 | 2522 |
 
 ## GUI.Forms types
 
@@ -155,6 +155,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Timer` | `Timer` | 7 | 0 | 0 | 2 | 1 |
 | `BackgroundWorker` | `BackgroundWorker` | 10 | 0 | 0 | 6 | 2 |
 | `NotifyIcon` | `NotifyIcon` | 12 | 0 | 0 | 14 | 6 |
+| `ToastNotification` | GUI.Forms-only | 9 | 0 | 0 | 0 | 9 |
 | `OpenFileDialog` | `OpenFileDialog` | 11 | 0 | 0 | 6 | 4 |
 | `SaveFileDialog` | `SaveFileDialog` | 9 | 0 | 0 | 5 | 4 |
 | `ImageList` | `ImageList` | 16 | 0 | 0 | 14 | 19 |

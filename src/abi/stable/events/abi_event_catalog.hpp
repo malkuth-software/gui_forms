@@ -31,6 +31,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -3909,6 +3910,15 @@ inline SubscriptionToken connect_choice_group_activated(Component& source, const
     return token;
 }
 
+inline SubscriptionToken connect_toast_notification_activated(Component& source, const EventSink& sink) {
+    ToastNotification* typed = dynamic_cast<ToastNotification*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).activated(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_dock_workspace_activation_changed(Component& source, const EventSink& sink) {
     DockWorkspace* typed = dynamic_cast<DockWorkspace*>(&source);
     if (typed == nullptr) {
@@ -4929,6 +4939,15 @@ inline SubscriptionToken connect_anchored_overlay_layer_dismiss_requested(Compon
     return token;
 }
 
+inline SubscriptionToken connect_toast_notification_dismissed(Component& source, const EventSink& sink) {
+    ToastNotification* typed = dynamic_cast<ToastNotification*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).dismissed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_binding_source_disposed_event(Component& source, const EventSink& sink) {
     BindingSource* typed = dynamic_cast<BindingSource*>(&source);
     if (typed == nullptr) {
@@ -5304,6 +5323,15 @@ inline SubscriptionToken connect_help_book_system_external_link(Component& sourc
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).external_link(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_toast_notification_failed(Component& source, const EventSink& sink) {
+    ToastNotification* typed = dynamic_cast<ToastNotification*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).failed(), sink);
     return token;
 }
 
@@ -7396,11 +7424,12 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 386> event_connectors{{
+inline constexpr std::array<EventConnector, 389> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
+    {"activated", "ToastNotification", &connect_toast_notification_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},
     {"active_changed", "Window", &connect_window_active_changed},
     {"adding_new", "BindingNavigator", &connect_binding_navigator_adding_new},
@@ -7513,6 +7542,7 @@ inline constexpr std::array<EventConnector, 386> event_connectors{{
     {"dialog_result_changed", "Button", &connect_button_dialog_result_changed},
     {"dialog_result_changed", "Window", &connect_window_dialog_result_changed},
     {"dismiss_requested", "AnchoredOverlayLayer", &connect_anchored_overlay_layer_dismiss_requested},
+    {"dismissed", "ToastNotification", &connect_toast_notification_dismissed},
     {"disposed_event", "BindingSource", &connect_binding_source_disposed_event},
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
     {"double_click", "Control", &connect_control_double_click},
@@ -7555,6 +7585,7 @@ inline constexpr std::array<EventConnector, 386> event_connectors{{
     {"expansion_changed", "TreeListView", &connect_tree_list_view_expansion_changed},
     {"external_link", "HelpBookViewer", &connect_help_book_viewer_external_link},
     {"external_link", "HelpBookSystem", &connect_help_book_system_external_link},
+    {"failed", "ToastNotification", &connect_toast_notification_failed},
     {"file_ok", "OpenFileDialog", &connect_open_file_dialog_file_ok},
     {"file_ok", "SaveFileDialog", &connect_save_file_dialog_file_ok},
     {"finished", "Wizard", &connect_wizard_finished},

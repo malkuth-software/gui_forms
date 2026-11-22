@@ -150,7 +150,7 @@
   </scaled-group-box>
 
   <scaled-group-box id="gallery.host.notify-icon"
-      text="NotifyIcon · an icon in the notification area, where the host has one"
+      text="NotifyIcon and ToastNotification · the notification area and the desktop's notifications, where the host has them"
       design-size="930 96"
       bounds="24 756 930 96"
       classes="paper group-caption">
@@ -161,9 +161,12 @@
     <button id="gallery.host.notify-icon.notify"
         text="Notify"
         bounds="216 40 120 38"/>
+    <button id="gallery.host.toast.show"
+        text="Desktop notification"
+        bounds="348 40 190 38"/>
     <label id="gallery.host.notify-icon.note"
-        text="Click, double-click or open the icon's menu; refusals report the host's capability."
+        text="Click the icon or the notification; refusals report the host's capability."
         classes="muted small"
-        bounds="352 46 560 24"/>
+        bounds="552 46 360 24"/>
   </scaled-group-box>
 </scaled-panel>

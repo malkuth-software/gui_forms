@@ -1541,6 +1541,17 @@
       "doc": "api/generated/gui_forms.NotifyIcon.rst"
     },
     {
+      "id": "toast_notification",
+      "type": "ToastNotification",
+      "header": "gui_forms/components/toast_notification/toast_notification.hpp",
+      "category": "Components",
+      "purpose": "Desktop notification shown by the platform's own notification service (macOS UNUserNotificationCenter, Windows toasts, freedesktop notifications) with activated, dismissed and failed events, refused explicitly where the host lacks the capability and compiled out of high-integrity builds.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "dialogs-and-host-services",
+      "doc": "api/generated/gui_forms.ToastNotification.rst"
+    },
+    {
       "id": "open_file_dialog",
       "type": "OpenFileDialog",
       "header": "gui_forms/components/open_file_dialog/open_file_dialog.hpp",

@@ -4,6 +4,7 @@
 #include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
 #include "gui_forms/components/message_box/message_box.hpp"
 #include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
@@ -85,6 +86,10 @@ private:
     void on_notify();
     void on_notify_icon_click(const NotifyIconClick& click);
     void on_notify_icon_menu(const MenuItemInvocation& invocation);
+    void on_show_toast();
+    void on_toast_activated();
+    void on_toast_dismissed();
+    void on_toast_failed();
 
     void on_message_dialog(int index, const CommandInvocation& invocation);
     void on_path_dialog(int index, const CommandInvocation& invocation);
@@ -140,6 +145,9 @@ private:
     std::shared_ptr<Button> notify_toggle_button_;
     // Made on first use, when the page's window is known.
     std::shared_ptr<NotifyIcon> notify_icon_;
+    Command toast_command_{};
+    // Made with the first desktop notification, bound to the page's window.
+    std::shared_ptr<ToastNotification> toast_;
     std::string last_acceptance_{"No accepted dialog value yet"};
     std::uint64_t next_request_id_{1U};
     // Declared after the Commands its buttons bind, so it is released first.
@@ -365,6 +373,10 @@ void HostServicesPage::build_notify_icon() {
     notify_menu_command_ = std::make_shared<Command>("gallery.host.notify-icon.hello", "Say hello");
     on(notify_toggle_command_.invoked(), *this, &HostServicesPage::on_toggle_notify_icon);
     on(notify_message_command_.invoked(), *this, &HostServicesPage::on_notify);
+    toast_command_.set_text("Desktop notification");
+    toast_command_.set_description("Show a notification through the desktop's notification service");
+    (*document_.gallery_host_toast_show).bind(toast_command_);
+    on(toast_command_.invoked(), *this, &HostServicesPage::on_show_toast);
 }
 
 void HostServicesPage::on_toggle_notify_icon() {
@@ -397,6 +409,34 @@ void HostServicesPage::on_notify() {
     const HostServiceStatus status = (*notify_icon_).show_balloon_tip(
         "GUI.Forms", "Notification text from the Gallery", HostTrayNotificationIcon::information);
     (*status_).text = "Tray notification: " + service_result(status);
+}
+
+// A ToastNotification: the desktop's own notification, without a tray icon.
+void HostServicesPage::on_show_toast() {
+    if (!toast_) {
+        Window* const window = (*notify_toggle_button_).attached_window();
+        if (window == nullptr) return;
+        toast_ = std::make_shared<ToastNotification>(*window);
+        (*toast_).title = "GUI.Forms Gallery";
+        (*toast_).text = "A desktop notification from the host services page";
+        on((*toast_).activated(), *this, &HostServicesPage::on_toast_activated);
+        on((*toast_).dismissed(), *this, &HostServicesPage::on_toast_dismissed);
+        on((*toast_).failed(), *this, &HostServicesPage::on_toast_failed);
+    }
+    const HostServiceStatus status = (*toast_).show();
+    (*status_).text = "Desktop notification: " + service_result(status);
+}
+
+void HostServicesPage::on_toast_activated() {
+    (*status_).text = "Desktop notification activated";
+}
+
+void HostServicesPage::on_toast_dismissed() {
+    (*status_).text = "Desktop notification dismissed";
+}
+
+void HostServicesPage::on_toast_failed() {
+    (*status_).text = "Desktop notification refused by the platform";
 }
 
 void HostServicesPage::on_notify_icon_click(const NotifyIconClick& click) {

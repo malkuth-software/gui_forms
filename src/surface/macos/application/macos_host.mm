@@ -9,6 +9,9 @@
 #include "macos_window_requests.hpp"
 #include "../view/macos_view.hpp"
 #include "../locale/macos_locale.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/appkit_desktop_notifications.hpp"
+#endif
 
 #include <optional>
 
@@ -91,6 +94,12 @@ HostCapabilities macos_capabilities() {
     const gui_forms::host::presentation::PresentPolicy policy =
         gui_forms::host::presentation::present_policy_from_environment();
     if (policy.direct) capabilities.available = capabilities.available | HostCapability::direct_buffers;
+    // Desktop notifications in an application bundle, where the
+    // notification center serves the process
+    // (services/appkit_desktop_notifications.hpp).
+    if (gui_forms::host::detail::AppKitDesktopNotifications::available()) {
+        capabilities.available = capabilities.available | HostCapability::desktop_notifications;
+    }
 #endif
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).

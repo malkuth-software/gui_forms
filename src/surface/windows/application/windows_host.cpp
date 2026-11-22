@@ -6,6 +6,9 @@
 #include "../services/windows_clipboard_open.hpp"
 #include "../services/windows_cursor.hpp"
 #include "../services/windows_notify_icons.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/windows_toast_notifications.hpp"
+#endif
 #include "../compositor/windows_compositor.hpp"
 #include "../input/windows_key_translation.hpp"
 #include "../input/windows_message_queue.hpp"
@@ -4655,6 +4658,11 @@ HostCapabilities windows_capabilities() {
     if (locale.has_value()) {
         capabilities.locale = *locale;
         capabilities.available = capabilities.available | HostCapability::locale;
+    }
+    // Toasts for a packaged process or one with an explicit AppUserModelID
+    // (services/windows_toast_notifications.hpp).
+    if (gui_forms::host::detail::WindowsToastNotifications::available()) {
+        capabilities.available = capabilities.available | HostCapability::desktop_notifications;
     }
 #endif
 #if defined(GUI_FORMS_HIGH_INTEGRITY)

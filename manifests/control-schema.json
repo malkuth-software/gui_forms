@@ -14006,6 +14006,16 @@
       ]
     },
     {
+      "id": "toast_notification",
+      "type": "ToastNotification",
+      "kind": "component",
+      "interactions": [
+        {"name": "activated", "payload": "", "mutable_payload": false},
+        {"name": "dismissed", "payload": "", "mutable_payload": false},
+        {"name": "failed", "payload": "", "mutable_payload": false}
+      ]
+    },
+    {
       "id": "open_file_dialog",
       "type": "OpenFileDialog",
       "kind": "component",

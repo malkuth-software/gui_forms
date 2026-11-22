@@ -4727,6 +4727,17 @@
       {"kind": "method", "winforms": null, "gui_forms": "assign", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "read", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/component_capabilities_tests.cpp"}
     ]},
+    {"type": "ToastNotification", "winforms": null, "gui_forms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "shown", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/dialogs-and-host-services_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "status", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "supported", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/toast_notification_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "activated", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "dismissed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/toast_notification_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "failed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/toast_notification_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "assign", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "hide", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "show", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
+    ]},
     {"type": "OpenFileDialog", "winforms": "OpenFileDialog", "gui_forms_base": "Component", "winforms_base": "FileDialog", "status": "supported", "basis": "test", "evidence": "tests/component_capabilities_tests.cpp", "members": [
       {"kind": "constructor", "winforms": "OpenFileDialog", "scope": "admitted", "gui_forms": "OpenFileDialog", "status": "supported", "basis": "test", "evidence": "tests/component_capabilities_tests.cpp"},
       {"kind": "property", "winforms": "Multiselect", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},

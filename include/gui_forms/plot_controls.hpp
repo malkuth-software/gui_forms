@@ -9,5 +9,6 @@
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot_view_links.hpp"
 #include "gui_forms/controls/plot_view_palette.hpp"

@@ -49,6 +49,11 @@ public:
     static constexpr std::size_t maximum_tray_title_bytes = 63U;
     static constexpr std::size_t maximum_tray_text_bytes = 255U;
     static constexpr std::size_t maximum_tray_menu_items = 64U;
+    static constexpr std::size_t maximum_desktop_notification_title_bytes = 255U;
+    static constexpr std::size_t maximum_desktop_notification_text_bytes = 1023U;
+    // Live notification identities a HostServices keeps; showing one more
+    // withdraws the oldest (development bound, not measured capacity).
+    static constexpr std::size_t maximum_live_desktop_notifications = 32U;
 
     explicit HostServices(HostCapabilities capabilities);
     virtual ~HostServices();
@@ -145,6 +150,34 @@ public:
         return tray_icon_events_;
     }
     [[nodiscard]] bool tray_icon_live(HostTrayIconId icon_id) const noexcept;
+    // Desktop notifications (capability desktop_notifications), shown by
+    // the platform's notification service outside the application's
+    // windows. show_desktop_notification hands the request to the platform
+    // and returns its identity, assigned from 1 and never reused by this
+    // HostServices; the platform may still refuse it later, which arrives
+    // as a `failed` event. Refused, changing nothing: unsupported without
+    // the capability (always in a high-integrity build, which compiles the
+    // service out); too_large for a title or text past its maximum;
+    // invalid_utf8 for either not valid UTF-8; invalid_argument for empty
+    // text, a NUL, or an urgency outside the enumeration; backend_failure
+    // when the platform's service could not take it. With
+    // maximum_live_desktop_notifications live, the oldest is withdrawn
+    // first. UI thread.
+    [[nodiscard]] HostDesktopNotificationResult show_desktop_notification(
+        const HostDesktopNotificationRequest& request);
+    // Takes a live notification back from the platform's list, raising no
+    // event. invalid_argument for an identity that is not live.
+    [[nodiscard]] HostServiceStatus withdraw_desktop_notification(HostDesktopNotificationId notification_id);
+    // Whether the identity is shown and not yet activated, dismissed, failed
+    // or withdrawn. Shutdown forgets every identity and leaves the
+    // notifications in the platform's list, as platforms keep them.
+    [[nodiscard]] bool desktop_notification_live(HostDesktopNotificationId notification_id) const noexcept;
+    // Raised on the UI thread, once per live notification, when it is
+    // activated, dismissed or fails; the identity is no longer live when
+    // the event is raised.
+    [[nodiscard]] Event<const HostDesktopNotificationEvent&>& desktop_notification_events() noexcept {
+        return desktop_notification_events_;
+    }
     // Raised on the UI thread when the user asks for help in an open message
     // dialog (its Help button, or F1 where the host's dialog takes it), with
     // the dialog's request identity; the dialog stays open. Handlers run
@@ -226,6 +259,14 @@ protected:
     [[nodiscard]] virtual HostAutoCompleteResult query_auto_complete_impl(
         const HostAutoCompleteRequest& request);
     [[nodiscard]] virtual HostServiceStatus write_clipboard_image_impl(HostImageView image);
+    // Desktop notification adapters: called with a validated request and
+    // the identity the base class assigned, on a host that advertises
+    // desktop_notifications. The defaults refuse as unsupported. Withdraw
+    // must not fail in a way that leaves the notification in the platform's
+    // list where the platform can take it back.
+    [[nodiscard]] virtual HostServiceStatus show_desktop_notification_impl(
+        HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request);
+    virtual void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept;
 #endif
     [[nodiscard]] virtual HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) = 0;
@@ -259,6 +300,11 @@ protected:
     // Adapters report native tray events here, on the UI thread. Events for
     // identities that are not live are dropped.
     void publish_tray_icon_event(const HostTrayIconEvent& event);
+    // Adapters report what became of a desktop notification here, on the
+    // UI thread. The identity stops being live before the event is raised;
+    // events for identities that are not live are dropped (a second report,
+    // or one for a withdrawn notification).
+    void publish_desktop_notification_event(const HostDesktopNotificationEvent& event);
 
 private:
     friend class CursorHiddenLease;
@@ -290,6 +336,11 @@ private:
     // The value the next added icon's identity takes.
     std::uint64_t next_tray_icon_id_{1U};
     Event<const HostTrayIconEvent&> tray_icon_events_;
+    // Live desktop notification identities, oldest first; never reused.
+    std::vector<HostDesktopNotificationId> desktop_notifications_;
+    // The value the next shown notification's identity takes.
+    std::uint64_t next_desktop_notification_id_{1U};
+    Event<const HostDesktopNotificationEvent&> desktop_notification_events_;
     Event<const HostDialogHelpEvent&> dialog_help_requested_;
 };
 

@@ -27,6 +27,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
@@ -167,7 +168,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 155> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 156> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -307,6 +308,7 @@ inline constexpr std::array<SchemaCatalogEntry, 155> schema_catalog{{
     {"timer", "Timer", &describe_type<Timer>, &create_type<Timer>, &is_exact_type<Timer>, CatalogConstruction::stable_id},
     {"background_worker", "BackgroundWorker", &describe_type<BackgroundWorker>, &create_type<BackgroundWorker>, &is_exact_type<BackgroundWorker>, CatalogConstruction::stable_id},
     {"notify_icon", "NotifyIcon", &describe_type<NotifyIcon>, &create_type<NotifyIcon>, &is_exact_type<NotifyIcon>, CatalogConstruction::stable_id},
+    {"toast_notification", "ToastNotification", &describe_type<ToastNotification>, &create_type<ToastNotification>, &is_exact_type<ToastNotification>, CatalogConstruction::stable_id},
     {"open_file_dialog", "OpenFileDialog", &describe_type<OpenFileDialog>, &create_type<OpenFileDialog>, &is_exact_type<OpenFileDialog>, CatalogConstruction::stable_id},
     {"save_file_dialog", "SaveFileDialog", &describe_type<SaveFileDialog>, &create_type<SaveFileDialog>, &is_exact_type<SaveFileDialog>, CatalogConstruction::stable_id},
     {"image_list", "ImageList", &describe_type<ImageList>, &create_type<ImageList>, &is_exact_type<ImageList>, CatalogConstruction::stable_id},
