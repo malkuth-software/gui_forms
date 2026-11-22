@@ -224,6 +224,15 @@ void run_view_other_mouse_dragged(GUIFormsView* object, NSEvent* event) {
 void run_view_scroll_wheel(GUIFormsView* object, NSEvent* event) {
     [object answerScrollWheel:event];
 }
+void run_view_magnify(GUIFormsView* object, NSEvent* event) {
+    [object answerMagnifyWithEvent:event];
+}
+void run_view_rotate(GUIFormsView* object, NSEvent* event) {
+    [object answerRotateWithEvent:event];
+}
+void run_view_smart_magnify(GUIFormsView* object, NSEvent* event) {
+    [object answerSmartMagnifyWithEvent:event];
+}
 void run_view_key_down(GUIFormsView* object, NSEvent* event) {
     [object answerKeyDown:event];
 }
@@ -992,6 +1001,19 @@ void link_view_categories() noexcept {
 
 - (void)scrollWheel:(NSEvent*)event {
     gui_forms::detail::call_failing_fast("macos.view.scrollWheel:", &run_view_scroll_wheel, self, event);
+}
+
+- (void)magnifyWithEvent:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.magnifyWithEvent:", &run_view_magnify, self, event);
+}
+
+- (void)rotateWithEvent:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.rotateWithEvent:", &run_view_rotate, self, event);
+}
+
+- (void)smartMagnifyWithEvent:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.smartMagnifyWithEvent:", &run_view_smart_magnify, self,
+                                         event);
 }
 
 - (void)keyDown:(NSEvent*)event {

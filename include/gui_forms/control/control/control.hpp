@@ -1047,6 +1047,10 @@ public:
     [[nodiscard]] Event<const RelativePointerEnded&>& relative_pointer_ended() {
         return relative_pointer_events().relative_pointer_ended;
     }
+    // The touchpad gestures (gesture_events.hpp: pinch to magnify, rotate,
+    // smart magnify, swipe), raised by on_gesture's base. Kept with the
+    // mouse events, in their record.
+    [[nodiscard]] Event<const GestureEventArgs&>& gesture() { return mouse_events().gesture; }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Keeps `link`, a form binding's link of one of this control's
@@ -1487,6 +1491,10 @@ protected:
     virtual void on_mouse_up(MouseEventArgs& arguments);
     virtual void on_mouse_move(MouseEventArgs& arguments);
     virtual void on_mouse_wheel(MouseEventArgs& arguments);
+    // A touchpad gesture (gesture_events.hpp), routed as the wheel: the
+    // target's on_gesture, then each ancestor's (arguments.phase bubble),
+    // until one sets handled. The base raises gesture.
+    virtual void on_gesture(GestureEventArgs& arguments);
     virtual void on_mouse_enter();
     virtual void on_mouse_hover();
     virtual void on_mouse_leave();
@@ -2301,6 +2309,7 @@ private:
         Event<> double_click;
         Event<const MouseEventArgs&> mouse_double_click;
         Event<ContextMenuRequest&> context_menu_requested;
+        Event<const GestureEventArgs&> gesture;
     };
     MouseEvents& mouse_events();
     std::unique_ptr<MouseEvents> mouse_events_{};

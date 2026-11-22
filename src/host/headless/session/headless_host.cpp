@@ -1,6 +1,7 @@
 #include "headless_host.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 
+#include <cmath>
 #include <sstream>
 #include <variant>
 
@@ -98,6 +99,35 @@ HostDispatchResult HeadlessHost::dispatch(HostEventPayload payload,
     event.timestamp_nanoseconds = timestamp_nanoseconds;
     event.payload = std::move(payload);
     return session_.dispatch(std::move(event));
+}
+
+std::uint32_t HeadlessHost::simulate_magnify(const Point focal, const double total_scale, const std::uint32_t steps,
+                                             const std::uint64_t first_timestamp_nanoseconds,
+                                             const std::uint64_t step_nanoseconds) {
+    if (!std::isfinite(total_scale) || total_scale <= 0.0 || steps == 0U) return 0U;
+    const double step_scale = std::pow(total_scale, 1.0 / static_cast<double>(steps));
+    std::uint32_t handled = 0U;
+    std::uint64_t timestamp = first_timestamp_nanoseconds;
+    GestureEvent event{};
+    event.kind = GestureKind::magnify;
+    event.position = focal;
+    event.gesture_phase = GesturePhase::began;
+    event.scale = 1.0;
+    event.timestamp_nanoseconds = timestamp;
+    if (dispatch(event, timestamp).handled) handled = handled + 1U;
+    for (std::uint32_t index = 0U; index < steps; ++index) {
+        timestamp = timestamp + step_nanoseconds;
+        event.gesture_phase = GesturePhase::changed;
+        event.scale = step_scale;
+        event.timestamp_nanoseconds = timestamp;
+        if (dispatch(event, timestamp).handled) handled = handled + 1U;
+    }
+    timestamp = timestamp + step_nanoseconds;
+    event.gesture_phase = GesturePhase::ended;
+    event.scale = 1.0;
+    event.timestamp_nanoseconds = timestamp;
+    if (dispatch(event, timestamp).handled) handled = handled + 1U;
+    return handled;
 }
 
 } // namespace gui_forms::host

@@ -2157,6 +2157,10 @@ Related types
 
       HostRelativeMotionEvent samples delivered to the window.
 
+   .. cpp:member:: std::uint64_t gesture_events
+
+      GestureEvent reports delivered to the window.
+
    .. cpp:member:: std::uint64_t drag_events
 
    .. cpp:member:: std::uint64_t drag_drops
@@ -4718,7 +4722,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent, GestureEvent>
 
 .. cpp:namespace:: gui_forms
 

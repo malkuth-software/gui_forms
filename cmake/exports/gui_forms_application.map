@@ -248,6 +248,7 @@
     _ZGVZN9gui_forms12FileDialogOk*;
     _ZGVZN9gui_forms12FocusScopeId*;
     _ZGVZN9gui_forms12FontFamilyId*;
+    _ZGVZN9gui_forms12GestureEvent*;
     _ZGVZN9gui_forms12GlossColours*;
     _ZGVZN9gui_forms12GradientStop*;
     _ZGVZN9gui_forms12GrayTextMask*;
@@ -697,6 +698,7 @@
     _ZGVZN9gui_forms16FocusScopeChange*;
     _ZGVZN9gui_forms16FontDialogResult*;
     _ZGVZN9gui_forms16FontFamilyRecord*;
+    _ZGVZN9gui_forms16GestureEventArgs*;
     _ZGVZN9gui_forms16HelpContentsLine*;
     _ZGVZN9gui_forms16HelpContentsNode*;
     _ZGVZN9gui_forms16HelpContentsTree*;
@@ -1936,6 +1938,7 @@
     _ZGVZNK9gui_forms12FileDialogOk*;
     _ZGVZNK9gui_forms12FocusScopeId*;
     _ZGVZNK9gui_forms12FontFamilyId*;
+    _ZGVZNK9gui_forms12GestureEvent*;
     _ZGVZNK9gui_forms12GlossColours*;
     _ZGVZNK9gui_forms12GradientStop*;
     _ZGVZNK9gui_forms12GrayTextMask*;
@@ -2385,6 +2388,7 @@
     _ZGVZNK9gui_forms16FocusScopeChange*;
     _ZGVZNK9gui_forms16FontDialogResult*;
     _ZGVZNK9gui_forms16FontFamilyRecord*;
+    _ZGVZNK9gui_forms16GestureEventArgs*;
     _ZGVZNK9gui_forms16HelpContentsLine*;
     _ZGVZNK9gui_forms16HelpContentsNode*;
     _ZGVZNK9gui_forms16HelpContentsTree*;
@@ -3704,6 +3708,7 @@
     _ZN9gui_forms12FileDialogOk*;
     _ZN9gui_forms12FocusScopeId*;
     _ZN9gui_forms12FontFamilyId*;
+    _ZN9gui_forms12GestureEvent*;
     _ZN9gui_forms12GlossColours*;
     _ZN9gui_forms12GradientStop*;
     _ZN9gui_forms12GrayTextMask*;
@@ -4321,6 +4326,7 @@
     _ZN9gui_forms16FocusScopeChange*;
     _ZN9gui_forms16FontDialogResult*;
     _ZN9gui_forms16FontFamilyRecord*;
+    _ZN9gui_forms16GestureEventArgs*;
     _ZN9gui_forms16HelpContentsLine*;
     _ZN9gui_forms16HelpContentsNode*;
     _ZN9gui_forms16HelpContentsTree*;
@@ -7018,6 +7024,7 @@
     _ZNK[RO]9gui_forms12FileDialogOk*;
     _ZNK[RO]9gui_forms12FocusScopeId*;
     _ZNK[RO]9gui_forms12FontFamilyId*;
+    _ZNK[RO]9gui_forms12GestureEvent*;
     _ZNK[RO]9gui_forms12GlossColours*;
     _ZNK[RO]9gui_forms12GradientStop*;
     _ZNK[RO]9gui_forms12GrayTextMask*;
@@ -7467,6 +7474,7 @@
     _ZNK[RO]9gui_forms16FocusScopeChange*;
     _ZNK[RO]9gui_forms16FontDialogResult*;
     _ZNK[RO]9gui_forms16FontFamilyRecord*;
+    _ZNK[RO]9gui_forms16GestureEventArgs*;
     _ZNK[RO]9gui_forms16HelpContentsLine*;
     _ZNK[RO]9gui_forms16HelpContentsNode*;
     _ZNK[RO]9gui_forms16HelpContentsTree*;
@@ -8706,6 +8714,7 @@
     _ZN[KRO]9gui_forms12FileDialogOk*;
     _ZN[KRO]9gui_forms12FocusScopeId*;
     _ZN[KRO]9gui_forms12FontFamilyId*;
+    _ZN[KRO]9gui_forms12GestureEvent*;
     _ZN[KRO]9gui_forms12GlossColours*;
     _ZN[KRO]9gui_forms12GradientStop*;
     _ZN[KRO]9gui_forms12GrayTextMask*;
@@ -9155,6 +9164,7 @@
     _ZN[KRO]9gui_forms16FocusScopeChange*;
     _ZN[KRO]9gui_forms16FontDialogResult*;
     _ZN[KRO]9gui_forms16FontFamilyRecord*;
+    _ZN[KRO]9gui_forms16GestureEventArgs*;
     _ZN[KRO]9gui_forms16HelpContentsLine*;
     _ZN[KRO]9gui_forms16HelpContentsNode*;
     _ZN[KRO]9gui_forms16HelpContentsTree*;
@@ -10394,6 +10404,7 @@
     _ZT[VIST]N9gui_forms12FileDialogOk*E;
     _ZT[VIST]N9gui_forms12FocusScopeId*E;
     _ZT[VIST]N9gui_forms12FontFamilyId*E;
+    _ZT[VIST]N9gui_forms12GestureEvent*E;
     _ZT[VIST]N9gui_forms12GlossColours*E;
     _ZT[VIST]N9gui_forms12GradientStop*E;
     _ZT[VIST]N9gui_forms12GrayTextMask*E;
@@ -10843,6 +10854,7 @@
     _ZT[VIST]N9gui_forms16FocusScopeChange*E;
     _ZT[VIST]N9gui_forms16FontDialogResult*E;
     _ZT[VIST]N9gui_forms16FontFamilyRecord*E;
+    _ZT[VIST]N9gui_forms16GestureEventArgs*E;
     _ZT[VIST]N9gui_forms16HelpContentsLine*E;
     _ZT[VIST]N9gui_forms16HelpContentsNode*E;
     _ZT[VIST]N9gui_forms16HelpContentsTree*E;
@@ -12082,6 +12094,7 @@
     _ZT[hvc]*9gui_forms12FileDialogOk*;
     _ZT[hvc]*9gui_forms12FocusScopeId*;
     _ZT[hvc]*9gui_forms12FontFamilyId*;
+    _ZT[hvc]*9gui_forms12GestureEvent*;
     _ZT[hvc]*9gui_forms12GlossColours*;
     _ZT[hvc]*9gui_forms12GradientStop*;
     _ZT[hvc]*9gui_forms12GrayTextMask*;
@@ -12531,6 +12544,7 @@
     _ZT[hvc]*9gui_forms16FocusScopeChange*;
     _ZT[hvc]*9gui_forms16FontDialogResult*;
     _ZT[hvc]*9gui_forms16FontFamilyRecord*;
+    _ZT[hvc]*9gui_forms16GestureEventArgs*;
     _ZT[hvc]*9gui_forms16HelpContentsLine*;
     _ZT[hvc]*9gui_forms16HelpContentsNode*;
     _ZT[hvc]*9gui_forms16HelpContentsTree*;
@@ -13770,6 +13784,7 @@
     _ZZN9gui_forms12FileDialogOk*;
     _ZZN9gui_forms12FocusScopeId*;
     _ZZN9gui_forms12FontFamilyId*;
+    _ZZN9gui_forms12GestureEvent*;
     _ZZN9gui_forms12GlossColours*;
     _ZZN9gui_forms12GradientStop*;
     _ZZN9gui_forms12GrayTextMask*;
@@ -14219,6 +14234,7 @@
     _ZZN9gui_forms16FocusScopeChange*;
     _ZZN9gui_forms16FontDialogResult*;
     _ZZN9gui_forms16FontFamilyRecord*;
+    _ZZN9gui_forms16GestureEventArgs*;
     _ZZN9gui_forms16HelpContentsLine*;
     _ZZN9gui_forms16HelpContentsNode*;
     _ZZN9gui_forms16HelpContentsTree*;
@@ -15458,6 +15474,7 @@
     _ZZNK9gui_forms12FileDialogOk*;
     _ZZNK9gui_forms12FocusScopeId*;
     _ZZNK9gui_forms12FontFamilyId*;
+    _ZZNK9gui_forms12GestureEvent*;
     _ZZNK9gui_forms12GlossColours*;
     _ZZNK9gui_forms12GradientStop*;
     _ZZNK9gui_forms12GrayTextMask*;
@@ -15907,6 +15924,7 @@
     _ZZNK9gui_forms16FocusScopeChange*;
     _ZZNK9gui_forms16FontDialogResult*;
     _ZZNK9gui_forms16FontFamilyRecord*;
+    _ZZNK9gui_forms16GestureEventArgs*;
     _ZZNK9gui_forms16HelpContentsLine*;
     _ZZNK9gui_forms16HelpContentsNode*;
     _ZZNK9gui_forms16HelpContentsTree*;

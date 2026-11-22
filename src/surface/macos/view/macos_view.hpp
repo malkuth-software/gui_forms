@@ -363,6 +363,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)answerRightMouseDragged:(NSEvent*)event;
 - (void)answerOtherMouseDragged:(NSEvent*)event;
 - (void)answerScrollWheel:(NSEvent*)event;
+// The touchpad gestures (gesture_events.hpp): a pinch, a two-finger turn
+// and a two-finger double tap, each dispatched as a GestureEvent.
+- (void)answerMagnifyWithEvent:(NSEvent*)event;
+- (void)answerRotateWithEvent:(NSEvent*)event;
+- (void)answerSmartMagnifyWithEvent:(NSEvent*)event;
 - (void)answerKeyDown:(NSEvent*)event;
 - (void)answerKeyUp:(NSEvent*)event;
 - (void)answerFlagsChanged:(NSEvent*)event;

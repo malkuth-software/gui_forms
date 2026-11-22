@@ -546,6 +546,9 @@ gui_forms::Control
 
       **relative_pointer_ended** : ``Event<const RelativePointerEnded&>``
 
+      **gesture** : ``Event<const GestureEventArgs&>``
+         The touchpad gestures (gesture_events.hpp: pinch to magnify, rotate, smart magnify, swipe), raised by on_gesture's base. Kept with the mouse events, in their record.
+
    :Inherited:
 
       It also has every member of :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -1496,6 +1499,10 @@ gui_forms::Control
 
    .. cpp:function:: Event<const RelativePointerEnded&>& relative_pointer_ended()
 
+   .. cpp:function:: Event<const GestureEventArgs&>& gesture()
+
+      The touchpad gestures (gesture_events.hpp: pinch to magnify, rotate, smart magnify, swipe), raised by on_gesture's base. Kept with the mouse events, in their record.
+
 
    .. rubric:: Methods
 
@@ -2102,6 +2109,12 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: virtual void on_gesture(GestureEventArgs& arguments)
+
+      *Protected.*
+
+      A touchpad gesture (gesture_events.hpp), routed as the wheel: the target's on_gesture, then each ancestor's (arguments.phase bubble), until one sets handled. The base raises gesture.
+
    .. cpp:function:: virtual void on_mouse_enter()
 
       *Protected.*
@@ -2496,7 +2509,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 250 supported, 0 deferred, 12 excluded, 323 unclassified; 228 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 251 supported, 0 deferred, 12 excluded, 324 unclassified; 230 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4297,6 +4310,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 250 supp
      - supported
    * - event
      - GUI.Forms-only
+     - ``gesture``
+     - supported
+   * - event
+     - GUI.Forms-only
      - ``initialization_completed``
      - supported
    * - event
@@ -4582,6 +4599,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 250 supp
    * - method
      - GUI.Forms-only
      - ``on_focus_cue_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_gesture``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
