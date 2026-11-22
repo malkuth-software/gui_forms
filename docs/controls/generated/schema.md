@@ -2749,6 +2749,7 @@ Properties beyond every control's: none.
 |---|---|
 | `item_invoked` | `MenuStripInvocation` |
 | `open_changed` | `stxlib::Optional<std::size_t>` |
+| `frame_button_pressed` | `MenuStripFrameButton` |
 
 ## `tool_strip` (ToolStrip, control)
 
