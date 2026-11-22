@@ -152,6 +152,8 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     if (application != nullptr) (*application).join(*this);
 }
 Window::~Window() {
+    // The bound document area stops observing this window.
+    release_document_area();
     // The tooltip presenter goes first: it holds an overlay and a wake, and
     // raises nothing while it shuts down.
     if (tool_tips_) (*tool_tips_).shutdown();

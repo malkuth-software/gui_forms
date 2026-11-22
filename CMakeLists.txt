@@ -760,6 +760,7 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/control_table/control_table.cpp
     src/core/surface_root/control_lookup/control_lookup.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
+    src/core/window/document_area/window_document_area.cpp
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
     src/core/window/presentation/window_presentation.cpp
