@@ -217,6 +217,7 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
                                              hideOnClose:NO
                                             closedHandler:std::move(options.closed)];
         [nativeWindow setDelegate:delegate];
+        [delegate rememberFrameOriginOf:nativeWindow];
         [nativeWindow setTitle:[NSString stringWithUTF8String:options.title.c_str()]];
         if (transparentFullSizeContent) {
             [nativeWindow setTitlebarAppearsTransparent:YES];

@@ -33,6 +33,12 @@ inline constexpr double default_hover_size = 4.0;
 // The largest drag or hover rectangle side and hover time a window takes.
 inline constexpr double maximum_pointer_distance = 64.0;
 inline constexpr std::uint32_t maximum_hover_milliseconds = 10000U;
+// How long the pointer rests on a menu's submenu row before its submenu
+// opens, or on another row before an open submenu closes, where the host
+// reports none: Windows' own default for SPI_GETMENUSHOWDELAY. A
+// perceptual duration, in milliseconds; 0 opens and closes at once.
+inline constexpr std::uint32_t default_menu_show_milliseconds = 400U;
+inline constexpr std::uint32_t maximum_menu_show_milliseconds = 10000U;
 
 // The pointer settings controls and the window read (the WinForms
 // SystemInformation values), from the host where its platform offers them.
@@ -48,6 +54,10 @@ inline constexpr std::uint32_t maximum_hover_milliseconds = 10000U;
 //   MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize).
 // - native_hover: the host reports hover itself (HostHoverEvent, Windows
 //   WM_MOUSEHOVER); the window's own hover timer then stays off.
+// - menu_show_milliseconds: how long the pointer rests on a menu row before
+//   its submenu opens, or before an open submenu of another row closes
+//   (Windows SPI_GETMENUSHOWDELAY; X11 and macOS publish none, so their
+//   hosts leave the default).
 struct GUI_FORMS_API PointerSettings final {
     double drag_width{default_drag_size};
     double drag_height{default_drag_size};
@@ -57,6 +67,8 @@ struct GUI_FORMS_API PointerSettings final {
     double hover_height{default_hover_size};
     SettingOrigin hover_origin{SettingOrigin::default_value};
     bool native_hover{};
+    std::uint32_t menu_show_milliseconds{default_menu_show_milliseconds};
+    SettingOrigin menu_show_origin{SettingOrigin::default_value};
 
     friend constexpr bool operator==(const PointerSettings& left,
                                      const PointerSettings& right) noexcept {
@@ -64,13 +76,16 @@ struct GUI_FORMS_API PointerSettings final {
                left.drag_origin == right.drag_origin &&
                left.hover_milliseconds == right.hover_milliseconds &&
                left.hover_width == right.hover_width && left.hover_height == right.hover_height &&
-               left.hover_origin == right.hover_origin && left.native_hover == right.native_hover;
+               left.hover_origin == right.hover_origin && left.native_hover == right.native_hover &&
+               left.menu_show_milliseconds == right.menu_show_milliseconds &&
+               left.menu_show_origin == right.menu_show_origin;
     }
 };
 
 // Whether every value lies in its range (each rectangle side finite and
 // between 0 and maximum_pointer_distance, the hover time between 1 and
-// maximum_hover_milliseconds) and every origin is in its enum.
+// maximum_hover_milliseconds, the menu show delay at most
+// maximum_menu_show_milliseconds) and every origin is in its enum.
 [[nodiscard]] GUI_FORMS_API bool valid_pointer_settings(const PointerSettings& settings) noexcept;
 
 // The caret's blink phase GUI.Forms states where the host has none (the

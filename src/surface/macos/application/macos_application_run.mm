@@ -325,6 +325,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
                                         closedHandler:std::move(entry.options.closed)];
     [delegate attachRun:this window:id];
     [nativeWindow setDelegate:delegate];
+    [delegate rememberFrameOriginOf:nativeWindow];
     [nativeWindow setTitle:native_string(entry.options.title)];
     if (transparentFullSizeContent) {
         [nativeWindow setTitlebarAppearsTransparent:YES];

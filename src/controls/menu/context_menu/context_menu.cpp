@@ -62,6 +62,35 @@ namespace {
     return stxlib::Optional<char32_t>::of(scalar);
 }
 
+// The settle timer is one-shot: it is disconnected when it fires, so its
+// interval is never reached.
+constexpr std::chrono::hours settle_interval{24};
+
+// The least time a pointer resting inside the aim triangle waits before the
+// row under it takes over, so that a zero menu show delay (open and close at
+// once) still lets the pointer cross other rows to its open submenu.
+constexpr std::chrono::milliseconds minimum_aim_rest{100};
+
+// Which side of the line from `from` to `to` the point `at` lies on: the z
+// component of the cross product of (to - from) and (at - from); 0 on the
+// line.
+[[nodiscard]] double side_of_line(const Point at, const Point from, const Point to) noexcept {
+    const double side = (to.x - from.x) * (at.y - from.y) - (to.y - from.y) * (at.x - from.x);
+    return side;
+}
+
+// Whether `at` lies in the triangle `a`, `b`, `c` or on its edges, whichever
+// way round its corners run.
+[[nodiscard]] bool triangle_holds(const Point at, const Point a, const Point b, const Point c) noexcept {
+    const double ab = side_of_line(at, a, b);
+    const double bc = side_of_line(at, b, c);
+    const double ca = side_of_line(at, c, a);
+    const bool negative = ab < 0.0 || bc < 0.0 || ca < 0.0;
+    const bool positive = ab > 0.0 || bc > 0.0 || ca > 0.0;
+    const bool inside = !(negative && positive);
+    return inside;
+}
+
 } // namespace
 
 struct ContextMenu::Impl final {
@@ -554,7 +583,7 @@ struct ContextMenu::Impl final {
 
         void on_mouse_move(MouseEventArgs& arguments) override {
             if (item_.kind != MenuItemKind::separator) {
-                impl_.hover(depth_, index_);
+                impl_.pointer_moved(depth_, index_, arguments.window_position);
                 arguments.handled = true;
             }
             Control::on_mouse_move(arguments);
@@ -587,6 +616,9 @@ struct ContextMenu::Impl final {
         void on_key_down(KeyEventArgs& arguments) override {
             Control::on_key_down(arguments);
             if (arguments.handled || !focused_) return;
+            // The keyboard takes over: a row the pointer rested on no
+            // longer opens or closes a submenu when its delay elapses.
+            impl_.cancel_settle();
             // A right-to-left menu opens submenus to the left: Left opens
             // one and Right closes it (WinForms' RightToLeft menus).
             const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
@@ -620,6 +652,7 @@ struct ContextMenu::Impl final {
 
         void on_text_input(TextInputEvent& event) override {
             if (!focused_) return;
+            impl_.cancel_settle();
             const stxlib::Optional<char32_t> character = typed_character(event);
             if (character.present() && impl_.type_mnemonic(depth_, index_, *character.value())) {
                 event.handled = true;
@@ -678,6 +711,7 @@ struct ContextMenu::Impl final {
 
         bool on_semantic_action(SemanticAction action,
                                 std::string_view) override {
+            impl_.cancel_settle();
             if (action == SemanticAction::focus) {
                 if (window()) return (*window()).request_focus(shared_from_this());
                 return false;
@@ -961,6 +995,8 @@ struct ContextMenu::Impl final {
     // the caller releases after its last use of the menu: the invoker may
     // hold the last reference to the menu's owner (A-gf-controls-06-F1).
     [[nodiscard]] Control::Ptr reset_visual_state() noexcept {
+        cancel_settle();
+        last_pointer.reset();
         Control::Ptr invoker = std::move(owner_control);
         owner_control.reset();
         panels.clear();
@@ -1117,6 +1153,9 @@ struct ContextMenu::Impl final {
     }
 
     void remove_panels_from(std::size_t depth) {
+        // A row the pointer rests on in a panel that goes would name a row
+        // of whatever panel shows at that depth next.
+        if (settle_target && (*settle_target).depth >= depth) cancel_settle();
         while (panels.size() > depth) {
             // Out of the list first: hiding the window may run code that
             // reads the panels (or closes the menu and empties them).
@@ -1189,8 +1228,11 @@ struct ContextMenu::Impl final {
         layout_rows(depth);
     }
 
-    void hover(std::size_t depth, std::size_t index) {
-        if (depth >= panels.size() || index >= panels[depth].rows.size()) return;
+    // The row at `depth` and `index` becomes the panel's hot row and takes
+    // the menu's focus. False when the menu closed meanwhile (a focus
+    // handler may close it) or the row is gone.
+    bool mark_hot(std::size_t depth, std::size_t index) {
+        if (depth >= panels.size() || index >= panels[depth].rows.size()) return false;
         for (std::size_t current = 0; current < panels[depth].rows.size(); ++current) {
             (*panels[depth].rows[current]).set_hot(current == index);
         }
@@ -1198,13 +1240,165 @@ struct ContextMenu::Impl final {
         if (window && (*panels[depth].rows[index]).focusable.read()) {
             static_cast<void>(focus_row(depth, panels[depth].rows[index]));
         }
-        if (!row_still_shown(depth, index, closes)) return;
+        const bool shown = row_still_shown(depth, index, closes);
+        return shown;
+    }
+
+    // The pointer is on the row at `depth` and `index` now (a press, or a
+    // rest that outlasted the menu show delay): the row turns hot, its
+    // submenu opens, and a submenu of another row of the panel closes.
+    void hover(std::size_t depth, std::size_t index) {
+        cancel_settle();
+        if (!mark_hot(depth, index)) return;
         const MenuSnapshot& item = (*panels[depth].items)[index];
         if (item.kind == MenuItemKind::submenu) {
             open_submenu(depth, index, false);
         } else {
             remove_panels_after(depth);
         }
+    }
+
+    // -- Submenus opening and closing by themselves -------------------------
+    //
+    // A pointer move over a row turns the row hot at once; what the row
+    // does to submenus waits for the pointer to rest there for the menu
+    // show delay (PointerSettings::menu_show_milliseconds, the platform's):
+    // a submenu row opens its submenu, and any row closes the submenu
+    // another row of its panel opened. Event order: each move either
+    // cancels the wait (the pointer is back on the open submenu's row, or
+    // has reached the submenu) or (re)starts it for the row it is on; the
+    // settle timer then calls hover for that row, on the UI thread, unless
+    // the menu closed or the row's panel went in between (close_count and
+    // remove_panels_from). A move heading from the open submenu's row for
+    // the submenu, across other rows of the panel (the safe triangle: the
+    // move ends inside the triangle from where it began to the submenu
+    // face's near corners), leaves the rows as they are and restarts the
+    // wait from the row it ends on; resting there settles on that row. A
+    // pointer leaving every panel leaves the submenus as they are, as
+    // Windows, macOS and GTK menus do.
+
+    // The row the pointer rests on, waiting for the delay.
+    struct SettleTarget final {
+        std::size_t depth{};
+        std::size_t index{};
+    };
+
+    // Where a pointer move over a row ended, in the owner's client
+    // coordinates, and the depth of the row's panel.
+    struct PointerSample final {
+        Point at{};
+        std::size_t depth{};
+    };
+
+    // The settle timer's target: the menu, its destruction mark (the timer
+    // is revoked with the menu, but a poll already running may still call),
+    // and the close count when the wait began.
+    struct SettleElapsed final {
+        Impl* impl{};
+        std::shared_ptr<bool> gone;
+        std::uint64_t closes{};
+
+        void operator()(FrameTime) const {
+            if (*gone) return;
+            (*impl).settle_elapsed(closes);
+        }
+    };
+
+    // The menu show delay the owner window reports now.
+    [[nodiscard]] std::chrono::milliseconds menu_show_delay() const noexcept {
+        if (window == nullptr) return std::chrono::milliseconds(0);
+        const std::uint32_t delay = (*window).presentation_settings().pointer.menu_show_milliseconds;
+        return std::chrono::milliseconds(delay);
+    }
+
+    // A point in the window that hosts the panel at `depth`, in the owner's
+    // client coordinates, where the panels' faces are: the panel's face
+    // plus the point's offset within the panel, wherever the panel shows.
+    [[nodiscard]] Point owner_point(std::size_t depth, const Point window_position) const {
+        const Rect face = panels[depth].face;
+        const Rect panel_bounds = (*panels[depth].panel).absolute_bounds();
+        const Point point{face.x + (window_position.x - panel_bounds.x), face.y + (window_position.y - panel_bounds.y)};
+        return point;
+    }
+
+    // Whether a move from `from` to `to` (owner client coordinates) heads
+    // for the submenu open from the panel at `depth`: `to` lies in the
+    // triangle from `from` to the two corners of the submenu face's edge
+    // nearer the parent (its left edge when it opened rightward, else its
+    // right edge).
+    [[nodiscard]] bool aiming_at_submenu(std::size_t depth, const Point from, const Point to) const noexcept {
+        const Rect parent = panels[depth].face;
+        const Rect child = panels[depth + 1U].face;
+        const bool rightward = child.x >= parent.x;
+        const double edge = rightward ? child.x : child.x + child.width;
+        const Point top{edge, child.y};
+        const Point bottom{edge, child.y + child.height};
+        const bool aiming = triangle_holds(to, from, top, bottom);
+        return aiming;
+    }
+
+    void cancel_settle() noexcept {
+        settle_timer.disconnect();
+        settle_target.reset();
+    }
+
+    // Waits `delay` for the pointer to rest on the row at `depth` and
+    // `index`, replacing any earlier wait.
+    void schedule_settle(std::size_t depth, std::size_t index, const std::chrono::milliseconds delay) {
+        cancel_settle();
+        settle_target = SettleTarget{depth, index};
+        settle_timer = (*window).schedule_ui_timer(owner, settle_interval, FrameClock::now() + delay,
+                                                   SettleElapsed{this, destroyed, close_count});
+    }
+
+    void settle_elapsed(std::uint64_t closes) {
+        if (closes != close_count || !settle_target) return;
+        const SettleTarget target = *settle_target;
+        cancel_settle();
+        hover(target.depth, target.index);
+    }
+
+    // A pointer move over the row at `depth` and `index`, at
+    // `window_position` in the window that hosts the row's panel.
+    void pointer_moved(std::size_t depth, std::size_t index, const Point window_position) {
+        if (depth >= panels.size() || index >= panels[depth].rows.size() || window == nullptr) return;
+        const Point at = owner_point(depth, window_position);
+        const std::optional<PointerSample> from = last_pointer;
+        last_pointer = PointerSample{at, depth};
+        // In a panel deeper than the row waited on: the pointer reached the
+        // submenu, which stays.
+        if (settle_target && (*settle_target).depth < depth) cancel_settle();
+        const std::optional<std::size_t> source = panels[depth].child_source_index;
+        const bool submenu_shown = source.has_value() && panels.size() > depth + 1U;
+        const bool on_source = submenu_shown && *source == index;
+        const std::chrono::milliseconds delay = menu_show_delay();
+        // Aiming is judged only from a move that began in the same panel.
+        const bool same_panel = from.has_value() && (*from).depth == depth;
+        if (submenu_shown && !on_source && same_panel && aiming_at_submenu(depth, (*from).at, at)) {
+            schedule_settle(depth, index, std::max(delay, minimum_aim_rest));
+            return;
+        }
+        if (on_source) {
+            cancel_settle();
+            static_cast<void>(mark_hot(depth, index));
+            return;
+        }
+        const bool waiting_here = settle_target && (*settle_target).depth == depth && (*settle_target).index == index;
+        if (!mark_hot(depth, index)) return;
+        const MenuSnapshot& item = (*panels[depth].items)[index];
+        const bool opens = item.kind == MenuItemKind::submenu && !item.children.empty() && snapshot_enabled(item);
+        if (!opens && !submenu_shown) {
+            cancel_settle();
+            return;
+        }
+        if (delay.count() == 0) {
+            cancel_settle();
+            hover(depth, index);
+            return;
+        }
+        // The wait runs from the move that entered the row.
+        if (waiting_here) return;
+        schedule_settle(depth, index, delay);
     }
 
     void open_submenu(std::size_t depth, std::size_t index, bool focus_first) {
@@ -1433,6 +1627,13 @@ struct ContextMenu::Impl final {
     SubscriptionToken popup_closed;
     SubscriptionToken owner_active;
     SubscriptionToken owner_moved;
+    // The row the pointer rests on and the timer that settles on it when the
+    // menu show delay elapses; none, and disconnected, while nothing waits.
+    std::optional<SettleTarget> settle_target;
+    FrameRequestToken settle_timer;
+    // The pointer's last move over a row; none until the first move of
+    // each opening.
+    std::optional<PointerSample> last_pointer;
     // The window's menu_opening, while the menu shows (both modes).
     SubscriptionToken other_menu_opening;
     bool open{};

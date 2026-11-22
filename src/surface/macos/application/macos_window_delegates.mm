@@ -103,6 +103,32 @@ namespace {
 void run_window_delegate_window_did_move(GUIFormsWindowDelegate* object, NSNotification* notification) {
     [object answerWindowDidMove:notification];
 }
+void run_window_delegate_window_will_move(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowWillMove:notification];
+}
+void run_window_delegate_window_will_start_live_resize(GUIFormsWindowDelegate* object,
+                                                       NSNotification* notification) {
+    [object answerWindowWillStartLiveResize:notification];
+}
+
+// Whether moves of `window` are reported to its model: not for a passive
+// popup or a Splash (a GUIFormsPopupPanel that cannot become key), which
+// nothing is placed against (Windows reports the same windows, WM_MOVE and
+// WM_ENTERSIZEMOVE).
+bool reports_frame_moves(NSWindow* window) {
+    if (![window isKindOfClass:[GUIFormsPopupPanel class]]) return true;
+    GUIFormsPopupPanel* popup = static_cast<GUIFormsPopupPanel*>(window);
+    const bool takes_focus = [popup answerCanBecomeKeyWindow] == YES;
+    return takes_focus;
+}
+
+// The content area's top-left corner of `window` on the screen, in AppKit
+// screen coordinates (y up: the top is the content rectangle's maximum y).
+NSPoint content_top_left(NSWindow* window) {
+    const NSRect content = [window contentRectForFrameRect:window.frame];
+    const NSPoint corner = NSMakePoint(NSMinX(content), NSMaxY(content));
+    return corner;
+}
 void run_window_delegate_window_will_close(GUIFormsWindowDelegate* object, NSNotification* notification) {
     [object answerWindowWillClose:notification];
 }
@@ -169,6 +195,10 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
     // before it returns.
     [window close];
 }
+- (void)rememberFrameOriginOf:(NSWindow*)window {
+    _reportedContentOrigin = content_top_left(window);
+    _frameOriginKnown = YES;
+}
 - (void)windowDidMove:(NSNotification*)notification {
     gui_forms::detail::call_failing_fast(
         "macos.window_delegate.windowDidMove:", &run_window_delegate_window_did_move, self, notification);
@@ -176,6 +206,45 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
 
 - (void)answerWindowDidMove:(NSNotification*)notification {
     gui_forms::host::mac_run_report_frame(_run, _windowId);
+    // The model hears of a move when the content's top-left corner changed
+    // since the last notification (a resize from the left or top edge moves
+    // it too; the live resize has already reported).
+    NSWindow* window = notification.object;
+    if (window == nil || !reports_frame_moves(window)) return;
+    const NSPoint origin = content_top_left(window);
+    const BOOL moved = _frameOriginKnown == YES &&
+                       (origin.x != _reportedContentOrigin.x || origin.y != _reportedContentOrigin.y);
+    _reportedContentOrigin = origin;
+    _frameOriginKnown = YES;
+    if (moved == YES) [_view notifyFrameMoved];
+}
+// A move by the title bar (or performWindowDragWithEvent:) begins: what is
+// placed against the window closes before it moves (WM_ENTERSIZEMOVE on
+// Windows).
+- (void)windowWillMove:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowWillMove:", &run_window_delegate_window_will_move, self, notification);
+}
+
+- (void)answerWindowWillMove:(NSNotification*)notification {
+    NSWindow* window = notification.object;
+    if (window == nil || !reports_frame_moves(window)) return;
+    _reportedContentOrigin = content_top_left(window);
+    _frameOriginKnown = YES;
+    [_view notifyFrameMoved];
+}
+// A live resize begins: what is placed against the window closes before the
+// first resized frame (WM_ENTERSIZEMOVE on Windows).
+- (void)windowWillStartLiveResize:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowWillStartLiveResize:",
+        &run_window_delegate_window_will_start_live_resize, self, notification);
+}
+
+- (void)answerWindowWillStartLiveResize:(NSNotification*)notification {
+    NSWindow* window = notification.object;
+    if (window == nil || !reports_frame_moves(window)) return;
+    [_view notifyFrameMoved];
 }
 - (void)windowDidResize:(NSNotification*)notification {
     gui_forms::detail::call_failing_fast(

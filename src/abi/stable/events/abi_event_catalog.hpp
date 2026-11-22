@@ -3191,6 +3191,8 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "hover_height", value.hover_height);
     append_field(fields, "hover_origin", value.hover_origin);
     append_field(fields, "native_hover", value.native_hover);
+    append_field(fields, "menu_show_milliseconds", value.menu_show_milliseconds);
+    append_field(fields, "menu_show_origin", value.menu_show_origin);
     fields.leave(prefix);
 }
 
