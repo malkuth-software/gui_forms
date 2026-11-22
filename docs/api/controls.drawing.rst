@@ -209,7 +209,7 @@ Related types
 
 .. cpp:struct:: ContentSurface::Parts final
 
-   ``#include <gui_forms/controls/content_surface.hpp>``
+   ``#include <gui_forms/controls/content_surface.hpp>`` (:src:`source <include/gui_forms/controls/content_surface.hpp>`)
 
    Stage T1 anatomy, as dot members. ``content`` is the composed frame, present while there is a surface; ``veil`` covers the region and ``caption`` holds the status caption while the status is stale, abandoned or failed, which is the ``interrupted`` state.
 
@@ -227,7 +227,7 @@ Related types
 
 .. cpp:struct:: ContentSurface::States final
 
-   ``#include <gui_forms/controls/content_surface.hpp>``
+   ``#include <gui_forms/controls/content_surface.hpp>`` (:src:`source <include/gui_forms/controls/content_surface.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -245,7 +245,7 @@ Related types
 
 .. cpp:struct:: ContentTextEditor::Parts final
 
-   ``#include <gui_forms/controls/content_text_editor.hpp>``
+   ``#include <gui_forms/controls/content_text_editor.hpp>`` (:src:`source <include/gui_forms/controls/content_text_editor.hpp>`)
 
    Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows) and ``selection`` (the union of the highlight's boxes); the focus rectangle is the scrollable base's ``focus`` part.
 
@@ -261,7 +261,7 @@ Related types
 
 .. cpp:struct:: ContentTextEditor::States final
 
-   ``#include <gui_forms/controls/content_text_editor.hpp>``
+   ``#include <gui_forms/controls/content_text_editor.hpp>`` (:src:`source <include/gui_forms/controls/content_text_editor.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -279,7 +279,7 @@ Related types
 
 .. cpp:struct:: ContentUserEdit final
 
-   ``#include <gui_forms/controls/content_text_editor.hpp>``
+   ``#include <gui_forms/controls/content_text_editor.hpp>`` (:src:`source <include/gui_forms/controls/content_text_editor.hpp>`)
 
    One user edit the editor accepted (ContentTextEditor::user_edit): its kind (typing, deletion or paste) and whether the input was an unfinished composition. Raised after the edit's text_changed, or alone when the edit replaced bytes by the same bytes; refused edits, undo, redo and set_text raise none.
 
@@ -295,7 +295,7 @@ Related types
 
 .. cpp:struct:: DrawingSurface::Parts final
 
-   ``#include <gui_forms/controls/drawing_surface.hpp>``
+   ``#include <gui_forms/controls/drawing_surface.hpp>`` (:src:`source <include/gui_forms/controls/drawing_surface.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -309,7 +309,7 @@ Related types
 
 .. cpp:struct:: DrawingSurface::States final
 
-   ``#include <gui_forms/controls/drawing_surface.hpp>``
+   ``#include <gui_forms/controls/drawing_surface.hpp>`` (:src:`source <include/gui_forms/controls/drawing_surface.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -325,7 +325,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceBackgroundCapability
 
-   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drawing_surface_capabilities.hpp>`)
 
    The fill painted over the bounds before the paint callback (default transparent).
 
@@ -342,7 +342,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceCapabilities : public DrawingSurfaceHitTestVisibleCapability<Declaring>, public DrawingSurfaceSemanticRoleCapability<Declaring>, public DrawingSurfaceBackgroundCapability<Declaring>
 
-   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drawing_surface_capabilities.hpp>`)
 
    Every DrawingSurface capability, in the order the declaring class takes them.
 
@@ -365,7 +365,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceHitTestVisibleCapability
 
-   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drawing_surface_capabilities.hpp>`)
 
    Whether pointer input hits the surface (default false: it passes through to what lies beneath).
 
@@ -380,7 +380,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DrawingSurfaceSemanticRoleCapability
 
-   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>``
+   ``#include <gui_forms/controls/drawing_surface_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drawing_surface_capabilities.hpp>`)
 
    The role the surface publishes to accessibility (default image).
 
@@ -397,7 +397,7 @@ Related types
 
 .. cpp:struct:: GraphLoadResult final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    load's result: the error and, when it is not ok, its byte offset, and its line and column (both from 1, the column counted in bytes).
 
@@ -415,7 +415,7 @@ Related types
 
 .. cpp:struct:: GraphResult final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    An operation's result: the status and, for add_node and connect, the new record's identity (zero otherwise).
 
@@ -431,7 +431,7 @@ Related types
 
 .. cpp:struct:: GraphSaveResult final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    save's result: the status, the bytes written (zero unless ok) and the document's size in bytes (always set, so save with empty storage measures).
 
@@ -447,7 +447,7 @@ Related types
 
 .. cpp:class:: LinkFlow final
 
-   ``#include <gui_forms/controls/link_flow_effects.hpp>``
+   ``#include <gui_forms/controls/link_flow_effects.hpp>`` (:src:`source <include/gui_forms/controls/link_flow_effects.hpp>`)
 
    The flow: one dashed stroke per link, its dash pattern moved along the link by the phase. ``dots`` are round beads half the link's width every ``spacing``; ``dashes`` are breaks half a pitch long, a little wider than the link. The colour is the frame's primary colour.
 
@@ -466,7 +466,7 @@ Related types
 
 .. cpp:struct:: LinkId final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A link's identity, as NodeId.
 
@@ -478,7 +478,7 @@ Related types
 
 .. cpp:struct:: LinkRecord final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A link slot, as NodeRecord. ``key`` is the link's stable text ID (the node key rules), unique among the live links, kept by documents and by undo, so a link keeps its ID when undo or redo reattaches it.
 
@@ -496,7 +496,7 @@ Related types
 
 .. cpp:class:: LinkRouter final
 
-   ``#include <gui_forms/controls/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>`` (:src:`source <include/gui_forms/controls/link_router.hpp>`)
 
 
    .. rubric:: Properties
@@ -532,7 +532,7 @@ Related types
 
 .. cpp:struct:: LinkRouterOptions final
 
-   ``#include <gui_forms/controls/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>`` (:src:`source <include/gui_forms/controls/link_router.hpp>`)
 
    .. cpp:member:: LinkRouteStyle style
 
@@ -570,7 +570,7 @@ Related types
 
 .. cpp:struct:: LinkRouteStatistics final
 
-   ``#include <gui_forms/controls/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>`` (:src:`source <include/gui_forms/controls/link_router.hpp>`)
 
    .. cpp:member:: std::size_t routed
 
@@ -600,7 +600,7 @@ Related types
 
 .. cpp:struct:: NodeBodyPaint final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    The application's drawing of a node's body at full detail: ``body`` is the area below the caption in local units, at ``zoom`` view units per world unit. The painter is borrowed for the call; the target may draw only inside ``body`` (the canvas clips to it).
 
@@ -620,7 +620,7 @@ Related types
 
 .. cpp:struct:: NodeCanvasCallbacks final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    Named targets (Delegates: a function, or a member of an object the application keeps alive while the canvas holds the target).
 
@@ -634,7 +634,7 @@ Related types
 
 .. cpp:struct:: NodeCanvasHit final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:member:: NodeCanvasHitKind kind
 
@@ -650,7 +650,7 @@ Related types
 
 .. cpp:struct:: NodeCanvasSelection final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:member:: std::size_t nodes
 
@@ -660,7 +660,7 @@ Related types
 
 .. cpp:struct:: NodeCanvasStatistics final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    Plain-data counters; they only grow, except the ``last_`` fields and ``level``.
 
@@ -750,7 +750,7 @@ Related types
 
 .. cpp:struct:: NodeEditEnded final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    Raised after an edit ended, the editor already removed.
 
@@ -768,7 +768,7 @@ Related types
 
 .. cpp:struct:: NodeEditRequest final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    The canvas's request to edit a node (double-click, F2, or begin_edit). ``bounds`` is the part's rectangle in the canvas's local units. The edit target may set ``editor`` to a control the canvas then hosts as its child over ``bounds`` (kept there through pans and zooms) until end_edit; the canvas opens an undo group first, so every graph change the editor makes before end_edit(commit) is one undo step, and end_edit(cancel) rolls them back. Leaving ``editor`` empty declines the edit.
 
@@ -786,7 +786,7 @@ Related types
 
 .. cpp:class:: NodeGraph final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    Owned by its consumer and borrowed by the canvases that draw it, on one thread (the consumer's UI thread). Not copyable: identities name slots of one graph.
 
@@ -927,7 +927,7 @@ Related types
 
 .. cpp:struct:: NodeGraphEdited final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:member:: NodeGraphEditKind kind
 
@@ -939,7 +939,7 @@ Related types
 
 .. cpp:struct:: NodeId final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A node's identity: its slot and the generation the graph issued it.
 
@@ -951,7 +951,7 @@ Related types
 
 .. cpp:struct:: NodeLinkCheck final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    The compatibility question for one prospective link (node graph gap N6: the graph has no conversion table yet, so the application answers). The canvas fills the ports and their socket types and ``accepted`` with its default, equal socket types; the check_link target may change ``accepted``. Asked for every magnet candidate and before every connect.
 
@@ -969,7 +969,7 @@ Related types
 
 .. cpp:struct:: NodeLinkConnected final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:member:: LinkId link
 
@@ -981,7 +981,7 @@ Related types
 
 .. cpp:struct:: NodePaletteRequest final
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    The add-node palette's request: after a double-click on empty canvas, Shift+F10 or the context menu key, or a link drag released off every port (then ``from`` is the dragged output, so the palette can offer kinds with a compatible input). ``world`` is where a new node would go and ``local`` the same point in the canvas's local units.
 
@@ -995,7 +995,7 @@ Related types
 
 .. cpp:struct:: NodeProperty final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A node's named value: a parameter its consumer gives meaning to (a kind's "scale" = "5.0"). The graph keeps it as text and never interprets it, so a document keeps properties it does not know verbatim. A name is 1 to 64 bytes of ASCII letters, digits, '_', '.' and '-', starts with a letter and is none of the document's field words (kind, title, bounds, port).
 
@@ -1007,7 +1007,7 @@ Related types
 
 .. cpp:struct:: NodeRecord final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A node slot. ``live`` is false for a free slot, whose fields are stale.
 
@@ -1031,7 +1031,7 @@ Related types
 
 .. cpp:struct:: NodeSpec final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    What add_node takes, copied into the node's record: - key: the node's stable text identity, unique among the live nodes and kept by documents (1 to 64 bytes of ASCII letters, digits, '_', '.' and '-'); runtime identities (NodeId) are assigned per graph and never saved; - kind: the consumer's kind name ("noise_texture"), opaque to the graph; - title, bounds in world units, ports, and properties in order. Each text (kind, title, a port name, a property value) is at most maximum_graph_text_bytes bytes.
 
@@ -1051,7 +1051,7 @@ Related types
 
 .. cpp:struct:: PortIndex final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A port's position in its node's port list (not an identity: the list is fixed when the node is added).
 
@@ -1061,7 +1061,7 @@ Related types
 
 .. cpp:struct:: PortRecord final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    A port: its name (shown and announced), direction, edge, its position along a fixed edge as a fraction from the edge's start (left to right, top to bottom; ignored for an automatic port), its lamp and its socket type (the consumer's number; type conversion arrives with N0's tables). An input takes one link; an output any number.
 
@@ -1089,7 +1089,7 @@ Related types
 
 .. cpp:struct:: PortRef final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    One port of one node.
 
@@ -1101,7 +1101,7 @@ Related types
 
 .. cpp:struct:: RasterCanvas::Parts final
 
-   ``#include <gui_forms/controls/raster_canvas.hpp>``
+   ``#include <gui_forms/controls/raster_canvas.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -1117,7 +1117,7 @@ Related types
 
 .. cpp:struct:: RasterCanvas::States final
 
-   ``#include <gui_forms/controls/raster_canvas.hpp>``
+   ``#include <gui_forms/controls/raster_canvas.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -1133,7 +1133,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasBitmapCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    The bitmap shown, shared with the application, or null for none. A new bitmap drops the published tiles and, when attached to a window, publishes the whole bitmap again.
 
@@ -1150,7 +1150,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasCanvasBackgroundCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    The fill around the bitmap.
 
@@ -1167,7 +1167,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasCapabilities : public RasterCanvasBitmapCapability<Declaring>, public RasterCanvasZoomCapability<Declaring>, public RasterCanvasViewOriginCapability<Declaring>, public RasterCanvasSamplingCapability<Declaring>, public RasterCanvasTransparencyGridCapability<Declaring>, public RasterCanvasCanvasBackgroundCapability<Declaring>, public RasterCanvasTransparencyCellSizeCapability<Declaring>
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    Every RasterCanvas capability, in the order the declaring class takes them.
 
@@ -1206,7 +1206,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasSamplingCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    How magnified or reduced pixels are sampled (default nearest). A value outside the enumeration throws std::invalid_argument.
 
@@ -1223,7 +1223,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasTransparencyCellSizeCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size. Any other value throws std::invalid_argument.
 
@@ -1240,7 +1240,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasTransparencyGridCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    Whether transparent pixels show a checkerboard (default true).
 
@@ -1257,7 +1257,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasViewOriginCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    The bitmap point shown at the client's top-left corner. A non-finite or unbounded origin throws std::invalid_argument and changes nothing.
 
@@ -1274,7 +1274,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RasterCanvasZoomCapability
 
-   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>``
+   ``#include <gui_forms/controls/raster_canvas_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/raster_canvas_capabilities.hpp>`)
 
    Client units per bitmap pixel, 1/64 to 256 (default 1). A value outside that range throws std::invalid_argument and changes nothing; set_view changes zoom and view_origin together.
 
@@ -1291,7 +1291,7 @@ Related types
 
 .. cpp:struct:: RoutedLink final
 
-   ``#include <gui_forms/controls/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>`` (:src:`source <include/gui_forms/controls/link_router.hpp>`)
 
    One routed link. ``points`` are its orthogonal polyline from the output's anchor to the input's, after nudging, as a range of LinkRouter::points; ``drawn`` is what is painted and hit-tested (the same polyline, or the soft style's flattened curve), as a range of LinkRouter::drawn. A fallback route found no orthogonal path (a port inside another node's margin, or the grid cap) and is the straight line between the stub ends.
 
@@ -1325,7 +1325,7 @@ Related types
 
 .. cpp:struct:: SceneCubic final
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
    A cubic Bezier in world units: ends p0 and p3, control points p1 and p2.
 
@@ -1341,7 +1341,7 @@ Related types
 
 .. cpp:struct:: SceneDetailThresholds final
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
    The zooms at which the level changes, and the hysteresis factor: a level is entered upward only at threshold * hysteresis or above, and left downward only below threshold / hysteresis, so a zoom resting near a threshold does not flicker between levels. The thresholds must ascend and the hysteresis be at least 1 (valid_scene_detail_thresholds).
 
@@ -1365,7 +1365,7 @@ Related types
 
 .. cpp:struct:: SceneViewTransform final
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
 
    .. rubric:: Methods
@@ -1388,7 +1388,7 @@ Related types
 
 .. cpp:struct:: SceneZoomRange final
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
    The zooms a view is held to (spec 3: 1/64 to 8).
 
@@ -1404,7 +1404,7 @@ Related types
 
 .. cpp:struct:: SoftLinkShape final
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
    The soft link curve's tangent lengths (world units): half the distance along each end's normal, held to [shortest, longest], plus ``back_link`` times the sideways distance when the far end lies behind the edge (a back-link loops round instead of cutting through the record).
 
@@ -1424,7 +1424,7 @@ Related types
 
 .. cpp:struct:: SpatialEntry final
 
-   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
    One entry given to build: its bounds, and whether it is present (an absent entry, such as a free graph slot, is skipped and never matches).
 
@@ -1436,7 +1436,7 @@ Related types
 
 .. cpp:class:: SpatialIndex final
 
-   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
 
    .. rubric:: Construction
@@ -1487,7 +1487,7 @@ Related types
 
 .. cpp:struct:: SpatialIndexOptions final
 
-   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
    The grid's terms. ``cell_size`` is the smallest cell side in world units; ``maximum_cells`` caps the grid (4 to maximum_spatial_cells); ``maximum_cells_per_entry`` sends a larger entry to the oversize list (at least 1); ``maximum_displaced`` is how many moved entries may leave their cells before move_entry asks for a rebuild (at most maximum_spatial_entries, reserved at build).
 
@@ -1511,7 +1511,7 @@ Related types
 
 .. cpp:struct:: SpatialIndexStatistics final
 
-   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
    Counters, plain data. The build fields describe the latest build; the rest only grow until the next build resets them with the grid.
 
@@ -1545,7 +1545,7 @@ Related types
 
 .. cpp:struct:: SpatialQueryResult final
 
-   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
    What one query found: ``written`` identities stored at the front of the caller's storage, and ``matched`` matches in all. ``matched > written`` means the storage was too small; the identities written are then some of the matches, which ones unspecified.
 
@@ -1557,7 +1557,7 @@ Related types
 
 .. cpp:class:: SubSurface final : public SurfaceRoot
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    A SurfaceRoot whose output is a LiveSurface and whose host is a control of its parent window (design note section 2). Made, run and destroyed by a SubSurfaceThread on the thread it owns; every member is that thread's (SurfaceRoot::check_access). Controls inside see window() null.
 
@@ -1589,7 +1589,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceConfiguration final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    The state both sides agree on in one visible frame (design note section 6), sent by the parent with each content epoch. Move-only: the framebuffer goes with it.
 
@@ -1633,7 +1633,7 @@ Related types
 
 .. cpp:class:: SubSurfaceContent
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2). The parent hands one to a SubSurfaceThread, which moves it to the sub-surface's thread; it is called and destroyed there, so the controls it makes are created on, owned by and released on that thread.
 
@@ -1656,7 +1656,7 @@ Related types
 
 .. cpp:class:: SubSurfaceContentUpdate
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    One change of a sub-surface's content that must agree with its parent's chrome in the same visible frame (design note section 2, redraw-all): made on the parent's thread, carried with a configuration (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on the sub-surface's thread after that configuration is applied and before its first frame, and destroyed there. Each update is complete, so of updates sent before the sub-surface applied any only the newest is applied (statistics: updates_coalesced). A content downcasts it to the type it made.
 
@@ -1664,7 +1664,7 @@ Related types
 
 .. cpp:class:: SubSurfaceEndListener
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    Told that a sub-surface's thread ended on its own: its content threw or built no root (state failed). Called on the parent's thread only, through the parent's dispatcher, after the thread recorded its state and failure; a stop the parent asked for (SubSurfaceThread::stop) posts nothing, since the parent knows of it. A target the parent has released receives nothing.
 
@@ -1677,7 +1677,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceHost::Parts final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``content`` is the composed sub-surface frame, present once the sub-surface has a LiveSurface; the sub-surface's own controls are parts of its tree, not of the host.
 
@@ -1691,7 +1691,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceHost::States final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -1707,7 +1707,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceInput final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    One input event forwarded from the host to the sub-surface's thread (design note section 4). Only the member ``kind`` names is meaningful. Pointer positions are in the sub-surface's logical coordinates.
 
@@ -1731,7 +1731,7 @@ Related types
 
 .. cpp:class:: SubSurfaceKeyReturn
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    Where a sub-surface returns the key events its tree left unhandled (design note section 4: the parent then runs its own bubble, accelerators, dialog keys and focus traversal, which is how Tab leaves the sub-surface). Called on the parent's thread only, through the parent's dispatcher, in the order the keys were forwarded; ``sequence`` is the one SubSurfaceThread::post_input returned for the key. A target the parent has released receives nothing.
 
@@ -1744,7 +1744,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceRequest final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    One request, posted on the sub-surface's thread and received on the parent's. Content travels as data. The parent answers with a SurfaceRequestOutcome carrying the request's ``id`` (declined: its policy refused it, or it has no window; closed: shown, then closed by the parent, which keeps it until revoked; revoked: the pointer or keyboard focus left the host; stale: older than the newest configuration, or than the pointer or focus leaving).
 
@@ -1802,7 +1802,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceRequestStatistics final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`)
 
    Counters of a host's side of its sub-surface's requests (design note section 15). UI thread.
 
@@ -1836,7 +1836,7 @@ Related types
 
 .. cpp:class:: SubSurfaceRequestTarget
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    Where a sub-surface's requests go: called on the parent's thread only, through the parent's dispatcher, in the order the sub-surface posted. A revoke names a request posted earlier. A target the parent has released receives nothing.
 
@@ -1851,7 +1851,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceSemanticAction final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    A semantic action for a node of the sub-surface's own tree, named as a host names a node to SurfaceRoot::perform_semantic_action: the runtime identity of a control of the sub-surface and, for one of its virtual children, that child's stable identity (empty for the control's own node). Runtime identities are never reused, so an action for a control the sub-surface has since replaced is refused there.
 
@@ -1869,7 +1869,7 @@ Related types
 
 .. cpp:class:: SubSurfaceSemanticsListener
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    Told that a sub-surface published a new semantic snapshot (design note section 5). Called on the parent's thread only, through the parent's dispatcher; one notice stands for every snapshot published until the parent takes the newest (SubSurfaceThread::take_semantics). A target the parent has released receives nothing.
 
@@ -1882,7 +1882,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceStatistics final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
 
@@ -1960,7 +1960,7 @@ Related types
 
 .. cpp:struct:: SubSurfaceStopped final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface_host.hpp>`)
 
    How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped when the host stopped it (new content, leaving the window), failed when the content threw or built no root, with what it threw.
 
@@ -1974,7 +1974,7 @@ Related types
 
 .. cpp:class:: SubSurfaceThread final
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    The parent's side of one sub-surface: owns its thread (owner decision 9, the library's thread) and the channel the two sides share. Made, used and destroyed on the parent's thread. Nothing crosses but the configurations, the stop request and the published frames (house style 8).
 
@@ -2047,7 +2047,7 @@ Related types
 
 .. cpp:struct:: UndoLimits final
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    The undo log's bound. When a new step passes either limit, the oldest steps are dropped until both hold again, except that the newest step is never dropped: one step larger than maximum_bytes empties the rest of the log and stays. maximum_steps zero turns recording off (and empties the log). Bytes are an estimate: each record's fixed size plus the bytes of the texts, ports and positions it keeps.
 
@@ -2063,7 +2063,7 @@ Related types
 
 .. cpp:struct:: WorldPoint final
 
-   ``#include <gui_forms/scene/world_geometry/world_geometry.hpp>``
+   ``#include <gui_forms/scene/world_geometry/world_geometry.hpp>`` (:src:`source <include/gui_forms/scene/world_geometry/world_geometry.hpp>`)
 
    A point in graph space (world units, float64).
 
@@ -2075,7 +2075,7 @@ Related types
 
 .. cpp:struct:: WorldRect final
 
-   ``#include <gui_forms/scene/world_geometry/world_geometry.hpp>``
+   ``#include <gui_forms/scene/world_geometry/world_geometry.hpp>`` (:src:`source <include/gui_forms/scene/world_geometry/world_geometry.hpp>`)
 
    An axis-aligned rectangle in graph space: its top-left corner and size.
 
@@ -2108,7 +2108,7 @@ Enumerations
 
 .. cpp:enum-class:: GraphLoadError
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    .. cpp:enumerator:: ok
 
@@ -2154,7 +2154,7 @@ Enumerations
 
 .. cpp:enum-class:: GraphSaveStatus
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    .. cpp:enumerator:: ok
 
@@ -2164,7 +2164,7 @@ Enumerations
 
 .. cpp:enum-class:: GraphStatus
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    .. cpp:enumerator:: ok
 
@@ -2198,7 +2198,7 @@ Enumerations
 
 .. cpp:enum-class:: LinkRouteStyle
 
-   ``#include <gui_forms/controls/link_router.hpp>``
+   ``#include <gui_forms/controls/link_router.hpp>`` (:src:`source <include/gui_forms/controls/link_router.hpp>`)
 
    .. cpp:enumerator:: orthogonal
 
@@ -2208,7 +2208,7 @@ Enumerations
 
 .. cpp:enum-class:: NodeCanvasGesture
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2226,7 +2226,7 @@ Enumerations
 
 .. cpp:enum-class:: NodeCanvasHitKind
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2242,7 +2242,7 @@ Enumerations
 
 .. cpp:enum-class:: NodeEditEnd
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:enumerator:: commit
 
@@ -2252,7 +2252,7 @@ Enumerations
 
 .. cpp:enum-class:: NodeEditPart
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:enumerator:: body
 
@@ -2262,7 +2262,7 @@ Enumerations
 
 .. cpp:enum-class:: NodeGraphEditKind
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:enumerator:: moved
 
@@ -2282,7 +2282,7 @@ Enumerations
 
 .. cpp:enum-class:: NodeLinkStyle
 
-   ``#include <gui_forms/controls/node_canvas.hpp>``
+   ``#include <gui_forms/controls/node_canvas.hpp>`` (:src:`source <include/gui_forms/controls/node_canvas.hpp>`)
 
    .. cpp:enumerator:: soft
 
@@ -2292,7 +2292,7 @@ Enumerations
 
 .. cpp:enum-class:: PortDirection
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    .. cpp:enumerator:: input
 
@@ -2302,7 +2302,7 @@ Enumerations
 
 .. cpp:enum-class:: PortLamp
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    .. cpp:enumerator:: off
 
@@ -2314,7 +2314,7 @@ Enumerations
 
 .. cpp:enum-class:: PortSide
 
-   ``#include <gui_forms/controls/node_graph.hpp>``
+   ``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
    .. cpp:enumerator:: left
 
@@ -2330,7 +2330,7 @@ Enumerations
 
 .. cpp:enum-class:: SceneDetailLevel
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
    .. cpp:enumerator:: overview
 
@@ -2344,7 +2344,7 @@ Enumerations
 
 .. cpp:enum-class:: SceneEdge
 
-   ``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+   ``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
    .. cpp:enumerator:: left
 
@@ -2358,7 +2358,7 @@ Enumerations
 
 .. cpp:enum-class:: SpatialQueryMode
 
-   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+   ``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
    .. cpp:enumerator:: intersecting
 
@@ -2368,7 +2368,7 @@ Enumerations
 
 .. cpp:enum-class:: SubSurfaceFocusEntry
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    .. cpp:enumerator:: restore
 
@@ -2380,7 +2380,7 @@ Enumerations
 
 .. cpp:enum-class:: SubSurfaceInputKind
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    .. cpp:enumerator:: pointer
 
@@ -2398,7 +2398,7 @@ Enumerations
 
 .. cpp:enum-class:: SubSurfaceRequestKind
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    .. cpp:enumerator:: tool_tip
 
@@ -2408,7 +2408,7 @@ Enumerations
 
 .. cpp:enum-class:: SubSurfaceState
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    .. cpp:enumerator:: starting
 
@@ -2422,7 +2422,7 @@ Enumerations
 
 .. cpp:enum-class:: SubSurfaceToolTipOrigin
 
-   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>`` (:src:`source <include/gui_forms/surface_root/sub_surface/sub_surface.hpp>`)
 
    .. cpp:enumerator:: pointer
 
@@ -2435,7 +2435,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/link_flow_effects.hpp>``
+``#include <gui_forms/controls/link_flow_effects.hpp>`` (:src:`source <include/gui_forms/controls/link_flow_effects.hpp>`)
 
 .. cpp:function:: bool link_flow_wants_frames(const EffectView<NodeCanvas>& view, bool motion_reduced) noexcept
 
@@ -2455,7 +2455,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/link_router.hpp>``
+``#include <gui_forms/controls/link_router.hpp>`` (:src:`source <include/gui_forms/controls/link_router.hpp>`)
 
 .. cpp:function:: void append_link_route_trace(std::string& out, const LinkRouter& router)
 
@@ -2469,7 +2469,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/node_graph.hpp>``
+``#include <gui_forms/controls/node_graph.hpp>`` (:src:`source <include/gui_forms/controls/node_graph.hpp>`)
 
 .. cpp:function:: std::string_view graph_status_name(GraphStatus status) noexcept
 
@@ -2509,7 +2509,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/scene/scene_view/scene_view.hpp>``
+``#include <gui_forms/scene/scene_view/scene_view.hpp>`` (:src:`source <include/gui_forms/scene/scene_view/scene_view.hpp>`)
 
 .. cpp:function:: bool valid_scene_view(const SceneViewTransform& view) noexcept
 
@@ -2571,7 +2571,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/scene/spatial_index/spatial_index.hpp>``
+``#include <gui_forms/scene/spatial_index/spatial_index.hpp>`` (:src:`source <include/gui_forms/scene/spatial_index/spatial_index.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_spatial_entries
 
@@ -2583,7 +2583,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/scene/world_geometry/world_geometry.hpp>``
+``#include <gui_forms/scene/world_geometry/world_geometry.hpp>`` (:src:`source <include/gui_forms/scene/world_geometry/world_geometry.hpp>`)
 
 .. cpp:function:: inline bool valid_world_rect(const WorldRect& rect) noexcept
 

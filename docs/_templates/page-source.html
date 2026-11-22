@@ -1,0 +1,15 @@
+{#- This page's source in the repository at the commit the site is built
+    from (docs/conf.py: gf_blob). A generated API page names its header in
+    the gf_source field at its top (tools/api_docs_rst.py), which is the
+    source a reader wants; any other page links its own file under docs/. -#}
+{%- if gf_blob and pagename %}
+{%- set header = meta.get("gf_source") if meta else None %}
+{%- if header %}
+{%- set target = header %}
+{%- else %}
+{%- set target = "docs/" ~ pagename ~ page_source_suffix %}
+{%- endif %}
+<div class="tocsection gf-page-source">
+  <a href="{{ gf_blob }}/{{ target }}" rel="noopener"><i class="fa-brands fa-github"></i> {{ _("Source") }}</a>
+</div>
+{%- endif %}

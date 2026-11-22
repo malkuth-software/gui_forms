@@ -77,7 +77,7 @@ Related types
 
 .. cpp:class:: ApplicationResources final
 
-   ``#include <gui_forms/resources/application_resources/application_resources.hpp>``
+   ``#include <gui_forms/resources/application_resources/application_resources.hpp>`` (:src:`source <include/gui_forms/resources/application_resources/application_resources.hpp>`)
 
    The image registry and the theme of an application (stage DK decision 8), shared by every Window constructed with it. In those windows an ImageId names the same image, an ImageList belongs to all of them and a theme set on one is the theme of all, so a control subtree moved from one window to another keeps its images and its look. A Window constructed without one makes its own, so a single-window program behaves as before. Ownership: shared by the windows (and by anyone else holding it); the registry and its images live until the last holder releases it. Each Window registers itself while it lives and the list only observes them. Every member runs on the thread that constructed the object, which must be the windows' UI thread.
 
@@ -228,7 +228,7 @@ Related types
 
 .. cpp:struct:: IconDeclaration final
 
-   ``#include <gui_forms/resources/application_resources/application_resources.hpp>``
+   ``#include <gui_forms/resources/application_resources/application_resources.hpp>`` (:src:`source <include/gui_forms/resources/application_resources/application_resources.hpp>`)
 
    One program icon a user theme may name, by its identifier.
 
@@ -242,7 +242,7 @@ Related types
 
 .. cpp:struct:: ImageAtlasAcquire final
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    .. cpp:member:: ImageAtlasSlot slot
 
@@ -258,7 +258,7 @@ Related types
 
 .. cpp:struct:: ImageAtlasLayout final
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    .. cpp:member:: std::uint32_t slot_width
 
@@ -290,7 +290,7 @@ Related types
 
 .. cpp:struct:: ImageAtlasSlot final
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    A slot's handle: its index and the generation the slot had when the handle was given. The slot's generation advances when it is released or replaced, so an older handle is stale and every call rejects it. Generation 0 is no slot. A generation is 32 bits: a handle kept across 2^32 reuses of its slot would be taken for current.
 
@@ -302,7 +302,7 @@ Related types
 
 .. cpp:struct:: ImageAtlasStatistics final
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    .. cpp:member:: std::uint64_t hits
 
@@ -370,7 +370,7 @@ Related types
 
 .. cpp:struct:: ImageLoadResult final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    ImageLoadResult couples a stable nonzero image identity to a closed registry error.
 
@@ -391,7 +391,7 @@ Related types
 
 .. cpp:struct:: ImageMetadata final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    What every resource reports, whatever its encoding. decoded_byte_count is width * height * 4, the size of its 8-bit four-channel pixels.
 
@@ -409,7 +409,7 @@ Related types
 
 .. cpp:struct:: ImagePatchRegion final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    The part of an image patched since an earlier state of it (D4). A run of patch_bgra32_premultiplied calls with no other change between them is one run: base_image and base_hash name the image as it was before the run's first patch, and the rectangle is the union of the run's patches, so the pixels differ from that state, and from every state inside the run, only inside it. base_hash 0 means no run is open: a consumer resynchronizes the whole image.
 
@@ -431,7 +431,7 @@ Related types
 
 .. cpp:class:: ImageRegistry final
 
-   ``#include <gui_forms/resources/image_registry/image_registry.hpp>``
+   ``#include <gui_forms/resources/image_registry/image_registry.hpp>`` (:src:`source <include/gui_forms/resources/image_registry/image_registry.hpp>`)
 
    ImageRegistry is the renderer-neutral generational identity store for validated PNG and premultiplied BGRA resources, with bounded per-image/global quotas, in-place live updates, rectangular patches, stale-ID rejection, and structured telemetry.
 
@@ -516,7 +516,7 @@ Related types
 
 .. cpp:struct:: ImageRegistryLimits final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    ImageRegistryLimits bounds individual encoded and decoded images, PNG structure, resource count, and aggregate registry memory.
 
@@ -560,7 +560,7 @@ Related types
 
 .. cpp:struct:: ImageRegistrySnapshot final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    ImageRegistrySnapshot reports revision, resource count, and aggregate encoded and decoded byte commitments.
 
@@ -576,7 +576,7 @@ Related types
 
 .. cpp:struct:: ImageResourceView final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    ImageResourceView exposes one registry-owned resource as identity, encoding, validated metadata, immutable bytes, stride, and content hash.
 
@@ -608,7 +608,7 @@ Related types
 
 .. cpp:struct:: PngMetadata final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    PngMetadata records validated IHDR shape plus overflow-checked row and decoded byte extents.
 
@@ -632,7 +632,7 @@ Related types
 
 .. cpp:struct:: PngValidationResult final
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    PngValidationResult couples a closed error code to metadata that is authoritative only on success.
 
@@ -653,7 +653,7 @@ Related types
 
 .. cpp:struct:: Sha256Digest final
 
-   ``#include <gui_forms/integrity/sha256/sha256.hpp>``
+   ``#include <gui_forms/integrity/sha256/sha256.hpp>`` (:src:`source <include/gui_forms/integrity/sha256/sha256.hpp>`)
 
    The digest in the standard byte order (the first byte is the high byte of the first word).
 
@@ -663,7 +663,7 @@ Related types
 
 .. cpp:class:: Sha256Hasher final
 
-   ``#include <gui_forms/integrity/sha256/sha256.hpp>``
+   ``#include <gui_forms/integrity/sha256/sha256.hpp>`` (:src:`source <include/gui_forms/integrity/sha256/sha256.hpp>`)
 
    A streaming hasher: feed the message in any number of pieces of any length, then finish. The digest equals sha256 over the pieces joined. It owns its 64-byte block buffer, allocates nothing and is one execution context's (it holds no lock). Copying it copies the state, so a copy finishes the prefix fed so far while the original goes on.
 
@@ -702,7 +702,7 @@ Related types
 
 .. cpp:struct:: StockIcon final
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    One stock icon: its name (lowercase words joined by hyphens, as stock_icon_names lists them), its style and its size variant.
 
@@ -720,7 +720,7 @@ Related types
 
 .. cpp:struct:: StockIconBakeCounts final
 
-   ``#include <gui_forms/resources/stock_icons/stock_icons.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icons.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icons.hpp>`)
 
    The stock icon bake counters (instrumentation): coverage rasterizations, coloured rasters made from them, the entries the process cache holds of each, and the scales Window has baked the status icons for.
 
@@ -738,7 +738,7 @@ Related types
 
 .. cpp:struct:: StockIconImage final
 
-   ``#include <gui_forms/resources/stock_icons/stock_icons.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icons.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icons.hpp>`)
 
    What a stock icon id names: the icon's name (static storage), its style, and its fixed size if it has one (else the nearest is chosen when drawn).
 
@@ -754,7 +754,7 @@ Related types
 
 .. cpp:struct:: StockIconLayer final
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    One layer of an icon's vectors: the layer's verbs end at ``verb_end`` and its points at ``point_end`` (each layer starts where the previous one ended, the first at zero); a stroke is ``stroke_width`` grid units wide with ``cap`` at its open ends and round joins.
 
@@ -776,7 +776,7 @@ Related types
 
 .. cpp:struct:: StockIconReplacement final
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    A theme's drawing for one stock icon variant (ThemeDefinition::stock_icons): shown wherever ``icon`` would be, in the same colour.
 
@@ -788,7 +788,7 @@ Related types
 
 .. cpp:class:: StockIconVectors final
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    An icon's drawing on its grid: layers of curved paths (PaintPath's verbs and points, in grid units with y down), each filled or stroked. Immutable once made and shared read-only (the built-in set holds one per variant for the process's life; a theme holds its replacements while it lives).
 
@@ -819,7 +819,7 @@ Enumerations
 
 .. cpp:enum-class:: IconOverride
 
-   ``#include <gui_forms/resources/application_resources/application_resources.hpp>``
+   ``#include <gui_forms/resources/application_resources/application_resources.hpp>`` (:src:`source <include/gui_forms/resources/application_resources/application_resources.hpp>`)
 
    .. cpp:enumerator:: overridable
 
@@ -829,7 +829,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageAlpha
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    .. cpp:enumerator:: opaque
 
@@ -841,7 +841,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageAtlasAcquireOutcome
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    .. cpp:enumerator:: hit
 
@@ -855,7 +855,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageAtlasError
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -873,7 +873,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageAtlasReplacement
 
-   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+   ``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
    .. cpp:enumerator:: least_recently_used
 
@@ -883,7 +883,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageResourceEncoding
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    .. cpp:enumerator:: png
 
@@ -893,7 +893,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageResourceError
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -953,7 +953,7 @@ Enumerations
 
 .. cpp:enum-class:: PngColorType
 
-   ``#include <gui_forms/resources/types/image_resource_types.hpp>``
+   ``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
    .. cpp:enumerator:: grayscale
 
@@ -969,7 +969,7 @@ Enumerations
 
 .. cpp:enum-class:: StockIconPaint
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    .. cpp:enumerator:: fill_nonzero
 
@@ -981,7 +981,7 @@ Enumerations
 
 .. cpp:enum-class:: StockIconSize
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    .. cpp:enumerator:: grid_16
 
@@ -993,7 +993,7 @@ Enumerations
 
 .. cpp:enum-class:: StockIconStyle
 
-   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>``
+   ``#include <gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icon_vectors.hpp>`)
 
    .. cpp:enumerator:: outline
 
@@ -1003,7 +1003,7 @@ Enumerations
 
 .. cpp:enum-class:: UserThemePolicy
 
-   ``#include <gui_forms/resources/application_resources/application_resources.hpp>``
+   ``#include <gui_forms/resources/application_resources/application_resources.hpp>`` (:src:`source <include/gui_forms/resources/application_resources/application_resources.hpp>`)
 
    .. cpp:enumerator:: layered
 
@@ -1016,7 +1016,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/integrity/sha256/sha256.hpp>``
+``#include <gui_forms/integrity/sha256/sha256.hpp>`` (:src:`source <include/gui_forms/integrity/sha256/sha256.hpp>`)
 
 .. cpp:function:: Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept
 
@@ -1052,7 +1052,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/resources/application_resources/application_resources.hpp>``
+``#include <gui_forms/resources/application_resources/application_resources.hpp>`` (:src:`source <include/gui_forms/resources/application_resources/application_resources.hpp>`)
 
 .. cpp:function:: bool icon_identifier_valid(std::string_view identifier) noexcept
 
@@ -1060,7 +1060,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/resources/image_atlas/image_atlas.hpp>``
+``#include <gui_forms/resources/image_atlas/image_atlas.hpp>`` (:src:`source <include/gui_forms/resources/image_atlas/image_atlas.hpp>`)
 
 .. cpp:var:: constexpr std::uint32_t image_atlas_pending_every_slot
 
@@ -1068,7 +1068,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/resources/stock_icons/stock_alert_icon.hpp>``
+``#include <gui_forms/resources/stock_icons/stock_alert_icon.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_alert_icon.hpp>`)
 
 .. cpp:function:: std::optional<HostImage> stock_alert_icon_image(const Window& window, HostMessageIcon icon)
 
@@ -1076,7 +1076,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/resources/stock_icons/stock_icons.hpp>``
+``#include <gui_forms/resources/stock_icons/stock_icons.hpp>`` (:src:`source <include/gui_forms/resources/stock_icons/stock_icons.hpp>`)
 
 .. cpp:function:: std::span<const std::string_view> stock_icon_names() noexcept
 
@@ -1144,7 +1144,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/resources/types/image_resource_types.hpp>``
+``#include <gui_forms/resources/types/image_resource_types.hpp>`` (:src:`source <include/gui_forms/resources/types/image_resource_types.hpp>`)
 
 .. cpp:function:: std::string_view image_resource_error_name(ImageResourceError error) noexcept
 

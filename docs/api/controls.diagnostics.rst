@@ -65,7 +65,7 @@ Related types
 
 .. cpp:struct:: BundledFontDiagnostics final
 
-   ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
+   ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>`` (:src:`source <include/gui_forms/metrics/font_sources/bundled_font_sources.hpp>`)
 
    What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source), and what decoding the pack refused. A host looks once per application run and once per window it opens. The first lookup that finds no source also writes one line to stderr, the refusal bundled_font_refusal returns; later ones are only counted. The first refused pack group is written to stderr the same way (bundled_font_pack_refusal). Any thread.
 
@@ -91,7 +91,7 @@ Related types
 
 .. cpp:struct:: ExpectationThresholds final
 
-   ``#include <gui_forms/metrics/types/metrics_types.hpp>``
+   ``#include <gui_forms/metrics/types/metrics_types.hpp>`` (:src:`source <include/gui_forms/metrics/types/metrics_types.hpp>`)
 
    What each expectation allows. Defaults are generous: they flag a stall, not an ordinary busy frame.
 
@@ -111,7 +111,7 @@ Related types
 
 .. cpp:class:: Metrics
 
-   ``#include <gui_forms/metrics/metrics/metrics.hpp>``
+   ``#include <gui_forms/metrics/metrics/metrics.hpp>`` (:src:`source <include/gui_forms/metrics/metrics/metrics.hpp>`)
 
    Metrics is the structured counter accumulator used by Window and retained controls; only wrong-thread rejection is atomic because that rejection may originate off-thread.
 
@@ -391,7 +391,7 @@ Related types
 
 .. cpp:struct:: MetricsSnapshot
 
-   ``#include <gui_forms/metrics/types/metrics_types.hpp>``
+   ``#include <gui_forms/metrics/types/metrics_types.hpp>`` (:src:`source <include/gui_forms/metrics/types/metrics_types.hpp>`)
 
    MetricsSnapshot is the renderer-neutral population, traversal, damage, input, lifetime, scheduler, presentation, and renderer telemetry record.
 
@@ -696,7 +696,7 @@ Related types
 
 .. cpp:struct:: MetricsView::Parts final
 
-   ``#include <gui_forms/controls/metrics_view.hpp>``
+   ``#include <gui_forms/controls/metrics_view.hpp>`` (:src:`source <include/gui_forms/controls/metrics_view.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -712,7 +712,7 @@ Related types
 
 .. cpp:struct:: MetricsView::States final
 
-   ``#include <gui_forms/controls/metrics_view.hpp>``
+   ``#include <gui_forms/controls/metrics_view.hpp>`` (:src:`source <include/gui_forms/controls/metrics_view.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -728,7 +728,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MetricsViewAccentWidthCapability
 
-   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/metrics_view_capabilities.hpp>`)
 
    The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.
 
@@ -745,7 +745,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MetricsViewCapabilities : public MetricsViewTitleCapability<Declaring>, public MetricsViewAccentWidthCapability<Declaring>
 
-   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/metrics_view_capabilities.hpp>`)
 
    Every MetricsView capability, in the order the declaring class takes them.
 
@@ -764,7 +764,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MetricsViewTitleCapability
 
-   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/metrics_view_capabilities.hpp>`)
 
    The heading painted above the metrics; it is also the accessible name.
 
@@ -779,7 +779,7 @@ Related types
 
 .. cpp:struct:: StockSpecimen final
 
-   ``#include <gui_forms/controls/stock_specimens.hpp>``
+   ``#include <gui_forms/controls/stock_specimens.hpp>`` (:src:`source <include/gui_forms/controls/stock_specimens.hpp>`)
 
    .. cpp:member:: std::string_view control_id
 
@@ -811,7 +811,7 @@ Related types
 
 .. cpp:struct:: StockSpecimenInstance final
 
-   ``#include <gui_forms/controls/stock_specimens.hpp>``
+   ``#include <gui_forms/controls/stock_specimens.hpp>`` (:src:`source <include/gui_forms/controls/stock_specimens.hpp>`)
 
    What a window holds for one specimen. ``subject`` is the control of the row's type, which a palette captures and shows states on; ``root`` is what the window holds: the subject itself, or a holder that owns what the subject borrows (a PageSet, a DockWorkspace, an overlay's anchor) and lays the subject over its whole client area. Keep ``root`` alive while ``subject`` is used. ``frame`` is what a palette captures: the subject, or, for a part that only shows inside its container (a tab page, a wizard page, a plot's axis, a splitter between two panels), the container.
 
@@ -825,7 +825,7 @@ Related types
 
 .. cpp:struct:: VisualControlInspection final
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
    .. cpp:member:: RuntimeId runtime_id
 
@@ -875,7 +875,7 @@ Related types
 
 .. cpp:struct:: VisualControlLayoutSnapshot final
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
    .. cpp:member:: Rect requested_bounds
 
@@ -925,7 +925,7 @@ Related types
 
 .. cpp:struct:: VisualControlStateSnapshot final
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
    .. cpp:member:: bool visible
 
@@ -963,7 +963,7 @@ Related types
 
 .. cpp:struct:: VisualInspectionOptions final
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
    .. cpp:member:: constexpr std::size_t maximum_allowed_controls
 
@@ -997,7 +997,7 @@ Related types
 
 .. cpp:struct:: VisualInspectionSnapshot final
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
 
    .. rubric:: Properties
@@ -1051,7 +1051,7 @@ Related types
 
 .. cpp:struct:: VisualPaintOperationSnapshot final
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
    One immutable, backend-neutral record from the last committed display chunk. Text is redacted by default at capture time; byte length and the resolved FontSpec remain available for visual diagnosis without copying application content into ordinary diagnostic payloads.
 
@@ -1122,7 +1122,7 @@ Enumerations
 
 .. cpp:enum-class:: BundledFontSource
 
-   ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
+   ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>`` (:src:`source <include/gui_forms/metrics/font_sources/bundled_font_sources.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1136,7 +1136,7 @@ Enumerations
 
 .. cpp:enum-class:: HousekeepingExpectation
 
-   ``#include <gui_forms/metrics/types/metrics_types.hpp>``
+   ``#include <gui_forms/metrics/types/metrics_types.hpp>`` (:src:`source <include/gui_forms/metrics/types/metrics_types.hpp>`)
 
    .. cpp:enumerator:: wake_on_time
 
@@ -1150,7 +1150,7 @@ Enumerations
 
 .. cpp:enum-class:: VisualPaintOperation
 
-   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+   ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
    .. cpp:enumerator:: save
 
@@ -1245,7 +1245,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/stock_specimens.hpp>``
+``#include <gui_forms/controls/stock_specimens.hpp>`` (:src:`source <include/gui_forms/controls/stock_specimens.hpp>`)
 
 .. cpp:function:: std::span<const StockSpecimen> stock_specimens() noexcept
 
@@ -1281,7 +1281,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
+``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>`` (:src:`source <include/gui_forms/metrics/font_sources/bundled_font_sources.hpp>`)
 
 .. cpp:function:: std::string_view bundled_font_source_name(BundledFontSource source) noexcept
 
@@ -1303,7 +1303,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
+``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>`` (:src:`source <include/gui_forms/visual_inspection/types/visual_inspection_types.hpp>`)
 
 .. cpp:function:: const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
 

@@ -318,6 +318,26 @@ class Linker:
         return "\n".join(out)
 
 
+# --- Source links and previews -------------------------------------------------------
+
+def include_line(header: str) -> str:
+    """The include a page shows for a header, linked to the header at the commit
+    the site is built from (the ``src`` role, docs/conf.py extlinks)."""
+    return f"``#include <{header[len('include/'):]}>`` (:src:`source <{header}>`)"
+
+
+def preview_lines(registry_entry: dict | None) -> list[str]:
+    """A registry control's preview (docs/_ext/gf_preview.py): its stock
+    specimen, captured in the windows-professional theme by
+    tools/capture_previews.py as controls/<id>.png. The page shows it once
+    the pinned capture holds it."""
+    if not registry_entry or not registry_entry.get("id"):
+        return []
+    name = registry_entry.get("type", registry_entry["id"])
+    return [f".. gf-preview:: controls/{registry_entry['id']}",
+            f"   :alt: A {name} as the stock specimen shows it, in the windows-professional theme.", ""]
+
+
 # --- C++ domain declarations ---------------------------------------------------------
 
 def class_directive(record: TypeRecord) -> str:
@@ -547,11 +567,13 @@ def type_page(record: TypeRecord, sources: Sources, registry_entry: dict | None,
     linker = linker.for_cells(frozenset(prop.name for prop in shape.properties if prop.cell))
     doc = sources.docstring
     owner = record.qualified_name
-    out: list[str] = [f".. _{label}:", ""]
+    # Page metadata: the header is this page's source (docs/_templates/page-source.html).
+    out: list[str] = [f":gf_source: {record.header}", "", f".. _{label}:", ""]
     out += title(record.qualified_name)
     out += ["", namespace_directive(record.namespace), "", class_directive(record), ""]
-    body: list[str] = [f"``#include <{record.header[len('include/'):]}>``", ""]
+    body: list[str] = [include_line(record.header), ""]
     body += [linker.prose(sources.summary(registry_entry, record.comment), owner, members), ""]
+    body += preview_lines(registry_entry)
     if doc is not None and doc.extended:
         body += [linker.prose(doc.extended, owner, members), ""]
     if registry_entry:
@@ -630,7 +652,7 @@ def inline_type(record: TypeRecord, sources: Sources, linker: Linker) -> list[st
     shape = shape_of(record)
     members = frozenset({prop.name for prop in shape.properties} | {event.name for event in shape.events} |
                         {method.name for method in shape.methods})
-    body = [f"``#include <{record.header[len('include/'):]}>``", ""]
+    body = [include_line(record.header), ""]
     summary = sources.summary(None, record.comment)
     if summary:
         body += [linker.prose(summary, sources.qualified, members), ""]
@@ -641,7 +663,7 @@ def inline_type(record: TypeRecord, sources: Sources, linker: Linker) -> list[st
 
 def enum_entry(record: EnumRecord, comment: str, linker: Linker) -> list[str]:
     name = record.display_name
-    body = [f"``#include <{record.header[len('include/'):]}>``", ""]
+    body = [include_line(record.header), ""]
     if comment:
         body += [linker.prose(comment), ""]
     for value in record.values:
@@ -689,7 +711,7 @@ def scope_entries(scopes: list[HeaderScope], linker: Linker) -> list[str]:
     emitted: set[str] = set()
     for scope in scopes:
         lines += [namespace_directive(scope.namespace), "",
-                  f"``#include <{scope.header[len('include/'):]}>``", ""]
+                  include_line(scope.header), ""]
         for function in scope.functions:
             if is_deleted(function) or out_of_line_member(function):
                 continue

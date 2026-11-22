@@ -76,7 +76,7 @@ Related types
 
 .. cpp:class:: CommandBinding final
 
-   ``#include <gui_forms/commands/command_binding/command_binding.hpp>``
+   ``#include <gui_forms/commands/command_binding/command_binding.hpp>`` (:src:`source <include/gui_forms/commands/command_binding/command_binding.hpp>`)
 
    CommandBinding owns deterministic subscriptions between one shared command and one ButtonBase while honoring independent synchronization options.
 
@@ -106,7 +106,7 @@ Related types
 
 .. cpp:struct:: CommandBindingOptions final
 
-   ``#include <gui_forms/commands/types/command_types.hpp>``
+   ``#include <gui_forms/commands/types/command_types.hpp>`` (:src:`source <include/gui_forms/commands/types/command_types.hpp>`)
 
    CommandBindingOptions independently controls enabled, text, visibility, and accessible-description synchronization; all remain enabled by default.
 
@@ -130,7 +130,7 @@ Related types
 
 .. cpp:struct:: CommandInvocation final
 
-   ``#include <gui_forms/commands/types/command_types.hpp>``
+   ``#include <gui_forms/commands/types/command_types.hpp>`` (:src:`source <include/gui_forms/commands/types/command_types.hpp>`)
 
    CommandInvocation correlates one admitted execution to command identity, presentation source, and monotonic sequence.
 
@@ -144,7 +144,7 @@ Related types
 
 .. cpp:struct:: CommandRouteResult final
 
-   ``#include <gui_forms/commands/command_route/command_route.hpp>``
+   ``#include <gui_forms/commands/command_route/command_route.hpp>`` (:src:`source <include/gui_forms/commands/command_route/command_route.hpp>`)
 
    Where a routing ended. ``stage`` and ``target_name`` describe the handling target, and are focused_route and empty unless the outcome is handled.
 
@@ -162,7 +162,7 @@ Related types
 
 .. cpp:struct:: CommandState final
 
-   ``#include <gui_forms/commands/types/command_types.hpp>``
+   ``#include <gui_forms/commands/types/command_types.hpp>`` (:src:`source <include/gui_forms/commands/types/command_types.hpp>`)
 
    CommandState is the complete generation-stamped text, icon, shortcut, availability, visibility, check, default, and destructive presentation snapshot.
 
@@ -200,7 +200,7 @@ Related types
 
 .. cpp:class:: CommandTarget final
 
-   ``#include <gui_forms/commands/command_route/command_route.hpp>``
+   ``#include <gui_forms/commands/command_route/command_route.hpp>`` (:src:`source <include/gui_forms/commands/command_route/command_route.hpp>`)
 
    The command handlers one place in the chain offers: a document's Save, a tool panel's Refresh. A target holds at most one handler per command identity. Handlers are named delegates: the target neither owns nor extends the life of their objects, so whoever owns a handler's object removes the handler, or the whole target, before that object dies. The owner of a target (usually through a shared_ptr held by a control or a docking workspace) decides its life; a window and its controls' focused route only observe it, and a destroyed target drops out of the chain. A target belongs to the UI thread of the windows that route to it and is not synchronized.
 
@@ -239,7 +239,7 @@ Related types
 
 .. cpp:class:: template <typename... Arguments> Delegate final
 
-   ``#include <gui_forms/event/delegate/delegate.hpp>``
+   ``#include <gui_forms/event/delegate/delegate.hpp>`` (:src:`source <include/gui_forms/event/delegate/delegate.hpp>`)
 
    A Delegate binds invocation only. It neither owns nor extends the lifetime of its target; Event subscription and Component revocation remain separate. Binding stores one object/context pointer and one compile-time-selected thunk.
 
@@ -261,7 +261,7 @@ Related types
 
 .. cpp:struct:: EventStatistics
 
-   ``#include <gui_forms/event/event/event.hpp>``
+   ``#include <gui_forms/event/event/event.hpp>`` (:src:`source <include/gui_forms/event/event/event.hpp>`)
 
    EventStatistics records connected, disconnected, and emitted-callback totals for deterministic lifecycle testing.
 
@@ -279,7 +279,7 @@ Related types
 
 .. cpp:struct:: Rule final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    A rule. Evaluated when its trigger occurs: when every condition holds, its actions run in order. With ``consume``, a firing stops the rules declared after it for that occurrence and the occurrence's default route (the focused control and the key commands for a key; the ancestors for a context-menu request).
 
@@ -295,7 +295,7 @@ Related types
 
 .. cpp:struct:: RuleAction final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    An action of a rule; made by action() and the functions in namespace builtin. program: ``call`` runs ``function`` (a ``void (Context&, const RuleFiring&)`` stored as a plain function pointer) with ``context``. retained: a context the rule owns, released with the rule (the C ABI's callback loans); null for a C++ action, whose context is borrowed. invoke: ``command``, executed through the window's command route. set, toggle: ``value`` (a Value<T>) written by ``write`` from ``argument``. focus: ``control``, given the keyboard focus. begin_keyboard_drag: ``control``, whose keyboard drag mode is entered. anchor: the component the action names (a context that is a Component, the command, the Value), whose disposal disarms the rule.
 
@@ -327,7 +327,7 @@ Related types
 
 .. cpp:struct:: RuleActionArgument final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    The argument a set action writes: integers, enumerations and bool in ``integer``, floating values in ``real`` (the Value's own type decides).
 
@@ -339,7 +339,7 @@ Related types
 
 .. cpp:struct:: RuleAddResult final
 
-   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
    add()'s explicit result: the token of the armed rule, or the refusal (and an empty token).
 
@@ -353,7 +353,7 @@ Related types
 
 .. cpp:struct:: RuleCondition final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    A condition of a rule; made by the functions in namespace condition. A negated condition holds when its level does not (the ``not_`` forms). physical_key: key_down's key; modifiers: the modifiers' exact set. control: the control hovering, pressed, focused, focus_within, enabled, visible, dragging and drop_candidate read. flag: is_true's Value; number and expected: equals' Value and number. anchor: the Value is_true or equals reads, whose disposal disarms the rule (a control condition's control is anchored through ``control``).
 
@@ -383,7 +383,7 @@ Related types
 
 .. cpp:struct:: RuleFiring final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    One firing of a rule, passed to each of its program actions. The trigger payload pointers are borrowed for the action's call and are null where the trigger has none: ``key`` for the key triggers, ``mouse`` for mouse_down, mouse_up, mouse_click and mouse_double_click, ``context_request`` for context_menu_requested (an action may set its ``handled``), ``invocation`` for command_executed, ``drag`` for an interaction trigger on a typed drag interaction (drag_started, drag_target_changed, drag_dropped, drag_ended). ``control`` is the control the trigger names (null for the key triggers and command_executed). ``state`` is the window's input state as it was when the trigger occurred (one copy per occurrence that fires a rule). ``window`` is the window whose rules fired.
 
@@ -413,7 +413,7 @@ Related types
 
 .. cpp:class:: RuleSet final
 
-   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
    A window's rules: armed by add(), evaluated as their triggers occur, in the order added. Evaluation, input order and lifetime are described at the top of rule_set.hpp.
 
@@ -450,7 +450,7 @@ Related types
 
 .. cpp:struct:: RuleSetStatistics final
 
-   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
    What a window's rules have done, for tests and diagnostics. occurrences: trigger occurrences offered to at least one armed rule. evaluated: rules whose trigger matched an occurrence. fired: rules whose conditions held and whose actions ran. consumed: occurrences a consuming rule ended. refused: add() calls refused.
 
@@ -468,7 +468,7 @@ Related types
 
 .. cpp:class:: RuleToken final
 
-   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
    A handle to one rule. It observes the rule and does not own it: dropping the token leaves the rule armed. revoke() ends the rule early.
 
@@ -493,7 +493,7 @@ Related types
 
 .. cpp:struct:: RuleTrigger final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    The trigger of a rule; made by the functions in namespace trigger. The fields a kind does not read stay at their initial values. physical_key: the key triggers' USB HID usage (PhysicalKey). control: the control the control-event and interaction triggers name. command: command_executed's command. source: interaction's and value_changed's connection. anchor: the component the trigger names (control, command or Value), whose disposal disarms the rule.
 
@@ -515,7 +515,7 @@ Related types
 
 .. cpp:struct:: RuleValuePayload final
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    What a value_changed trigger's Value held after the change: integers, enumerations and bool in ``integer`` (bool as 0 or 1), floating values in ``real``. ``present`` is false for other triggers.
 
@@ -529,7 +529,7 @@ Related types
 
 .. cpp:struct:: SemanticFeedbackRecord final
 
-   ``#include <gui_forms/feedback/types/feedback_types.hpp>``
+   ``#include <gui_forms/feedback/types/feedback_types.hpp>`` (:src:`source <include/gui_forms/feedback/types/feedback_types.hpp>`)
 
    SemanticFeedbackRecord preserves ordered kind, chosen cue, monotonic timestamp, user sound policy, host acceptance, and actual presentation.
 
@@ -555,7 +555,7 @@ Related types
 
 .. cpp:class:: SubscriptionToken final
 
-   ``#include <gui_forms/event/subscription_token/subscription_token.hpp>``
+   ``#include <gui_forms/event/subscription_token/subscription_token.hpp>`` (:src:`source <include/gui_forms/event/subscription_token/subscription_token.hpp>`)
 
    SubscriptionToken is the move-only RAII revocation handle for a retained Event slot; destruction and explicit disconnect are idempotent. It belongs to the deprecated subscribe(...) seam; new code observes events with on(event, owner, &Owner::method), which keeps its connection on the owner Component instead of a caller-held token.
 
@@ -583,7 +583,7 @@ Enumerations
 
 .. cpp:enum-class:: CommandRouteOutcome
 
-   ``#include <gui_forms/commands/command_route/command_route.hpp>``
+   ``#include <gui_forms/commands/command_route/command_route.hpp>`` (:src:`source <include/gui_forms/commands/command_route/command_route.hpp>`)
 
    .. cpp:enumerator:: unhandled
 
@@ -595,7 +595,7 @@ Enumerations
 
 .. cpp:enum-class:: CommandRouteStage
 
-   ``#include <gui_forms/commands/command_route/command_route.hpp>``
+   ``#include <gui_forms/commands/command_route/command_route.hpp>`` (:src:`source <include/gui_forms/commands/command_route/command_route.hpp>`)
 
    .. cpp:enumerator:: focused_route
 
@@ -609,7 +609,7 @@ Enumerations
 
 .. cpp:enum-class:: Event::Slot::CallbackKind
 
-   ``#include <gui_forms/event/event/event.hpp>``
+   ``#include <gui_forms/event/event/event.hpp>`` (:src:`source <include/gui_forms/event/event/event.hpp>`)
 
    .. cpp:enumerator:: owning
 
@@ -619,7 +619,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleActionKind
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -639,7 +639,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleConditionKind
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -673,7 +673,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleRefusal
 
-   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -699,7 +699,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleTokenState
 
-   ``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+   ``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
    .. cpp:enumerator:: empty
 
@@ -713,7 +713,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleTriggerKind
 
-   ``#include <gui_forms/rules/rule/rule.hpp>``
+   ``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -759,7 +759,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticFeedbackKind
 
-   ``#include <gui_forms/feedback/types/feedback_types.hpp>``
+   ``#include <gui_forms/feedback/types/feedback_types.hpp>`` (:src:`source <include/gui_forms/feedback/types/feedback_types.hpp>`)
 
    .. cpp:enumerator:: location_changed
 
@@ -780,7 +780,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/commands/command_route/command_route.hpp>``
+``#include <gui_forms/commands/command_route/command_route.hpp>`` (:src:`source <include/gui_forms/commands/command_route/command_route.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_command_route_depth
 
@@ -788,7 +788,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/event/event/event.hpp>``
+``#include <gui_forms/event/event/event.hpp>`` (:src:`source <include/gui_forms/event/event/event.hpp>`)
 
 .. cpp:function:: template <typename Owner, typename Method, typename... Bound, typename... Arguments> void on(Event<Arguments...>& event, Owner& owner, Method method, Bound... bound)
 
@@ -800,13 +800,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/feedback/types/feedback_types.hpp>``
+``#include <gui_forms/feedback/types/feedback_types.hpp>`` (:src:`source <include/gui_forms/feedback/types/feedback_types.hpp>`)
 
 .. cpp:function:: const char* semantic_feedback_kind_name(SemanticFeedbackKind kind) noexcept
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/rules/rule/rule.hpp>``
+``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
 .. cpp:function:: std::string_view rule_trigger_kind_name(RuleTriggerKind kind) noexcept
 
@@ -838,7 +838,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::trigger
 
-``#include <gui_forms/rules/rule/rule.hpp>``
+``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
 .. cpp:function:: RuleTrigger key_pressed(std::uint32_t physical_key)
 
@@ -882,7 +882,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::condition
 
-``#include <gui_forms/rules/rule/rule.hpp>``
+``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
 .. cpp:function:: RuleCondition key_down(std::uint32_t physical_key)
 
@@ -938,7 +938,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::builtin
 
-``#include <gui_forms/rules/rule/rule.hpp>``
+``#include <gui_forms/rules/rule/rule.hpp>`` (:src:`source <include/gui_forms/rules/rule/rule.hpp>`)
 
 .. cpp:function:: RuleAction invoke(Command& command)
 
@@ -962,7 +962,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/rules/rule_set/rule_set.hpp>``
+``#include <gui_forms/rules/rule_set/rule_set.hpp>`` (:src:`source <include/gui_forms/rules/rule_set/rule_set.hpp>`)
 
 .. cpp:function:: std::string_view rule_refusal_name(RuleRefusal refusal) noexcept
 

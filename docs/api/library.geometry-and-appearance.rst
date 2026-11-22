@@ -517,7 +517,7 @@ Types
 
 .. cpp:struct:: AmbientEffect final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    An ambient effect (E7): its part repaints as time passes, at most ``frames_per_second``, and reads time_in_state within one ``period`` (it wraps), so that the effect cycles. Its region is the part's extent. It runs only while a primitive draws the part and the part has a record, and stops in an occluded or minimized window, under reduced motion and while the application's motion switch is off (PresentationSettings::ambient_motion); the part then rests at ``pose``, the time within the period it shows when still, such as an activity object's static pose.
 
@@ -531,7 +531,7 @@ Types
 
 .. cpp:struct:: AncestorBloom final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    The keys an ancestor chain holds, hashed into 256 bits: a rule whose ancestor keys are not all present cannot match, and is rejected without walking the chain (CSS engines' ancestor Bloom filter).
 
@@ -550,7 +550,7 @@ Types
 
 .. cpp:struct:: AncestorFacts final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One ancestor control as a selector's ancestor compounds read it: borrowed from the control for the resolution.
 
@@ -564,7 +564,7 @@ Types
 
 .. cpp:struct:: ApplicationColourRole final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    An application role as the theme compiled it: its name, its fallback built-in role, whether it is a pair (its fallback's shape), and its declarations in sheet order from its last unconditional one (the base colours, where there is one), each later one holding where its condition does. A role without an unconditional declaration carries its fallback's declarations before its own.
 
@@ -582,7 +582,7 @@ Types
 
 .. cpp:struct:: ApplicationColourRoleVariant final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One declaration of an application role's colours: its foreground and, for a pair, its background, where ``media`` holds.
 
@@ -596,7 +596,7 @@ Types
 
 .. cpp:struct:: AssembledPartMaterial final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    A part's assembled material (T3 EC1): its recipe's material, the floor, with the winning material fields of the theme's rules in place, and what it was assembled from. It is assembled again only when that changes: - ``rules_serial`` and ``fields``: the compiled rules' serial (CompiledThemeRules::serial) and the winning declaration of each field, by address within those rules (null for none); - ``floor``: a copy of the recipe material, compared by value, since the theme's recipe may be replaced and another may occupy its address; - ``box``: the part's box size, for fields that read it (material_fields_read_box), else empty.
 
@@ -632,7 +632,7 @@ Types
 
 .. cpp:struct:: AuthoredGradient final
 
-   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
+   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>`` (:src:`source <include/gui_forms/engine/authored_gradient/authored_gradient.hpp>`)
 
    A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``reflecting``: with ``repeating``, the theme language's reflecting- form (owner, 2026-11-16; not CSS): the periods alternate direction, each the one before it mirrored (spread ``reflect``), so the colours meet without a seam; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``focused``, ``focus_x``, ``focus_y``: a radial gradient's focus (theme language ``focus <position>`` after its centre), where position 0 lies; only a radial gradient has one, repeating or not (a repeating one's periods are counted from it); - ``stops``: at least one, at most maximum_authored_gradient_stops.
 
@@ -686,7 +686,7 @@ Types
 
 .. cpp:struct:: AuthoredGradientStop final
 
-   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
+   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>`` (:src:`source <include/gui_forms/engine/authored_gradient/authored_gradient.hpp>`)
 
    One colour stop. ``position``, when ``positioned``, is along the gradient: - linear: a fraction of the gradient line plus logical units along it; - radial: a fraction of the gradient ray (the horizontal radius) plus logical units along it; - conic: a fraction of a turn (``units`` is 0). A stop without a position is placed as CSS places it.
 
@@ -700,7 +700,7 @@ Types
 
 .. cpp:struct:: BackdropDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: constexpr std::size_t maximum_steps
 
@@ -716,7 +716,7 @@ Types
 
 .. cpp:struct:: BackdropStep final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: BackdropStepKind kind
 
@@ -732,7 +732,7 @@ Types
 
 .. cpp:struct:: BackplaneRegion final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    One backplane image's region (E9-B): ``extent`` device pixels at ``scale``, its top-left pixel at ``origin`` in the window's device pixels (the window's logical origin times the scale; possibly fractional).
 
@@ -746,7 +746,7 @@ Types
 
 .. cpp:struct:: BandDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A ``window`` rule's band (owner, 2026-11-08: the window outer band): ``band-width`` (logical units, before device-pixel snapping), ``band-color`` (the rest colour), ``band-lit-color`` and ``band-effect``. Each field is set only by its own declaration; the cascade takes each field from the last matching rule that sets it.
 
@@ -767,7 +767,7 @@ Types
 
 .. cpp:struct:: BasicControlStyle final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    BasicControlStyle retains the compact compatibility palette used by callers that do not select full role recipes.
 
@@ -823,7 +823,7 @@ Types
 
 .. cpp:class:: template <std::size_t Capacity> BoundedRange final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    At most Capacity passes: ``count`` clamped to Capacity. The only loop shape, with std::array and EffectArray, whose bound the plugin knows.
 
@@ -843,7 +843,7 @@ Types
 
 .. cpp:class:: BoundedRange::Iterator final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
 
    .. rubric:: Construction
@@ -854,7 +854,7 @@ Types
 
 .. cpp:struct:: BoxLength final
 
-   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
+   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>`` (:src:`source <include/gui_forms/engine/authored_gradient/authored_gradient.hpp>`)
 
    A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
 
@@ -866,7 +866,7 @@ Types
 
 .. cpp:struct:: CachedPartRaster final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent. The record owns it; ``raster`` is the cache's reference, and recorded commands that composite the raster hold others. A material the target lent is kept as a copy, compared by value: the theme's recipe that lent it may be replaced, and another recipe may later occupy its address. The kept target's borrowed pointers are cleared. When the material has an image fill, ``image_revision`` is the image registry's revision it was drawn at, so any change to the registry redraws it.
 
@@ -910,7 +910,7 @@ Types
 
 .. cpp:struct:: CanvasArea final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    A filled and outlined canvas part (the background, a node, its header, a port, a lamp, the marquee): its area, its line, the line's width and its corner radius, in view units. A transparent colour or a zero width draws nothing of that half.
 
@@ -926,7 +926,7 @@ Types
 
 .. cpp:struct:: CanvasFlow final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    What moves along a flowing link (the link part at rest): the mark, its speed in world units a second and its pitch in view units.
 
@@ -946,7 +946,7 @@ Types
 
 .. cpp:struct:: CanvasGrid final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    The world grid: minor and major colours, one line width (view units), the minor spacing in world units at zoom 1, and the band of view spacings the shown level keeps to (select_grid_level; its maximum is exactly grid_level_ratio times its minimum). ``minor_shown`` is false in forced high contrast, which draws the major lines alone, with no fade.
 
@@ -972,7 +972,7 @@ Types
 
 .. cpp:struct:: CanvasItem final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    One item of the canvas (a node, a port or a link) as theme rules address it with ``:item()``: its stable ID (``:item(#n42)``) and classes (``:item(.warning)``). A socket's data type is an item class on its port and on the links it carries, conventionally ``socket-<type>`` (``node-canvas::part(port):item(.socket-float)``), so a theme colours by data type. Both views are borrowed for the call.
 
@@ -984,7 +984,7 @@ Types
 
 .. cpp:struct:: CanvasLine final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none). Lengths in view units.
 
@@ -1006,7 +1006,7 @@ Types
 
 .. cpp:struct:: CanvasLook final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` holds the theme's procedural and finish layers, bottom first, each with its contrast clamped (layers of contrast 0 are dropped); none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
 
@@ -1062,7 +1062,7 @@ Types
 
 .. cpp:struct:: CanvasTextureLayer final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1], and for a hatch its ``hatch_style``); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
 
@@ -1096,7 +1096,7 @@ Types
 
 .. cpp:struct:: CanvasTextureLayers final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
 
@@ -1108,7 +1108,7 @@ Types
 
 .. cpp:struct:: CanvasView final
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    Where the canvas lies in the painter's coordinates: ``origin`` is world (0, 0) and ``zoom`` view units per world unit (finite and positive; the background draws no grid otherwise).
 
@@ -1122,7 +1122,7 @@ Types
 
 .. cpp:struct:: CheckerPattern final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    An alpha checkerboard (piece C7): square cells ``cell`` units wide, alternating ``first`` and ``second``, with the corner of a ``first`` cell at ``anchor``, so the pattern stays put while the filled rectangle moves.
 
@@ -1140,7 +1140,7 @@ Types
 
 .. cpp:struct:: Color
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    gui_forms::Color is an explicit unpremultiplied RGBA value with opaque alpha default.
 
@@ -1163,7 +1163,7 @@ Types
 
 .. cpp:struct:: ColourOrigin final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: ColourSource source
 
@@ -1181,7 +1181,7 @@ Types
 
 .. cpp:class:: CompiledThemeRules final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A sheet compiled against a registry: the rules that survived, each declaration checked, in the order the cascade visits them. Immutable once made; a ThemeEngine owns one. Compiling never fails as a whole: an invalid declaration or rule is dropped with a diagnostic and the rest stands, so a broken rule cannot take the theme's other rules down with it.
 
@@ -1306,7 +1306,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::CompiledPresentationState final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One state of a compiled machine (see PresentationState).
 
@@ -1326,7 +1326,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::CompiledTransition final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A checked transition: an engine property, or the parameter at ``parameter``. ``machine`` numbers it among the compilation's machines, so that a part can tell one machine from another (PresentationState: a state of another machine is another state).
 
@@ -1350,7 +1350,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::FieldProvenance final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    Where one resolved field came from (T4 cascade spec, item 5). ``authored`` is whether a rule set it; where none did, the built-in recipe's value stands, at ``built_in`` in the built-in layer. ``source`` and ``selector`` are the winning rule's provenance and selector, which belong to the compiled rules (this table, or the facts' inline style or user theme) and are null where no rule set the field; ``origin`` is a colour's (ColourOrigin, none for a value that is not a colour).
 
@@ -1376,7 +1376,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::PartFacts final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    What a part is: the facts its selectors are matched against. The views are borrowed for the call.
 
@@ -1440,7 +1440,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::PartProvenance final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    The provenance of every field of the part ``facts`` name: its primitive parameters (by position; ``parameter_count`` are the chosen primitive's, none when no rule selects one), its material fields and its recipe fields (by their positions), as resolve(), resolve_recipe_fields() and the primitive's parameters resolve them.
 
@@ -1456,7 +1456,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::RecipeResolution final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    The winning declaration of each recipe field (RecipeField) of the rules matching a control, by the field's position, or null where no matching rule sets it; they belong to the compiled rules. ``authored`` is whether any is set.
 
@@ -1476,7 +1476,7 @@ Types
 
 .. cpp:struct:: CompiledThemeRules::Resolution final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: Outcome outcome
 
@@ -1560,7 +1560,7 @@ Types
 
 .. cpp:struct:: ConnectedControlSeam final
 
-   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>``
+   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>`` (:src:`source <include/gui_forms/connected_controls/types/connected_control_types.hpp>`)
 
    .. cpp:member:: Point from
 
@@ -1574,7 +1574,7 @@ Types
 
 .. cpp:struct:: ConnectedControlTopology final
 
-   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>``
+   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>`` (:src:`source <include/gui_forms/connected_controls/types/connected_control_types.hpp>`)
 
    .. cpp:member:: ConnectedControlAxis axis
 
@@ -1588,7 +1588,7 @@ Types
 
 .. cpp:struct:: ConnectedControlVisualGeometry final
 
-   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>``
+   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>`` (:src:`source <include/gui_forms/connected_controls/types/connected_control_types.hpp>`)
 
    The resolved recipe owns no renderer object. ``paint_bounds`` is deliberately larger across joined edges; clipping it to ``clip_bounds`` removes interior corners and duplicate borders while retaining the material's outer radius.
 
@@ -1606,7 +1606,7 @@ Types
 
 .. cpp:struct:: ControlCanvasPaint final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` holds no layer for ``background-texture: none``.
 
@@ -1642,7 +1642,7 @@ Types
 
 .. cpp:struct:: ControlPartMetrics final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    .. cpp:member:: stxlib::Optional<double> block_size
 
@@ -1674,7 +1674,7 @@ Types
 
 .. cpp:struct:: ControlRoleRecipes final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ControlRoleRecipes stores complete ordinary, selected, high-contrast, and high-contrast-selected recipes across the closed surface-state axis.
 
@@ -1696,7 +1696,7 @@ Types
 
 .. cpp:class:: ControlRoleTable final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    The recipes of every control visual role, indexed by ControlVisualRole, held out of line. They are most of a theme's description (one family of four state tables per role, some 100 KB), so holding them on the heap keeps a ThemeDefinition small enough to be an ordinary value. The table always holds exactly one family per role: it is made with default recipes, and a copy copies every recipe. Moving copies too (no move operations are declared), so a moved-from table still holds its recipes rather than none.
 
@@ -1731,7 +1731,7 @@ Types
 
 .. cpp:struct:: ControlStateRecipes final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
 
    .. rubric:: Methods
@@ -1746,7 +1746,7 @@ Types
 
 .. cpp:struct:: ControlStripePattern final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing. A part's stripe pattern (RecipeField::stripe_pitch to stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each unset where no rule sets it, when the stripe effect keeps its own value: pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4, 45 degrees, a backward lean travelling forward at 0.8 pitches a second, the fill as the theme paints it under translucent pale bands, a gloss over opaque stripe colours, and still bands under reduced motion. A pitch of 0 is ``auto``.
 
@@ -1774,7 +1774,7 @@ Types
 
 .. cpp:struct:: ControlTextShadow final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    A text shadow (E9.6, CSS ``text-shadow``): the text's glyphs, moved by ``offset`` logical units (each axis within ±maximum_text_shadow_offset), blurred by ``blur_radius`` (the shadows' blur-radius convention, 0 to maximum_text_shadow_blur; both limits are the theme rules') and drawn in ``color`` under the glyphs. Data only in T2: the theme carries it, and the text stage (M4/M9) draws it, with a first-party blur so that it is the same on every host.
 
@@ -1790,7 +1790,7 @@ Types
 
 .. cpp:struct:: ControlVisualContext final
 
-   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>`` (:src:`source <include/gui_forms/theme/types/control_visual_types.hpp>`)
 
    ControlVisualContext selects a role recipe from surface state plus selected, focused, defaulted, and high-contrast axes.
 
@@ -1814,7 +1814,7 @@ Types
 
 .. cpp:struct:: ControlVisualRecipe final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ControlVisualRecipe combines a layered material with text/glyph colors, focus/default rings, and pressed content displacement.
 
@@ -1898,7 +1898,7 @@ Types
 
 .. cpp:struct:: CursorImage final
 
-   ``#include <gui_forms/types/cursor_image/cursor_image.hpp>``
+   ``#include <gui_forms/types/cursor_image/cursor_image.hpp>`` (:src:`source <include/gui_forms/types/cursor_image/cursor_image.hpp>`)
 
    Top-down, straight-alpha sRGB. No native handles or platform byte ordering.
 
@@ -1916,7 +1916,7 @@ Types
 
 .. cpp:class:: CursorImages final
 
-   ``#include <gui_forms/types/cursor_image/cursor_image.hpp>``
+   ``#include <gui_forms/types/cursor_image/cursor_image.hpp>`` (:src:`source <include/gui_forms/types/cursor_image/cursor_image.hpp>`)
 
    Immutable owned representations of one logical cursor. Hotspots use fractions of logical width/height from the top-left, not fractions of width minus one.
 
@@ -1946,7 +1946,7 @@ Types
 
 .. cpp:class:: DamageRegion
 
-   ``#include <gui_forms/types/damage_region/damage_region.hpp>``
+   ``#include <gui_forms/types/damage_region/damage_region.hpp>`` (:src:`source <include/gui_forms/types/damage_region/damage_region.hpp>`)
 
    DamageRegion incrementally merges exact rectangular unions, preserves disjoint damage up to 64 rectangles, then collapses to one bound with explicit compaction/collapse telemetry.
 
@@ -1982,7 +1982,7 @@ Types
 
 .. cpp:struct:: DeviceExtent final
 
-   ``#include <gui_forms/engine/types/engine_types.hpp>``
+   ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
    A raster's size in device pixels.
 
@@ -1994,7 +1994,7 @@ Types
 
 .. cpp:struct:: DeviceScale final
 
-   ``#include <gui_forms/engine/types/engine_types.hpp>``
+   ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
    Device pixels per logical unit. Kept apart from plain doubles so that a logical length is never passed where a scale is meant (house style §3).
 
@@ -2006,7 +2006,7 @@ Types
 
 .. cpp:struct:: EffectAdvance final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    What advancing an instance's time did.
 
@@ -2022,7 +2022,7 @@ Types
 
 .. cpp:struct:: template <typename Item, std::size_t Capacity> EffectArray final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    A fixed-capacity array with a live count: ``items`` holds Capacity values, the first ``count`` of them live. State an effect keeps between frames.
 
@@ -2038,7 +2038,7 @@ Types
 
 .. cpp:class:: EffectCanvas final
 
-   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>`` (:src:`source <include/gui_forms/engine/effect_canvas/effect_canvas.hpp>`)
 
 
    .. rubric:: Construction
@@ -2145,7 +2145,7 @@ Types
 
 .. cpp:struct:: EffectCanvasMeter final
 
-   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>`` (:src:`source <include/gui_forms/engine/effect_canvas/effect_canvas.hpp>`)
 
    What one frame's canvas did: device pixels charged against the budget, and the calls refused for the budget or the save depth.
 
@@ -2161,7 +2161,7 @@ Types
 
 .. cpp:struct:: EffectColourDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One effect colour as the rules resolve it: the role's colour in the part's palette and the role it came from.
 
@@ -2173,7 +2173,7 @@ Types
 
 .. cpp:struct:: EffectColours final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    The colours an effect draws with (EP-4): its part's primary and secondary colour roles as the host control resolves them from its theme and colour scheme (effect_primary_property, effect_secondary_property), or the host's own colours where the theme names none. An effect varies their alpha for its own layers; it does not name colours of its own. Transparent black when the host supplies none.
 
@@ -2185,7 +2185,7 @@ Types
 
 .. cpp:struct:: EffectCost final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    An effect's per-frame budget: ``fixed`` operations (proved by the plugin's static bound) plus ``per_device_pixel`` operations for each device pixel of the part and its outsets (metered by the canvas, which refuses drawing past it; owner decision 1(a)).
 
@@ -2197,7 +2197,7 @@ Types
 
 .. cpp:struct:: EffectDeclaration final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    What an effect is, as its class declares it in ``static constexpr EffectDeclaration declaration``.
 
@@ -2247,7 +2247,7 @@ Types
 
 .. cpp:struct:: EffectEntry final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    One registered effect type: its declaration, its parent's name, its state layout and the thunks the engine calls. ``setup`` is null for an effect without one. ``verified`` is set at registration from the plugin's record.
 
@@ -2271,7 +2271,7 @@ Types
 
 .. cpp:struct:: EffectFrame final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    What one frame of ``run`` is given. ``ticks`` fixed ticks are due, the first of them numbered ``first_tick`` since the effect was set up; zero when the part repaints for another reason, so state advances once per due tick however often the part repaints. ``still`` is true while motion is paused (reduced motion, an occluded window, the motion switch): the effect draws its still pose and advances nothing. A random draw for tick t uses EffectRandom(seed, t), so draws do not depend on how ticks were grouped into frames.
 
@@ -2305,7 +2305,7 @@ Types
 
 .. cpp:struct:: EffectGradient final
 
-   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>`` (:src:`source <include/gui_forms/engine/effect_canvas/effect_canvas.hpp>`)
 
    A gradient's stops: the first ``count`` of ``stops`` are live, offsets in [0, 1] and non-decreasing.
 
@@ -2317,7 +2317,7 @@ Types
 
 .. cpp:struct:: EffectInputEvent final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    One granted input event: the pointer in part-local logical units, or a key's code (KeyCode's value).
 
@@ -2331,7 +2331,7 @@ Types
 
 .. cpp:class:: EffectInstance final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
 
    .. rubric:: Construction
@@ -2408,7 +2408,7 @@ Types
 
 .. cpp:struct:: EffectInstanceCounters final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    What an instance has counted over its life.
 
@@ -2430,7 +2430,7 @@ Types
 
 .. cpp:struct:: EffectLoadDiagnostics final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    What effect registration found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::effects_unverified): effects registered, and those registered unverified. The first unverified registration also writes one line to stderr naming it and saying why; the rest are only counted. Any thread.
 
@@ -2446,7 +2446,7 @@ Types
 
 .. cpp:struct:: EffectPointer final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    The pointer's standing state over the part at the frame's start (design note section 8a(1)): whether it is inside the part, whether a button is held, and where it was last seen while inside, in part-local logical units. Filled only for an effect that declares pointer input on a part whose host grants it; otherwise every field is zero, as in headless runs and still poses, so motion checksums do not depend on it.
 
@@ -2460,7 +2460,7 @@ Types
 
 .. cpp:class:: EffectRandom final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    The engine's deterministic generator (owner amendment, 2026-11-02): a counter-based hash of (seed, stream, counter), SplitMix64's finalizer over their mix, with no host randomness and no hidden state beyond the counter in this value. Bit-exact on every host; known-answer vectors are in the tests.
 
@@ -2500,7 +2500,7 @@ Types
 
 .. cpp:class:: EffectRegistry final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
 
    .. rubric:: Properties
@@ -2528,7 +2528,7 @@ Types
 
 .. cpp:struct:: EffectSelection final
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    What a control's effect selection came to, kept by the control for diagnostics: the name asked for (a copy, empty for none), who asked and the verdict.
 
@@ -2546,7 +2546,7 @@ Types
 
 .. cpp:struct:: EffectSetup final
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    What ``setup`` is given: once when the effect is instantiated on a part, and again on a geometry change if the effect declares setup_on_geometry. Its draws come from EffectRandom(seed, EffectRandom::setup_stream).
 
@@ -2562,7 +2562,7 @@ Types
 
 .. cpp:class:: EngineExpression final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    A compiled program: immutable, a fixed-size value with no allocation, so it can be copied into a rule table and evaluated from any number of parts on the UI thread.
 
@@ -2601,7 +2601,7 @@ Types
 
 .. cpp:struct:: EnginePartRecord final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    One painted part's record. The identity strings are owned copies of the key the part was first painted with.
 
@@ -2689,7 +2689,7 @@ Types
 
 .. cpp:class:: EnginePartTable final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    The table. It owns its records. Every member runs on the window's UI thread; the table is not shared between windows.
 
@@ -2818,7 +2818,7 @@ Types
 
 .. cpp:class:: EnginePrimitive
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    One kind of effect. A primitive is immutable and holds no per-part state: one instance serves every part, on the UI thread. Per-part derived values live in the caller's PrimitivePreparation.
 
@@ -2886,7 +2886,7 @@ Types
 
 .. cpp:struct:: EngineSineCosine final
 
-   ``#include <gui_forms/engine/engine_math/engine_math.hpp>``
+   ``#include <gui_forms/engine/engine_math/engine_math.hpp>`` (:src:`source <include/gui_forms/engine/engine_math/engine_math.hpp>`)
 
    The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50. The argument is reduced by the nearest multiple of π/2: up to 2^20 with π/2 split in three parts (Cody and Waite), exact to about 2^-100 relative; above that by Payne and Hanek's method, in integers against a fixed 1280-bit table of 2/π, which is exact for every finite double up to the largest. Exact case: x = 0 gives sine 0 and cosine 1. Infinities and NaN have no angle and give the stated value sine 0 and cosine 1, the turn of angle 0, so no NaN reaches geometry from here.
 
@@ -2898,7 +2898,7 @@ Types
 
 .. cpp:struct:: EngineVersion final
 
-   ``#include <gui_forms/engine/types/engine_types.hpp>``
+   ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
    The engine version a primitive was introduced in, and the version a theme declares it needs. Versions order by major, then minor.
 
@@ -2910,7 +2910,7 @@ Types
 
 .. cpp:struct:: ExpressionCompilation final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    A compilation's outcome: the program when ``defect`` is none, otherwise the defect and the position of the instruction it concerns (0 for a defect of the whole program).
 
@@ -2924,7 +2924,7 @@ Types
 
 .. cpp:struct:: ExpressionDependencies final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    What a program reads, found when it is compiled: bit i of ``inputs`` for the input at position i, bit i of ``parameters`` for the parameter at position i, and the standard states in ``states``.
 
@@ -2945,7 +2945,7 @@ Types
 
 .. cpp:struct:: ExpressionEnvironment final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    What one evaluation reads. Every view is borrowed for the call. ``inputs`` and ``parameters`` must hold at least the program's limits.
 
@@ -2959,7 +2959,7 @@ Types
 
 .. cpp:struct:: ExpressionInputIndex final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    The position of an input in the inputs an expression is evaluated with. Distinct from a parameter's position and from a state.
 
@@ -2969,7 +2969,7 @@ Types
 
 .. cpp:struct:: ExpressionInstruction final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    One instruction. Make it with the named factories, which keep the operation and its operand together: ``index`` is read by input, state and parameter, ``constant`` by constant.
 
@@ -3000,7 +3000,7 @@ Types
 
 .. cpp:struct:: ExpressionLimits final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    How many inputs and parameters the program may address: an index at or beyond either count is refused when the program is compiled. Each is at most its maximum_expression_* bound.
 
@@ -3012,7 +3012,7 @@ Types
 
 .. cpp:struct:: ExpressionParameterIndex final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    The position of a number parameter among a primitive's declared parameters (PrimitiveDescriptor::parameters).
 
@@ -3022,7 +3022,7 @@ Types
 
 .. cpp:struct:: ExpressionResult final
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    .. cpp:member:: double value
 
@@ -3034,7 +3034,7 @@ Types
 
 .. cpp:struct:: FamiliarThemeBuild final
 
-   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>`` (:src:`source <include/gui_forms/theme/familiar_themes/familiar_themes.hpp>`)
 
    A built theme and what building it measured. When the floor sheet is refused, ``theme`` keeps windows-professional's recipes under the theme's id and ``diagnostics`` says why; the stock sheets compile with no diagnostics (tests/familiar_themes_tests).
 
@@ -3054,7 +3054,7 @@ Types
 
 .. cpp:struct:: FinishFill final
 
-   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/finish_fill/finish_fill.hpp>`)
 
    One finish's parameters. The defaults are the study's: its paint (#2f6e6c, a teal), its dust (#bdb6a8), a light from 125 degrees (counter-clockwise from the right) at 38 degrees above the surface, and ambient 0.32. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``grain`` multiplies every feature's size, and the relief with it, so that a coarser finish keeps its slopes; within [0.5, 4]. - ``paint`` is the finish's colour; ``secondary`` the dust's (dusty matte, sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is not read; the fill layer's opacity composites the finish. - For the glint, ``secondary`` is the metal's colour (the presets' own are listed with them), ``paint`` the coat's (painted sand alone draws it), ``gloss`` scales the glints' energy and ``grain`` the facets and specks; the light, ambient and relief are the preset's fitted geometry. - The light's azimuth is a whole number of degrees in [0, 359] and its elevation one in [0, 90]: the kernel reads each degree's cosine and sine from a table, never libm. - ``ambient`` in [0, 1]; ``relief`` and ``gloss`` scale the finish's own relief and sheen, within [0, 4].
 
@@ -3106,7 +3106,7 @@ Types
 
 .. cpp:struct:: FinishTileKey final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    .. cpp:member:: FinishFill finish
 
@@ -3126,7 +3126,7 @@ Types
 
 .. cpp:struct:: FinishTiles final
 
-   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>`` (:src:`source <include/gui_forms/engine/theme_engine/theme_engine.hpp>`)
 
    A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
 
@@ -3146,7 +3146,7 @@ Types
 
 .. cpp:struct:: FlattenedContour final
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    One contour of a flattened path: its points are those of the flattened point array from the previous contour's ``end`` (0 for the first) to its own ``end``, exclusive. A closed contour repeats its start point last.
 
@@ -3158,7 +3158,7 @@ Types
 
 .. cpp:struct:: FlattenedPath final
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    What flatten_paint_path wrote: the points and contours, and whether the storage ran out (the path is then flattened from its start only).
 
@@ -3172,7 +3172,7 @@ Types
 
 .. cpp:struct:: FontDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
 
@@ -3186,7 +3186,7 @@ Types
 
 .. cpp:struct:: FontFamilyId
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    A font family in the family registry (gui_forms/typography/font_families/font_families.hpp; owner decisions of 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the families bundled with the library, fixed for every release; values from 256 are application families, loaded by the program from its own bytes (gui_forms/typography/app_fonts/app_fonts.hpp) and drawn only inside composites and sub-surfaces. A host font never has a number, so a family can never reach a font the application did not ship.
 
@@ -3196,7 +3196,7 @@ Types
 
 .. cpp:struct:: FontFamilyStackId
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    A registered family stack: an ordered list of families drawn after a font's own family and before its role's faces (a theme's ``font-family: A, B``). Zero is none. The process's stack registry numbers stacks in registration order, so a number names the same list for the life of the process and is not stable across processes.
 
@@ -3206,7 +3206,7 @@ Types
 
 .. cpp:struct:: FontSpec
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    FontSpec carries logical role, size, weight, italic, and bounded letter-spacing inputs shared by measurement and painting.
 
@@ -3242,7 +3242,7 @@ Types
 
 .. cpp:struct:: GlossColours final
 
-   ``#include <gui_forms/surface_material/presets/material_presets.hpp>``
+   ``#include <gui_forms/surface_material/presets/material_presets.hpp>`` (:src:`source <include/gui_forms/surface_material/presets/material_presets.hpp>`)
 
    The colours of a gloss material, top to bottom. The defaults are a pale blue gloss.
 
@@ -3274,7 +3274,7 @@ Types
 
 .. cpp:struct:: GradientStop final
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    GradientStop pairs a normalized monotonic offset with a copied color for retained display-list safety.
 
@@ -3286,7 +3286,7 @@ Types
 
 .. cpp:struct:: GridLevel final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    The level chosen for one zoom: ``level`` is k, ``minor_spacing`` the level's spacing in view units, and ``fade`` the spacing's position across the band, 0 at its minimum and 1 at its maximum (linear in the spacing).
 
@@ -3300,7 +3300,7 @@ Types
 
 .. cpp:struct:: GridLevelBand final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    Seamless deep zoom for the grid (NODE_ENGINE_AND_VALUE_BAR_STUDY 2.10): the grid has levels of world spacing ``world_spacing * 4^k``; the level shown is the one whose spacing in view units (times ``zoom``) lies in [minimum_spacing, maximum_spacing), which must span exactly the factor 4.
 
@@ -3316,7 +3316,7 @@ Types
 
 .. cpp:struct:: GridPattern final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    A world-aligned grid (piece C17; the node canvas's blueprint background): lines ``spacing`` units apart through ``origin``, the point where world (0, 0) lies in the painter's current coordinates, so the lines move with a pan; every ``major_every``-th line counted from the origin (1: every line) is a major line in ``major``, the others are minor lines in ``minor``. Lines are ``line_width`` wide, centred on their positions.
 
@@ -3342,7 +3342,7 @@ Types
 
 .. cpp:struct:: GuiFormsThemeBuild final
 
-   ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
+   ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>`` (:src:`source <include/gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>`)
 
    The built theme and what building it measured. ``diagnostics`` holds the floor sheet's, then the light sheet's. When the light sheet is refused, ``theme`` is the floor alone; when the floor sheet is, the floor keeps windows-professional's recipes. The stock sheets compile with no diagnostics (tests/gui_forms_theme_tests).
 
@@ -3366,7 +3366,7 @@ Types
 
 .. cpp:struct:: HatchPattern final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    A hatch: square cells ``cell`` units wide, each divided into hatch_cell_squares by hatch_cell_squares squares, with the corner of a cell at ``anchor`` (so the pattern stays put while the filled rectangle moves). The squares hatch_square_marked names are ``fore``, the others ``back``. A cell of 8 units at scale 1 is GUI.Drawing's HatchBrush, square for square: lines one unit wide.
 
@@ -3388,7 +3388,7 @@ Types
 
 .. cpp:struct:: ImageDrawOpacity final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    What a painter knows of an image's alpha (Painter::image_draw_opacity, for the blend study, blend_study.hpp): whether every decoded pixel is opaque, and whether it draws the image as an opaque source (a copy, nothing beneath showing through) rather than blending it. A painter that does not know says neither.
 
@@ -3400,7 +3400,7 @@ Types
 
 .. cpp:struct:: ImageId
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    ImageId is the nonzero renderer-neutral identity returned by a Window image registry.
 
@@ -3410,7 +3410,7 @@ Types
 
 .. cpp:struct:: ImageVariantRequest final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    One sized variant of an image resource: the image resampled to ``extent`` device pixels, for display ``scale``. A nine-patch's fixed segments are resampled apart from its middle: ``source_slice`` are their source pixels (left, top, right, bottom) and ``fixed`` their device lengths in the variant, both zero for a stretched or tiled image, which is resampled whole. ``layer`` is the fill layer the variant serves, by index among the material's fills (an image mask's is maximum_image_variants - 1); it is not part of what the variant is. A procedural fill's pattern (E10) is asked for the same way, with ``procedural`` set and no image: the pattern generated at ``scale`` and ``extent``, never resampled. The engine never generates one inside a paint: a bake whose pattern is not ready is lent none, and the fill draws its ground; the pattern is generated in an idle frame and the parts that drew the ground are repainted.
 
@@ -3436,7 +3436,7 @@ Types
 
 .. cpp:class:: InlineStyleResult final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    What setting a control's inline style gave (Control::set_inline_style): applied, with any warnings (none for empty text, which clears the style), or refused with its diagnostics, the control keeping its previous inline style.
 
@@ -3460,7 +3460,7 @@ Types
 
 .. cpp:struct:: Insets
 
-   ``#include <gui_forms/types/geometry/geometry.hpp>``
+   ``#include <gui_forms/types/geometry/geometry.hpp>`` (:src:`source <include/gui_forms/types/geometry/geometry.hpp>`)
 
    Insets stores independent logical left, top, right, and bottom extents for margin, padding, damage, and visual outsets.
 
@@ -3476,7 +3476,7 @@ Types
 
 .. cpp:struct:: ItemContentPaint final
 
-   ``#include <gui_forms/theme/owner_draw/owner_draw.hpp>``
+   ``#include <gui_forms/theme/owner_draw/owner_draw.hpp>`` (:src:`source <include/gui_forms/theme/owner_draw/owner_draw.hpp>`)
 
    One item's content to paint (owner decision W-Q6), raised while the control paints, after the item's plate and selection and before its focus cue. ``painter`` is the control's, borrowed for the call, in the control's local coordinates and clipped to ``content``; the handler draws with it and does not keep it. ``content`` is the item's content rectangle in local coordinates. ``index`` is the item's position in the control's model and ``stable_id`` its identity, borrowed for the call; ``column`` is the column of a cell in a view with columns (0 for the item's own content, n for its sub-item in column n, as Windows Forms' DrawSubItem), else 0. ``states`` are the item's anatomy states, and ``text`` and ``font`` are the colour and font the control's default content uses for them, so that owner-drawn text can match. A handler sets ``draw_default`` to have the control draw its default content over what the handler drew. A handler paints only: it must not change, dispose or re-parent the control, or anything else in its window, while the event is raised.
 
@@ -3502,7 +3502,7 @@ Types
 
 .. cpp:struct:: JoinedSegmentsStyle final
 
-   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>`` (:src:`source <include/gui_forms/types/paint_recipes/paint_recipes.hpp>`)
 
    How a joined row or column is outlined: one outer edge round the whole group with ``radius`` corners, and one shared seam between neighbours, both ``edge_width`` wide.
 
@@ -3522,7 +3522,7 @@ Types
 
 .. cpp:struct:: LampColour final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    A lamp's colour, linear RGB at unit power. The study's lamps (panel_lamps.html, C): amber, warm white, red (the owner's: [1, 0.12, 0.04]), green, blue and cyan.
 
@@ -3536,7 +3536,7 @@ Types
 
 .. cpp:struct:: LampDrive final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
 
@@ -3548,7 +3548,7 @@ Types
 
 .. cpp:struct:: LentImageVariants final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    The variants lent for one bake, by fill layer; null where none is lent.
 
@@ -3558,7 +3558,7 @@ Types
 
 .. cpp:struct:: LightComposite final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1).
 
@@ -3576,7 +3576,7 @@ Types
 
 .. cpp:class:: LightPlaneCache final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again. Names are lower-case letters, digits and '_' (the baker's stems, such as dialog_ok_up), so a name never leaves the directory. One thread: the UI thread that asks.
 
@@ -3607,7 +3607,7 @@ Types
 
 .. cpp:class:: LightPlaneRaster final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing. Every lamp of the bake takes the one drive. It holds the bake it composited, so a bake released elsewhere is never mistaken for a new one at the same address. One thread: the painting one.
 
@@ -3633,7 +3633,7 @@ Types
 
 .. cpp:struct:: LightPlaneRect final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    A rectangle of device pixels the planes are stretched over.
 
@@ -3649,7 +3649,7 @@ Types
 
 .. cpp:struct:: LightPlanes final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers. Rows run top to bottom, pixels left to right.
 
@@ -3669,7 +3669,7 @@ Types
 
 .. cpp:struct:: LinearLightLevel final
 
-   ``#include <gui_forms/types/linear_light/linear_light.hpp>``
+   ``#include <gui_forms/types/linear_light/linear_light.hpp>`` (:src:`source <include/gui_forms/types/linear_light/linear_light.hpp>`)
 
    Linear light in 16-bit fixed point: 0 black, 65535 full intensity. A type of its own so that it is never mistaken for an sRGB byte.
 
@@ -3679,7 +3679,7 @@ Types
 
 .. cpp:struct:: LitKeyBake final
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value. Relief is contextual (owner, 2026-11-12): each role takes its own height, a theme parameter, so the baker is given the role's share and a bake is made per role; nothing here fixes one; - the sides lean in by 3° + 17° × clamp((share − 0.25) / 0.75, 0, 1); - the sides are the key's own plastic; - the control camera tilted 16° toward the viewer; - OK lit as the ANTI-ICE caption: clear acrylic, its one coil just above a frosted back, so the coil is neither invisible nor plainly visible; CANCEL in white opaque plastic with its lamps deep in the shell; - renders 240 pixels wide, shown 180 logical units wide; - composited with the room at 1 (panel_lamps' colouring). Light is never local (owner, 2026-11-12): a lamp lights its own lens and legend only. The composite keeps it so, writing nothing where the key's coverage is 0, so a bake's spill onto the panel never shows. The baker is run by the integrator (``lamps <dir> 240 dialog``); nothing at run time reads these but the display width.
 
@@ -3697,7 +3697,7 @@ Types
 
 .. cpp:struct:: MarkerStyle final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    A marker drawn centred on each point: ``size`` its full width, ``fill`` its inside (ignored by the stroked shapes), ``edge`` its outline (or its lines, for the stroked shapes) ``edge_width`` wide. A transparent colour or a zero edge width draws nothing of that part.
 
@@ -3721,7 +3721,7 @@ Types
 
 .. cpp:struct:: MaterialAssemblyContext final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    Replaces ``material`` with ``floor`` and the declarations of ``fields`` (the winning declaration of each field, by the field's position, null where none) in place: a part's assembled material (EC1); an ``initial`` declaration keeps the floor's value. The fills are composed when any fill field is declared: the colour layer (the declared colour, else the floor's bottom layer when it is solid) under the image layers (the declared ones, each authored gradient resolved for ``box``, else the floor's others), which take the declared blend modes, and whose image fills take the declared sizes (resolved for ``box``), then repetitions, then positions; a colour of alpha 0 adds no layer, and with no layer at all the fill is one transparent solid. More than SurfaceMaterial::maximum_fill_layers is no material. The corners are composed when any is declared: each is its declaration's, else the floor's (its corner_radii's, else its corner_radius); four equal corners are corner_radius alone, and others corner_radii, with corner_radius the smallest (the built-in path rounds every corner by it). The glows take the declared placements; a mask's authored gradient is resolved for ``box``. The border's edges are assembled together when any of their fields is declared: each starts as the floor's (its single edge, else its uniform border; an edge the floor lacks has the default MaterialBorder's width and colour and is not drawn), takes its declared style, width and colour, and is drawn unless its style is none or its width 0. Four equal edges are drawn as one uniform border, which keeps a dash and rounded corners, and unequal ones as single edges, which a material admits only with square corners (valid_surface_material); an edge drawn as two lines (MaterialEdgeLines) is not a border edge but its two keylines, after the declared ones. A border image is the top fill layer, and the border (its edges and their lines) is not drawn, as CSS draws a border image in place of the border's style. ``box`` is the part's box in logical units: relative corners are fractions of its shorter side. What a part gives its material's relative values (P8c): its em, and its text colour, which CSS's currentcolor names.
 
@@ -3733,7 +3733,7 @@ Types
 
 .. cpp:struct:: MaterialBlocks final
 
-   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>`` (:src:`source <include/gui_forms/engine/theme_engine/theme_engine.hpp>`)
 
    A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
 
@@ -3751,7 +3751,7 @@ Types
 
 .. cpp:struct:: MaterialBorder final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    MaterialBorder pairs an authored color and logical stroke width.
 
@@ -3771,7 +3771,7 @@ Types
 
 .. cpp:struct:: MaterialBorderEdges final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    Single edges (CSS border-color with differing sides). On a square box each is a band along its edge; on a rounded one (corner_radius above 0, every present edge the same width) they draw as one ring, each pixel in the colour of the edge it lies nearest (split along 45-degree lines from the corners, as CSS splits a rounded box's edge colours), and the material's keylines draw as rings the same way.
 
@@ -3797,7 +3797,7 @@ Types
 
 .. cpp:struct:: MaterialClipPath final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A material's clip path (theme ``clip-path: polygon() | path()``, owner 2026-11-16): only the inside of this outline, filled by ``rule``, is drawn: the face, its shadows, glows, filters and reflection alike. It lies in the box's coordinates and turns with the material's transform. Both paths draw it through Painter::clip_path, so a raster composite under it takes its coverage mask. Valid when the first verb is a move, the verbs take exactly ``points``, there are at most maximum_points points, and every coordinate is finite with units at most maximum_units and fractions at most maximum_fraction in size.
 
@@ -3825,7 +3825,7 @@ Types
 
 .. cpp:struct:: MaterialClipPoint final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A clip path point in the box: x = box.x + x_units + x_fraction * box.width, and y likewise (a CSS length or percentage of the box).
 
@@ -3841,7 +3841,7 @@ Types
 
 .. cpp:class:: MaterialColourFilter final
 
-   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
    A material's colour filter: none, or its stages held out of line: one matrix, then optionally one per-channel table (MaterialColourTable). Every recipe of every theme holds a SurfaceMaterial, so stages held inline would grow a theme definition by tens of kilobytes; this holder is one pointer. It owns its stages; a copy copies them, a move leaves the source empty, and two filters are equal when both are empty or their stages are equal.
 
@@ -3882,7 +3882,7 @@ Types
 
 .. cpp:struct:: MaterialColourMatrix final
 
-   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
    A colour filter (E9.6; CSS ``filter`` and ``backdrop-filter`` colour functions): a 4 × 5 matrix on straight (not premultiplied) colour with each channel in [0, 1]. Its rows give red, green, blue and alpha; its columns read red, green, blue and alpha, and the fifth is a constant. Each result is clamped to [0, 1]. The factories are the CSS functions, with CSS's matrices (Filter Effects Level 1). A list of functions composes into one matrix with :cpp:func:`then <gui_forms::MaterialColourMatrix::then>`, in source order. CSS clamps between the functions of a list; one matrix does not, which differs only where an intermediate colour leaves [0, 1].
 
@@ -3944,7 +3944,7 @@ Types
 
 .. cpp:struct:: MaterialColourStages final
 
-   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
    A filter's stages: the matrix, then, if present, the table.
 
@@ -3956,7 +3956,7 @@ Types
 
 .. cpp:struct:: MaterialColourTable final
 
-   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
    A per-channel colour table (owner 2026-11-16: feComponentTransfer, the second colour stage after MaterialColourMatrix): each straight channel, quantized once to 8 bits (floor(C × 255 + 0.5)), is looked up in its channel's 256 entries, an entry e giving e / 255. Red's levels first, then green's, blue's and alpha's. The identity by default. The table is made once, from transfer functions evaluated at each level; drawing it is a lookup, the same on every host.
 
@@ -3999,7 +3999,7 @@ Types
 
 .. cpp:struct:: MaterialCornerRadii final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A material's four corner radii (E9.6, CSS ``border-*-radius``), in logical units: top-left, top-right, bottom-right and bottom-left. Each is drawn at most half the box's shorter side.
 
@@ -4015,7 +4015,7 @@ Types
 
 .. cpp:struct:: MaterialDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``masks``, the mask's layers, bottom first, at most SurfaceMaterial::maximum_mask_layers, empty for none, and ``gradients``, empty or one per layer, as for the fills; - mask_modes, mask_composites: ``mask_modes`` and ``mask_composites``, in CSS's order (the top layer's first), repeated over the mask's layers; - mask_positions, mask_sizes, mask_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, likewise, read by an image layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``); - transform: ``transform`` (MaterialTransform), the identity for none; - clip_path: ``clip_path`` (MaterialClipPath), empty for none. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
@@ -4095,7 +4095,7 @@ Types
 
 .. cpp:struct:: MaterialDropShadow final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A drop shadow of the part's own drawn alpha (E9.6, CSS ``filter: drop-shadow()``): the baked raster's alpha, blurred by ``blur_radius`` (σ = blur / 2, as a shadow's), moved by ``offset``, in ``color``, drawn beneath the raster. Unlike a MaterialShadow it follows whatever the material draws, such as a glyph or a round shape.
 
@@ -4115,7 +4115,7 @@ Types
 
 .. cpp:struct:: MaterialFillLayer final
 
-   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
    MaterialFillLayer is one renderer-neutral solid, gradient, or image recipe with explicit coordinate space, spread/wrap, source geometry, scale, and opacity.
 
@@ -4268,7 +4268,7 @@ Types
 
 .. cpp:struct:: MaterialGlow final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A soft coloured emission of the material's box (E9-C): the box grown by ``spread`` on every side and blurred by ``blur_radius`` (σ = blur_radius / 2, as a shadow's), centred on the box. The engine's material bake adds it as light, each premultiplied channel at most 1: - ``under``, to the outer shadows beneath it, with the fills drawn over it. - ``over``, to the finished face (after its keylines), within the box's coverage. paint_surface_material adds them so too where it bakes through the kernel. A minimal painter's layers composite each as an outer shadow at no offset (an over glow clipped to the face, after the keylines): that is source-over, not added, so its under glow differs where it lies over a shadow and its over glow is the dimmer. Its reach, spread + 2 × blur_radius (where its blur is below one 8-bit step), is at most SurfaceMaterial::maximum_glow_reach in both placements, so that an under glow stays within the part's granted overflow; an over glow lies within the box and needs no overflow.
 
@@ -4290,7 +4290,7 @@ Types
 
 .. cpp:struct:: MaterialImagePosition final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    An image layer's position (CSS ``background-position``): each axis's fraction is the layer's image_anchor, of the room the box leaves around one tile, and its units its image_offset.
 
@@ -4302,7 +4302,7 @@ Types
 
 .. cpp:struct:: MaterialImageSize final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: MaterialImageSizing sizing
 
@@ -4314,7 +4314,7 @@ Types
 
 .. cpp:struct:: MaterialKeyline final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    One ordered physical keyline. An inset of zero places the stroke immediately inside the owned edge; positive insets allow a separate highlight or lowlight to sit behind/inside an outer boundary without requiring a nested control.
 
@@ -4336,7 +4336,7 @@ Types
 
 .. cpp:struct:: MaterialMaskLayer final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    One layer of a material's mask (E9.6, CSS ``mask-image`` with its longhands): a solid, gradient or image fill, read by ``mode`` and joined to the layers beneath by ``composite``. An image layer's size, position and repetition are its fill's image_scale, image_anchor, image_offset and image_mode, as a background image's are.
 
@@ -4354,7 +4354,7 @@ Types
 
 .. cpp:struct:: MaterialReflection final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end. gap + reach is at most SurfaceMaterial::maximum_reflection_reach, within the part's granted overflow; reach is above 0 and both opacities lie in [0, 1]. The reflection is composited beneath what the face drew past that edge (its outer shadows and glows). The engine's material primitive draws it, and omits it under high contrast and reduced transparency (T5-Q16); the built-in path, paint_surface_material, draws none.
 
@@ -4382,7 +4382,7 @@ Types
 
 .. cpp:struct:: MaterialShadow final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
 
@@ -4406,7 +4406,7 @@ Types
 
 .. cpp:struct:: MaterialTransferFunction final
 
-   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
    .. cpp:member:: constexpr std::size_t maximum_values
 
@@ -4442,7 +4442,7 @@ Types
 
 .. cpp:struct:: MaterialTransform final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    A material's own linear transform (theme ``transform: rotate() | scale()``, owner 2026-11-16) about its box's centre: a point p of the face is drawn at c + L (p - c), where c is the centre and L maps (x, y) to (xx x + xy y, yx x + yy y). The identity by default. Both paths draw it as a transform group (Painter::begin_transform) cut to the box grown by its visual outsets, so the turned or scaled face never paints outside what the part already damages. Valid when every entry is finite and at most maximum_entry in size, and the determinant is at least minimum_paint_transform_determinant in size.
 
@@ -4475,7 +4475,7 @@ Types
 
 .. cpp:struct:: MediaCondition final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A rule's media condition (EC3): every feature it names must hold for the window, and an unnamed feature always holds, so the default condition holds everywhere. The resolution bounds are inclusive, in device pixels per logical unit; each is finite and above zero. A condition no window meets, such as a minimum above the maximum, is admitted: its rule never matches. The theme language's ``@media`` blocks lower to these (one rule a query of a comma list).
 
@@ -4501,7 +4501,7 @@ Types
 
 .. cpp:struct:: MediaFacts final
 
-   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
+   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/cascade_facts.hpp>`)
 
    What a window is, as a rule's media condition reads it (T3 EC3): its presentation settings and its scale. Every window evaluates a theme's conditions against its own facts, so windows sharing a theme may differ.
 
@@ -4525,7 +4525,7 @@ Types
 
 .. cpp:class:: MotionClock final
 
-   ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>``
+   ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>`` (:src:`source <include/gui_forms/engine/motion_clock/motion_clock.hpp>`)
 
    One window's motion clock (T2 plan, MotionClock; GIVEN D1-1). The window owns it; it observes the window. It holds at most one frame request, armed only while some value it holds has not settled, however many values move; the request is disconnected once the last one settles, so a window at rest schedules no frames. Execution: every member runs on the window's UI thread. Frames, settling and the listeners' damage all happen inside the window's frame poll. Event order on a frame: each value enlisted before the frame starts is advanced to the frame's time, in the order of its record's slot (the same for the same sequence of starts and releases); a value that settles is released before its listener runs; then the owner is invalidated as the value declared, then its listener runs. Values started by a listener are first advanced on the next frame. A listener that throws is counted as a frame callback fault; its value jumps to its end. Ending motion (all by name): - finish_all: reduced motion turned on (GIVEN D2-1) or the window occluded or minimized (GIVEN D4-1). Every value jumps to its end and its listener runs once, with the cause. While either holds, a new move jumps to its end at once and nothing is scheduled. - release_owner: a control left the window. Its values jump to their ends without listeners. - cancel: the window closes (or cancels its frame requests). Every value jumps to its end without listeners, and the request is disconnected. A record is named by its handle; a stale handle (its record released) is rejected, so a value whose owner has gone is never advanced. Ambient effects (T2 plan, phase E7; design language §9.4) share the same request. The engine enlists a part with an ambient effect while it draws it; on each frame at least the effect's frame interval after its last, the part's extent repaints. An effect whose part was not repainted since its last frame (the part is no longer shown) is dropped, so an effect can never keep a window painting by itself. finish_all and cancel drop every effect too; finish_all repaints each part once, at its static pose. A control hosting an effect program (a progress bar's stripes or bubbles) enlists itself the same way (enlist_control_ambient): on each frame due, its on_ambient_frame advances and invalidates it, and a control that was not painted since its last frame is dropped. The clock observes it: one that died or left the window is dropped unasked. finish_all and stop park the controls (each repaints once, at its still pose, under finish_all); repaint_parked repaints them when ambient motion may resume, and their paints enlist them again.
 
@@ -4584,7 +4584,7 @@ Types
 
 .. cpp:struct:: MotionCurve final
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    How a value moves. Make it with the named factories, which keep the fields that belong together consistent.
 
@@ -4643,7 +4643,7 @@ Types
 
 .. cpp:struct:: MotionRecordHandle final
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    Which record of a clock a value holds while it moves: a slot and the slot's generation when the record was made. A released record's handle is stale and names nothing, even after its slot is reused.
 
@@ -4655,7 +4655,7 @@ Types
 
 .. cpp:struct:: MotionStep final
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    One step of a value, as its listener sees it. ``value`` is the value that moved; it is valid for the call.
 
@@ -4677,7 +4677,7 @@ Types
 
 .. cpp:struct:: MotionStop final
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    One intermediate stop of a timed move (E9.6, multi-stop @keyframes): the value passes ``value`` at ``offset`` of the move's duration, 0 < offset < 1. Between stops the move is eased by its curve's easing.
 
@@ -4693,7 +4693,7 @@ Types
 
 .. cpp:class:: MotionTimeSource
 
-   ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>``
+   ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>`` (:src:`source <include/gui_forms/engine/motion_clock/motion_clock.hpp>`)
 
    Where a clock reads the time a motion starts. Steady-clock time unless a source is installed: tests install one so that motion is sampled from a time they choose, never from the wall clock. Its times must be in the same domain as the times the window is polled with.
 
@@ -4706,7 +4706,7 @@ Types
 
 .. cpp:class:: MotionValue final
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    One value. Ownership: a control owns it as a member (or through something the control owns), and names itself as the owner, so the owner outlives it. It neither copies nor moves, so the clock's record of it stays valid; it releases that record when it is destroyed. All of it runs on the UI thread of the owner's window. The settled conditions, in device pixels at the window's scale (extent times scale converts value units): - timed: the duration has elapsed; - follow and decay: the remaining gap is within motion_settle_tolerance; - spring: the gap is within it, and so is the movement over one 60 Hz frame at the current velocity. On settling the value snaps exactly to its target, so the last frame is the static rendering. Every move starts from where the value stands at that moment, with its velocity: a retarget mid-flight never jumps (design language §9.1).
 
@@ -4787,7 +4787,7 @@ Types
 
 .. cpp:struct:: PaintCornerRadii final
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    A rounded rectangle's four corner radii, in the rectangle's units: top-left, top-right, bottom-right and bottom-left. A painter draws each at most half the rectangle's shorter side.
 
@@ -4803,7 +4803,7 @@ Types
 
 .. cpp:class:: Painter : public TextMetricsProvider
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
 
@@ -5033,7 +5033,7 @@ Types
 
 .. cpp:struct:: PaintGroup final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once. - ``bounds``, in the current coordinates when the group begins, limits the group. It is given up front so that a painter sizes its storage once: nothing the group draws outside ``bounds`` (or outside the clip in force at its beginning) is shown. - ``opacity`` in [0, 1] multiplies the group's whole image. Below 1 the group is isolated: its commands draw into a transparent premultiplied image the size of its clipped bounds, which is composited once at ``opacity`` by ``composite``, so overlapping commands never show through one another. At 1 (or above) the commands draw directly under clip_rect(bounds), which is exactly what isolation would give for source-over. At 0 (or NaN) nothing is drawn. - A group whose ``composite`` is not source-over, or that sets ``isolated``, is isolated at any opacity: a group holding a plus group must be, so that the sum is formed before it meets what lies beneath. A painter that cannot isolate (no storage) draws the group directly. - ``effect`` (capability review decision 1, owner 2026-11-16), when set, filters and masks the group's image before it is composited (PaintGroupEffect, declared in surface_material/paint_group_effect, which this header does not include). A group with an effect is isolated at any opacity, and its image reaches past ``bounds`` by the effect's reach (paint_group_effect_reach): its commands are still limited to ``bounds``, and the blur spreads into the margin. An invalid effect (valid_paint_group_effect) is ignored and counted as a group refusal. Shared read-only: a recording keeps it alive.
 
@@ -5057,7 +5057,7 @@ Types
 
 .. cpp:struct:: PaintGroupEffect final
 
-   ``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+   ``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>`` (:src:`source <include/gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>`)
 
    A paint group's effect stage (capability review decision 1, owner 2026-11-16): the filter and mask of a part surface's material, applied to a paint group's image (PaintGroup::effect), so that content drawn by many commands (a control's face and what it paints inside it) is filtered and masked as one, through the same kernels a material uses. In order, over the group's premultiplied image: 1. ``colour_filter``: each pixel through the colour stages (matrix, then table), as a material's colour filter is (pixel_kernel's colour_staged), rounded once to bytes. 2. ``blur``: the engine's integer three-box blur (box_blur), radius in logical units as a material's filter_blur (2σ), 0 to maximum_paint_group_effect_blur. The image spreads past the group's bounds by up to paint_group_effect_reach logical units: the group draws there too, beneath its content's own limit. 3. ``masks``: the mask layers of a material (SurfaceMaterial::masks), laid over the group's bounds as a material's masks are over its box (mask positions and sizes are relative to the bounds), each pixel's alpha weighted by the joined mask. Image masks are refused: a painter holds no window resources. Beyond the bounds the mask is 0. Then the image is composited by the group's opacity and composite. A painter that cannot isolate the group, or whose mask bake exceeds the material bake budget, draws the group without its effect and counts a group refusal (Painter::begin_group).
 
@@ -5073,7 +5073,7 @@ Types
 
 .. cpp:class:: PaintPath final
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    An owned path built verb by verb, for callers that do not keep their own arrays. Each builder call appends one verb and its points; nothing is validated until it is drawn (valid_paint_path). reserve() allocates once before a long build; clear() keeps the storage for the next build.
 
@@ -5109,7 +5109,7 @@ Types
 
 .. cpp:struct:: PaintPathView final
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    A borrowed path: the verbs and their points, both owned by the caller and read only for the duration of the call given the view.
 
@@ -5121,7 +5121,7 @@ Types
 
 .. cpp:struct:: PaintSegment final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    One independent segment of stroke_segments (no joins between segments).
 
@@ -5133,7 +5133,7 @@ Types
 
 .. cpp:struct:: PaintTransform final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    A two-dimensional affine map (Painter::begin_transform): the point (x, y) goes to (xx * x + xy * y + dx, yx * x + yy * y + dy). The default is the identity.
 
@@ -5165,7 +5165,7 @@ Types
 
 .. cpp:struct:: PaintTransformGroup final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    A transform group (Painter::begin_transform; owner, 2026-11-16: a scoped transform, never a free concatenation): ``bounds``, in the group's content coordinates, limits what it draws; ``transform`` maps content coordinates into those in force where the group begins.
 
@@ -5177,7 +5177,7 @@ Types
 
 .. cpp:struct:: ParameterValidation final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    The first defect found and the index of the parameter it concerns.
 
@@ -5191,7 +5191,7 @@ Types
 
 .. cpp:struct:: PartArc final
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    An arc's or a needle's angles (design language 8.5; row 2.5, owner option (a)), in radians clockwise from twelve o'clock, on the circle inscribed in the part's bounds (centred in them, its diameter their shorter side). An arc runs from ``start`` through ``sweep`` (negative sweeps anticlockwise; at most one turn either way is drawn); a needle points at ``start`` and reads no sweep.
 
@@ -5203,7 +5203,7 @@ Types
 
 .. cpp:struct:: PartCornerRadii final
 
-   ``#include <gui_forms/engine/part_shape/part_shape.hpp>``
+   ``#include <gui_forms/engine/part_shape/part_shape.hpp>`` (:src:`source <include/gui_forms/engine/part_shape/part_shape.hpp>`)
 
    The four corners' radii of a shape drawn in a box, in the box's units: top-left, top-right, bottom-right and bottom-left.
 
@@ -5219,7 +5219,7 @@ Types
 
 .. cpp:struct:: PartHitRegion final
 
-   ``#include <gui_forms/engine/part_shape/part_shape.hpp>``
+   ``#include <gui_forms/engine/part_shape/part_shape.hpp>`` (:src:`source <include/gui_forms/engine/part_shape/part_shape.hpp>`)
 
    A part's hit region (T1's hand-off): its shape in its bounds, never less than the minimum target. A point hits when it lies in the bounds and either inside the shape or inside the minimum target centred in the bounds (clipped to them), so a hit region may exceed what is drawn but never falls below the minimum.
 
@@ -5231,7 +5231,7 @@ Types
 
 .. cpp:struct:: PartKey final
 
-   ``#include <gui_forms/engine/types/engine_types.hpp>``
+   ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
    A painted part's identity from frame to frame (T2 GIVEN H3-1), which lets the engine keep a record for it: its states and when it entered them, its transitions, its preparation and its cached raster. The full identity is the control's stable ID, the declared part, and for an item part the item's stable ID. The engine takes the control's stable ID from the control painting the part, so a key cannot name another control; the key carries the rest: - ``part``: the part's declared name, as in the control's anatomy; - ``item``: the item's stable ID, empty for a part that is not an item's or for an item without one; - ``item_index``: the item's index. It is part of the identity only when ``item`` is empty: the index fallback, which the window counts in its metrics, because the record then follows the position, not the item. Every view is borrowed for the call that paints the part.
 
@@ -5252,7 +5252,7 @@ Types
 
 .. cpp:struct:: PartLightPlanes final
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints. See PartPaint::light_planes.
 
@@ -5268,7 +5268,7 @@ Types
 
 .. cpp:class:: PartMotion final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    A part's running transitions (E7; T2 plan, "How motion is driven"). The part's record owns it through a pointer, so that its motion values, which never move, keep their addresses however the table's storage grows. Each value is owned by the part's control (MotionValue's owner), runs on the window's MotionClock, and reports each step to on_step, which repaints the part's extent on the control that recorded it. The record is released with its control, which releases the values from the clock.
 
@@ -5297,7 +5297,7 @@ Types
 
 .. cpp:struct:: PartPaint final
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is lent for the call (lend_paint_text). ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
 
@@ -5413,7 +5413,7 @@ Types
 
 .. cpp:struct:: PartProfile final
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    A part's profile beside its rectangle (look integration; the T4 rendering reference's tab stack and the owner's Plan Paint tab look), as a theme sets it on the part (ControlPartMetrics) and the control passes it on: - ``taper``: the trailing (right) edge leans in by this many units at the part's top, a file-folder tab's edge, drawn as a line in ``taper_colour`` when it has one; - ``flare``: the bottom corners flare outward by this many units in a concave lip of ``flare_colour``, where a selected tab meets the plane; - ``edge_shadow``: a soft shadow beyond the trailing edge, following its taper, falling off from ``edge_shadow_colour`` to clear over this many units. A tapered part is cut to its shape, its outer shadows with it; the edge shadow then draws its cast. Each is bounded: the taper by the part's width, the flare by its height, all by maximum_part_shape.
 
@@ -5433,7 +5433,7 @@ Types
 
 .. cpp:class:: PartRaster final
 
-   ``#include <gui_forms/engine/part_raster/part_raster.hpp>``
+   ``#include <gui_forms/engine/part_raster/part_raster.hpp>`` (:src:`source <include/gui_forms/engine/part_raster/part_raster.hpp>`)
 
    One part's pixels as the engine keeps them (T2 plan, PartRaster): premultiplied BGRA8 in device pixels, in PartRasterView's layout, made for one display scale. Rows are tight: row_bytes is width * 4. Lifetime: create() makes a raster with every pixel transparent; its maker fills it through view() and then shares it read-only, as std::shared_ptr<const PartRaster>, with every recorded command that composites it (Painter::draw_part_raster). Recorded commands keep it alive until their display chunk is rebuilt or retired.
 
@@ -5481,7 +5481,7 @@ Types
 
 .. cpp:struct:: PartRasterInterior final
 
-   ``#include <gui_forms/engine/part_raster/part_raster.hpp>``
+   ``#include <gui_forms/engine/part_raster/part_raster.hpp>`` (:src:`source <include/gui_forms/engine/part_raster/part_raster.hpp>`)
 
    A rectangle of a part raster's pixels, [left, right) by [top, bottom); empty when right <= left or bottom <= top.
 
@@ -5497,7 +5497,7 @@ Types
 
 .. cpp:struct:: PartRasterRequest final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    What a part needs drawn: the primitive a rule selected, its parameters, the part's target, and the destination extent in device pixels (normally the logical size grown by the primitive's outsets, times the scale, rounded up). ``shared`` asks for the table's shared raster for the request (a keyframe, E7r) in place of one of the part's own: set for a part whose animated parameters stand at keyframe levels or whose ambient effect is at a frame of its loop, so that its rasters are baked once and kept for every transition after.
 
@@ -5515,7 +5515,7 @@ Types
 
 .. cpp:struct:: PartRasterResult final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    .. cpp:member:: std::shared_ptr<const PartRaster> raster
 
@@ -5529,7 +5529,7 @@ Types
 
 .. cpp:struct:: PartRasterView final
 
-   ``#include <gui_forms/engine/types/engine_types.hpp>``
+   ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
    A borrowed destination for one part's pixels. ``pixels`` is caller-owned and must stay valid for the call that fills it. Row y starts at byte y * row_bytes; the bytes of a row past width * 4 are padding and are never read or written.
 
@@ -5543,7 +5543,7 @@ Types
 
 .. cpp:struct:: PartRecordAcquisition final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    What acquire() did.
 
@@ -5561,7 +5561,7 @@ Types
 
 .. cpp:struct:: PartRecordHandle final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    Which record a handle names: a slot of the table and the slot's generation when the record was made. Releasing a record advances its slot's generation, so a handle kept past the release is stale and finds nothing, even after the slot is reused.
 
@@ -5573,7 +5573,7 @@ Types
 
 .. cpp:struct:: PartShape final
 
-   ``#include <gui_forms/engine/part_shape/part_shape.hpp>``
+   ``#include <gui_forms/engine/part_shape/part_shape.hpp>`` (:src:`source <include/gui_forms/engine/part_shape/part_shape.hpp>`)
 
    .. cpp:member:: PartShapeKind kind
 
@@ -5593,7 +5593,7 @@ Types
 
 .. cpp:struct:: PartTransitionChannel final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    One property's transition on a part (E7): an engine property or the parameter at ``parameter``, the machine and the state of it the part was last painted in (state none when the part's states matched none), and the property's motion value, made the first time the part is painted with the transition. The machine is CompiledTransition::machine of the compiled rules whose serial is ``rules_serial``; a machine of other rules (a theme replaced) is compared by state alone.
 
@@ -5615,7 +5615,7 @@ Types
 
 .. cpp:struct:: Point
 
-   ``#include <gui_forms/types/geometry/geometry.hpp>``
+   ``#include <gui_forms/types/geometry/geometry.hpp>`` (:src:`source <include/gui_forms/types/geometry/geometry.hpp>`)
 
    Point is a renderer-neutral logical-coordinate pair.
 
@@ -5627,7 +5627,7 @@ Types
 
 .. cpp:struct:: PointerOverlay final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    How a primitive behind the overlay seam is composited (E9-A, owner 2026-10-22: the seam serves the sheen only). Its raster is ``size``, in logical units, baked once per (size, state, scale) and never per pointer position; the engine composites it with its centre across at the part-local pointer, its top at the part's top, clipped to the part's shape, and damages only the part's extent when the pointer moves within it. While the pointer is not over the part, and always under reduced motion, its centre rests at ``rest`` times the part's width. It follows the part's presentational scale as a face does: baked at the scaled size at rest, and stretched with the face while the scale moves.
 
@@ -5639,7 +5639,7 @@ Types
 
 .. cpp:struct:: PresentationState final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One state of a part's presentational state machine (E7; design language §9.6). The machine is in the first of its states whose ``when`` states the part's published states all include (an empty ``when`` always matches), and moves its property to ``target``. A part whose states match none rests at the property's own value: its cascade value, or 1 for opacity. When the machine enters this state from another, or the part first appears in it, ``enter_from``, if set, stands the property at that value first; this is how a part fades in when it appears (the docking tiles, T2 GIVEN C2-1). Otherwise every move starts from the value shown, so a transition retargets and never restarts. A state of another machine of the property (another rule's) is another state: a part arriving in this state from it enters it (T3 P7b, an animation in a rule of its own). ``stops`` (E9.6, multi-stop @keyframes), at most maximum_motion_stops, make the move into this state pass each stop's value at its offset of the duration, offsets strictly increasing within (0, 1), values within the property's range; they need a timed curve. They play when the move into the state begins: on entering it from another state, or on appearing in it from ``enter_from``. A part that appears in the state without an entry value stands at its target, as before. An animated parameter shows each stop at its nearest keyframe level, as any moving value (E7r). The machine is presentational only: it reads the published states and writes nothing back, so it can neither create an observable state nor delay behaviour. ``target_em`` and ``enter_from_em`` (T3 P8c, owner decision D4) are em coefficients, as each stop's value_em: the value is the number plus the part's em times its coefficient. Only a translation's and a number parameter's machine takes them.
 
@@ -5659,7 +5659,7 @@ Types
 
 .. cpp:struct:: PrimitiveCost final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    A declared upper bound on a primitive's work. One rasterization costs at most ``per_device_pixel`` arithmetic operations for each destination pixel, plus ``fixed`` for the whole part. One preparation costs at most ``preparation_per_device_pixel`` for each device pixel of the part's box; it runs once per part geometry, not once per frame. Budgets are checked against these at load (E4).
 
@@ -5673,7 +5673,7 @@ Types
 
 .. cpp:struct:: PrimitiveDescriptor final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    What a primitive is. Every span refers to static storage owned by the primitive's translation unit.
 
@@ -5713,7 +5713,7 @@ Types
 
 .. cpp:struct:: PrimitiveParameterBlock final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    The values of one part's parameters: ``count`` live values, one per declared parameter, in declaration order.
 
@@ -5725,7 +5725,7 @@ Types
 
 .. cpp:struct:: PrimitiveParameterDeclaration final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    One declared parameter. A number must lie in [minimum, maximum]. A colour's alpha scales whatever the primitive uses the colour for. A choice is one of ``choices`` (snake_case, each once), by position; ``default_number`` is the default choice's position. An ``animated`` parameter is one a transition drives from frame to frame, such as the bulge's amplitude during the ribbon's rise. A primitive's preparation never reads it, so changing it never makes a preparation stale (see PrimitivePreparation).
 
@@ -5751,7 +5751,7 @@ Types
 
 .. cpp:struct:: PrimitiveParameterValue final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    One parameter's value. ``number`` is read for a number parameter and ``colour`` for a colour parameter.
 
@@ -5767,7 +5767,7 @@ Types
 
 .. cpp:struct:: PrimitivePreparation final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    What a primitive derives once from a part's geometry and fixed parameters, and reuses for every rasterization in which only animated parameters change. The dithered bulge, for example, derives its tone's full-amplitude extremes here, so that the rise does not recompute them each frame. The caller owns a preparation and keeps it beside the part's raster (in E2, the part's record in the window's EnginePartTable). It records what it was derived from: the primitive, the part's logical size and scale, the read states it saw, and every parameter value. A rasterization whose primitive, size, scale, read states or non-animated parameters differ is refused as stale; the caller prepares again. A preparation borrows nothing: ``primitive`` is compared, never called through.
 
@@ -5797,7 +5797,7 @@ Types
 
 .. cpp:class:: PrimitiveRegistry final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    A fixed table of primitives, in registration order. It borrows each primitive, which must outlive the registry; the first-party primitives have static storage.
 
@@ -5821,7 +5821,7 @@ Types
 
 .. cpp:struct:: PrimitiveSlicePlan final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    How a part's raster may be assembled (EnginePrimitive::slice_plan). ``slices`` is false for a primitive that never slices: its parts are baked whole and nothing is counted. Otherwise, when either axis is sliced, the reference is the target at ``reference_size`` with ``reference_extent``; when neither is, the part is baked whole and counted as a fallback.
 
@@ -5839,7 +5839,7 @@ Types
 
 .. cpp:struct:: PrimitiveTarget final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:member:: Size logical_size
 
@@ -5875,7 +5875,7 @@ Types
 
 .. cpp:struct:: ProceduralFill final
 
-   ``#include <gui_forms/surface_material/procedural_fill/procedural_fill.hpp>``
+   ``#include <gui_forms/surface_material/procedural_fill/procedural_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/procedural_fill/procedural_fill.hpp>`)
 
    One procedural fill's parameters. The pattern is generated per display scale from these alone, in integer arithmetic, so that its bytes are the same on every host; each scale is generated, never resampled from another. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``tile`` is the pattern's repeat in logical units: the side of its square tile, round(tile × scale) device pixels, within [2, 256]; a pinstripe's period. The fresco covers the box and does not read it. - ``strength`` in [0, 1] scales how far the figure departs from the ground; for the fresco, its blooms' opacity. - The ground is the pattern's base colour, and what the fill draws, as a solid, until its pattern is ready; the figure is its contrasting colour (fibres, grain, stripes, streaks); the fresco also reads ``accent``, its gradient's last stop, and ``bloom``, whose alpha is its blooms' peak opacity.
 
@@ -5917,7 +5917,7 @@ Types
 
 .. cpp:struct:: PropertyTransition final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A transition on one resolved property: ``opacity``, or a number parameter of the rule's primitive that the primitive declares animated (such as the bulge's amplitude), so that its frames never remake the part's preparation. It runs on the window's MotionClock with ``curve``; every duration is clamped to the 400 ms ceiling. Under reduced motion and in an occluded or minimized window it jumps to its end (GIVEN D2-1, D4-1).
 
@@ -5931,7 +5931,7 @@ Types
 
 .. cpp:struct:: RasterCacheStatistics final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    The raster cache's counters, for instrumentation.
 
@@ -6049,7 +6049,7 @@ Types
 
 .. cpp:struct:: RecipeDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, ``font_family`` (FontSpec::family, zero for the role's faces alone) and ``font_stack`` (FontSpec::stack, the families listed after the first; zero for none); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``; - ring_style: ``ring_style``.
 
@@ -6129,7 +6129,7 @@ Types
 
 .. cpp:struct:: Rect
 
-   ``#include <gui_forms/types/geometry/geometry.hpp>``
+   ``#include <gui_forms/types/geometry/geometry.hpp>`` (:src:`source <include/gui_forms/types/geometry/geometry.hpp>`)
 
    Rect is a half-open logical rectangle with finite/empty checks, containment, exact intersection, and bounding union operations.
 
@@ -6173,7 +6173,7 @@ Types
 
 .. cpp:class:: ResolvedControlRecipe final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    A control's recipe for one role and state (T3 P6f): the theme's built-in recipe (the floor, Theme::resolve(role, context), borrowed from the theme) or, when the theme's rules set a recipe field for the control (RecipeField), the floor's copy with those fields in place, which this value owns. The copy is made only then, so a theme whose rules set no recipe field costs nothing. A value for one paint or measurement: it borrows the theme, so it is not kept past the theme's use. ``recipe()`` borrows from the value, so it is read from a named value and never from a temporary.
 
@@ -6205,7 +6205,7 @@ Types
 
 .. cpp:struct:: ResolvedFont final
 
-   ``#include <gui_forms/theme/theme/resolved_font.hpp>``
+   ``#include <gui_forms/theme/theme/resolved_font.hpp>`` (:src:`source <include/gui_forms/theme/theme/resolved_font.hpp>`)
 
    A control's primary text font as resolved (Theme::resolve_font, Control::resolved_text_font), before the window's text scale: the font the control holds with the theme's font fields over it. ``levels`` says, per FontField, the cascade level of the rule that set the field (built_in where none did, the control's own value). ``from_code`` is set where code set the font (set_font): inline code, which wins over every theme field, so no level applies.
 
@@ -6221,7 +6221,7 @@ Types
 
 .. cpp:struct:: RetainedDrawCache final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    .. cpp:member:: std::unique_ptr<RetainedDrawMemo> memo
 
@@ -6229,7 +6229,7 @@ Types
 
 .. cpp:class:: RetainedDrawMemo
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    Renderer-derived data for one retained draw command, such as shaped text. The command's recording owns it: a Window creates it when a control records the command and releases it when that control's display chunk is rebuilt or retired. A renderer fills, validates and replaces the memo.
 
@@ -6237,7 +6237,7 @@ Types
 
 .. cpp:struct:: RotatedTextBox final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    Where a line of text turned about its baseline start lies (Painter::draw_rotated_text_utf8). The run's box is its advance ``width`` along the baseline and its line box ``ascent`` above and ``descent`` below it; turned ``degrees`` anticlockwise as seen about ``anchor``, the box's corners are anchor + s * (cos, -sin) + t * (sin, cos) for s in [0, width] and t in [-ascent, descent].
 
@@ -6253,7 +6253,7 @@ Types
 
 .. cpp:struct:: RuleAncestor final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control. ``combinator`` relates it to the compound on its right: the subject's for the nearest, else the next nearer ancestor compound's. Ancestor compounds name no state, family, part, role or surface, so a rule's ancestors change only when an ancestor's type, ID or classes do, or a control moves.
 
@@ -6271,7 +6271,7 @@ Types
 
 .. cpp:struct:: RuleDeclaration final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One declaration: a property and its value. Every property but :cpp:func:`primitive <gui_forms::RuleDeclaration::primitive>` is a parameter of the primitive the same rule selects, so a rule that sets parameters names its primitive too. An expression's program reads inputs by position (engine_input_position, published_value_position), states, and the primitive's number parameters by their declaration position. A parameter it reads has the value the cascade gives it before any expression, so expressions never read one another. ``number`` is the expression's fallback. Its value is clamped to the parameter's range.
 
@@ -6316,7 +6316,7 @@ Types
 
 .. cpp:struct:: RuleDiagnostic final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: RuleDiagnosticKind kind
 
@@ -6340,7 +6340,7 @@ Types
 
 .. cpp:struct:: RuleExclusion final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    One argument of a selector's ``:not()`` (selector step 2): a compound of a control type, a stable ID, classes, states and a family, each optional; it excludes the parts it matches. It names no part, role or surface.
 
@@ -6362,7 +6362,7 @@ Types
 
 .. cpp:struct:: RuleProvenance final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    Where a rule was written (T4 cascade spec, item 5), for an editor's queries; paint never reads it. ``layer`` as above; ``pack`` and ``pack_hash`` name a library pack or a project package (its manifest's name and the SHA-256 of its manifest, 64 lowercase hexadecimal digits), empty elsewhere; ``file``, ``line`` and ``column`` (from 1; 0 for none) place the rule's first token in its own sheet, and ``offset`` is that token's byte offset in the text compiled (a closure's combined sheets until the package compiler places it); ``setter`` names the C++ setter of inline code that is not a written style (empty otherwise).
 
@@ -6388,7 +6388,7 @@ Types
 
 .. cpp:struct:: RuleSelector final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches. ``custom_states`` (R2-13) are the custom states its ``:state()`` names: each a position in its control type's ControlAnatomy::custom_states, or, when its part is an item part, in the custom states of the item system declaring that part. A position means something only for one control type, so a selector with custom states names its control type (an inline style's rules, which apply to their own control alone, need not). They match the part's AnatomyStateSet custom bits.
 
@@ -6428,7 +6428,7 @@ Types
 
 .. cpp:struct:: RuleSpecificity final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
@@ -6442,7 +6442,7 @@ Types
 
 .. cpp:struct:: ScopedCondition final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
 
@@ -6456,7 +6456,7 @@ Types
 
 .. cpp:struct:: ScopedDefinition final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: std::string name
 
@@ -6466,7 +6466,7 @@ Types
 
 .. cpp:struct:: Size
 
-   ``#include <gui_forms/types/geometry/geometry.hpp>``
+   ``#include <gui_forms/types/geometry/geometry.hpp>`` (:src:`source <include/gui_forms/types/geometry/geometry.hpp>`)
 
    Size is a renderer-neutral logical width and height.
 
@@ -6478,7 +6478,7 @@ Types
 
 .. cpp:struct:: SliceAxis final
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    One axis of a slice plan. For a sliced axis, the destination's first ``start`` and last ``end`` device pixels are the reference's own; every pixel i between them is the reference's pixel start + (i − start) mod ``period``. The period is 1, one repeated pixel, unless the raster carries a pattern anchored to the part that repeats every ``period`` pixels (a dithered material, MaterialDither): then the reference holds a whole period past ``start`` and differs from the part's length by whole periods, so the copies keep the pattern.
 
@@ -6498,7 +6498,7 @@ Types
 
 .. cpp:struct:: StrokeStyle final
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates. ``dash_count`` of the ``dashes`` are live, alternately on and off lengths; 0 (or an odd count, which is refused as solid) draws solid. ``dash_phase`` shifts the pattern's start along the stroke (an effect moving it on the motion clock animates the dashes, piece C13). ``trim`` keeps part of a stroked path (paint_path.hpp, StrokeTrim; the default keeps it whole): Painter::stroke_path cuts the path in the core with trim_paint_path at stroke_trim_tolerance, so every painter strokes the same sub-path, and the dashes then run along the kept part from its start. The other stroke calls (stroke_polyline, stroke_segments) draw their whole geometry whatever the trim.
 
@@ -6532,7 +6532,7 @@ Types
 
 .. cpp:struct:: StrokeTrim final
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    The part of a path a stroke keeps (Lottie's and ThorVG's trim path): ``start`` and ``end`` are fractions of the path's whole length (every contour end to end, paint_path_length), each in [0, 1], and either may be the larger: the kept part runs from the smaller to the larger. ``offset`` (any finite value, in the same fractions) moves that part along the path and wraps it across the path's start. Start 0 and end 1 (in either order) keep the whole path whatever the offset; equal start and end keep nothing.
 
@@ -6552,7 +6552,7 @@ Types
 
 .. cpp:struct:: SurfaceMaterial final
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
 
@@ -6659,7 +6659,7 @@ Types
 
 .. cpp:struct:: TextLanguage
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    The language text is written in, as an OpenType language system tag: four letters as one number, the first highest ('K','O','R',' ' for Korean; text_language makes one). Zero is none. Shaping applies the tag's language system where a face has one (Korean forms, Turkish dotted i), and fallback prefers the faces registered for the language (the Korean CJK face over the Japanese one for Han characters in Korean text); none keeps each script's default forms and the registered order.
 
@@ -6669,7 +6669,7 @@ Types
 
 .. cpp:struct:: TextRun final
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
 
@@ -6683,7 +6683,7 @@ Types
 
 .. cpp:class:: Theme final
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/theme.hpp>`` (:src:`source <include/gui_forms/theme/theme/theme.hpp>`)
 
    Theme is an immutable validated role/state recipe table plus structural spacing, geometry, typography, and motion tokens; it resolves logical visual context without exposing renderer or platform objects.
 
@@ -6797,7 +6797,7 @@ Types
 
 .. cpp:struct:: ThemeBackdropBase final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    One backplane base: the material a window's backplane is drawn from while it is granted ``backdrop`` (ThemeWindowBackdrop).
 
@@ -6811,7 +6811,7 @@ Types
 
 .. cpp:struct:: ThemeCompileDiagnostic final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    One finding of an install or a compilation.
 
@@ -6849,7 +6849,7 @@ Types
 
 .. cpp:struct:: ThemeCompileOptions final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    What a compilation reads besides the package.
 
@@ -6881,7 +6881,7 @@ Types
 
 .. cpp:class:: ThemeCompileResult final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    What compiling a theme package gave: compiled, a theme with any warnings, or refused with its diagnostics.
 
@@ -6909,7 +6909,7 @@ Types
 
 .. cpp:struct:: ThemeDefinition final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ThemeDefinition is one named, complete compatibility palette, role/state material matrix, and structural-token set.
 
@@ -6963,7 +6963,7 @@ Types
 
 .. cpp:class:: ThemeEngine final
 
-   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>`` (:src:`source <include/gui_forms/engine/theme_engine/theme_engine.hpp>`)
 
    The theme engine's entry point (T2 plan, ThemeEngine). paint_part hands it every part; controls never call it directly. Ownership: a Theme owns its engine, and every window showing the theme shares it. An application's windows share one theme (ApplicationResources), so they share one engine. The engine is immutable once its theme is made: it holds the theme's compiled rules (the cascade, E4), below them the engine's own built-in rules (built_in_theme_rules, E7), and borrows the built-in primitive registry. What changes from frame to frame belongs to each window's EnginePartTable and MotionClock. The engine draws a part with a primitive only when the cascade selects a registered primitive for the part, its parameters validate, the cost is within budget (GIVEN F1-1) and the presentation is not forced high contrast. In every other case the built-in recipe draws it: the body paint_part had before the engine existed. A theme with no rules of its own draws every part with the built-in recipe except those the built-in rules address: the ribbon's command faces and group buttons, which take the dithered bulge and its rise, and the docking tiles, which fade in. A keyed part's transitions run on its window's motion clock (E7): the part's states select each machine's state, the property moves toward it, and the part repaints within its extent as it moves. Its opacity multiplies a primitive's composite in the shared blend; a part the built-in recipe draws is drawn as one paint group (Painter::begin_group) composited once at that opacity. A part painted without a key stands at its machines' targets and its ambient effect's pose.
 
@@ -7026,7 +7026,7 @@ Types
 
 .. cpp:struct:: ThemeEngine::PartPlan final
 
-   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>`` (:src:`source <include/gui_forms/engine/theme_engine/theme_engine.hpp>`)
 
    .. cpp:member:: PartDrawing drawing
 
@@ -7050,7 +7050,7 @@ Types
 
 .. cpp:struct:: ThemeGeometryTokens final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ThemeGeometryTokens centralizes control heights, touch targets, splitter geometry, navigation extents, and compact breakpoint.
 
@@ -7102,7 +7102,7 @@ Types
 
 .. cpp:struct:: ThemeItem final
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/theme.hpp>`` (:src:`source <include/gui_forms/theme/theme/theme.hpp>`)
 
    An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair. The item a part is resolved for (cp31; Theme::resolve's item form): its stable ID and classes, as ``:item(#id.class)`` selects them. Both views are borrowed for the call. An empty ID and no classes is no item.
 
@@ -7114,7 +7114,7 @@ Types
 
 .. cpp:class:: ThemeLibrary final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    The installed theme packages an ``@import`` may name (D2): each verified whole when installed (its manifest, every file's hash, and every ``@import`` of its sheet listed in its manifest), and found by its name.
 
@@ -7147,7 +7147,7 @@ Types
 
 .. cpp:struct:: ThemeMotionTokens final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ThemeMotionTokens defines quick, standard, emphasized, and busy-cycle durations without prescribing an animation engine.
 
@@ -7171,7 +7171,7 @@ Types
 
 .. cpp:class:: ThemeOverrides final
 
-   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>`` (:src:`source <include/gui_forms/theme/theme_overrides/theme_overrides.hpp>`)
 
 
    .. rubric:: Properties
@@ -7217,7 +7217,7 @@ Types
 
 .. cpp:struct:: ThemeOverrideTarget final
 
-   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>`` (:src:`source <include/gui_forms/theme/theme_overrides/theme_overrides.hpp>`)
 
    Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
 
@@ -7231,7 +7231,7 @@ Types
 
 .. cpp:struct:: ThemePackage final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    A theme package: its manifest's bytes and its files.
 
@@ -7243,7 +7243,7 @@ Types
 
 .. cpp:struct:: ThemePackageExport final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    One of the program's packages as a user theme's files, for export (USER_THEMES.md section 7): its sheet verbatim after an ``@theme`` header of its manifest's version, author, provenance and engine bound, and its ``.png`` resources as the folder's images. A resource of another kind cannot be a user theme's file; it is left out and named in ``omitted``.
 
@@ -7255,7 +7255,7 @@ Types
 
 .. cpp:struct:: ThemePackageFile final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
 
@@ -7267,7 +7267,7 @@ Types
 
 .. cpp:struct:: ThemeRoleColours final
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/theme.hpp>`` (:src:`source <include/gui_forms/theme/theme/theme.hpp>`)
 
    .. cpp:member:: Color foreground
 
@@ -7283,7 +7283,7 @@ Types
 
 .. cpp:struct:: ThemeRule final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:member:: std::string label
 
@@ -7343,7 +7343,7 @@ Types
 
 .. cpp:struct:: ThemeRuleSheet final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    A theme's rules, as authored, with the engine version the theme declares it needs and the values an application publishes that its expressions read (E6; Window::publish_value). The name at position n of the list is read at published_value_position(n). Each is 1 to 64 characters of lowercase ASCII letters, digits, '-' and '_', the first a letter, and is listed once; at most maximum_published_values.
 
@@ -7367,7 +7367,7 @@ Types
 
 .. cpp:struct:: ThemeSpacingTokens final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ThemeSpacingTokens names the shared micro-through-section logical spacing scale.
 
@@ -7403,7 +7403,7 @@ Types
 
 .. cpp:struct:: ThemeStructureTokens final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ThemeStructureTokens groups spacing, geometry, typography, and motion vocabularies into one coherent structural contract.
 
@@ -7419,7 +7419,7 @@ Types
 
 .. cpp:struct:: ThemeTypographyTokens final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    ThemeTypographyTokens defines role-aware control, field, caption, heading, title, and monospace font recipes.
 
@@ -7451,7 +7451,7 @@ Types
 
 .. cpp:struct:: ThemeValidation final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    What validating theme packages found (validate_theme_packages): whether they compile, and every finding, warnings included.
 
@@ -7463,7 +7463,7 @@ Types
 
 .. cpp:struct:: ThemeWindowBackdrop final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    The theme's window backdrop (stage T5, owner decision T5-Q8, option 1): what a window showing the theme asks the compositor for, and the base its backplane is drawn from over each backdrop the window may be granted (notes:planning/stages/T5-compositor/PLAN.md §4.1).
 
@@ -7486,7 +7486,7 @@ Types
 
 .. cpp:struct:: UnkeptPartAssembly final
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    One of a window's assemblies for parts that keep none of their own (a part without a record, and every part's derived dark variant): the assembly, the role whose dark variant darkened it (none for a light assembly) and whether it holds one yet.
 
@@ -7500,7 +7500,7 @@ Types
 
 .. cpp:struct:: UserThemeFiles final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them. The folder's top-level ``.css`` files are the theme's sub-sheets, its top-level ``.png`` files its image resources (``url("resource:wood.png")``), and ``icons/<identifier>.png`` its icon overrides; nothing else is admitted.
 
@@ -7518,7 +7518,7 @@ Types
 
 .. cpp:struct:: UserThemeHeader final
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    The header of a user theme's main file, which makes the file a theme.
 
@@ -7536,7 +7536,7 @@ Types
 
 .. cpp:struct:: VisualInteraction final
 
-   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>`` (:src:`source <include/gui_forms/theme/types/control_visual_types.hpp>`)
 
    A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
 
@@ -7557,7 +7557,7 @@ Enumerations
 
 .. cpp:enum-class:: AncestorCombinator
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: descendant
 
@@ -7567,7 +7567,7 @@ Enumerations
 
 .. cpp:enum-class:: BackdropStepKind
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: blur
 
@@ -7579,7 +7579,7 @@ Enumerations
 
 .. cpp:enum-class:: BandEffect
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -7589,7 +7589,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasFlowStyle
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -7601,7 +7601,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasLampState
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: off
 
@@ -7615,7 +7615,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasLinkState
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -7631,7 +7631,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasLinkStyle
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: plain
 
@@ -7641,7 +7641,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasNodeState
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -7657,7 +7657,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasPortState
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -7673,7 +7673,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasPreviewState
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: seeking
 
@@ -7687,7 +7687,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasTextureBlend
 
-   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
    .. cpp:enumerator:: multiply
 
@@ -7697,7 +7697,7 @@ Enumerations
 
 .. cpp:enum-class:: CanvasTextureSource
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: procedural
 
@@ -7707,7 +7707,7 @@ Enumerations
 
 .. cpp:enum-class:: CascadeLevel
 
-   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
+   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/cascade_facts.hpp>`)
 
    .. cpp:enumerator:: built_in
 
@@ -7739,7 +7739,7 @@ Enumerations
 
 .. cpp:enum-class:: ColourPosition
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -7753,7 +7753,7 @@ Enumerations
 
 .. cpp:enum-class:: ColourRole
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: ink_on_paper
 
@@ -7813,7 +7813,7 @@ Enumerations
 
 .. cpp:enum-class:: ColourRoleSide
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: foreground
 
@@ -7823,7 +7823,7 @@ Enumerations
 
 .. cpp:enum-class:: ColourSource
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -7835,7 +7835,7 @@ Enumerations
 
 .. cpp:enum-class:: CompiledThemeRules::Outcome
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: primitive
 
@@ -7849,7 +7849,7 @@ Enumerations
 
 .. cpp:enum-class:: ConnectedControlAxis
 
-   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>``
+   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>`` (:src:`source <include/gui_forms/connected_controls/types/connected_control_types.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -7859,7 +7859,7 @@ Enumerations
 
 .. cpp:enum-class:: ConnectedControlSegment
 
-   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>``
+   ``#include <gui_forms/connected_controls/types/connected_control_types.hpp>`` (:src:`source <include/gui_forms/connected_controls/types/connected_control_types.hpp>`)
 
    .. cpp:enumerator:: standalone
 
@@ -7873,7 +7873,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlSurfaceState
 
-   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>`` (:src:`source <include/gui_forms/theme/types/control_visual_types.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -7895,7 +7895,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlVisualRole
 
-   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>`` (:src:`source <include/gui_forms/theme/types/control_visual_types.hpp>`)
 
    .. cpp:enumerator:: window
 
@@ -7935,7 +7935,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlVisualStatus
 
-   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>`` (:src:`source <include/gui_forms/theme/types/control_visual_types.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -7947,7 +7947,7 @@ Enumerations
 
 .. cpp:enum-class:: CursorKind
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    .. cpp:enumerator:: arrow
 
@@ -7975,7 +7975,7 @@ Enumerations
 
 .. cpp:enum-class:: DockShapeRegion
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    .. cpp:enumerator:: top
 
@@ -7991,7 +7991,7 @@ Enumerations
 
 .. cpp:enum-class:: EffectInputEventKind
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    .. cpp:enumerator:: pointer_moved
 
@@ -8005,7 +8005,7 @@ Enumerations
 
 .. cpp:enum-class:: EffectInputKind
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8017,7 +8017,7 @@ Enumerations
 
 .. cpp:enum-class:: EffectRegistrationOutcome
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    .. cpp:enumerator:: registered
 
@@ -8043,7 +8043,7 @@ Enumerations
 
 .. cpp:enum-class:: EffectSelectionOutcome
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    .. cpp:enumerator:: selected
 
@@ -8061,7 +8061,7 @@ Enumerations
 
 .. cpp:enum-class:: EffectSelectionSource
 
-   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8075,7 +8075,7 @@ Enumerations
 
 .. cpp:enum-class:: EffectTimeModel
 
-   ``#include <gui_forms/engine/effect/effect.hpp>``
+   ``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
    .. cpp:enumerator:: static_pose
 
@@ -8087,7 +8087,7 @@ Enumerations
 
 .. cpp:enum-class:: ExpressionDefect
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8119,7 +8119,7 @@ Enumerations
 
 .. cpp:enum-class:: ExpressionFallback
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8133,7 +8133,7 @@ Enumerations
 
 .. cpp:enum-class:: ExpressionOperation
 
-   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+   ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
    .. cpp:enumerator:: constant
 
@@ -8183,7 +8183,7 @@ Enumerations
 
 .. cpp:enum-class:: FamiliarTheme
 
-   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+   ``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>`` (:src:`source <include/gui_forms/theme/familiar_themes/familiar_themes.hpp>`)
 
    .. cpp:enumerator:: classic
 
@@ -8203,7 +8203,7 @@ Enumerations
 
 .. cpp:enum-class:: FillDirection
 
-   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>`` (:src:`source <include/gui_forms/types/paint_recipes/paint_recipes.hpp>`)
 
    .. cpp:enumerator:: left_to_right
 
@@ -8217,7 +8217,7 @@ Enumerations
 
 .. cpp:enum-class:: FinishKind
 
-   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/finish_fill/finish_fill.hpp>`)
 
    .. cpp:enumerator:: dusty_matte
 
@@ -8241,7 +8241,7 @@ Enumerations
 
 .. cpp:enum-class:: FontField
 
-   ``#include <gui_forms/theme/theme/resolved_font.hpp>``
+   ``#include <gui_forms/theme/theme/resolved_font.hpp>`` (:src:`source <include/gui_forms/theme/theme/resolved_font.hpp>`)
 
    .. cpp:enumerator:: family
 
@@ -8259,7 +8259,7 @@ Enumerations
 
 .. cpp:enum-class:: FontRole
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    .. cpp:enumerator:: control
 
@@ -8271,7 +8271,7 @@ Enumerations
 
 .. cpp:enum-class:: GlintPreset
 
-   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/finish_fill/finish_fill.hpp>`)
 
    .. cpp:enumerator:: bead_blast
 
@@ -8287,7 +8287,7 @@ Enumerations
 
 .. cpp:enum-class:: GradientCorner
 
-   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
+   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>`` (:src:`source <include/gui_forms/engine/authored_gradient/authored_gradient.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8303,7 +8303,7 @@ Enumerations
 
 .. cpp:enum-class:: GradientSpreadMode
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    .. cpp:enumerator:: pad
 
@@ -8315,7 +8315,7 @@ Enumerations
 
 .. cpp:enum-class:: HatchStyle
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -8333,7 +8333,7 @@ Enumerations
 
 .. cpp:enum-class:: ImagePatternWrap
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    .. cpp:enumerator:: tile
 
@@ -8345,7 +8345,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageSampling
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    .. cpp:enumerator:: nearest
 
@@ -8355,7 +8355,7 @@ Enumerations
 
 .. cpp:enum-class:: ItemDrawMode
 
-   ``#include <gui_forms/theme/owner_draw/owner_draw.hpp>``
+   ``#include <gui_forms/theme/owner_draw/owner_draw.hpp>`` (:src:`source <include/gui_forms/theme/owner_draw/owner_draw.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -8365,7 +8365,7 @@ Enumerations
 
 .. cpp:enum-class:: JoinAxis
 
-   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>`` (:src:`source <include/gui_forms/types/paint_recipes/paint_recipes.hpp>`)
 
    .. cpp:enumerator:: row
 
@@ -8375,7 +8375,7 @@ Enumerations
 
 .. cpp:enum-class:: JoinedSegmentPosition
 
-   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+   ``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>`` (:src:`source <include/gui_forms/types/paint_recipes/paint_recipes.hpp>`)
 
    .. cpp:enumerator:: only
 
@@ -8389,7 +8389,7 @@ Enumerations
 
 .. cpp:enum-class:: LightPlanesDefect
 
-   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8413,7 +8413,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkerShape
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    .. cpp:enumerator:: circle
 
@@ -8439,7 +8439,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialBlendMode
 
-   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -8469,7 +8469,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialBorderStyle
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: solid
 
@@ -8481,7 +8481,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialClipRule
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: nonzero
 
@@ -8491,7 +8491,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialClipVerb
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: move
 
@@ -8507,7 +8507,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialCoordinateSpace
 
-   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
    .. cpp:enumerator:: normalized
 
@@ -8517,7 +8517,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialDither
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8529,7 +8529,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialEdge
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: top
 
@@ -8543,7 +8543,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialEdgeLines
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: single
 
@@ -8557,7 +8557,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialField
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: background_colour
 
@@ -8649,7 +8649,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialFillKind
 
-   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
    .. cpp:enumerator:: solid
 
@@ -8669,7 +8669,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialGlowPlacement
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: under
 
@@ -8679,7 +8679,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialImageMode
 
-   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
    .. cpp:enumerator:: stretch
 
@@ -8697,7 +8697,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialImageRepeat
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: repeat
 
@@ -8711,7 +8711,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialImageSizing
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: natural
 
@@ -8729,7 +8729,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialLinearGeometry
 
-   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+   ``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
    .. cpp:enumerator:: endpoints
 
@@ -8739,7 +8739,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialMaskComposite
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: add
 
@@ -8753,7 +8753,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialMaskMode
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: alpha
 
@@ -8767,7 +8767,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialReflectionSource
 
-   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>`` (:src:`source <include/gui_forms/surface_material/types/surface_material_types.hpp>`)
 
    .. cpp:enumerator:: face
 
@@ -8777,7 +8777,7 @@ Enumerations
 
 .. cpp:enum-class:: MaterialTransferKind
 
-   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+   ``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
    .. cpp:enumerator:: identity
 
@@ -8793,7 +8793,7 @@ Enumerations
 
 .. cpp:enum-class:: MotionEasing
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    .. cpp:enumerator:: smoothstep
 
@@ -8813,7 +8813,7 @@ Enumerations
 
 .. cpp:enum-class:: MotionKind
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    .. cpp:enumerator:: follow
 
@@ -8827,7 +8827,7 @@ Enumerations
 
 .. cpp:enum-class:: MotionStart
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    .. cpp:enumerator:: started
 
@@ -8843,7 +8843,7 @@ Enumerations
 
 .. cpp:enum-class:: MotionStepCause
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    .. cpp:enumerator:: advanced
 
@@ -8855,7 +8855,7 @@ Enumerations
 
 .. cpp:enum-class:: MotionStepPosition
 
-   ``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+   ``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
    .. cpp:enumerator:: end
 
@@ -8865,7 +8865,7 @@ Enumerations
 
 .. cpp:enum-class:: NeedleShape
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: line
 
@@ -8877,7 +8877,7 @@ Enumerations
 
 .. cpp:enum-class:: PaintGroupComposite
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    .. cpp:enumerator:: source_over
 
@@ -8911,7 +8911,7 @@ Enumerations
 
 .. cpp:enum-class:: PaintPathTrimResult
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    .. cpp:enumerator:: trimmed
 
@@ -8925,7 +8925,7 @@ Enumerations
 
 .. cpp:enum-class:: PaintPathVerb
 
-   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
    .. cpp:enumerator:: move_to
 
@@ -8943,7 +8943,7 @@ Enumerations
 
 .. cpp:enum-class:: ParameterAssignment
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: assigned
 
@@ -8959,7 +8959,7 @@ Enumerations
 
 .. cpp:enum-class:: ParameterDefect
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -8975,7 +8975,7 @@ Enumerations
 
 .. cpp:enum-class:: PartBlend
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -9005,7 +9005,7 @@ Enumerations
 
 .. cpp:enum-class:: PartFrame
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    .. cpp:enumerator:: drawn
 
@@ -9015,7 +9015,7 @@ Enumerations
 
 .. cpp:enum-class:: PartMark
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -9079,7 +9079,7 @@ Enumerations
 
 .. cpp:enum-class:: PartRasterStatus
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    .. cpp:enumerator:: cached
 
@@ -9099,7 +9099,7 @@ Enumerations
 
 .. cpp:enum-class:: PartShapeKind
 
-   ``#include <gui_forms/engine/part_shape/part_shape.hpp>``
+   ``#include <gui_forms/engine/part_shape/part_shape.hpp>`` (:src:`source <include/gui_forms/engine/part_shape/part_shape.hpp>`)
 
    .. cpp:enumerator:: rounded_rectangle
 
@@ -9117,7 +9117,7 @@ Enumerations
 
 .. cpp:enum-class:: PartTextAlignment
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    .. cpp:enumerator:: start
 
@@ -9129,7 +9129,7 @@ Enumerations
 
 .. cpp:enum-class:: PartTextTone
 
-   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
    .. cpp:enumerator:: ordinary
 
@@ -9139,7 +9139,7 @@ Enumerations
 
 .. cpp:enum-class:: PatternGeneration
 
-   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -9151,7 +9151,7 @@ Enumerations
 
 .. cpp:enum-class:: PolygonFillRule
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    .. cpp:enumerator:: nonzero
 
@@ -9161,7 +9161,7 @@ Enumerations
 
 .. cpp:enum-class:: PreparationOutcome
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: prepared
 
@@ -9173,7 +9173,7 @@ Enumerations
 
 .. cpp:enum-class:: PresentationProperty
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: parameter
 
@@ -9191,7 +9191,7 @@ Enumerations
 
 .. cpp:enum-class:: PrimitiveParameterKind
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: number
 
@@ -9203,7 +9203,7 @@ Enumerations
 
 .. cpp:enum-class:: ProceduralPattern
 
-   ``#include <gui_forms/surface_material/procedural_fill/procedural_fill.hpp>``
+   ``#include <gui_forms/surface_material/procedural_fill/procedural_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/procedural_fill/procedural_fill.hpp>`)
 
    .. cpp:enumerator:: felt
 
@@ -9225,7 +9225,7 @@ Enumerations
 
 .. cpp:enum-class:: RadialExtent
 
-   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
+   ``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>`` (:src:`source <include/gui_forms/engine/authored_gradient/authored_gradient.hpp>`)
 
    .. cpp:enumerator:: lengths
 
@@ -9241,7 +9241,7 @@ Enumerations
 
 .. cpp:enum-class:: RasterOutcome
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: painted
 
@@ -9259,7 +9259,7 @@ Enumerations
 
 .. cpp:enum-class:: RasterViewDefect
 
-   ``#include <gui_forms/engine/types/engine_types.hpp>``
+   ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -9275,7 +9275,7 @@ Enumerations
 
 .. cpp:enum-class:: RecipeField
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: text
 
@@ -9393,7 +9393,7 @@ Enumerations
 
 .. cpp:enum-class:: RecipeOutlineStyle
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: ring
 
@@ -9407,7 +9407,7 @@ Enumerations
 
 .. cpp:enum-class:: RegistrationOutcome
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: registered
 
@@ -9445,7 +9445,7 @@ Enumerations
 
 .. cpp:enum-class:: RingStyle
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: dots
 
@@ -9455,7 +9455,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleDiagnosticKind
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: needs_newer_engine
 
@@ -9533,7 +9533,7 @@ Enumerations
 
 .. cpp:enum-class:: RuleValueKind
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: name
 
@@ -9547,7 +9547,7 @@ Enumerations
 
 .. cpp:enum-class:: SliceAxisOutcome
 
-   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+   ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
    .. cpp:enumerator:: sliced
 
@@ -9561,7 +9561,7 @@ Enumerations
 
 .. cpp:enum-class:: StripeGloss
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: automatic
 
@@ -9571,7 +9571,7 @@ Enumerations
 
 .. cpp:enum-class:: StripeReducedMotion
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: still
 
@@ -9581,7 +9581,7 @@ Enumerations
 
 .. cpp:enum-class:: StripeSense
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: forward
 
@@ -9591,7 +9591,7 @@ Enumerations
 
 .. cpp:enum-class:: StrokeCap
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    .. cpp:enumerator:: butt
 
@@ -9603,7 +9603,7 @@ Enumerations
 
 .. cpp:enum-class:: StrokeJoin
 
-   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+   ``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
    .. cpp:enumerator:: miter
 
@@ -9615,7 +9615,7 @@ Enumerations
 
 .. cpp:enum-class:: SurfaceKind
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -9627,7 +9627,7 @@ Enumerations
 
 .. cpp:enum-class:: TextOrientation
 
-   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -9639,7 +9639,7 @@ Enumerations
 
 .. cpp:enum-class:: TextRole
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: ui
 
@@ -9659,7 +9659,7 @@ Enumerations
 
 .. cpp:enum-class:: TextTrim
 
-   ``#include <gui_forms/types/painter/painter.hpp>``
+   ``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
    .. cpp:enumerator:: cut
 
@@ -9669,7 +9669,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeBase
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    .. cpp:enumerator:: windows_professional
 
@@ -9679,7 +9679,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeDarkVariant
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -9691,7 +9691,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeDiagnosticSeverity
 
-   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
    .. cpp:enumerator:: error
 
@@ -9701,7 +9701,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeEngine::PartDrawing
 
-   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>`` (:src:`source <include/gui_forms/engine/theme_engine/theme_engine.hpp>`)
 
    .. cpp:enumerator:: primitive
 
@@ -9719,7 +9719,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeLayer
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: built_in
 
@@ -9741,7 +9741,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeOverrideCheck
 
-   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>`` (:src:`source <include/gui_forms/theme/theme_overrides/theme_overrides.hpp>`)
 
    .. cpp:enumerator:: accepted
 
@@ -9761,7 +9761,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeOverrideProperty
 
-   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>`` (:src:`source <include/gui_forms/theme/theme_overrides/theme_overrides.hpp>`)
 
    .. cpp:enumerator:: background_colour
 
@@ -9779,7 +9779,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeRuleSet
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
    .. cpp:enumerator:: program
 
@@ -9790,7 +9790,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/connected_controls/types/connected_control_types.hpp>``
+``#include <gui_forms/connected_controls/types/connected_control_types.hpp>`` (:src:`source <include/gui_forms/connected_controls/types/connected_control_types.hpp>`)
 
 .. cpp:function:: bool valid_connected_control_topology(ConnectedControlTopology topology) noexcept
 
@@ -9810,7 +9810,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/connected_controls.hpp>``
+``#include <gui_forms/connected_controls.hpp>`` (:src:`source <include/gui_forms/connected_controls.hpp>`)
 
 .. cpp:function:: void connect_button_group(std::span<const std::shared_ptr<ButtonBase>> controls, ConnectedControlAxis axis)
 
@@ -9838,7 +9838,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>``
+``#include <gui_forms/engine/authored_gradient/authored_gradient.hpp>`` (:src:`source <include/gui_forms/engine/authored_gradient/authored_gradient.hpp>`)
 
 .. cpp:function:: bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept
 
@@ -9862,7 +9862,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/effect/effect.hpp>``
+``#include <gui_forms/engine/effect/effect.hpp>`` (:src:`source <include/gui_forms/engine/effect/effect.hpp>`)
 
 .. cpp:function:: template <std::size_t Capacity> constexpr BoundedRange<Capacity> bounded_range(std::size_t count) noexcept
 
@@ -9926,7 +9926,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>`` (:src:`source <include/gui_forms/engine/effect_canvas/effect_canvas.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_effect_save_depth
 
@@ -9942,7 +9942,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+``#include <gui_forms/engine/effect_registry/effect_registry.hpp>`` (:src:`source <include/gui_forms/engine/effect_registry/effect_registry.hpp>`)
 
 .. cpp:function:: template <typename Effect> requires EffectProgram<Effect> constexpr EffectEntry make_effect_entry() noexcept
 
@@ -10012,7 +10012,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
+``#include <gui_forms/engine/engine_expression/engine_expression.hpp>`` (:src:`source <include/gui_forms/engine/engine_expression/engine_expression.hpp>`)
 
 .. cpp:function:: constexpr ExpressionInputIndex engine_input_position(EngineInput input) noexcept
 
@@ -10062,7 +10062,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/engine_math/engine_math.hpp>``
+``#include <gui_forms/engine/engine_math/engine_math.hpp>`` (:src:`source <include/gui_forms/engine/engine_math/engine_math.hpp>`)
 
 .. cpp:function:: double engine_logarithm(double x) noexcept
 
@@ -10096,7 +10096,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::engine_light
 
-``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
 .. cpp:function:: LampColour lamp_colour_from_srgb(Color colour) noexcept
 
@@ -10194,7 +10194,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/motion_clock/motion_clock.hpp>``
+``#include <gui_forms/engine/motion_clock/motion_clock.hpp>`` (:src:`source <include/gui_forms/engine/motion_clock/motion_clock.hpp>`)
 
 .. cpp:var:: constexpr FrameInterval motion_frame_interval
 
@@ -10202,7 +10202,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/motion_value/motion_value.hpp>``
+``#include <gui_forms/engine/motion_value/motion_value.hpp>`` (:src:`source <include/gui_forms/engine/motion_value/motion_value.hpp>`)
 
 .. cpp:function:: double motion_easing(MotionEasing easing, double progress) noexcept
 
@@ -10254,7 +10254,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/part_shape/part_shape.hpp>``
+``#include <gui_forms/engine/part_shape/part_shape.hpp>`` (:src:`source <include/gui_forms/engine/part_shape/part_shape.hpp>`)
 
 .. cpp:function:: PartCornerRadii part_corner_radii(PartShape shape, Rect box) noexcept
 
@@ -10288,7 +10288,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+``#include <gui_forms/engine/part_table/engine_part_table.hpp>`` (:src:`source <include/gui_forms/engine/part_table/engine_part_table.hpp>`)
 
 .. cpp:var:: constexpr std::size_t unkept_part_assembly_count
 
@@ -10340,7 +10340,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
+``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>`` (:src:`source <include/gui_forms/engine/primitive_registry/primitive_registry.hpp>`)
 
 .. cpp:function:: PrimitiveParameterBlock default_parameters(const PrimitiveDescriptor& descriptor) noexcept
 
@@ -10394,7 +10394,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+``#include <gui_forms/engine/theme_engine/theme_engine.hpp>`` (:src:`source <include/gui_forms/engine/theme_engine/theme_engine.hpp>`)
 
 .. cpp:function:: MediaFacts window_media_facts(const SurfaceRoot& window) noexcept
 
@@ -10414,13 +10414,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
+``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/cascade_facts.hpp>`)
 
 .. cpp:function:: std::string_view cascade_level_name(CascadeLevel level) noexcept
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
 
 .. cpp:function:: bool valid_style_class_name(std::string_view name) noexcept
 
@@ -10880,7 +10880,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/engine/types/engine_types.hpp>``
+``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
 
 .. cpp:function:: RasterViewDefect validate_raster_view(const PartRasterView& view) noexcept
 
@@ -10912,7 +10912,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>``
+``#include <gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`` (:src:`source <include/gui_forms/surface_material/colour_matrix/colour_matrix.hpp>`)
 
 .. cpp:function:: bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept
 
@@ -10922,7 +10922,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/finish_fill/finish_fill.hpp>`)
 
 .. cpp:var:: constexpr double minimum_finish_grain
 
@@ -10942,7 +10942,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>``
+``#include <gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`` (:src:`source <include/gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp>`)
 
 .. cpp:var:: constexpr MaterialBlendMode material_blend_mode_last
 
@@ -10950,7 +10950,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>``
+``#include <gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>`` (:src:`source <include/gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp>`)
 
 .. cpp:function:: bool valid_paint_group_effect(const PaintGroupEffect& effect) noexcept
 
@@ -10970,7 +10970,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/painting/surface_material_painting.hpp>``
+``#include <gui_forms/surface_material/painting/surface_material_painting.hpp>`` (:src:`source <include/gui_forms/surface_material/painting/surface_material_painting.hpp>`)
 
 .. cpp:function:: bool valid_surface_material(const SurfaceMaterial& material) noexcept
 
@@ -11024,7 +11024,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/presets/material_presets.hpp>``
+``#include <gui_forms/surface_material/presets/material_presets.hpp>`` (:src:`source <include/gui_forms/surface_material/presets/material_presets.hpp>`)
 
 .. cpp:function:: SurfaceMaterial gloss_material(const GlossColours& colours, double corner_radius)
 
@@ -11056,7 +11056,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_material/procedural_fill/procedural_fill.hpp>``
+``#include <gui_forms/surface_material/procedural_fill/procedural_fill.hpp>`` (:src:`source <include/gui_forms/surface_material/procedural_fill/procedural_fill.hpp>`)
 
 .. cpp:var:: constexpr double minimum_procedural_tile
 
@@ -11068,7 +11068,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+``#include <gui_forms/theme/canvas_look/canvas_look.hpp>`` (:src:`source <include/gui_forms/theme/canvas_look/canvas_look.hpp>`)
 
 .. cpp:function:: const ControlAnatomy& node_canvas_anatomy() noexcept
 
@@ -11174,7 +11174,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>``
+``#include <gui_forms/theme/familiar_themes/familiar_themes.hpp>`` (:src:`source <include/gui_forms/theme/familiar_themes/familiar_themes.hpp>`)
 
 .. cpp:function:: std::string_view familiar_theme_id(FamiliarTheme theme) noexcept
 
@@ -11204,7 +11204,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
+``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>`` (:src:`source <include/gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>`)
 
 .. cpp:function:: const ThemeDefinition& gui_forms_theme_definition()
 
@@ -11226,7 +11226,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/owner_draw/owner_draw.hpp>``
+``#include <gui_forms/theme/owner_draw/owner_draw.hpp>`` (:src:`source <include/gui_forms/theme/owner_draw/owner_draw.hpp>`)
 
 .. cpp:function:: Color item_content_text(const Control& control, ControlVisualRole family, AnatomyStateSet states) noexcept
 
@@ -11238,7 +11238,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
 .. cpp:function:: std::string_view part_mark_name(PartMark mark) noexcept
 
@@ -11286,7 +11286,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/stock_anatomies/stock_anatomies.hpp>``
+``#include <gui_forms/theme/stock_anatomies/stock_anatomies.hpp>`` (:src:`source <include/gui_forms/theme/stock_anatomies/stock_anatomies.hpp>`)
 
 .. cpp:function:: std::span<const ControlAnatomy> stock_control_anatomies() noexcept
 
@@ -11294,7 +11294,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/theme/resolved_font.hpp>``
+``#include <gui_forms/theme/theme/resolved_font.hpp>`` (:src:`source <include/gui_forms/theme/theme/resolved_font.hpp>`)
 
 .. cpp:var:: constexpr std::size_t font_field_count
 
@@ -11302,7 +11302,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/theme/theme.hpp>``
+``#include <gui_forms/theme/theme/theme.hpp>`` (:src:`source <include/gui_forms/theme/theme/theme.hpp>`)
 
 .. cpp:function:: ThemeDefinition windows_professional_theme_definition()
 
@@ -11314,7 +11314,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>`` (:src:`source <include/gui_forms/theme/theme_compiler/theme_compiler.hpp>`)
 
 .. cpp:function:: ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 
@@ -11370,7 +11370,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/theme/types/theme_types.hpp>``
+``#include <gui_forms/theme/types/theme_types.hpp>`` (:src:`source <include/gui_forms/theme/types/theme_types.hpp>`)
 
 .. cpp:function:: std::string_view control_visual_role_name(ControlVisualRole role) noexcept
 
@@ -11410,13 +11410,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/cursor_image/cursor_image.hpp>``
+``#include <gui_forms/types/cursor_image/cursor_image.hpp>`` (:src:`source <include/gui_forms/types/cursor_image/cursor_image.hpp>`)
 
 .. cpp:type:: CursorImagesPtr = std::shared_ptr<const CursorImages>
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/damage_region/damage_region.hpp>``
+``#include <gui_forms/types/damage_region/damage_region.hpp>`` (:src:`source <include/gui_forms/types/damage_region/damage_region.hpp>`)
 
 .. cpp:function:: DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset)
 
@@ -11424,7 +11424,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/linear_light/linear_light.hpp>``
+``#include <gui_forms/types/linear_light/linear_light.hpp>`` (:src:`source <include/gui_forms/types/linear_light/linear_light.hpp>`)
 
 .. cpp:function:: constexpr LinearLightLevel linear_light_of_srgb(std::uint8_t encoded) noexcept
 
@@ -11452,7 +11452,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/linear_light/linear_light_stops.hpp>``
+``#include <gui_forms/types/linear_light/linear_light_stops.hpp>`` (:src:`source <include/gui_forms/types/linear_light/linear_light_stops.hpp>`)
 
 .. cpp:function:: std::size_t expand_linear_light_stops(stxlib::View<GradientStop> stops, stxlib::MutableView<GradientStop> expanded) noexcept
 
@@ -11460,7 +11460,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
+``#include <gui_forms/types/paint_marks/paint_marks.hpp>`` (:src:`source <include/gui_forms/types/paint_marks/paint_marks.hpp>`)
 
 .. cpp:function:: bool valid_stroke_style(const StrokeStyle& style) noexcept
 
@@ -11520,7 +11520,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/paint_path/paint_path.hpp>``
+``#include <gui_forms/types/paint_path/paint_path.hpp>`` (:src:`source <include/gui_forms/types/paint_path/paint_path.hpp>`)
 
 .. cpp:function:: std::size_t paint_path_points_for(PaintPathVerb verb) noexcept
 
@@ -11592,7 +11592,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>``
+``#include <gui_forms/types/paint_recipes/paint_recipes.hpp>`` (:src:`source <include/gui_forms/types/paint_recipes/paint_recipes.hpp>`)
 
 .. cpp:function:: Rect proportion_rect(Rect track, double proportion, FillDirection direction) noexcept
 
@@ -11628,7 +11628,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/paint_types/paint_types.hpp>``
+``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
 .. cpp:function:: bool valid_gradient_stops(std::span<const GradientStop> stops) noexcept
 
@@ -11642,13 +11642,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/types/paint_types/paint_types.hpp>``
+``#include <gui_forms/types/paint_types/paint_types.hpp>`` (:src:`source <include/gui_forms/types/paint_types/paint_types.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<CursorKind> cursor_kind
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/painter/painter.hpp>``
+``#include <gui_forms/types/painter/painter.hpp>`` (:src:`source <include/gui_forms/types/painter/painter.hpp>`)
 
 .. cpp:function:: bool valid_paint_transform(const PaintTransform& transform) noexcept
 
@@ -11708,7 +11708,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/types/platform_types/platform_types.hpp>``
+``#include <gui_forms/types/platform_types/platform_types.hpp>`` (:src:`source <include/gui_forms/types/platform_types/platform_types.hpp>`)
 
 .. cpp:type:: FilePath = std::filesystem::path
 

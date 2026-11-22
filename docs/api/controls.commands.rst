@@ -124,7 +124,7 @@ Related types
 
 .. cpp:struct:: Button::Parts final
 
-   ``#include <gui_forms/controls/button.hpp>``
+   ``#include <gui_forms/controls/button.hpp>`` (:src:`source <include/gui_forms/controls/button.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -144,7 +144,7 @@ Related types
 
 .. cpp:struct:: Button::States final
 
-   ``#include <gui_forms/controls/button.hpp>``
+   ``#include <gui_forms/controls/button.hpp>`` (:src:`source <include/gui_forms/controls/button.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -172,7 +172,7 @@ Related types
 
 .. cpp:struct:: ButtonBase::Parts final
 
-   ``#include <gui_forms/controls/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>`` (:src:`source <include/gui_forms/controls/button_base.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -190,7 +190,7 @@ Related types
 
 .. cpp:struct:: ButtonBase::States final
 
-   ``#include <gui_forms/controls/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>`` (:src:`source <include/gui_forms/controls/button_base.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -214,7 +214,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonBaseCapabilities : public TextCapability<Declaring>, public TextAlignmentCapability<Declaring>, public FontCapability<Declaring>, public ContentPaddingCapability<Declaring>, public TextLineSpacingCapability<Declaring>, public ImageAlignmentCapability<Declaring>, public TextImageRelationCapability<Declaring>, public ImageGapCapability<Declaring>, public ButtonUseMnemonicCapability<Declaring>, public ExpandedStateCapability<Declaring>, public ButtonBaseImageCapability<Declaring>
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Every ButtonBase capability, in the order the declaring class takes them.
 
@@ -274,7 +274,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonBaseImageCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    A direct generational image resource for the button's content (Image); a view onto the image slot: a write clears image_index and image_key. An ID not live in the button's Window throws std::invalid_argument.
 
@@ -291,7 +291,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonCapabilities : public ButtonVisualStyleChoiceCapability<Declaring>, public ButtonFlatBorderWidthCapability<Declaring>, public ButtonDefaultButtonCapability<Declaring>, public ButtonDialogResultCapability<Declaring>, public ButtonSelectedCapability<Declaring>, public ButtonDangerCapability<Declaring>
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    Every Button capability, in the order the declaring class takes them.
 
@@ -326,7 +326,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonDangerCapability
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    Whether the button marks a dangerous or irreversible action (skeudoindustrial surfaces, follow-up 5): its parts take the custom state danger, a warning mark leads its content, and a theme that styles the state lights its face from inside with a slow, low glow, steady under reduced motion.
 
@@ -341,7 +341,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonDefaultButtonCapability
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    Whether the button draws and announces itself as the default button; the window's accept_button writes it through notify_default.
 
@@ -356,7 +356,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonDialogResultCapability
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    The result the button gives its window when activated (none: no result); an undefined value throws std::invalid_argument. A change raises dialog_result_changed.
 
@@ -373,7 +373,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonFlatBorderWidthCapability
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    Border width in logical pixels of a flat button; finite and nonnegative (std::invalid_argument).
 
@@ -390,7 +390,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonSelectedCapability
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    Whether the button shows as selected (a checked command's push button); a change raises selected_changed.
 
@@ -405,7 +405,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonUseMnemonicCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Whether an ampersand in the text marks the access key (UseMnemonic).
 
@@ -422,7 +422,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ButtonVisualStyleChoiceCapability
 
-   ``#include <gui_forms/controls/button_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_capabilities.hpp>`)
 
    Standard, flat, accent or command button.
 
@@ -439,7 +439,7 @@ Related types
 
 .. cpp:struct:: CommandItem final
 
-   ``#include <gui_forms/controls/command_bar.hpp>``
+   ``#include <gui_forms/controls/command_bar.hpp>`` (:src:`source <include/gui_forms/controls/command_bar.hpp>`)
 
    .. cpp:member:: int id
 
@@ -459,7 +459,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ContentPaddingCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Insets between the button frame and its image and text content (Padding of the content).
 
@@ -476,7 +476,7 @@ Related types
 
 .. cpp:struct:: DropDownButton::Parts final
 
-   ``#include <gui_forms/controls/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/drop_down_button.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -500,7 +500,7 @@ Related types
 
 .. cpp:struct:: DropDownButton::States final
 
-   ``#include <gui_forms/controls/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/drop_down_button.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -528,7 +528,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonCapabilities : public DropDownButtonDropDownModeCapability<Declaring>, public DropDownButtonDropDownWidthCapability<Declaring>, public DropDownButtonDropDownEdgeCapability<Declaring>
 
-   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button_capabilities.hpp>`)
 
    Every DropDownButton capability, in the order the declaring class takes them.
 
@@ -551,7 +551,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonDropDownEdgeCapability
 
-   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button_capabilities.hpp>`)
 
    The edge holding the disclosure region, right (default) or bottom; a write moves the reserved content inset to it. An unknown edge throws std::invalid_argument and changes nothing.
 
@@ -568,7 +568,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonDropDownModeCapability
 
-   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button_capabilities.hpp>`)
 
    Menu mode routes the whole button to the drop-down; split mode keeps a primary Click region and a disclosure region at drop_down_edge. An unknown mode throws std::invalid_argument and changes nothing.
 
@@ -585,7 +585,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DropDownButtonDropDownWidthCapability
 
-   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button_capabilities.hpp>`)
 
    The disclosure extent on drop_down_edge, 12 to 64 (default 16); a write moves the reserved content inset with it, so author primary-content padding after it. A value outside that range throws std::invalid_argument and changes nothing.
 
@@ -602,7 +602,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ExpandedStateCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
 
@@ -617,7 +617,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ImageAlignmentCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Where the image sits in the content area (ImageAlign).
 
@@ -634,7 +634,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ImageGapCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    The space between the image and the text (between zero and 64).
 
@@ -651,7 +651,7 @@ Related types
 
 .. cpp:struct:: LinkLabel::Parts final
 
-   ``#include <gui_forms/controls/link_label.hpp>``
+   ``#include <gui_forms/controls/link_label.hpp>`` (:src:`source <include/gui_forms/controls/link_label.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -667,7 +667,7 @@ Related types
 
 .. cpp:struct:: LinkLabel::States final
 
-   ``#include <gui_forms/controls/link_label.hpp>``
+   ``#include <gui_forms/controls/link_label.hpp>`` (:src:`source <include/gui_forms/controls/link_label.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -693,7 +693,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LinkLabelCapabilities : public LinkLabelVisitedCapability<Declaring>
 
-   ``#include <gui_forms/controls/link_label_capabilities.hpp>``
+   ``#include <gui_forms/controls/link_label_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/link_label_capabilities.hpp>`)
 
    Every LinkLabel capability, in the order the declaring class takes them.
 
@@ -708,7 +708,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LinkLabelVisitedCapability
 
-   ``#include <gui_forms/controls/link_label_capabilities.hpp>``
+   ``#include <gui_forms/controls/link_label_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/link_label_capabilities.hpp>`)
 
    Whether the link paints in its visited colour (Windows Forms' LinkVisited). Activation sets it; set it back to false if the target can become new again.
 
@@ -723,7 +723,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextAlignmentCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Where the text sits in the content area (TextAlign).
 
@@ -740,7 +740,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextImageRelationCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    How the text and the image are placed against each other (TextImageRelation).
 
@@ -757,7 +757,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextLineSpacingCapability
 
-   ``#include <gui_forms/controls/button_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/button_base_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_base_capabilities.hpp>`)
 
    Line height as a multiple of the font's (between 0.75 and 3).
 
@@ -774,7 +774,7 @@ Related types
 
 .. cpp:struct:: WindowCapsule::Parts final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    The anatomy, as dot members (see Control::Parts).
 
@@ -798,7 +798,7 @@ Related types
 
 .. cpp:struct:: WindowCapsuleColors final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    The colours the capsule's fills and glyphs are drawn in, as authored colours over its theme parts. The defaults (2026-11-15, standing until a theme supplies capsule colours): a dark face, light glyphs, a green invitation (#2EA043) and a red X (#D1242F).
 
@@ -822,7 +822,7 @@ Related types
 
 .. cpp:class:: WindowCapsuleGesture final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
 
    .. rubric:: Properties
@@ -902,7 +902,7 @@ Related types
 
 .. cpp:struct:: WindowCapsuleLook final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    What a capsule shows: the gesture's state for its window (window_capsule_look), or the resting look.
 
@@ -932,7 +932,7 @@ Related types
 
 .. cpp:struct:: WindowCapsuleMeasures final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    The gesture measures, logical units and milliseconds (from the desk theme, SurfaceFrameTheme).
 
@@ -964,7 +964,7 @@ Related types
 
 .. cpp:struct:: WindowCapsuleOutcome final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    .. cpp:member:: WindowCapsuleCommand command
 
@@ -994,7 +994,7 @@ Related types
 
 .. cpp:struct:: WindowCapsuleRequest final
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    What a WindowCapsule in a program's content asks its program to do (WindowCapsule::requested). Points are in the capsule's client coordinates; a move's ``point`` stays where the window moves with the pointer, so a program moving its window reads the screen pointer (HostWindowing::pointer_position) and asks for the frame (ApplicationWindowHandle::request_frame), and chooses any snap itself.
 
@@ -1019,7 +1019,7 @@ Enumerations
 
 .. cpp:enum-class:: ButtonVisualStyle
 
-   ``#include <gui_forms/controls/button_values.hpp>``
+   ``#include <gui_forms/controls/button_values.hpp>`` (:src:`source <include/gui_forms/controls/button_values.hpp>`)
 
    .. cpp:enumerator:: standard
 
@@ -1033,7 +1033,7 @@ Enumerations
 
 .. cpp:enum-class:: ChoiceIndicatorStyle
 
-   ``#include <gui_forms/controls/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base.hpp>`` (:src:`source <include/gui_forms/controls/button_base.hpp>`)
 
    .. cpp:enumerator:: classic
 
@@ -1045,7 +1045,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentAlignment
 
-   ``#include <gui_forms/controls/button_content_types.hpp>``
+   ``#include <gui_forms/controls/button_content_types.hpp>`` (:src:`source <include/gui_forms/controls/button_content_types.hpp>`)
 
    .. cpp:enumerator:: top_left
 
@@ -1069,7 +1069,7 @@ Enumerations
 
 .. cpp:enum-class:: DropDownButtonEdge
 
-   ``#include <gui_forms/controls/drop_down_button_values.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_values.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button_values.hpp>`)
 
    .. cpp:enumerator:: right
 
@@ -1079,7 +1079,7 @@ Enumerations
 
 .. cpp:enum-class:: DropDownButtonMode
 
-   ``#include <gui_forms/controls/drop_down_button_values.hpp>``
+   ``#include <gui_forms/controls/drop_down_button_values.hpp>`` (:src:`source <include/gui_forms/controls/drop_down_button_values.hpp>`)
 
    .. cpp:enumerator:: menu
 
@@ -1089,7 +1089,7 @@ Enumerations
 
 .. cpp:enum-class:: TextImageRelation
 
-   ``#include <gui_forms/controls/button_content_types.hpp>``
+   ``#include <gui_forms/controls/button_content_types.hpp>`` (:src:`source <include/gui_forms/controls/button_content_types.hpp>`)
 
    .. cpp:enumerator:: overlay
 
@@ -1105,7 +1105,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowCapsuleArm
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    .. cpp:enumerator:: idle
 
@@ -1119,7 +1119,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowCapsuleCommand
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1147,7 +1147,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowCapsuleSection
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1161,7 +1161,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowCapsuleSnap
 
-   ``#include <gui_forms/controls/window_capsule.hpp>``
+   ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1174,7 +1174,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/button_content_types.hpp>``
+``#include <gui_forms/controls/button_content_types.hpp>`` (:src:`source <include/gui_forms/controls/button_content_types.hpp>`)
 
 .. cpp:function:: constexpr ContentAlignment mirrored_content_alignment(ContentAlignment alignment) noexcept
 
@@ -1186,7 +1186,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/controls/button_content_types.hpp>``
+``#include <gui_forms/controls/button_content_types.hpp>`` (:src:`source <include/gui_forms/controls/button_content_types.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<ContentAlignment> content_alignment
 
@@ -1194,7 +1194,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/window_capsule.hpp>``
+``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
 .. cpp:function:: std::string_view window_capsule_help_text() noexcept
 

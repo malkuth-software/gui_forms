@@ -106,10 +106,10 @@ public:
     [[nodiscard]] PathSnapshot snapshot() const;
 
     // Flattening: the path as polylines, every curve within `tolerance` of
-    // the polyline that replaces it. Provisional, numbered 0.8 of the
-    // drawing seam as a placeholder (the integrator assigns the real
-    // number in fold order); the C ABI's graphics_path_flatten and C#'s
-    // GraphicsPath.Flatten are the same operation.
+    // the polyline that replaces it. Provisional, in the drawing ABI's 1.1
+    // (GD_ABI_VERSION_1_1, outside the sealed 1.0); the C ABI's
+    // graphics_path_flatten and C#'s GraphicsPath.Flatten are the same
+    // operation.
     //
     // `tolerance` is a distance in the path's own coordinate units (the
     // units its points are stored in, after any transform()): no point of

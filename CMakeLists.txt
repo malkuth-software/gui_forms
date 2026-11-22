@@ -3070,6 +3070,15 @@ if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_present_profile_workload PRIVATE gui_forms_application)
 endif()
 
+# D2: the documentation's control previews, one PNG per stock specimen in the
+# windows-professional theme (tools/preview_capture/preview_capture.cpp), run
+# by tools/capture_previews.py. Built with the Gallery so CI compiles it on
+# every host; never installed.
+if(TARGET gui_forms_application AND GUI_FORMS_BUILD_GALLERY)
+    add_executable(gui_forms_preview_capture tools/preview_capture/preview_capture.cpp)
+    target_link_libraries(gui_forms_preview_capture PRIVATE gui_forms_application)
+endif()
+
 if(GUI_FORMS_BUILD_BENCHMARKS)
     if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
         message(FATAL_ERROR

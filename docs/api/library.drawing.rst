@@ -227,7 +227,7 @@ Types
 
 .. cpp:class:: Bitmap final : public DrawingObject
 
-   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>``
+   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>`` (:src:`source <include/gui_forms/drawing/bitmap/bitmap.hpp>`)
 
    Bitmap owns bounded premultiplied pixel storage, stable identity and generation, exclusive read/write locks, rollback-capable rectangular edit leases, exact changed-byte damage derivation, bounded damage history, transforms, cloning, and immutable snapshots.
 
@@ -363,7 +363,7 @@ Types
 
 .. cpp:struct:: BitmapDamageSnapshot final
 
-   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>``
+   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>`` (:src:`source <include/gui_forms/drawing/bitmap/bitmap.hpp>`)
 
    BitmapDamageSnapshot reports generation interval, history completeness, and bounded changed rectangles.
 
@@ -388,7 +388,7 @@ Types
 
 .. cpp:struct:: BitmapEditView final
 
-   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>``
+   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>`` (:src:`source <include/gui_forms/drawing/bitmap/bitmap.hpp>`)
 
    BitmapEditView exposes one token-bound writable rectangle while retaining whole-bitmap stride for exact commit or rollback.
 
@@ -410,7 +410,7 @@ Types
 
 .. cpp:struct:: BitmapLockView final
 
-   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>``
+   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>`` (:src:`source <include/gui_forms/drawing/bitmap/bitmap.hpp>`)
 
    BitmapLockView exposes token-bound full-storage pointers, stride, dimensions, and format; writable_data is present only for write-capable modes.
 
@@ -434,7 +434,7 @@ Types
 
 .. cpp:class:: Brush : public DrawingObject
 
-   ``#include <gui_forms/drawing/brush/brush.hpp>``
+   ``#include <gui_forms/drawing/brush/brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/brush.hpp>`)
 
    Brush is the disposable renderer-neutral base whose only rendering contract is an immutable BrushSnapshot.
 
@@ -449,7 +449,7 @@ Types
 
 .. cpp:struct:: BrushSnapshot final
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    BrushSnapshot is the complete renderer-neutral union record for solid, hatch, gradient, path-gradient, or texture recipes.
 
@@ -503,7 +503,7 @@ Types
 
 .. cpp:struct:: BundledFontFace final
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    .. cpp:member:: std::string_view family
 
@@ -519,7 +519,7 @@ Types
 
 .. cpp:class:: CheckerBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/checker_brush.hpp>``
+   ``#include <gui_forms/drawing/brush/checker_brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/checker_brush.hpp>`)
 
    An alpha checkerboard brush (piece C7): square cells ``cell_size`` units wide in the recorder's coordinates, alternating ``first`` and ``second``, with the corner of a ``first`` cell at the coordinate origin, so the pattern stays put as the filled shape moves. ``cell_size`` is finite and positive.
 
@@ -537,7 +537,7 @@ Types
 
 .. cpp:class:: Color final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    gui_drawing::Color is a compact empty/known/ARGB value with deterministic named/HTML parsing and explicit linear-sRGB, XYZ D65, OKLab, and OKLCH conversion support.
 
@@ -618,7 +618,7 @@ Types
 
 .. cpp:struct:: ColorBlend final
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    ColorBlend owns equal-length color and monotonic position vectors validated by consuming brushes.
 
@@ -630,7 +630,7 @@ Types
 
 .. cpp:class:: ConicGradientBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/conic_gradient_brush.hpp>``
+   ``#include <gui_forms/drawing/brush/conic_gradient_brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/conic_gradient_brush.hpp>`)
 
    A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1. The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``first`` to ``second``.
 
@@ -653,7 +653,7 @@ Types
 
 .. cpp:struct:: ContentCaretStop final
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    An explicit caret position, for a consumer whose carets do not stand at cluster edges (split carets, vertical text): the caret at ``offset`` is the rectangle ``caret`` (a bar, usually one unit wide), in local coordinates.
 
@@ -665,7 +665,7 @@ Types
 
 .. cpp:class:: ContentContext final
 
-   ``#include <gui_forms/content/operation/content_operation.hpp>``
+   ``#include <gui_forms/content/operation/content_operation.hpp>`` (:src:`source <include/gui_forms/content/operation/content_operation.hpp>`)
 
    What a content program sees on its own thread: the sink it publishes through and the stop it should honour. Valid for the duration of ContentProgram::run, on that thread only.
 
@@ -700,7 +700,7 @@ Types
 
 .. cpp:struct:: ContentFrame final
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    One finished frame, described by the consumer for one publish call (ContentFrameSink::publish). ``pixels`` is borrowed for the call only: the sink copies what it accepts into its own buffer before it returns, and reads nothing else. Rows run top to bottom, ``row_bytes`` apart; a row holds width pixels of ``pixel_format`` and may be followed by padding the sink never reads. The last row need not carry padding: ``pixels`` must hold at least row_bytes * (height - 1) + width * 4 bytes.
 
@@ -728,7 +728,7 @@ Types
 
 .. cpp:class:: ContentFrameSink final
 
-   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>``
+   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>`` (:src:`source <include/gui_forms/content/frame_sink/content_frame_sink.hpp>`)
 
    The consumer's end of a content channel (ContentSurface::open_content): a handle any thread may hold, copy and call, for as long as it likes. It shares the channel's state, never the surface or its window: once the surface revokes the channel every call reports :cpp:func:`revoked <gui_forms::ContentFrameSink::revoked>` and touches nothing the interface reads. Execution: every member is callable from any thread. publish copies the accepted frame into a surface buffer on the calling thread; two threads publishing at once are serialized against each other, never against the interface thread, which only reads the newest finished frame and never waits for a publication (LiveSurface). Nothing here calls back into the consumer.
 
@@ -779,7 +779,7 @@ Types
 
 .. cpp:struct:: ContentLayoutTransform final
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    An affine map from a layout's own coordinates to the editor's local coordinates, for text the consumer draws turned, scaled or sheared (a rotated card's text, say): local.x = xx * x + xy * y + dx and local.y = yx * x + yy * y + dy. The shape is that of a painter transform (rotation, scale, shear and translation), so a consumer that draws through one passes the same numbers here. Perspective and warps are not affine; for them the consumer submits boxes already mapped, as bounding boxes. The default is the identity.
 
@@ -821,7 +821,7 @@ Types
 
 .. cpp:struct:: ContentPixelRect final
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent. An empty rectangle names the whole frame where a damage is expected.
 
@@ -842,7 +842,7 @@ Types
 
 .. cpp:struct:: ContentPixelSize final
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    A device size in whole pixels.
 
@@ -859,7 +859,7 @@ Types
 
 .. cpp:class:: ContentProgram
 
-   ``#include <gui_forms/content/operation/content_operation.hpp>``
+   ``#include <gui_forms/content/operation/content_operation.hpp>`` (:src:`source <include/gui_forms/content/operation/content_operation.hpp>`)
 
    A consumer's content operation, run on a thread GUI.Forms starts for it (ContentWorker). run returns when the content is done or a stop was requested; an exception it throws ends the operation as failed, with the exception's text. The object is destroyed on the worker's thread after run returns, so its destructor may release what run made there.
 
@@ -872,7 +872,7 @@ Types
 
 .. cpp:struct:: ContentQuad final
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    A box of a layout mapped to local coordinates: its corners in the order top-left, top-right, bottom-right, bottom-left of the unmapped box (a parallelogram under a ContentLayoutTransform).
 
@@ -889,7 +889,7 @@ Types
 
 .. cpp:struct:: ContentRequest final
 
-   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>``
+   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>`` (:src:`source <include/gui_forms/content/frame_sink/content_frame_sink.hpp>`)
 
    What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
 
@@ -905,7 +905,7 @@ Types
 
 .. cpp:struct:: ContentSemantics final
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    The text a consumer supplies for its surface, so that what it draws is not invisible to assistive technology (its pixels carry no text). ``name`` is the surface's accessible name, ``text`` the text it shows (published as the node's value), ``description`` a longer description. All three are UTF-8.
 
@@ -919,7 +919,7 @@ Types
 
 .. cpp:struct:: ContentSurfaceStatistics final
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
 
@@ -953,7 +953,7 @@ Types
 
 .. cpp:struct:: ContentTextCluster final
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    One shaped cluster (one or more graphemes drawn as a unit, such as a ligature): its UTF-8 range, the index of its line in ContentTextLayout::lines, its box and its direction. The caret stands at its leading edge before it and at its trailing edge after it: left and right for left-to-right clusters, right and left for right-to-left ones.
 
@@ -969,7 +969,7 @@ Types
 
 .. cpp:struct:: ContentTextLayout final
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    A whole layout for one revision of the editor's text (ContentTextEditor::text_revision). Lines and clusters are in text order; caret stops, when given, ascend by offset and override the edge-derived caret at their offsets.
 
@@ -989,7 +989,7 @@ Types
 
 .. cpp:struct:: ContentTextLine final
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    One visual line: the UTF-8 range of the text it shows (without the line break that ends it) and its box, in the editor's local coordinates.
 
@@ -1001,7 +1001,7 @@ Types
 
 .. cpp:class:: ContentWatchdog final
 
-   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>`` (:src:`source <include/gui_forms/content/watchdog/content_watchdog.hpp>`)
 
    The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1). Pure and deterministic: it never reads a clock or a thread; its owner hands it the time and the channel's activity count (frames published plus heartbeats, which only grows) at each check. Content is stale when the count has not moved for longer than the interval; it recovers on the first observation that sees the count move. An interval of zero disables it (content that publishes only when asked, and says nothing in between, is never stale). Owned and called by one thread (the interface thread for a surface).
 
@@ -1052,7 +1052,7 @@ Types
 
 .. cpp:class:: ContentWorker final
 
-   ``#include <gui_forms/content/operation/content_operation.hpp>``
+   ``#include <gui_forms/content/operation/content_operation.hpp>`` (:src:`source <include/gui_forms/content/operation/content_operation.hpp>`)
 
    Owns one thread running one ContentProgram with one sink. Made, used and destroyed by one thread (the interface thread for a surface); the program runs on the worker's thread and shares nothing with its owner but the channel and the worker's completion state, both synchronized.
 
@@ -1099,7 +1099,7 @@ Types
 
 .. cpp:struct:: CornerRadii final
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    A rounded rectangle's corner radii: top-left, top-right, bottom-right, bottom-left. Each is held to half the rectangle's shorter side.
 
@@ -1115,7 +1115,7 @@ Types
 
 .. cpp:struct:: DrawingCommand final
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    DrawingCommand owns one complete command kind, sampled GraphicsState, geometry, resource snapshots, points, and text.
 
@@ -1185,7 +1185,7 @@ Types
 
 .. cpp:class:: DrawingObject
 
-   ``#include <gui_forms/drawing/object/drawing_object.hpp>``
+   ``#include <gui_forms/drawing/object/drawing_object.hpp>`` (:src:`source <include/gui_forms/drawing/object/drawing_object.hpp>`)
 
    DrawingObject is the thread-affine disposable base for mutable drawing resources, with explicit alive/disposing/disposed transitions and controlled serialized handoff.
 
@@ -1245,7 +1245,7 @@ Types
 
 .. cpp:struct:: DrawingReplayOptions final
 
-   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>`` (:src:`source <include/gui_forms/drawing/drawing_replay/drawing_replay.hpp>`)
 
    How replay_drawing_commands draws what needs the painter's device grid.
 
@@ -1257,7 +1257,7 @@ Types
 
 .. cpp:struct:: DrawingReplayReport final
 
-   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>`` (:src:`source <include/gui_forms/drawing/drawing_replay/drawing_replay.hpp>`)
 
    What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6). Every command is counted once.
 
@@ -1281,7 +1281,7 @@ Types
 
 .. cpp:struct:: FlattenedFigure final
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    One figure of a flattened path (GraphicsPath::flatten): its points are those of the flattened point array from the previous figure's ``end`` (0 for the first) to its own ``end``, exclusive. A closed figure repeats its first point last, so every figure is a polyline as it stands.
 
@@ -1293,7 +1293,7 @@ Types
 
 .. cpp:class:: Font final : public DrawingObject
 
-   ``#include <gui_forms/drawing/font/font.hpp>``
+   ``#include <gui_forms/drawing/font/font.hpp>`` (:src:`source <include/gui_forms/drawing/font/font.hpp>`)
 
    Font retains validated UTF-8 family, bounded size, style bits, unit, and charset without exposing a platform font object.
 
@@ -1323,7 +1323,7 @@ Types
 
 .. cpp:struct:: FontFamilyResolution final
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    One request's answer. Every view points into the static table except ``requested``, which borrows the caller's string.
 
@@ -1357,7 +1357,7 @@ Types
 
 .. cpp:struct:: FontGateException final
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    A named exception (decisions 16 and 17): one style of a substitution may fail one criterion, within ``limit``, in the criterion's own unit. The gate fails an exception whose criterion passes, so stale exceptions surface.
 
@@ -1381,7 +1381,7 @@ Types
 
 .. cpp:struct:: FontSnapshot final
 
-   ``#include <gui_forms/drawing/font/font.hpp>``
+   ``#include <gui_forms/drawing/font/font.hpp>`` (:src:`source <include/gui_forms/drawing/font/font.hpp>`)
 
    FontSnapshot carries family, size, style bits, unit, and charset without a platform font handle.
 
@@ -1405,7 +1405,7 @@ Types
 
 .. cpp:struct:: FontSubstitution final
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    .. cpp:member:: std::string_view requested
 
@@ -1433,7 +1433,7 @@ Types
 
 .. cpp:class:: GraphicsPath final : public DrawingObject
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    GraphicsPath is a bounded retained vector-geometry state machine with explicit figure boundaries, line/quadratic/cubic/polygon/rectangle/ellipse/arc/pie vocabulary, affine transformation, hit testing, cloning, bounds, and immutable snapshots.
 
@@ -1540,7 +1540,7 @@ Types
 
    .. cpp:function:: PathFlattening flattened_size(double tolerance) const
 
-      Flattening: the path as polylines, every curve within ``tolerance`` of the polyline that replaces it. Provisional, numbered 0.8 of the drawing seam as a placeholder (the integrator assigns the real number in fold order); the C ABI's graphics_path_flatten and C#'s GraphicsPath.Flatten are the same operation. ``tolerance`` is a distance in the path's own coordinate units (the units its points are stored in, after any transform()): no point of a curve, arc or ellipse lies farther than ``tolerance`` from its chords (up to rounding). A caller drawing the path at scale s passes the device tolerance divided by s. It must be positive and finite, else std::invalid_argument is thrown. Figures follow the raster's reading of the elements: a line, curve or arc that does not start where the figure stands starts a new figure (an arc joins it with a straight edge instead, as Windows Forms' AddArc does); start_figure ends the figure open, close_figure ends it closed; a rectangle (clockwise from its top-left corner) and an ellipse (clockwise from its right-middle point) are closed figures of their own. Arc angles are the ellipse's parameter angles in degrees, as the raster draws them, with the sweep held to one turn either way. Lines keep their end points; a curve's last point is its end point exactly. A figure of fewer than two points is left out. flattened_size returns the counts flatten would write (status complete or limit_exceeded). flatten fills ``points`` and ``figures``, which the caller owns and sizes, and returns what it wrote. When either array is smaller than needed it writes nothing and returns the counts needed with status storage_too_small. The chord counts are a function of the tolerance and each element's geometry alone, so the two calls agree.
+      Flattening: the path as polylines, every curve within ``tolerance`` of the polyline that replaces it. Provisional, in the drawing ABI's 1.1 (GD_ABI_VERSION_1_1, outside the sealed 1.0); the C ABI's graphics_path_flatten and C#'s GraphicsPath.Flatten are the same operation. ``tolerance`` is a distance in the path's own coordinate units (the units its points are stored in, after any transform()): no point of a curve, arc or ellipse lies farther than ``tolerance`` from its chords (up to rounding). A caller drawing the path at scale s passes the device tolerance divided by s. It must be positive and finite, else std::invalid_argument is thrown. Figures follow the raster's reading of the elements: a line, curve or arc that does not start where the figure stands starts a new figure (an arc joins it with a straight edge instead, as Windows Forms' AddArc does); start_figure ends the figure open, close_figure ends it closed; a rectangle (clockwise from its top-left corner) and an ellipse (clockwise from its right-middle point) are closed figures of their own. Arc angles are the ellipse's parameter angles in degrees, as the raster draws them, with the sweep held to one turn either way. Lines keep their end points; a curve's last point is its end point exactly. A figure of fewer than two points is left out. flattened_size returns the counts flatten would write (status complete or limit_exceeded). flatten fills ``points`` and ``figures``, which the caller owns and sizes, and returns what it wrote. When either array is smaller than needed it writes nothing and returns the counts needed with status storage_too_small. The chord counts are a function of the tolerance and each element's geometry alone, so the two calls agree.
 
    .. cpp:function:: PathFlattening flatten(double tolerance, std::span<PointF> points, std::span<FlattenedFigure> figures) const
 
@@ -1556,7 +1556,7 @@ Types
 
 .. cpp:class:: GraphicsRecorder final : public DrawingObject
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    GraphicsRecorder is a bounded thread-affine command transaction with explicit save-token stack discipline, retained transform/clip/quality state, validated resource snapshots, deterministic trace output, and a terminal close phase.
 
@@ -1778,7 +1778,7 @@ Types
 
 .. cpp:struct:: GraphicsRecorder::TextItem final
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    One string of draw_strings: its text (lent for the call), its origin, and its colour.
 
@@ -1792,7 +1792,7 @@ Types
 
 .. cpp:struct:: GraphicsState final
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    GraphicsState is the complete transform, optional clip, smoothing, interpolation, pixel-offset, compositing, and compositing-quality state.
 
@@ -1824,7 +1824,7 @@ Types
 
 .. cpp:struct:: GraphicsStateToken final
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    GraphicsStateToken is the nonzero exact LIFO identity of one saved recorder state.
 
@@ -1834,7 +1834,7 @@ Types
 
 .. cpp:struct:: GridPatternStyle final
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    A world-aligned grid for GraphicsRecorder::fill_grid_pattern: lines ``spacing`` apart through ``origin`` (the recorder's coordinates), every ``major_every``-th line from the origin in ``major``, the rest in ``minor``, each ``line_width`` wide.
 
@@ -1860,7 +1860,7 @@ Types
 
 .. cpp:class:: HatchBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/hatch_brush.hpp>``
+   ``#include <gui_forms/drawing/brush/hatch_brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/hatch_brush.hpp>`)
 
    HatchBrush retains one validated hatch vocabulary value plus foreground/background colors.
 
@@ -1882,7 +1882,7 @@ Types
 
 .. cpp:class:: HostedClient final
 
-   ``#include <gui_forms/content/hosted/hosted_client.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_client.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_client.hpp>`)
 
 
    .. rubric:: Properties
@@ -1946,7 +1946,7 @@ Types
 
 .. cpp:struct:: HostedClientInput final
 
-   ``#include <gui_forms/content/hosted/hosted_client.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_client.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_client.hpp>`)
 
    One input event the parent forwarded. ``kind`` is key, text, pointer or focus and says which fields are set. They arrive in the order the surface received them (ContentSurface::start_hosted_content).
 
@@ -1968,7 +1968,7 @@ Types
 
 .. cpp:struct:: HostedConfigureRecord final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    The parent's request, as the child receives it.
 
@@ -1986,7 +1986,7 @@ Types
 
 .. cpp:struct:: HostedContent final
 
-   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_content.hpp>`)
 
    What make_hosted_content makes: the program to start on a ContentSurface, and the input channel to its process.
 
@@ -1998,7 +1998,7 @@ Types
 
 .. cpp:struct:: HostedContentOptions final
 
-   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_content.hpp>`)
 
    .. cpp:member:: FilePath executable
 
@@ -2024,7 +2024,7 @@ Types
 
 .. cpp:struct:: HostedFrameRecord final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    A frame in a slot: its shape (as ContentFrame) and damage, in the slot's pixels from the slot's first byte. 40 bytes on the wire: slot, width, height, opaque (u32 each), row_bytes (u64), damage x, y, width, height (u32 each).
 
@@ -2044,7 +2044,7 @@ Types
 
 .. cpp:struct:: HostedFrameView final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    The frame a record describes, over ``region`` (the whole mapped region of slot_count slots of slot_bytes each), validated before any pixel is read: the slot index, then validate_content_frame over exactly the slot's bytes. The view borrows ``region``, which must outlive it. On ``accepted``, ``frame`` views the frame's bytes in the slot; on ``refused_frame``, the whole slot (publishing it refuses it again, counted).
 
@@ -2062,7 +2062,7 @@ Types
 
 .. cpp:class:: HostedInput final
 
-   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_content.hpp>`)
 
    The application's end of the input channel: forwards input to the program, from the UI thread or any other. A send never waits: when the channel is full or the program is not running, the event is dropped and counted. Copies share one channel.
 
@@ -2107,7 +2107,7 @@ Types
 
 .. cpp:struct:: HostedKeyRecord final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    A key, as KeyEvent's numeric fields: action (u32), physical key (u32), modifiers (u32), repeat (u32, 0 or 1). 16 bytes.
 
@@ -2123,7 +2123,7 @@ Types
 
 .. cpp:struct:: HostedMessage final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    One message read from the channel. ``payload`` is owned.
 
@@ -2137,7 +2137,7 @@ Types
 
 .. cpp:class:: HostedMessageReader final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    Splits a byte stream into messages, checking each header before its payload is buffered. One reader per direction and thread. Its buffer grows to at most one header and one largest payload beyond what was fed and not yet read.
 
@@ -2170,7 +2170,7 @@ Types
 
 .. cpp:struct:: HostedPointerRecord final
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    A pointer event in the region's device pixels from its top left: action, button, modifiers, click count (u32 each), then x, y, wheel x, wheel y (f64 bits, u64 each). 48 bytes.
 
@@ -2194,7 +2194,7 @@ Types
 
 .. cpp:class:: ImageAttributes final : public DrawingObject
 
-   ``#include <gui_forms/drawing/image_attributes/image_attributes.hpp>``
+   ``#include <gui_forms/drawing/image_attributes/image_attributes.hpp>`` (:src:`source <include/gui_forms/drawing/image_attributes/image_attributes.hpp>`)
 
    ImageAttributes retains an optional finite 5x5 color matrix and bounded unique remap table under DrawingObject lifetime rules.
 
@@ -2232,7 +2232,7 @@ Types
 
 .. cpp:struct:: ImageAttributesSnapshot final
 
-   ``#include <gui_forms/drawing/image_attributes/image_attributes.hpp>``
+   ``#include <gui_forms/drawing/image_attributes/image_attributes.hpp>`` (:src:`source <include/gui_forms/drawing/image_attributes/image_attributes.hpp>`)
 
    ImageAttributesSnapshot owns optional 5x5 color-matrix state and a bounded remap table.
 
@@ -2246,7 +2246,7 @@ Types
 
 .. cpp:struct:: ImageAttributesSnapshot::ColorRemap final
 
-   ``#include <gui_forms/drawing/image_attributes/image_attributes.hpp>``
+   ``#include <gui_forms/drawing/image_attributes/image_attributes.hpp>`` (:src:`source <include/gui_forms/drawing/image_attributes/image_attributes.hpp>`)
 
    ColorRemap maps one exact authored color to another.
 
@@ -2258,7 +2258,7 @@ Types
 
 .. cpp:class:: ImageReference final : public DrawingObject
 
-   ``#include <gui_forms/drawing/image_reference/image_reference.hpp>``
+   ``#include <gui_forms/drawing/image_reference/image_reference.hpp>`` (:src:`source <include/gui_forms/drawing/image_reference/image_reference.hpp>`)
 
    ImageReference is renderer-neutral stable image identity and dimensions without pixel storage or backend handles.
 
@@ -2280,7 +2280,7 @@ Types
 
 .. cpp:struct:: ImageSnapshot final
 
-   ``#include <gui_forms/drawing/image_snapshot/image_snapshot.hpp>``
+   ``#include <gui_forms/drawing/image_snapshot/image_snapshot.hpp>`` (:src:`source <include/gui_forms/drawing/image_snapshot/image_snapshot.hpp>`)
 
    ImageSnapshot couples stable identity, dimensions, format, generation, and optional shared immutable pixels.
 
@@ -2315,7 +2315,7 @@ Types
 
 .. cpp:class:: LinearGradientBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/linear_gradient_brush.hpp>``
+   ``#include <gui_forms/drawing/brush/linear_gradient_brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/linear_gradient_brush.hpp>`)
 
    LinearGradientBrush retains bounded geometry, angle, wrap, and either factor-derived or explicit interpolation stops.
 
@@ -2352,7 +2352,7 @@ Types
 
 .. cpp:struct:: LinearSrgb final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    LinearSrgb carries normalized straight-alpha linear-light sRGB channels.
 
@@ -2370,7 +2370,7 @@ Types
 
 .. cpp:struct:: LiveDisplayTiming final
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    The display timing a presenter publishes after each present tick: data only, read by producers without the presenter's thread.
 
@@ -2390,7 +2390,7 @@ Types
 
 .. cpp:struct:: LivePacingResult final
 
-   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>``
+   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>`` (:src:`source <include/gui_forms/live_surface/pacer/live_surface_pacer.hpp>`)
 
    .. cpp:member:: LivePacingOutcome outcome
 
@@ -2414,7 +2414,7 @@ Types
 
 .. cpp:struct:: LivePresentationRecord final
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    What the presenter last reported for one surface (LiveSurface:: notify_presented).
 
@@ -2432,7 +2432,7 @@ Types
 
 .. cpp:struct:: LiveSurfaceDescription final
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    LiveSurfaceDescription declares positive bounded pixel dimensions, the admitted premultiplied-sRGB BGRA format, and a configurable two-to-eight-buffer pool whose default remains triple buffering.
 
@@ -2460,7 +2460,7 @@ Types
 
 .. cpp:class:: LiveSurfaceFrame final
 
-   ``#include <gui_forms/live_surface/frame/live_surface_frame.hpp>``
+   ``#include <gui_forms/live_surface/frame/live_surface_frame.hpp>`` (:src:`source <include/gui_forms/live_surface/frame/live_surface_frame.hpp>`)
 
    LiveSurfaceFrame is a move-only immutable lease over one completely published buffer, retaining pixels while the producer searches other unleased slots.
 
@@ -2522,7 +2522,7 @@ Types
 
 .. cpp:class:: LiveSurfacePacer final
 
-   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>``
+   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>`` (:src:`source <include/gui_forms/live_surface/pacer/live_surface_pacer.hpp>`)
 
    One producer's presentation clock (design note section 8, decision 7): paces a producer to the display through its presenter's reports (LiveSurface::notify_presented) and never to a free-running sleep, and keeps it going when the presenter stalls. Owned by the producer's thread; only arm() may be called from another. Holds the surface alive.
 
@@ -2563,7 +2563,7 @@ Types
 
 .. cpp:struct:: LiveSurfaceSnapshot final
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    LiveSurfaceSnapshot reports immutable configuration, epoch and generation identity, publish/drop/read counters, newest sampled generation, and current writer/frame availability.
 
@@ -2599,7 +2599,7 @@ Types
 
 .. cpp:class:: LiveSurfaceWakeConnection final
 
-   ``#include <gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp>``
+   ``#include <gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp>`` (:src:`source <include/gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp>`)
 
    LiveSurfaceWakeConnection is the move-only revocable ownership edge between a producer publication and a retained consumer's best-effort scheduling signal.
 
@@ -2632,7 +2632,7 @@ Types
 
 .. cpp:class:: LiveSurfaceWriteLease final
 
-   ``#include <gui_forms/live_surface/write_lease/live_surface_write_lease.hpp>``
+   ``#include <gui_forms/live_surface/write_lease/live_surface_write_lease.hpp>`` (:src:`source <include/gui_forms/live_surface/write_lease/live_surface_write_lease.hpp>`)
 
    LiveSurfaceWriteLease is a move-only exclusive producer candidate; publish commits complete pixels atomically, while destruction or abandon returns the slot without publishing.
 
@@ -2681,7 +2681,7 @@ Types
 
 .. cpp:struct:: MarkerStyle final
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    A marker centred on each point: ``size`` its full width, ``fill`` its inside, ``edge`` its outline (or lines) ``edge_width`` wide. An empty or transparent colour, or a zero edge width, draws nothing of that part.
 
@@ -2705,7 +2705,7 @@ Types
 
 .. cpp:class:: Matrix final
 
-   ``#include <gui_forms/drawing/matrix/matrix.hpp>``
+   ``#include <gui_forms/drawing/matrix/matrix.hpp>`` (:src:`source <include/gui_forms/drawing/matrix/matrix.hpp>`)
 
    Matrix is an immutable-value 2D affine transform with finite validation, point/bounds transformation, explicit composition order, and inspectable coefficients.
 
@@ -2778,7 +2778,7 @@ Types
 
 .. cpp:struct:: Oklab final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    Oklab carries perceptual lightness/opponent axes plus straight alpha.
 
@@ -2796,7 +2796,7 @@ Types
 
 .. cpp:struct:: Oklch final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    Oklch carries perceptual lightness, nonnegative chroma, degree hue, and straight alpha.
 
@@ -2814,7 +2814,7 @@ Types
 
 .. cpp:struct:: OklchGamutMapping final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    OklchGamutMapping preserves requested and deterministic 24-iteration chroma-reduced OKLCH plus its committed sRGB conversion.
 
@@ -2828,7 +2828,7 @@ Types
 
 .. cpp:class:: PaintFramebuffer
 
-   ``#include <gui_forms/paint_framebuffer.hpp>``
+   ``#include <gui_forms/paint_framebuffer.hpp>`` (:src:`source <include/gui_forms/paint_framebuffer.hpp>`)
 
    Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer). One thread uses it at a time: the maker, or the one it hands it to whole, which then alone uses and destroys it (a sub-surface's thread, SubSurfaceConfiguration). Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime; pixels() is a borrowed view stamped by the framebuffer (an implementation lends it from a detail::BorrowLender it keeps), so the sanitizer tree reports a use after the framebuffer died.
 
@@ -2853,7 +2853,7 @@ Types
 
 .. cpp:struct:: PathElement final
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    PathElement is the closed storage record for one retained figure/path verb and its relevant points, bounds, and angles.
 
@@ -2877,7 +2877,7 @@ Types
 
 .. cpp:struct:: PathFlattening final
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    What a flattening needs or wrote: the points and figures, and the status.
 
@@ -2893,7 +2893,7 @@ Types
 
 .. cpp:class:: PathGradientBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/path_gradient_brush.hpp>``
+   ``#include <gui_forms/drawing/brush/path_gradient_brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/path_gradient_brush.hpp>`)
 
    PathGradientBrush retains a bounded point boundary, center, center/surround colors, wrap policy, and optional interpolation stops.
 
@@ -2934,7 +2934,7 @@ Types
 
 .. cpp:struct:: PathSnapshot final
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    PathSnapshot couples fill rule and immutable ordered PathElement storage.
 
@@ -2948,7 +2948,7 @@ Types
 
 .. cpp:class:: Pen final : public DrawingObject
 
-   ``#include <gui_forms/drawing/pen/pen.hpp>``
+   ``#include <gui_forms/drawing/pen/pen.hpp>`` (:src:`source <include/gui_forms/drawing/pen/pen.hpp>`)
 
    Pen is a disposable stroke recipe with bounded positive width and closed or validated custom dash policy.
 
@@ -2999,7 +2999,7 @@ Types
 
 .. cpp:struct:: PenSnapshot final
 
-   ``#include <gui_forms/drawing/pen/pen.hpp>``
+   ``#include <gui_forms/drawing/pen/pen.hpp>`` (:src:`source <include/gui_forms/drawing/pen/pen.hpp>`)
 
    PenSnapshot carries immutable color, width, dash vocabulary, and optional custom dash sequence.
 
@@ -3043,7 +3043,7 @@ Types
 
 .. cpp:struct:: PointF final
 
-   ``#include <gui_forms/drawing/geometry/point_f/point_f.hpp>``
+   ``#include <gui_forms/drawing/geometry/point_f/point_f.hpp>`` (:src:`source <include/gui_forms/drawing/geometry/point_f/point_f.hpp>`)
 
    PointF is a finite logical-coordinate pair.
 
@@ -3062,7 +3062,7 @@ Types
 
 .. cpp:struct:: PointI final
 
-   ``#include <gui_forms/drawing/geometry/point_i/point_i.hpp>``
+   ``#include <gui_forms/drawing/geometry/point_i/point_i.hpp>`` (:src:`source <include/gui_forms/drawing/geometry/point_i/point_i.hpp>`)
 
    PointI is a signed integer pixel-coordinate pair.
 
@@ -3081,7 +3081,7 @@ Types
 
 .. cpp:class:: RadialGradientBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/radial_gradient_brush.hpp>``
+   ``#include <gui_forms/drawing/brush/radial_gradient_brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/radial_gradient_brush.hpp>`)
 
    A radial gradient (owner, 2026-11-16: added to the drawing table before the seal). The colour at a point is the blend's colour at the offset t whose circle passes through it: the circle of radius t * radius centred at focus + t * (center - focus). Position 0 is the focus, position 1 the circle of ``radius`` about ``center``; with the focus at the centre (the default) t is the distance from the centre over the radius. The circle may be an ellipse (set_radii, owner 2026-11-16): ``radius`` across and ``radius_y`` down, every circle above then the ellipse of those radii scaled by t. Past position 1 the wrap mode repeats the blend (tile), reflects it (the three flips) or holds its last colour (clamp, the default). The blend holds 2 through 4096 colours at ascending positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors requires; the default is ``center_color`` to ``edge_color``. Colours interpolate premultiplied, in sRGB-encoded values, as every gradient does (the blending rule).
 
@@ -3116,7 +3116,7 @@ Types
 
 .. cpp:struct:: RecorderRasterResult final
 
-   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>`` (:src:`source <include/gui_forms/drawing/recorder_raster/recorder_raster.hpp>`)
 
    .. cpp:member:: RecorderRasterStatus status
 
@@ -3130,7 +3130,7 @@ Types
 
 .. cpp:struct:: RectF final
 
-   ``#include <gui_forms/drawing/geometry/rect_f/rect_f.hpp>``
+   ``#include <gui_forms/drawing/geometry/rect_f/rect_f.hpp>`` (:src:`source <include/gui_forms/drawing/geometry/rect_f/rect_f.hpp>`)
 
    RectF provides validated finite logical containment, intersection, union, translation, and inflation.
 
@@ -3208,7 +3208,7 @@ Types
 
 .. cpp:struct:: RectI final
 
-   ``#include <gui_forms/drawing/geometry/rect_i/rect_i.hpp>``
+   ``#include <gui_forms/drawing/geometry/rect_i/rect_i.hpp>`` (:src:`source <include/gui_forms/drawing/geometry/rect_i/rect_i.hpp>`)
 
    RectI provides overflow-aware integer pixel containment, intersection, union, translation, and inflation.
 
@@ -3282,7 +3282,7 @@ Types
 
 .. cpp:class:: Region final : public DrawingObject
 
-   ``#include <gui_forms/drawing/region/region.hpp>``
+   ``#include <gui_forms/drawing/region/region.hpp>`` (:src:`source <include/gui_forms/drawing/region/region.hpp>`)
 
    Region is a retained union of rectangles and path snapshots with explicit rectangular exclusions, deterministic visibility, and conservative bounds.
 
@@ -3331,7 +3331,7 @@ Types
 
 .. cpp:struct:: RegionSnapshot final
 
-   ``#include <gui_forms/drawing/region/region.hpp>``
+   ``#include <gui_forms/drawing/region/region.hpp>`` (:src:`source <include/gui_forms/drawing/region/region.hpp>`)
 
    RegionSnapshot owns rectangle/path union parts and rectangular exclusions.
 
@@ -3345,7 +3345,7 @@ Types
 
 .. cpp:struct:: SizeF final
 
-   ``#include <gui_forms/drawing/geometry/size_f/size_f.hpp>``
+   ``#include <gui_forms/drawing/geometry/size_f/size_f.hpp>`` (:src:`source <include/gui_forms/drawing/geometry/size_f/size_f.hpp>`)
 
    SizeF carries logical width and height.
 
@@ -3357,7 +3357,7 @@ Types
 
 .. cpp:struct:: SizeI final
 
-   ``#include <gui_forms/drawing/geometry/size_i/size_i.hpp>``
+   ``#include <gui_forms/drawing/geometry/size_i/size_i.hpp>`` (:src:`source <include/gui_forms/drawing/geometry/size_i/size_i.hpp>`)
 
    SizeI carries signed integer width and height.
 
@@ -3369,7 +3369,7 @@ Types
 
 .. cpp:class:: SolidBrush final : public Brush
 
-   ``#include <gui_forms/drawing/brush/brush.hpp>``
+   ``#include <gui_forms/drawing/brush/brush.hpp>`` (:src:`source <include/gui_forms/drawing/brush/brush.hpp>`)
 
    SolidBrush retains one color under DrawingObject lifetime and thread-affinity rules.
 
@@ -3398,7 +3398,7 @@ Types
 
 .. cpp:struct:: SrgbConversion final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    SrgbConversion couples committed 8-bit sRGB, the source linear value, and exact in-gamut/clipping diagnostics.
 
@@ -3414,7 +3414,7 @@ Types
 
 .. cpp:class:: StringFormat final : public DrawingObject
 
-   ``#include <gui_forms/drawing/string_format/string_format.hpp>``
+   ``#include <gui_forms/drawing/string_format/string_format.hpp>`` (:src:`source <include/gui_forms/drawing/string_format/string_format.hpp>`)
 
    StringFormat retains renderer-neutral alignment, line alignment, trimming, and compatibility flags.
 
@@ -3463,7 +3463,7 @@ Types
 
 .. cpp:struct:: StringFormatSnapshot final
 
-   ``#include <gui_forms/drawing/string_format/string_format.hpp>``
+   ``#include <gui_forms/drawing/string_format/string_format.hpp>`` (:src:`source <include/gui_forms/drawing/string_format/string_format.hpp>`)
 
    StringFormatSnapshot carries horizontal/line alignment, trimming, and compatibility flags.
 
@@ -3485,7 +3485,7 @@ Types
 
 .. cpp:struct:: SystemPalette final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    SystemPalette is the renderer-neutral compatibility control/light/text color triplet.
 
@@ -3505,7 +3505,7 @@ Types
 
 .. cpp:class:: TextMetricsProvider
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    TextMetricsProvider isolates renderer-specific measurement behind renderer-neutral UTF-8, font, and format snapshots.
 
@@ -3520,7 +3520,7 @@ Types
 
 .. cpp:class:: TextureBrush final : public Brush
 
-   ``#include <gui_forms/drawing/texture_brush/texture_brush.hpp>``
+   ``#include <gui_forms/drawing/texture_brush/texture_brush.hpp>`` (:src:`source <include/gui_forms/drawing/texture_brush/texture_brush.hpp>`)
 
    TextureBrush retains an immutable bitmap/image snapshot plus wrap policy and affine texture transform, so later source mutation cannot alter an authored brush unexpectedly.
 
@@ -3580,7 +3580,7 @@ Types
 
 .. cpp:struct:: XyzD65 final
 
-   ``#include <gui_forms/drawing/color/color.hpp>``
+   ``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
    XyzD65 carries normalized CIE XYZ D65 coordinates plus straight alpha.
 
@@ -3601,7 +3601,7 @@ Enumerations
 
 .. cpp:enum-class:: BitmapLockMode
 
-   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>``
+   ``#include <gui_forms/drawing/bitmap/bitmap.hpp>`` (:src:`source <include/gui_forms/drawing/bitmap/bitmap.hpp>`)
 
    .. cpp:enumerator:: read
 
@@ -3613,7 +3613,7 @@ Enumerations
 
 .. cpp:enum-class:: BrushKind
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: solid
 
@@ -3635,7 +3635,7 @@ Enumerations
 
 .. cpp:enum-class:: CommandKind
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    .. cpp:enumerator:: save
 
@@ -3691,7 +3691,7 @@ Enumerations
 
 .. cpp:enum-class:: CompositingMode
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: source_over
 
@@ -3701,7 +3701,7 @@ Enumerations
 
 .. cpp:enum-class:: CompositingQuality
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: default_mode
 
@@ -3717,7 +3717,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentLayoutResult
 
-   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
    .. cpp:enumerator:: accepted
 
@@ -3739,7 +3739,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentPublishResult
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    .. cpp:enumerator:: published
 
@@ -3765,7 +3765,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentSemanticsResult
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    .. cpp:enumerator:: published
 
@@ -3779,7 +3779,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentSurfaceStatus
 
-   ``#include <gui_forms/content/types/content_types.hpp>``
+   ``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
    .. cpp:enumerator:: disconnected
 
@@ -3801,7 +3801,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentWatchdogVerdict
 
-   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>`` (:src:`source <include/gui_forms/content/watchdog/content_watchdog.hpp>`)
 
    .. cpp:enumerator:: unchanged
 
@@ -3813,7 +3813,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentWorkerState
 
-   ``#include <gui_forms/content/operation/content_operation.hpp>``
+   ``#include <gui_forms/content/operation/content_operation.hpp>`` (:src:`source <include/gui_forms/content/operation/content_operation.hpp>`)
 
    .. cpp:enumerator:: running
 
@@ -3827,7 +3827,7 @@ Enumerations
 
 .. cpp:enum-class:: DashStyle
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: solid
 
@@ -3845,7 +3845,7 @@ Enumerations
 
 .. cpp:enum-class:: FillDirection
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: left_to_right
 
@@ -3859,7 +3859,7 @@ Enumerations
 
 .. cpp:enum-class:: FillMode
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: alternate
 
@@ -3869,7 +3869,7 @@ Enumerations
 
 .. cpp:enum-class:: FontFaceStyle
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    .. cpp:enumerator:: regular
 
@@ -3883,7 +3883,7 @@ Enumerations
 
 .. cpp:enum-class:: FontGateCriterion
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    .. cpp:enumerator:: advances
 
@@ -3897,7 +3897,7 @@ Enumerations
 
 .. cpp:enum-class:: FontMappingClass
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3909,7 +3909,7 @@ Enumerations
 
 .. cpp:enum-class:: FontResolutionSource
 
-   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+   ``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
    .. cpp:enumerator:: bundled
 
@@ -3929,7 +3929,7 @@ Enumerations
 
 .. cpp:enum-class:: FontStyle
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: regular
 
@@ -3945,7 +3945,7 @@ Enumerations
 
 .. cpp:enum-class:: GraphicsUnit
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: world
 
@@ -3965,7 +3965,7 @@ Enumerations
 
 .. cpp:enum-class:: HatchStyle
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -3983,7 +3983,7 @@ Enumerations
 
 .. cpp:enum-class:: HostedContentSupport
 
-   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_content.hpp>`)
 
    .. cpp:enumerator:: available
 
@@ -3993,7 +3993,7 @@ Enumerations
 
 .. cpp:enum-class:: HostedFrameCheck
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    .. cpp:enumerator:: accepted
 
@@ -4005,7 +4005,7 @@ Enumerations
 
 .. cpp:enum-class:: HostedMessageKind
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    .. cpp:enumerator:: hello
 
@@ -4035,7 +4035,7 @@ Enumerations
 
 .. cpp:enum-class:: HostedReadResult
 
-   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
    .. cpp:enumerator:: message
 
@@ -4051,7 +4051,7 @@ Enumerations
 
 .. cpp:enum-class:: InterpolationMode
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: default_mode
 
@@ -4073,7 +4073,7 @@ Enumerations
 
 .. cpp:enum-class:: LineCap
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: flat
 
@@ -4085,7 +4085,7 @@ Enumerations
 
 .. cpp:enum-class:: LineJoin
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: miter
 
@@ -4097,7 +4097,7 @@ Enumerations
 
 .. cpp:enum-class:: LivePacingOutcome
 
-   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>``
+   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>`` (:src:`source <include/gui_forms/live_surface/pacer/live_surface_pacer.hpp>`)
 
    .. cpp:enumerator:: frame
 
@@ -4111,7 +4111,7 @@ Enumerations
 
 .. cpp:enum-class:: LiveSurfaceOrigin
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    .. cpp:enumerator:: producer
 
@@ -4121,7 +4121,7 @@ Enumerations
 
 .. cpp:enum-class:: LiveSurfacePixelFormat
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    .. cpp:enumerator:: bgra32_premultiplied_srgb
 
@@ -4129,7 +4129,7 @@ Enumerations
 
 .. cpp:enum-class:: LiveTimingSource
 
-   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4143,7 +4143,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkerShape
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: circle
 
@@ -4169,7 +4169,7 @@ Enumerations
 
 .. cpp:enum-class:: ObjectState
 
-   ``#include <gui_forms/drawing/object/drawing_object.hpp>``
+   ``#include <gui_forms/drawing/object/drawing_object.hpp>`` (:src:`source <include/gui_forms/drawing/object/drawing_object.hpp>`)
 
    .. cpp:enumerator:: alive
 
@@ -4181,7 +4181,7 @@ Enumerations
 
 .. cpp:enum-class:: PathFlatteningStatus
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    .. cpp:enumerator:: complete
 
@@ -4193,7 +4193,7 @@ Enumerations
 
 .. cpp:enum-class:: PathVerb
 
-   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_path/graphics_path.hpp>`)
 
    .. cpp:enumerator:: start_figure
 
@@ -4215,7 +4215,7 @@ Enumerations
 
 .. cpp:enum-class:: PixelFormat
 
-   ``#include <gui_forms/drawing/types/pixel_format/pixel_format.hpp>``
+   ``#include <gui_forms/drawing/types/pixel_format/pixel_format.hpp>`` (:src:`source <include/gui_forms/drawing/types/pixel_format/pixel_format.hpp>`)
 
    .. cpp:enumerator:: bgra32_premultiplied
 
@@ -4223,7 +4223,7 @@ Enumerations
 
 .. cpp:enum-class:: PixelOffsetMode
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: default_mode
 
@@ -4239,7 +4239,7 @@ Enumerations
 
 .. cpp:enum-class:: RecorderRasterStatus
 
-   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>`` (:src:`source <include/gui_forms/drawing/recorder_raster/recorder_raster.hpp>`)
 
    .. cpp:enumerator:: executed
 
@@ -4259,7 +4259,7 @@ Enumerations
 
 .. cpp:enum-class:: SmoothingMode
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: default_mode
 
@@ -4275,7 +4275,7 @@ Enumerations
 
 .. cpp:enum-class:: StringAlignment
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: start
 
@@ -4287,7 +4287,7 @@ Enumerations
 
 .. cpp:enum-class:: StringTrimming
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4305,7 +4305,7 @@ Enumerations
 
 .. cpp:enum-class:: TriangleFillStatus
 
-   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`` (:src:`source <include/gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>`)
 
    .. cpp:enumerator:: recorded
 
@@ -4325,7 +4325,7 @@ Enumerations
 
 .. cpp:enum-class:: WrapMode
 
-   ``#include <gui_forms/drawing/types/drawing_types.hpp>``
+   ``#include <gui_forms/drawing/types/drawing_types.hpp>`` (:src:`source <include/gui_forms/drawing/types/drawing_types.hpp>`)
 
    .. cpp:enumerator:: tile
 
@@ -4342,7 +4342,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/content/editing/content_text_layout.hpp>``
+``#include <gui_forms/content/editing/content_text_layout.hpp>`` (:src:`source <include/gui_forms/content/editing/content_text_layout.hpp>`)
 
 .. cpp:function:: ContentQuad map_content_box(const ContentLayoutTransform& transform, Rect box) noexcept
 
@@ -4360,7 +4360,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/content/hosted/hosted_content.hpp>``
+``#include <gui_forms/content/hosted/hosted_content.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_content.hpp>`)
 
 .. cpp:function:: HostedContentSupport hosted_content_support() noexcept
 
@@ -4378,7 +4378,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+``#include <gui_forms/content/hosted/hosted_protocol.hpp>`` (:src:`source <include/gui_forms/content/hosted/hosted_protocol.hpp>`)
 
 .. cpp:function:: std::string_view hosted_message_kind_name(HostedMessageKind kind) noexcept
 
@@ -4506,7 +4506,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/content/operation/content_operation.hpp>``
+``#include <gui_forms/content/operation/content_operation.hpp>`` (:src:`source <include/gui_forms/content/operation/content_operation.hpp>`)
 
 .. cpp:function:: std::string_view content_worker_state_name(ContentWorkerState state) noexcept
 
@@ -4524,7 +4524,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/content/types/content_types.hpp>``
+``#include <gui_forms/content/types/content_types.hpp>`` (:src:`source <include/gui_forms/content/types/content_types.hpp>`)
 
 .. cpp:function:: std::string_view content_publish_result_name(ContentPublishResult result) noexcept
 
@@ -4562,7 +4562,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+``#include <gui_forms/content/watchdog/content_watchdog.hpp>`` (:src:`source <include/gui_forms/content/watchdog/content_watchdog.hpp>`)
 
 .. cpp:var:: constexpr FrameInterval default_content_stale_interval
 
@@ -4574,7 +4574,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_drawing
 
-``#include <gui_forms/drawing/color/color.hpp>``
+``#include <gui_forms/drawing/color/color.hpp>`` (:src:`source <include/gui_forms/drawing/color/color.hpp>`)
 
 .. cpp:function:: LinearSrgb srgb_to_linear(Color color)
 
@@ -4614,7 +4614,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>`` (:src:`source <include/gui_forms/drawing/drawing_replay/drawing_replay.hpp>`)
 
 .. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter)
 
@@ -4626,7 +4626,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_drawing
 
-``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>``
+``#include <gui_forms/drawing/font_substitution/font_substitution.hpp>`` (:src:`source <include/gui_forms/drawing/font_substitution/font_substitution.hpp>`)
 
 .. cpp:function:: FontFaceStyle font_face_style(std::uint32_t font_style) noexcept
 
@@ -4656,7 +4656,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_drawing
 
-``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>`` (:src:`source <include/gui_forms/drawing/recorder_raster/recorder_raster.hpp>`)
 
 .. cpp:function:: RecorderRasterResult execute_recorder(const GraphicsRecorder& recorder, Bitmap& target, std::uint64_t first_command) noexcept
 
@@ -4664,7 +4664,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+``#include <gui_forms/live_surface/types/live_surface_types.hpp>`` (:src:`source <include/gui_forms/live_surface/types/live_surface_types.hpp>`)
 
 .. cpp:function:: LiveSurfacePixelFormat native_live_surface_pixel_format() noexcept
 

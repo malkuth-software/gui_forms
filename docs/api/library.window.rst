@@ -256,7 +256,7 @@ Related types
 
 .. cpp:struct:: AcceleratorOptions final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active overlay/focus scopes retain first refusal.
 
@@ -268,7 +268,7 @@ Related types
 
 .. cpp:class:: AcceleratorToken final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
 
@@ -301,7 +301,7 @@ Related types
 
 .. cpp:struct:: AlertRequest final
 
-   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>`` (:src:`source <include/gui_forms/surface_root/requests/surface_requests.hpp>`)
 
    One alert: a message the user acknowledges by choosing one of its buttons, its content as data. The deciding window shows its alerts modally, one at a time, in the order they were raised.
 
@@ -329,7 +329,7 @@ Related types
 
 .. cpp:struct:: AllocationCounts final
 
-   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>`` (:src:`source <include/gui_forms/allocation/statistics/allocation_statistics.hpp>`)
 
    One subsystem's counts. allocated_bytes - released_bytes is the bytes the subsystem holds now, when the counts are process-wide and read from a quiet process; over a scope it is the net change on one thread.
 
@@ -345,7 +345,7 @@ Related types
 
 .. cpp:struct:: AllocationStatistics final
 
-   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>`` (:src:`source <include/gui_forms/allocation/statistics/allocation_statistics.hpp>`)
 
 
    .. rubric:: Properties
@@ -373,7 +373,7 @@ Related types
 
 .. cpp:struct:: BackdropChain final
 
-   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>`` (:src:`source <include/gui_forms/window/backdrop/backdrop_chain.hpp>`)
 
    The chain: ``length`` live operations, applied in order, in a fixed array.
 
@@ -396,7 +396,7 @@ Related types
 
 .. cpp:struct:: BackdropChainResolution final
 
-   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>`` (:src:`source <include/gui_forms/window/backdrop/backdrop_chain.hpp>`)
 
    How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
 
@@ -428,7 +428,7 @@ Related types
 
 .. cpp:struct:: BackdropOperation final
 
-   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>`` (:src:`source <include/gui_forms/window/backdrop/backdrop_chain.hpp>`)
 
 
    .. rubric:: Methods
@@ -455,7 +455,7 @@ Related types
 
 .. cpp:struct:: BlendFrameCounters final
 
-   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
    One painted frame's counts, or a sum of frames' (add_blend_frame). Pixel counts are device pixels; a pixel written twice counts twice.
 
@@ -495,7 +495,7 @@ Related types
 
 .. cpp:struct:: BlendHeatMapView final
 
-   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
    A window's planes as the last counted frames left them, borrowed from the window until its next paint: ``height`` rows of ``width`` bytes each, depth (saturating at 255) and class (blend_class_* bits). A pixel outside every painted rectangle keeps what the frame that last painted it left.
 
@@ -515,7 +515,7 @@ Related types
 
 .. cpp:class:: BlendStudyPlanes final
 
-   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
    The planes and the frame's counts (owned by the window while its study is on). The kernels take device rectangles already inside the planes; the window's walk of the frame's commands clips them (count_display_blend). UI thread, as the window.
 
@@ -571,7 +571,7 @@ Related types
 
 .. cpp:struct:: BlendStudySnapshot final
 
-   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
    A window's study: its mode, the frames counted since the window was made or reset_blend_study, the last of them and their sum.
 
@@ -589,7 +589,7 @@ Related types
 
 .. cpp:struct:: CaretSettings final
 
-   ``#include <gui_forms/window/presentation/input_settings.hpp>``
+   ``#include <gui_forms/window/presentation/input_settings.hpp>`` (:src:`source <include/gui_forms/window/presentation/input_settings.hpp>`)
 
    How a text caret blinks (audit N75): blink_milliseconds is one phase, the time the caret stays shown or hidden before it toggles; 0 means the caret never blinks and stays shown (the user turned blinking off). Sources: Windows GetCaretBlinkTime (INFINITE is 0), X11 XSettings Net/CursorBlink and Net/CursorBlinkTime (a whole cycle, halved), macOS the NSTextInsertionPointBlinkPeriodOn default where set.
 
@@ -605,7 +605,7 @@ Related types
 
 .. cpp:struct:: ColourSchemeSet final
 
-   ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+   ``#include <gui_forms/window/presentation/colour_scheme.hpp>`` (:src:`source <include/gui_forms/window/presentation/colour_scheme.hpp>`)
 
    The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them. Light alone by default. A set with neither is invalid (Theme::create refuses it).
 
@@ -624,7 +624,7 @@ Related types
 
 .. cpp:struct:: ControlAvailabilityChange final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
 
@@ -640,7 +640,7 @@ Related types
 
 .. cpp:struct:: ControlCaptureOptions final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    What Window::capture_control draws (owner request 2026-11-11, the theme palette): one control and its descendants as the window lays them out.
 
@@ -664,7 +664,7 @@ Related types
 
 .. cpp:struct:: ControlLookup final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
 
@@ -678,7 +678,7 @@ Related types
 
 .. cpp:struct:: ControlSnapshot final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    .. cpp:member:: ImageId image
 
@@ -694,7 +694,7 @@ Related types
 
 .. cpp:struct:: DeferredInputSnapshot final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    DeferredInputSnapshot preserves the route, transformed event, and target identity required to resume deferred input safely.
 
@@ -728,7 +728,7 @@ Related types
 
 .. cpp:struct:: DevicePixelRect final
 
-   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
    A rectangle of whole device pixels: [left, right) by [top, bottom).
 
@@ -744,7 +744,7 @@ Related types
 
 .. cpp:struct:: DialogKeySnapshot final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    DialogKeySnapshot reports mnemonic/default/cancel attempts and outcomes plus candidate, collision, cycle, and rejection counts.
 
@@ -772,7 +772,7 @@ Related types
 
 .. cpp:class:: DispatchCancelledError final : public std::runtime_error
 
-   ``#include <gui_forms/dispatcher/operation/dispatch_operation.hpp>``
+   ``#include <gui_forms/dispatcher/operation/dispatch_operation.hpp>`` (:src:`source <include/gui_forms/dispatcher/operation/dispatch_operation.hpp>`)
 
    DispatchCancelledError is the stable synchronous-Invoke failure raised when posted work is revoked before execution.
 
@@ -787,7 +787,7 @@ Related types
 
 .. cpp:struct:: DispatchDrainResult final
 
-   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>``
+   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>`` (:src:`source <include/gui_forms/dispatcher/types/dispatcher_types.hpp>`)
 
    DispatchDrainResult reports one bounded UI dispatch turn: invoked, cancelled, faulted, remaining, and whether a wake is armed.
 
@@ -805,7 +805,7 @@ Related types
 
 .. cpp:struct:: DispatcherSnapshot final
 
-   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>``
+   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>`` (:src:`source <include/gui_forms/dispatcher/types/dispatcher_types.hpp>`)
 
    DispatcherSnapshot is the thread-safe lifetime telemetry for posting, outcomes, wake coalescing, synchronous invocation paths, queue bounds, acceptance, and pending wake state.
 
@@ -843,7 +843,7 @@ Related types
 
 .. cpp:class:: DispatchOperation final
 
-   ``#include <gui_forms/dispatcher/operation/dispatch_operation.hpp>``
+   ``#include <gui_forms/dispatcher/operation/dispatch_operation.hpp>`` (:src:`source <include/gui_forms/dispatcher/operation/dispatch_operation.hpp>`)
 
    DispatchOperation observes and explicitly cancels one bounded FIFO work record; dropping it does not cancel fire-and-forget work.
 
@@ -888,7 +888,7 @@ Related types
 
 .. cpp:struct:: DisplayChunkInfo final
 
-   ``#include <gui_forms/display/types/display_types.hpp>``
+   ``#include <gui_forms/display/types/display_types.hpp>`` (:src:`source <include/gui_forms/display/types/display_types.hpp>`)
 
    DisplayChunkInfo exposes immutable generation, paint plane, logical bounds, and command count for one retained recording without exposing its private commands.
 
@@ -906,7 +906,7 @@ Related types
 
 .. cpp:struct:: FocusedControlChange final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    Focus moved from one control to another (or to or from none) through request_focus. ``previous_id`` and ``current_id`` are zero for none; ``stable_id`` is the newly focused control's, or empty.
 
@@ -920,7 +920,7 @@ Related types
 
 .. cpp:struct:: FocusScopeChange final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    FocusScopeChange publishes exact scope/root identity, depth, close reason, direction, and restoration outcome.
 
@@ -944,7 +944,7 @@ Related types
 
 .. cpp:struct:: FocusScopeId final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    FocusScopeId is a nonzero monotonically assigned transient-containment identity.
 
@@ -954,7 +954,7 @@ Related types
 
 .. cpp:struct:: FocusScopeOptions final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    FocusScopeOptions independently controls containment, prior-focus restoration, and first-descendant focus on open.
 
@@ -974,7 +974,7 @@ Related types
 
 .. cpp:struct:: FramePollResult final
 
-   ``#include <gui_forms/scheduler/types/scheduler_types.hpp>``
+   ``#include <gui_forms/scheduler/types/scheduler_types.hpp>`` (:src:`source <include/gui_forms/scheduler/types/scheduler_types.hpp>`)
 
    FramePollResult reports deadline, motion-clock, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
 
@@ -1000,7 +1000,7 @@ Related types
 
 .. cpp:class:: FrameRequestToken final
 
-   ``#include <gui_forms/scheduler/frame_request_token/frame_request_token.hpp>``
+   ``#include <gui_forms/scheduler/frame_request_token/frame_request_token.hpp>`` (:src:`source <include/gui_forms/scheduler/frame_request_token/frame_request_token.hpp>`)
 
    FrameRequestToken is move-only revocable ownership of one Window frame request, with destruction providing deterministic cancellation.
 
@@ -1033,7 +1033,7 @@ Related types
 
 .. cpp:struct:: HeldKey final
 
-   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>`` (:src:`source <include/gui_forms/window/interaction/interaction_snapshot.hpp>`)
 
    One held physical key (a USB HID usage, PhysicalKey) and when it went down, in the window's input time (InputTimeSource).
 
@@ -1045,7 +1045,7 @@ Related types
 
 .. cpp:class:: InputTimeSource
 
-   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>`` (:src:`source <include/gui_forms/window/interaction/interaction_snapshot.hpp>`)
 
    Where the window's input state reads the time of an input event (a held key's press time, the start of a hover). Steady-clock time unless a source is installed: tests install one so that times are theirs. Its times must be in the same domain as the times the window is polled with (SurfaceRoot::poll_frame_schedule), which wakes a pending hover.
 
@@ -1058,7 +1058,7 @@ Related types
 
 .. cpp:struct:: InteractionSnapshot final
 
-   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+   ``#include <gui_forms/window/interaction/interaction_snapshot.hpp>`` (:src:`source <include/gui_forms/window/interaction/interaction_snapshot.hpp>`)
 
    The state at the moment of the copy. The four controls are read from the window's own registries (focus, capture, press and hover), not kept a second time; a zero RuntimeId means none. The pointer fields hold the last pointer event the window dispatched; ``pointer_inside`` turns false on the pointer's leave, and ``last_click_count`` is the click count the host reported for the last press. A window that has dispatched no input reports empty input fields.
 
@@ -1102,7 +1102,7 @@ Related types
 
 .. cpp:struct:: InvalidationOutline final
 
-   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
    One presented area: its bounds in window logical units, its cause, the control that caused it where known (its stable id; empty otherwise), and when it was presented.
 
@@ -1120,7 +1120,7 @@ Related types
 
 .. cpp:struct:: InvalidationOutlineStyle final
 
-   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
    A cause's outline: its colour, its stroke width in logical units, its dash and gap lengths in logical units (no dash: solid), and whether it is drawn as two parallel lines.
 
@@ -1138,7 +1138,7 @@ Related types
 
 .. cpp:class:: InvalidationOverlay final
 
-   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
    A window's live outlines. Owned by the window (SurfaceRoot), on its UI thread; the host reads it there to composite.
 
@@ -1190,7 +1190,7 @@ Related types
 
 .. cpp:struct:: InvalidationOverlayTarget final
 
-   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
    A frame's pixels the overlay composites onto: ``height`` rows of ``width`` premultiplied BGRA pixels, ``row_bytes`` apart. Borrowed for the call.
 
@@ -1206,7 +1206,7 @@ Related types
 
 .. cpp:struct:: KeyGesture final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
 
@@ -1220,7 +1220,7 @@ Related types
 
 .. cpp:class:: LiveSurfacePairingListener
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/window/window.hpp>`` (:src:`source <include/gui_forms/window/window.hpp>`)
 
    Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag. Called on the window's thread only, through the window's dispatcher, never inside the present path that found it; a listener the control released first receives nothing.
 
@@ -1233,7 +1233,7 @@ Related types
 
 .. cpp:struct:: LiveSurfacePresentation final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment.
 
@@ -1269,7 +1269,7 @@ Related types
 
 .. cpp:struct:: NativePopupOptions final
 
-   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>`` (:src:`source <include/gui_forms/window/native_popup/native_popup.hpp>`)
 
    .. cpp:member:: HostPopupFocus focus
 
@@ -1287,7 +1287,7 @@ Related types
 
 .. cpp:class:: NativePopupToken final
 
-   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>`` (:src:`source <include/gui_forms/window/native_popup/native_popup.hpp>`)
 
    Keeps one popup open (Window::open_native_popup). Destroying or disconnecting the token closes the popup, as does the death of the control that opened it or the closing of its window by the host. UI thread only.
 
@@ -1334,7 +1334,7 @@ Related types
 
 .. cpp:class:: OffscreenAttachment final
 
-   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`` (:src:`source <include/gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`)
 
    While it lives, :cpp:func:`window <gui_forms::OffscreenAttachment::window>` measures text with ``raster`` and draws captures through it: it is the window's text metrics provider and framebuffer painter. Its end puts back the provider the window had and removes the painter. Attach only a window with no host (a window an application run shows keeps its host's raster). Declare it after the raster and the window, so that it ends before both. std::logic_error off the window's thread (which must be the raster's). Not copyable or movable.
 
@@ -1363,7 +1363,7 @@ Related types
 
 .. cpp:struct:: OffscreenCaptureOptions final
 
-   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`` (:src:`source <include/gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`)
 
    What OffscreenAttachment's captures draw. The settings apply for the capture alone: the window's own scale and presentation are put back after it (a scale change relays the window out, both ways).
 
@@ -1395,7 +1395,7 @@ Related types
 
 .. cpp:class:: OffscreenRaster final
 
-   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`` (:src:`source <include/gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`)
 
    A CPU raster with the bundled fonts registered and no host window. A window borrows it through an OffscreenAttachment; captures make their own framebuffers, so one raster serves windows of any size and scale, one at a time or together. One thread: the one that made it, which is the UI thread of every window attached to it. Not copyable or movable: windows hold its address. Destroy it after every attachment to it has ended (its destructor stops the program otherwise, since a window would keep a dangling painter).
 
@@ -1421,7 +1421,7 @@ Related types
 
 .. cpp:class:: OffscreenRasterCreateResult final
 
-   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`` (:src:`source <include/gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`)
 
    OffscreenRaster::create's outcome: the raster, or why there is none. Made only through :cpp:func:`created <gui_forms::OffscreenRasterCreateResult::created>` and :cpp:func:`refused <gui_forms::OffscreenRasterCreateResult::refused>`.
 
@@ -1460,7 +1460,7 @@ Related types
 
 .. cpp:struct:: OffscreenRasterOptions final
 
-   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`` (:src:`source <include/gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`)
 
    .. cpp:member:: FilePath font_directory
 
@@ -1470,7 +1470,7 @@ Related types
 
 .. cpp:struct:: OverlayOptions final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
 
@@ -1482,7 +1482,7 @@ Related types
 
 .. cpp:class:: OverlayToken final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    OverlayToken is a move-only revocation handle for one Window-owned retained overlay root; dropping or disconnecting it closes the overlay through the same ordered state machine.
 
@@ -1519,7 +1519,7 @@ Related types
 
 .. cpp:struct:: PaintLeaseSnapshot final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    PaintLeaseSnapshot exposes coherent content/render/present revisions, surface epoch, lease outcomes, coalesced wakes, receipt acceptance, and mutation-during-render state without granting mutation authority.
 
@@ -1563,7 +1563,7 @@ Related types
 
 .. cpp:struct:: PaintReceipt final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    PaintReceipt proves that one complete retained transaction replayed into a host backing surface at a specific content revision and surface epoch.
 
@@ -1575,7 +1575,7 @@ Related types
 
 .. cpp:struct:: PointerCaptureChange final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    PointerCaptureChange carries capture state, runtime/stable control identity, and pointer identity to host services.
 
@@ -1591,7 +1591,7 @@ Related types
 
 .. cpp:struct:: PointerSettings final
 
-   ``#include <gui_forms/window/presentation/input_settings.hpp>``
+   ``#include <gui_forms/window/presentation/input_settings.hpp>`` (:src:`source <include/gui_forms/window/presentation/input_settings.hpp>`)
 
    The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off.
 
@@ -1629,7 +1629,7 @@ Related types
 
 .. cpp:class:: PopupLift final
 
-   ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+   ``#include <gui_forms/window/native_popup/popup_lift.hpp>`` (:src:`source <include/gui_forms/window/native_popup/popup_lift.hpp>`)
 
    A drop-down's list or a picker's panel lifted out of its owner window into the owner's warm Popup window (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S, drop-downs and pickers are Popups before 0.5), where it may extend past the owner's edges onto the desktop. The control keeps its overlay layer in the owner (it takes outside clicks and holds the owner's focus) and lifts only the content: lift shows ``content`` in Window::picker_popup_window_slot at ``face``, framed with room for the theme's overlay shadow when the Popup is translucent, gives it the Popup's focus and forwards the owner's keys and text to it (Window::forward_input_to_popup_window). Keys it leaves unhandled (Escape) reach the owner's layer as before. release hides the Popup, takes the content out (detached again) and ends the forwarding; the destructor releases. One lift per object; a second lift replaces the first. UI thread only, on the owner window's thread.
 
@@ -1664,7 +1664,7 @@ Related types
 
 .. cpp:struct:: PresentationAvailability final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    The record a window publishes: the host's declaration and the live paint-lease snapshot. A contract version of zero means no host has declared one (a window that is not attached, or a test painter).
 
@@ -1683,7 +1683,7 @@ Related types
 
 .. cpp:struct:: PresentationDeclaration final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    What a host declares when it attaches a window.
 
@@ -1695,7 +1695,7 @@ Related types
 
 .. cpp:struct:: PresentationExtensions final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    .. cpp:member:: bool partial_present
 
@@ -1717,7 +1717,7 @@ Related types
 
 .. cpp:struct:: PresentationOverrides final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN A.2): each set field wins over the window's own settings, which come from its application or its host; an unset field follows them. The double-click interval, the pointer settings and the caret settings are the host's alone and have no override.
 
@@ -1746,7 +1746,7 @@ Related types
 
 .. cpp:struct:: PresentationSettings final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
 
@@ -1794,7 +1794,7 @@ Related types
 
 .. cpp:struct:: PresentedArea final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
 
@@ -1808,7 +1808,7 @@ Related types
 
 .. cpp:struct:: PressTrace final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    The last primary press: where it landed and how the route treated it. Strings are copied, so the record outlives the controls it names. A control without a stable ID is named by its anatomy's control ID alone.
 
@@ -1838,7 +1838,7 @@ Related types
 
 .. cpp:struct:: ScrollCopy final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it. Pixels moved from outside the clip are never needed: the damage covers what the copy exposed.
 
@@ -1850,7 +1850,7 @@ Related types
 
 .. cpp:struct:: ShadowFrame final
 
-   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
    One frame. Fields a kind does not use are zero and empty. The text arrays hold subject_size and name_size bytes; the bytes past them are zero.
 
@@ -1890,7 +1890,7 @@ Related types
 
 .. cpp:class:: ShadowFrameCall final
 
-   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
    A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Never throws or allocates.
 
@@ -1910,7 +1910,7 @@ Related types
 
 .. cpp:class:: ShadowFrameScope final
 
-   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
    Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included. Never throws or allocates. Scopes nest strictly (they are not copied or moved), so the frame closed is always the innermost. Kept for the C++ API before 1.0; the library's own frames are gates and ShadowFrameCall, which need no runtime query.
 
@@ -1929,7 +1929,7 @@ Related types
 
 .. cpp:struct:: ShadowStackState final
 
-   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
    The calling thread's stack beside its frames. depth counts every frame open now, recorded or not; the recorded frames are the outermost min(depth, shadow_stack_capacity). pushed and dropped count every push, and every push past the capacity, since the thread began.
 
@@ -1949,7 +1949,7 @@ Related types
 
 .. cpp:struct:: SpecimenStateResult final
 
-   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>`` (:src:`source <include/gui_forms/capture/specimen_states/specimen_states.hpp>`)
 
    .. cpp:member:: SpecimenStateRoute route
 
@@ -1963,7 +1963,7 @@ Related types
 
 .. cpp:class:: SurfaceRequestAnswer
 
-   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>`` (:src:`source <include/gui_forms/surface_root/requests/surface_requests.hpp>`)
 
    Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given. Held weakly; a target released before an answer arrives receives nothing.
 
@@ -1976,7 +1976,7 @@ Related types
 
 .. cpp:struct:: SurfaceRequestOutcome final
 
-   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>`` (:src:`source <include/gui_forms/surface_root/requests/surface_requests.hpp>`)
 
    An answer to one request; ``id`` is the one the request API returned.
 
@@ -1994,7 +1994,7 @@ Related types
 
 .. cpp:struct:: SystemColourHints final
 
-   ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+   ``#include <gui_forms/window/presentation/colour_scheme.hpp>`` (:src:`source <include/gui_forms/window/presentation/colour_scheme.hpp>`)
 
    The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour. Each is empty where the host reports none, and a theme then reads its fallback. They are hints: a theme may use, override or ignore them, and GUI.Forms' own theme reads neither.
 
@@ -2006,7 +2006,7 @@ Related types
 
 .. cpp:struct:: ThemeFallback final
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    Presentation preferences are logical UI policy and remain independent from the native/device pixel scale. A window showing GUI.Forms' own theme because its theme has no variant for the window's colour scheme (Window::theme_fallback, T4 theme variants): the application's theme, the scheme it lacks, and the theme shown instead (``gui-forms`` in that scheme). Colours the application set on its controls are suspended while it holds (Control:: application_colours_suspended).
 
@@ -2022,7 +2022,7 @@ Related types
 
 .. cpp:struct:: ToastDismissal final
 
-   ``#include <gui_forms/window/toasts/toasts.hpp>``
+   ``#include <gui_forms/window/toasts/toasts.hpp>`` (:src:`source <include/gui_forms/window/toasts/toasts.hpp>`)
 
    A window's toast closed: ``id`` is the one show_toast returned.
 
@@ -2036,7 +2036,7 @@ Related types
 
 .. cpp:struct:: ToolTipEvent final
 
-   ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+   ``#include <gui_forms/window/tool_tips/tool_tips.hpp>`` (:src:`source <include/gui_forms/window/tool_tips/tool_tips.hpp>`)
 
    ToolTipEvent is the immutable publication payload for a tooltip visibility transition. It names the stable target, carries the presented text, and records shown/hidden and keyboard/pointer origin without exposing overlay internals.
 
@@ -2054,7 +2054,7 @@ Related types
 
 .. cpp:struct:: ToolTipRequest final
 
-   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>`` (:src:`source <include/gui_forms/surface_root/requests/surface_requests.hpp>`)
 
    One tooltip, its content as data.
 
@@ -2078,7 +2078,7 @@ Related types
 
 .. cpp:struct:: ToolTipSettings final
 
-   ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+   ``#include <gui_forms/window/tool_tips/tool_tips.hpp>`` (:src:`source <include/gui_forms/window/tool_tips/tool_tips.hpp>`)
 
    How a window's one tooltip presenter behaves (owner, 2026-10-28). Every window has one presenter; it shows the plain tooltip text of controls (Control::tool_tip_text) and of authored parts (the semantic tool_tip of a strip item or a tab header). The ToolTip component sets these through the window it was made for. - initial_delay: how long the pointer rests over a thing, or keyboard focus stays on it, before its tooltip shows. - reshow_delay: the rest that shows the next tooltip while the pointer moves on from one that showed, within initial_delay of its closing. - auto_pop_delay: how long a tooltip stays; zero keeps it until the pointer leaves its thing, a press, or focus moves. - maximum_width: the widest a tooltip's text runs before it wraps, in logical units, from 80 to 2048. - show_on_hover and show_on_focus: whether a resting pointer, and keyboard focus, show tooltips. - show_when_disabled: whether a disabled control's or item's tooltip shows.
 
@@ -2114,7 +2114,7 @@ Related types
 
 .. cpp:struct:: ValidationSnapshot final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
 
@@ -2136,7 +2136,7 @@ Related types
 
 .. cpp:struct:: WindowBandAppearance final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:member:: WindowBandState state
 
@@ -2162,7 +2162,7 @@ Related types
 
 .. cpp:struct:: WindowBandEdges final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    One width per edge, in logical units, before each is snapped to whole device pixels (WindowBandOptions::edges). An edge of 0 reserves nothing on that side.
 
@@ -2178,7 +2178,7 @@ Related types
 
 .. cpp:struct:: WindowBandOptions final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    A window's band declaration (Window::declare_band).
 
@@ -2198,7 +2198,7 @@ Related types
 
 .. cpp:struct:: WindowBandSnapshot final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    A window's band as it stands (Window::band_snapshot): whether it is declared and reserved, the reserved widths (snapped, logical units), the colours the strips draw now, and the corners it follows.
 
@@ -2252,7 +2252,7 @@ Related types
 
 .. cpp:struct:: WindowBandTexture final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    A texture under the band's colour (owner answer 6: textures are the window band's alone). Each strip is its own surface (the top and bottom strips run the full width, the side strips lie between them), so a bake stays the size of a strip, never the window's; it is drawn beneath the band's colour: a resting band with the default transparent rest colour shows the texture alone, and a lit colour composites over it. ``procedural`` reads ``procedural`` (tile from minimum_procedural_tile to maximum_procedural_tile, strength in [0, 1]); ``finish`` reads ``finish``, any kind but the glint (whose cost the bake budget refuses over a window). ``opacity`` in [0, 1]. Under high contrast no texture is drawn.
 
@@ -2272,7 +2272,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowCapabilities : public WindowTextCapability<Declaring>, public WindowIconCapability<Declaring>, public WindowFormBorderStyleCapability<Declaring>, public WindowMinimizeBoxCapability<Declaring>, public WindowMaximizeBoxCapability<Declaring>, public WindowControlBoxCapability<Declaring>, public WindowWindowStateCapability<Declaring>, public WindowTopMostCapability<Declaring>, public WindowOpacityCapability<Declaring>, public WindowStartPositionCapability<Declaring>, public WindowShowInTaskbarCapability<Declaring>, public WindowMinimumSizeCapability<Declaring>
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Every Window chrome capability, in the order Window takes them.
 
@@ -2331,7 +2331,7 @@ Related types
 
 .. cpp:struct:: WindowCapture final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    A window's picture (Window::capture_window): its logical size, the scale it was drawn at and its pixels, ``pixel_height`` rows of ``pixel_width`` premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row). The capture owns its pixels.
 
@@ -2349,7 +2349,7 @@ Related types
 
 .. cpp:struct:: WindowCaptureOptions final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    What Window::capture_window draws (owner request 2026-11-09, the product ports: screenshots and tests).
 
@@ -2365,7 +2365,7 @@ Related types
 
 .. cpp:struct:: WindowChrome final
 
-   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
    What a window asks its host for. text is UTF-8; icon is premultiplied BGRA8, empty (zero width) for the platform's default; opacity is in [0, 1]; minimum_size is the client area's least size in logical units, zero for the window's own minimum. Only the fields a request names (apply_window_chrome) are read.
 
@@ -2413,7 +2413,7 @@ Related types
 
 .. cpp:struct:: WindowChromeFields final
 
-   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
    A set of chrome properties.
 
@@ -2439,7 +2439,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowControlBoxCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
 
@@ -2456,7 +2456,7 @@ Related types
 
 .. cpp:struct:: WindowCornerReport final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners). ``radius`` is in logical units, and meaningful only for ``rounded``. ``complied`` is false when the platform could not do as asked (it rounds regardless, or cannot round), so the band follows ``shape``, not the preference.
 
@@ -2472,7 +2472,7 @@ Related types
 
 .. cpp:struct:: WindowCornerShapes final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    The corner shapes a host may report (HostCapabilities:: window_corner_shapes): Windows 11 rounds or squares, macOS reports square corners where they are (full screen, a borderless window) and nothing otherwise, X11 reports none.
 
@@ -2484,7 +2484,7 @@ Related types
 
 .. cpp:class:: WindowDispatcher final
 
-   ``#include <gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>``
+   ``#include <gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>`` (:src:`source <include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>`)
 
    A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window. Window::invoke and Window::begin_invoke need a live Window; a thread that may outlive the window (a client thread, a worker the window does not join) posts through this handle instead. The handle shares the dispatcher's state, never the window: once the window has closed (its host shut the dispatcher down, or its destructor began), the handle reports that as an explicit result and touches nothing of the window. The window is gone when its dispatcher has stopped accepting work or its teardown has begun. Work posted before that and still pending when it happens is cancelled, as Window::shutdown_dispatcher always does.
 
@@ -2583,7 +2583,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowFormBorderStyleCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame. An undefined value is std::invalid_argument.
 
@@ -2600,7 +2600,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowIconCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    The window's icon (Form.Icon): an image of the window's registry, or none for the platform's default. A PNG is decoded when the icon is sent to the host; an image the registry does not hold is std::invalid_argument.
 
@@ -2615,7 +2615,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowMaximizeBoxCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Whether the title bar offers maximizing (Form.MaximizeBox).
 
@@ -2632,7 +2632,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowMinimizeBoxCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Whether the title bar offers minimizing (Form.MinimizeBox).
 
@@ -2649,7 +2649,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowMinimumSizeCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    The client area's least size in logical units (Form.MinimumSize); zero each way keeps the window's own minimum. Each extent finite, 0 to 32768 (else std::invalid_argument).
 
@@ -2664,7 +2664,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowOpacityCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
 
@@ -2681,7 +2681,7 @@ Related types
 
 .. cpp:struct:: WindowOverrides final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table. A window with no override stores none: SurfaceRoot holds a null pointer until the first, which allocates this record; clearing the last releases it. A read is one branch: the field when set, else the owner's.
 
@@ -2708,7 +2708,7 @@ Related types
 
 .. cpp:class:: WindowRef final
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    The root of one retained control tree and the thread that owns it (the threaded sub-surfaces design, stage S1): the control table, the dirty structure, update scopes and flushes, layout, paint, focus, input routing, the motion clock, the dispatcher queue its thread drains, and the counters its work reports into. A Window is a SurfaceRoot with a native host (the host cluster: cursor, presentation declaration, live-surface composition, host key-map seeding, resize and scale); a sub-surface (stage S2) is one whose output is a LiveSurface. The root is bound to the thread that constructs it and never changes thread. A weak handle on a Window, for a holder that keeps it across callbacks (borrow sanitizer study, section 2.5: retention is not a borrow). Built on the root's lifetime record (detail::WindowLifetime), which the Window clears in its destructor and releases with itself, so a holder never reads a freed window. Made by SurfaceRoot::window_ref(); UI thread only.
 
@@ -2737,7 +2737,7 @@ Related types
 
 .. cpp:struct:: WindowShapingReport final
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    What a window's shaping can rely on (Window::shaping_report; the owner's approval of 2026-11-13: the host capability reported). Every field is what the attached host says, never assumed: - ``corners_reported``: the host shapes and reports the window's corners (HostCapability::window_corners); without it the band draws square. - ``square_corners`` and ``rounded_corners``: the shapes the host may report (HostCapabilities::window_corner_shapes), whatever is asked. - ``state_reported``: the host reports full screen and the changes that may reshape corners (HostCapability::window_state_reports); without it a band declared to hide in full screen never hides. - ``native_border``: the host can draw the band's colour itself outside the client area. No host can yet; the Windows 11 contract is written for its host (docs/user/window-band.md).
 
@@ -2765,7 +2765,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowShowInTaskbarCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Whether the window has a taskbar button (Form.ShowInTaskbar). Hosts without a taskbar report it unsupported (HostServices::supported_window_chrome).
 
@@ -2782,7 +2782,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowStartPositionCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Where the window is placed when it is first shown (Form.StartPosition); ignored once it has been shown. An undefined value is std::invalid_argument.
 
@@ -2799,7 +2799,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowTextCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    The window's title (Form.Text): UTF-8, at most 65536 bytes, no NUL (else std::invalid_argument). Until it is first written the title is the one the window opened with (ApplicationWindowOptions::title).
 
@@ -2814,7 +2814,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowTopMostCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    Whether the window stays above the other applications' windows (Form.TopMost).
 
@@ -2831,7 +2831,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WindowWindowStateCapability
 
-   ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
+   ``#include <gui_forms/window/chrome/window_capabilities.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_capabilities.hpp>`)
 
    The state the program asks for (Form.WindowState): normal, minimized or maximized. It is the request, not a report: the user may change the native state afterwards. An undefined value is std::invalid_argument.
 
@@ -2851,7 +2851,7 @@ Enumerations
 
 .. cpp:enum-class:: AllocationSubsystem
 
-   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>`` (:src:`source <include/gui_forms/allocation/statistics/allocation_statistics.hpp>`)
 
    .. cpp:enumerator:: image_resources
 
@@ -2869,7 +2869,7 @@ Enumerations
 
 .. cpp:enum-class:: BackdropOperationKind
 
-   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>`` (:src:`source <include/gui_forms/window/backdrop/backdrop_chain.hpp>`)
 
    .. cpp:enumerator:: blur
 
@@ -2881,7 +2881,7 @@ Enumerations
 
 .. cpp:enum-class:: BlendStudyMode
 
-   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
    .. cpp:enumerator:: off
 
@@ -2895,7 +2895,7 @@ Enumerations
 
 .. cpp:enum-class:: BlendWrite
 
-   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+   ``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
    .. cpp:enumerator:: copied
 
@@ -2905,7 +2905,7 @@ Enumerations
 
 .. cpp:enum-class:: ColourScheme
 
-   ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+   ``#include <gui_forms/window/presentation/colour_scheme.hpp>`` (:src:`source <include/gui_forms/window/presentation/colour_scheme.hpp>`)
 
    .. cpp:enumerator:: light
 
@@ -2915,7 +2915,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlLookupError
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2927,7 +2927,7 @@ Enumerations
 
 .. cpp:enum-class:: DialogSurface
 
-   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>`` (:src:`source <include/gui_forms/window/native_popup/native_popup.hpp>`)
 
    .. cpp:enumerator:: overlay
 
@@ -2937,7 +2937,7 @@ Enumerations
 
 .. cpp:enum-class:: Dirty
 
-   ``#include <gui_forms/dirty.hpp>``
+   ``#include <gui_forms/dirty.hpp>`` (:src:`source <include/gui_forms/dirty.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2959,7 +2959,7 @@ Enumerations
 
 .. cpp:enum-class:: DispatchInvokeResult
 
-   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>``
+   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>`` (:src:`source <include/gui_forms/dispatcher/types/dispatcher_types.hpp>`)
 
    .. cpp:enumerator:: completed
 
@@ -2969,7 +2969,7 @@ Enumerations
 
 .. cpp:enum-class:: DispatchOperationState
 
-   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>``
+   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>`` (:src:`source <include/gui_forms/dispatcher/types/dispatcher_types.hpp>`)
 
    .. cpp:enumerator:: invalid
 
@@ -2987,7 +2987,7 @@ Enumerations
 
 .. cpp:enum-class:: FocusScopeCloseReason
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    .. cpp:enumerator:: explicit_close
 
@@ -2997,7 +2997,7 @@ Enumerations
 
 .. cpp:enum-class:: FormBorderStyle
 
-   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3017,7 +3017,7 @@ Enumerations
 
 .. cpp:enum-class:: FormStartPosition
 
-   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
    .. cpp:enumerator:: manual
 
@@ -3033,7 +3033,7 @@ Enumerations
 
 .. cpp:enum-class:: FormWindowState
 
-   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -3045,7 +3045,7 @@ Enumerations
 
 .. cpp:enum-class:: InvalidationCause
 
-   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
    .. cpp:enumerator:: control
 
@@ -3077,7 +3077,7 @@ Enumerations
 
 .. cpp:enum-class:: NativePopupFallback
 
-   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>`` (:src:`source <include/gui_forms/window/native_popup/native_popup.hpp>`)
 
    .. cpp:enumerator:: overlay
 
@@ -3087,7 +3087,7 @@ Enumerations
 
 .. cpp:enum-class:: NativePopupRefusal
 
-   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>`` (:src:`source <include/gui_forms/window/native_popup/native_popup.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3101,7 +3101,7 @@ Enumerations
 
 .. cpp:enum-class:: NativePopupSurface
 
-   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>`` (:src:`source <include/gui_forms/window/native_popup/native_popup.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3113,7 +3113,7 @@ Enumerations
 
 .. cpp:enum-class:: OffscreenRasterError
 
-   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`` (:src:`source <include/gui_forms/capture/offscreen_raster/offscreen_raster.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3127,7 +3127,7 @@ Enumerations
 
 .. cpp:enum-class:: PaintLeaseState
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
    .. cpp:enumerator:: clean
 
@@ -3149,7 +3149,7 @@ Enumerations
 
 .. cpp:enum-class:: PaintPlane
 
-   ``#include <gui_forms/display/types/display_types.hpp>``
+   ``#include <gui_forms/display/types/display_types.hpp>`` (:src:`source <include/gui_forms/display/types/display_types.hpp>`)
 
    .. cpp:enumerator:: backplane
 
@@ -3161,7 +3161,7 @@ Enumerations
 
 .. cpp:enum-class:: PopupLiftInput
 
-   ``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+   ``#include <gui_forms/window/native_popup/popup_lift.hpp>`` (:src:`source <include/gui_forms/window/native_popup/popup_lift.hpp>`)
 
    .. cpp:enumerator:: forwarded
 
@@ -3171,7 +3171,7 @@ Enumerations
 
 .. cpp:enum-class:: PressOutcome
 
-   ``#include <gui_forms/surface_root/surface_root.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3187,7 +3187,7 @@ Enumerations
 
 .. cpp:enum-class:: SettingOrigin
 
-   ``#include <gui_forms/window/presentation/input_settings.hpp>``
+   ``#include <gui_forms/window/presentation/input_settings.hpp>`` (:src:`source <include/gui_forms/window/presentation/input_settings.hpp>`)
 
    .. cpp:enumerator:: default_value
 
@@ -3197,7 +3197,7 @@ Enumerations
 
 .. cpp:enum-class:: ShadowFrameFlags
 
-   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3209,7 +3209,7 @@ Enumerations
 
 .. cpp:enum-class:: ShadowFrameKind
 
-   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
    .. cpp:enumerator:: library_call
 
@@ -3229,7 +3229,7 @@ Enumerations
 
 .. cpp:enum-class:: SpecimenStateRoute
 
-   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>`` (:src:`source <include/gui_forms/capture/specimen_states/specimen_states.hpp>`)
 
    .. cpp:enumerator:: rest
 
@@ -3247,7 +3247,7 @@ Enumerations
 
 .. cpp:enum-class:: SurfaceRequestResult
 
-   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>`` (:src:`source <include/gui_forms/surface_root/requests/surface_requests.hpp>`)
 
    .. cpp:enumerator:: shown
 
@@ -3263,7 +3263,7 @@ Enumerations
 
 .. cpp:enum-class:: ToastDismissReason
 
-   ``#include <gui_forms/window/toasts/toasts.hpp>``
+   ``#include <gui_forms/window/toasts/toasts.hpp>`` (:src:`source <include/gui_forms/window/toasts/toasts.hpp>`)
 
    .. cpp:enumerator:: timed_out
 
@@ -3281,7 +3281,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBandColourRole
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:enumerator:: theme
 
@@ -3299,7 +3299,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBandFullScreen
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:enumerator:: stays
 
@@ -3309,7 +3309,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBandState
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:enumerator:: rest
 
@@ -3323,7 +3323,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBandTextureSource
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:enumerator:: procedural
 
@@ -3333,7 +3333,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowChromeField
 
-   ``#include <gui_forms/window/chrome/window_chrome.hpp>``
+   ``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
    .. cpp:enumerator:: text
 
@@ -3363,7 +3363,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowCornerPreference
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:enumerator:: system
 
@@ -3375,7 +3375,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowCornerShape
 
-   ``#include <gui_forms/window/band/window_band.hpp>``
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
    .. cpp:enumerator:: unknown
 
@@ -3388,7 +3388,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>`` (:src:`source <include/gui_forms/allocation/statistics/allocation_statistics.hpp>`)
 
 .. cpp:function:: std::string_view allocation_subsystem_name(AllocationSubsystem subsystem) noexcept
 
@@ -3408,7 +3408,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+``#include <gui_forms/capture/specimen_states/specimen_states.hpp>`` (:src:`source <include/gui_forms/capture/specimen_states/specimen_states.hpp>`)
 
 .. cpp:function:: SpecimenStateResult show_specimen_state(Control& control, AnatomyState state)
 
@@ -3424,7 +3424,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>``
+``#include <gui_forms/diagnostics/blend_study/blend_study.hpp>`` (:src:`source <include/gui_forms/diagnostics/blend_study/blend_study.hpp>`)
 
 .. cpp:function:: void add_blend_frame(BlendFrameCounters& totals, const BlendFrameCounters& frame) noexcept
 
@@ -3470,7 +3470,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
+``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
 
 .. cpp:function:: InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept
 
@@ -3522,7 +3522,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`` (:src:`source <include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>`)
 
 .. cpp:function:: std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
 
@@ -3546,7 +3546,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/dirty.hpp>``
+``#include <gui_forms/dirty.hpp>`` (:src:`source <include/gui_forms/dirty.hpp>`)
 
 .. cpp:function:: constexpr bool has_dirty(Dirty value, Dirty flag) noexcept
 
@@ -3554,7 +3554,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::invalidation
 
-``#include <gui_forms/dirty.hpp>``
+``#include <gui_forms/dirty.hpp>`` (:src:`source <include/gui_forms/dirty.hpp>`)
 
 .. cpp:var:: constexpr Dirty bounds
 
@@ -3602,7 +3602,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>``
+``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>`` (:src:`source <include/gui_forms/dispatcher/types/dispatcher_types.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_posted_callbacks
 
@@ -3614,7 +3614,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/display/types/display_types.hpp>``
+``#include <gui_forms/display/types/display_types.hpp>`` (:src:`source <include/gui_forms/display/types/display_types.hpp>`)
 
 .. cpp:function:: constexpr bool is_valid_paint_plane(PaintPlane plane) noexcept
 
@@ -3626,7 +3626,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/scheduler/types/scheduler_types.hpp>``
+``#include <gui_forms/scheduler/types/scheduler_types.hpp>`` (:src:`source <include/gui_forms/scheduler/types/scheduler_types.hpp>`)
 
 .. cpp:type:: FrameClock = std::chrono::steady_clock
 
@@ -3644,7 +3644,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/surface_root/surface_root.hpp>``
+``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
 .. cpp:function:: bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png)
 
@@ -3660,7 +3660,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+``#include <gui_forms/window/backdrop/backdrop_chain.hpp>`` (:src:`source <include/gui_forms/window/backdrop/backdrop_chain.hpp>`)
 
 .. cpp:function:: const char* backdrop_operation_name(BackdropOperationKind kind) noexcept
 
@@ -3690,7 +3690,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/band/window_band.hpp>``
+``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
 .. cpp:function:: bool window_band_options_valid(const WindowBandOptions& options) noexcept
 
@@ -3730,7 +3730,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/chrome/window_chrome.hpp>``
+``#include <gui_forms/window/chrome/window_chrome.hpp>`` (:src:`source <include/gui_forms/window/chrome/window_chrome.hpp>`)
 
 .. cpp:function:: bool form_border_style_defined(FormBorderStyle style) noexcept
 
@@ -3758,7 +3758,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/interaction/interaction_snapshot.hpp>``
+``#include <gui_forms/window/interaction/interaction_snapshot.hpp>`` (:src:`source <include/gui_forms/window/interaction/interaction_snapshot.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_held_keys
 
@@ -3766,7 +3766,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/native_popup/popup_lift.hpp>``
+``#include <gui_forms/window/native_popup/popup_lift.hpp>`` (:src:`source <include/gui_forms/window/native_popup/popup_lift.hpp>`)
 
 .. cpp:function:: stxlib::Optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x)
 
@@ -3774,13 +3774,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+``#include <gui_forms/window/presentation/colour_scheme.hpp>`` (:src:`source <include/gui_forms/window/presentation/colour_scheme.hpp>`)
 
 .. cpp:function:: constexpr std::string_view colour_scheme_name(ColourScheme scheme) noexcept
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/presentation/input_settings.hpp>``
+``#include <gui_forms/window/presentation/input_settings.hpp>`` (:src:`source <include/gui_forms/window/presentation/input_settings.hpp>`)
 
 .. cpp:function:: bool valid_pointer_settings(const PointerSettings& settings) noexcept
 
@@ -3828,7 +3828,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/presentation/presentation_types.hpp>``
+``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
 
 .. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
 
@@ -3844,7 +3844,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/toasts/toasts.hpp>``
+``#include <gui_forms/window/toasts/toasts.hpp>`` (:src:`source <include/gui_forms/window/toasts/toasts.hpp>`)
 
 .. cpp:var:: constexpr std::chrono::milliseconds default_toast_duration
 
@@ -3852,7 +3852,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+``#include <gui_forms/window/tool_tips/tool_tips.hpp>`` (:src:`source <include/gui_forms/window/tool_tips/tool_tips.hpp>`)
 
 .. cpp:function:: bool tool_tip_text_shows(std::string_view text) noexcept
 

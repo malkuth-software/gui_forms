@@ -37,7 +37,7 @@ Types
 
 .. cpp:class:: AudioClip final
 
-   ``#include <gui_forms/audio/audio.hpp>``
+   ``#include <gui_forms/audio/audio.hpp>`` (:src:`source <include/gui_forms/audio/audio.hpp>`)
 
    Immutable interleaved L,R samples, 48 kHz. Up to 600 seconds per clip; aggregate live clip payload is limited to 512 MiB, including external owners.
 
@@ -69,7 +69,7 @@ Types
 
 .. cpp:struct:: AudioClipResult final
 
-   ``#include <gui_forms/audio/audio.hpp>``
+   ``#include <gui_forms/audio/audio.hpp>`` (:src:`source <include/gui_forms/audio/audio.hpp>`)
 
    .. cpp:member:: std::shared_ptr<const AudioClip> clip
 
@@ -81,7 +81,7 @@ Types
 
 .. cpp:class:: AudioEngine final
 
-   ``#include <gui_forms/audio/audio.hpp>``
+   ``#include <gui_forms/audio/audio.hpp>`` (:src:`source <include/gui_forms/audio/audio.hpp>`)
 
    All public engine/voice operations belong to one control thread. The device callback is private. Offline render is exclusive with controls and device use. At most 64 live voice objects, including paused/stopped voices. Files are not streamed; a generator voice synthesizes as it plays.
 
@@ -120,7 +120,7 @@ Types
 
 .. cpp:class:: AudioGenerator
 
-   ``#include <gui_forms/audio/audio.hpp>``
+   ``#include <gui_forms/audio/audio.hpp>`` (:src:`source <include/gui_forms/audio/audio.hpp>`)
 
 
    .. rubric:: Extension points
@@ -131,7 +131,7 @@ Types
 
 .. cpp:struct:: AudioLoopChange final
 
-   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>``
+   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>`` (:src:`source <include/gui_forms/audio/loop_transport/loop_transport.hpp>`)
 
    .. cpp:member:: std::uint64_t bar_frames
 
@@ -149,7 +149,7 @@ Types
 
 .. cpp:struct:: AudioLoopCommand final
 
-   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>``
+   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>`` (:src:`source <include/gui_forms/audio/loop_transport/loop_transport.hpp>`)
 
    .. cpp:member:: AudioLoopStatus status
 
@@ -159,7 +159,7 @@ Types
 
 .. cpp:struct:: AudioLoopReceipt final
 
-   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>``
+   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>`` (:src:`source <include/gui_forms/audio/loop_transport/loop_transport.hpp>`)
 
    .. cpp:member:: AudioLoopStatus status
 
@@ -181,7 +181,7 @@ Types
 
 .. cpp:class:: AudioLoopTransport final
 
-   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>``
+   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>`` (:src:`source <include/gui_forms/audio/loop_transport/loop_transport.hpp>`)
 
    Development profile: fixed-rate stereo 48 kHz loops, no seek or pitch. One control thread creates, commands, polls and destroys this owner. Commands are enqueued, then admitted at an audio read boundary; poll distinguishes them. The current source grid selects the first boundary strictly after admission+ lead, including its actual loop end. A new source starts at frame zero there. Pause freezes transport time, but commands still process. Empty unpaused time advances. Stop preserves pause/time; only a new engine transport gets an epoch. 16 commands, 32 retained clip slots, 64 bounded receipts. Full admission leaves prior work unchanged. Poll/command calls reclaim retired clips on this thread. Clip lengths are 1..28,800,000 frames; bar is 1..incoming clip length, lead 0..480,000 and fade 0..48,000. For N>=2 the old track gains 1-j/(N-1) on samples j=0..N-1 while the new track has full gain. N=0/1 cuts immediately. Mixing overlap can clip. A change during a fade replaces only the pending request, preserves its original admission+lead cutoff and waits for fade end. Poll observes engine failure for unfinished receipts without rewriting their phase or timing. Device loss/interruption and mixer errors report backend_error; closed remains distinct. Already-terminal receipts preserve their outcome. Applied is terminal at the first incoming sample; cancellation then is too late. Expired receipt history gives expired_target, not an inferred result. Destruction and move assignment require the creating control thread. No public offline AudioEngine::render may overlap control or device operations.
 
@@ -215,7 +215,7 @@ Types
 
 .. cpp:class:: AudioVoice final
 
-   ``#include <gui_forms/audio/audio.hpp>``
+   ``#include <gui_forms/audio/audio.hpp>`` (:src:`source <include/gui_forms/audio/audio.hpp>`)
 
 
    .. rubric:: Construction
@@ -259,7 +259,7 @@ Enumerations
 
 .. cpp:enum-class:: AudioLoopPhase
 
-   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>``
+   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>`` (:src:`source <include/gui_forms/audio/loop_transport/loop_transport.hpp>`)
 
    .. cpp:enumerator:: queued
 
@@ -283,7 +283,7 @@ Enumerations
 
 .. cpp:enum-class:: AudioLoopStatus
 
-   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>``
+   ``#include <gui_forms/audio/loop_transport/loop_transport.hpp>`` (:src:`source <include/gui_forms/audio/loop_transport/loop_transport.hpp>`)
 
    .. cpp:enumerator:: ok
 
@@ -309,7 +309,7 @@ Enumerations
 
 .. cpp:enum-class:: AudioStatus
 
-   ``#include <gui_forms/audio/audio.hpp>``
+   ``#include <gui_forms/audio/audio.hpp>`` (:src:`source <include/gui_forms/audio/audio.hpp>`)
 
    .. cpp:enumerator:: ok
 

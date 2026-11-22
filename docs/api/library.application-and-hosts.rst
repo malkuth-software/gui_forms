@@ -300,7 +300,7 @@ Related types
 
 .. cpp:struct:: ApplicationConfig final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    Everything an application is made with. Move-only (it holds a library).
 
@@ -318,7 +318,7 @@ Related types
 
 .. cpp:struct:: ApplicationCreateResult final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    What Application::create gave: an application owned by the caller, with the theme compile's warnings in ``findings``, or a refusal with nothing made and, for theme_refused, the compile's diagnostics.
 
@@ -334,7 +334,7 @@ Related types
 
 .. cpp:struct:: ApplicationModalResult final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    What ApplicationWindows::show_modal gives back.
 
@@ -350,7 +350,7 @@ Related types
 
 .. cpp:struct:: ApplicationResult final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
 
    .. rubric:: Properties
@@ -381,7 +381,7 @@ Related types
 
 .. cpp:struct:: ApplicationThemeConfig final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet, then the program's packages in order, compiled once by Application::create (compile_theme_packages).
 
@@ -409,7 +409,7 @@ Related types
 
 .. cpp:struct:: ApplicationWindow final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    .. cpp:member:: std::string stable_id
 
@@ -433,7 +433,7 @@ Related types
 
 .. cpp:struct:: ApplicationWindowAtResult final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -447,7 +447,7 @@ Related types
 
 .. cpp:struct:: ApplicationWindowOpenResult final
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -459,7 +459,7 @@ Related types
 
 .. cpp:struct:: BuildProfileRecord final
 
-   ``#include <gui_forms/build_profile/build_profile.hpp>``
+   ``#include <gui_forms/build_profile/build_profile.hpp>`` (:src:`source <include/gui_forms/build_profile/build_profile.hpp>`)
 
    What the library was built with: the profile and the allowances of the high-integrity configuration. In a standard build every allowance is true, since nothing is compiled out.
 
@@ -475,7 +475,7 @@ Related types
 
 .. cpp:struct:: CompositorGeneration final
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    The order of compositor state reports within one host run. Its own type, never mixed with a window's backplane damage generation. The first report a host makes has generation 1; 0 is the state before any report.
 
@@ -485,7 +485,7 @@ Related types
 
 .. cpp:struct:: CompositorState final
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    The host's live compositor and preference state (PLAN.md §2.1). Hosts report it after attach and whenever it changes, as HostCompositorEvent; the window resolves its backdrop grant from it. ``support`` is indexed by WindowBackdrop; ``opaque`` is always supported, and a report saying otherwise is refused.
 
@@ -531,7 +531,7 @@ Related types
 
 .. cpp:struct:: CursorCapabilities final
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    .. cpp:member:: bool hide
 
@@ -541,7 +541,7 @@ Related types
 
 .. cpp:class:: CursorHiddenLease final
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    Unique UI-executor lease, not capture or confinement. Destruction must occur on its creating executor. Wrong-thread explicit release changes no authority. A retained lease can inspect terminal cause/restoration after host teardown.
 
@@ -566,7 +566,7 @@ Related types
 
 .. cpp:struct:: CursorLeaseResult final
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    .. cpp:member:: CursorHiddenLease lease
 
@@ -576,7 +576,7 @@ Related types
 
 .. cpp:struct:: CursorLeaseSnapshot final
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    .. cpp:member:: CursorLeasePhase phase
 
@@ -590,7 +590,7 @@ Related types
 
 .. cpp:struct:: CursorMetrics final
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    .. cpp:member:: std::uint64_t window_id
 
@@ -604,7 +604,7 @@ Related types
 
 .. cpp:struct:: CursorStatus final
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
 
    .. rubric:: Properties
@@ -623,7 +623,7 @@ Related types
 
 .. cpp:struct:: DeferredThemeRequest final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    A request held by resources until their first window (ApplicationResources::hold_theme_request).
 
@@ -635,7 +635,7 @@ Related types
 
 .. cpp:struct:: DesktopDevicePoint final
 
-   ``#include <gui_forms/host/windowing/desktop_coordinates.hpp>``
+   ``#include <gui_forms/host/windowing/desktop_coordinates.hpp>`` (:src:`source <include/gui_forms/host/windowing/desktop_coordinates.hpp>`)
 
    A point on the host's device desktop: Win32 screen pixels of a per-monitor-aware process, X11 root-window pixels.
 
@@ -647,7 +647,7 @@ Related types
 
 .. cpp:struct:: DesktopLogicalPoint final
 
-   ``#include <gui_forms/host/windowing/desktop_coordinates.hpp>``
+   ``#include <gui_forms/host/windowing/desktop_coordinates.hpp>`` (:src:`source <include/gui_forms/host/windowing/desktop_coordinates.hpp>`)
 
    A point in desktop logical units: where window frames, the pointer's desktop position and logical work areas are published.
 
@@ -659,7 +659,7 @@ Related types
 
 .. cpp:class:: FirstFrameShowGate final
 
-   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>`` (:src:`source <include/gui_forms/host/windowing/first_frame_show.hpp>`)
 
    One window's first-frame show: the wait for its first presented frame, bounded by the ceiling, as described at the top of this header.
 
@@ -710,7 +710,7 @@ Related types
 
 .. cpp:struct:: FirstFrameShowSnapshot final
 
-   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>`` (:src:`source <include/gui_forms/host/windowing/first_frame_show.hpp>`)
 
    The gate's counters, for the host's diagnostics.
 
@@ -750,7 +750,7 @@ Related types
 
 .. cpp:struct:: FirstFrameShowStep final
 
-   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>`` (:src:`source <include/gui_forms/host/windowing/first_frame_show.hpp>`)
 
    What the host does after a gate call: perform the native show when ``show`` is true. A gate returns show at most once per wait, and the gate is already in its shown state when it does, so a reentrant call (the show itself causing a present or an activation) returns no show.
 
@@ -764,7 +764,7 @@ Related types
 
 .. cpp:struct:: HostActivationEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostActivationEvent carries portable top-level activation state.
 
@@ -774,7 +774,7 @@ Related types
 
 .. cpp:struct:: HostAttachEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostAttachEvent is the sole constructed-to-attached transition and carries initial logical client size and device scale.
 
@@ -788,7 +788,7 @@ Related types
 
 .. cpp:struct:: HostAutoCompleteRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    ``prefix_utf8`` is borrowed for the call. A host returns at most ``maximum_candidates`` strings, each valid UTF-8, in its own order.
 
@@ -806,7 +806,7 @@ Related types
 
 .. cpp:struct:: HostAutoCompleteResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -816,7 +816,7 @@ Related types
 
 .. cpp:struct:: HostCapabilities final
 
-   ``#include <gui_forms/host/types/host_capabilities/host_capabilities.hpp>``
+   ``#include <gui_forms/host/types/host_capabilities/host_capabilities.hpp>`` (:src:`source <include/gui_forms/host/types/host_capabilities/host_capabilities.hpp>`)
 
    HostCapabilities declares protocol version, platform label, and exact available portable service/event bits; absence is authoritative.
 
@@ -866,7 +866,7 @@ Related types
 
 .. cpp:struct:: HostClipboardFilesResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    File-manager copies carry local file references as well as optional icon bitmaps. Consumers choose their own codecs and must prefer these references when their command imports the file's contents.
 
@@ -880,7 +880,7 @@ Related types
 
 .. cpp:class:: HostClipboardImageResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    A clipboard image read: the image and the clipboard generation it was read at, no image at that generation, or a failure. One alternative per state (house form for results).
 
@@ -920,7 +920,7 @@ Related types
 
 .. cpp:struct:: HostClipboardTextResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostClipboardTextResult couples portable status with bounded UTF-8 text, native generation, and explicit text presence.
 
@@ -936,7 +936,7 @@ Related types
 
 .. cpp:struct:: HostClosedEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostClosedEvent is admitted only after close authorization and carries terminal reason.
 
@@ -948,7 +948,7 @@ Related types
 
 .. cpp:struct:: HostCloseRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostCloseRequest carries portable close reason and the application callback's cancel decision.
 
@@ -970,7 +970,7 @@ Related types
 
 .. cpp:struct:: HostColorDialogRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostColorDialogRequest declares title, initial RGBA, and alpha-edit policy.
 
@@ -986,7 +986,7 @@ Related types
 
 .. cpp:struct:: HostColorDialogResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostColorDialogResult carries accepted/cancelled outcome and portable RGBA.
 
@@ -1000,7 +1000,7 @@ Related types
 
 .. cpp:struct:: HostCompositorEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The host's compositor and preference state (stage T5): reported once after attach and again whenever it changes (capability compositor_notifications). Each report's generation is later than the last; a report whose opaque backdrop is not supported is refused as invalid_payload.
 
@@ -1010,7 +1010,7 @@ Related types
 
 .. cpp:struct:: HostContextRequestEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click). The Linux host, whose platform has no such event, emulates it: the right button's press, the Menu key and Shift+F10. A pointer request carries the pointer's window position; a keyboard request names none and goes to the focused control. The window raises ContextMenuRequested from it (SurfaceRoot::dispatch_context_request). A position that is not finite is refused as invalid_payload.
 
@@ -1024,7 +1024,7 @@ Related types
 
 .. cpp:struct:: HostDialogHelpEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The user asked for help in an open message dialog: its Help button, or F1. The dialog stays open.
 
@@ -1036,7 +1036,7 @@ Related types
 
 .. cpp:struct:: HostDialogRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostDialogRequest binds a unique request ID and portable owner stable ID to one typed dialog variant.
 
@@ -1052,7 +1052,7 @@ Related types
 
 .. cpp:struct:: HostDialogResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostDialogResult couples portable service status and exact request identity to the matching typed result variant.
 
@@ -1066,7 +1066,7 @@ Related types
 
 .. cpp:struct:: HostDispatchResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostDispatchResult carries handled/deferred/capacity/close/drag outcome plus portable rejection or callback-fault category.
 
@@ -1099,7 +1099,7 @@ Related types
 
 .. cpp:struct:: HostDisplayEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostDisplayEvent carries a complete validated unique-primary monitor set after display topology change.
 
@@ -1109,7 +1109,7 @@ Related types
 
 .. cpp:struct:: HostEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostEvent binds nonzero monotonic sequence and caller-supplied monotonic timestamp to one portable lifecycle/input payload.
 
@@ -1123,7 +1123,7 @@ Related types
 
 .. cpp:class:: HostEventClock final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    Maps a host's own event clock into FrameClock nanoseconds (PointerEvent::timestamp_nanoseconds) for a host whose events carry a time on another clock: X11's server milliseconds, Windows' GetMessageTime. The offset is the smallest (receipt - event time) seen, the estimate of least delay, so a mapped time never lies after its receipt and differences between events keep the host's own spacing. ``host_nanoseconds`` must not go backwards except by a wrap the caller has already unwrapped. One per host connection, on its thread.
 
@@ -1136,7 +1136,7 @@ Related types
 
 .. cpp:struct:: HostFileDialogFilter final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostFileDialogFilter carries a user-facing label and bounded extension vocabulary without native filter syntax.
 
@@ -1148,7 +1148,7 @@ Related types
 
 .. cpp:struct:: HostFolderDialogRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostFolderDialogRequest declares portable title and initial directory for one folder selection.
 
@@ -1160,7 +1160,7 @@ Related types
 
 .. cpp:struct:: HostHoverEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The pointer rested within the hover rectangle for the hover time, as the platform measured it (Windows WM_MOUSEHOVER). Sent only by a host whose input settings say native_hover; the window raises MouseHover on the hovered control. A position that is not finite is refused as invalid_payload.
 
@@ -1170,7 +1170,7 @@ Related types
 
 .. cpp:struct:: HostImage final
 
-   ``#include <gui_forms/host/image/host_image.hpp>``
+   ``#include <gui_forms/host/image/host_image.hpp>`` (:src:`source <include/gui_forms/host/image/host_image.hpp>`)
 
    An owned host-service image, premultiplied BGRA8 like HostImageView. Clipboard reads return independent storage. A GUI.Forms clipboard image is read back byte for byte; straight-alpha native formats (PNG, DIB, icons) are converted only where they meet the host, and a valid premultiplied image survives that conversion unchanged.
 
@@ -1199,7 +1199,7 @@ Related types
 
 .. cpp:struct:: HostImageView final
 
-   ``#include <gui_forms/host/image/host_image.hpp>``
+   ``#include <gui_forms/host/image/host_image.hpp>`` (:src:`source <include/gui_forms/host/image/host_image.hpp>`)
 
    A borrowed, top-to-bottom, premultiplied BGRA8 sRGB image: blue, green, red, alpha in memory, each colour channel at most its alpha, as every framebuffer and raster holds pixels. Row padding is permitted; the final row does not require trailing padding. The producer retains ownership and keeps the bytes alive for the whole call.
 
@@ -1215,7 +1215,7 @@ Related types
 
 .. cpp:struct:: HostInputSettingsEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes. The session copies them into the window's PresentationSettings (double_click_milliseconds, double_click_origin, pointer and caret), leaving every other field as it is. An interval of 0 or above maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, or caret settings that are not valid_caret_settings, are refused as invalid_payload. A host reports the pointer and caret values its platform has with origin host and leaves the others at their defaults (origin default_value).
 
@@ -1237,7 +1237,7 @@ Related types
 
 .. cpp:struct:: HostLocale final
 
-   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>`` (:src:`source <include/gui_forms/host/types/host_locale/host_locale.hpp>`)
 
    The host's locale details GUI.Forms formats with (exhibit gap E11; owner, 2026-11-13: GUI.Forms defers to the host for the date and time and, where possible, the locale details). Host data, not core policy: a host fills what its platform says (HostCapabilities::locale, reported with HostCapability::locale) and leaves the rest at the portable default. The patterns use the DateTimePicker's custom-format letters (d, dd, ddd, dddd, M to MMMM, yy, yyyy, h, hh, H, HH, m, mm, s, ss, t, tt, text in single quotes); a host converts its platform's pattern language to them. The names run January first and Sunday first. Every text is UTF-8; the names and patterns are never empty (valid_host_locale).
 
@@ -1297,7 +1297,7 @@ Related types
 
 .. cpp:struct:: HostMessageDialogRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostMessageDialogRequest declares portable title/message, button set, semantic icon, and valid default choice.
 
@@ -1335,7 +1335,7 @@ Related types
 
 .. cpp:struct:: HostMessageDialogResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostMessageDialogResult carries accepted/cancelled outcome and a choice valid for the request's button set.
 
@@ -1351,7 +1351,7 @@ Related types
 
 .. cpp:struct:: HostModalTransition final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostModalTransition carries exact dialog request, committed modal depth, and enter/leave direction.
 
@@ -1365,7 +1365,7 @@ Related types
 
 .. cpp:struct:: HostMonitor final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostMonitor carries stable adapter identity, full/work logical rectangles, device scale, and primary status.
 
@@ -1385,7 +1385,7 @@ Related types
 
 .. cpp:struct:: HostMonitorResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostMonitorResult couples portable status with a validated unique-primary monitor set.
 
@@ -1397,7 +1397,7 @@ Related types
 
 .. cpp:struct:: HostOcclusionEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostOcclusionEvent carries native visibility suppression into portable paint/scheduling policy.
 
@@ -1407,7 +1407,7 @@ Related types
 
 .. cpp:struct:: HostOpenFileDialogRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostOpenFileDialogRequest declares bounded portable title/location/name/filter state and multiple-selection policy.
 
@@ -1437,7 +1437,7 @@ Related types
 
 .. cpp:struct:: HostPathDialogResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostPathDialogResult carries accepted/cancelled outcome and a bounded UTF-8 path collection constrained by request multiplicity.
 
@@ -1455,7 +1455,7 @@ Related types
 
 .. cpp:struct:: HostPopupPlacement final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry). Programs open popups through Window::open_native_popup, which fills this in.
 
@@ -1475,7 +1475,7 @@ Related types
 
 .. cpp:struct:: HostProtocolRevision final
 
-   ``#include <gui_forms/host/types/host_capabilities/host_capabilities.hpp>``
+   ``#include <gui_forms/host/types/host_capabilities/host_capabilities.hpp>`` (:src:`source <include/gui_forms/host/types/host_capabilities/host_capabilities.hpp>`)
 
    One host protocol version and the feature it added.
 
@@ -1487,7 +1487,7 @@ Related types
 
 .. cpp:struct:: HostRelativeMotionEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    One motion sample in relative pointer mode (capability relative_pointer; host protocol version 14). A host sends one per native sample, never merged: macOS each mouse moved or dragged event's deltaX and deltaY, X11 each XI2 raw motion. delta: logical units, sub-unit precision kept; unaccelerated: delta is the device's raw counts scaled to logical units (raw_pointer_motion), not the accelerated motion. position: the pointer in window logical units where it moves (free and confined modes); empty while locked. timestamp_nanoseconds: the sample's time (PointerEvent's clock; zero: the HostEvent's). The window refuses a delta or position that is not finite as invalid_payload. In confined and locked modes the host sends no absolute pointer moves (buttons and the wheel still come as PointerEvents); in free mode it sends both.
 
@@ -1507,7 +1507,7 @@ Related types
 
 .. cpp:struct:: HostRelativePointerRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer). active false returns the pointer to normal (shown, free, absolute moves). confine: the rectangle (window logical units) a confined pointer stays in. A host that cannot do the mode reports the error, and the window falls back (RelativePointerGrant).
 
@@ -1527,7 +1527,7 @@ Related types
 
 .. cpp:struct:: HostResizeEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostResizeEvent carries a validated logical client extent for an attached session.
 
@@ -1537,7 +1537,7 @@ Related types
 
 .. cpp:struct:: HostSaveFileDialogRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostSaveFileDialogRequest declares portable title/location/name/default extension/filter and overwrite policy.
 
@@ -1573,7 +1573,7 @@ Related types
 
 .. cpp:struct:: HostScaleEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostScaleEvent carries a validated positive device scale for an attached session.
 
@@ -1585,7 +1585,7 @@ Related types
 
 .. cpp:struct:: HostScreenPointResult final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -1595,7 +1595,7 @@ Related types
 
 .. cpp:class:: HostServices
 
-   ``#include <gui_forms/host/services/host_services.hpp>``
+   ``#include <gui_forms/host/services/host_services.hpp>`` (:src:`source <include/gui_forms/host/services/host_services.hpp>`)
 
    HostServices centralizes portable thread, capability, UTF-8, size, modal-stack, semantic-sound, accounting, adapter-fault, and shutdown policy. Platform implementations provide only native operations, so behavioral gates remain identical headlessly, on AppKit, and on Win32.
 
@@ -1970,7 +1970,7 @@ Related types
 
 .. cpp:struct:: HostServicesSnapshot final
 
-   ``#include <gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp>``
+   ``#include <gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp>`` (:src:`source <include/gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp>`)
 
    HostServicesSnapshot is machine-readable capability, cursor/capture, monitor/clipboard/dialog/sound, coalescing-policy, modal-depth, rejection, and shutdown state.
 
@@ -2055,7 +2055,7 @@ Related types
 
 .. cpp:struct:: HostServiceStatus final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostServiceStatus carries the portable service rejection/failure category without native error types.
 
@@ -2074,7 +2074,7 @@ Related types
 
 .. cpp:class:: HostSession final
 
-   ``#include <gui_forms/host/session/host_session.hpp>``
+   ``#include <gui_forms/host/session/host_session.hpp>`` (:src:`source <include/gui_forms/host/session/host_session.hpp>`)
 
    HostSession is the foreign-boundary lifecycle machine between one native top-level presentation and one retained Window. It validates sequence, phase, geometry, typed drag payload, modal suppression, callback containment, close authorization, and terminal cleanup without admitting platform handles.
 
@@ -2118,7 +2118,7 @@ Related types
 
 .. cpp:struct:: HostSessionSnapshot final
 
-   ``#include <gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp>``
+   ``#include <gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp>`` (:src:`source <include/gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp>`)
 
    HostSessionSnapshot is the complete machine-readable phase, sequence, event, fault, close, display, modal, drag, attachment, activation, occlusion, closed, and shutdown state.
 
@@ -2177,7 +2177,7 @@ Related types
 
 .. cpp:struct:: HostShutdownEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostShutdownEvent is the empty terminal teardown signal admitted from any nonterminal lifecycle where policy allows it.
 
@@ -2185,7 +2185,7 @@ Related types
 
 .. cpp:struct:: HostSoundCueRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    HostSoundCueRequest carries semantic meaning, normalized gain, and caller-supplied monotonic time for reproducible coalescing.
 
@@ -2205,7 +2205,7 @@ Related types
 
 .. cpp:struct:: HostTrayIconEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:member:: HostTrayIconId icon_id
 
@@ -2217,7 +2217,7 @@ Related types
 
 .. cpp:struct:: HostTrayIconId final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The identity of one notification-area icon (owner decision V3-1): assigned by HostServices::add_tray_icon from 1 and never reused by that HostServices; zero is no icon. A distinct type, so it cannot be confused with a window, runtime or request identity, or with a host's own native icon number.
 
@@ -2232,7 +2232,7 @@ Related types
 
 .. cpp:struct:: HostTrayIconRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    Notification-area (system tray) icons. An icon is named by the identity HostServices::add_tray_icon returns; no native handle enters the portable contract. ``images`` holds the icon at one or more sizes (each at most 256 pixels a side); an adapter shows the image nearest the size its tray asks for (select_tray_icon_image). ``tooltip`` is at most 127 bytes of UTF-8.
 
@@ -2244,7 +2244,7 @@ Related types
 
 .. cpp:struct:: HostTrayIconResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -2254,7 +2254,7 @@ Related types
 
 .. cpp:struct:: HostTrayMenuItem final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    One row of a native tray menu: a command with an identity, or a separator.
 
@@ -2274,7 +2274,7 @@ Related types
 
 .. cpp:struct:: HostTrayMenuRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:member:: std::vector<HostTrayMenuItem> items
 
@@ -2282,7 +2282,7 @@ Related types
 
 .. cpp:struct:: HostTrayMenuResult final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The chosen row's identity, or empty when the menu was dismissed.
 
@@ -2294,7 +2294,7 @@ Related types
 
 .. cpp:struct:: HostTrayNotificationRequest final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    Notification text from a tray icon: a title of at most 63 bytes and text of at most 255 bytes of UTF-8, shown for about ``timeout_milliseconds`` where the platform honours a timeout (zero leaves it to the platform).
 
@@ -2312,7 +2312,7 @@ Related types
 
 .. cpp:struct:: HostWindowAdmission final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -2322,7 +2322,7 @@ Related types
 
 .. cpp:struct:: HostWindowAtResult final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    An accepted result whose ``window`` is invalid means no window of this run is the topmost window at the point (the desktop, or another application's window, is).
 
@@ -2334,7 +2334,7 @@ Related types
 
 .. cpp:struct:: HostWindowChromeResult final
 
-   ``#include <gui_forms/host/services/host_services.hpp>``
+   ``#include <gui_forms/host/services/host_services.hpp>`` (:src:`source <include/gui_forms/host/services/host_services.hpp>`)
 
    A chrome request's outcome (HostServices::apply_window_chrome): the status, and which of the requested properties the platform applied.
 
@@ -2346,7 +2346,7 @@ Related types
 
 .. cpp:struct:: HostWindowCornersResult final
 
-   ``#include <gui_forms/host/services/host_services.hpp>``
+   ``#include <gui_forms/host/services/host_services.hpp>`` (:src:`source <include/gui_forms/host/services/host_services.hpp>`)
 
    A corner request's outcome (HostServices::apply_window_corners): the status, and what the window's corners are afterwards, which the window's band follows. A refused or failed request reports unknown corners.
 
@@ -2358,7 +2358,7 @@ Related types
 
 .. cpp:struct:: HostWindowDescription final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    What an adapter tells the windowing seam about a window it is about to create. ``stable_id`` is borrowed for the call.
 
@@ -2380,7 +2380,7 @@ Related types
 
 .. cpp:struct:: HostWindowFrame final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    A window's rectangle in desktop logical units (desktop_coordinates.hpp).
 
@@ -2398,7 +2398,7 @@ Related types
 
 .. cpp:struct:: HostWindowFrameEvent final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    Published once for every native move or resize the adapter reports, whoever caused it (the user, a frame request, the platform).
 
@@ -2410,7 +2410,7 @@ Related types
 
 .. cpp:struct:: HostWindowFrameResult final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -2420,7 +2420,7 @@ Related types
 
 .. cpp:struct:: HostWindowId final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    Identity of one window within one application run. Identities are assigned from 1 in admission order and never reused within a run, so a destroyed window's identity cannot address a later window.
 
@@ -2435,7 +2435,7 @@ Related types
 
 .. cpp:class:: HostWindowing
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    Application-scope windowing for one run (stage DK decisions 6 and 7): the table of the run's live windows, runtime destruction, window frames in desktop logical units, the pointer's desktop position, the window under a desktop point and ordering within the application. The base class owns the UI-thread check, capability gating, identities, the bounds and validation, so every adapter applies the same rules; an adapter implements the ``*_impl`` operations for its platform. A request a host cannot perform reports ``unsupported`` (HostCapability bits runtime_windows, window_frames, screen_pointer, window_at_point and window_ordering). Opening a window is not a member: it needs the window's model and callbacks, which each adapter receives in its own entry type. The adapter calls admit() before it creates the native window and retire() when the native window is gone, whatever closed it. The floating policy (HostWindowKindTraits) is carried out here too: the adapter reports application activation, the primary window's minimized state and every frame, and the base class decides which floating windows are shown and where they move, calling show_impl, hide_impl and request_frame_impl. Following works the same whether or not the platform also moves owned windows itself (macOS child windows do): a floating window's offset is learnt only from moves of the floating window itself, never from a move the primary window caused. Every member runs on the thread that constructed the object. Requests from another thread report wrong_thread; requests after shutdown() report after_shutdown; unknown or retired identities are invalid_argument.
 
@@ -2664,7 +2664,7 @@ Related types
 
 .. cpp:struct:: HostWindowingSnapshot final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
 
    .. rubric:: Properties
@@ -2707,7 +2707,7 @@ Related types
 
 .. cpp:struct:: HostWindowKindTraits final
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    What the run does with a window of each kind (stage DK decisions 1, 10 and 11). One portable rule on every host; the adapters only carry it out.
 
@@ -2735,7 +2735,7 @@ Related types
 
 .. cpp:struct:: HostWindowStateEvent final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    The native window's state changed (capability window_state_reports; owner, 2026-11-08: the window outer band). Reported after attach and whenever the window enters or leaves full screen, or is maximized, snapped or restored, any of which the platform may answer by reshaping its corners. full_screen: the window fills its monitor with no frame (Windows: a captionless window covering its monitor; macOS: the window style mask's full-screen bit; X11: _NET_WM_STATE_FULLSCREEN, or the host's own override-redirect fallback). The session passes full_screen to Window::report_full_screen and asks the host for the window's corners again (HostServices::apply_window_corners), so the band follows both.
 
@@ -2745,7 +2745,7 @@ Related types
 
 .. cpp:struct:: LinuxApplicationOptions final
 
-   ``#include <gui_forms/platform/linux_host.hpp>``
+   ``#include <gui_forms/platform/linux_host.hpp>`` (:src:`source <include/gui_forms/platform/linux_host.hpp>`)
 
    .. cpp:member:: std::function<void(HostWindowing &windowing, LinuxOpenWindow open)> windowing_ready
 
@@ -2759,7 +2759,7 @@ Related types
 
 .. cpp:struct:: LinuxApplicationWindow final
 
-   ``#include <gui_forms/platform/linux_host.hpp>``
+   ``#include <gui_forms/platform/linux_host.hpp>`` (:src:`source <include/gui_forms/platform/linux_host.hpp>`)
 
    .. cpp:member:: std::string stable_id
 
@@ -2783,7 +2783,7 @@ Related types
 
 .. cpp:struct:: LinuxHostOptions final
 
-   ``#include <gui_forms/platform/linux_host.hpp>``
+   ``#include <gui_forms/platform/linux_host.hpp>`` (:src:`source <include/gui_forms/platform/linux_host.hpp>`)
 
    .. cpp:member:: std::string title
 
@@ -2847,7 +2847,7 @@ Related types
 
 .. cpp:struct:: MacApplicationOptions final
 
-   ``#include <gui_forms/platform/macos_host.hpp>``
+   ``#include <gui_forms/platform/macos_host.hpp>`` (:src:`source <include/gui_forms/platform/macos_host.hpp>`)
 
    .. cpp:member:: std::function<void(HostWindowing& windowing, MacOpenWindow open)> windowing_ready
 
@@ -2865,7 +2865,7 @@ Related types
 
 .. cpp:struct:: MacApplicationWindow final
 
-   ``#include <gui_forms/platform/macos_host.hpp>``
+   ``#include <gui_forms/platform/macos_host.hpp>`` (:src:`source <include/gui_forms/platform/macos_host.hpp>`)
 
    MacApplicationWindow is the move-only RAII owner of one native AppKit session and its retained Window projection.
 
@@ -2891,7 +2891,7 @@ Related types
 
 .. cpp:struct:: MacHostOptions
 
-   ``#include <gui_forms/platform/macos_host.hpp>``
+   ``#include <gui_forms/platform/macos_host.hpp>`` (:src:`source <include/gui_forms/platform/macos_host.hpp>`)
 
    MacHostOptions declares initial native window title, geometry, display scale, and run policy.
 
@@ -2977,7 +2977,7 @@ Related types
 
 .. cpp:struct:: MacHostServiceOptions
 
-   ``#include <gui_forms/platform/macos_host.hpp>``
+   ``#include <gui_forms/platform/macos_host.hpp>`` (:src:`source <include/gui_forms/platform/macos_host.hpp>`)
 
    MacHostServiceOptions injects bounded dialog, tooltip, clipboard, and semantic-sound services into an AppKit session.
 
@@ -2989,7 +2989,7 @@ Related types
 
 .. cpp:class:: Splashscreen final
 
-   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>`` (:src:`source <include/gui_forms/application/splashscreen/splashscreen.hpp>`)
 
    One shown splashscreen, owned by the program. Its window closes when it is destroyed, when close() is called, or (the handover) when the first window of Application::run is ready; after that the setters change its text and do nothing more. Each setter presents the new frame at once, without a run loop. Main thread only (the thread that later runs the application). Link GUIForms::Application for show.
 
@@ -3029,7 +3029,7 @@ Related types
 
 .. cpp:struct:: SplashscreenOptions final
 
-   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>`` (:src:`source <include/gui_forms/application/splashscreen/splashscreen.hpp>`)
 
    A splashscreen (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; a Splash of kind splashscreen) shown before Application::create, while the program loads: a borderless window centred on the primary monitor that takes no input. It is the program's artwork plus one status line and an optional progress bar in fixed built-in styling, with no sheet (owner, 2026-11-08: Q-S1 (a)); a minimal paint path of its own draws them with the bundled control face through the host's CPU raster (no theme, controls or layout), so that it shows before the theme is compiled.
 
@@ -3061,7 +3061,7 @@ Related types
 
 .. cpp:struct:: SplashscreenResult final
 
-   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>`` (:src:`source <include/gui_forms/application/splashscreen/splashscreen.hpp>`)
 
    .. cpp:member:: SplashscreenError error
 
@@ -3073,7 +3073,7 @@ Related types
 
 .. cpp:struct:: SurfaceApplicationOptions final
 
-   ``#include <gui_forms/platform/surface_host.hpp>``
+   ``#include <gui_forms/platform/surface_host.hpp>`` (:src:`source <include/gui_forms/platform/surface_host.hpp>`)
 
    .. cpp:member:: std::function<void(HostWindowing &windowing, SurfaceOpenWindow open)> windowing_ready
 
@@ -3087,7 +3087,7 @@ Related types
 
 .. cpp:struct:: SurfaceApplicationWindow final
 
-   ``#include <gui_forms/platform/surface_host.hpp>``
+   ``#include <gui_forms/platform/surface_host.hpp>`` (:src:`source <include/gui_forms/platform/surface_host.hpp>`)
 
    .. cpp:member:: std::string stable_id
 
@@ -3111,7 +3111,7 @@ Related types
 
 .. cpp:struct:: SurfaceHostOptions final
 
-   ``#include <gui_forms/platform/surface_host.hpp>``
+   ``#include <gui_forms/platform/surface_host.hpp>`` (:src:`source <include/gui_forms/platform/surface_host.hpp>`)
 
    The windows of a single-surface host (owner decision, 2026-11-15): the browser now, a framebuffer appliance later, any host with one surface. GUI.Forms' own window manager (src/host/surface/) makes every window of the run a layer of that surface: the primary window fills it; owned, tool and floating windows have a frame it draws, with a title bar and minimise, maximise and close boxes, and can be moved, resized, minimised to a tab along the surface's bottom edge, maximised and restored; popups and menus are placed as the program puts them; modal windows block the windows beneath them. The host supplies only the surface, its input and a present call. The options mirror LinuxHostOptions and are published the same way, on the run's thread.
 
@@ -3165,7 +3165,7 @@ Related types
 
 .. cpp:struct:: ThemeChoice final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:member:: ThemeChoiceKind kind
 
@@ -3177,7 +3177,7 @@ Related types
 
 .. cpp:struct:: ThemeCommandLine final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    The user-theme options of a command line (the arguments after the program's own name): ``--theme <name>`` and ``--export-themes [folder]``, the folder empty for the per-user one. Other arguments are the program's and are passed over. ``error`` is set, and the rest left as unspecified, when ``--theme`` has no value or is given twice.
 
@@ -3193,7 +3193,7 @@ Related types
 
 .. cpp:struct:: ThemeExportReport final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    What an export did: the files written, those already there (left as they were) and those that could not be written, by path; and the package resources and icons that a user theme cannot hold.
 
@@ -3209,7 +3209,7 @@ Related types
 
 .. cpp:struct:: ThemeRequest final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:member:: ThemeRequestSource source
 
@@ -3231,7 +3231,7 @@ Related types
 
 .. cpp:struct:: ThemeRequestContext final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    What a request compiles against. Its library is shared, so a request held for the first window keeps what it needs alive.
 
@@ -3261,7 +3261,7 @@ Related types
 
 .. cpp:struct:: ThemeRequestReport final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    What a request did, kept by the resources it was settled on.
 
@@ -3283,7 +3283,7 @@ Related types
 
 .. cpp:struct:: UserThemeCandidate final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    One theme found: compiled, or refused with its diagnostics (a list shows it greyed out).
 
@@ -3311,7 +3311,7 @@ Related types
 
 .. cpp:struct:: UserThemeFolders final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    Where a scan reads: the folder beside the program (read-only, shipped with it) and the user's own; an empty path is a folder not read.
 
@@ -3323,7 +3323,7 @@ Related types
 
 .. cpp:struct:: UserThemeScan final
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    What a scan found: the themes by name (where both folders hold one, the per-user one), and one line for each file passed over (no theme header, a name the rule refuses, a limit, a folder that could not be read).
 
@@ -3335,7 +3335,7 @@ Related types
 
 .. cpp:struct:: WindowBackdropConditions final
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    The window-side conditions a grant depends on besides the host's state. ``high_contrast`` and ``reduced_transparency`` are the ones in force (the window's PresentationSettings), which the host's reports feed and the application may also set.
 
@@ -3349,7 +3349,7 @@ Related types
 
 .. cpp:struct:: WindowBackdropGrant final
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    What a window was given: the first entry of its request the host can honour now, or ``opaque``. ``reason`` explains the preferred entry; it is ``granted`` only when the preferred entry was granted.
 
@@ -3373,7 +3373,7 @@ Related types
 
 .. cpp:struct:: WindowBackdropRequest final
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    A window's backdrop request (owner decisions T5-Q3 and T5-Q5): the preferred backdrop, then up to two fallbacks, tried in order; ``opaque`` always follows them. Built with the factories; a request is valid when it has one to three entries, none repeated, and ``opaque`` only as the last.
 
@@ -3407,7 +3407,7 @@ Related types
 
 .. cpp:struct:: WindowChromeHit final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
 
    .. rubric:: Properties
@@ -3426,7 +3426,7 @@ Related types
 
 .. cpp:struct:: WindowChromeRegionValidation final
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
 
    .. rubric:: Properties
@@ -3445,7 +3445,7 @@ Related types
 
 .. cpp:class:: WindowFrameDrag final
 
-   ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>``
+   ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>`` (:src:`source <include/gui_forms/application/window_frame_drag/window_frame_drag.hpp>`)
 
    The framework's capture drag of one native window. The caption control that owns the drag calls begin on pointer down (with the pointer captured), move on every pointer move, end on pointer up and cancel on Escape or capture loss. Positions come from the desktop pointer, not from the event's client position, because the window moves under the pointer. Every member runs on the run's UI thread. The drag holds a weak handle and a subscription to the run's frame reports; both end with the drag.
 
@@ -3488,7 +3488,7 @@ Related types
 
 .. cpp:struct:: WindowFrameDragStatistics final
 
-   ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>``
+   ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>`` (:src:`source <include/gui_forms/application/window_frame_drag/window_frame_drag.hpp>`)
 
    What a drag achieved, for the per-host measurement (notes:results/). Timestamps are the caller's monotonic clock, in nanoseconds.
 
@@ -3530,7 +3530,7 @@ Related types
 
 .. cpp:struct:: WindowsApplicationOptions final
 
-   ``#include <gui_forms/platform/windows_host.hpp>``
+   ``#include <gui_forms/platform/windows_host.hpp>`` (:src:`source <include/gui_forms/platform/windows_host.hpp>`)
 
    .. cpp:member:: std::function<void(HostWindowing& windowing, WindowsOpenWindow open)> windowing_ready
 
@@ -3544,7 +3544,7 @@ Related types
 
 .. cpp:struct:: WindowsApplicationWindow final
 
-   ``#include <gui_forms/platform/windows_host.hpp>``
+   ``#include <gui_forms/platform/windows_host.hpp>`` (:src:`source <include/gui_forms/platform/windows_host.hpp>`)
 
    WindowsApplicationWindow is the move-only RAII owner of one native Win32 session and retained Window projection.
 
@@ -3570,7 +3570,7 @@ Related types
 
 .. cpp:class:: WindowsCompatibilityPaintEndpoint final
 
-   ``#include <gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp>``
+   ``#include <gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp>`` (:src:`source <include/gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp>`)
 
    WindowsCompatibilityPaintEndpoint is a shared move-only façade over a RasterControl live surface, staging DC, generational writes, invalidation, submission, drain, and retirement.
 
@@ -3610,7 +3610,7 @@ Related types
 
 .. cpp:struct:: WindowsHostOptions final
 
-   ``#include <gui_forms/platform/windows_host.hpp>``
+   ``#include <gui_forms/platform/windows_host.hpp>`` (:src:`source <include/gui_forms/platform/windows_host.hpp>`)
 
    WindowsHostOptions declares initial Win32 title, client geometry, display scale, instance, show state, and run policy.
 
@@ -3692,7 +3692,7 @@ Related types
 
 .. cpp:class:: WorkspaceTransaction final
 
-   ``#include <gui_forms/application/workspace_transaction/workspace_transaction.hpp>``
+   ``#include <gui_forms/application/workspace_transaction/workspace_transaction.hpp>`` (:src:`source <include/gui_forms/application/workspace_transaction/workspace_transaction.hpp>`)
 
    One coherent change across several windows of a run (stage DK decision 9, docking study 5.3): a move that empties one window and fills another lays out each window once, never shows a half-moved state, and tells observers once, at the end. While the transaction is open, every included window holds an update scope, so its layout waits; windows opened through the transaction are created hidden and included; shows, destructions and notifications are queued. commit() then runs, in this order: 1. close the update scopes, in inclusion order: each window lays out once; 2. show the windows queued for showing (opened visible, or show_window), without activating them; 3. destroy the windows queued for destruction, so a panel moving between two windows is never invisible; 4. run the queued notifications once each, in the order queued. A notification that changes windows starts a transaction of its own. The destructor commits a transaction left open. Every member runs on the run's UI thread. The transaction borrows the included Window models; a window destroyed through the transaction is destroyed only after its scope closed, and the hosts release a model no earlier than the end of the turn in which its window closed.
 
@@ -3734,7 +3734,7 @@ Related types
 
 .. cpp:struct:: WorkspaceTransactionResult final
 
-   ``#include <gui_forms/application/workspace_transaction/workspace_transaction.hpp>``
+   ``#include <gui_forms/application/workspace_transaction/workspace_transaction.hpp>`` (:src:`source <include/gui_forms/application/workspace_transaction/workspace_transaction.hpp>`)
 
    .. cpp:member:: HostServiceStatus status
 
@@ -3755,7 +3755,7 @@ Enumerations
 
 .. cpp:enum-class:: ApplicationCreateError
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3767,7 +3767,7 @@ Enumerations
 
 .. cpp:enum-class:: ApplicationError
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3791,7 +3791,7 @@ Enumerations
 
 .. cpp:enum-class:: ApplicationWindowRefusal
 
-   ``#include <gui_forms/application/application.hpp>``
+   ``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3823,7 +3823,7 @@ Enumerations
 
 .. cpp:enum-class:: BuildProfile
 
-   ``#include <gui_forms/build_profile/build_profile.hpp>``
+   ``#include <gui_forms/build_profile/build_profile.hpp>`` (:src:`source <include/gui_forms/build_profile/build_profile.hpp>`)
 
    .. cpp:enumerator:: standard
 
@@ -3833,7 +3833,7 @@ Enumerations
 
 .. cpp:enum-class:: CompositorPresence
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    .. cpp:enumerator:: unknown
 
@@ -3845,7 +3845,7 @@ Enumerations
 
 .. cpp:enum-class:: CursorError
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3873,7 +3873,7 @@ Enumerations
 
 .. cpp:enum-class:: CursorLeasePhase
 
-   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>``
+   ``#include <gui_forms/host/cursor_interaction/cursor_interaction.hpp>`` (:src:`source <include/gui_forms/host/cursor_interaction/cursor_interaction.hpp>`)
 
    .. cpp:enumerator:: empty
 
@@ -3887,7 +3887,7 @@ Enumerations
 
 .. cpp:enum-class:: FirstFrameShowCause
 
-   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>`` (:src:`source <include/gui_forms/host/windowing/first_frame_show.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3901,7 +3901,7 @@ Enumerations
 
 .. cpp:enum-class:: FirstFrameShowState
 
-   ``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+   ``#include <gui_forms/host/windowing/first_frame_show.hpp>`` (:src:`source <include/gui_forms/host/windowing/first_frame_show.hpp>`)
 
    .. cpp:enumerator:: idle
 
@@ -3913,7 +3913,7 @@ Enumerations
 
 .. cpp:enum-class:: HostAutoCompleteSource
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: file_system
 
@@ -3931,7 +3931,7 @@ Enumerations
 
 .. cpp:enum-class:: HostCapability
 
-   ``#include <gui_forms/host/types/host_capability/host_capability.hpp>``
+   ``#include <gui_forms/host/types/host_capability/host_capability.hpp>`` (:src:`source <include/gui_forms/host/types/host_capability/host_capability.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4031,7 +4031,7 @@ Enumerations
 
 .. cpp:enum-class:: HostCloseReason
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: user
 
@@ -4047,7 +4047,7 @@ Enumerations
 
 .. cpp:enum-class:: HostDialogChoice
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4075,7 +4075,7 @@ Enumerations
 
 .. cpp:enum-class:: HostDialogOutcome
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: accepted
 
@@ -4085,7 +4085,7 @@ Enumerations
 
 .. cpp:enum-class:: HostDispatchError
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4107,7 +4107,7 @@ Enumerations
 
 .. cpp:enum-class:: HostImageError
 
-   ``#include <gui_forms/host/image/host_image.hpp>``
+   ``#include <gui_forms/host/image/host_image.hpp>`` (:src:`source <include/gui_forms/host/image/host_image.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4123,7 +4123,7 @@ Enumerations
 
 .. cpp:enum-class:: HostLifecyclePhase
 
-   ``#include <gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp>``
+   ``#include <gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp>`` (:src:`source <include/gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp>`)
 
    .. cpp:enumerator:: constructed
 
@@ -4139,7 +4139,7 @@ Enumerations
 
 .. cpp:enum-class:: HostMessageButtons
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: ok
 
@@ -4159,7 +4159,7 @@ Enumerations
 
 .. cpp:enum-class:: HostMessageIcon
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4175,7 +4175,7 @@ Enumerations
 
 .. cpp:enum-class:: HostPopupFocus
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:enumerator:: passive
 
@@ -4185,7 +4185,7 @@ Enumerations
 
 .. cpp:enum-class:: HostServiceError
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4209,7 +4209,7 @@ Enumerations
 
 .. cpp:enum-class:: HostSoundCue
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: notification
 
@@ -4225,7 +4225,7 @@ Enumerations
 
 .. cpp:enum-class:: HostTransientKind
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:enumerator:: popup
 
@@ -4237,7 +4237,7 @@ Enumerations
 
 .. cpp:enum-class:: HostTrayIconAction
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: click
 
@@ -4253,7 +4253,7 @@ Enumerations
 
 .. cpp:enum-class:: HostTrayNotificationIcon
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4267,7 +4267,7 @@ Enumerations
 
 .. cpp:enum-class:: HostWeekday
 
-   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>`` (:src:`source <include/gui_forms/host/types/host_locale/host_locale.hpp>`)
 
    .. cpp:enumerator:: sunday
 
@@ -4287,7 +4287,7 @@ Enumerations
 
 .. cpp:enum-class:: HostWindowFloating
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4299,7 +4299,7 @@ Enumerations
 
 .. cpp:enum-class:: HostWindowKind
 
-   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
    .. cpp:enumerator:: primary
 
@@ -4317,7 +4317,7 @@ Enumerations
 
 .. cpp:enum-class:: MacTitlebarPresentation
 
-   ``#include <gui_forms/platform/macos_host.hpp>``
+   ``#include <gui_forms/platform/macos_host.hpp>`` (:src:`source <include/gui_forms/platform/macos_host.hpp>`)
 
    .. cpp:enumerator:: standard
 
@@ -4327,7 +4327,7 @@ Enumerations
 
 .. cpp:enum-class:: SplashscreenError
 
-   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>``
+   ``#include <gui_forms/application/splashscreen/splashscreen.hpp>`` (:src:`source <include/gui_forms/application/splashscreen/splashscreen.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4341,7 +4341,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeChoiceKind
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:enumerator:: unspecified
 
@@ -4353,7 +4353,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeRequestKind
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4367,7 +4367,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeRequestOutcome
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4389,7 +4389,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeRequestSource
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4401,7 +4401,7 @@ Enumerations
 
 .. cpp:enum-class:: ThemeSelection
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:enumerator:: unchanged
 
@@ -4417,7 +4417,7 @@ Enumerations
 
 .. cpp:enum-class:: UserThemeOrigin
 
-   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
    .. cpp:enumerator:: beside_program
 
@@ -4427,7 +4427,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBackdrop
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    .. cpp:enumerator:: opaque
 
@@ -4441,7 +4441,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBackdropReason
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    .. cpp:enumerator:: granted
 
@@ -4465,7 +4465,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowBackdropSupport
 
-   ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+   ``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
    .. cpp:enumerator:: supported
 
@@ -4479,7 +4479,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowChromeHitRole
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: client
 
@@ -4489,7 +4489,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowChromeRegionError
 
-   ``#include <gui_forms/host/types/host_types.hpp>``
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4503,7 +4503,7 @@ Enumerations
 
 .. cpp:enum-class:: WindowFrameDragMode
 
-   ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>``
+   ``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>`` (:src:`source <include/gui_forms/application/window_frame_drag/window_frame_drag.hpp>`)
 
    .. cpp:enumerator:: framework_capture
 
@@ -4514,7 +4514,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/application/application.hpp>``
+``#include <gui_forms/application/application.hpp>`` (:src:`source <include/gui_forms/application/application.hpp>`)
 
 .. cpp:function:: std::string_view application_window_refusal_text(ApplicationWindowRefusal refusal) noexcept
 
@@ -4522,7 +4522,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/application/user_themes/user_themes.hpp>``
+``#include <gui_forms/application/user_themes/user_themes.hpp>`` (:src:`source <include/gui_forms/application/user_themes/user_themes.hpp>`)
 
 .. cpp:function:: std::string per_user_theme_folder(std::string_view program)
 
@@ -4584,13 +4584,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>``
+``#include <gui_forms/application/window_frame_drag/window_frame_drag.hpp>`` (:src:`source <include/gui_forms/application/window_frame_drag/window_frame_drag.hpp>`)
 
 .. cpp:function:: const char* window_frame_drag_mode_name(WindowFrameDragMode mode) noexcept
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/build_profile/build_profile.hpp>``
+``#include <gui_forms/build_profile/build_profile.hpp>`` (:src:`source <include/gui_forms/build_profile/build_profile.hpp>`)
 
 .. cpp:function:: BuildProfileRecord build_profile() noexcept
 
@@ -4602,7 +4602,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/compositor/window_backdrop.hpp>``
+``#include <gui_forms/host/compositor/window_backdrop.hpp>`` (:src:`source <include/gui_forms/host/compositor/window_backdrop.hpp>`)
 
 .. cpp:function:: const char* window_backdrop_name(WindowBackdrop backdrop) noexcept
 
@@ -4632,7 +4632,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/image/host_image.hpp>``
+``#include <gui_forms/host/image/host_image.hpp>`` (:src:`source <include/gui_forms/host/image/host_image.hpp>`)
 
 .. cpp:function:: HostImageError validate_host_image(HostImageView image) noexcept
 
@@ -4640,7 +4640,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/types/host_capabilities/host_capabilities.hpp>``
+``#include <gui_forms/host/types/host_capabilities/host_capabilities.hpp>`` (:src:`source <include/gui_forms/host/types/host_capabilities/host_capabilities.hpp>`)
 
 .. cpp:function:: constexpr bool host_protocol_revisions_consecutive() noexcept
 
@@ -4652,7 +4652,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/types/host_capability/host_capability.hpp>``
+``#include <gui_forms/host/types/host_capability/host_capability.hpp>`` (:src:`source <include/gui_forms/host/types/host_capability/host_capability.hpp>`)
 
 .. cpp:function:: constexpr HostCapability without_capability(HostCapability available, HostCapability removed) noexcept
 
@@ -4666,7 +4666,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+``#include <gui_forms/host/types/host_locale/host_locale.hpp>`` (:src:`source <include/gui_forms/host/types/host_locale/host_locale.hpp>`)
 
 .. cpp:function:: HostLocale portable_host_locale()
 
@@ -4682,7 +4682,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/types/host_types.hpp>``
+``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
 
 .. cpp:function:: WindowChromeRegionValidation validate_window_chrome_drag_regions(const Window& window, std::span<const std::string> drag_region_ids)
 
@@ -4722,7 +4722,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/windowing/desktop_coordinates.hpp>``
+``#include <gui_forms/host/windowing/desktop_coordinates.hpp>`` (:src:`source <include/gui_forms/host/windowing/desktop_coordinates.hpp>`)
 
 .. cpp:function:: HostMonitor logical_monitor(const HostMonitor& device) noexcept
 
@@ -4748,7 +4748,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/windowing/first_frame_show.hpp>``
+``#include <gui_forms/host/windowing/first_frame_show.hpp>`` (:src:`source <include/gui_forms/host/windowing/first_frame_show.hpp>`)
 
 .. cpp:function:: const char* first_frame_show_state_name(FirstFrameShowState state) noexcept
 
@@ -4764,7 +4764,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/host/windowing/host_windowing.hpp>``
+``#include <gui_forms/host/windowing/host_windowing.hpp>`` (:src:`source <include/gui_forms/host/windowing/host_windowing.hpp>`)
 
 .. cpp:function:: const char* host_window_kind_name(HostWindowKind kind) noexcept
 
@@ -4788,7 +4788,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
-``#include <gui_forms/platform/linux_host.hpp>``
+``#include <gui_forms/platform/linux_host.hpp>`` (:src:`source <include/gui_forms/platform/linux_host.hpp>`)
 
 .. cpp:function:: HostCapabilities linux_capabilities()
 
@@ -4804,7 +4804,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
-``#include <gui_forms/platform/macos_host.hpp>``
+``#include <gui_forms/platform/macos_host.hpp>`` (:src:`source <include/gui_forms/platform/macos_host.hpp>`)
 
 .. cpp:function:: HostCapabilities macos_capabilities()
 
@@ -4820,7 +4820,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
-``#include <gui_forms/platform/surface_host.hpp>``
+``#include <gui_forms/platform/surface_host.hpp>`` (:src:`source <include/gui_forms/platform/surface_host.hpp>`)
 
 .. cpp:type:: SurfaceOpenWindow = std::function<HostWindowAdmission(SurfaceApplicationWindow)>
 
@@ -4828,7 +4828,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
-``#include <gui_forms/platform/web_host.hpp>``
+``#include <gui_forms/platform/web_host.hpp>`` (:src:`source <include/gui_forms/platform/web_host.hpp>`)
 
 .. cpp:function:: HostCapabilities web_capabilities()
 
@@ -4850,7 +4850,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::host
 
-``#include <gui_forms/platform/windows_host.hpp>``
+``#include <gui_forms/platform/windows_host.hpp>`` (:src:`source <include/gui_forms/platform/windows_host.hpp>`)
 
 .. cpp:function:: void accept_automation_environment() noexcept
 
