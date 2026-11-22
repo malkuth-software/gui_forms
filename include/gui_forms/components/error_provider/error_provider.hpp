@@ -68,6 +68,8 @@ struct GUI_FORMS_API ErrorProviderSnapshot final {
 // target semantic node while each visible target owns an independent overlay
 // glyph. Blink work uses the Window frame scheduler, so occlusion and reduced
 // motion suppress wakeups rather than running a provider-local loop.
+// ic: gui_forms::ErrorProvider: generated from include/gui_forms/components/error_provider/error_provider.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ErrorProvider final : public Component, public ErrorProviderCapabilities<ErrorProvider> {
 public:
     explicit ErrorProvider(Window& window);
@@ -170,6 +172,7 @@ private:
     friend struct ErrorProviderDataMemberCapability<ErrorProvider>;
     friend struct ErrorProviderTagCapability<ErrorProvider>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 8 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(icon_size)& cell, double& incoming);
     void written(const decltype(icon_size)& cell);
     void prepare_write(const decltype(blink_rate)& cell, std::chrono::milliseconds& incoming);

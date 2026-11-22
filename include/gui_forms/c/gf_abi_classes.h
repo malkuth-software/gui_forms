@@ -581,6 +581,8 @@ typedef struct gf_node_canvas_class {
 /*
  * GF_TABLE_CLASSES (since 1.3): objects made from class tables.
  */
+// ic: gf_abi::classes: generated from include/gui_forms/c/gf_abi_classes.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_classes_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -596,6 +598,22 @@ typedef struct gf_classes_table {
      * GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's
      * GF_STATUS_UNSUPPORTED_VERSION: nothing is created and release is not
      * called. The class of an object is fixed at creation. */
+    // ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(table), else
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (A class with no class table gives
+    // ic: GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment
+    // ic: count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller
+    // ic: than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's
+    // ic: GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), unchanged; not_found (A class with no class table
+    // ic: gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a
+    // ic: segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment
+    // ic: smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's
+    // ic: GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), unchanged; unsupported_capability (code: this
+    // ic: class is not made from a stable id alone; it has no class table object yet), unchanged; unsupported_version
+    // ic: (A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size
+    // ic: or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's
+    // ic: chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer
+    // ic: than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), unchanged. Returns gf_object,
+    // ic: owned by the caller.
     gf_status (GF_CALL* create)(const gf_class_header* table, gf_utf8_view stable_id, void* instance,
                                 gf_object* object);
     /* The base function of entry (its position in the segment, from zero) of
@@ -603,6 +621,9 @@ typedef struct gf_classes_table {
      * C# OnX called directly). It needs an object of a class whose chain has
      * that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise). An unknown class
      * or entry gives GF_STATUS_NOT_FOUND. Any thread. */
+    // ic: Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or
+    // ic: entry gives GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (It needs an object of a class whose chain
+    // ic: has that segment (GF_STATUS_WRONG_HANDLE_KIND otherwise).), unchanged. Thread: any.
     gf_status (GF_CALL* base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser);
 } gf_classes_table;
 

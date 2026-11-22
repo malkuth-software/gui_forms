@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ListBox",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/list_box.ic.toml",
+    "sha256": "a2209ec6c98acadc37013cf6aa4bd2ad3ec08778ec4d226b8d0300a77eab7584"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.listbox.item_height_write.requires.item_height",
+      "kind": "entry-check",
+      "statement": "item_height runs only when finite(incoming) and incoming >= 12 and incoming <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::list_box::admits_item_height, called in src/controls/panel/list_box/list_box.cpp"
+    },
+    {
+      "id": "gui_forms.listbox.item_height_write.refusal.item_height",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 12 and incoming <= 256, item_height changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

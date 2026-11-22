@@ -6,6 +6,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "tree_view_ic_checks.hpp"
 
 #include <vector>
 #include <string>
@@ -20,6 +21,7 @@
 #include <unordered_set>
 
 namespace gui_forms {
+namespace ic = detail::ic::tree_view;
 
 namespace {
 
@@ -990,7 +992,7 @@ void TreeView::append_interactions(std::vector<InteractionDeclaration>& interact
 
 void TreeView::prepare_write(const decltype(item_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 14.0 || incoming > 256.0) {
+    if (!ic::admits_item_height(incoming)) {
         throw std::invalid_argument("TreeView item height must be finite and between 14 and 256");
     }
 }
@@ -1001,7 +1003,7 @@ void TreeView::written(const decltype(item_height)&) {
 
 void TreeView::prepare_write(const decltype(indentation)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 96.0) {
+    if (!ic::admits_indentation(incoming)) {
         throw std::invalid_argument("TreeView indentation must be finite and between 8 and 96");
     }
 }

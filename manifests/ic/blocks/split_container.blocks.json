@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::SplitContainer",
+  "declaration": "include/gui_forms/controls/split_container.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.splitcontainer.keyboard_increment_write",
+      "mode": "legal",
+      "call": "keyboard_increment",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::SplitContainer"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming > 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.splitcontainer.keyboard_increment_write.misuse.keyboard_increment",
+      "mode": "misuse",
+      "call": "keyboard_increment",
+      "violates": "finite(incoming) and incoming > 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

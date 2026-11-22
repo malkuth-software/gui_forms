@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ResponsiveTrackPanel",
+  "declaration": "include/gui_forms/controls/responsive_track_panel.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.responsivetrackpanel.track_gap_write",
+      "mode": "legal",
+      "call": "track_gap",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ResponsiveTrackPanel"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0 and incoming <= 256"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0 and incoming <= 256"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.responsivetrackpanel.track_gap_write.misuse.track_gap",
+      "mode": "misuse",
+      "call": "track_gap",
+      "violates": "finite(incoming) and incoming >= 0 and incoming <= 256",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+# The C ABI's gf_rules_table (GF_TABLE_RULES): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_rules_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_rules_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_rules_table {"
+keys = { manifest = "gf_abi::rules", abi = "GF_TABLE_RULES" }
+thread = "ui"
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_rules_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_rules"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_rules.cpp"]
+
+[[call]]
+name = "add"
+declarations = ["gf_status (GF_CALL* add)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_rule_token", owns = "caller" }
+fails = [
+  { failure = "disposed", when = "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a" },
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a" },
+  { failure = "limit_exceeded", when = "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a" },
+  { failure = "not_found", when = "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a" },
+  { failure = "wrong_handle_kind", when = "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a" },
+]
+
+[[call]]
+name = "remove"
+declarations = ["gf_status (GF_CALL* remove)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "state"
+declarations = ["gf_status (GF_CALL* state)("]
+kind = "member"
+thread = "ui"
+parameters = { state = "gf_rule_state*" }
+requires = [
+  { holds = "not_null(state)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "state_state" },
+]

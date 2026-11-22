@@ -1,0 +1,1242 @@
+{
+  "schema": 1,
+  "component": "gf_abi::text_editing",
+  "declaration": "include/gui_forms/c/gf_abi_text_editing.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.text_editing.select.alive",
+      "mode": "legal",
+      "call": "select",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a selection lies within the text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.select.disposing",
+      "mode": "legal",
+      "call": "select",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a selection lies within the text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.select.disposed",
+      "mode": "legal",
+      "call": "select",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a selection lies within the text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.selection.alive",
+      "mode": "legal",
+      "call": "selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selection needs anchor and caret outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.selection.disposing",
+      "mode": "legal",
+      "call": "selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selection needs anchor and caret outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.selection.disposed",
+      "mode": "legal",
+      "call": "selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selection needs anchor and caret outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.grapheme_boundary.alive",
+      "mode": "legal",
+      "call": "grapheme_boundary",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: grapheme_boundary needs an output and a direction of 1 or -1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.grapheme_boundary.disposing",
+      "mode": "legal",
+      "call": "grapheme_boundary",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: grapheme_boundary needs an output and a direction of 1 or -1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.grapheme_boundary.disposed",
+      "mode": "legal",
+      "call": "grapheme_boundary",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: grapheme_boundary needs an output and a direction of 1 or -1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_range.alive",
+      "mode": "legal",
+      "call": "replace_range",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: replace_range needs a changed output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_range.disposing",
+      "mode": "legal",
+      "call": "replace_range",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: replace_range needs a changed output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_range.disposed",
+      "mode": "legal",
+      "call": "replace_range",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: replace_range needs a changed output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_range.misuse.replace_range_changed",
+      "mode": "misuse",
+      "call": "replace_range",
+      "violates": "not_null(changed)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.text_editing.undo.alive",
+      "mode": "legal",
+      "call": "undo",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.undo.disposing",
+      "mode": "legal",
+      "call": "undo",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.undo.disposed",
+      "mode": "legal",
+      "call": "undo",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.undo.misuse.undo_changed",
+      "mode": "misuse",
+      "call": "undo",
+      "violates": "not_null(changed)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.text_editing.redo.alive",
+      "mode": "legal",
+      "call": "redo",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.redo.disposing",
+      "mode": "legal",
+      "call": "redo",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.redo.disposed",
+      "mode": "legal",
+      "call": "redo",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "changed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(changed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(changed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.redo.misuse.redo_changed",
+      "mode": "misuse",
+      "call": "redo",
+      "violates": "not_null(changed)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.text_editing.clear_undo_history.alive",
+      "mode": "legal",
+      "call": "clear_undo_history",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.clear_undo_history.disposing",
+      "mode": "legal",
+      "call": "clear_undo_history",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.clear_undo_history.disposed",
+      "mode": "legal",
+      "call": "clear_undo_history",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.set_decorations.alive",
+      "mode": "legal",
+      "call": "set_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A range past the text, a range ending before it starts, a weight outside 1 to 1000, an underline or ink out of range, an unknown field bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT and changes nothing. decorations may be null when count is 0.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.set_decorations.disposing",
+      "mode": "legal",
+      "call": "set_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A range past the text, a range ending before it starts, a weight outside 1 to 1000, an underline or ink out of range, an unknown field bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT and changes nothing. decorations may be null when count is 0.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.set_decorations.disposed",
+      "mode": "legal",
+      "call": "set_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A range past the text, a range ending before it starts, a weight outside 1 to 1000, an underline or ink out of range, an unknown field bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT and changes nothing. decorations may be null when count is 0.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_decorations.alive",
+      "mode": "legal",
+      "call": "replace_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the range lies within the text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_decorations.disposing",
+      "mode": "legal",
+      "call": "replace_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the range lies within the text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.replace_decorations.disposed",
+      "mode": "legal",
+      "call": "replace_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the range lies within the text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.clear_decorations.alive",
+      "mode": "legal",
+      "call": "clear_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.clear_decorations.disposing",
+      "mode": "legal",
+      "call": "clear_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.clear_decorations.disposed",
+      "mode": "legal",
+      "call": "clear_decorations",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_count.alive",
+      "mode": "legal",
+      "call": "decoration_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_count.disposing",
+      "mode": "legal",
+      "call": "decoration_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_count.disposed",
+      "mode": "legal",
+      "call": "decoration_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_count.misuse.decoration_count_count",
+      "mode": "misuse",
+      "call": "decoration_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_at.alive",
+      "mode": "legal",
+      "call": "decoration_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "decoration",
+          "type": "gf_text_decoration*",
+          "bounded_by": [
+            "not_null(decoration)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(decoration)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT past the end.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_at.disposing",
+      "mode": "legal",
+      "call": "decoration_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "decoration",
+          "type": "gf_text_decoration*",
+          "bounded_by": [
+            "not_null(decoration)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(decoration)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT past the end.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_at.disposed",
+      "mode": "legal",
+      "call": "decoration_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "decoration",
+          "type": "gf_text_decoration*",
+          "bounded_by": [
+            "not_null(decoration)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(decoration)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT past the end.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.decoration_at.misuse.decoration_at_decoration",
+      "mode": "misuse",
+      "call": "decoration_at",
+      "violates": "not_null(decoration)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.text_editing.utf8_to_utf16_offset.alive",
+      "mode": "legal",
+      "call": "utf8_to_utf16_offset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "utf16_offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(utf16_offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(utf16_offset)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "An offset past the text, inside a UTF-8 sequence or between the halves of a surrogate pair gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.utf8_to_utf16_offset.disposing",
+      "mode": "legal",
+      "call": "utf8_to_utf16_offset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "utf16_offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(utf16_offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(utf16_offset)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "An offset past the text, inside a UTF-8 sequence or between the halves of a surrogate pair gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.utf8_to_utf16_offset.disposed",
+      "mode": "legal",
+      "call": "utf8_to_utf16_offset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "utf16_offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(utf16_offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(utf16_offset)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "An offset past the text, inside a UTF-8 sequence or between the halves of a surrogate pair gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.utf8_to_utf16_offset.misuse.utf8_to_utf16_offset_utf16_offset",
+      "mode": "misuse",
+      "call": "utf8_to_utf16_offset",
+      "violates": "not_null(utf16_offset)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.text_editing.utf16_to_utf8_offset.alive",
+      "mode": "legal",
+      "call": "utf16_to_utf8_offset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "alive"
+        },
+        {
+          "name": "utf8_offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(utf8_offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(utf8_offset)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: utf16_to_utf8_offset needs an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.utf16_to_utf8_offset.disposing",
+      "mode": "legal",
+      "call": "utf16_to_utf8_offset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposing"
+        },
+        {
+          "name": "utf8_offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(utf8_offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(utf8_offset)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: utf16_to_utf8_offset needs an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.utf16_to_utf8_offset.disposed",
+      "mode": "legal",
+      "call": "utf16_to_utf8_offset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::text_editing",
+          "state": "disposed"
+        },
+        {
+          "name": "utf8_offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(utf8_offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(utf8_offset)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: utf16_to_utf8_offset needs an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.text_editing.utf16_to_utf8_offset.misuse.utf16_to_utf8_offset_utf8_offset",
+      "mode": "misuse",
+      "call": "utf16_to_utf8_offset",
+      "violates": "not_null(utf8_offset)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

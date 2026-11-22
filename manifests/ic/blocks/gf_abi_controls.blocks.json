@@ -1,0 +1,954 @@
+{
+  "schema": 1,
+  "component": "gf_abi::controls",
+  "declaration": "include/gui_forms/c/gf_abi_controls.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.controls.suspend_layout.alive",
+      "mode": "legal",
+      "call": "suspend_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.suspend_layout.outside.disposing",
+      "mode": "misuse",
+      "call": "suspend_layout",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.suspend_layout.outside.disposed",
+      "mode": "misuse",
+      "call": "suspend_layout",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.resume_layout.alive",
+      "mode": "legal",
+      "call": "resume_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: perform_layout is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.resume_layout.outside.disposing",
+      "mode": "misuse",
+      "call": "resume_layout",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.resume_layout.outside.disposed",
+      "mode": "misuse",
+      "call": "resume_layout",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.perform_layout.alive",
+      "mode": "legal",
+      "call": "perform_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.perform_layout.outside.disposing",
+      "mode": "misuse",
+      "call": "perform_layout",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.perform_layout.outside.disposed",
+      "mode": "misuse",
+      "call": "perform_layout",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.layout_state.alive",
+      "mode": "legal",
+      "call": "layout_state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.layout_state.outside.disposing",
+      "mode": "misuse",
+      "call": "layout_state",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.layout_state.outside.disposed",
+      "mode": "misuse",
+      "call": "layout_state",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.window_bounds.alive",
+      "mode": "legal",
+      "call": "window_bounds",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        },
+        {
+          "name": "bounds",
+          "type": "gf_logical_rect*",
+          "bounded_by": [
+            "not_null(bounds)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(bounds)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.window_bounds.misuse.window_bounds_bounds",
+      "mode": "misuse",
+      "call": "window_bounds",
+      "violates": "not_null(bounds)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.window_bounds.outside.disposing",
+      "mode": "misuse",
+      "call": "window_bounds",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.window_bounds.outside.disposed",
+      "mode": "misuse",
+      "call": "window_bounds",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.set_pointer_capture.alive",
+      "mode": "legal",
+      "call": "set_pointer_capture",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: captured is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.set_pointer_capture.outside.disposing",
+      "mode": "misuse",
+      "call": "set_pointer_capture",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.set_pointer_capture.outside.disposed",
+      "mode": "misuse",
+      "call": "set_pointer_capture",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.pointer_capture.alive",
+      "mode": "legal",
+      "call": "pointer_capture",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        },
+        {
+          "name": "captured",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(captured)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(captured)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.pointer_capture.misuse.pointer_capture_captured",
+      "mode": "misuse",
+      "call": "pointer_capture",
+      "violates": "not_null(captured)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.pointer_capture.outside.disposing",
+      "mode": "misuse",
+      "call": "pointer_capture",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.pointer_capture.outside.disposed",
+      "mode": "misuse",
+      "call": "pointer_capture",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.scroll_state.alive",
+      "mode": "legal",
+      "call": "scroll_state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.scroll_state.disposing",
+      "mode": "legal",
+      "call": "scroll_state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.scroll_state.disposed",
+      "mode": "legal",
+      "call": "scroll_state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.set_scroll_axis.alive",
+      "mode": "legal",
+      "call": "set_scroll_axis",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an axis has a known orientation, finite non-negative bounds and changes, and a value ",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.set_scroll_axis.disposing",
+      "mode": "legal",
+      "call": "set_scroll_axis",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an axis has a known orientation, finite non-negative bounds and changes, and a value ",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.set_scroll_axis.disposed",
+      "mode": "legal",
+      "call": "set_scroll_axis",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an axis has a known orientation, finite non-negative bounds and changes, and a value ",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.scroll_into_view.alive",
+      "mode": "legal",
+      "call": "scroll_into_view",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.scroll_into_view.disposing",
+      "mode": "legal",
+      "call": "scroll_into_view",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.scroll_into_view.disposed",
+      "mode": "legal",
+      "call": "scroll_into_view",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.invalidate.alive",
+      "mode": "legal",
+      "call": "invalidate",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: damage is finite with a size not negative",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.invalidate.outside.disposing",
+      "mode": "misuse",
+      "call": "invalidate",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.invalidate.outside.disposed",
+      "mode": "misuse",
+      "call": "invalidate",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.focus.alive",
+      "mode": "legal",
+      "call": "focus",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE, changing nothing, for a control not in a window, disabled or hidden (or under a disabled or hidden ancestor), not focusable (its focusable property, or its edit part's for a composite), outside the window's open focus scope (a dialog or overlay), or whose window's validation kept focus where it was.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.focus.outside.disposing",
+      "mode": "misuse",
+      "call": "focus",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.focus.outside.disposed",
+      "mode": "misuse",
+      "call": "focus",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.focus_state.alive",
+      "mode": "legal",
+      "call": "focus_state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.focus_state.outside.disposing",
+      "mode": "misuse",
+      "call": "focus_state",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.focus_state.outside.disposed",
+      "mode": "misuse",
+      "call": "focus_state",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.request_relative_pointer.alive",
+      "mode": "legal",
+      "call": "request_relative_pointer",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a request flag that is not 0 or 1.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.request_relative_pointer.outside.disposing",
+      "mode": "misuse",
+      "call": "request_relative_pointer",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.request_relative_pointer.outside.disposed",
+      "mode": "misuse",
+      "call": "request_relative_pointer",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.release_relative_pointer.alive",
+      "mode": "legal",
+      "call": "release_relative_pointer",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.release_relative_pointer.outside.disposing",
+      "mode": "misuse",
+      "call": "release_relative_pointer",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.release_relative_pointer.outside.disposed",
+      "mode": "misuse",
+      "call": "release_relative_pointer",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.relative_pointer_state.alive",
+      "mode": "legal",
+      "call": "relative_pointer_state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.relative_pointer_state.outside.disposing",
+      "mode": "misuse",
+      "call": "relative_pointer_state",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.relative_pointer_state.outside.disposed",
+      "mode": "misuse",
+      "call": "relative_pointer_state",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.warp_pointer.alive",
+      "mode": "legal",
+      "call": "warp_pointer",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the position is not finite",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.warp_pointer.outside.disposing",
+      "mode": "misuse",
+      "call": "warp_pointer",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.warp_pointer.outside.disposed",
+      "mode": "misuse",
+      "call": "warp_pointer",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.set_pointer_release_regions.alive",
+      "mode": "legal",
+      "call": "set_pointer_release_regions",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: at most 8 regions, and an array for any",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the control is not in a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.set_pointer_release_regions.outside.disposing",
+      "mode": "misuse",
+      "call": "set_pointer_release_regions",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.set_pointer_release_regions.outside.disposed",
+      "mode": "misuse",
+      "call": "set_pointer_release_regions",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.set_content_effect.alive",
+      "mode": "legal",
+      "call": "set_content_effect",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the effect is smaller than its 1.5 size",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.controls.set_content_effect.outside.disposing",
+      "mode": "misuse",
+      "call": "set_content_effect",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.controls.set_content_effect.outside.disposed",
+      "mode": "misuse",
+      "call": "set_content_effect",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

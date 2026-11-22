@@ -64,6 +64,8 @@ struct GUI_FORMS_API LookupRow final {
 // family), its `header` captions, its rows (`item`, selected when
 // highlighted) and their cells' `label`s. To assistive technology it is a
 // combo box whose value is the shown cell, expanded while the list is open.
+// ic: gui_forms::LookupComboBox: generated from include/gui_forms/controls/lookup_combo_box.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox> {
 public:
     explicit LookupComboBox(StableId stable_id);
@@ -184,6 +186,7 @@ private:
     void written(const decltype(selected_key)& cell);
     void prepare_write(const decltype(display_column)& cell, std::uint32_t& incoming);
     void written(const decltype(display_column)& cell);
+    // ic: Requires incoming != 0 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(max_drop_down_rows)& cell, std::uint32_t& incoming);
     void written(const decltype(max_drop_down_rows)& cell);
     // property_codemod end LookupComboBox

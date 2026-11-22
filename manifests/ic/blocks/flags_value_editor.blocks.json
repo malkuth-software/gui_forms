@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::FlagsValueEditor",
+  "declaration": "include/gui_forms/controls/flags_value_editor.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.flagsvalueeditor.overlay_width_write",
+      "mode": "legal",
+      "call": "overlay_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::FlagsValueEditor"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 80 and incoming <= 1024"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 80 and incoming <= 1024"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.flagsvalueeditor.overlay_width_write.misuse.overlay_width",
+      "mode": "misuse",
+      "call": "overlay_width",
+      "violates": "finite(incoming) and incoming >= 80 and incoming <= 1024",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

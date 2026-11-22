@@ -7,6 +7,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "flags_value_editor_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -21,6 +22,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::flags_value_editor;
 
 using detail::PropertyEditorDropDownLayer;
 
@@ -255,7 +257,7 @@ void FlagsValueEditor::write_view(const decltype(dropped_down)&, bool incoming) 
 
 void FlagsValueEditor::prepare_write(const decltype(overlay_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 80.0 || incoming > 1024.0) {
+    if (!ic::admits_overlay_width(incoming)) {
         throw std::invalid_argument(
             "flags editor overlay width must be within [80, 1024]");
     }

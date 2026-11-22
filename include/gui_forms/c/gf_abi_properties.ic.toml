@@ -1,0 +1,125 @@
+# The C ABI's gf_properties_table (GF_TABLE_PROPERTIES): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_properties_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_properties_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_properties_table {"
+keys = { manifest = "gf_abi::properties", abi = "GF_TABLE_PROPERTIES" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_properties_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_properties"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_properties.cpp"]
+
+[[call]]
+name = "get"
+declarations = ["gf_status (GF_CALL* get)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "buffer_too_small", when = "Text is copied into text_buffer and value->text points there; text_required receives its size (zero for other kinds), also with GF_STATUS_BUFFER_TOO_SMALL." },
+  { failure = "invalid_argument", when = "code: a property name is not empty" },
+  { failure = "not_found", when = "An unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY." },
+  { failure = "unsupported_capability", when = "An unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY." },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]
+
+[[call]]
+name = "set"
+declarations = ["gf_status (GF_CALL* set)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "A value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND." },
+  { failure = "invalid_state", when = "A value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND." },
+  { failure = "not_found", when = "A value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND." },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]
+
+[[call]]
+name = "reset"
+declarations = ["gf_status (GF_CALL* reset)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: a property name is not empty" },
+  { failure = "not_found", when = "code: a window has no property of that name" },
+  { failure = "unsupported_capability", when = "GF_STATUS_UNSUPPORTED_CAPABILITY when it has no reset path." },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]
+
+[[call]]
+name = "element_at"
+declarations = ["gf_status (GF_CALL* element_at)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT when the property is not a collection, GF_STATUS_NOT_FOUND when index is not below its count." },
+  { failure = "not_found", when = "GF_STATUS_INVALID_ARGUMENT when the property is not a collection, GF_STATUS_NOT_FOUND when index is not below its count." },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]
+
+[[call]]
+name = "read_elements"
+declarations = ["gf_status (GF_CALL* read_elements)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { text_required = "uint64_t*", text_buffer = "char*", text_capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "read_elements_text_buffer" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "Reads count elements of the COLLECTION property name from position first into values, an array of count records (the array rule above; fields past the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value." },
+  { failure = "invalid_argument", when = "code: read_elements needs a text size output, and a buffer unless its capacity is zero" },
+  { failure = "limit_exceeded", when = "A range past the count gives GF_STATUS_NOT_FOUND; more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at." },
+  { failure = "not_found", when = "A range past the count gives GF_STATUS_NOT_FOUND; more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at." },
+  { failure = "unsupported_capability", when = "code: an element's value kind has no gf_value form in this library" },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]
+
+[[call]]
+name = "get_at"
+declarations = ["gf_status (GF_CALL* get_at)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "An index past the list gives GF_STATUS_INVALID_ARGUMENT; otherwise as get and set." },
+  { failure = "not_found", when = "code: the control's type is not in the schema" },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]
+
+[[call]]
+name = "set_at"
+declarations = ["gf_status (GF_CALL* set_at)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the type's properties" },
+  { failure = "not_found", when = "code: the control's type is not in the schema" },
+  { failure = "wrong_handle_kind", when = "code: the object is a component, not a control or a window" },
+]

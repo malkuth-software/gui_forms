@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "component": "gf_abi::dispatch",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_dispatch.ic.toml",
+    "sha256": "fab39edc50a8f9f7be0422329273b2d5e841d659e0596951a2365516bc277ddc"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.dispatch.run_pending.requires.run_pending_invoked",
+      "kind": "entry-check",
+      "statement": "run_pending runs only when not_null(invoked); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_dispatch::admits_run_pending_invoked, called in src/abi/stable/tables/abi_dispatch.cpp"
+    },
+    {
+      "id": "gf_abi.dispatch.run_pending.refusal.run_pending_invoked",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(invoked), run_pending changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.dispatch.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

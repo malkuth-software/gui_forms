@@ -1,0 +1,815 @@
+{
+  "schema": 1,
+  "component": "gf_abi::schema",
+  "declaration": "include/gui_forms/c/gf_abi_schema.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.schema.vocabulary_count",
+      "mode": "legal",
+      "call": "vocabulary_count",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: vocabulary_count needs a known vocabulary and an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.vocabulary_at",
+      "mode": "legal",
+      "call": "vocabulary_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: vocabulary_at needs a known vocabulary and an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.type_count",
+      "mode": "legal",
+      "call": "type_count",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.type_count.misuse.type_count_count",
+      "mode": "misuse",
+      "call": "type_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.find_type",
+      "mode": "legal",
+      "call": "find_type",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "type",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(type)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(type)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: find_type needs an output",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the schema has no type of that name",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.find_type.misuse.find_type_type",
+      "mode": "misuse",
+      "call": "find_type",
+      "violates": "not_null(type)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.type_at",
+      "mode": "legal",
+      "call": "type_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.item_system_at",
+      "mode": "legal",
+      "call": "item_system_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: item_system_at needs an item system index",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.part_at",
+      "mode": "legal",
+      "call": "part_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.state_at",
+      "mode": "legal",
+      "call": "state_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "gf_utf8_view*",
+          "bounded_by": [
+            "not_null(name)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(name)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.state_at.misuse.state_at_name",
+      "mode": "misuse",
+      "call": "state_at",
+      "violates": "not_null(name)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.custom_state_at",
+      "mode": "legal",
+      "call": "custom_state_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "gf_utf8_view*",
+          "bounded_by": [
+            "not_null(name)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(name)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.custom_state_at.misuse.custom_state_at_name",
+      "mode": "misuse",
+      "call": "custom_state_at",
+      "violates": "not_null(name)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.property_at",
+      "mode": "legal",
+      "call": "property_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.choice_at",
+      "mode": "legal",
+      "call": "choice_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.interaction_at",
+      "mode": "legal",
+      "call": "interaction_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.engine",
+      "mode": "legal",
+      "call": "engine",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.primitive_at",
+      "mode": "legal",
+      "call": "primitive_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.primitive_name_at",
+      "mode": "legal",
+      "call": "primitive_name_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: primitive_name_at needs a known list and an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.parameter_at",
+      "mode": "legal",
+      "call": "parameter_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.parameter_choice_at",
+      "mode": "legal",
+      "call": "parameter_choice_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "gf_utf8_view*",
+          "bounded_by": [
+            "not_null(name)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(name)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.parameter_choice_at.misuse.parameter_choice_at_name",
+      "mode": "misuse",
+      "call": "parameter_choice_at",
+      "violates": "not_null(name)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.effect_count",
+      "mode": "legal",
+      "call": "effect_count",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.effect_count.misuse.effect_count_count",
+      "mode": "misuse",
+      "call": "effect_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.effect_at",
+      "mode": "legal",
+      "call": "effect_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT past the end.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.child_property_count",
+      "mode": "legal",
+      "call": "child_property_count",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT past the end.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.child_property_count.misuse.child_property_count_count",
+      "mode": "misuse",
+      "call": "child_property_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.child_property_at",
+      "mode": "legal",
+      "call": "child_property_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.child_choice_at",
+      "mode": "legal",
+      "call": "child_choice_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_count",
+      "mode": "legal",
+      "call": "composite_count",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_count.misuse.composite_count_count",
+      "mode": "misuse",
+      "call": "composite_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.composite_at",
+      "mode": "legal",
+      "call": "composite_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_part_at",
+      "mode": "legal",
+      "call": "composite_part_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_state_at",
+      "mode": "legal",
+      "call": "composite_state_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "gf_utf8_view*",
+          "bounded_by": [
+            "not_null(name)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(name)"
+      ],
+      "fails": [
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_state_at.misuse.composite_state_at_name",
+      "mode": "misuse",
+      "call": "composite_state_at",
+      "violates": "not_null(name)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.composite_custom_state_at",
+      "mode": "legal",
+      "call": "composite_custom_state_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "gf_utf8_view*",
+          "bounded_by": [
+            "not_null(name)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(name)"
+      ],
+      "fails": [
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_custom_state_at.misuse.composite_custom_state_at_name",
+      "mode": "misuse",
+      "call": "composite_custom_state_at",
+      "violates": "not_null(name)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.schema.composite_property_at",
+      "mode": "legal",
+      "call": "composite_property_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_choice_at",
+      "mode": "legal",
+      "call": "composite_choice_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_event_at",
+      "mode": "legal",
+      "call": "composite_event_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the end of its list",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_command_at",
+      "mode": "legal",
+      "call": "composite_command_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "name",
+          "type": "gf_utf8_view*",
+          "bounded_by": [
+            "not_null(name)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(name)"
+      ],
+      "fails": [
+        {
+          "failure": "removed",
+          "when": "code: the composite's load was released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.schema.composite_command_at.misuse.composite_command_at_name",
+      "mode": "misuse",
+      "call": "composite_command_at",
+      "violates": "not_null(name)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

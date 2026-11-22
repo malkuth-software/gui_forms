@@ -1,0 +1,73 @@
+# The C ABI's gf_events_table (GF_TABLE_EVENTS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_events_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_events_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_events_table {"
+keys = { manifest = "gf_abi::events", abi = "GF_TABLE_EVENTS" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[[call]]
+name = "subscribe"
+declarations = ["gf_status (GF_CALL* subscribe)("]
+kind = "member"
+thread = "ui"
+returns = { type = "gf_subscription", owns = "caller" }
+fails = [
+  { failure = "not_found", when = "A name the type does not raise gives GF_STATUS_NOT_FOUND." },
+]
+transfers = [
+  { what = "callback", from = "caller", to = "library" },
+]
+
+[[call]]
+name = "subscribe_property"
+declarations = ["gf_status (GF_CALL* subscribe_property)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+returns = { type = "gf_subscription", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: subscribing needs a subscription output" },
+  { failure = "not_found", when = "code: the source has no property of that name" },
+]
+transfers = [
+  { what = "callback", from = "caller", to = "library" },
+]
+
+[[call]]
+name = "disconnect"
+declarations = ["gf_status (GF_CALL* disconnect)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "write_field"
+declarations = ["gf_status (GF_CALL* write_field)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; nothing is written then." },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; nothing is written then." },
+  { failure = "not_found", when = "GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; nothing is written then." },
+]
+
+[[call]]
+name = "field_element"
+declarations = ["gf_status (GF_CALL* field_element)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_state", when = "code: no callback is running for that event" },
+  { failure = "unsupported_capability", when = "GF_STATUS_UNSUPPORTED_CAPABILITY when the elements are structs." },
+]

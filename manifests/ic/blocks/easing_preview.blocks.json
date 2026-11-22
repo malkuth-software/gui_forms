@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::EasingPreview",
+  "declaration": "demo/lab_controls/include/gui_forms_demo/easing_preview.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.easingpreview.marker_size_write",
+      "mode": "legal",
+      "call": "marker_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::EasingPreview"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 4 and incoming <= 48"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 4 and incoming <= 48"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.easingpreview.marker_size_write.misuse.marker_size",
+      "mode": "misuse",
+      "call": "marker_size",
+      "violates": "finite(incoming) and incoming >= 4 and incoming <= 48",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

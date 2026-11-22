@@ -5,6 +5,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../../../core/drag_engine/drag_engine.hpp"
 #include "../../../basic/number_text.hpp"
+#include "split_container_ic_checks.hpp"
 
 #include <vector>
 #include <array>
@@ -20,6 +21,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::split_container;
 
 namespace {
 
@@ -1118,7 +1120,7 @@ void SplitContainer::written(const decltype(fixed_panel)&) {
 
 void SplitContainer::prepare_write(const decltype(keyboard_increment)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_keyboard_increment(incoming)) {
         throw std::invalid_argument("splitter keyboard increment must be finite and positive");
     }
 }

@@ -1976,6 +1976,41 @@ def outputs(model: Model, tests_root: Path | None) -> dict[Path, str]:
     return files
 
 
+def keep_contract_lines(current: str | None, generated: str) -> str:
+    """The generated header with the current one's `// ic:` contract lines kept.
+
+    Those lines belong to tools/ic_declarations.py (IC3: the classes table's
+    declaration, gf_abi_classes.ic.toml, writes them above the table and its
+    slots); this tool keeps each group above the line it preceded, so the two
+    generators never undo each other. A group whose line is gone is dropped,
+    and the declarations' check then reports the header stale.
+    """
+    if current is None:
+        return generated
+    groups: list[tuple[list[str], str]] = []
+    pending: list[str] = []
+    line: str
+    for line in current.split("\n"):
+        if line.lstrip().startswith("// ic:"):
+            pending.append(line)
+            continue
+        if pending:
+            groups.append((pending, line))
+            pending = []
+    if not groups:
+        return generated
+    lines: list[str] = [line for line in generated.split("\n") if not line.lstrip().startswith("// ic:")]
+    out: list[str] = []
+    next_group: int = 0
+    for line in lines:
+        while next_group < len(groups) and groups[next_group][1] == line:
+            out.extend(groups[next_group][0])
+            next_group += 1
+        out.append(line)
+    kept: str = "\n".join(out)
+    return kept
+
+
 def stale_extras(files: dict[Path, str]) -> list[Path]:
     """Generated C# files no longer produced."""
     present: list[Path] = sorted(CSHARP_DIR.glob("*.g.cs")) if CSHARP_DIR.exists() else []
@@ -2012,6 +2047,8 @@ def main(argv: list[str] | None = None) -> int:
     text: str = ""
     for path, text in files.items():
         current: str | None = path.read_text(encoding="utf-8") if path.exists() else None
+        if path == HEADER:
+            text = keep_contract_lines(current, text)
         if current == text:
             continue
         if arguments.check:

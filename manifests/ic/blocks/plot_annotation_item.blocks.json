@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::PlotAnnotationItem",
+  "declaration": "include/gui_forms/controls/plot_annotation_item.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.plotannotationitem.x_write",
+      "mode": "legal",
+      "call": "x",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::PlotAnnotationItem"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming)"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.plotannotationitem.x_write.misuse.x",
+      "mode": "misuse",
+      "call": "x",
+      "violates": "finite(incoming)",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.plotannotationitem.y_write",
+      "mode": "legal",
+      "call": "y",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::PlotAnnotationItem"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming)"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.plotannotationitem.y_write.misuse.y",
+      "mode": "misuse",
+      "call": "y",
+      "violates": "finite(incoming)",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

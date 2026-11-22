@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Window",
+  "declaration": "include/gui_forms/window/window.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "constructed",
+    "attached",
+    "close_authorized",
+    "closed",
+    "shutdown"
+  ],
+  "initial": "constructed",
+  "state_query": "host_lifecycle_phase",
+  "blocks": [
+    {
+      "name": "gui_forms.window.construct",
+      "mode": "legal",
+      "call": "Window",
+      "kind": "constructor",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "Window",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.construct_in_application",
+      "mode": "legal",
+      "call": "Window",
+      "kind": "constructor",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "logic_error",
+          "when": "off the application's thread, or once the application has closed",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "Window",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.construct_with_resources",
+      "mode": "legal",
+      "call": "Window",
+      "kind": "constructor",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "null resources",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "logic_error",
+          "when": "resources made on another thread",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "Window",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.host_close_reason.constructed",
+      "mode": "legal",
+      "call": "host_close_reason",
+      "kind": "member",
+      "thread": "ui",
+      "state": "constructed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "constructed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "empty",
+          "when": "before the host session accepts the closed event (states constructed, attached, close_authorized)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "stxlib::Optional<HostCloseReason>",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.host_close_reason.attached",
+      "mode": "legal",
+      "call": "host_close_reason",
+      "kind": "member",
+      "thread": "ui",
+      "state": "attached",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "attached"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "empty",
+          "when": "before the host session accepts the closed event (states constructed, attached, close_authorized)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "stxlib::Optional<HostCloseReason>",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.host_close_reason.close_authorized",
+      "mode": "legal",
+      "call": "host_close_reason",
+      "kind": "member",
+      "thread": "ui",
+      "state": "close_authorized",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "close_authorized"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "empty",
+          "when": "before the host session accepts the closed event (states constructed, attached, close_authorized)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "stxlib::Optional<HostCloseReason>",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.host_close_reason.closed",
+      "mode": "legal",
+      "call": "host_close_reason",
+      "kind": "member",
+      "thread": "ui",
+      "state": "closed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "closed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "empty",
+          "when": "before the host session accepts the closed event (states constructed, attached, close_authorized)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "stxlib::Optional<HostCloseReason>",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.host_close_reason.shutdown",
+      "mode": "legal",
+      "call": "host_close_reason",
+      "kind": "member",
+      "thread": "ui",
+      "state": "shutdown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "shutdown"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "empty",
+          "when": "before the host session accepts the closed event (states constructed, attached, close_authorized)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "stxlib::Optional<HostCloseReason>",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.window.host_lifecycle_phase.constructed",
+      "mode": "legal",
+      "call": "host_lifecycle_phase",
+      "kind": "member",
+      "thread": "ui",
+      "state": "constructed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "constructed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.window.host_lifecycle_phase.attached",
+      "mode": "legal",
+      "call": "host_lifecycle_phase",
+      "kind": "member",
+      "thread": "ui",
+      "state": "attached",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "attached"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.window.host_lifecycle_phase.close_authorized",
+      "mode": "legal",
+      "call": "host_lifecycle_phase",
+      "kind": "member",
+      "thread": "ui",
+      "state": "close_authorized",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "close_authorized"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.window.host_lifecycle_phase.closed",
+      "mode": "legal",
+      "call": "host_lifecycle_phase",
+      "kind": "member",
+      "thread": "ui",
+      "state": "closed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "closed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.window.host_lifecycle_phase.shutdown",
+      "mode": "legal",
+      "call": "host_lifecycle_phase",
+      "kind": "member",
+      "thread": "ui",
+      "state": "shutdown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Window",
+          "state": "shutdown"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    }
+  ]
+}

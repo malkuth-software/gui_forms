@@ -1,0 +1,3154 @@
+{
+  "schema": 1,
+  "component": "gf_abi::data_grid",
+  "declaration": "include/gui_forms/c/gf_abi_data_grid.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.data_grid.column_count.alive",
+      "mode": "legal",
+      "call": "column_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_count.disposing",
+      "mode": "legal",
+      "call": "column_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_count.disposed",
+      "mode": "legal",
+      "call": "column_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_count.misuse.column_count_count",
+      "mode": "misuse",
+      "call": "column_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.column_at.alive",
+      "mode": "legal",
+      "call": "column_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Column index (below the count) into column, an output record of at least the 1.1 size; its name, header text and data property name are copied into text_buffer, one after another, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: column_at needs a column record of at least the 1.1 size, a text size output, and a ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_at.disposing",
+      "mode": "legal",
+      "call": "column_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Column index (below the count) into column, an output record of at least the 1.1 size; its name, header text and data property name are copied into text_buffer, one after another, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: column_at needs a column record of at least the 1.1 size, a text size output, and a ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_at.disposed",
+      "mode": "legal",
+      "call": "column_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Column index (below the count) into column, an output record of at least the 1.1 size; its name, header text and data property name are copied into text_buffer, one after another, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: column_at needs a column record of at least the 1.1 size, a text size output, and a ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_item.alive",
+      "mode": "legal",
+      "call": "column_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns or the choices.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_item.disposing",
+      "mode": "legal",
+      "call": "column_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns or the choices.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_item.disposed",
+      "mode": "legal",
+      "call": "column_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns or the choices.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.insert_column.alive",
+      "mode": "legal",
+      "call": "insert_column",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed column, a repeated name or an index past the count gives GF_STATUS_INVALID_ARGUMENT, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a combo box column has at most 4096 choices",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.insert_column.disposing",
+      "mode": "legal",
+      "call": "insert_column",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed column, a repeated name or an index past the count gives GF_STATUS_INVALID_ARGUMENT, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a combo box column has at most 4096 choices",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.insert_column.disposed",
+      "mode": "legal",
+      "call": "insert_column",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed column, a repeated name or an index past the count gives GF_STATUS_INVALID_ARGUMENT, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a combo box column has at most 4096 choices",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.remove_column.alive",
+      "mode": "legal",
+      "call": "remove_column",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.remove_column.disposing",
+      "mode": "legal",
+      "call": "remove_column",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.remove_column.disposed",
+      "mode": "legal",
+      "call": "remove_column",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_index.alive",
+      "mode": "legal",
+      "call": "column_index",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for none.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_index.disposing",
+      "mode": "legal",
+      "call": "column_index",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for none.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_index.disposed",
+      "mode": "legal",
+      "call": "column_index",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for none.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.column_index.misuse.column_index_index",
+      "mode": "misuse",
+      "call": "column_index",
+      "violates": "not_null(index)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_header_text.alive",
+      "mode": "legal",
+      "call": "set_column_header_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A width below the column's minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized column takes its automatic width again at the next layout.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_header_text.disposing",
+      "mode": "legal",
+      "call": "set_column_header_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A width below the column's minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized column takes its automatic width again at the next layout.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_header_text.disposed",
+      "mode": "legal",
+      "call": "set_column_header_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A width below the column's minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized column takes its automatic width again at the next layout.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_width.alive",
+      "mode": "legal",
+      "call": "set_column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_width.disposing",
+      "mode": "legal",
+      "call": "set_column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_width.disposed",
+      "mode": "legal",
+      "call": "set_column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_read_only.alive",
+      "mode": "legal",
+      "call": "set_column_read_only",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: read_only is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_read_only.disposing",
+      "mode": "legal",
+      "call": "set_column_read_only",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: read_only is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_read_only.disposed",
+      "mode": "legal",
+      "call": "set_column_read_only",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: read_only is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_hidden.alive",
+      "mode": "legal",
+      "call": "set_column_hidden",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: hidden is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_hidden.disposing",
+      "mode": "legal",
+      "call": "set_column_hidden",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: hidden is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_column_hidden.disposed",
+      "mode": "legal",
+      "call": "set_column_hidden",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: hidden is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_count.alive",
+      "mode": "legal",
+      "call": "row_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: row_count needs a count and a new row output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_count.disposing",
+      "mode": "legal",
+      "call": "row_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: row_count needs a count and a new row output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_count.disposed",
+      "mode": "legal",
+      "call": "row_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: row_count needs a count and a new row output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.insert_rows.alive",
+      "mode": "legal",
+      "call": "insert_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "All or nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "All or nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.insert_rows.disposing",
+      "mode": "legal",
+      "call": "insert_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "All or nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "All or nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.insert_rows.disposed",
+      "mode": "legal",
+      "call": "insert_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "All or nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "All or nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.append_rows.alive",
+      "mode": "legal",
+      "call": "append_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "first",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(first)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(first)"
+      ],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: one call adds at most 65536 rows",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.append_rows.disposing",
+      "mode": "legal",
+      "call": "append_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "first",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(first)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(first)"
+      ],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: one call adds at most 65536 rows",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.append_rows.disposed",
+      "mode": "legal",
+      "call": "append_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "first",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(first)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(first)"
+      ],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: one call adds at most 65536 rows",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.append_rows.misuse.append_rows_first",
+      "mode": "misuse",
+      "call": "append_rows",
+      "violates": "not_null(first)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.erase_rows.alive",
+      "mode": "legal",
+      "call": "erase_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "Erases count rows from index; a range past the collection gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.erase_rows.disposing",
+      "mode": "legal",
+      "call": "erase_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "Erases count rows from index; a range past the collection gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.erase_rows.disposed",
+      "mode": "legal",
+      "call": "erase_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "Erases count rows from index; a range past the collection gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.replace_row.alive",
+      "mode": "legal",
+      "call": "replace_row",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "row",
+          "type": "gf_data_grid_row*",
+          "bounded_by": [
+            "not_null(row)"
+          ]
+        },
+        {
+          "name": "row_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "row_size >= row_size_1_1"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(row)",
+        "row_size >= row_size_1_1"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.replace_row.disposing",
+      "mode": "legal",
+      "call": "replace_row",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "row",
+          "type": "gf_data_grid_row*",
+          "bounded_by": [
+            "not_null(row)"
+          ]
+        },
+        {
+          "name": "row_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "row_size >= row_size_1_1"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(row)",
+        "row_size >= row_size_1_1"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.replace_row.disposed",
+      "mode": "legal",
+      "call": "replace_row",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "row",
+          "type": "gf_data_grid_row*",
+          "bounded_by": [
+            "not_null(row)"
+          ]
+        },
+        {
+          "name": "row_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "row_size >= row_size_1_1"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(row)",
+        "row_size >= row_size_1_1"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.replace_row.misuse.replace_row_row",
+      "mode": "misuse",
+      "call": "replace_row",
+      "violates": "not_null(row)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.replace_row.misuse.replace_row_row_size",
+      "mode": "misuse",
+      "call": "replace_row",
+      "violates": "row_size >= row_size_1_1",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.clear_rows.alive",
+      "mode": "legal",
+      "call": "clear_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.clear_rows.disposing",
+      "mode": "legal",
+      "call": "clear_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.clear_rows.disposed",
+      "mode": "legal",
+      "call": "clear_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_id.alive",
+      "mode": "legal",
+      "call": "row_id",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the rows.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_id.disposing",
+      "mode": "legal",
+      "call": "row_id",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the rows.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_id.disposed",
+      "mode": "legal",
+      "call": "row_id",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the rows.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_position.alive",
+      "mode": "legal",
+      "call": "row_position",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "position",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(position)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(position)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for none.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_position.disposing",
+      "mode": "legal",
+      "call": "row_position",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "position",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(position)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(position)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for none.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_position.disposed",
+      "mode": "legal",
+      "call": "row_position",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "position",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(position)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(position)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for none.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.row_position.misuse.row_position_position",
+      "mode": "misuse",
+      "call": "row_position",
+      "violates": "not_null(position)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.cell_value.alive",
+      "mode": "legal",
+      "call": "cell_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.cell_value.disposing",
+      "mode": "legal",
+      "call": "cell_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.cell_value.disposed",
+      "mode": "legal",
+      "call": "cell_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_value.alive",
+      "mode": "legal",
+      "call": "set_cell_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_value.disposing",
+      "mode": "legal",
+      "call": "set_cell_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_value.disposed",
+      "mode": "legal",
+      "call": "set_cell_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_value.misuse.set_cell_value_accepted",
+      "mode": "misuse",
+      "call": "set_cell_value",
+      "violates": "not_null(accepted)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.cell_text.alive",
+      "mode": "legal",
+      "call": "cell_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.cell_text.disposing",
+      "mode": "legal",
+      "call": "cell_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.cell_text.disposed",
+      "mode": "legal",
+      "call": "cell_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.read_cells.alive",
+      "mode": "legal",
+      "call": "read_cells",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "text_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Reads one column's values in row_count rows from position first_row into values, an array of row_count records (the array rule above; fields past the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A range past the rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A range past the rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: a cell's value kind has no gf_value form in this library",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.read_cells.disposing",
+      "mode": "legal",
+      "call": "read_cells",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "text_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Reads one column's values in row_count rows from position first_row into values, an array of row_count records (the array rule above; fields past the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A range past the rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A range past the rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: a cell's value kind has no gf_value form in this library",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.read_cells.disposed",
+      "mode": "legal",
+      "call": "read_cells",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "text_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Reads one column's values in row_count rows from position first_row into values, an array of row_count records (the array rule above; fields past the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A range past the rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A range past the rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: a cell's value kind has no gf_value form in this library",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.read_cells.misuse.read_cells_text_buffer",
+      "mode": "misuse",
+      "call": "read_cells",
+      "violates": "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.current_cell.alive",
+      "mode": "legal",
+      "call": "current_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: current_cell needs present, row and column outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.current_cell.disposing",
+      "mode": "legal",
+      "call": "current_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: current_cell needs present, row and column outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.current_cell.disposed",
+      "mode": "legal",
+      "call": "current_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: current_cell needs present, row and column outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_current_cell.alive",
+      "mode": "legal",
+      "call": "set_current_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "moved",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(moved)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(moved)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "A cell in a hidden column gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_current_cell.disposing",
+      "mode": "legal",
+      "call": "set_current_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "moved",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(moved)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(moved)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "A cell in a hidden column gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_current_cell.disposed",
+      "mode": "legal",
+      "call": "set_current_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "moved",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(moved)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(moved)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "A cell in a hidden column gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_current_cell.misuse.set_current_cell_moved",
+      "mode": "misuse",
+      "call": "set_current_cell",
+      "violates": "not_null(moved)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.selected_rows.alive",
+      "mode": "legal",
+      "call": "selected_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "positions",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(positions) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selected rows' positions in order (full-row selections, or in cell mode the rows whose every cell is selected) into the caller's array of capacity elements; count receives their number, also with GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null when capacity is zero.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.selected_rows.disposing",
+      "mode": "legal",
+      "call": "selected_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "positions",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(positions) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selected rows' positions in order (full-row selections, or in cell mode the rows whose every cell is selected) into the caller's array of capacity elements; count receives their number, also with GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null when capacity is zero.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.selected_rows.disposed",
+      "mode": "legal",
+      "call": "selected_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "positions",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(positions) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(positions) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selected rows' positions in order (full-row selections, or in cell mode the rows whose every cell is selected) into the caller's array of capacity elements; count receives their number, also with GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null when capacity is zero.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.selected_rows.misuse.selected_rows_positions",
+      "mode": "misuse",
+      "call": "selected_rows",
+      "violates": "not_null(count) and (not_null(positions) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.selected_cells.alive",
+      "mode": "legal",
+      "call": "selected_cells",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "cells",
+          "type": "gf_data_grid_cell*",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(cells) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the array is smaller than the selected cells",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.selected_cells.disposing",
+      "mode": "legal",
+      "call": "selected_cells",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "cells",
+          "type": "gf_data_grid_cell*",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(cells) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the array is smaller than the selected cells",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.selected_cells.disposed",
+      "mode": "legal",
+      "call": "selected_cells",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "cells",
+          "type": "gf_data_grid_cell*",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(cells) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(cells) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the array is smaller than the selected cells",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.selected_cells.misuse.selected_cells_cells",
+      "mode": "misuse",
+      "call": "selected_cells",
+      "violates": "not_null(count) and (not_null(cells) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.set_row_selected.alive",
+      "mode": "legal",
+      "call": "set_row_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no row of the grid has that row ID",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_row_selected.disposing",
+      "mode": "legal",
+      "call": "set_row_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no row of the grid has that row ID",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_row_selected.disposed",
+      "mode": "legal",
+      "call": "set_row_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no row of the grid has that row ID",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_selected.alive",
+      "mode": "legal",
+      "call": "set_cell_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_selected.disposing",
+      "mode": "legal",
+      "call": "set_cell_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.set_cell_selected.disposed",
+      "mode": "legal",
+      "call": "set_cell_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the column is past the grid's columns",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.clear_selection.alive",
+      "mode": "legal",
+      "call": "clear_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.clear_selection.disposing",
+      "mode": "legal",
+      "call": "clear_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.clear_selection.disposed",
+      "mode": "legal",
+      "call": "clear_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.select_all.alive",
+      "mode": "legal",
+      "call": "select_all",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.select_all.disposing",
+      "mode": "legal",
+      "call": "select_all",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.select_all.disposed",
+      "mode": "legal",
+      "call": "select_all",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.begin_edit.alive",
+      "mode": "legal",
+      "call": "begin_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: begin_edit takes select_all 0 or 1 and a began output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.begin_edit.disposing",
+      "mode": "legal",
+      "call": "begin_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: begin_edit takes select_all 0 or 1 and a began output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.begin_edit.disposed",
+      "mode": "legal",
+      "call": "begin_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: begin_edit takes select_all 0 or 1 and a began output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.end_edit.alive",
+      "mode": "legal",
+      "call": "end_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        },
+        {
+          "name": "committed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(committed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(committed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.end_edit.disposing",
+      "mode": "legal",
+      "call": "end_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "committed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(committed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(committed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.end_edit.disposed",
+      "mode": "legal",
+      "call": "end_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "committed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(committed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(committed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.end_edit.misuse.end_edit_committed",
+      "mode": "misuse",
+      "call": "end_edit",
+      "violates": "not_null(committed)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.data_grid.cancel_edit.alive",
+      "mode": "legal",
+      "call": "cancel_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.cancel_edit.disposing",
+      "mode": "legal",
+      "call": "cancel_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.data_grid.cancel_edit.disposed",
+      "mode": "legal",
+      "call": "cancel_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::data_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    }
+  ]
+}

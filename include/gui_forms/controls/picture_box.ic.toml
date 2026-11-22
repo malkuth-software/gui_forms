@@ -1,0 +1,29 @@
+# PictureBox's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/picture_box.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/panel/picture_box/picture_box_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "PictureBox"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/picture_box.hpp"
+anchor = "class GUI_FORMS_API PictureBox : public Panel, public PictureBoxCapabilities<PictureBox> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/panel/picture_box/picture_box_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::picture_box"
+includes = ["gui_forms/controls/picture_box.hpp"]
+used_in = ["src/controls/panel/picture_box/picture_box.cpp"]
+
+[[call]]
+name = "image_opacity"
+id = "image_opacity_write"
+declarations = ["void prepare_write(const decltype(image_opacity)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0 and incoming <= 1", refuses = "failure:invalid_argument", check = "image_opacity" },
+]

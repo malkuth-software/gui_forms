@@ -7,6 +7,7 @@
 #include "../schema/abi_create_with.hpp"
 #include "../schema/abi_schema.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_objects_ic_checks.hpp"
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
@@ -122,7 +123,7 @@ gf_status read_type_and_id(gf_utf8_view type_name, gf_utf8_view stable_id, SlotI
 
 // enter_ui bound the thread for this call once *entered_ui is set.
 gf_status objects_create_body(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object, bool* entered_ui) {
-    if (object == nullptr) {
+    if (!ic_objects::admits_create_object(object)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "create needs an object output");
     }
     std::size_t type = 0U;
@@ -242,7 +243,7 @@ gf_object_state object_state_of(ComponentState state) noexcept {
 }
 
 gf_status objects_state_body(gf_object object, gf_object_state* state) {
-    if (state == nullptr) {
+    if (!ic_objects::admits_state_state(state)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
     Component::Ptr component;
@@ -376,7 +377,7 @@ gf_status GF_CALL objects_remove_child(gf_object parent, gf_object child) noexce
 }
 
 gf_status objects_child_count_body(gf_object parent, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_objects::admits_child_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, child_count_slot, "child_count needs an output");
     }
     Control::Ptr control;
@@ -393,7 +394,7 @@ gf_status GF_CALL objects_child_count(gf_object parent, std::uint64_t* count) no
 }
 
 gf_status objects_child_at_body(gf_object parent, std::uint64_t index, gf_object* child) {
-    if (child == nullptr) {
+    if (!ic_objects::admits_child_at_child(child)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "child_at needs an output");
     }
     Control::Ptr control;
@@ -414,7 +415,7 @@ gf_status GF_CALL objects_child_at(gf_object parent, std::uint64_t index, gf_obj
 }
 
 gf_status objects_parent_body(gf_object object, gf_object* parent) {
-    if (parent == nullptr) {
+    if (!ic_objects::admits_parent_parent(parent)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, parent_slot, "parent needs an output");
     }
     Control::Ptr control;
@@ -433,10 +434,10 @@ gf_status GF_CALL objects_parent(gf_object object, gf_object* parent) noexcept {
 
 gf_status objects_create_with_body(gf_utf8_view type_name, gf_utf8_view stable_id,
                                    const gf_create_arguments* arguments, gf_object* object, bool* entered_ui) {
-    if (object == nullptr) {
+    if (!ic_objects::admits_create_with_object(object)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot, "create_with needs an object output");
     }
-    if (arguments == nullptr || (*arguments).struct_size < create_arguments_size_1_0) {
+    if (!ic_objects::admits_create_with_arguments(arguments) || !ic_objects::admits_create_with_arguments_size((*arguments).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot,
                     "create_with needs gf_create_arguments of at least the 1.0 size");
     }

@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::FlagsValueEditor",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/flags_value_editor.ic.toml",
+    "sha256": "68d19d653cf8a92f27856ff064816d060618cabfd0fcae91153c758eff94345b"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.flagsvalueeditor.overlay_width_write.requires.overlay_width",
+      "kind": "entry-check",
+      "statement": "overlay_width runs only when finite(incoming) and incoming >= 80 and incoming <= 1024; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::flags_value_editor::admits_overlay_width, called in src/controls/panel/flags_value_editor/flags_value_editor.cpp"
+    },
+    {
+      "id": "gui_forms.flagsvalueeditor.overlay_width_write.refusal.overlay_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 80 and incoming <= 1024, overlay_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

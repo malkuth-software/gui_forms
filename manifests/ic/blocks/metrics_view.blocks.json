@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::MetricsView",
+  "declaration": "include/gui_forms/controls/metrics_view.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.metricsview.accent_width_write",
+      "mode": "legal",
+      "call": "accent_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::MetricsView"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 1 and incoming <= 32"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 1 and incoming <= 32"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.metricsview.accent_width_write.misuse.accent_width",
+      "mode": "misuse",
+      "call": "accent_width",
+      "violates": "finite(incoming) and incoming >= 1 and incoming <= 32",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

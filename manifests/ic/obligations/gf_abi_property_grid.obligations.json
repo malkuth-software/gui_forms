@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "component": "gf_abi::property_grid",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_property_grid.ic.toml",
+    "sha256": "9816575da003fb922a1635e74d0a5b2087a1d9aec8d3aafa8b1f84d14866962f"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.property_grid.try_set_text.requires.try_set_text_accepted",
+      "kind": "entry-check",
+      "statement": "try_set_text runs only when not_null(accepted); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_property_grid::admits_try_set_text_accepted, called in src/abi/stable/tables/abi_property_grid.cpp"
+    },
+    {
+      "id": "gf_abi.property_grid.try_set_text.refusal.try_set_text_accepted",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(accepted), try_set_text changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.property_grid.reset_property.requires.reset_property_reset",
+      "kind": "entry-check",
+      "statement": "reset_property runs only when not_null(reset); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_property_grid::admits_reset_property_reset, called in src/abi/stable/tables/abi_property_grid.cpp"
+    },
+    {
+      "id": "gf_abi.property_grid.reset_property.refusal.reset_property_reset",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(reset), reset_property changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.property_grid.activate_editor.requires.activate_editor_activated",
+      "kind": "entry-check",
+      "statement": "activate_editor runs only when not_null(activated); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_property_grid::admits_activate_editor_activated, called in src/abi/stable/tables/abi_property_grid.cpp"
+    },
+    {
+      "id": "gf_abi.property_grid.activate_editor.refusal.activate_editor_activated",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(activated), activate_editor changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.property_grid.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

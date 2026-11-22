@@ -3,6 +3,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "badge_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,6 +15,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::badge;
 namespace {
 
 // The BadgeMode enumeration, numbered as declared. Static storage; any
@@ -322,7 +324,7 @@ void Badge::written(const decltype(count)&) {
 
 void Badge::prepare_write(const decltype(maximum)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming == 0U) throw std::invalid_argument("Badge maximum must be at least 1");
+    if (!ic::admits_maximum(incoming)) throw std::invalid_argument("Badge maximum must be at least 1");
 }
 
 void Badge::written(const decltype(maximum)&) {

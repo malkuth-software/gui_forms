@@ -1,0 +1,171 @@
+# The C ABI's gf_themes_table (GF_TABLE_THEMES): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_themes_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_themes_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_themes_table {"
+keys = { manifest = "gf_abi::themes", abi = "GF_TABLE_THEMES" }
+thread = "ui"
+
+[checks]
+path = "src/abi/stable/ic/abi_themes_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_themes"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_themes.cpp"]
+
+[[call]]
+name = "load"
+declarations = ["gf_status (GF_CALL* load)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a theme package needs a record of at least the 1.0 size with reserved zero" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE when a control's inline style does not compile against the new theme: nothing changes then either." },
+  { failure = "limit_exceeded", when = "code: a theme package holds at most 256 files" },
+]
+
+[[call]]
+name = "reset"
+declarations = ["gf_status (GF_CALL* reset)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "install"
+declarations = ["gf_status (GF_CALL* install)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a theme package needs a record of at least the 1.0 size with reserved zero" },
+  { failure = "limit_exceeded", when = "code: a theme package holds at most 256 files" },
+]
+
+[[call]]
+name = "remove"
+declarations = ["gf_status (GF_CALL* remove)("]
+kind = "static"
+thread = "ui"
+parameters = { removed = "uint32_t*" }
+requires = [
+  { holds = "not_null(removed)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "remove_removed" },
+]
+
+[[call]]
+name = "diagnostic_at"
+declarations = ["gf_status (GF_CALL* diagnostic_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: no finding has that index" },
+]
+
+[[call]]
+name = "diagnostic_text"
+declarations = ["gf_status (GF_CALL* diagnostic_text)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: unknown diagnostic text" },
+]
+
+[[call]]
+name = "theme_id"
+declarations = ["gf_status (GF_CALL* theme_id)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "publish_value"
+declarations = ["gf_status (GF_CALL* publish_value)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "Publishes a named value for themes to read (var(--name)). name is 1 to 64 lowercase ASCII letters, digits, hyphens and underscores, starting with a letter, and value is finite, else GF_STATUS_INVALID_ARGUMENT." },
+  { failure = "limit_exceeded", when = "A name once published stays admitted to later loads, withdrawn or not; at most GF_THEME_MAXIMUM_PUBLISHED_VALUES names (GF_STATUS_LIMIT_EXCEEDED)." },
+]
+
+[[call]]
+name = "withdraw_value"
+declarations = ["gf_status (GF_CALL* withdraw_value)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a published name is 1 to 64 lowercase letters, digits, hyphens and underscores, " },
+]
+
+[[call]]
+name = "published_value"
+declarations = ["gf_status (GF_CALL* published_value)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: value and present are outputs" },
+]
+
+[[call]]
+name = "load_image"
+declarations = ["gf_status (GF_CALL* load_image)("]
+kind = "static"
+thread = "ui"
+parameters = { image = "uint64_t*", bytes = "uint8_t*", size = "uint64_t" }
+requires = [
+  { holds = "not_null(image) and (not_null(bytes) or size == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "load_image_bytes" },
+]
+fails = [
+  { failure = "invalid_argument", when = "A file that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past the registry's limits GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then." },
+  { failure = "limit_exceeded", when = "A file that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past the registry's limits GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then." },
+]
+
+[[call]]
+name = "remove_image"
+declarations = ["gf_status (GF_CALL* remove_image)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND for an id the registry does not hold." },
+]
+
+[[call]]
+name = "load_pixels"
+declarations = ["gf_status (GF_CALL* load_pixels)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else GF_STATUS_INVALID_ARGUMENT, leaving image unwritten." },
+  { failure = "limit_exceeded", when = "Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else GF_STATUS_INVALID_ARGUMENT, leaving image unwritten." },
+]
+
+[[call]]
+name = "load_sheet"
+declarations = ["gf_status (GF_CALL* load_sheet)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a view with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound." },
+  { failure = "limit_exceeded", when = "GF_STATUS_INVALID_ARGUMENT for a view with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound." },
+]
+
+[[call]]
+name = "set_user_theme_policy"
+declarations = ["gf_status (GF_CALL* set_user_theme_policy)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for an unknown policy." },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE once a window shares the resources;" },
+]
+
+[[call]]
+name = "theme_request"
+declarations = ["gf_status (GF_CALL* theme_request)("]
+kind = "static"
+thread = "ui"
+parameters = { outcome = "gf_theme_request_outcome*" }
+requires = [
+  { holds = "not_null(outcome)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "theme_request_outcome" },
+]

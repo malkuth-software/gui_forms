@@ -1,0 +1,298 @@
+{
+  "schema": 1,
+  "component": "gf_abi::windows_paint_endpoint",
+  "declaration": "include/gui_forms/c/gf_abi_windows_paint_endpoint.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.windows_paint_endpoint.acquire",
+      "mode": "legal",
+      "call": "acquire",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: acquire needs outputs and 1 to 32768 pixels a side, at most 2^28 in all",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "Makes an endpoint of width by height pixels (1 to GF_PAINT_ENDPOINT_MAXIMUM_SIDE each, at most 2^28 pixels) bound to control, a custom control (else GF_STATUS_WRONG_HANDLE_KIND), and gives its token and compatibility handle.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_paint_endpoint",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.configure",
+      "mode": "legal",
+      "call": "configure",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::windows_paint_endpoint"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: configure needs 1 to 32768 pixels a side, at most 2^28 in all",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.touch",
+      "mode": "legal",
+      "call": "touch",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::windows_paint_endpoint"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: explicit_boundary is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.drain",
+      "mode": "legal",
+      "call": "drain",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::windows_paint_endpoint"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.snapshot",
+      "mode": "legal",
+      "call": "snapshot",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::windows_paint_endpoint"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The endpoint's state as text, for diagnostics; required receives its size, a short buffer gives GF_STATUS_BUFFER_TOO_SMALL.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.snapshot.misuse.snapshot_buffer",
+      "mode": "misuse",
+      "call": "snapshot",
+      "violates": "not_null(required) and (not_null(buffer) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.submit_bgra",
+      "mode": "legal",
+      "call": "submit_bgra",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: submit_bgra needs a handle and bounded pixels with rows of at least width * 4 bytes",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.release",
+      "mode": "legal",
+      "call": "release",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::windows_paint_endpoint"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.get_dc",
+      "mode": "legal",
+      "call": "get_dc",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: get_dc needs a handle and an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.release_dc",
+      "mode": "legal",
+      "call": "release_dc",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: release_dc needs a handle and a device context",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.publish_dc",
+      "mode": "legal",
+      "call": "publish_dc",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: publish_dc needs a device context",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.begin_write",
+      "mode": "legal",
+      "call": "begin_write",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: begin_write needs a device context and an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_paint_write_lease",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.windows_paint_endpoint.end_write",
+      "mode": "legal",
+      "call": "end_write",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: end_write needs a lease and publish 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

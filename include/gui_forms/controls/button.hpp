@@ -22,6 +22,8 @@ namespace gui_forms {
 // (danger_glow_floor to full, over danger_glow_period, at
 // danger_glow_interval), only inside the face, and holds full and steady
 // under reduced motion, while disabled and outside a window.
+// ic: gui_forms::Button: generated from include/gui_forms/controls/button.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Button : public ButtonBase, public ButtonCapabilities<Button> {
 public:
     // The danger glow's pulse: the share of the lit face shown at its
@@ -128,6 +130,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(visual_style)& cell, ButtonVisualStyle& incoming);
     void written(const decltype(visual_style)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(flat_border_width)& cell, double& incoming);
     void written(const decltype(flat_border_width)& cell);
     void prepare_write(const decltype(default_button)& cell, bool& incoming);

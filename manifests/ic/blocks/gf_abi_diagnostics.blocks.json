@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "component": "gf_abi::diagnostics",
+  "declaration": "include/gui_forms/c/gf_abi_diagnostics.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.diagnostics.shadow_frames",
+      "mode": "legal",
+      "call": "shadow_frames",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "When capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.set_invalidation_overlay",
+      "mode": "legal",
+      "call": "set_invalidation_overlay",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.invalidation_overlay",
+      "mode": "legal",
+      "call": "invalidation_overlay",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.failure_snapshot",
+      "mode": "legal",
+      "call": "failure_snapshot",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "When frame_capacity or message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.clear_failure_snapshot",
+      "mode": "legal",
+      "call": "clear_failure_snapshot",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.set_exception_reflection",
+      "mode": "legal",
+      "call": "set_exception_reflection",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.exception_reflection",
+      "mode": "legal",
+      "call": "exception_reflection",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.raise_native_exception",
+      "mode": "legal",
+      "call": "raise_native_exception",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT, with no snapshot, for a message that is not UTF-8 or too long.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.failure_detail",
+      "mode": "legal",
+      "call": "failure_detail",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.set_diagnostic_overlay",
+      "mode": "legal",
+      "call": "set_diagnostic_overlay",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.diagnostics.toggle_diagnostic_overlay",
+      "mode": "legal",
+      "call": "toggle_diagnostic_overlay",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    }
+  ]
+}

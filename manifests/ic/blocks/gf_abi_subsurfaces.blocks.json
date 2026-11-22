@@ -1,0 +1,273 @@
+{
+  "schema": 1,
+  "component": "gf_abi::subsurfaces",
+  "declaration": "include/gui_forms/c/gf_abi_subsurfaces.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.subsurfaces.set_content.alive",
+      "mode": "legal",
+      "call": "set_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::subsurfaces",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_subsurface_content needs struct_size of at least 40 and opaque 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A host that is not a sub_surface_host gives GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.subsurfaces.set_content.outside.disposing",
+      "mode": "misuse",
+      "call": "set_content",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.set_content.outside.disposed",
+      "mode": "misuse",
+      "call": "set_content",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.set_root",
+      "mode": "legal",
+      "call": "set_root",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "disposed",
+          "when": "code: the object has been disposed",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "Only inside a build callback, elsewhere GF_STATUS_INVALID_STATE; a second call replaces the first.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.subsurfaces.state.alive",
+      "mode": "legal",
+      "call": "state",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::subsurfaces",
+          "state": "alive"
+        },
+        {
+          "name": "state",
+          "type": "gf_subsurface_state*",
+          "bounded_by": [
+            "not_null(state)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(state)"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a sub_surface_host",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.subsurfaces.state.misuse.state_state",
+      "mode": "misuse",
+      "call": "state",
+      "violates": "not_null(state)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.state.outside.disposing",
+      "mode": "misuse",
+      "call": "state",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.state.outside.disposed",
+      "mode": "misuse",
+      "call": "state",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.content_epoch.alive",
+      "mode": "legal",
+      "call": "content_epoch",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::subsurfaces",
+          "state": "alive"
+        },
+        {
+          "name": "epoch",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(epoch)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(epoch)"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a sub_surface_host",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.subsurfaces.content_epoch.misuse.content_epoch_epoch",
+      "mode": "misuse",
+      "call": "content_epoch",
+      "violates": "not_null(epoch)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.content_epoch.outside.disposing",
+      "mode": "misuse",
+      "call": "content_epoch",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.content_epoch.outside.disposed",
+      "mode": "misuse",
+      "call": "content_epoch",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.failure.alive",
+      "mode": "legal",
+      "call": "failure",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::subsurfaces",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a sub_surface_host",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.subsurfaces.failure.outside.disposing",
+      "mode": "misuse",
+      "call": "failure",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.subsurfaces.failure.outside.disposed",
+      "mode": "misuse",
+      "call": "failure",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

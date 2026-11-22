@@ -10,6 +10,8 @@
 namespace gui_forms {
 
 // Renderer-neutral view over the structured Window metrics snapshot.
+// ic: gui_forms::MetricsView: generated from include/gui_forms/controls/metrics_view.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API MetricsView final : public Control, public MetricsViewCapabilities<MetricsView> {
 public:
     explicit MetricsView(StableId stable_id,
@@ -61,6 +63,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(title)& cell, std::string& incoming);
     void written(const decltype(title)& cell);
+    // ic: Requires finite(incoming) and incoming >= 1 and incoming <= 32, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(accent_width)& cell, double& incoming);
     void written(const decltype(accent_width)& cell);
     // property_codemod end MetricsView

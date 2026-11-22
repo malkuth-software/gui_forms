@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ScrollBar",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/scroll_bar.ic.toml",
+    "sha256": "f02b97db5a21ce143465fd3017b27669ebf65df0356af60ea69986148d524940"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.scrollbar.button_extent_write.requires.button_extent",
+      "kind": "entry-check",
+      "statement": "button_extent runs only when finite(incoming) and incoming >= 8 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::scroll_bar::admits_button_extent, called in src/controls/range_control/scroll_bar/scroll_bar.cpp"
+    },
+    {
+      "id": "gui_forms.scrollbar.button_extent_write.refusal.button_extent",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 8 and incoming <= 64, button_extent changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

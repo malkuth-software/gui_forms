@@ -1,0 +1,29 @@
+# MenuStrip's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/menu_strip.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/menu/menu_strip/menu_strip_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "MenuStrip"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/menu_strip.hpp"
+anchor = "class GUI_FORMS_API MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/menu/menu_strip/menu_strip_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::menu_strip"
+includes = ["gui_forms/controls/menu_strip.hpp"]
+used_in = ["src/controls/menu/menu_strip/menu_strip.cpp"]
+
+[[call]]
+name = "item_padding"
+id = "item_padding_write"
+declarations = ["void prepare_write(const decltype(item_padding)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 4 and incoming <= 64", refuses = "failure:invalid_argument", check = "item_padding" },
+]

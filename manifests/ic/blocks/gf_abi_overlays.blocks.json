@@ -1,0 +1,597 @@
+{
+  "schema": 1,
+  "component": "gf_abi::overlays",
+  "declaration": "include/gui_forms/c/gf_abi_overlays.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.overlays.open_overlay.alive",
+      "mode": "legal",
+      "call": "open_overlay",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "Shows overlay over owner's window. owner must be in a running window (else GF_STATUS_INVALID_STATE); an overlay already open gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.open_overlay.disposing",
+      "mode": "legal",
+      "call": "open_overlay",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "Shows overlay over owner's window. owner must be in a running window (else GF_STATUS_INVALID_STATE); an overlay already open gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.open_overlay.disposed",
+      "mode": "legal",
+      "call": "open_overlay",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "Shows overlay over owner's window. owner must be in a running window (else GF_STATUS_INVALID_STATE); an overlay already open gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.close_overlay.alive",
+      "mode": "legal",
+      "call": "close_overlay",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "Closes overlay; one not open gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.close_overlay.disposing",
+      "mode": "legal",
+      "call": "close_overlay",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "Closes overlay; one not open gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.close_overlay.disposed",
+      "mode": "legal",
+      "call": "close_overlay",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "Closes overlay; one not open gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.set_tool_tip.alive",
+      "mode": "legal",
+      "call": "set_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.set_tool_tip.disposing",
+      "mode": "legal",
+      "call": "set_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.set_tool_tip.disposed",
+      "mode": "legal",
+      "call": "set_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.show_tool_tip.alive",
+      "mode": "legal",
+      "call": "show_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.show_tool_tip.disposing",
+      "mode": "legal",
+      "call": "show_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.show_tool_tip.disposed",
+      "mode": "legal",
+      "call": "show_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.hide_tool_tip.alive",
+      "mode": "legal",
+      "call": "hide_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.hide_tool_tip.disposing",
+      "mode": "legal",
+      "call": "hide_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.hide_tool_tip.disposed",
+      "mode": "legal",
+      "call": "hide_tool_tip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a tool_tip component",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.open_anchored.alive",
+      "mode": "legal",
+      "call": "open_anchored",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.2 size, unknown flags or a size or gap that is negative or not finite.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE when anchor is not in a window or is disabled, or content is already open or has a parent;",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.open_anchored.outside.disposing",
+      "mode": "misuse",
+      "call": "open_anchored",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.overlays.open_anchored.outside.disposed",
+      "mode": "misuse",
+      "call": "open_anchored",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.overlays.close_anchored.alive",
+      "mode": "legal",
+      "call": "close_anchored",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when it is not open (since 1.2).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.close_anchored.disposing",
+      "mode": "legal",
+      "call": "close_anchored",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when it is not open (since 1.2).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.close_anchored.disposed",
+      "mode": "legal",
+      "call": "close_anchored",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::overlays",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when it is not open (since 1.2).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.set_tool_tips_shown",
+      "mode": "legal",
+      "call": "set_tool_tips_shown",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "disposed",
+          "when": "code: the window has been disposed or has closed",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for an unknown setting;",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE without one), where FOLLOW is refused.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "GF_STATUS_WRONG_HANDLE_KIND when window is not a window (since 1.2).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.tool_tips_shown",
+      "mode": "legal",
+      "call": "tool_tips_shown",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "shown",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(shown)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(shown)"
+      ],
+      "fails": [
+        {
+          "failure": "disposed",
+          "when": "code: the window has been disposed or has closed",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.overlays.tool_tips_shown.misuse.tool_tips_shown_shown",
+      "mode": "misuse",
+      "call": "tool_tips_shown",
+      "violates": "not_null(shown)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

@@ -39,11 +39,19 @@ public:
 // shares the application's resources unless given its own, starts from its
 // presentation defaults and reads its tooltip switch, and leaves it when
 // destroyed. With no current application it makes its own resources.
+// ic: gui_forms::Window: generated from include/gui_forms/window/window.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: constructed (initial), attached, close_authorized, closed, shutdown.
+// ic: Observed by host_lifecycle_phase(): constructed HostLifecyclePhase::constructed, attached
+// ic: HostLifecyclePhase::attached, close_authorized HostLifecyclePhase::close_authorized, closed
+// ic: HostLifecyclePhase::closed, shutdown HostLifecyclePhase::shutdown. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Window : public SurfaceRoot, public WindowCapabilities<Window> {
 public:
+    // ic: Returns Window, owned by the caller.
     explicit Window(Control::Ptr root, Size client_size = {});
     // Joins `application` explicitly, for a program that wants the
     // dependency visible: std::logic_error off its thread or once closed.
+    // ic: Fails logic_error (off the application's thread, or once the application has closed), unchanged. Returns
+    // ic: Window, owned by the caller.
     Window(Application& application, Control::Ptr root, Size client_size = {});
     /// Uses explicit per-window image quotas. The two-argument constructor
     /// retains the normal defaults; large-document consumers choose a budget.
@@ -54,6 +62,8 @@ public:
     /// subtree moved between them keeps its images. Null resources are
     /// std::invalid_argument; resources made on another thread are
     /// std::logic_error. The window takes the resources' current theme.
+    // ic: Fails invalid_argument (null resources), unchanged; logic_error (resources made on another thread),
+    // ic: unchanged. Returns Window, owned by the caller.
     Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources);
     // Virtual: a generated form class derives from Window and holds its
     // controls in members, and is owned through a Window pointer
@@ -230,7 +240,17 @@ public:
     // reason: the user, the program, the session ending, a quit), once it
     // has; empty until then. Readable from the window's closed callback
     // (ApplicationWindowOptions::closed). Set only by HostSession.
+    // ic: Fails empty (before the host session accepts the closed event (states constructed, attached,
+    // ic: close_authorized)), unchanged. Returns stxlib::Optional<HostCloseReason>, owned by the caller.
     [[nodiscard]] stxlib::Optional<HostCloseReason> host_close_reason() const noexcept;
+    // The phase of the host session that drives this window (IC3, the
+    // window's public state query): constructed until a host attaches,
+    // then attached, close_authorized, closed and shutdown, as
+    // HostSession::snapshot().phase reports it; constructed for a window no
+    // host drives. Set only by HostSession; a window outlives its session's
+    // last phase write (shutdown is the session's, after which the window
+    // stays at the phase it had when its session ended without it).
+    [[nodiscard]] HostLifecyclePhase host_lifecycle_phase() const noexcept { return host_phase_; }
     // The slot drop-downs and pickers lift their lists and panels into
     // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
     // slots below it, one per depth.
@@ -438,6 +458,8 @@ private:
     // host_close_reason(): written by HostSession when it accepts the
     // closed event.
     stxlib::Optional<HostCloseReason> host_close_reason_{};
+    // host_lifecycle_phase(): written by HostSession with its snapshot's phase.
+    HostLifecyclePhase host_phase_{HostLifecyclePhase::constructed};
     [[nodiscard]] detail::PopupStandby& popup_standby();
     // Sends the corner preference to the attached host, if any, and takes
     // its report; changed corners repaint the band's strips. Called by

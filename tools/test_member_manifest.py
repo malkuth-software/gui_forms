@@ -67,6 +67,35 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(files, sorted(files))
 
 
+class ConstraintColumnTests(unittest.TestCase):
+    """IC3: the declarations' constraints column joins the manifest by type and GUI.Forms member."""
+
+    def test_column_rows_key_by_type_and_member(self) -> None:
+        column: dict = {"schema": 1, "column": "constraints", "rows": [
+            {"type": "gui_forms::Badge", "member": "maximum", "constraints": "Requires incoming != 0.",
+             "declaration": "x"},
+            {"type": "gui_forms::Window", "member": "Window", "constraints": "first", "declaration": "x"},
+            {"type": "gui_forms::Window", "member": "Window", "constraints": "second", "declaration": "x"},
+            {"type": "gui_forms::Window", "member": "dispatcher", "constraints": "No declared constraint.",
+             "declaration": "x"},
+            {"type": "gf_abi::objects", "member": "create", "constraints": "an ABI row", "declaration": "x"}]}
+        with tempfile.TemporaryDirectory() as directory:
+            path: Path = Path(directory) / "members_constraints.json"
+            path.write_text(mm.json.dumps(column), encoding="utf-8")
+            found: dict[tuple[str, str], str] = mm.ic_constraints(path)
+        self.assertEqual(found[("Badge", "maximum")], "Requires incoming != 0.")
+        self.assertEqual(found[("Window", "Window")], "first | second")
+        self.assertNotIn(("Window", "dispatcher"), found)
+        self.assertEqual(len(found), 2)
+
+    def test_committed_manifest_carries_the_column(self) -> None:
+        manifest: dict = mm.load_manifest()
+        carried: list[str] = [row["constraints"] for entry in manifest["controls"] if entry.get("type") == "Badge"
+                              for row in entry["members"] if row.get("gui_forms") == "maximum" and "constraints" in row]
+        self.assertEqual(len(carried), 1)
+        self.assertIn("incoming != 0", carried[0])
+
+
 class ValidatorTests(unittest.TestCase):
     model: mm.Model
     manifest: dict

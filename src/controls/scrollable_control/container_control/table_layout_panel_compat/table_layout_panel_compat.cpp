@@ -4,6 +4,7 @@
 #include "../text_collection_property.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "table_layout_panel_compat_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -19,6 +20,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::table_layout_panel_compat;
 
 namespace {
 constexpr std::size_t maximum_layout_tracks = 64U;
@@ -1286,7 +1288,7 @@ void TableLayoutPanelCompat::written(const decltype(cell_border_style)&) {
 
 void TableLayoutPanelCompat::prepare_write(const decltype(track_spacing)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument("TableLayoutPanelCompat track spacing must be finite and between zero and 256");
+    if (!ic::admits_track_spacing(incoming)) throw std::invalid_argument("TableLayoutPanelCompat track spacing must be finite and between zero and 256");
 }
 
 void TableLayoutPanelCompat::written(const decltype(track_spacing)&) {

@@ -1,0 +1,389 @@
+{
+  "schema": 1,
+  "component": "gf_abi::custom_controls",
+  "declaration": "include/gui_forms/c/gf_abi_custom_controls.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.custom_controls.create",
+      "mode": "legal",
+      "call": "create",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.custom_controls.notify_changed.alive",
+      "mode": "legal",
+      "call": "notify_changed",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the properties",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the control is not a custom control",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.custom_controls.notify_changed.disposing",
+      "mode": "legal",
+      "call": "notify_changed",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the properties",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the control is not a custom control",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.custom_controls.notify_changed.disposed",
+      "mode": "legal",
+      "call": "notify_changed",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the properties",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the control is not a custom control",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.custom_controls.load_composite",
+      "mode": "legal",
+      "call": "load_composite",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: load_composite needs a gf_composite_spec of at least the 1.5 size and a definition output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.custom_controls.create_composite",
+      "mode": "legal",
+      "call": "create_composite",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "object",
+          "type": "gf_object*",
+          "bounded_by": [
+            "not_null(object)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(object)"
+      ],
+      "fails": [
+        {
+          "failure": "disposed",
+          "when": "code: the definition has been disposed",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: create_composite takes a definition",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.custom_controls.create_composite.misuse.create_composite_object",
+      "mode": "misuse",
+      "call": "create_composite",
+      "violates": "not_null(object)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.custom_controls.perform_composite.alive",
+      "mode": "legal",
+      "call": "perform_composite",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the composite declares no command of that name",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.custom_controls.perform_composite.disposing",
+      "mode": "legal",
+      "call": "perform_composite",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the composite declares no command of that name",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.custom_controls.perform_composite.disposed",
+      "mode": "legal",
+      "call": "perform_composite",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the composite declares no command of that name",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.custom_controls.composite_child.alive",
+      "mode": "legal",
+      "call": "composite_child",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "alive"
+        },
+        {
+          "name": "child",
+          "type": "gf_object*",
+          "bounded_by": [
+            "not_null(child)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(child)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the composite has no child of that local id",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.custom_controls.composite_child.disposing",
+      "mode": "legal",
+      "call": "composite_child",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "disposing"
+        },
+        {
+          "name": "child",
+          "type": "gf_object*",
+          "bounded_by": [
+            "not_null(child)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(child)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the composite has no child of that local id",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.custom_controls.composite_child.disposed",
+      "mode": "legal",
+      "call": "composite_child",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::custom_controls",
+          "state": "disposed"
+        },
+        {
+          "name": "child",
+          "type": "gf_object*",
+          "bounded_by": [
+            "not_null(child)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(child)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the composite has no child of that local id",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.custom_controls.composite_child.misuse.composite_child_child",
+      "mode": "misuse",
+      "call": "composite_child",
+      "violates": "not_null(child)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

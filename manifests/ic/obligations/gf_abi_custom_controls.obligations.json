@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "component": "gf_abi::custom_controls",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_custom_controls.ic.toml",
+    "sha256": "b51ac27171a72cd3ea5e62b3ec133451c4a58a113129f64b4f0099fffe203ecb"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.custom_controls.create_composite.requires.create_composite_object",
+      "kind": "entry-check",
+      "statement": "create_composite runs only when not_null(object); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_create_composite_object, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.create_composite.refusal.create_composite_object",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(object), create_composite changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.composite_child.requires.composite_child_child",
+      "kind": "entry-check",
+      "statement": "composite_child runs only when not_null(child); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_composite_child_child, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.composite_child.refusal.composite_child_child",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(child), composite_child changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

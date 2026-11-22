@@ -1,0 +1,411 @@
+{
+  "schema": 1,
+  "component": "gf_abi::runtime",
+  "declaration": "include/gui_forms/c/gf_abi_runtime.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "shown",
+    "handed_over"
+  ],
+  "initial": "shown",
+  "state_query": "gf_runtime_table.splashscreen_state",
+  "blocks": [
+    {
+      "name": "gf_abi.runtime.version",
+      "mode": "legal",
+      "call": "version",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "info",
+          "type": "gf_abi_version_info*",
+          "bounded_by": [
+            "not_null(info)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(info)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "struct_size is below the 1.0 record size",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.version.misuse.version_info",
+      "mode": "misuse",
+      "call": "version",
+      "violates": "not_null(info)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.runtime.error_detail",
+      "mode": "legal",
+      "call": "error_detail",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "detail",
+          "type": "gf_error_detail*",
+          "bounded_by": [
+            "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "message_buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "message_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        },
+        {
+          "name": "message_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "When message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. message_buffer may be null when message_capacity is zero.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "struct_size is below the 1.0 record size",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.error_detail.misuse.error_detail_buffer",
+      "mode": "misuse",
+      "call": "error_detail",
+      "violates": "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.runtime.clear_error",
+      "mode": "legal",
+      "call": "clear_error",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_show",
+      "mode": "legal",
+      "call": "splashscreen_show",
+      "kind": "static",
+      "thread": "owner",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a record smaller than the 1.1 size, a null splashscreen, artwork that is not a PNG file or has an extent out of range, a status that is not UTF-8 or too long, or a progress outside [0, 1] with show_progress;",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE while another splashscreen's handle is open (shown, or handed over and not yet closed);",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "GF_STATUS_UNSUPPORTED_CAPABILITY when the host has no splashscreen (no display, a host without GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_splashscreen",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_set_status.shown",
+      "mode": "legal",
+      "call": "splashscreen_set_status",
+      "kind": "member",
+      "thread": "owner",
+      "state": "shown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "shown"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT, changing nothing, for text that is not UTF-8 or too long;",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "stated by the code",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "GF_STATUS_UNSUPPORTED_CAPABILITY when the frame could not be presented.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_set_status.handed_over",
+      "mode": "legal",
+      "call": "splashscreen_set_status",
+      "kind": "member",
+      "thread": "owner",
+      "state": "handed_over",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "handed_over"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT, changing nothing, for text that is not UTF-8 or too long;",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "stated by the code",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "GF_STATUS_UNSUPPORTED_CAPABILITY when the frame could not be presented.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_set_progress.shown",
+      "mode": "legal",
+      "call": "splashscreen_set_progress",
+      "kind": "member",
+      "thread": "owner",
+      "state": "shown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "shown"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "struct_size is below the 1.0 record size",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "stated by the code",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "stated by the code",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_set_progress.handed_over",
+      "mode": "legal",
+      "call": "splashscreen_set_progress",
+      "kind": "member",
+      "thread": "owner",
+      "state": "handed_over",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "handed_over"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "struct_size is below the 1.0 record size",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "stated by the code",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "stated by the code",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_close.shown",
+      "mode": "legal",
+      "call": "splashscreen_close",
+      "kind": "member",
+      "thread": "owner",
+      "state": "shown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "shown"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_close.handed_over",
+      "mode": "legal",
+      "call": "splashscreen_close",
+      "kind": "member",
+      "thread": "owner",
+      "state": "handed_over",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "handed_over"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_state.shown",
+      "mode": "legal",
+      "call": "splashscreen_state",
+      "kind": "member",
+      "thread": "owner",
+      "state": "shown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "shown"
+        },
+        {
+          "name": "state",
+          "type": "gf_splashscreen_state*",
+          "bounded_by": [
+            "not_null(state)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(state)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_state.handed_over",
+      "mode": "legal",
+      "call": "splashscreen_state",
+      "kind": "member",
+      "thread": "owner",
+      "state": "handed_over",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::runtime",
+          "state": "handed_over"
+        },
+        {
+          "name": "state",
+          "type": "gf_splashscreen_state*",
+          "bounded_by": [
+            "not_null(state)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(state)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.runtime.splashscreen_state.misuse.splashscreen_state_state",
+      "mode": "misuse",
+      "call": "splashscreen_state",
+      "violates": "not_null(state)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

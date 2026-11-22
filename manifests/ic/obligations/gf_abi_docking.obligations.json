@@ -1,0 +1,623 @@
+{
+  "schema": 1,
+  "component": "gf_abi::docking",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_docking.ic.toml",
+    "sha256": "bf1b6cf1c69e71f52b7ea315ae8ac124a99e2f3af7f45511349f24ef4ac24acb"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.docking.register_panel.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "register_panel in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.register_panel.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "register_panel in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_panel_content.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_panel_content in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_panel_content.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_panel_content in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_panel_title.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_panel_title in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_panel_title.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_panel_title in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.apply_edit.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "apply_edit in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.apply_edit.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "apply_edit in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.locate.requires.locate_location",
+      "kind": "entry-check",
+      "statement": "locate runs only when not_null(location); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_locate_location, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.locate.refusal.locate_location",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(location), locate changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.locate.requires.locate_location_size",
+      "kind": "entry-check",
+      "statement": "locate runs only when location_size >= location_size_1_1; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_locate_location_size, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.locate.refusal.locate_location_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless location_size >= location_size_1_1, locate changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.locate.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "locate in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.locate.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "locate in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.save_layout.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "save_layout in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.save_layout.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "save_layout in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.load_layout.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "load_layout in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.load_layout.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "load_layout in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.activate_panel.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "activate_panel in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.activate_panel.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "activate_panel in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.attach_windows.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "attach_windows in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.attach_windows.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "attach_windows in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.document_area.requires.document_area_node",
+      "kind": "entry-check",
+      "statement": "document_area runs only when not_null(node); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_document_area_node, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.document_area.refusal.document_area_node",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(node), document_area changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.document_area.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "document_area in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.document_area.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "document_area in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.panel_at.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "panel_at in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.panel_at.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "panel_at in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.floating_sites.requires.floating_sites_sites",
+      "kind": "entry-check",
+      "statement": "floating_sites runs only when not_null(count) and (not_null(sites) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_floating_sites_sites, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.floating_sites.refusal.floating_sites_sites",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count) and (not_null(sites) or capacity == 0), floating_sites changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.floating_sites.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "floating_sites in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.floating_sites.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "floating_sites in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.floating_site.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "floating_site in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.floating_site.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "floating_site in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.update_panel.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "update_panel in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.update_panel.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "update_panel in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_options.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_options in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_options.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_options in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_floating_window_visibility.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_floating_window_visibility in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_floating_window_visibility.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_floating_window_visibility in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.document_presentation.requires.document_presentation_presentation",
+      "kind": "entry-check",
+      "statement": "document_presentation runs only when not_null(presentation); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_document_presentation_presentation, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.document_presentation.refusal.document_presentation_presentation",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(presentation), document_presentation changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.document_presentation.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "document_presentation in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.document_presentation.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "document_presentation in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.arrange_frames.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "arrange_frames in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.arrange_frames.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "arrange_frames in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.frame_memory.requires.frame_memory_frame",
+      "kind": "entry-check",
+      "statement": "frame_memory runs only when not_null(frame); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_frame_memory_frame, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.frame_memory.refusal.frame_memory_frame",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(frame), frame_memory changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.frame_memory.requires.frame_memory_frame_size",
+      "kind": "entry-check",
+      "statement": "frame_memory runs only when frame_size >= frame_memory_size_1_6; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_frame_memory_frame_size, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.frame_memory.refusal.frame_memory_frame_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless frame_size >= frame_memory_size_1_6, frame_memory changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.frame_memory.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "frame_memory in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.frame_memory.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "frame_memory in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_frame_icons_at_bottom.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_frame_icons_at_bottom in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_frame_icons_at_bottom.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_frame_icons_at_bottom in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_document_count.requires.area_document_count_count",
+      "kind": "entry-check",
+      "statement": "area_document_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_docking::admits_area_document_count_count, called in src/abi/stable/tables/abi_docking.cpp"
+    },
+    {
+      "id": "gf_abi.docking.area_document_count.refusal.area_document_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), area_document_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_document_count.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "area_document_count in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_document_count.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "area_document_count in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_document_at.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "area_document_at in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_document_at.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "area_document_at in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_active_document.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "area_active_document in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_active_document.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "area_active_document in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_panel_menu_strip.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_panel_menu_strip in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.set_panel_menu_strip.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_panel_menu_strip in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.merged_document.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "merged_document in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.merged_document.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "merged_document in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

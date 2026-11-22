@@ -1,0 +1,63 @@
+# WindowDispatcher's behavioural constraints, stated once (IC3; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/core/dispatcher/window_dispatcher/window_dispatcher_ic_checks.hpp) dispatcher_handle.cpp calls. In this C++
+# declaration a refusal failure:<kind> is a throw of std::<kind> before anything happens.
+
+schema = 1
+component = "WindowDispatcher"
+namespace = "gui_forms"
+header = "include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
+anchor = "class GUI_FORMS_API WindowDispatcher final {"
+keys = { manifest = "gui_forms::WindowDispatcher" }
+thread = "any"
+states = ["unbound", "accepting", "gone"]
+initial = "unbound"
+state_query = { call = "state", observes = { unbound = "WindowDispatcherState::unbound", accepting = "WindowDispatcherState::accepting", gone = "WindowDispatcherState::gone" } }
+
+[checks]
+path = "src/core/dispatcher/window_dispatcher/window_dispatcher_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::window_dispatcher"
+includes = ["gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"]
+used_in = ["src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp"]
+
+[[call]]
+name = "begin_invoke"
+declarations = ["[[nodiscard]] DispatchOperation begin_invoke(std::function<void()> callback) const;"]
+kind = "member"
+in = ["accepting", "gone"]
+outside = { unbound = "failure:logic_error" }
+parameters = { bound = "bool" }
+requires = [
+  { holds = "bound != 0", refuses = "failure:logic_error", check = "bound" },
+]
+fails = [
+  { failure = "cancelled", when = "the window is gone: the operation returned is already cancelled and the callback released" },
+]
+returns = { type = "DispatchOperation", owns = "caller" }
+transfers = [{ what = "the callback", from = "caller", to = "the window's dispatcher" }]
+
+[[call]]
+name = "invoke"
+declarations = ["[[nodiscard]] DispatchInvokeResult invoke(std::function<void()> callback) const;"]
+kind = "member"
+in = ["accepting", "gone"]
+outside = { unbound = "failure:logic_error" }
+parameters = { bound = "bool" }
+requires = [
+  { holds = "bound != 0", refuses = "failure:logic_error", check = "bound" },
+]
+fails = [
+  { failure = "invalid_argument", when = "an empty callback (a std::function the clause grammar cannot name, so its check stays in code)" },
+  { failure = "window_gone", when = "the window was gone first or closed while the work waited (DispatchInvokeResult::window_gone); the callback did not run" },
+  { failure = "logic_error", when = "a live window with no running host (no wake handler)" },
+]
+
+[[call]]
+name = "window_alive"
+declarations = ["[[nodiscard]] bool window_alive() const noexcept;"]
+kind = "member"
+
+[[call]]
+name = "state"
+declarations = ["[[nodiscard]] WindowDispatcherState state() const noexcept;"]
+kind = "member"

@@ -10,6 +10,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../basic/number_text.hpp"
+#include "progress_bar_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::progress_bar;
 using namespace range_control_detail;
 
 namespace {
@@ -1095,7 +1097,7 @@ std::span<const PropertyEntry> ProgressBar::property_table() const noexcept {
 void ProgressBar::prepare_write(const decltype(stripe_width)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "progress stripe width must be finite");
-    if (incoming < 2.0 || incoming > 32.0) throw std::invalid_argument("progress stripe width must be between 2 and 32 pixels");
+    if (!ic::admits_stripe_width(incoming)) throw std::invalid_argument("progress stripe width must be between 2 and 32 pixels");
 }
 
 void ProgressBar::written(const decltype(stripe_width)&) {

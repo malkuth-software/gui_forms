@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::FlowLayoutPanelCompat",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/flow_layout_panel_compat.ic.toml",
+    "sha256": "fb824c37594e48de73ce8ba43e9547537ee25599a4a08554d211762787d9e9fe"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.flowlayoutpanelcompat.item_spacing_write.requires.item_spacing",
+      "kind": "entry-check",
+      "statement": "item_spacing runs only when finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and incoming.width <= 256 and incoming.height <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::flow_layout_panel_compat::admits_item_spacing, called in src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.cpp"
+    },
+    {
+      "id": "gui_forms.flowlayoutpanelcompat.item_spacing_write.refusal.item_spacing",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and incoming.width <= 256 and incoming.height <= 256, item_spacing changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

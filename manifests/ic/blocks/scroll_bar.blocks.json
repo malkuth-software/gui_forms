@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ScrollBar",
+  "declaration": "include/gui_forms/controls/scroll_bar.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.scrollbar.button_extent_write",
+      "mode": "legal",
+      "call": "button_extent",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ScrollBar"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 8 and incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 8 and incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.scrollbar.button_extent_write.misuse.button_extent",
+      "mode": "misuse",
+      "call": "button_extent",
+      "violates": "finite(incoming) and incoming >= 8 and incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

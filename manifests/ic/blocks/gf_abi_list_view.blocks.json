@@ -1,0 +1,2128 @@
+{
+  "schema": 1,
+  "component": "gf_abi::list_view",
+  "declaration": "include/gui_forms/c/gf_abi_list_view.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.list_view.column_count.alive",
+      "mode": "legal",
+      "call": "column_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.column_count.disposing",
+      "mode": "legal",
+      "call": "column_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.column_count.disposed",
+      "mode": "legal",
+      "call": "column_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.column_count.misuse.column_count_count",
+      "mode": "misuse",
+      "call": "column_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.list_view.column_at.alive",
+      "mode": "legal",
+      "call": "column_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Column index (below the count) into column, an output record of at least the 1.5 size; its stable id and text are copied into text_buffer, one after the other, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.column_at.disposing",
+      "mode": "legal",
+      "call": "column_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Column index (below the count) into column, an output record of at least the 1.5 size; its stable id and text are copied into text_buffer, one after the other, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.column_at.disposed",
+      "mode": "legal",
+      "call": "column_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Column index (below the count) into column, an output record of at least the 1.5 size; its stable id and text are copied into text_buffer, one after the other, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_columns.alive",
+      "mode": "legal",
+      "call": "set_columns",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_columns.disposing",
+      "mode": "legal",
+      "call": "set_columns",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_columns.disposed",
+      "mode": "legal",
+      "call": "set_columns",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_column_width.alive",
+      "mode": "legal",
+      "call": "set_column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a column's width is finite",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_column_width.disposing",
+      "mode": "legal",
+      "call": "set_column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a column's width is finite",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_column_width.disposed",
+      "mode": "legal",
+      "call": "set_column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a column's width is finite",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_count.alive",
+      "mode": "legal",
+      "call": "item_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_count.disposing",
+      "mode": "legal",
+      "call": "item_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_count.disposed",
+      "mode": "legal",
+      "call": "item_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_count.misuse.item_count_count",
+      "mode": "misuse",
+      "call": "item_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.list_view.item_at.alive",
+      "mode": "legal",
+      "call": "item_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the text buffer is smaller than the record's text",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the item is past the view's items",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_at.disposing",
+      "mode": "legal",
+      "call": "item_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the text buffer is smaller than the record's text",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the item is past the view's items",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_at.disposed",
+      "mode": "legal",
+      "call": "item_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the text buffer is smaller than the record's text",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the item is past the view's items",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_sub_item.alive",
+      "mode": "legal",
+      "call": "item_sub_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Item index's sub-item (below its sub_item_count) as text, into buffer (required receives its size; a short buffer gives GF_STATUS_BUFFER_TOO_SMALL).",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items or the sub-items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_sub_item.disposing",
+      "mode": "legal",
+      "call": "item_sub_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Item index's sub-item (below its sub_item_count) as text, into buffer (required receives its size; a short buffer gives GF_STATUS_BUFFER_TOO_SMALL).",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items or the sub-items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.item_sub_item.disposed",
+      "mode": "legal",
+      "call": "item_sub_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Item index's sub-item (below its sub_item_count) as text, into buffer (required receives its size; a short buffer gives GF_STATUS_BUFFER_TOO_SMALL).",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items or the sub-items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_items.alive",
+      "mode": "legal",
+      "call": "set_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_items.disposing",
+      "mode": "legal",
+      "call": "set_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_items.disposed",
+      "mode": "legal",
+      "call": "set_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.index_of.alive",
+      "mode": "legal",
+      "call": "index_of",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when no item has it (and always in virtual mode).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.index_of.disposing",
+      "mode": "legal",
+      "call": "index_of",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when no item has it (and always in virtual mode).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.index_of.disposed",
+      "mode": "legal",
+      "call": "index_of",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when no item has it (and always in virtual mode).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.index_of.misuse.index_of_index",
+      "mode": "misuse",
+      "call": "index_of",
+      "violates": "not_null(index)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.list_view.set_item_checked.alive",
+      "mode": "legal",
+      "call": "set_item_checked",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: checked is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_item_checked.disposing",
+      "mode": "legal",
+      "call": "set_item_checked",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: checked is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_item_checked.disposed",
+      "mode": "legal",
+      "call": "set_item_checked",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: checked is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.group_count.alive",
+      "mode": "legal",
+      "call": "group_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.group_count.disposing",
+      "mode": "legal",
+      "call": "group_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.group_count.disposed",
+      "mode": "legal",
+      "call": "group_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.group_count.misuse.group_count_count",
+      "mode": "misuse",
+      "call": "group_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.list_view.group_at.alive",
+      "mode": "legal",
+      "call": "group_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the text buffer is smaller than the record's text",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the group is past the view's groups",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.group_at.disposing",
+      "mode": "legal",
+      "call": "group_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the text buffer is smaller than the record's text",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the group is past the view's groups",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.group_at.disposed",
+      "mode": "legal",
+      "call": "group_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the text buffer is smaller than the record's text",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the group is past the view's groups",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_groups.alive",
+      "mode": "legal",
+      "call": "set_groups",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: the array holds more records than the view does",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_groups.disposing",
+      "mode": "legal",
+      "call": "set_groups",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: the array holds more records than the view does",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_groups.disposed",
+      "mode": "legal",
+      "call": "set_groups",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: the array holds more records than the view does",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.selected_items.alive",
+      "mode": "legal",
+      "call": "selected_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "indices",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(indices) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selected items' indices in ascending order into indices (capacity elements; null when the capacity is zero). count receives the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no index.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.selected_items.disposing",
+      "mode": "legal",
+      "call": "selected_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "indices",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(indices) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selected items' indices in ascending order into indices (capacity elements; null when the capacity is zero). count receives the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no index.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.selected_items.disposed",
+      "mode": "legal",
+      "call": "selected_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "indices",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(indices) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(indices) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selected items' indices in ascending order into indices (capacity elements; null when the capacity is zero). count receives the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no index.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.selected_items.misuse.selected_items_indices",
+      "mode": "misuse",
+      "call": "selected_items",
+      "violates": "not_null(count) and (not_null(indices) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.list_view.set_selected.alive",
+      "mode": "legal",
+      "call": "set_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_selected.disposing",
+      "mode": "legal",
+      "call": "set_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_selected.disposed",
+      "mode": "legal",
+      "call": "set_selected",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: selected is 0 or 1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.select_all.alive",
+      "mode": "legal",
+      "call": "select_all",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.select_all.disposing",
+      "mode": "legal",
+      "call": "select_all",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.select_all.disposed",
+      "mode": "legal",
+      "call": "select_all",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.clear_selection.alive",
+      "mode": "legal",
+      "call": "clear_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.clear_selection.disposing",
+      "mode": "legal",
+      "call": "clear_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.clear_selection.disposed",
+      "mode": "legal",
+      "call": "clear_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.focused_item.alive",
+      "mode": "legal",
+      "call": "focused_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        },
+        {
+          "name": "index",
+          "type": "int64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.focused_item.disposing",
+      "mode": "legal",
+      "call": "focused_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        },
+        {
+          "name": "index",
+          "type": "int64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.focused_item.disposed",
+      "mode": "legal",
+      "call": "focused_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        },
+        {
+          "name": "index",
+          "type": "int64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.focused_item.misuse.focused_item_index",
+      "mode": "misuse",
+      "call": "focused_item",
+      "violates": "not_null(index)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.list_view.set_focused_item.alive",
+      "mode": "legal",
+      "call": "set_focused_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the focused item is an index or -1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_focused_item.disposing",
+      "mode": "legal",
+      "call": "set_focused_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the focused item is an index or -1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_focused_item.disposed",
+      "mode": "legal",
+      "call": "set_focused_item",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the focused item is an index or -1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.ensure_visible.alive",
+      "mode": "legal",
+      "call": "ensure_visible",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.ensure_visible.disposing",
+      "mode": "legal",
+      "call": "ensure_visible",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.ensure_visible.disposed",
+      "mode": "legal",
+      "call": "ensure_visible",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the items.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_sort_indicator.alive",
+      "mode": "legal",
+      "call": "set_sort_indicator",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the sorted column is an index or -1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_sort_indicator.disposing",
+      "mode": "legal",
+      "call": "set_sort_indicator",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the sorted column is an index or -1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.set_sort_indicator.disposed",
+      "mode": "legal",
+      "call": "set_sort_indicator",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the sorted column is an index or -1",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.sort_items.alive",
+      "mode": "legal",
+      "call": "sort_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the sort order is NONE, ASCENDING or DESCENDING",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.sort_items.disposing",
+      "mode": "legal",
+      "call": "sort_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the sort order is NONE, ASCENDING or DESCENDING",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.list_view.sort_items.disposed",
+      "mode": "legal",
+      "call": "sort_items",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::list_view",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the sort order is NONE, ASCENDING or DESCENDING",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: a virtual list view's items belong to its source",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the columns.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

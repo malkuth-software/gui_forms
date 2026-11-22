@@ -1,0 +1,56 @@
+# What tools/ic_abi_fuzz.py needs beyond the declarations' block stubs
+# (manifests/ic/blocks) and the ABI manifest (manifests/abi/gf_abi.json) to
+# write the C ABI block table gui_forms_tests' IC fuzz target runs
+# (tests/ic/gf_abi_ic_blocks.hpp there; IC3, IC study section 7). The
+# engine that runs the table is tests/ic/ic_engine.hpp there, written to be
+# replaced by phase IC2's.
+schema = 1
+
+# The object a member call's first gf_object is, per table: the schema type
+# objects.create makes for it ("window" is a window from windows.create over
+# a panel). A table not named here has no member calls on a gf_object.
+[subjects]
+objects = "label"
+properties = "text_box"
+events = "button"
+dispatch = "panel"
+windows = "window"
+controls = "button"
+text_editing = "text_box"
+overlays = "panel"
+property_grid = "property_grid"
+custom_controls = "panel"
+bindings = "panel"
+subsurfaces = "panel"
+data_grid = "data_grid_view"
+docking = "dock_workspace"
+help = "help_book_system"
+content = "content_surface"
+list_view = "list_view"
+
+# Slots the engine never calls, with the reason; each one's blocks are left
+# out of the table and counted in its header. Slots whose parameters carry
+# code or a context pointer (a gf_callback, a provider, a class table, a run
+# option's callbacks) are left out by the generator itself, since the engine
+# cannot make a callee for them; the compound blocks call the callback slots
+# by hand (tests/ic/gf_abi_ic_fuzz.cpp there).
+[skip]
+"windows.run" = "blocks until the window closes (a host run)"
+"windows.show_modal" = "blocks until the modal window closes"
+"windows.show_owned" = "opens a host window"
+"host.show_dialog" = "opens a modal system dialog"
+"host.read_clipboard_text" = "reads the machine's clipboard"
+"host.write_clipboard_text" = "replaces the machine's clipboard"
+"host.set_cursor" = "changes the machine's pointer"
+"diagnostics.raise_native_exception" = "raises a native exception on purpose"
+"content.start_program" = "starts a process"
+"content.start_hosted" = "starts a process"
+"content.sink_wait_for_request" = "waits for a request that never comes"
+"application.create" = "the application is one per process, so no input may make it"
+"application.close" = "ends the process's one application"
+"help.show" = "opens a help window"
+"help.show_navigator" = "opens a help window or the system browser"
+"help.show_popup" = "opens a host popup"
+"help.export_template" = "writes a file"
+"themes.install" = "writes the user's theme directory"
+"themes.remove" = "removes from the user's theme directory"

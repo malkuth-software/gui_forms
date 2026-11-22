@@ -1,0 +1,680 @@
+{
+  "schema": 1,
+  "component": "gui_forms::HostSession",
+  "declaration": "include/gui_forms/host/session/host_session.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "constructed",
+    "attached",
+    "close_authorized",
+    "closed",
+    "shutdown"
+  ],
+  "initial": "constructed",
+  "state_query": "snapshot",
+  "blocks": [
+    {
+      "name": "gui_forms.hostsession.construct",
+      "mode": "legal",
+      "call": "HostSession",
+      "kind": "constructor",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "HostSession",
+        "borrows": "window",
+        "until": [
+          "the window is destroyed: the session then ends without it"
+        ]
+      }
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.constructed",
+      "mode": "legal",
+      "call": "dispatch",
+      "kind": "member",
+      "thread": "ui",
+      "state": "constructed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "constructed"
+        },
+        {
+          "name": "sequence",
+          "type": "std::uint64_t",
+          "bounded_by": [
+            "sequence != 0",
+            "sequence > last_sequence"
+          ]
+        },
+        {
+          "name": "attach",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "shutdown",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "closed",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "passive_terminal",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "scale",
+          "type": "double",
+          "bounded_by": [
+            "finite(scale) and scale > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "sequence != 0",
+        "sequence > last_sequence",
+        "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)",
+        "finite(width) and finite(height) and width > 0 and height > 0",
+        "finite(scale) and scale > 0"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_thread",
+          "when": "off the thread that constructed the session (HostDispatchError::wrong_thread)",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_payload",
+          "when": "a payload its own rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.attached",
+      "mode": "legal",
+      "call": "dispatch",
+      "kind": "member",
+      "thread": "ui",
+      "state": "attached",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "attached"
+        },
+        {
+          "name": "sequence",
+          "type": "std::uint64_t",
+          "bounded_by": [
+            "sequence != 0",
+            "sequence > last_sequence"
+          ]
+        },
+        {
+          "name": "attach",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "shutdown",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "closed",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "passive_terminal",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "scale",
+          "type": "double",
+          "bounded_by": [
+            "finite(scale) and scale > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "sequence != 0",
+        "sequence > last_sequence",
+        "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)",
+        "finite(width) and finite(height) and width > 0 and height > 0",
+        "finite(scale) and scale > 0"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_thread",
+          "when": "off the thread that constructed the session (HostDispatchError::wrong_thread)",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_payload",
+          "when": "a payload its own rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.close_authorized",
+      "mode": "legal",
+      "call": "dispatch",
+      "kind": "member",
+      "thread": "ui",
+      "state": "close_authorized",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "close_authorized"
+        },
+        {
+          "name": "sequence",
+          "type": "std::uint64_t",
+          "bounded_by": [
+            "sequence != 0",
+            "sequence > last_sequence"
+          ]
+        },
+        {
+          "name": "attach",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "shutdown",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "closed",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "passive_terminal",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "scale",
+          "type": "double",
+          "bounded_by": [
+            "finite(scale) and scale > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "sequence != 0",
+        "sequence > last_sequence",
+        "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)",
+        "finite(width) and finite(height) and width > 0 and height > 0",
+        "finite(scale) and scale > 0"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_thread",
+          "when": "off the thread that constructed the session (HostDispatchError::wrong_thread)",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_payload",
+          "when": "a payload its own rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.closed",
+      "mode": "legal",
+      "call": "dispatch",
+      "kind": "member",
+      "thread": "ui",
+      "state": "closed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "closed"
+        },
+        {
+          "name": "sequence",
+          "type": "std::uint64_t",
+          "bounded_by": [
+            "sequence != 0",
+            "sequence > last_sequence"
+          ]
+        },
+        {
+          "name": "attach",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "shutdown",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "closed",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "passive_terminal",
+          "type": "bool",
+          "bounded_by": [
+            "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)"
+          ]
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "bounded_by": [
+            "finite(width) and finite(height) and width > 0 and height > 0"
+          ]
+        },
+        {
+          "name": "scale",
+          "type": "double",
+          "bounded_by": [
+            "finite(scale) and scale > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "sequence != 0",
+        "sequence > last_sequence",
+        "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)",
+        "finite(width) and finite(height) and width > 0 and height > 0",
+        "finite(scale) and scale > 0"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_thread",
+          "when": "off the thread that constructed the session (HostDispatchError::wrong_thread)",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_payload",
+          "when": "a payload its own rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.misuse.dispatch_sequence",
+      "mode": "misuse",
+      "call": "dispatch",
+      "violates": "sequence != 0",
+      "expect": {
+        "kind": "value",
+        "value": "HostDispatchError::sequence_zero"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.misuse.dispatch_order",
+      "mode": "misuse",
+      "call": "dispatch",
+      "violates": "sequence > last_sequence",
+      "expect": {
+        "kind": "value",
+        "value": "HostDispatchError::non_monotonic_sequence"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.misuse.dispatch_lifecycle",
+      "mode": "misuse",
+      "call": "dispatch",
+      "violates": "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)",
+      "expect": {
+        "kind": "value",
+        "value": "HostDispatchError::invalid_lifecycle"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.misuse.dispatch_size",
+      "mode": "misuse",
+      "call": "dispatch",
+      "violates": "finite(width) and finite(height) and width > 0 and height > 0",
+      "expect": {
+        "kind": "value",
+        "value": "HostDispatchError::invalid_geometry"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.misuse.dispatch_scale",
+      "mode": "misuse",
+      "call": "dispatch",
+      "violates": "finite(scale) and scale > 0",
+      "expect": {
+        "kind": "value",
+        "value": "HostDispatchError::invalid_geometry"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.hostsession.dispatch.outside.shutdown",
+      "mode": "misuse",
+      "call": "dispatch",
+      "state": "shutdown",
+      "expect": {
+        "kind": "value",
+        "value": "HostDispatchError::after_shutdown"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.hostsession.shutdown.constructed",
+      "mode": "legal",
+      "call": "shutdown",
+      "kind": "member",
+      "thread": "ui",
+      "state": "constructed",
+      "moves": "shutdown",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "constructed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.shutdown.attached",
+      "mode": "legal",
+      "call": "shutdown",
+      "kind": "member",
+      "thread": "ui",
+      "state": "attached",
+      "moves": "shutdown",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "attached"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.shutdown.close_authorized",
+      "mode": "legal",
+      "call": "shutdown",
+      "kind": "member",
+      "thread": "ui",
+      "state": "close_authorized",
+      "moves": "shutdown",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "close_authorized"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.shutdown.closed",
+      "mode": "legal",
+      "call": "shutdown",
+      "kind": "member",
+      "thread": "ui",
+      "state": "closed",
+      "moves": "shutdown",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "closed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.shutdown.shutdown",
+      "mode": "legal",
+      "call": "shutdown",
+      "kind": "member",
+      "thread": "ui",
+      "state": "shutdown",
+      "moves": "shutdown",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "shutdown"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.hostsession.snapshot.constructed",
+      "mode": "legal",
+      "call": "snapshot",
+      "kind": "member",
+      "thread": "ui",
+      "state": "constructed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "constructed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "HostSessionSnapshot",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.hostsession.snapshot.attached",
+      "mode": "legal",
+      "call": "snapshot",
+      "kind": "member",
+      "thread": "ui",
+      "state": "attached",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "attached"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "HostSessionSnapshot",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.hostsession.snapshot.close_authorized",
+      "mode": "legal",
+      "call": "snapshot",
+      "kind": "member",
+      "thread": "ui",
+      "state": "close_authorized",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "close_authorized"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "HostSessionSnapshot",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.hostsession.snapshot.closed",
+      "mode": "legal",
+      "call": "snapshot",
+      "kind": "member",
+      "thread": "ui",
+      "state": "closed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "closed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "HostSessionSnapshot",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.hostsession.snapshot.shutdown",
+      "mode": "legal",
+      "call": "snapshot",
+      "kind": "member",
+      "thread": "ui",
+      "state": "shutdown",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::HostSession",
+          "state": "shutdown"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {
+        "type": "HostSessionSnapshot",
+        "owns": "caller"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::RangeControl",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/range_control.ic.toml",
+    "sha256": "70a19da675641f29b02cf89ebd2a8b10b1fa6cdb8f88f5d63964d2001ad5d652"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.rangecontrol.small_change_write.requires.small_change",
+      "kind": "entry-check",
+      "statement": "small_change runs only when finite(incoming) and incoming > 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::range_control::admits_small_change, called in src/controls/range_control/range_control.cpp"
+    },
+    {
+      "id": "gui_forms.rangecontrol.small_change_write.refusal.small_change",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming > 0, small_change changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.rangecontrol.large_change_write.requires.large_change",
+      "kind": "entry-check",
+      "statement": "large_change runs only when finite(incoming) and incoming > 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::range_control::admits_large_change, called in src/controls/range_control/range_control.cpp"
+    },
+    {
+      "id": "gui_forms.rangecontrol.large_change_write.refusal.large_change",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming > 0, large_change changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

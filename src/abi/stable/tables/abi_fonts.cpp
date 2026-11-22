@@ -19,6 +19,7 @@
 
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_fonts_ic_checks.hpp"
 
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
@@ -53,7 +54,7 @@ static_assert(GF_APP_FONT_MAXIMUM_FACES == maximum_app_font_faces);
 static_assert(GF_APP_FONT_MAXIMUM_BYTES == maximum_app_font_bytes);
 
 gf_status fonts_family_id_body(gf_utf8_view name, std::uint32_t* family) {
-    if (family == nullptr) {
+    if (!ic_fonts::admits_family_id_family(family)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, family_id_slot, "family_id needs an output");
     }
     std::string_view text;
@@ -169,7 +170,7 @@ gf_status refuse_load(const AppFontLoad& loaded) {
 
 gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* faces, std::uint64_t face_count,
                                  std::uint32_t* family) {
-    if (family == nullptr || (faces == nullptr && face_count != 0U)) {
+    if (!ic_fonts::admits_load_family_faces(family, faces, face_count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, load_family_slot, "load_family needs its faces and an output");
     }
     std::string_view text;

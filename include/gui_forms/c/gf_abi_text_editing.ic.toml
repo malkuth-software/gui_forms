@@ -1,0 +1,162 @@
+# The C ABI's gf_text_editing_table (GF_TABLE_TEXT_EDITING): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_text_editing_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_text_editing_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_text_editing_table {"
+keys = { manifest = "gf_abi::text_editing", abi = "GF_TABLE_TEXT_EDITING" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_text_editing_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_text_editing"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_text_editing.cpp"]
+
+[[call]]
+name = "select"
+declarations = ["gf_status (GF_CALL* select)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a selection lies within the text" },
+]
+
+[[call]]
+name = "selection"
+declarations = ["gf_status (GF_CALL* selection)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: selection needs anchor and caret outputs" },
+]
+
+[[call]]
+name = "grapheme_boundary"
+declarations = ["gf_status (GF_CALL* grapheme_boundary)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: grapheme_boundary needs an output and a direction of 1 or -1" },
+]
+
+[[call]]
+name = "replace_range"
+declarations = ["gf_status (GF_CALL* replace_range)("]
+kind = "member"
+thread = "ui"
+parameters = { changed = "uint32_t*" }
+requires = [
+  { holds = "not_null(changed)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "replace_range_changed" },
+]
+fails = [
+  { failure = "invalid_argument", when = "code: replace_range needs a changed output" },
+]
+
+[[call]]
+name = "undo"
+declarations = ["gf_status (GF_CALL* undo)("]
+kind = "member"
+thread = "ui"
+parameters = { changed = "uint32_t*" }
+requires = [
+  { holds = "not_null(changed)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "undo_changed" },
+]
+
+[[call]]
+name = "redo"
+declarations = ["gf_status (GF_CALL* redo)("]
+kind = "member"
+thread = "ui"
+parameters = { changed = "uint32_t*" }
+requires = [
+  { holds = "not_null(changed)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "redo_changed" },
+]
+
+[[call]]
+name = "clear_undo_history"
+declarations = ["gf_status (GF_CALL* clear_undo_history)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "set_decorations"
+declarations = ["gf_status (GF_CALL* set_decorations)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "A range past the text, a range ending before it starts, a weight outside 1 to 1000, an underline or ink out of range, an unknown field bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT and changes nothing. decorations may be null when count is 0." },
+]
+
+[[call]]
+name = "replace_decorations"
+declarations = ["gf_status (GF_CALL* replace_decorations)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the range lies within the text" },
+]
+
+[[call]]
+name = "clear_decorations"
+declarations = ["gf_status (GF_CALL* clear_decorations)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "decoration_count"
+declarations = ["gf_status (GF_CALL* decoration_count)("]
+kind = "member"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "decoration_count_count" },
+]
+
+[[call]]
+name = "decoration_at"
+declarations = ["gf_status (GF_CALL* decoration_at)("]
+kind = "member"
+thread = "ui"
+parameters = { decoration = "gf_text_decoration*" }
+requires = [
+  { holds = "not_null(decoration)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "decoration_at_decoration" },
+]
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT past the end." },
+]
+
+[[call]]
+name = "utf8_to_utf16_offset"
+declarations = ["gf_status (GF_CALL* utf8_to_utf16_offset)("]
+kind = "member"
+thread = "ui"
+parameters = { utf16_offset = "uint64_t*" }
+requires = [
+  { holds = "not_null(utf16_offset)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "utf8_to_utf16_offset_utf16_offset" },
+]
+fails = [
+  { failure = "invalid_argument", when = "An offset past the text, inside a UTF-8 sequence or between the halves of a surrogate pair gives GF_STATUS_INVALID_ARGUMENT." },
+]
+
+[[call]]
+name = "utf16_to_utf8_offset"
+declarations = ["gf_status (GF_CALL* utf16_to_utf8_offset)("]
+kind = "member"
+thread = "ui"
+parameters = { utf8_offset = "uint64_t*" }
+requires = [
+  { holds = "not_null(utf8_offset)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "utf16_to_utf8_offset_utf8_offset" },
+]
+fails = [
+  { failure = "invalid_argument", when = "code: utf16_to_utf8_offset needs an output" },
+]

@@ -1,0 +1,247 @@
+# The C ABI's gf_list_view_table (GF_TABLE_LIST_VIEW): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_list_view_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_list_view_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_list_view_table {"
+keys = { manifest = "gf_abi::list_view", abi = "GF_TABLE_LIST_VIEW" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_list_view_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_list_view"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_list_view.cpp"]
+
+[[call]]
+name = "column_count"
+declarations = ["gf_status (GF_CALL* column_count)("]
+kind = "member"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "column_count_count" },
+]
+
+[[call]]
+name = "column_at"
+declarations = ["gf_status (GF_CALL* column_at)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "buffer_too_small", when = "Column index (below the count) into column, an output record of at least the 1.5 size; its stable id and text are copied into text_buffer, one after the other, and the views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten." },
+  { failure = "invalid_argument", when = "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its " },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the columns." },
+]
+
+[[call]]
+name = "set_columns"
+declarations = ["gf_status (GF_CALL* set_columns)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing." },
+  { failure = "limit_exceeded", when = "A malformed record, a repeated or empty stable id or a width out of range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing nothing." },
+]
+
+[[call]]
+name = "set_column_width"
+declarations = ["gf_status (GF_CALL* set_column_width)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a column's width is finite" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the columns." },
+]
+
+[[call]]
+name = "item_count"
+declarations = ["gf_status (GF_CALL* item_count)("]
+kind = "member"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "item_count_count" },
+]
+
+[[call]]
+name = "item_at"
+declarations = ["gf_status (GF_CALL* item_at)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "buffer_too_small", when = "code: the text buffer is smaller than the record's text" },
+  { failure = "invalid_argument", when = "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its " },
+  { failure = "invalid_state", when = "code: a virtual list view's items belong to its source" },
+  { failure = "not_found", when = "code: the item is past the view's items" },
+]
+
+[[call]]
+name = "item_sub_item"
+declarations = ["gf_status (GF_CALL* item_sub_item)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "buffer_too_small", when = "Item index's sub-item (below its sub_item_count) as text, into buffer (required receives its size; a short buffer gives GF_STATUS_BUFFER_TOO_SMALL)." },
+  { failure = "invalid_state", when = "code: a virtual list view's items belong to its source" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the items or the sub-items." },
+]
+
+[[call]]
+name = "set_items"
+declarations = ["gf_status (GF_CALL* set_items)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing." },
+  { failure = "invalid_state", when = "code: a virtual list view's items belong to its source" },
+  { failure = "limit_exceeded", when = "A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing." },
+]
+
+[[call]]
+name = "index_of"
+declarations = ["gf_status (GF_CALL* index_of)("]
+kind = "member"
+thread = "ui"
+parameters = { index = "uint64_t*" }
+requires = [
+  { holds = "not_null(index)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "index_of_index" },
+]
+fails = [
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND when no item has it (and always in virtual mode)." },
+]
+
+[[call]]
+name = "set_item_checked"
+declarations = ["gf_status (GF_CALL* set_item_checked)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: checked is 0 or 1" },
+  { failure = "invalid_state", when = "code: a virtual list view's items belong to its source" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the items." },
+]
+
+[[call]]
+name = "group_count"
+declarations = ["gf_status (GF_CALL* group_count)("]
+kind = "member"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "group_count_count" },
+]
+
+[[call]]
+name = "group_at"
+declarations = ["gf_status (GF_CALL* group_at)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "buffer_too_small", when = "code: the text buffer is smaller than the record's text" },
+  { failure = "invalid_argument", when = "code: an output record of at least the 1.5 size, a text size output, and a buffer unless its " },
+  { failure = "not_found", when = "code: the group is past the view's groups" },
+]
+
+[[call]]
+name = "set_groups"
+declarations = ["gf_status (GF_CALL* set_groups)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "limit_exceeded", when = "code: the array holds more records than the view does" },
+]
+
+[[call]]
+name = "selected_items"
+declarations = ["gf_status (GF_CALL* selected_items)("]
+kind = "member"
+thread = "ui"
+parameters = { count = "uint64_t*", indices = "uint64_t*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(count) and (not_null(indices) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "selected_items_indices" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "The selected items' indices in ascending order into indices (capacity elements; null when the capacity is zero). count receives the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no index." },
+]
+
+[[call]]
+name = "set_selected"
+declarations = ["gf_status (GF_CALL* set_selected)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: selected is 0 or 1" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the items." },
+]
+
+[[call]]
+name = "select_all"
+declarations = ["gf_status (GF_CALL* select_all)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "clear_selection"
+declarations = ["gf_status (GF_CALL* clear_selection)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "focused_item"
+declarations = ["gf_status (GF_CALL* focused_item)("]
+kind = "member"
+thread = "ui"
+parameters = { index = "int64_t*" }
+requires = [
+  { holds = "not_null(index)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "focused_item_index" },
+]
+
+[[call]]
+name = "set_focused_item"
+declarations = ["gf_status (GF_CALL* set_focused_item)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the focused item is an index or -1" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the items." },
+]
+
+[[call]]
+name = "ensure_visible"
+declarations = ["gf_status (GF_CALL* ensure_visible)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the items." },
+]
+
+[[call]]
+name = "set_sort_indicator"
+declarations = ["gf_status (GF_CALL* set_sort_indicator)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the sorted column is an index or -1" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the columns." },
+]
+
+[[call]]
+name = "sort_items"
+declarations = ["gf_status (GF_CALL* sort_items)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the sort order is NONE, ASCENDING or DESCENDING" },
+  { failure = "invalid_state", when = "code: a virtual list view's items belong to its source" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the columns." },
+]

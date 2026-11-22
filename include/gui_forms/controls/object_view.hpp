@@ -85,6 +85,8 @@ struct GUI_FORMS_API ObjectContextRequest final {
 // A stable-ID virtual object collection with icon and details projections.
 // It owns no per-item controls: paint, hit testing, keyboard spatial movement,
 // and semantic realization operate on a bounded visible window.
+// ic: gui_forms::ObjectView: generated from include/gui_forms/controls/object_view.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView> {
 public:
     explicit ObjectView(StableId stable_id);
@@ -403,8 +405,11 @@ private:
     [[nodiscard]] std::string read_view(const decltype(selected_id)& cell) const;
     void prepare_write(const decltype(selection_mode)& cell, ObjectSelectionMode& incoming);
     void written(const decltype(selection_mode)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >=
+    // ic: 78 and incoming.width <= 512 and incoming.height <= 512, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(icon_cell_size)& cell, Size& incoming);
     void written(const decltype(icon_cell_size)& cell);
+    // ic: Requires finite(incoming) and incoming >= 20 and incoming <= 256, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(details_row_height)& cell, double& incoming);
     void written(const decltype(details_row_height)& cell);
     void prepare_write(const decltype(show_secondary_text)& cell, bool& incoming);

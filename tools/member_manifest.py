@@ -62,6 +62,10 @@ import tests_checkout  # noqa: E402
 ROOT: Path = Path(__file__).resolve().parent.parent
 MANIFEST_PATH: Path = ROOT / "manifests" / "members.json"
 REGISTRY_PATH: Path = ROOT / "manifests" / "controls.json"
+# The behavioural constraints' column (IC3: tools/ic_declarations.py writes it
+# from the *.ic.toml declarations beside the headers): each member row a
+# declaration states gets its contract, in one line, as "constraints".
+IC_COLUMN_PATH: Path = ROOT / "manifests" / "ic" / "members_constraints.json"
 SCHEMA_PATH: Path = ROOT / "manifests" / "control-schema.json"
 # The tests live in gui_forms_tests (tools/tests_checkout.py); a row's test
 # evidence names a file relative to that checkout ("tests/..."). Without a
@@ -878,6 +882,31 @@ def tracked_files(root: Path) -> list[Path]:
     return sorted(Path(top) / name for name in names)
 
 
+def ic_constraints(path: Path = IC_COLUMN_PATH) -> dict[tuple[str, str], str]:
+    """The declared contract per (type, GUI.Forms member), from the IC column.
+
+    The column keys a C++ type as gui_forms::Name and the manifest as Name; the
+    C ABI's rows (gf_abi::table) name no manifest type and are left out. Rows
+    of one member (overloads declared as separate calls) are joined with " | ".
+    """
+    if not path.exists():
+        return {}
+    column: dict = json.loads(path.read_text(encoding="utf-8"))
+    found: dict[tuple[str, str], str] = {}
+    prefix: str = "gui_forms::"
+    for row in column.get("rows", []):
+        type_key: str = str(row["type"])
+        if not type_key.startswith(prefix):
+            continue
+        key: tuple[str, str] = (type_key[len(prefix):], str(row["member"]))
+        text: str = str(row["constraints"])
+        # A call with nothing declared says so in the column; the manifest leaves it out.
+        if not text or text == "No declared constraint.":
+            continue
+        found[key] = found[key] + " | " + text if key in found else text
+    return found
+
+
 def kept_rows(previous: Mapping, refresh_evidence: bool) -> dict[tuple[str, str, str, str], dict]:
     """Rows of the committed manifest whose status generation keeps, by entry and member.
 
@@ -982,6 +1011,7 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
     if not refresh_evidence:
         kept_entries = kept_entry_statuses(previous)
     raisers: dict[tuple[str, str, str, str], dict] = previous_raisers(previous)
+    constraints: dict[tuple[str, str], str] = ic_constraints()
     controls: list[dict] = []
     covered: set[str] = set()
 
@@ -996,6 +1026,9 @@ def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], p
         raiser: dict | None = raisers.get(key)
         if raiser is not None:
             row["raiser"] = raiser
+        contract: str | None = constraints.get((key_type, row.get("gui_forms") or ""))
+        if contract is not None:
+            row["constraints"] = contract
         return row
 
     for type_name in model.order:

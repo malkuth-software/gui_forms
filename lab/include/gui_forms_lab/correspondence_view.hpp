@@ -73,6 +73,8 @@ struct CorrespondenceExpansionChange final {
 // per-item control or per-item height object. Height changes preserve a stable
 // anchor row and local offset, preventing the pointer-target oscillation common
 // to naive hover expansion.
+// ic: gui_forms::CorrespondenceView: generated from lab/include/gui_forms_lab/correspondence_view.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class CorrespondenceView final : public Panel, public CorrespondenceViewCapabilities<CorrespondenceView> {
 public:
     explicit CorrespondenceView(StableId stable_id);
@@ -319,6 +321,7 @@ private:
     [[nodiscard]] double read_view(const decltype(compact_height)& cell) const;
     void write_view(const decltype(expanded_height)& cell, double incoming);
     [[nodiscard]] double read_view(const decltype(expanded_height)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 1 and incoming <= 12, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(status_rail_width)& cell, double& incoming);
     void written(const decltype(status_rail_width)& cell);
     void prepare_write(const decltype(hover_intent_delay)& cell, std::chrono::milliseconds& incoming);

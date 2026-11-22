@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../basic/number_text.hpp"
+#include "dial_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,6 +18,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::dial;
 namespace {
 
 // The scale: from -135 to +135 degrees about twelve o'clock.
@@ -482,7 +484,7 @@ std::span<const PropertyEntry> Dial::property_table() const noexcept {
 
 void Dial::prepare_write(const decltype(tick_frequency)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument("dial tick frequency must be finite and not negative");
+    if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument("dial tick frequency must be finite and not negative");
 }
 
 void Dial::written(const decltype(tick_frequency)&) {

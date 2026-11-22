@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::MetricsView",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/metrics_view.ic.toml",
+    "sha256": "ba53fd2c76d0bda9bb2c0023d7f7d3a6bf465fedee9d97212ee50bffe6bbe6ed"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.metricsview.accent_width_write.requires.accent_width",
+      "kind": "entry-check",
+      "statement": "accent_width runs only when finite(incoming) and incoming >= 1 and incoming <= 32; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::metrics_view::admits_accent_width, called in src/controls/metrics_view/metrics_view.cpp"
+    },
+    {
+      "id": "gui_forms.metricsview.accent_width_write.refusal.accent_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 1 and incoming <= 32, accent_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

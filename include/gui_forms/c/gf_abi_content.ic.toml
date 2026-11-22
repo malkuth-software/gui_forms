@@ -1,0 +1,460 @@
+# The C ABI's gf_content_table (GF_TABLE_CONTENT): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_content_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_content_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_content_table {"
+keys = { manifest = "gf_abi::content", abi = "GF_TABLE_CONTENT" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[constants]
+hosted_input_report_size_1_4 = { value = "16", type = "uint32_t" }
+request_size_1_4 = { value = "32", type = "uint32_t" }
+statistics_size_1_4 = { value = "80", type = "uint32_t" }
+
+[checks]
+path = "src/abi/stable/ic/abi_content_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_content"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_content.cpp"]
+
+[[call]]
+name = "open_content"
+declarations = ["gf_status (GF_CALL* open_content)("]
+kind = "member"
+thread = "ui"
+returns = { type = "gf_content_sink", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: open_content needs an output" },
+  { failure = "limit_exceeded", when = "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first" },
+  { failure = "wrong_handle_kind", when = "A surface that is not a content_surface gives GF_STATUS_WRONG_HANDLE_KIND." },
+]
+
+[[call]]
+name = "close_content"
+declarations = ["gf_status (GF_CALL* close_content)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "start_program"
+declarations = ["gf_status (GF_CALL* start_program)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a gf_content_program needs struct_size of at least 40 and opaque 0 or 1" },
+]
+
+[[call]]
+name = "start_hosted"
+declarations = ["gf_status (GF_CALL* start_hosted)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for an executable that is not an absolute path or a slot size over the limit." },
+  { failure = "limit_exceeded", when = "code: a hosted program takes at most GF_HOSTED_MAXIMUM_ARGUMENTS arguments" },
+  { failure = "unsupported_capability", when = "code: hosted content is not available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)" },
+]
+
+[[call]]
+name = "terminate"
+declarations = ["gf_status (GF_CALL* terminate)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "set_termination_grace"
+declarations = ["gf_status (GF_CALL* set_termination_grace)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "set_stale_interval"
+declarations = ["gf_status (GF_CALL* set_stale_interval)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a time is at most GF_CONTENT_MAXIMUM_WAIT_MS milliseconds" },
+]
+
+[[call]]
+name = "status"
+declarations = ["gf_status (GF_CALL* status)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: status needs an output" },
+]
+
+[[call]]
+name = "failure"
+declarations = ["gf_status (GF_CALL* failure)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "statistics"
+declarations = ["gf_status (GF_CALL* statistics)("]
+kind = "member"
+thread = "ui"
+parameters = { statistics = "gf_content_statistics*", statistics_size = "uint32_t" }
+requires = [
+  { holds = "not_null(statistics)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "statistics_statistics" },
+  { holds = "statistics_size >= statistics_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "statistics_statistics_size" },
+]
+
+[[call]]
+name = "request"
+declarations = ["gf_status (GF_CALL* request)("]
+kind = "member"
+thread = "ui"
+parameters = { request = "gf_content_request*", request_size = "uint32_t" }
+requires = [
+  { holds = "not_null(request)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "request_request" },
+  { holds = "request_size >= request_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "request_request_size" },
+]
+
+[[call]]
+name = "set_status_caption"
+declarations = ["gf_status (GF_CALL* set_status_caption)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: an unknown gf_content_status" },
+]
+
+[[call]]
+name = "set_semantics"
+declarations = ["gf_status (GF_CALL* set_semantics)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT when it is not UTF-8 or too long (nothing changes then)." },
+]
+
+[[call]]
+name = "program_running"
+declarations = ["gf_status (GF_CALL* program_running)("]
+kind = "member"
+thread = "ui"
+parameters = { running = "uint32_t*" }
+requires = [
+  { holds = "not_null(running)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "program_running_running" },
+]
+
+[[call]]
+name = "hosted_input"
+declarations = ["gf_status (GF_CALL* hosted_input)("]
+kind = "member"
+thread = "ui"
+parameters = { report = "gf_hosted_input_report*", report_size = "uint32_t" }
+requires = [
+  { holds = "not_null(report)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "hosted_input_report" },
+  { holds = "report_size >= hosted_input_report_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "hosted_input_report_size" },
+]
+
+[[call]]
+name = "hosted_support"
+declarations = ["gf_status (GF_CALL* hosted_support)("]
+kind = "static"
+thread = "any"
+parameters = { support = "gf_hosted_support*" }
+requires = [
+  { holds = "not_null(support)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "hosted_support_support" },
+]
+
+[[call]]
+name = "sink_publish"
+declarations = ["gf_status (GF_CALL* sink_publish)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "code: a gf_content_frame needs struct_size of at least 64, reserved zero, opaque 0 or 1 and a " },
+]
+
+[[call]]
+name = "sink_heartbeat"
+declarations = ["gf_status (GF_CALL* sink_heartbeat)("]
+kind = "static"
+thread = "any"
+
+[[call]]
+name = "sink_publish_semantics"
+declarations = ["gf_status (GF_CALL* sink_publish_semantics)("]
+kind = "static"
+thread = "any"
+parameters = { result = "gf_content_semantics_result*" }
+requires = [
+  { holds = "not_null(result)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_publish_semantics_result" },
+]
+
+[[call]]
+name = "sink_request"
+declarations = ["gf_status (GF_CALL* sink_request)("]
+kind = "static"
+thread = "any"
+parameters = { request = "gf_content_request*", request_size = "uint32_t" }
+requires = [
+  { holds = "not_null(request)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_request_request" },
+  { holds = "request_size >= request_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_request_request_size" },
+]
+
+[[call]]
+name = "sink_wait_for_request"
+declarations = ["gf_status (GF_CALL* sink_wait_for_request)("]
+kind = "static"
+thread = "ui"
+parameters = { request = "gf_content_request*", request_size = "uint32_t" }
+requires = [
+  { holds = "not_null(request)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_wait_for_request_request" },
+  { holds = "request_size >= request_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_wait_for_request_request_size" },
+]
+
+[[call]]
+name = "sink_state"
+declarations = ["gf_status (GF_CALL* sink_state)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "code: sink_state needs both outputs" },
+]
+
+[[call]]
+name = "sink_statistics"
+declarations = ["gf_status (GF_CALL* sink_statistics)("]
+kind = "static"
+thread = "any"
+parameters = { statistics = "gf_content_statistics*", statistics_size = "uint32_t" }
+requires = [
+  { holds = "not_null(statistics)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_statistics_statistics" },
+  { holds = "statistics_size >= statistics_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_statistics_statistics_size" },
+]
+
+[[call]]
+name = "sink_release"
+declarations = ["gf_status (GF_CALL* sink_release)("]
+kind = "static"
+thread = "any"
+
+[[call]]
+name = "program_sink"
+declarations = ["gf_status (GF_CALL* program_sink)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_content_sink", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: program_sink needs an output" },
+  { failure = "invalid_state", when = "Elsewhere GF_STATUS_INVALID_STATE." },
+  { failure = "limit_exceeded", when = "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first" },
+]
+
+[[call]]
+name = "program_fail"
+declarations = ["gf_status (GF_CALL* program_fail)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_state", when = "Elsewhere GF_STATUS_INVALID_STATE." },
+]
+
+[[call]]
+name = "editor_text_revision"
+declarations = ["gf_status (GF_CALL* editor_text_revision)("]
+kind = "member"
+thread = "ui"
+parameters = { revision = "uint64_t*" }
+requires = [
+  { holds = "not_null(revision)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_text_revision_revision" },
+]
+fails = [
+  { failure = "wrong_handle_kind", when = "A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND." },
+]
+
+[[call]]
+name = "editor_text"
+declarations = ["gf_status (GF_CALL* editor_text)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "editor_set_text"
+declarations = ["gf_status (GF_CALL* editor_set_text)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "editor_submit_layout"
+declarations = ["gf_status (GF_CALL* editor_submit_layout)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a gf_content_text_layout needs struct_size of at least 64, reserved zero and a result" },
+]
+
+[[call]]
+name = "editor_layout_current"
+declarations = ["gf_status (GF_CALL* editor_layout_current)("]
+kind = "member"
+thread = "ui"
+parameters = { current = "uint32_t*" }
+requires = [
+  { holds = "not_null(current)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_layout_current_current" },
+]
+
+[[call]]
+name = "editor_open_frames"
+declarations = ["gf_status (GF_CALL* editor_open_frames)("]
+kind = "member"
+thread = "ui"
+parameters = { sink = "gf_content_sink*" }
+returns = { type = "gf_content_sink", owns = "caller" }
+requires = [
+  { holds = "not_null(sink)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_open_frames_sink" },
+]
+fails = [
+  { failure = "limit_exceeded", when = "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first" },
+]
+
+[[call]]
+name = "editor_caret_rectangle"
+declarations = ["gf_status (GF_CALL* editor_caret_rectangle)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: editor_caret_rectangle needs both outputs" },
+]
+
+[[call]]
+name = "editor_selection_rectangles"
+declarations = ["gf_status (GF_CALL* editor_selection_rectangles)("]
+kind = "member"
+thread = "ui"
+parameters = { required = "uint64_t*", buffer = "gf_logical_rect*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(required) and (not_null(buffer) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_selection_rectangles_buffer" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "The selection's boxes from the current layout, in order: required receives their number; a buffer of fewer than that many gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing." },
+]
+
+[[call]]
+name = "editor_position_at"
+declarations = ["gf_status (GF_CALL* editor_position_at)("]
+kind = "member"
+thread = "ui"
+parameters = { offset = "uint64_t*" }
+requires = [
+  { holds = "not_null(offset)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_position_at_offset" },
+]
+
+[[call]]
+name = "editor_set_draws_selection"
+declarations = ["gf_status (GF_CALL* editor_set_draws_selection)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a flag is 0 or 1" },
+]
+
+[[call]]
+name = "editor_set_multiline"
+declarations = ["gf_status (GF_CALL* editor_set_multiline)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a flag is 0 or 1" },
+]
+
+[[call]]
+name = "editor_set_read_only"
+declarations = ["gf_status (GF_CALL* editor_set_read_only)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a flag is 0 or 1" },
+]
+
+[[call]]
+name = "editor_set_accepts_tab"
+declarations = ["gf_status (GF_CALL* editor_set_accepts_tab)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: a flag is 0 or 1" },
+]
+
+[[call]]
+name = "editor_replace_selection"
+declarations = ["gf_status (GF_CALL* editor_replace_selection)("]
+kind = "member"
+thread = "ui"
+parameters = { applied = "uint32_t*" }
+requires = [
+  { holds = "not_null(applied)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_replace_selection_applied" },
+]
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8." },
+]
+
+[[call]]
+name = "editor_delete_selection"
+declarations = ["gf_status (GF_CALL* editor_delete_selection)("]
+kind = "member"
+thread = "ui"
+parameters = { applied = "uint32_t*" }
+requires = [
+  { holds = "not_null(applied)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_delete_selection_applied" },
+]
+
+[[call]]
+name = "editor_composition_range"
+declarations = ["gf_status (GF_CALL* editor_composition_range)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: editor_composition_range needs all three outputs" },
+]
+
+[[call]]
+name = "editor_caret_quad"
+declarations = ["gf_status (GF_CALL* editor_caret_quad)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: editor_caret_quad needs both outputs" },
+]
+
+[[call]]
+name = "editor_selection_quads"
+declarations = ["gf_status (GF_CALL* editor_selection_quads)("]
+kind = "member"
+thread = "ui"
+parameters = { required = "uint64_t*", buffer = "gf_content_quad*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(required) and (not_null(buffer) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_selection_quads_buffer" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "The selection's, and the composition's, boxes as mapped quads, in order, as editor_selection_rectangles: required receives their number; a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing." },
+]
+
+[[call]]
+name = "editor_composition_quads"
+declarations = ["gf_status (GF_CALL* editor_composition_quads)("]
+kind = "member"
+thread = "ui"
+parameters = { required = "uint64_t*", buffer = "gf_content_quad*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(required) and (not_null(buffer) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "editor_composition_quads_buffer" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "code: the buffer holds fewer quads than there are" },
+]

@@ -10,6 +10,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "list_box_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,6 +21,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::list_box;
 namespace {
 
 // The ListSelectionMode enumeration, numbered as declared. Static storage;
@@ -951,7 +953,7 @@ std::span<const PropertyEntry> ListBox::property_table() const noexcept {
 
 void ListBox::prepare_write(const decltype(item_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 256.0) {
+    if (!ic::admits_item_height(incoming)) {
         throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
     }
 }

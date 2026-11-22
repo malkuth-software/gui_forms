@@ -159,6 +159,8 @@ struct ChildTrackCapability {
 // separate effective-layout state and therefore leaves author visibility
 // intact while removing the subtree from paint, hit testing, focus, and
 // semantics.
+// ic: gui_forms::ResponsiveTrackPanel: generated from include/gui_forms/controls/responsive_track_panel.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ResponsiveTrackPanel final : public ContainerControl,
                                    public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel> {
 public:
@@ -243,6 +245,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(orientation)& cell, ResponsiveTrackOrientation& incoming);
     void written(const decltype(orientation)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 256, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(track_gap)& cell, double& incoming);
     void written(const decltype(track_gap)& cell);
     // property_codemod end ResponsiveTrackPanel

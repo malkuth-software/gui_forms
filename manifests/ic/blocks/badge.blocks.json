@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Badge",
+  "declaration": "include/gui_forms/controls/badge.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.badge.maximum_write",
+      "mode": "legal",
+      "call": "maximum",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Badge"
+        },
+        {
+          "name": "incoming",
+          "type": "std::uint32_t",
+          "bounded_by": [
+            "incoming != 0"
+          ]
+        }
+      ],
+      "requires": [
+        "incoming != 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.badge.maximum_write.misuse.maximum",
+      "mode": "misuse",
+      "call": "maximum",
+      "violates": "incoming != 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

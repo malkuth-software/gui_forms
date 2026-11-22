@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ButtonBase",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/button_base.ic.toml",
+    "sha256": "94378259b8e2fe25eb3c6b29c2b5a6d4aea1d71bb0c172515ff6d884eb064e1c"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.buttonbase.image_gap_write.requires.image_gap",
+      "kind": "entry-check",
+      "statement": "image_gap runs only when finite(incoming) and incoming >= 0 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::button_base::admits_image_gap, called in src/controls/button_base/button_base.cpp"
+    },
+    {
+      "id": "gui_forms.buttonbase.image_gap_write.refusal.image_gap",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 64, image_gap changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

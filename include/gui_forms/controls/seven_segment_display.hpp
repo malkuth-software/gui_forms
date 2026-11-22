@@ -50,6 +50,8 @@ struct GUI_FORMS_API SevenSegmentCell final {
 // progress family, so a theme styles them with `seven-segment-display::
 // part(trace)` and `::part(graticule)`. The cells grow and shrink with the
 // control's height, and shrink further to fit its width.
+// ic: gui_forms::SevenSegmentDisplay: generated from include/gui_forms/controls/seven_segment_display.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API SevenSegmentDisplay final : public Control, public SevenSegmentDisplayCapabilities<SevenSegmentDisplay> {
 public:
     explicit SevenSegmentDisplay(StableId stable_id);
@@ -117,6 +119,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(text)& cell, std::string& incoming);
     void written(const decltype(text)& cell);
+    // ic: Requires incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(digit_count)& cell, std::uint32_t& incoming);
     void written(const decltype(digit_count)& cell);
     void prepare_write(const decltype(ghost_segments)& cell, bool& incoming);

@@ -7,6 +7,7 @@
 #include "basic/basic_control_rendering.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "correspondence_view_ic_checks.hpp"
 
 #include <vector>
 #include <string>
@@ -20,6 +21,7 @@
 #include <unordered_set>
 
 namespace gui_forms {
+namespace ic = detail::ic::correspondence_view;
 
 using namespace collection_detail;
 
@@ -1456,7 +1458,7 @@ void CorrespondenceView::append_interactions(std::vector<InteractionDeclaration>
 
 void CorrespondenceView::prepare_write(const decltype(status_rail_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 12.0) {
+    if (!ic::admits_status_rail_width(incoming)) {
         throw std::invalid_argument("CorrespondenceView status rail width must be finite and between 1 and 12");
     }
 }

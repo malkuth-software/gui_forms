@@ -1,0 +1,100 @@
+# The C ABI's gf_host_table (GF_TABLE_HOST): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_host_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_host_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_host_table {"
+keys = { manifest = "gf_abi::host", abi = "GF_TABLE_HOST" }
+thread = "ui"
+
+[constants]
+host_capabilities_size_1_0 = { value = "16", type = "uint32_t" }
+
+[checks]
+path = "src/abi/stable/ic/abi_host_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_host"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_host.cpp"]
+
+[[call]]
+name = "capabilities"
+declarations = ["gf_status (GF_CALL* capabilities)("]
+kind = "static"
+thread = "ui"
+parameters = { record = "gf_host_capabilities*", record_size = "uint32_t" }
+requires = [
+  { holds = "not_null(record)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "capabilities_record" },
+  { holds = "record_size >= host_capabilities_size_1_0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "capabilities_record_size" },
+]
+
+[[call]]
+name = "platform_name"
+declarations = ["gf_status (GF_CALL* platform_name)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "set_cursor"
+declarations = ["gf_status (GF_CALL* set_cursor)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: unknown cursor" },
+  { failure = "invalid_state", when = "code: the host has shut down" },
+  { failure = "limit_exceeded", when = "code: the request exceeds the host's bounds" },
+  { failure = "unsupported_capability", when = "code: the host does not offer this service" },
+]
+
+[[call]]
+name = "read_clipboard_text"
+declarations = ["gf_status (GF_CALL* read_clipboard_text)("]
+kind = "static"
+thread = "ui"
+parameters = { required = "uint64_t*", buffer = "char*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(required) and (not_null(buffer) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "read_clipboard_text_buffer" },
+]
+fails = [
+  { failure = "invalid_state", when = "code: the host has shut down" },
+  { failure = "limit_exceeded", when = "code: the request exceeds the host's bounds" },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND when it holds none." },
+  { failure = "unsupported_capability", when = "code: the host does not offer this service" },
+]
+
+[[call]]
+name = "write_clipboard_text"
+declarations = ["gf_status (GF_CALL* write_clipboard_text)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the host refused the request" },
+  { failure = "invalid_state", when = "code: the host has shut down" },
+  { failure = "limit_exceeded", when = "code: clipboard text is at most 16 MiB" },
+  { failure = "unsupported_capability", when = "code: the host does not offer this service" },
+]
+
+[[call]]
+name = "show_dialog"
+declarations = ["gf_status (GF_CALL* show_dialog)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the host refused the request" },
+  { failure = "invalid_state", when = "code: the host has shut down" },
+  { failure = "limit_exceeded", when = "code: the request exceeds the host's bounds" },
+  { failure = "unsupported_capability", when = "code: the host does not offer this service" },
+]
+
+[[call]]
+name = "dialog_path_at"
+declarations = ["gf_status (GF_CALL* dialog_path_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the last dialog chose no path at that index" },
+]

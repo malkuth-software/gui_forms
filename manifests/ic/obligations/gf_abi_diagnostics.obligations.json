@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "component": "gf_abi::diagnostics",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_diagnostics.ic.toml",
+    "sha256": "4801f4715c28b5208eccc996c0e33eea2573bb1f0bb20ddbb8b702dcb2218eb5"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": []
+}

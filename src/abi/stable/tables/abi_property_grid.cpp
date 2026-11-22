@@ -5,6 +5,7 @@
 #include "abi_tables.hpp"
 
 #include "gui_forms/controls/property_grid.hpp"
+#include "../ic/abi_property_grid_ic_checks.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -90,7 +91,7 @@ gf_status GF_CALL property_grid_refresh(gf_object grid) noexcept {
 
 gf_status property_grid_try_set_text_body(gf_object grid, gf_utf8_view name, gf_utf8_view text,
                                           std::uint32_t* accepted) {
-    if (accepted == nullptr) {
+    if (!ic_property_grid::admits_try_set_text_accepted(accepted)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, try_set_text_slot, "try_set_text needs an accepted output");
     }
     std::shared_ptr<PropertyGrid> typed;
@@ -115,7 +116,7 @@ gf_status GF_CALL property_grid_try_set_text(gf_object grid, gf_utf8_view name, 
 }
 
 gf_status property_grid_reset_property_body(gf_object grid, gf_utf8_view name, std::uint32_t* reset) {
-    if (reset == nullptr) {
+    if (!ic_property_grid::admits_reset_property_reset(reset)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, reset_property_slot, "reset_property needs a reset output");
     }
     std::shared_ptr<PropertyGrid> typed;
@@ -135,7 +136,7 @@ gf_status GF_CALL property_grid_reset_property(gf_object grid, gf_utf8_view name
 
 gf_status property_grid_activate_editor_body(gf_object grid, gf_utf8_view name,
                                              std::uint32_t* activated) {
-    if (activated == nullptr) {
+    if (!ic_property_grid::admits_activate_editor_activated(activated)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, activate_editor_slot,
                     "activate_editor needs an activated output");
     }

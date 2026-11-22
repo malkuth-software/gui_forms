@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ColorValueEditor",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/color_value_editor.ic.toml",
+    "sha256": "4c9b362b0966afa4f58c31cc7911d863bc3dc92a049a33b1a1d4021a903a4807"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.colorvalueeditor.swatch_width_write.requires.swatch_width",
+      "kind": "entry-check",
+      "statement": "swatch_width runs only when finite(incoming) and incoming >= 12 and incoming <= 96; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::color_value_editor::admits_swatch_width, called in src/controls/panel/color_value_editor/color_value_editor.cpp"
+    },
+    {
+      "id": "gui_forms.colorvalueeditor.swatch_width_write.refusal.swatch_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 12 and incoming <= 96, swatch_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

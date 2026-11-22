@@ -11,6 +11,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::TrackBar: generated from include/gui_forms/controls/track_bar.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar> {
 public:
     explicit TrackBar(StableId stable_id);
@@ -88,12 +90,14 @@ private:
     friend struct TrackBarVisualStyleChoiceCapability<TrackBar>;
     friend struct TrackBarThumbExtentCapability<TrackBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(tick_frequency)& cell, double& incoming);
     void written(const decltype(tick_frequency)& cell);
     void prepare_write(const decltype(show_ticks)& cell, bool& incoming);
     void written(const decltype(show_ticks)& cell);
     void prepare_write(const decltype(visual_style)& cell, TrackBarVisualStyle& incoming);
     void written(const decltype(visual_style)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(thumb_extent)& cell, double& incoming);
     void written(const decltype(thumb_extent)& cell);
     // property_codemod end TrackBar

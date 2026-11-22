@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
+#include "color_value_editor_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -14,6 +15,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::color_value_editor;
 
 ColorValueEditor::ColorValueEditor(StableId stable_id, Color initial_value)
     : Panel(std::move(stable_id)), value_(initial_value) {
@@ -452,7 +454,7 @@ void ColorValueEditor::append_interactions(std::vector<InteractionDeclaration>& 
 
 void ColorValueEditor::prepare_write(const decltype(swatch_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 96.0) {
+    if (!ic::admits_swatch_width(incoming)) {
         throw std::invalid_argument("color editor swatch width must be within [12, 96]");
     }
 }

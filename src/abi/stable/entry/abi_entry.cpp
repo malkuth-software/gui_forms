@@ -5,6 +5,7 @@
 
 #include "../failure/abi_failure.hpp"
 #include "../tables/abi_tables.hpp"
+#include "../ic/abi_runtime_ic_checks.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -18,6 +19,7 @@
 
 namespace {
 
+namespace ic_runtime = gui_forms::abi1::ic_runtime;
 using gui_forms::abi1::FailureRecord;
 using gui_forms::abi1::SlotIdentity;
 
@@ -47,7 +49,7 @@ void write_output_record(const Record& complete, Record* output) noexcept {
 // so reading the detail never replaces it.
 
 gf_status GF_CALL runtime_version(gf_abi_version_info* info) noexcept {
-    if (info == nullptr || (*info).struct_size < version_info_size_1_0) {
+    if (!ic_runtime::admits_version_info(info) || (*info).struct_size < version_info_size_1_0) {
         return GF_STATUS_INVALID_ARGUMENT;
     }
     gf_abi_version_info complete{};
@@ -65,8 +67,8 @@ gf_status GF_CALL runtime_error_detail(gf_error_detail* detail,
                                        char* message_buffer,
                                        std::uint64_t message_capacity,
                                        std::uint64_t* message_required) noexcept {
-    if (detail == nullptr || (*detail).struct_size < error_detail_size_1_0 ||
-        message_required == nullptr || (message_buffer == nullptr && message_capacity != 0U)) {
+    if (!ic_runtime::admits_error_detail_buffer(detail, message_buffer, message_capacity, message_required) ||
+        (*detail).struct_size < error_detail_size_1_0) {
         return GF_STATUS_INVALID_ARGUMENT;
     }
     const FailureRecord& record = gui_forms::abi1::thread_failure();
@@ -104,6 +106,7 @@ constexpr gf_runtime_table runtime_table{
     .splashscreen_set_status = &gui_forms::abi1::runtime_splashscreen_set_status,
     .splashscreen_set_progress = &gui_forms::abi1::runtime_splashscreen_set_progress,
     .splashscreen_close = &gui_forms::abi1::runtime_splashscreen_close,
+    .splashscreen_state = &gui_forms::abi1::runtime_splashscreen_state,
 };
 
 // The complete table for an id, or no table. Every table is a constant with

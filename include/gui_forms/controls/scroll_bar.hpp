@@ -19,6 +19,8 @@ enum class ScrollBarPart : std::uint8_t {
     thumb,
 };
 
+// ic: gui_forms::ScrollBar: generated from include/gui_forms/controls/scroll_bar.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ScrollBar : public RangeControl, public ScrollBarCapabilities<ScrollBar> {
 public:
     explicit ScrollBar(StableId stable_id,
@@ -125,6 +127,7 @@ private:
     friend struct ScrollBarInitialRepeatDelayCapability<ScrollBar>;
     friend struct ScrollBarRepeatIntervalCapability<ScrollBar>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 8 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(button_extent)& cell, double& incoming);
     void written(const decltype(button_extent)& cell);
     void prepare_write(const decltype(minimum_thumb_extent)& cell, double& incoming);

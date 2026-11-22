@@ -1,0 +1,86 @@
+# The C ABI's gf_subsurfaces_table (GF_TABLE_SUBSURFACES): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_subsurfaces_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_subsurfaces_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_subsurfaces_table {"
+keys = { manifest = "gf_abi::subsurfaces", abi = "GF_TABLE_SUBSURFACES" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_subsurfaces_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_subsurfaces"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_subsurfaces.cpp"]
+
+[[call]]
+name = "set_content"
+declarations = ["gf_status (GF_CALL* set_content)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: a gf_subsurface_content needs struct_size of at least 40 and opaque 0 or 1" },
+  { failure = "wrong_handle_kind", when = "A host that is not a sub_surface_host gives GF_STATUS_WRONG_HANDLE_KIND." },
+]
+
+[[call]]
+name = "set_root"
+declarations = ["gf_status (GF_CALL* set_root)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "disposed", when = "code: the object has been disposed" },
+  { failure = "invalid_state", when = "Only inside a build callback, elsewhere GF_STATUS_INVALID_STATE; a second call replaces the first." },
+]
+
+[[call]]
+name = "state"
+declarations = ["gf_status (GF_CALL* state)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { state = "gf_subsurface_state*" }
+requires = [
+  { holds = "not_null(state)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "state_state" },
+]
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a sub_surface_host" },
+]
+
+[[call]]
+name = "content_epoch"
+declarations = ["gf_status (GF_CALL* content_epoch)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { epoch = "uint64_t*" }
+requires = [
+  { holds = "not_null(epoch)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "content_epoch_epoch" },
+]
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a sub_surface_host" },
+]
+
+[[call]]
+name = "failure"
+declarations = ["gf_status (GF_CALL* failure)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a sub_surface_host" },
+]

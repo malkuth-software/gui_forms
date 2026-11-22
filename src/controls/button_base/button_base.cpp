@@ -12,6 +12,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "button_base_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -25,6 +26,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::button_base;
 
 std::shared_ptr<const PropertyEnumDescriptor> button_base_detail::choice_indicator_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
@@ -1440,7 +1442,7 @@ void ButtonBase::written(const decltype(text_image_relation)&) {
 
 void ButtonBase::prepare_write(const decltype(image_gap)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 64.0) {
+    if (!ic::admits_image_gap(incoming)) {
         throw std::invalid_argument("Button image gap must be finite and between zero and 64");
     }
 }

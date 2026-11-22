@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::RangeControl",
+  "declaration": "include/gui_forms/controls/range_control.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.rangecontrol.small_change_write",
+      "mode": "legal",
+      "call": "small_change",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::RangeControl"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming > 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.rangecontrol.small_change_write.misuse.small_change",
+      "mode": "misuse",
+      "call": "small_change",
+      "violates": "finite(incoming) and incoming > 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.rangecontrol.large_change_write",
+      "mode": "legal",
+      "call": "large_change",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::RangeControl"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming > 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.rangecontrol.large_change_write.misuse.large_change",
+      "mode": "misuse",
+      "call": "large_change",
+      "violates": "finite(incoming) and incoming > 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

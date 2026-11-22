@@ -13,6 +13,7 @@
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_help_ic_checks.hpp"
 
 #include "gui_forms/controls/help_book_system.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
@@ -171,7 +172,7 @@ gf_status GF_CALL help_load_built_in(gf_object system, gf_utf8_view locale_xml) 
 }
 
 gf_status help_show_body(gf_object system, gf_utf8_view stable_id, std::uint32_t* shown) {
-    if (shown == nullptr) {
+    if (!ic_help::admits_show_shown(shown)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, show_slot, "show needs a shown output");
     }
     std::string_view id;
@@ -228,7 +229,7 @@ gf_status GF_CALL help_show_navigator(gf_object system, gf_help_navigator naviga
 
 gf_status help_show_popup_body(gf_object system, gf_utf8_view stable_id, gf_object anchor,
                                std::uint32_t* shown) {
-    if (shown == nullptr) {
+    if (!ic_help::admits_show_popup_shown(shown)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, show_popup_slot, "show_popup needs a shown output");
     }
     std::string_view id;
@@ -258,7 +259,7 @@ gf_status GF_CALL help_show_popup(gf_object system, gf_utf8_view stable_id, gf_o
 
 gf_status help_resolve_body(gf_object system, gf_object control, char* buffer, std::uint64_t capacity,
                             std::uint64_t* required, std::uint32_t* home) {
-    if (home == nullptr) {
+    if (!ic_help::admits_resolve_home(home)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, resolve_slot, "resolve needs a home output");
     }
     std::shared_ptr<HelpBookSystem> help;

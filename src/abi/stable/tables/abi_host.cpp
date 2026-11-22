@@ -6,6 +6,7 @@
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_host_ic_checks.hpp"
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/host.hpp"
@@ -204,7 +205,7 @@ gf_status owner_services(gf_object owner, SlotIdentity slot, HostServices*& serv
 }
 
 gf_status host_capabilities_body(gf_host_capabilities* record) {
-    if (record == nullptr || (*record).struct_size < host_capabilities_size_1_0) {
+    if (!ic_host::admits_capabilities_record(record) || !ic_host::admits_capabilities_record_size((*record).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, capabilities_slot,
                     "the output record is null or smaller than its 1.0 size");
     }
@@ -278,7 +279,7 @@ gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
 }
 
 gf_status host_read_clipboard_text_body(char* buffer, std::uint64_t capacity, std::uint64_t* required) {
-    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+    if (!ic_host::admits_read_clipboard_text_buffer(required, buffer, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, read_clipboard_text_slot,
                     "a text output needs a size output, and a buffer unless its capacity is zero");
     }

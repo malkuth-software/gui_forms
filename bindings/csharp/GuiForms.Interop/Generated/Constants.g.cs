@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 6u;
+    public const uint GF_ABI_MINOR = 7u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -53,6 +53,8 @@ public static class Constants
     public const uint GF_TABLE_LIST_VIEW = 26u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
+    public const uint GF_SPLASHSCREEN_STATE_SHOWN = 0u;
+    public const uint GF_SPLASHSCREEN_STATE_HANDED_OVER = 1u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
     public const uint GF_SPLASHSCREEN_MINIMUM_EXTENT = 160u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_EXTENT = 1600u;
@@ -165,6 +167,9 @@ public static class Constants
     public const uint GF_WINDOW_SHAPING_NATIVE_BORDER = 8u;
     public const uint GF_WINDOW_SHAPING_FULL_SCREEN = 16u;
     public const uint GF_WINDOW_SHAPING_COMPLIED = 32u;
+    public const uint GF_WINDOW_LIFECYCLE_CREATED = 0u;
+    public const uint GF_WINDOW_LIFECYCLE_RUNNING = 1u;
+    public const uint GF_WINDOW_LIFECYCLE_ENDED = 2u;
     public const uint GF_MDI_LAYOUT_CASCADE = 0u;
     public const uint GF_MDI_LAYOUT_TILE_HORIZONTAL = 1u;
     public const uint GF_MDI_LAYOUT_TILE_VERTICAL = 2u;

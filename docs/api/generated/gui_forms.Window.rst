@@ -113,7 +113,10 @@ gui_forms::Window
          Whether this window's popup windows are translucent now: false on a run whose host draws them opaque (X11 without a compositing manager), where content shown in them casts no shadow and does not fade. The answer follows what this run's popup windows were really granted once one has opened: open the slot first (prepare_popup_window) so that content sized for its shadow fits the window that shows it.
 
       **host_close_reason** : ``stxlib::Optional<HostCloseReason>``, read-only
-         Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession.
+         Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession. ic: Fails empty (before the host session accepts the closed event (states constructed, attached, ic: close_authorized)), unchanged. Returns stxlib::Optional<HostCloseReason>, owned by the caller.
+
+      **host_lifecycle_phase** : ``HostLifecyclePhase``, read-only
+         The phase of the host session that drives this window (IC3, the window's public state query): constructed until a host attaches, then attached, close_authorized, closed and shutdown, as HostSession::snapshot().phase reports it; constructed for a window no host drives. Set only by HostSession; a window outlives its session's last phase write (shutdown is the session's, after which the window stays at the phase it had when its session ended without it).
 
       **application** : ``Application*``, read-only
          The application the window joined, or null: none was current when it
@@ -381,9 +384,11 @@ gui_forms::Window
 
    .. cpp:function:: explicit Window(Control::Ptr root, Size client_size = {})
 
+      ic: Returns Window, owned by the caller.
+
    .. cpp:function:: Window(Application& application, Control::Ptr root, Size client_size = {})
 
-      Joins :cpp:func:`application <gui_forms::Window::application>` explicitly, for a program that wants the dependency visible: std::logic_error off its thread or once closed.
+      Joins :cpp:func:`application <gui_forms::Window::application>` explicitly, for a program that wants the dependency visible: std::logic_error off its thread or once closed. ic: Fails logic_error (off the application's thread, or once the application has closed), unchanged. Returns ic: Window, owned by the caller.
 
    .. cpp:function:: Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_limits)
 
@@ -391,7 +396,7 @@ gui_forms::Window
 
    .. cpp:function:: Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources)
 
-      Shares an application's image registry and theme with every other Window constructed with the same resources (stage DK decision 8): an ImageId, an ImageList and the theme hold in all of them, so a control subtree moved between them keeps its images. Null resources are std::invalid_argument; resources made on another thread are std::logic_error. The window takes the resources' current theme.
+      Shares an application's image registry and theme with every other Window constructed with the same resources (stage DK decision 8): an ImageId, an ImageList and the theme hold in all of them, so a control subtree moved between them keeps its images. Null resources are std::invalid_argument; resources made on another thread are std::logic_error. The window takes the resources' current theme. ic: Fails invalid_argument (null resources), unchanged; logic_error (resources made on another thread), ic: unchanged. Returns Window, owned by the caller.
 
 
    .. rubric:: Properties
@@ -476,7 +481,11 @@ gui_forms::Window
 
    .. cpp:function:: stxlib::Optional<HostCloseReason> host_close_reason() const noexcept
 
-      Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession.
+      Why the host closed this window (the accepted HostClosedEvent's reason: the user, the program, the session ending, a quit), once it has; empty until then. Readable from the window's closed callback (ApplicationWindowOptions::closed). Set only by HostSession. ic: Fails empty (before the host session accepts the closed event (states constructed, attached, ic: close_authorized)), unchanged. Returns stxlib::Optional<HostCloseReason>, owned by the caller.
+
+   .. cpp:function:: HostLifecyclePhase host_lifecycle_phase() const noexcept
+
+      The phase of the host session that drives this window (IC3, the window's public state query): constructed until a host attaches, then attached, close_authorized, closed and shutdown, as HostSession::snapshot().phase reports it; constructed for a window no host drives. Set only by HostSession; a window outlives its session's last phase write (shutdown is the session's, after which the window stays at the phase it had when its session ended without it).
 
    .. cpp:function:: Application* application() const noexcept
 
@@ -683,7 +692,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 249 supported, 0 deferred, 13 excluded, 135 unclassified; 257 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 250 supported, 0 deferred, 13 excluded, 135 unclassified; 258 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1381,6 +1390,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 249 support
    * - property
      - GUI.Forms-only
      - ``host_close_reason``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``host_lifecycle_phase``
      - supported
    * - property
      - GUI.Forms-only

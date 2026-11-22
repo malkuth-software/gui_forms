@@ -1,0 +1,100 @@
+# The C ABI's gf_diagnostics_table (GF_TABLE_DIAGNOSTICS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_diagnostics_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_diagnostics_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_diagnostics_table {"
+keys = { manifest = "gf_abi::diagnostics", abi = "GF_TABLE_DIAGNOSTICS" }
+thread = "ui"
+
+[[call]]
+name = "shadow_frames"
+declarations = ["gf_status (GF_CALL* shadow_frames)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "buffer_too_small", when = "When capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero." },
+]
+
+[[call]]
+name = "set_invalidation_overlay"
+declarations = ["gf_status (GF_CALL* set_invalidation_overlay)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output." },
+]
+
+[[call]]
+name = "invalidation_overlay"
+declarations = ["gf_status (GF_CALL* invalidation_overlay)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "failure_snapshot"
+declarations = ["gf_status (GF_CALL* failure_snapshot)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "buffer_too_small", when = "When frame_capacity or message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their capacity is zero." },
+]
+
+[[call]]
+name = "clear_failure_snapshot"
+declarations = ["gf_status (GF_CALL* clear_failure_snapshot)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "set_exception_reflection"
+declarations = ["gf_status (GF_CALL* set_exception_reflection)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null output." },
+]
+
+[[call]]
+name = "exception_reflection"
+declarations = ["gf_status (GF_CALL* exception_reflection)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "raise_native_exception"
+declarations = ["gf_status (GF_CALL* raise_native_exception)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT, with no snapshot, for a message that is not UTF-8 or too long." },
+]
+
+[[call]]
+name = "failure_detail"
+declarations = ["gf_status (GF_CALL* failure_detail)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null detail or one smaller than its 1.5 size." },
+]
+
+[[call]]
+name = "set_diagnostic_overlay"
+declarations = ["gf_status (GF_CALL* set_diagnostic_overlay)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1." },
+]
+
+[[call]]
+name = "toggle_diagnostic_overlay"
+declarations = ["gf_status (GF_CALL* toggle_diagnostic_overlay)("]
+kind = "static"
+thread = "ui"

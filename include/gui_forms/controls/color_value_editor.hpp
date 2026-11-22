@@ -16,6 +16,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::ColorValueEditor: generated from include/gui_forms/controls/color_value_editor.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -121,6 +123,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void write_view(const decltype(value)& cell, Color incoming);
     [[nodiscard]] Color read_view(const decltype(value)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 12 and incoming <= 96, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(swatch_width)& cell, double& incoming);
     void written(const decltype(swatch_width)& cell);
     // property_codemod end ColorValueEditor

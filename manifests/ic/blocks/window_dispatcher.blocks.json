@@ -1,0 +1,336 @@
+{
+  "schema": 1,
+  "component": "gui_forms::WindowDispatcher",
+  "declaration": "include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "unbound",
+    "accepting",
+    "gone"
+  ],
+  "initial": "unbound",
+  "state_query": "state",
+  "blocks": [
+    {
+      "name": "gui_forms.windowdispatcher.begin_invoke.accepting",
+      "mode": "legal",
+      "call": "begin_invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "accepting",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "accepting"
+        },
+        {
+          "name": "bound",
+          "type": "bool",
+          "bounded_by": [
+            "bound != 0"
+          ]
+        }
+      ],
+      "requires": [
+        "bound != 0"
+      ],
+      "fails": [
+        {
+          "failure": "cancelled",
+          "when": "the window is gone: the operation returned is already cancelled and the callback released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "DispatchOperation",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.windowdispatcher.begin_invoke.gone",
+      "mode": "legal",
+      "call": "begin_invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "gone",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "gone"
+        },
+        {
+          "name": "bound",
+          "type": "bool",
+          "bounded_by": [
+            "bound != 0"
+          ]
+        }
+      ],
+      "requires": [
+        "bound != 0"
+      ],
+      "fails": [
+        {
+          "failure": "cancelled",
+          "when": "the window is gone: the operation returned is already cancelled and the callback released",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "DispatchOperation",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gui_forms.windowdispatcher.begin_invoke.misuse.bound",
+      "mode": "misuse",
+      "call": "begin_invoke",
+      "violates": "bound != 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "logic_error"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.windowdispatcher.begin_invoke.outside.unbound",
+      "mode": "misuse",
+      "call": "begin_invoke",
+      "state": "unbound",
+      "expect": {
+        "kind": "failure",
+        "failure": "logic_error"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.windowdispatcher.invoke.accepting",
+      "mode": "legal",
+      "call": "invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "accepting",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "accepting"
+        },
+        {
+          "name": "bound",
+          "type": "bool",
+          "bounded_by": [
+            "bound != 0"
+          ]
+        }
+      ],
+      "requires": [
+        "bound != 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "an empty callback (a std::function the clause grammar cannot name, so its check stays in code)",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "window_gone",
+          "when": "the window was gone first or closed while the work waited (DispatchInvokeResult::window_gone); the callback did not run",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "logic_error",
+          "when": "a live window with no running host (no wake handler)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.invoke.gone",
+      "mode": "legal",
+      "call": "invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "gone",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "gone"
+        },
+        {
+          "name": "bound",
+          "type": "bool",
+          "bounded_by": [
+            "bound != 0"
+          ]
+        }
+      ],
+      "requires": [
+        "bound != 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "an empty callback (a std::function the clause grammar cannot name, so its check stays in code)",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "window_gone",
+          "when": "the window was gone first or closed while the work waited (DispatchInvokeResult::window_gone); the callback did not run",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "logic_error",
+          "when": "a live window with no running host (no wake handler)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.invoke.misuse.bound",
+      "mode": "misuse",
+      "call": "invoke",
+      "violates": "bound != 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "logic_error"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.windowdispatcher.invoke.outside.unbound",
+      "mode": "misuse",
+      "call": "invoke",
+      "state": "unbound",
+      "expect": {
+        "kind": "failure",
+        "failure": "logic_error"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.windowdispatcher.window_alive.unbound",
+      "mode": "legal",
+      "call": "window_alive",
+      "kind": "member",
+      "thread": "any",
+      "state": "unbound",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "unbound"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.window_alive.accepting",
+      "mode": "legal",
+      "call": "window_alive",
+      "kind": "member",
+      "thread": "any",
+      "state": "accepting",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "accepting"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.window_alive.gone",
+      "mode": "legal",
+      "call": "window_alive",
+      "kind": "member",
+      "thread": "any",
+      "state": "gone",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "gone"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.state.unbound",
+      "mode": "legal",
+      "call": "state",
+      "kind": "member",
+      "thread": "any",
+      "state": "unbound",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "unbound"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.state.accepting",
+      "mode": "legal",
+      "call": "state",
+      "kind": "member",
+      "thread": "any",
+      "state": "accepting",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "accepting"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.windowdispatcher.state.gone",
+      "mode": "legal",
+      "call": "state",
+      "kind": "member",
+      "thread": "any",
+      "state": "gone",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::WindowDispatcher",
+          "state": "gone"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    }
+  ]
+}

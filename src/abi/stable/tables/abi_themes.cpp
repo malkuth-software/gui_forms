@@ -7,6 +7,7 @@
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_themes_ic_checks.hpp"
 
 #include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
@@ -291,7 +292,7 @@ gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_repor
 #endif
 
 gf_status themes_remove_body(gf_utf8_view name, std::uint32_t* removed) {
-    if (removed == nullptr) {
+    if (!ic_themes::admits_remove_removed(removed)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, remove_slot, "removed is null");
     }
     std::string_view text;
@@ -552,7 +553,7 @@ gf_status image_failure(ImageResourceError error) noexcept {
 }
 
 gf_status themes_load_image_body(const std::uint8_t* bytes, std::uint64_t size, std::uint64_t* image) {
-    if (image == nullptr || (bytes == nullptr && size != 0U)) {
+    if (!ic_themes::admits_load_image_bytes(image, bytes, size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, load_image_slot,
                     "load_image needs an image output, and bytes when size is not zero");
     }
@@ -673,7 +674,7 @@ gf_theme_request_outcome request_outcome_code(ThemeRequestOutcome outcome) noexc
 }
 
 gf_status themes_theme_request_body(gf_theme_request_outcome* outcome) {
-    if (outcome == nullptr) {
+    if (!ic_themes::admits_theme_request_outcome(outcome)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, theme_request_slot, "theme_request needs an outcome output");
     }
     const gf_status entered = registry().enter_ui(theme_request_slot, true);

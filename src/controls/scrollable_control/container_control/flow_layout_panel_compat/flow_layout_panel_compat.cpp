@@ -2,6 +2,7 @@
 #include "../container_layout_utilities.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "flow_layout_panel_compat_ic_checks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -12,6 +13,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::flow_layout_panel_compat;
 
 using namespace container_layout_detail;
 
@@ -698,7 +700,7 @@ void FlowLayoutPanelCompat::written(const decltype(wrap_contents)&) {
 
 void FlowLayoutPanelCompat::prepare_write(const decltype(item_spacing)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument("FlowLayoutPanelCompat item spacing must be finite and between zero and 256");
+    if (!ic::admits_item_spacing(incoming)) throw std::invalid_argument("FlowLayoutPanelCompat item spacing must be finite and between zero and 256");
 }
 
 void FlowLayoutPanelCompat::written(const decltype(item_spacing)&) {

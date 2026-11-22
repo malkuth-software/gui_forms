@@ -11,6 +11,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::PictureBox: generated from include/gui_forms/controls/picture_box.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API PictureBox : public Panel, public PictureBoxCapabilities<PictureBox> {
 public:
     explicit PictureBox(StableId stable_id);
@@ -67,6 +69,7 @@ private:
     void written(const decltype(image)& cell);
     void prepare_write(const decltype(size_mode)& cell, PictureBoxSizeMode& incoming);
     void written(const decltype(size_mode)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 1, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(image_opacity)& cell, double& incoming);
     void written(const decltype(image_opacity)& cell);
     // property_codemod end PictureBox

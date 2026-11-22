@@ -14,6 +14,10 @@ namespace gui_forms {
 
 struct PropertyEntry;
 
+// ic: gui_forms::Component: generated from include/gui_forms/component/component/component.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. States: alive (initial), disposing, disposed.
+// ic: Observed by component_state(): alive ComponentState::alive, disposing ComponentState::disposing, disposed
+// ic: ComponentState::disposed. Thread: owner, unless a call says otherwise.
 class GUI_FORMS_API Component {
 public:
     using Ptr = std::shared_ptr<Component>;
@@ -23,6 +27,8 @@ public:
     Component(const Component&) = delete;
     Component& operator=(const Component&) = delete;
 
+    // ic: Admitted in any state; then disposed. Fails logic_error (verify_dispose_thread refuses the calling thread (a
+    // ic: control's or window's own rule)), unchanged.
     void dispose();
     [[nodiscard]] ComponentState component_state() const noexcept { return state_; }
     [[nodiscard]] bool is_alive() const noexcept {
@@ -35,12 +41,16 @@ public:
     }
 
     // Observes revocation authority; the caller retains its subscription token.
+    // ic: Admitted in alive. In disposing, disposed: returns null, unchanged. Transfers an observation of the revocable
+    // ic: work (weak) from caller to component.
     void own_revocable(const std::weak_ptr<detail::Revocable>& revocable);
 
     // Transfers the token into this component. Disposal/destruction disconnects
     // it; no ownership of the event publisher or callback target is introduced.
     // A dead component disconnects immediately. Failure also disconnects the
     // transferred token. Like event dispatch, this is execution-thread confined.
+    // ic: Admitted in alive. In disposing, disposed: returns null, unchanged. Transfers the subscription token from
+    // ic: caller to component.
     void own_subscription(SubscriptionToken subscription);
     [[nodiscard]] std::size_t owned_subscription_count() const noexcept;
 

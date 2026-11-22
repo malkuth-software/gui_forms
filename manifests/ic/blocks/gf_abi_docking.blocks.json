@@ -1,0 +1,1398 @@
+{
+  "schema": 1,
+  "component": "gf_abi::docking",
+  "declaration": "include/gui_forms/c/gf_abi_docking.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.docking.register_panel.alive",
+      "mode": "legal",
+      "call": "register_panel",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "The id is a stable id ('.'-separated segments of lowercase ASCII letters and digits joined by single '-') and must be new: another spelling, or an id registered before, gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.register_panel.outside.disposing",
+      "mode": "misuse",
+      "call": "register_panel",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.register_panel.outside.disposed",
+      "mode": "misuse",
+      "call": "register_panel",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_panel_content.alive",
+      "mode": "legal",
+      "call": "set_panel_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "While the workspace holds content it made for the panel (shown, or hidden since), another control gives GF_STATUS_INVALID_STATE; close the panel first.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.set_panel_content.outside.disposing",
+      "mode": "misuse",
+      "call": "set_panel_content",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_panel_content.outside.disposed",
+      "mode": "misuse",
+      "call": "set_panel_content",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_panel_title.alive",
+      "mode": "legal",
+      "call": "set_panel_title",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.set_panel_title.outside.disposing",
+      "mode": "misuse",
+      "call": "set_panel_title",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_panel_title.outside.disposed",
+      "mode": "misuse",
+      "call": "set_panel_title",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.apply_edit.alive",
+      "mode": "legal",
+      "call": "apply_edit",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an edit record has at least the 1.1 size and reserved zero",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "A refused edit gives GF_STATUS_INVALID_STATE, leaves the layout unchanged and writes the reason into refusal (may be null); an applied one writes GF_DOCK_REFUSAL_NONE.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.apply_edit.outside.disposing",
+      "mode": "misuse",
+      "call": "apply_edit",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.apply_edit.outside.disposed",
+      "mode": "misuse",
+      "call": "apply_edit",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.locate.alive",
+      "mode": "legal",
+      "call": "locate",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        },
+        {
+          "name": "location",
+          "type": "gf_dock_location*",
+          "bounded_by": [
+            "not_null(location)"
+          ]
+        },
+        {
+          "name": "location_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "location_size >= location_size_1_1"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(location)",
+        "location_size >= location_size_1_1"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.locate.misuse.locate_location",
+      "mode": "misuse",
+      "call": "locate",
+      "violates": "not_null(location)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.locate.misuse.locate_location_size",
+      "mode": "misuse",
+      "call": "locate",
+      "violates": "location_size >= location_size_1_1",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.locate.outside.disposing",
+      "mode": "misuse",
+      "call": "locate",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.locate.outside.disposed",
+      "mode": "misuse",
+      "call": "locate",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.save_layout.alive",
+      "mode": "legal",
+      "call": "save_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The layout as XML (C++ DockLayout::write_xml) into the caller's buffer; required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.save_layout.outside.disposing",
+      "mode": "misuse",
+      "call": "save_layout",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.save_layout.outside.disposed",
+      "mode": "misuse",
+      "call": "save_layout",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.load_layout.alive",
+      "mode": "legal",
+      "call": "load_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "Malformed or refused XML gives GF_STATUS_INVALID_ARGUMENT and leaves the layout unchanged.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.load_layout.outside.disposing",
+      "mode": "misuse",
+      "call": "load_layout",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.load_layout.outside.disposed",
+      "mode": "misuse",
+      "call": "load_layout",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.activate_panel.alive",
+      "mode": "legal",
+      "call": "activate_panel",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE when it is not placed.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.activate_panel.outside.disposing",
+      "mode": "misuse",
+      "call": "activate_panel",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.activate_panel.outside.disposed",
+      "mode": "misuse",
+      "call": "activate_panel",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.attach_windows.alive",
+      "mode": "legal",
+      "call": "attach_windows",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE while no window is running or before it is ready; again once bound is GF_STATUS_OK.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: the host has no runtime windows, or the workspace refused the window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.attach_windows.outside.disposing",
+      "mode": "misuse",
+      "call": "attach_windows",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.attach_windows.outside.disposed",
+      "mode": "misuse",
+      "call": "attach_windows",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.document_area.alive",
+      "mode": "legal",
+      "call": "document_area",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        },
+        {
+          "name": "node",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(node)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(node)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.document_area.misuse.document_area_node",
+      "mode": "misuse",
+      "call": "document_area",
+      "violates": "not_null(node)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.document_area.outside.disposing",
+      "mode": "misuse",
+      "call": "document_area",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.document_area.outside.disposed",
+      "mode": "misuse",
+      "call": "document_area",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.panel_at.alive",
+      "mode": "legal",
+      "call": "panel_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.panel_at.outside.disposing",
+      "mode": "misuse",
+      "call": "panel_at",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.panel_at.outside.disposed",
+      "mode": "misuse",
+      "call": "panel_at",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.floating_sites.alive",
+      "mode": "legal",
+      "call": "floating_sites",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(sites) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "sites",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(count) and (not_null(sites) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(count) and (not_null(sites) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count) and (not_null(sites) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The floating sites' numbers, in the layout's order, into sites (capacity entries); count receives how many there are, also with GF_STATUS_BUFFER_TOO_SMALL.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.floating_sites.misuse.floating_sites_sites",
+      "mode": "misuse",
+      "call": "floating_sites",
+      "violates": "not_null(count) and (not_null(sites) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.floating_sites.outside.disposing",
+      "mode": "misuse",
+      "call": "floating_sites",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.floating_sites.outside.disposed",
+      "mode": "misuse",
+      "call": "floating_sites",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.floating_site.alive",
+      "mode": "legal",
+      "call": "floating_site",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: floating_site needs its outputs",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: no floating site of that number",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.floating_site.outside.disposing",
+      "mode": "misuse",
+      "call": "floating_site",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.floating_site.outside.disposed",
+      "mode": "misuse",
+      "call": "floating_site",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.update_panel.alive",
+      "mode": "legal",
+      "call": "update_panel",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "An unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the workspace refused the descriptor",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "An unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.update_panel.outside.disposing",
+      "mode": "misuse",
+      "call": "update_panel",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.update_panel.outside.disposed",
+      "mode": "misuse",
+      "call": "update_panel",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_options.alive",
+      "mode": "legal",
+      "call": "set_options",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an options record has at least the 1.1 size, known flags and reserved zero",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.set_options.outside.disposing",
+      "mode": "misuse",
+      "call": "set_options",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_options.outside.disposed",
+      "mode": "misuse",
+      "call": "set_options",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_floating_window_visibility.alive",
+      "mode": "legal",
+      "call": "set_floating_window_visibility",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a visibility is WORKSPACE, SHOWN or POLICY",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "An unknown site gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.set_floating_window_visibility.outside.disposing",
+      "mode": "misuse",
+      "call": "set_floating_window_visibility",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_floating_window_visibility.outside.disposed",
+      "mode": "misuse",
+      "call": "set_floating_window_visibility",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.document_presentation.alive",
+      "mode": "legal",
+      "call": "document_presentation",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        },
+        {
+          "name": "presentation",
+          "type": "gf_dock_document_presentation*",
+          "bounded_by": [
+            "not_null(presentation)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(presentation)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.document_presentation.misuse.document_presentation_presentation",
+      "mode": "misuse",
+      "call": "document_presentation",
+      "violates": "not_null(presentation)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.document_presentation.outside.disposing",
+      "mode": "misuse",
+      "call": "document_presentation",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.document_presentation.outside.disposed",
+      "mode": "misuse",
+      "call": "document_presentation",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.arrange_frames.alive",
+      "mode": "legal",
+      "call": "arrange_frames",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an arrangement is CASCADE, TILE_HORIZONTAL, TILE_VERTICAL or ARRANGE_ICONS",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "A refused arrangement gives GF_STATUS_INVALID_STATE and writes the reason into refusal (may be null), as apply_edit.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.arrange_frames.outside.disposing",
+      "mode": "misuse",
+      "call": "arrange_frames",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.arrange_frames.outside.disposed",
+      "mode": "misuse",
+      "call": "arrange_frames",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.frame_memory.alive",
+      "mode": "legal",
+      "call": "frame_memory",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        },
+        {
+          "name": "frame",
+          "type": "gf_dock_frame_memory*",
+          "bounded_by": [
+            "not_null(frame)"
+          ]
+        },
+        {
+          "name": "frame_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "frame_size >= frame_memory_size_1_6"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(frame)",
+        "frame_size >= frame_memory_size_1_6"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.frame_memory.misuse.frame_memory_frame",
+      "mode": "misuse",
+      "call": "frame_memory",
+      "violates": "not_null(frame)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.frame_memory.misuse.frame_memory_frame_size",
+      "mode": "misuse",
+      "call": "frame_memory",
+      "violates": "frame_size >= frame_memory_size_1_6",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.frame_memory.outside.disposing",
+      "mode": "misuse",
+      "call": "frame_memory",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.frame_memory.outside.disposed",
+      "mode": "misuse",
+      "call": "frame_memory",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_frame_icons_at_bottom.alive",
+      "mode": "legal",
+      "call": "set_frame_icons_at_bottom",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: bottom is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.set_frame_icons_at_bottom.outside.disposing",
+      "mode": "misuse",
+      "call": "set_frame_icons_at_bottom",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_frame_icons_at_bottom.outside.disposed",
+      "mode": "misuse",
+      "call": "set_frame_icons_at_bottom",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_document_count.alive",
+      "mode": "legal",
+      "call": "area_document_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        },
+        {
+          "name": "count",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(count)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(count)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.area_document_count.misuse.area_document_count_count",
+      "mode": "misuse",
+      "call": "area_document_count",
+      "violates": "not_null(count)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_document_count.outside.disposing",
+      "mode": "misuse",
+      "call": "area_document_count",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_document_count.outside.disposed",
+      "mode": "misuse",
+      "call": "area_document_count",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_document_at.alive",
+      "mode": "legal",
+      "call": "area_document_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The id of the document at index in the area, in tree and tab order, into the caller's buffer; required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND past the end.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.area_document_at.outside.disposing",
+      "mode": "misuse",
+      "call": "area_document_at",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_document_at.outside.disposed",
+      "mode": "misuse",
+      "call": "area_document_at",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_active_document.alive",
+      "mode": "legal",
+      "call": "area_active_document",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.area_active_document.outside.disposing",
+      "mode": "misuse",
+      "call": "area_active_document",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.area_active_document.outside.disposed",
+      "mode": "misuse",
+      "call": "area_active_document",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_panel_menu_strip.alive",
+      "mode": "legal",
+      "call": "set_panel_menu_strip",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no panel of that id is registered",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "Another object than a menu strip gives GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.set_panel_menu_strip.outside.disposing",
+      "mode": "misuse",
+      "call": "set_panel_menu_strip",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.set_panel_menu_strip.outside.disposed",
+      "mode": "misuse",
+      "call": "set_panel_menu_strip",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.merged_document.alive",
+      "mode": "legal",
+      "call": "merged_document",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::docking",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.docking.merged_document.outside.disposing",
+      "mode": "misuse",
+      "call": "merged_document",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.docking.merged_document.outside.disposed",
+      "mode": "misuse",
+      "call": "merged_document",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::MenuStrip",
+  "declaration": "include/gui_forms/controls/menu_strip.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.menustrip.item_padding_write",
+      "mode": "legal",
+      "call": "item_padding",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::MenuStrip"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 4 and incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 4 and incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.menustrip.item_padding_write.misuse.item_padding",
+      "mode": "misuse",
+      "call": "item_padding",
+      "violates": "finite(incoming) and incoming >= 4 and incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

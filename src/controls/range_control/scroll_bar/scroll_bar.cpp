@@ -7,6 +7,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../basic/number_text.hpp"
+#include "scroll_bar_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,6 +17,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::scroll_bar;
 using namespace range_control_detail;
 
 ScrollBar::ScrollBar(StableId stable_id, Orientation initial_orientation)
@@ -590,7 +592,7 @@ std::span<const PropertyEntry> ScrollBar::property_table() const noexcept {
 void ScrollBar::prepare_write(const decltype(button_extent)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "scrollbar button extent must be finite");
-    if (incoming < 8.0 || incoming > 64.0) throw std::invalid_argument("scrollbar button extent must be between 8 and 64");
+    if (!ic::admits_button_extent(incoming)) throw std::invalid_argument("scrollbar button extent must be between 8 and 64");
 }
 
 void ScrollBar::written(const decltype(button_extent)&) {

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "component": "gf_abi::events",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_events.ic.toml",
+    "sha256": "a946da502089b796e278da3d8ec2c2a549dab6a1ecc82809d5707a46d1a3a453"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.events.subscribe_property.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "subscribe_property in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "subscribe_property in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

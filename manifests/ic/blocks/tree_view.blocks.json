@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TreeView",
+  "declaration": "include/gui_forms/controls/tree_view.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.treeview.item_height_write",
+      "mode": "legal",
+      "call": "item_height",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::TreeView"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 14 and incoming <= 256"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 14 and incoming <= 256"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.treeview.item_height_write.misuse.item_height",
+      "mode": "misuse",
+      "call": "item_height",
+      "violates": "finite(incoming) and incoming >= 14 and incoming <= 256",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.treeview.indentation_write",
+      "mode": "legal",
+      "call": "indentation",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::TreeView"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 8 and incoming <= 96"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 8 and incoming <= 96"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.treeview.indentation_write.misuse.indentation",
+      "mode": "misuse",
+      "call": "indentation",
+      "violates": "finite(incoming) and incoming >= 8 and incoming <= 96",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

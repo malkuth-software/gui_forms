@@ -10,6 +10,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "menu_strip_ic_checks.hpp"
 
 #include <vector>
 #include <string>
@@ -25,6 +26,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::menu_strip;
 
 using menu_detail::menu_display_text;
 using menu_detail::validate_specs;
@@ -231,7 +233,7 @@ void MenuStrip::write_view(const decltype(selected_item_id)&, std::string incomi
 
 void MenuStrip::prepare_write(const decltype(item_padding)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 64.0) {
+    if (!ic::admits_item_padding(incoming)) {
         throw std::invalid_argument(
             "MenuStrip item padding must be finite and between 4 and 64");
     }

@@ -10,6 +10,7 @@
 #include "../registry/abi_registry.hpp"
 #include "../tables/abi_control_entry.hpp"
 #include "../tables/abi_tables.hpp"
+#include "../ic/abi_windows_paint_endpoint_ic_checks.hpp"
 
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp"
@@ -280,7 +281,7 @@ gf_status GF_CALL endpoint_drain(gf_paint_endpoint token) noexcept {
 
 gf_status endpoint_snapshot_body(gf_paint_endpoint token, char* buffer, std::uint64_t capacity,
                                  std::uint64_t* required) {
-    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+    if (!ic_windows_paint_endpoint::admits_snapshot_buffer(required, buffer, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, snapshot_slot,
                     "snapshot needs a size output, and a buffer when the capacity is not zero");
     }
