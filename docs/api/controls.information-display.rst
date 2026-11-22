@@ -30,37 +30,37 @@ Labels, images, progress and review cards.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
      - A bar that shows how far an operation has progressed.
    * - :cpp:class:`ProgressRing <gui_forms::ProgressRing>`
-     - Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.
+     - A circular progress indicator: a ring of forty dots lit in proportion to the progress, or a turning run of dots while the amount is unknown.
    * - :cpp:class:`Spinner <gui_forms::Spinner>`
-     - Indeterminate busy indicator: a ring of twelve dots, three lit, turning while active on the window's frame clock; still under reduced motion; busy to assistive technology.
+     - An indeterminate busy indicator: a ring of twelve dots, three of them lit, turning while ``active``.
    * - :cpp:class:`SweepScope <gui_forms::SweepScope>`
      - A read-only scope that draws a level as a trace on a graticule.
    * - :cpp:class:`Sparkline <gui_forms::Sparkline>`
-     - Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.
+     - A word-sized trend line: the newest values drawn as one line across the control, with a dot on the newest.
    * - :cpp:class:`PlotView <gui_forms::PlotView>`
-     - Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
+     - A retained, declarative plot: axes, series and annotations declared as item children, with panning, zooming, picking and a legend.
    * - :cpp:class:`Plot3DView <gui_forms::Plot3DView>`
-     - Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout.
+     - A 3D plot: surfaces, lines and scatters in a box with back panes, a grid and ticks, turned, zoomed and panned by the user.
    * - :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
-     - Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.
+     - One axis of a :cpp:class:`PlotView <gui_forms::PlotView>`, declared as a child of the plot: its direction, scale, initial range, title, fitting and following.
    * - :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
-     - Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).
+     - One series of a :cpp:class:`PlotView <gui_forms::PlotView>`, declared as a child of the plot: what it draws, its legend label, the axes it is drawn against, and where its data comes from.
    * - :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>`
-     - Item child of a PlotView declaring a text label anchored at a data point.
+     - A plain-text label of a :cpp:class:`PlotView <gui_forms::PlotView>`, anchored at a data point and declared as a child of the plot.
    * - :cpp:class:`SevenSegmentDisplay <gui_forms::SevenSegmentDisplay>`
-     - Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.
+     - A segmented numeric readout: a row of cells in which each character of the reading lights the bars of a seven-segment display, as a meter, clock or instrument panel shows a value.
    * - :cpp:class:`GaugeBase <gui_forms::GaugeBase>`
-     - Shared read-only gauge authority from the instruments package: a RangeControl value with scale marks, units, decimals and low and high alarm limits, a meter to assistive technology, that LinearGauge and RadialGauge draw.
+     - The shared base of the read-only gauges: a value against a scale, with units, a number of decimals and optional alarm limits.
    * - :cpp:class:`LinearGauge <gui_forms::LinearGauge>`
-     - Bar gauge from the instruments package: the value filling a horizontal or vertical scale with marks, alarm segments along it and the value as text at its end.
+     - A bar gauge: the value filling a straight scale from the minimum, with scale marks, alarm segments and the value as text.
    * - :cpp:class:`RadialGauge <gui_forms::RadialGauge>`
-     - Dial gauge from the instruments package: the value lighting a 270-degree scale arc with marks, alarm segments and a needle, the value as text below the centre.
+     - A dial gauge: a 270-degree scale arc lit from the minimum to the value, with a needle at the value, scale marks, alarm arcs and the value as text.
    * - :cpp:class:`StepIndicator <gui_forms::StepIndicator>`
-     - Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
+     - A step indicator: a row of numbered steps joined by connectors, each with its name beneath.
    * - :cpp:class:`HelpBook <gui_forms::HelpBook>`
-     - Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
+     - The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images.
    * - :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
-     - Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.
+     - The three-pane help viewer: a toolbar, the navigation tabs (Contents, Index, Search and Bookmarks) and a :cpp:class:`HelpBook <gui_forms::HelpBook>`.
 
 .. toctree::
    :hidden:

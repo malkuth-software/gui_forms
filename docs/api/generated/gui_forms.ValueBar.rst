@@ -13,7 +13,15 @@ gui_forms::ValueBar
 
    ``#include <gui_forms/controls/value_bar.hpp>`` (:src:`source <include/gui_forms/controls/value_bar.hpp>`)
 
-   Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.
+   A value bar: one number shown as a fill (the slider form) or a field (the number form), changed by scrubbing, typing and stepping, as in Blender.
+
+   ``minimum`` and ``maximum`` are the hard limits; :cpp:member:`soft_minimum <gui_forms::ValueBar::soft_minimum>` and
+   :cpp:member:`soft_maximum <gui_forms::ValueBar::soft_maximum>` the scrub and fill range (none means the hard limits, and a
+   soft limit outside the hard range is held at it). Scrubbing stays within the
+   soft range; a typed value may leave it but never the hard range, and the
+   fill then shows full or empty with an overrange marker at that end. Use a
+   :cpp:class:`TrackBar <gui_forms::TrackBar>` for a slider with ticks, and a :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for a plain number
+   field.
 
    .. gf-preview:: controls/value_bar
       :alt: A ValueBar as the stock specimen shows it, in the windows-professional theme.
@@ -23,64 +31,87 @@ gui_forms::ValueBar
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **soft_minimum** : ``stxlib::Optional<double>``
-         The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
+      **soft_minimum** : ``stxlib::Optional<double>``, default none
+         The low end of the scrub and fill range, or none for the hard minimum.
+         A value that is not finite throws ``std::invalid_argument``.
 
-      **soft_maximum** : ``stxlib::Optional<double>``
-         The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
+      **soft_maximum** : ``stxlib::Optional<double>``, default none
+         The high end of the scrub and fill range, or none for the hard maximum.
+         A value that is not finite throws ``std::invalid_argument``.
 
-      **snap_step** : ``stxlib::Optional<double>``
-         Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
+      **snap_step** : ``stxlib::Optional<double>``, default none
+         The grid Ctrl snaps to while scrubbing, from the soft minimum, or none
+         for the small change. A value that is not positive and finite throws
+         ``std::invalid_argument``.
 
-      **precision** : ``std::int32_t``
-         The decimals the value shows, 0 to maximum_value_bar_precision (12); outside throws std::invalid_argument.
+      **precision** : ``std::int32_t``, default ``3``
+         The decimals the value shows, from 0 to ``maximum_value_bar_precision``
+         (12); outside that range throws ``std::invalid_argument``.
 
-      **unit** : ``ValueUnit``
-         The unit the value is shown and typed in (ValueUnit); the value is held in the unit's base.
+      **unit** : ``ValueUnit``, default ``ValueUnit::none``
+         The unit the value is shown and typed in; the value is held in the
+         unit's base.
 
-      **default_value** : ``double``
-         The value Backspace resets to, clamped into the hard range when applied. Non-finite throws std::invalid_argument.
+      **default_value** : ``double``, default ``0``
+         The value Backspace resets to, clamped into the hard range when applied.
+         A value that is not finite throws ``std::invalid_argument``.
 
-      **presentation** : ``ValueBarStyle``
-         The fill style (a slider: the value's proportion of the soft range as a fill under the text) or the field style (a number field: step arrows at both ends while hovered).
+      **presentation** : ``ValueBarStyle``, default ``ValueBarStyle::fill``
+         The fill style (a slider: the value's proportion of the soft range as a
+         fill under the text) or the field style (a number field, with step
+         arrows at both ends while hovered).
 
-      **label** : ``std::string``
-         The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
+      **label** : ``std::string``, default empty
+         The name shown at the bar's start, with the value at its end; empty
+         centres the value. It is localizable.
 
-      **scrub_rate** : ``stxlib::Optional<double>``
-         Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
+      **scrub_rate** : ``stxlib::Optional<double>``, default none
+         Value units per logical unit of scrub travel, or none for the soft range
+         over the bar's width. A value that is not positive and finite throws
+         ``std::invalid_argument``.
 
       **formatted_value** : ``std::string``, read-only
-         The value as shown: in the unit's display unit at the precision.
+         The value as shown: in the unit's display unit, at the precision.
 
       **effective_soft_minimum** : ``double``, read-only
-         The soft range in force: the soft limits (else the hard ones), held within the hard range and ordered.
+         The soft range's low end in force: the soft limit, else the hard one,
+         held within the hard range. :cpp:func:`effective_soft_maximum <gui_forms::ValueBar::effective_soft_maximum>` is the high end.
 
       **effective_soft_maximum** : ``double``, read-only
 
       **soft_proportion** : ``double``, read-only
-         The value's proportion of the soft range, 0..1 (the fill's width).
+         The value's proportion of the soft range, from 0 to 1: the fill's width.
 
       **overrange** : ``bool``, read-only
          Whether the value lies outside the soft range.
 
       **editing** : ``bool``, read-only
+         Whether the inline editor is open.
 
       **edit_defect** : ``ValueTextDefect``, read-only
+         Why the last typed text was refused (:cpp:enum:`ValueTextDefect <gui_forms::ValueTextDefect>`).
 
       **editor** : ``std::shared_ptr<TextBox>``, read-only
+         The inline editor's :cpp:class:`TextBox <gui_forms::TextBox>`.
 
       **scrubbing** : ``bool``, read-only
-         Whether a scrub is running (past its threshold, or by keyboard).
+         Whether a scrub is running, past its threshold or from the keyboard.
 
       **fill_text_contrast** : ``ValueBarContrast``, read-only
-         The contrast of the label's two halves in the current theme and state (study 3.6).
+         The contrast of the label's two halves in the current theme and state
+         (:cpp:class:`ValueBarContrast <gui_forms::ValueBarContrast>`): over the track and over the fill, against 4.5:1
+         (7:1 in high contrast).
 
       **track_bounds** : ``Rect``, read-only
-         Public part geometry in local coordinates.
+         The track, in local coordinates. :cpp:func:`fill_bounds <gui_forms::ValueBar::fill_bounds>` is the fill (empty in the
+         field style), :cpp:func:`content_bounds <gui_forms::ValueBar::content_bounds>` the text area where the editor lies while
+         open, :cpp:func:`decrement_bounds <gui_forms::ValueBar::decrement_bounds>` and :cpp:func:`increment_bounds <gui_forms::ValueBar::increment_bounds>` the arrows (empty in the
+         fill style), and :cpp:func:`overrange_bounds <gui_forms::ValueBar::overrange_bounds>` the overrange marker (empty within
+         the soft range).
 
       **fill_bounds** : ``Rect``, read-only
          The fill: the track's start to the value's proportion; empty in the field style.
@@ -103,6 +134,10 @@ gui_forms::ValueBar
    :Events:
 
       **value_committed** : ``Event<double>``
+         Raised after each completed user edit, with the new value: a scrub's
+         release, a typed commit, a step, a reset, a negation or a paste. Never
+         raised by a programmatic write, a scrub's preview or a restore.
+         ``value_changed`` follows every change, previews included.
 
    :Inherited:
 
@@ -119,25 +154,66 @@ gui_forms::ValueBar
       * - :cpp:func:`initialize_control_tree <gui_forms::ValueBar::initialize_control_tree>`
         -  
       * - :cpp:func:`begin_edit <gui_forms::ValueBar::begin_edit>`
-        - The inline editor (study 3.5).
+        - Opens the inline editor with the formatted value selected; false while disabled or scrubbing.
       * - :cpp:func:`commit_edit <gui_forms::ValueBar::commit_edit>`
-        -  
+        - Parses the editor's text.
       * - :cpp:func:`cancel_edit <gui_forms::ValueBar::cancel_edit>`
-        -  
+        - Closes the editor, changing nothing.
       * - :cpp:func:`apply_text <gui_forms::ValueBar::apply_text>`
-        - Applies ``text`` as typed (paste and the semantic set_value use it): the defect, or none when it was applied (clamped to the hard range).
+        - Applies a text as if typed: returns the defect, or none when it was applied (clamped to the hard range).
       * - :cpp:func:`step_by <gui_forms::ValueBar::step_by>`
-        - The user's edits, each raising value_committed when the value changed: a step of ``delta`` (clamped to the hard range), the reset to default_value, and the negation (within the hard range).
+        - Steps the value by a delta, clamped to the hard range; raises :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` when the value changed.
       * - :cpp:func:`reset_to_default <gui_forms::ValueBar::reset_to_default>`
-        -  
+        - Resets the value to :cpp:member:`default_value <gui_forms::ValueBar::default_value>`; raises :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` when it changed.
       * - :cpp:func:`negate <gui_forms::ValueBar::negate>`
-        -  
+        - Negates the value within the hard range; raises :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` when it changed.
       * - :cpp:func:`copy_value <gui_forms::ValueBar::copy_value>`
-        - The clipboard (the window's host services): false without them.
+        - Copies the value as text to the clipboard; false without the window's host services.
       * - :cpp:func:`paste_value <gui_forms::ValueBar::paste_value>`
         -  
       * - :cpp:func:`value_bar_property_entries <gui_forms::ValueBar::value_bar_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`TrackBar <gui_forms::TrackBar>`
+         A slider with ticks.
+
+      :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>`
+         A number field with arrows.
+
+   .. rubric:: Notes
+
+   A press and a drag sideways scrubs: Shift slows it, Ctrl snaps to
+   :cpp:member:`snap_step <gui_forms::ValueBar::snap_step>`, and Escape or a right press restores the start value; the
+   release raises :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` once. The press captures the pointer, so a
+   scrub that leaves the bar keeps tracking until the release. Where the host
+   offers relative pointer motion the pointer is hidden and the scrub is
+   unbounded; otherwise it stops at the window's edge. A lost capture restores
+   the start value.
+
+   A click without a drag, Enter or F2 opens the inline editor. Enter, Tab or
+   focus leaving it commits the typed text (bounded arithmetic and units,
+   clamped to the hard range); Escape cancels; a refused text keeps the editor
+   open with the defect shown, and focus leaving it then cancels the edit. Tab
+   commits and keeps the focus on the bar.
+
+   Focused, Left and Right or Down and Up step by the small change (a tenth
+   with Shift, the large change with Ctrl), Page Up and Page Down by the large
+   change, Home and End go to the soft limits, Backspace resets to
+   :cpp:member:`default_value <gui_forms::ValueBar::default_value>`, Minus negates, and Ctrl+C and Ctrl+V copy and paste the
+   value. In the field style the arrows at both ends step by the small change.
+   Ctrl with the wheel steps while hovered; a plain wheel is left to the
+   parent, so a bar never takes over scrolling.
+
+   To assistive technology the fill style is a slider and the field style a
+   spin button, each with its range and :cpp:func:`formatted_value <gui_forms::ValueBar::formatted_value>` as its value text;
+   the inline editor is an edit while it is open. The parts are ``track``,
+   ``fill``, ``label``, ``value``, the arrows and their glyphs, ``overrange``,
+   ``validation`` and ``focus``. The label and value are painted twice,
+   clipped: over the track in their own colour and over the fill in the label
+   part's ``fill-text-color``, so the text stays readable where the fill
+   crosses it.
 
 
    .. rubric:: Construction
@@ -149,53 +225,66 @@ gui_forms::ValueBar
 
    .. cpp:member:: stxlib::Optional<double> soft_minimum
 
-      The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
+      The low end of the scrub and fill range, or none for the hard minimum.
+      A value that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: stxlib::Optional<double> soft_maximum
 
-      The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
+      The high end of the scrub and fill range, or none for the hard maximum.
+      A value that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: stxlib::Optional<double> snap_step
 
-      Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
+      The grid Ctrl snaps to while scrubbing, from the soft minimum, or none
+      for the small change. A value that is not positive and finite throws
+      ``std::invalid_argument``.
 
    .. cpp:member:: std::int32_t precision
 
-      The decimals the value shows, 0 to maximum_value_bar_precision (12); outside throws std::invalid_argument.
+      The decimals the value shows, from 0 to ``maximum_value_bar_precision``
+      (12); outside that range throws ``std::invalid_argument``.
 
    .. cpp:member:: ValueUnit unit
 
-      The unit the value is shown and typed in (ValueUnit); the value is held in the unit's base.
+      The unit the value is shown and typed in; the value is held in the
+      unit's base.
 
    .. cpp:member:: double default_value
 
-      The value Backspace resets to, clamped into the hard range when applied. Non-finite throws std::invalid_argument.
+      The value Backspace resets to, clamped into the hard range when applied.
+      A value that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: ValueBarStyle presentation
 
-      The fill style (a slider: the value's proportion of the soft range as a fill under the text) or the field style (a number field: step arrows at both ends while hovered).
+      The fill style (a slider: the value's proportion of the soft range as a
+      fill under the text) or the field style (a number field, with step
+      arrows at both ends while hovered).
 
    .. cpp:member:: std::string label
 
-      The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
+      The name shown at the bar's start, with the value at its end; empty
+      centres the value. It is localizable.
 
    .. cpp:member:: stxlib::Optional<double> scrub_rate
 
-      Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
+      Value units per logical unit of scrub travel, or none for the soft range
+      over the bar's width. A value that is not positive and finite throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::string formatted_value() const
 
-      The value as shown: in the unit's display unit at the precision.
+      The value as shown: in the unit's display unit, at the precision.
 
    .. cpp:function:: double effective_soft_minimum() const noexcept
 
-      The soft range in force: the soft limits (else the hard ones), held within the hard range and ordered.
+      The soft range's low end in force: the soft limit, else the hard one,
+      held within the hard range. :cpp:func:`effective_soft_maximum <gui_forms::ValueBar::effective_soft_maximum>` is the high end.
 
    .. cpp:function:: double effective_soft_maximum() const noexcept
 
    .. cpp:function:: double soft_proportion() const noexcept
 
-      The value's proportion of the soft range, 0..1 (the fill's width).
+      The value's proportion of the soft range, from 0 to 1: the fill's width.
 
    .. cpp:function:: bool overrange() const noexcept
 
@@ -203,21 +292,33 @@ gui_forms::ValueBar
 
    .. cpp:function:: bool editing() const noexcept
 
+      Whether the inline editor is open.
+
    .. cpp:function:: ValueTextDefect edit_defect() const noexcept
+
+      Why the last typed text was refused (:cpp:enum:`ValueTextDefect <gui_forms::ValueTextDefect>`).
 
    .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
 
+      The inline editor's :cpp:class:`TextBox <gui_forms::TextBox>`.
+
    .. cpp:function:: bool scrubbing() const noexcept
 
-      Whether a scrub is running (past its threshold, or by keyboard).
+      Whether a scrub is running, past its threshold or from the keyboard.
 
    .. cpp:function:: ValueBarContrast fill_text_contrast() const
 
-      The contrast of the label's two halves in the current theme and state (study 3.6).
+      The contrast of the label's two halves in the current theme and state
+      (:cpp:class:`ValueBarContrast <gui_forms::ValueBarContrast>`): over the track and over the fill, against 4.5:1
+      (7:1 in high contrast).
 
    .. cpp:function:: Rect track_bounds() const noexcept
 
-      Public part geometry in local coordinates.
+      The track, in local coordinates. :cpp:func:`fill_bounds <gui_forms::ValueBar::fill_bounds>` is the fill (empty in the
+      field style), :cpp:func:`content_bounds <gui_forms::ValueBar::content_bounds>` the text area where the editor lies while
+      open, :cpp:func:`decrement_bounds <gui_forms::ValueBar::decrement_bounds>` and :cpp:func:`increment_bounds <gui_forms::ValueBar::increment_bounds>` the arrows (empty in the
+      fill style), and :cpp:func:`overrange_bounds <gui_forms::ValueBar::overrange_bounds>` the overrange marker (empty within
+      the soft range).
 
    .. cpp:function:: Rect fill_bounds() const noexcept
 
@@ -246,6 +347,11 @@ gui_forms::ValueBar
 
    .. cpp:function:: Event<double>& value_committed() noexcept
 
+      Raised after each completed user edit, with the new value: a scrub's
+      release, a typed commit, a step, a reset, a negation or a paste. Never
+      raised by a programmatic write, a scrub's preview or a restore.
+      ``value_changed`` follows every change, previews included.
+
 
    .. rubric:: Methods
 
@@ -253,27 +359,43 @@ gui_forms::ValueBar
 
    .. cpp:function:: bool begin_edit()
 
-      The inline editor (study 3.5). begin_edit opens it with the formatted value selected; false while disabled or scrubbing. commit_edit parses its text: accepted, the value (clamped to the hard range) is applied, value_committed raised and the editor closed; refused, the editor stays open and edit_defect() says why. cancel_edit closes it, changing nothing.
+      Opens the inline editor with the formatted value selected; false while
+      disabled or scrubbing.
 
    .. cpp:function:: bool commit_edit()
 
+      Parses the editor's text. Accepted, the value (clamped to the hard
+      range) is applied, :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` raised and the editor closed;
+      refused, the editor stays open and :cpp:func:`edit_defect <gui_forms::ValueBar::edit_defect>` says why.
+
    .. cpp:function:: void cancel_edit()
+
+      Closes the editor, changing nothing.
 
    .. cpp:function:: ValueTextDefect apply_text(std::string_view text)
 
-      Applies ``text`` as typed (paste and the semantic set_value use it): the defect, or none when it was applied (clamped to the hard range).
+      Applies a text as if typed: returns the defect, or none when it was
+      applied (clamped to the hard range).
 
    .. cpp:function:: bool step_by(double delta)
 
-      The user's edits, each raising value_committed when the value changed: a step of ``delta`` (clamped to the hard range), the reset to default_value, and the negation (within the hard range).
+      Steps the value by a delta, clamped to the hard range; raises
+      :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` when the value changed.
 
    .. cpp:function:: bool reset_to_default()
 
+      Resets the value to :cpp:member:`default_value <gui_forms::ValueBar::default_value>`; raises :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` when it
+      changed.
+
    .. cpp:function:: bool negate()
+
+      Negates the value within the hard range; raises :cpp:func:`value_committed <gui_forms::ValueBar::value_committed>` when
+      it changed.
 
    .. cpp:function:: bool copy_value()
 
-      The clipboard (the window's host services): false without them.
+      Copies the value as text to the clipboard; false without the window's
+      host services. :cpp:func:`paste_value <gui_forms::ValueBar::paste_value>` pastes it back as typed text.
 
    .. cpp:function:: bool paste_value()
 

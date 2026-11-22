@@ -61,8 +61,36 @@ it to the exclude list with a comment saying why.
 - Present tense, addressed to a user of the library.
 - No milestone numbers, no internal claim labels (the given/observed/measured
   vocabulary), no agent or role names.
-- Link only to pages inside `docs/`. Refer to repository files outside `docs/`
-  in backticks.
+- Never type a version or ABI number. Use the substitutions `docs/conf.py`
+  reads at build time from their sources of truth: `{{ gf_version }}` (the
+  package version), `{{ gf_c_abi }}` (the C ABI), `{{ gf_host_protocol }}`
+  (the host protocol), `{{ gf_drawing_abi }}` (the drawing ABI) and
+  `{{ gf_media }}` (the address of the preview images) in Markdown, and
+  `|gf_version|` and so on in reStructuredText. A number that cannot be read
+  stops the build. The GitHub README cannot run code: `tools/readme_numbers.py`
+  writes the same values into it and CI checks them.
+- Link to pages inside `docs/` by their docnames. Name a repository file
+  outside `docs/` with the source role, `` {src}`include/gui_forms/controls/button.hpp` ``
+  in Markdown or `` :src:`...` `` in reStructuredText: it links to the file at
+  the commit the site is built from. Generated type pages carry a `[source]`
+  link beside each declaration, pinned to the same commit (`linkcode`); write
+  nothing for those.
+- Show a preview image only through the `gf-preview` directive, naming the
+  image by its place in the previews repository (`controls/<control id>` or
+  `pages/<page id>`), with alt text, which is required:
+
+  ````md
+  ```{gf-preview} controls/button
+  :alt: A Button in the windows-professional theme.
+  ```
+  ````
+
+  (`.. gf-preview:: controls/button` with the same option in
+  reStructuredText). A preview shows only once `docs/previews.json` lists the
+  image, so a page may name its preview before it is captured. Previews are
+  captured headless by `tools/capture_previews.py` in the windows-professional
+  theme and stored outside this repository; never add a screenshot under
+  `docs/`.
 - Architecture decision records live in `decisions/` on the `gui_forms` branch
   of `malkuth-software/notes`; `dev/decisions.md` links to each.
 - Keep a hand-written page to roughly 150 lines; split rather than scroll.
@@ -89,7 +117,7 @@ python3 tools/control_registry.py check          # validates manifests/controls.
 python3 tools/control_registry.py render         # writes controls/generated/
 python3 tools/control_schema.py render           # writes controls/generated/schema.md
 python3 tools/winforms_divergences.py render     # writes controls/generated/winforms-divergences.md
-python3 tools/generate_library_docs.py           # writes api/ and tests/doc_examples_tests.cpp
+python3 tools/generate_library_docs.py           # writes api/, and the examples test into a gui_forms_tests checkout
 ```
 
 The chevron bar at the top of the Roadmap page, `_static/roadmap.svg`, is drawn
@@ -100,8 +128,12 @@ regenerated image.
 The `docs` CI job builds the site. The `house-style` job runs the registry
 checks, the generator's unit tests and `generate_library_docs.py --check`; a
 stale generated page fails the job rather than being rewritten silently. The
-generated `tests/doc_examples_tests.cpp` builds and runs under `ctest`, so a
-documented example that stops compiling or throws fails the native jobs.
+generator also writes the documented examples into
+`tests/doc_examples_tests.cpp` of the gui_forms_tests checkout beside this one
+(`tools/tests_checkout.py`; without one it leaves the file alone). That test
+builds and runs in gui_forms_tests (`gui_forms_doc_examples_tests`), so a
+documented example that stops compiling or throws fails there.
+gui_forms_tests' own CI writes or checks the file against the tree it pins.
 
 ## The clang declaration inventory is checked by maintainers, not CI
 

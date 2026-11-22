@@ -13,7 +13,16 @@ gui_forms::CompositeControl
 
    ``#include <gui_forms/composites/composite_control/composite_control.hpp>`` (:src:`source <include/gui_forms/composites/composite_control/composite_control.hpp>`)
 
-   A control described by a .control document, made only from its compiled definition, whose parts, properties, rules, children and events the definition declares.
+   The control that runs a composite definition: a reusable control written as a ``.control`` document of child controls, properties, rules, commands, events and an optional look.
+
+   A composite's definition is compiled once, either at build time by
+   ``gui_forms_add_control``, which generates a typed class deriving from
+   :cpp:class:`CompositeControl <gui_forms::CompositeControl>`, or at run time by ``load_composite_definition``. Each
+   instance makes its children from the definition, binds them, and runs the
+   definition's rules and commands. A form document names a composite by its
+   ``.control`` name, and its content goes into the composite's slot
+   (the user guide's Forms page). Derive from :cpp:class:`UserControl <gui_forms::UserControl>` instead for a
+   control written in C++ alone.
 
    .. gf-preview:: controls/composite_control
       :alt: A CompositeControl as the stock specimen shows it, in the windows-professional theme.
@@ -23,24 +32,34 @@ gui_forms::CompositeControl
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
       **definition** : ``std::shared_ptr<const CompositeDefinition>``
+         The compiled definition the composite runs. A null definition throws
+         ``std::invalid_argument``.
 
    :Properties:
 
       **definition** : ``CompositeDefinition``, read-only
+         The definition the composite runs.
 
       **type_name** : ``std::string_view``, read-only
+         The type's registered name, in snake case.
 
       **slot** : ``Control::Ptr``, read-only
-         The slot a form's content goes into; null without one.
+         The control a form's content goes into, or null without one.
 
       **statistics** : ``CompositeStatistics``, read-only
+         The composite's counters (:cpp:class:`CompositeStatistics <gui_forms::CompositeStatistics>`): rules fired and
+         refused, commands run and refused, refused writes, part geometry
+         passes, drags committed and restored, and the look's compilations.
 
    :Events:
 
       **raised** : ``Event<const CompositeEvent&>``
-         The declared events, as they are raised.
+         Raised when the composite raises one of its declared events, with a
+         :cpp:class:`CompositeEvent <gui_forms::CompositeEvent>`: the event's name as written and its payload (null for
+         none).
 
    :Inherited:
 
@@ -59,19 +78,37 @@ gui_forms::CompositeControl
       :widths: 35 65
 
       * - :cpp:func:`initialize_control_tree <gui_forms::CompositeControl::initialize_control_tree>`
-        - Makes the children and their bindings (make_control calls it once, after construction).
+        - Makes the children and their bindings; ``make_control`` calls it once, after construction.
       * - :cpp:func:`perform <gui_forms::CompositeControl::perform>`
-        - Runs the command ``name`` (the path a part, a key, a semantic action and generated code share).
+        - Runs a command by name: the path a part, a key, an accessibility action and generated code share.
       * - :cpp:func:`command_enabled <gui_forms::CompositeControl::command_enabled>`
-        -  
+        - Whether a command is enabled now.
       * - :cpp:func:`bind_command <gui_forms::CompositeControl::bind_command>`
-        - Binds ``command`` to the command-kind property ``name``: the children that bind that property take it, and <invoke> runs it.
+        - Binds a :cpp:class:`Command <gui_forms::Command>` to a command-kind property: the children that bind that property take it, and the definition's ``<invoke>`` runs it.
       * - :cpp:func:`child <gui_forms::CompositeControl::child>`
-        - A child by its local ID (``title`` for ``@title``); null when none.
+        - A child by its local ID (``title`` for ``@title``), or null.
       * - :cpp:func:`part_bounds <gui_forms::CompositeControl::part_bounds>`
-        - A part's published bounds in local coordinates; empty when absent or not declared.
+        - A part's bounds in local coordinates; empty when the part is absent or not declared.
       * - :cpp:func:`presentational_value <gui_forms::CompositeControl::presentational_value>`
-        - A presentational property's value (null when unset).
+        - A presentational property's value, or null when unset.
+
+   .. seealso::
+
+      :cpp:class:`UserControl <gui_forms::UserControl>`
+         A control written in C++ alone.
+
+   .. rubric:: Notes
+
+   ``load_composite_definition`` reads, checks and compiles a document against
+   the base types and the child types it is given (:cpp:class:`CompositeChildType <gui_forms::CompositeChildType>`, made
+   with ``composite_child_type``), and returns the definition or, with none,
+   every refusal as one line in the compilers' form. Rule firings nest at most
+   ``maximum_composite_rule_depth`` deep, and custom-state and command-enabled
+   conditions at most ``maximum_composite_condition_depth``; a condition past
+   that depth reads as false. A look that reads only the engine's inputs and
+   built-in roles compiles once per definition; one that reads a theme's roles
+   compiles once per definition and theme, and the compilations of recently
+   shown themes are kept for reuse.
 
 
    .. rubric:: Construction
@@ -85,49 +122,70 @@ gui_forms::CompositeControl
 
    .. cpp:function:: const CompositeDefinition& definition() const noexcept
 
+      The definition the composite runs.
+
    .. cpp:function:: std::string_view type_name() const noexcept
+
+      The type's registered name, in snake case.
 
    .. cpp:function:: Control::Ptr slot() const
 
-      The slot a form's content goes into; null without one.
+      The control a form's content goes into, or null without one.
 
    .. cpp:function:: const CompositeStatistics& statistics() const noexcept
+
+      The composite's counters (:cpp:class:`CompositeStatistics <gui_forms::CompositeStatistics>`): rules fired and
+      refused, commands run and refused, refused writes, part geometry
+      passes, drags committed and restored, and the look's compilations.
 
 
    .. rubric:: Events
 
    .. cpp:function:: Event<const CompositeEvent&>& raised() noexcept
 
-      The declared events, as they are raised.
+      Raised when the composite raises one of its declared events, with a
+      :cpp:class:`CompositeEvent <gui_forms::CompositeEvent>`: the event's name as written and its payload (null for
+      none).
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void initialize_control_tree()
 
-      Makes the children and their bindings (make_control calls it once, after construction). Throws std::invalid_argument when a child is refused; the composite then has no children.
+      Makes the children and their bindings; ``make_control`` calls it once,
+      after construction. A refused child throws ``std::invalid_argument``, and
+      the composite then has no children.
 
    .. cpp:function:: bool perform(std::string_view name)
 
-      Runs the command ``name`` (the path a part, a key, a semantic action and generated code share). False, changing nothing, for an unknown command or one that is not enabled.
+      Runs a command by name: the path a part, a key, an accessibility action
+      and generated code share. False, changing nothing, for an unknown
+      command or one that is not enabled.
 
    .. cpp:function:: bool command_enabled(std::string_view name) const
 
+      Whether a command is enabled now.
+
    .. cpp:function:: void bind_command(std::string_view name, Command* command)
 
-      Binds ``command`` to the command-kind property ``name``: the children that bind that property take it, and <invoke> runs it. Borrowed: the command must outlive the composite or be unbound (a null command) first. Throws std::invalid_argument for an unknown property or one of another kind.
+      Binds a :cpp:class:`Command <gui_forms::Command>` to a command-kind property: the children that bind
+      that property take it, and the definition's ``<invoke>`` runs it. The
+      command is borrowed: it must outlive the composite, or be unbound with a
+      null command first. An unknown property, or one of another kind, throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: Control::Ptr child(std::string_view local_id) const
 
-      A child by its local ID (``title`` for ``@title``); null when none.
+      A child by its local ID (``title`` for ``@title``), or null.
 
    .. cpp:function:: Rect part_bounds(std::string_view part) const
 
-      A part's published bounds in local coordinates; empty when absent or not declared.
+      A part's bounds in local coordinates; empty when the part is absent or
+      not declared.
 
    .. cpp:function:: BindingValue presentational_value(std::string_view name) const
 
-      A presentational property's value (null when unset).
+      A presentational property's value, or null when unset.
 
 
    .. rubric:: Extension points
@@ -154,7 +212,11 @@ gui_forms::CompositeControl
 
       *Protected.*
 
-      Draws a part the definition declares ``paint="hook"``, called from on_paint in the part's place among the parts (the painter is the paint pass's, valid for the call). The default draws nothing. The composite repaints the hook as it repaints itself; a class drawing state of its own invalidates paint when that state changes. UI thread, inside the paint pass: it may not change properties, the tree or the layout.
+      Draws a part the definition declares with ``paint="hook"``, in the
+      part's place among the parts, with a :cpp:class:`CompositePaintHook <gui_forms::CompositePaintHook>` naming the
+      part, its bounds, its states and its text. The default draws nothing. A
+      typed class overrides it; it runs inside the paint pass and may not
+      change properties, the tree or the layout.
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 

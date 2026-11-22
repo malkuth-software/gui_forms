@@ -22,7 +22,7 @@ Buttons, links and command rows.
    * - :cpp:class:`CommandBar <gui_forms::CommandBar>`
      - A toolbar row of command buttons built from a list of items.
    * - :cpp:class:`WindowCapsule <gui_forms::WindowCapsule>`
-     - A window's controls as one capsule worked by gestures: double click or drag down the left half to maximise or minimise, the question mark for help, drag the right half to move, three clicks to close; the surface window manager's title bar controls and a program's own corner controls.
+     - A window's controls as one capsule in three sections, worked by gestures: maximise and minimise on the left, help in the middle, move on the right, and a close that takes three clicks.
 
 .. toctree::
    :hidden:

@@ -28,7 +28,7 @@ Flow, table, split, master/detail, responsive and scaled layout containers.
    * - :cpp:class:`ResponsiveTrackPanel <gui_forms::ResponsiveTrackPanel>`
      - A container that divides one axis into tracks which shrink, grow and collapse in an order you set.
    * - :cpp:class:`FormLayout <gui_forms::FormLayout>`
-     - Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.
+     - A form of labelled rows: a caption column beside a column of controls.
    * - :cpp:class:`ScaledPanel <gui_forms::ScaledPanel>`
      - A panel that places its children in a fixed design space and scales them with the panel.
    * - :cpp:class:`SplitContainer <gui_forms::SplitContainer>`

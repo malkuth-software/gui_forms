@@ -13,7 +13,12 @@ gui_forms::HelpBook
 
    ``#include <gui_forms/controls/help_book.hpp>`` (:src:`source <include/gui_forms/controls/help_book.hpp>`)
 
-   Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
+   The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images.
+
+   The book shows a :cpp:class:`HelpPageModel <gui_forms::HelpPageModel>` and scrolls vertically. It never opens a
+   link itself: it raises :cpp:func:`link_activated <gui_forms::HelpBook::link_activated>`, and its owner decides; a
+   :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>` handles topic and popup links and offers external ones to
+   the application. A :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>` docks a book beside a program's window.
 
    .. gf-preview:: controls/help_book
       :alt: A HelpBook as the stock specimen shows it, in the windows-professional theme.
@@ -23,17 +28,26 @@ gui_forms::HelpBook
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
       **page** : ``HelpPageModel``, read-only
+         The page shown.
 
       **close_visible** : ``bool``
+         Whether the close mark shows at the upper left, as in a docked book.
+         :cpp:func:`set_close_visible <gui_forms::HelpBook::set_close_visible>` changes it.
 
       **labels** : ``HelpBookLabels``
+         The words the book shows for its callouts and its close mark
+         (:cpp:class:`HelpBookLabels <gui_forms::HelpBookLabels>`: ``Note``, ``Tip``, ``Caution`` and ``Close help`` by
+         default), translated with the program's text. :cpp:func:`set_labels <gui_forms::HelpBook::set_labels>` changes
+         them.
 
       **focused_stop** : ``stxlib::Optional<std::size_t>``, read-only
-         The link or topic bar keyboard focus is on, as an index into the book's focus stops (links in reading order, bars among them), or none.
+         The link or topic bar keyboard focus is on, as an index into the book's
+         focus stops (links in reading order, bars among them), or none.
 
       **content_height** : ``double``, read-only
          The page's content height when laid out at the current width.
@@ -43,10 +57,17 @@ gui_forms::HelpBook
    :Events:
 
       **link_activated** : ``Event<HelpLinkActivation&>``
+         Raised when a link is activated (a click, Enter, or the accessibility
+         press), with a :cpp:class:`HelpLinkActivation <gui_forms::HelpLinkActivation>`: the page, the link's kind, target
+         and fragment, and its box in window coordinates, where a popup anchors.
+         A handler that acts sets ``handled``.
 
       **close_requested** : ``Event<>``
+         Raised when the user presses the close mark.
 
       **section_toggled** : ``Event<const HelpSectionToggle&>``
+         Raised when a collapsible section is opened or closed, with a
+         :cpp:class:`HelpSectionToggle <gui_forms::HelpSectionToggle>`.
 
    :Inherited:
 
@@ -61,11 +82,11 @@ gui_forms::HelpBook
       :widths: 35 65
 
       * - :cpp:func:`show_page <gui_forms::HelpBook::show_page>`
-        - Shows :cpp:func:`page <gui_forms::HelpBook::page>` scrolled to ``anchor`` (a heading's anchor or a listed control's stable ID), or to the top.
+        - Shows a page, scrolled to an anchor (a heading's anchor or a listed control's stable ID) or to the top.
       * - :cpp:func:`show_record <gui_forms::HelpBook::show_record>`
-        - Shows record ``stable_id`` of ``section`` (build_help_page).
+        - Shows a record of a :cpp:class:`HelpBookSection <gui_forms::HelpBookSection>` by its stable ID, through ``build_help_page``; false, changing nothing, when the section has no such record.
       * - :cpp:func:`scroll_to_anchor <gui_forms::HelpBook::scroll_to_anchor>`
-        - Scrolls so the anchored block is at the top, opening the sections around it.
+        - Scrolls so the anchored block is at the top, opening the sections around it; false when no block has the anchor.
       * - :cpp:func:`section_open <gui_forms::HelpBook::section_open>`
         -  
       * - :cpp:func:`mark_visited <gui_forms::HelpBook::mark_visited>`
@@ -73,29 +94,52 @@ gui_forms::HelpBook
       * - :cpp:func:`visited <gui_forms::HelpBook::visited>`
         -  
       * - :cpp:func:`move_focus <gui_forms::HelpBook::move_focus>`
-        - Moves keyboard focus to the next (or previous) stop; false past the end.
+        - Moves keyboard focus to the next or previous stop; false past the end.
       * - :cpp:func:`activate_link <gui_forms::HelpBook::activate_link>`
-        - Follows link ``link`` (an index into page().links) as a click would.
+        - Follows a link of the page, by its index, as a click would.
       * - :cpp:func:`block_top <gui_forms::HelpBook::block_top>`
-        - The block's top in content coordinates, or none when it is hidden.
+        - A block's top in content coordinates, or none when it is hidden.
       * - :cpp:func:`link_bounds <gui_forms::HelpBook::link_bounds>`
-        - The link's box in local coordinates (scroll applied), or none when it is not laid out.
+        - A link's box in local coordinates, scroll applied, or none when it is not laid out.
       * - :cpp:func:`topic_bar_bounds <gui_forms::HelpBook::topic_bar_bounds>`
         - The topic bar of section ``section`` in local coordinates, or none.
       * - :cpp:func:`layout_for_print <gui_forms::HelpBook::layout_for_print>`
-        - Printing (help system study, section 8).
+        - Lays the page out for printing at a width, with every section open, no close mark and no paper ground, and links followed by their target's title in brackets; returns the content height.
       * - :cpp:func:`print_break_positions <gui_forms::HelpBook::print_break_positions>`
-        - Where the print layout may break pages: the top of every line, in content coordinates, ascending.
+        - Fills a list with the places the print layout may break pages: the top of every line, in content coordinates, ascending.
       * - :cpp:func:`paint_print_band <gui_forms::HelpBook::paint_print_band>`
-        - Paints the print layout's content from ``top`` (content coordinates) to ``top + height`` with its top at ``origin`` on ``painter``, clipped to that band.
+        - Paints a band of the print layout, from a top to a height in content coordinates, at an origin on a painter, clipped to the band.
       * - :cpp:func:`set_section_open <gui_forms::HelpBook::set_section_open>`
-        -  
+        - Opens or closes a collapsible section; :cpp:func:`section_open <gui_forms::HelpBook::section_open>` says whether one is open.
       * - :cpp:func:`set_images <gui_forms::HelpBook::set_images>`
-        -  
+        - Sets the PNG resources a body may show (``![alt](name.png)``), as :cpp:class:`HelpBookImage <gui_forms::HelpBookImage>` records: the name in the body, the registered image and its size.
       * - :cpp:func:`set_highlight <gui_forms::HelpBook::set_highlight>`
-        - Words to mark with the search highlight, folded (fold_help_text).
+        - Sets the words to mark with the search highlight, folded with ``fold_help_text``.
       * - :cpp:func:`set_visited <gui_forms::HelpBook::set_visited>`
-        - Topic targets shown as visited links.
+        - Sets the topic targets shown as visited links; :cpp:func:`mark_visited <gui_forms::HelpBook::mark_visited>` adds one and :cpp:func:`visited <gui_forms::HelpBook::visited>` asks about one.
+
+   .. seealso::
+
+      :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
+         A book with navigation, search and popups.
+
+      :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>`
+         A program's help, docked and opened by F1.
+
+      :cpp:class:`MarkdownDocument <gui_forms::MarkdownDocument>`
+         Markdown text parsed into blocks.
+
+   .. rubric:: Notes
+
+   Tab and Shift+Tab move through the links and topic bars (past the last,
+   focus leaves the book), Enter and Space follow a link or toggle a section,
+   and the arrows, Page Up, Page Down, Home and End scroll.
+
+   The paper's look is the theme's: the parts ``paper``, ``title``, ``rule``,
+   ``body`` and ``close``, and the topic items' ``topic_bar`` and
+   ``expander``. Until a theme gives rules for them, they are drawn with the
+   tool-tip family (the paper), the menu-item family (topic bars), the card
+   family (callouts) and the link families.
 
 
    .. rubric:: Construction
@@ -107,19 +151,32 @@ gui_forms::HelpBook
 
    .. cpp:function:: const HelpPageModel& page() const& noexcept
 
+      The page shown.
+
    .. cpp:function:: bool close_visible() const noexcept
+
+      Whether the close mark shows at the upper left, as in a docked book.
+      :cpp:func:`set_close_visible <gui_forms::HelpBook::set_close_visible>` changes it.
 
    .. cpp:function:: void set_close_visible(bool visible)
 
-      Whether the close "x" shows at the upper left (the docked book).
+      Sets :cpp:func:`close_visible <gui_forms::HelpBook::close_visible>`; see the property's description above.
 
    .. cpp:function:: const HelpBookLabels& labels() const noexcept
 
+      The words the book shows for its callouts and its close mark
+      (:cpp:class:`HelpBookLabels <gui_forms::HelpBookLabels>`: ``Note``, ``Tip``, ``Caution`` and ``Close help`` by
+      default), translated with the program's text. :cpp:func:`set_labels <gui_forms::HelpBook::set_labels>` changes
+      them.
+
    .. cpp:function:: void set_labels(HelpBookLabels labels)
+
+      Sets :cpp:func:`labels <gui_forms::HelpBook::labels>`; see the property's description above.
 
    .. cpp:function:: stxlib::Optional<std::size_t> focused_stop() const noexcept
 
-      The link or topic bar keyboard focus is on, as an index into the book's focus stops (links in reading order, bars among them), or none.
+      The link or topic bar keyboard focus is on, as an index into the book's
+      focus stops (links in reading order, bars among them), or none.
 
    .. cpp:function:: double content_height() const noexcept
 
@@ -132,24 +189,39 @@ gui_forms::HelpBook
 
    .. cpp:function:: Event<HelpLinkActivation&>& link_activated() noexcept
 
+      Raised when a link is activated (a click, Enter, or the accessibility
+      press), with a :cpp:class:`HelpLinkActivation <gui_forms::HelpLinkActivation>`: the page, the link's kind, target
+      and fragment, and its box in window coordinates, where a popup anchors.
+      A handler that acts sets ``handled``.
+
    .. cpp:function:: Event<>& close_requested() noexcept
 
+      Raised when the user presses the close mark.
+
    .. cpp:function:: Event<const HelpSectionToggle&>& section_toggled() noexcept
+
+      Raised when a collapsible section is opened or closed, with a
+      :cpp:class:`HelpSectionToggle <gui_forms::HelpSectionToggle>`.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void show_page(HelpPageModel page, std::string_view anchor = {})
 
-      Shows :cpp:func:`page <gui_forms::HelpBook::page>` scrolled to ``anchor`` (a heading's anchor or a listed control's stable ID), or to the top. Collapsible sections take their initial state, except one holding the anchor, which opens.
+      Shows a page, scrolled to an anchor (a heading's anchor or a listed
+      control's stable ID) or to the top. Collapsible sections take their
+      initial state, except one holding the anchor, which opens.
 
    .. cpp:function:: bool show_record(const HelpBookSection& section, std::string_view stable_id, std::string_view anchor = {})
 
-      Shows record ``stable_id`` of ``section`` (build_help_page). Returns false, changing nothing, when the section has no such record.
+      Shows a record of a :cpp:class:`HelpBookSection <gui_forms::HelpBookSection>` by its stable ID, through
+      ``build_help_page``; false, changing nothing, when the section has no such
+      record.
 
    .. cpp:function:: bool scroll_to_anchor(std::string_view anchor)
 
-      Scrolls so the anchored block is at the top, opening the sections around it. Returns false when no block has the anchor.
+      Scrolls so the anchored block is at the top, opening the sections around
+      it; false when no block has the anchor.
 
    .. cpp:function:: bool section_open(std::size_t section) const
 
@@ -159,19 +231,20 @@ gui_forms::HelpBook
 
    .. cpp:function:: bool move_focus(bool forward)
 
-      Moves keyboard focus to the next (or previous) stop; false past the end.
+      Moves keyboard focus to the next or previous stop; false past the end.
 
    .. cpp:function:: bool activate_link(std::size_t link)
 
-      Follows link ``link`` (an index into page().links) as a click would.
+      Follows a link of the page, by its index, as a click would.
 
    .. cpp:function:: stxlib::Optional<double> block_top(std::size_t block) const noexcept
 
-      The block's top in content coordinates, or none when it is hidden.
+      A block's top in content coordinates, or none when it is hidden.
 
    .. cpp:function:: stxlib::Optional<Rect> link_bounds(std::size_t link) const noexcept
 
-      The link's box in local coordinates (scroll applied), or none when it is not laid out.
+      A link's box in local coordinates, scroll applied, or none when it is
+      not laid out. :cpp:func:`topic_bar_bounds <gui_forms::HelpBook::topic_bar_bounds>` gives a section's topic bar.
 
    .. cpp:function:: stxlib::Optional<Rect> topic_bar_bounds(std::size_t section) const noexcept
 
@@ -179,27 +252,41 @@ gui_forms::HelpBook
 
    .. cpp:function:: double layout_for_print(double width)
 
-      Printing (help system study, section 8). Lays the page out at ``width`` with every section open, no close and no paper ground, links followed by their target's title in brackets; returns the content height. The print layout is kept apart from the screen's.
+      Lays the page out for printing at a width, with every section open, no
+      close mark and no paper ground, and links followed by their target's
+      title in brackets; returns the content height. The print layout is kept
+      apart from the screen's.
 
    .. cpp:function:: void print_break_positions(std::vector<double>& positions) const
 
-      Where the print layout may break pages: the top of every line, in content coordinates, ascending. Filled from the last layout_for_print.
+      Fills a list with the places the print layout may break pages: the top
+      of every line, in content coordinates, ascending.
 
    .. cpp:function:: void paint_print_band(Painter& painter, Point origin, double top, double height) const
 
-      Paints the print layout's content from ``top`` (content coordinates) to ``top + height`` with its top at ``origin`` on ``painter``, clipped to that band.
+      Paints a band of the print layout, from a top to a height in content
+      coordinates, at an origin on a painter, clipped to the band.
 
    .. cpp:function:: void set_section_open(std::size_t section, bool open)
 
+      Opens or closes a collapsible section; :cpp:func:`section_open <gui_forms::HelpBook::section_open>` says whether one
+      is open.
+
    .. cpp:function:: void set_images(std::vector<HelpBookImage> images)
+
+      Sets the PNG resources a body may show (``![alt](name.png)``), as
+      :cpp:class:`HelpBookImage <gui_forms::HelpBookImage>` records: the name in the body, the registered image and
+      its size.
 
    .. cpp:function:: void set_highlight(std::vector<std::string> folded_words)
 
-      Words to mark with the search highlight, folded (fold_help_text).
+      Sets the words to mark with the search highlight, folded with
+      ``fold_help_text``.
 
    .. cpp:function:: void set_visited(std::vector<std::string> targets)
 
-      Topic targets shown as visited links.
+      Sets the topic targets shown as visited links; :cpp:func:`mark_visited <gui_forms::HelpBook::mark_visited>` adds one
+      and :cpp:func:`visited <gui_forms::HelpBook::visited>` asks about one.
 
 
    .. rubric:: Extension points

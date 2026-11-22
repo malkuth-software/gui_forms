@@ -22,13 +22,13 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    * - :cpp:class:`TrackBar <gui_forms::TrackBar>`
      - A slider the user drags, clicks or steps with the keyboard to pick a value in a range.
    * - :cpp:class:`ValueBar <gui_forms::ValueBar>`
-     - Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.
+     - A value bar: one number shown as a fill (the slider form) or a field (the number form), changed by scrubbing, typing and stepping, as in Blender.
    * - :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>`
      - A text field for a number, with up and down buttons that step it.
    * - :cpp:class:`DomainUpDown <gui_forms::DomainUpDown>`
      - A text field with up and down buttons that steps through a list of strings.
    * - :cpp:class:`ColorPicker <gui_forms::ColorPicker>`
-     - Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.
+     - A colour picker: a saturation and brightness field for the current hue, a vertical hue track, an optional alpha track and a swatch of the value.
    * - :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>`
      - A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
    * - :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>`
@@ -38,7 +38,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    * - :cpp:class:`PropertyList <gui_forms::PropertyList>`
      - A scrolling list of named settings in collapsible groups, each with a value and an optional editor.
    * - :cpp:class:`Dial <gui_forms::Dial>`
-     - Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.
+     - A rotary knob: a value in a range, set by turning.
    * - :cpp:class:`UpDownBase <gui_forms::UpDownBase>`
      - The shared base of the up-down controls: a text field with up and down buttons.
 

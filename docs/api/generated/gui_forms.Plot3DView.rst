@@ -13,7 +13,14 @@ gui_forms::Plot3DView
 
    ``#include <gui_forms/controls/plot3d_view.hpp>`` (:src:`source <include/gui_forms/controls/plot3d_view.hpp>`)
 
-   Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout.
+   A 3D plot: surfaces, lines and scatters in a box with back panes, a grid and ticks, turned, zoomed and panned by the user.
+
+   The plot shows a ``plots::Plot3DScene``, drawn on the CPU into one picture,
+   with its tick labels, axis titles and the hovered point's readout drawn as
+   themed text over it. The picture is kept: it is rendered again only when the
+   view, the size, the scale, the items or the theme's colours change, once at
+   one sample per pixel while a gesture moves it and again at 2 by 2 samples
+   when the gesture ends. Use a :cpp:class:`PlotView <gui_forms::PlotView>` for two-dimensional data.
 
    .. gf-preview:: controls/plot3d_view
       :alt: A Plot3DView as the stock specimen shows it, in the windows-professional theme.
@@ -23,40 +30,48 @@ gui_forms::Plot3DView
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **show_panes** : ``bool``
+      **show_panes** : ``bool``, default ``true``
          Whether the three back panes of the box are filled.
 
-      **show_grid** : ``bool``
+      **show_grid** : ``bool``, default ``true``
          Whether the grid is drawn on the back panes at the ticks.
 
-      **show_axes** : ``bool``
+      **show_axes** : ``bool``, default ``true``
          Whether the axis lines, ticks, tick labels and axis titles are drawn.
 
-      **wheel_zoom** : ``bool``
-         Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
+      **wheel_zoom** : ``bool``, default ``true``
+         Whether the wheel zooms about the pointer.
 
-      **labels_along_axis** : ``bool``
-         Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+      **labels_along_axis** : ``bool``, default ``false``
+         Whether a steep axis's title is laid along its edge as projected, turned
+         at that angle but kept reading left to right; otherwise the titles face
+         the screen.
 
       **scene** : ``plots::Plot3DScene``, read-only
-         The scene as drawn last (items, limits, labels and statistics).
+         The scene as drawn last: its items, limits, labels and statistics.
 
       **camera** : ``plots::Plot3DCamera``
-         -- view ------------------------------------------------------------------
+         The camera (``plots::Plot3DCamera``). :cpp:func:`set_camera <gui_forms::Plot3DView::set_camera>` takes a new one under
+         ``plots::Plot3DScene``'s rules, returns whether it was taken, and raises
+         :cpp:func:`camera_changed <gui_forms::Plot3DView::camera_changed>` when it changed.
 
       **hover** : ``plots::Plot3DHit``, read-only
-         The point under the pointer as last hovered, and its readout.
+         The point under the pointer as last hovered (``plots::Plot3DHit``).
 
       **readout** : ``std::string``, read-only
+         The hovered point's coordinates as shown at the plot's lower left, or
+         the angles while a drag turns the box.
 
       **plot_bounds** : ``Rect``, read-only
          The plot rectangle, in local coordinates.
 
       **picture_renders** : ``std::uint64_t``, read-only
-         Pictures rendered (diagnostics and tests: a repaint that changes nothing renders none).
+         How many pictures have been rendered; a repaint that changes nothing
+         renders none.
 
       **parts** : ``Parts``, read-only
 
@@ -65,10 +80,15 @@ gui_forms::Plot3DView
    :Events:
 
       **hovered** : ``Event<const plots::Plot3DHit&>``
+         Raised when the point under the pointer changes, with what lies there;
+         a hit of none when the pointer leaves the data.
 
       **picked** : ``Event<const plots::Plot3DHit&>``
+         Raised on a click that did not drag, with what lies under it.
 
       **camera_changed** : ``Event<const plots::Plot3DCamera&>``
+         Raised once per change of the camera by a gesture, a key, :cpp:func:`set_camera <gui_forms::Plot3DView::set_camera>`
+         or :cpp:func:`reset_view <gui_forms::Plot3DView::reset_view>`.
 
    :Inherited:
 
@@ -81,27 +101,53 @@ gui_forms::Plot3DView
       :widths: 35 65
 
       * - :cpp:func:`add_surface <gui_forms::Plot3DView::add_surface>`
-        - -- items: copied into the scene (Plot3DScene's rules and failures) -------
+        - Copies a surface (``plots::Plot3DSurfaceSpec``) into the scene and returns its item ID, under ``plots::Plot3DScene``'s rules and failures.
       * - :cpp:func:`add_line <gui_forms::Plot3DView::add_line>`
         -  
       * - :cpp:func:`add_scatter <gui_forms::Plot3DView::add_scatter>`
         -  
       * - :cpp:func:`remove_item <gui_forms::Plot3DView::remove_item>`
-        -  
+        - Removes an item by its ID; false for an unknown one.
       * - :cpp:func:`clear_items <gui_forms::Plot3DView::clear_items>`
-        -  
+        - Removes every item.
       * - :cpp:func:`reset_view <gui_forms::Plot3DView::reset_view>`
-        - Back to the default angles, zoom and target (the projection stays).
+        - Returns to the default angles, zoom and target; the projection stays.
       * - :cpp:func:`axis_title <gui_forms::Plot3DView::axis_title>`
-        -  
+        - An axis's title; empty for an axis outside ``plots::Plot3DAxis``.
       * - :cpp:func:`hit_at <gui_forms::Plot3DView::hit_at>`
-        - -- picking ----------------------------------------------------------------- What lies under a local point (from the control's top left) in the kept picture.
+        - What lies under a local point (from the control's top left) in the kept picture.
       * - :cpp:func:`plot3d_view_property_entries <gui_forms::Plot3DView::plot3d_view_property_entries>`
         -  
       * - :cpp:func:`set_axis_title <gui_forms::Plot3DView::set_axis_title>`
-        - An axis's title, drawn beside its ticks; empty draws none.
+        - Sets an axis's title, drawn beside its ticks; empty draws none.
       * - :cpp:func:`set_box_aspect <gui_forms::Plot3DView::set_box_aspect>`
-        - The box's side ratios (positive and finite; std::invalid_argument otherwise); 4:4:3 by default.
+        - Sets the box's side ratios, 4:4:3 by default.
+
+   .. seealso::
+
+      :cpp:class:`PlotView <gui_forms::PlotView>`
+         A two-dimensional plot.
+
+   .. rubric:: Notes
+
+   With the pointer, a left drag turns the box (azimuth across, elevation up
+   and down), a right drag zooms, a middle drag or Shift with a left drag pans,
+   the wheel zooms about the pointer (while :cpp:member:`wheel_zoom <gui_forms::Plot3DView::wheel_zoom>` is set), and a double
+   click resets the view. The plot is a tab stop with a focus ring: the arrows
+   turn the box 5 degrees as a drag that way does, Shift with the arrows pans,
+   ``+`` and ``-`` zoom, Home resets, and P switches between perspective and
+   orthographic projection. The events are raised on the UI thread after the
+   change they report.
+
+   The point under the pointer is looked up per pixel in the kept picture,
+   exactly on interpolated surfaces, and shown as the readout. Data items have
+   no tooltips.
+
+   To assistive technology the plot is one figure, named by its accessible
+   name, described by its items and view, with the readout as its value. Its
+   parts are ``plot``, ``picture`` (drawn as the image role's raster),
+   ``x_axis``, ``y_axis``, ``z_axis``, ``readout`` and ``focus``; the labels and
+   readout are text roles.
 
 
    .. rubric:: Construction
@@ -125,29 +171,36 @@ gui_forms::Plot3DView
 
    .. cpp:member:: bool wheel_zoom
 
-      Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
+      Whether the wheel zooms about the pointer.
 
    .. cpp:member:: bool labels_along_axis
 
-      Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+      Whether a steep axis's title is laid along its edge as projected, turned
+      at that angle but kept reading left to right; otherwise the titles face
+      the screen.
 
    .. cpp:function:: const plots::Plot3DScene& scene() const noexcept
 
-      The scene as drawn last (items, limits, labels and statistics).
+      The scene as drawn last: its items, limits, labels and statistics.
 
    .. cpp:function:: const plots::Plot3DCamera& camera() const noexcept
 
-      -- view ------------------------------------------------------------------
+      The camera (``plots::Plot3DCamera``). :cpp:func:`set_camera <gui_forms::Plot3DView::set_camera>` takes a new one under
+      ``plots::Plot3DScene``'s rules, returns whether it was taken, and raises
+      :cpp:func:`camera_changed <gui_forms::Plot3DView::camera_changed>` when it changed.
 
    .. cpp:function:: bool set_camera(const plots::Plot3DCamera& camera)
 
-      Takes the camera (Plot3DScene::set_camera); raises camera_changed when it changed.
+      Sets :cpp:func:`camera <gui_forms::Plot3DView::camera>`; see the property's description above.
 
    .. cpp:function:: const plots::Plot3DHit& hover() const noexcept
 
-      The point under the pointer as last hovered, and its readout.
+      The point under the pointer as last hovered (``plots::Plot3DHit``).
 
    .. cpp:function:: const std::string& readout() const& noexcept
+
+      The hovered point's coordinates as shown at the plot's lower left, or
+      the angles while a drag turns the box.
 
    .. cpp:function:: Rect plot_bounds() const noexcept
 
@@ -155,7 +208,8 @@ gui_forms::Plot3DView
 
    .. cpp:function:: std::uint64_t picture_renders() const noexcept
 
-      Pictures rendered (diagnostics and tests: a repaint that changes nothing renders none).
+      How many pictures have been rendered; a repaint that changes nothing
+      renders none.
 
    .. cpp:function:: Parts parts() const
 
@@ -166,16 +220,26 @@ gui_forms::Plot3DView
 
    .. cpp:function:: Event<const plots::Plot3DHit&>& hovered() noexcept
 
+      Raised when the point under the pointer changes, with what lies there;
+      a hit of none when the pointer leaves the data.
+
    .. cpp:function:: Event<const plots::Plot3DHit&>& picked() noexcept
 
+      Raised on a click that did not drag, with what lies under it.
+
    .. cpp:function:: Event<const plots::Plot3DCamera&>& camera_changed() noexcept
+
+      Raised once per change of the camera by a gesture, a key, :cpp:func:`set_camera <gui_forms::Plot3DView::set_camera>`
+      or :cpp:func:`reset_view <gui_forms::Plot3DView::reset_view>`.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: plots::Plot3DItemId add_surface(const plots::Plot3DSurfaceSpec& spec)
 
-      -- items: copied into the scene (Plot3DScene's rules and failures) -------
+      Copies a surface (``plots::Plot3DSurfaceSpec``) into the scene and returns
+      its item ID, under ``plots::Plot3DScene``'s rules and failures.
+      :cpp:func:`add_line <gui_forms::Plot3DView::add_line>` and :cpp:func:`add_scatter <gui_forms::Plot3DView::add_scatter>` add a line and a scatter the same way.
 
    .. cpp:function:: plots::Plot3DItemId add_line(const plots::Plot3DLineSpec& spec)
 
@@ -183,27 +247,36 @@ gui_forms::Plot3DView
 
    .. cpp:function:: bool remove_item(plots::Plot3DItemId item)
 
+      Removes an item by its ID; false for an unknown one.
+
    .. cpp:function:: void clear_items()
+
+      Removes every item.
 
    .. cpp:function:: bool reset_view()
 
-      Back to the default angles, zoom and target (the projection stays).
+      Returns to the default angles, zoom and target; the projection stays.
 
    .. cpp:function:: std::string_view axis_title(plots::Plot3DAxis axis) const noexcept
 
+      An axis's title; empty for an axis outside ``plots::Plot3DAxis``.
+
    .. cpp:function:: plots::Plot3DHit hit_at(Point local_point) const
 
-      -- picking ----------------------------------------------------------------- What lies under a local point (from the control's top left) in the kept picture.
+      What lies under a local point (from the control's top left) in the kept
+      picture.
 
    .. cpp:function:: static const std::array<PropertyEntry, plot3d_view_property_count>& plot3d_view_property_entries() noexcept
 
    .. cpp:function:: void set_axis_title(plots::Plot3DAxis axis, std::string_view title)
 
-      An axis's title, drawn beside its ticks; empty draws none. An axis outside Plot3DAxis is refused with invalid_argument, and reads as empty.
+      Sets an axis's title, drawn beside its ticks; empty draws none. An axis
+      outside ``plots::Plot3DAxis`` throws ``std::invalid_argument``.
 
    .. cpp:function:: void set_box_aspect(const std::array<double, 3>& aspect)
 
-      The box's side ratios (positive and finite; std::invalid_argument otherwise); 4:4:3 by default.
+      Sets the box's side ratios, 4:4:3 by default. A ratio that is not
+      positive and finite throws ``std::invalid_argument``.
 
 
    .. rubric:: Extension points

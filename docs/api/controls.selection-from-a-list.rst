@@ -34,7 +34,7 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    * - :cpp:class:`BreadcrumbTrail <gui_forms::BreadcrumbTrail>`
      - A location bar that shows the path to the current place as clickable segments.
    * - :cpp:class:`LookupComboBox <gui_forms::LookupComboBox>`
-     - Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.
+     - A multi-column lookup: a drop-down field that chooses a row by its key and shows one of the row's cells, with a list of every column under headers when open.
    * - :cpp:class:`ListControl <gui_forms::ListControl>`
      - The shared base of the list controls.
 

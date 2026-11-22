@@ -1,8 +1,9 @@
 # Build from source
 
 [Installation](../user/install) gives the shortest route to an installed SDK. This page
-covers the full build: options, dependencies, tests, the demonstration
-programs, Windows build constraints and the compiler cache that CI publishes.
+covers the full build: options, dependencies, the test cache the tests build
+against, the demonstration programs, Windows build constraints and the
+compiler cache that CI publishes.
 All commands run from the repository root.
 
 ## Standard native build
@@ -40,9 +41,11 @@ cmake --build build --parallel
 
 On macOS the result includes `build/GUI.Forms Gallery.app`; open it with
 `open "build/GUI.Forms Gallery.app"`. On Windows the executable is
-`build/GUI.Forms Gallery.exe` with a `fonts/` directory beside it. On Linux
-the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
-(`xvfb-run` works for tests).
+`build/GUI.Forms Gallery.exe`, with a `fonts/` directory beside it that
+holds the fonts' licences and attribution only: the program reads its faces
+from the font pack compiled into it. On Linux the gallery needs
+`-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display (a virtual one from
+`xvfb-run` works).
 
 ## Options
 
@@ -61,14 +64,22 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
+| `GUI_FORMS_BUILD_C_ABI` | ON | Build the C ABI library, `gui_forms_abi` (`cmake/CAbi.cmake`) |
+| `GUI_FORMS_BUILD_MODULE` | OFF | Build and install the `gui_forms` C++20 module (`import gui_forms;`, `GUIForms::Module`); needs CMake 3.28 or later with Ninja or a Visual Studio generator (`cmake/Module.cmake`) |
+| `GUI_FORMS_ENABLE_WAYLAND_PRESENT` | OFF | Build the Wayland `wl_shm` presentation path; there is no Wayland host |
+| `GUI_FORMS_REFERENCE_ARITHMETIC` | OFF | No floating-point contraction in first-party code, so every CPU gives the same pixels; `tools/ci_build.py` turns it on for the tree the tests build against, and deployment builds leave it off |
+| `GUI_FORMS_LTO` | ON | Link Release builds with ThinLTO where the pinned toolchain's linker is lld |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
+| `GUI_FORMS_WARNINGS_AS_ERRORS` | OFF | Fail the build on any compiler warning in the library and its programs; `tools/ci_build.py`, and so every CI build, turns it on |
 | `GUI_FORMS_CHECKED_BORROWS` | OFF | Check borrowed views against their owners; the sanitizer tree (`ci_build.py --sanitize`) turns it on. It changes the borrowed types, so a program and its consumers are built one way |
 | `GUI_FORMS_BUILD_FORM_COMPILER` | ON (OFF when cross-compiling) | Build and install the form compiler that `gui_forms_add_form` runs |
 | `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_TEST_CACHE` | Build the Gallery model (the control specimen catalogue), which the tests read |
 | `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | OFF | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components); `tools/build_sdk.py --features all` sets them |
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
+| `GUI_FORMS_EFFECT_VERIFY_REQUIRED` | OFF | Fail the configure when effect programs cannot be verified, instead of building them unverified; Linux CI sets it |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
+| `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT` | ON | Let a Windows program that calls `host::accept_automation_environment` turn on automation from `GUI_FORMS_WINDOWS_AUTOMATION=1`; turn it off for a build that must stay closed to the variable |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
 `GUI_FORMS_BUILD_TEXT_MASKS` options build development-only text services and
@@ -91,13 +102,13 @@ checkout, whose edits each build brings into the package. The package holds:
 | `stx_skia/` | the CPU renderer, a pruned CPU Skia derivative, with its contract tests in stx's own CI |
 | `third_party/unicode/` | the Unicode data |
 | `stx_zlib/`, `stx_png/`, `stx_conv/`, `stx_rtf2md/`, `stx_vorbis/` | the first-party compression, PNG, CONV interpolation, rich-text and Ogg Vorbis libraries |
+| `stx_raster3d/` | the first-party 3D rasterizer behind `Plot3DView` |
+| STXlib | built by stx at the commit its own `stxlib.lock` names and installed beside the other packages: the text stack (`stxlib::glyphs`, `stxlib::textlayout`, `stxlib::markdown`), the shared state (`stxlib::state`, a static archive) and the algorithms (`stxlib::algorithms`) |
 
-The row height index of the virtual row views adapts `stx_btree`'s
-header-only sequence tree, taken from stx_auxlib at the commit
-`stx_auxlib.lock` names (`cmake/StxAuxlib.cmake`; a local checkout replaces
-it with `FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB`). Nothing else of
-stx_auxlib is built. STXlib, which replaces stx_auxlib, is planned to take
-this over before 1.0.
+`stx.lock` is the only pin for both stx and STXlib. The row height index of
+the virtual row views (`VirtualRowsView`, `TreeListView`, `DataGridView`) is
+an adapter over STXlib's `RowHeightIndex`, the compiled facade over
+`stx_btree`'s sequence tree (`src/controls/collections/row_height_index.hpp`).
 
 Audio pulls miniaudio through `FetchContent` with digest checks. No package
 manager is consulted at configure time.
@@ -174,61 +185,28 @@ category is knowingly hidden: what a GUI.Forms work item still queued in
 libdispatch at exit owns. When a new macOS release adds reports, name the
 internal allocation site that holds them, never a library that calls into
 GUI.Forms or a function on the path from it, and check that the deliberate
-leaks above are still reported.
-On 2026-10-28 two application start-up sites were added after one run in 21
-of `gui_forms_application_native_tests` reported them:
+leaks above are still reported. Two application start-up sites were added
+later, after a native application test reported them once in 21 runs:
 `_NSInitializeAppContext` (the HIToolbox application object made by
 `-[NSApplication init]`) and `aeInitializeFromHIToolbox` (AppleEvents
-set-up on the first event fetch). Leaks added in `main` and in a
-window-close callback run from the main dispatch queue inside the AppKit run
-loop were still reported.
+set-up on the first event fetch).
 
 The baseline's first run also found a GUI.Forms leak, now fixed: a
 completed `DispatchWork` kept its callable, because moving a
 `std::function` need not empty the source (libc++ copies a callable held in
 its small buffer), so a callable that owned a holder of its own
-`DispatchOperation` formed a cycle (`gui_forms_macos_host_close_tests`).
-`gui_forms_owned_event_tests` skips its allocation-balance assertion under
-AddressSanitizer on macOS as on Windows: the pinned libc++ dylib's
-allocations do not reach the test's replacement `operator new` (-24000
-blocks over its 1000 buttons), and LeakSanitizer found nothing there.
-`gui_forms_macos_idle_visibility_tests` exceeded its own 15-second limit
-once while LeakSanitizer scanned at exit; rerun it alone before treating
-that as a finding.
+`DispatchOperation` formed a cycle.
 
-`tools/run_sanitizer_suite.sh <build-directory>` builds the toolkit, the
-Gallery and every test with AddressSanitizer and UndefinedBehaviorSanitizer
-(`-fsanitize=address,undefined -fno-omit-frame-pointer`, RelWithDebInfo)
-and runs the whole suite. Use a build directory of its own; sanitized
-objects do not mix with a normal build. It is a local procedure; CI does not
-run it.
+The tests named in these runs, and the notes on running them under the
+sanitizers (tests that skip an allocation-balance check under
+AddressSanitizer, tests that exceed their time limit under parallel load),
+belong to [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests).
+This repository keeps the suppression files, `tools/sanitizer/lsan.supp` and
+`tools/sanitizer/tsan.supp`, because the sanitized tree is built here.
 
-```sh
-sh tools/run_sanitizer_suite.sh .build/sanitize
-```
-
-Both sanitizers link on the pinned Windows toolchain (MSYS2 CLANG64, LLVM
-22.1.8). The defaults are the Windows native configuration, and further
-CMake arguments after the directory reach the first configure; only the
-Windows configuration has been run so far. Its `-DCMAKE_<LANG>_FLAGS`
-replace the macOS toolchain flags as described above, so on macOS use
-`ci_build.py --sanitize`. ASan stops a test at its first
-report. UBSan reports without stopping, so a UBSan report does not fail its
-test: the script reads ctest's `Testing/Temporary/LastTest.log`, prints
-every sanitizer report it finds and exits non-zero on a report or a failed
-test. LeakSanitizer is not available on Windows, so leaks are not checked
-there.
-
-On a Windows 11 machine with 8 cores, a full sanitized build took 30 to 40
-minutes (6 and 3 compile jobs) and the suite about 140 seconds, three tests
-at a time (`GUI_FORMS_SANITIZER_JOBS`, default 3). Some sanitized tests run
-much longer than normal (`gui_forms_windows_gdi_compat_shim_tests` took 85
-seconds), and a test that overlaps them can exceed its own fixed timeout.
-`gui_forms_live_surface_idle_wake_tests` (15-second limit) passes alone in
-about 0.1 seconds, takes 4.5 to 7 seconds while the shim test runs (about 5
-seconds in a normal build too) and timed out once. Rerun a test that fails
-only under parallel load on its own (`ctest --test-dir <dir> -R <name>`)
-before treating it as a finding.
+On Windows, AddressSanitizer and UndefinedBehaviorSanitizer both link on the
+pinned toolchain (MSYS2 CLANG64, LLVM 22.1.8). The MinGW runtime has no
+LeakSanitizer, so leaks are not checked there.
 
 ## ThreadSanitizer
 
@@ -239,17 +217,21 @@ Linux and macOS. The MinGW runtime on Windows has no ThreadSanitizer, so the
 procedure below does not run there.
 
 ```sh
-python3 -B tools/abi_tsan.py [--jobs N] [--tests REGEX]
+python3 -B tools/abi_tsan.py [--set all|c_abi|tsan] [--jobs N] [--tests REGEX] [--skip-labels REGEX]
 ```
 
 It configures `.build/native-<host>-<arch>/gui-forms-tsan` with the toolkit's
 usual options and `-fsanitize=thread -fno-omit-frame-pointer` (RelWithDebInfo
-at `-O1 -gline-tables-only`). It then builds only what the tests labelled
-`c_abi` need and runs them with `TSAN_OPTIONS=halt_on_error=1`, so any report
-fails its test. The set is the same as `ctest -L c_abi`, which includes the
-conformance kit's thread checks. Two tests are left out: `gui_forms_abi_csharp`,
-because the .NET host is not instrumented and TSan's runtime must load at
-process start, and the Windows-only `gui_forms_abi_msvc_consumer`.
+at `-O1 -gline-tables-only`). It then builds only what the selected tests
+need and runs them with `TSAN_OPTIONS=halt_on_error=1`, so any report fails
+its test. The tests are those labelled `c_abi` (the C ABI and its
+conformance kit, with its thread checks) and `tsan` (the event stack, the
+dispatcher and timers, threading, and the sub-surface and live-surface
+machinery); `--set` picks both, the default, or one label. These tests live
+in gui_forms_tests, like every other test. Two are left out:
+`gui_forms_abi_csharp`, because the .NET host is not instrumented and TSan's
+runtime must load at process start, and the Windows-only
+`gui_forms_abi_msvc_consumer`.
 
 The flags reach CMake through `CFLAGS`, `CXXFLAGS`, `OBJCXXFLAGS` and `LDFLAGS`
 at the tree's first configure, as for the macOS sanitized tree above. The
@@ -261,9 +243,8 @@ name frames inside system libraries only, each with the host and the report
 it answers. A race in GUI.Forms code is a defect to fix, never a suppression.
 
 To record a run, keep the tool's output and the host (OS version,
-architecture, `clang --version`) with the stage's results in notes
-(`results/`). Record a clean run and every report found and fixed. The C8
-record names the first runs on each host.
+architecture, `clang --version`) with the results in the notes repository
+(`results/`). Record a clean run and every report found and fixed.
 
 ## Windows builds and Wine
 
@@ -296,11 +277,10 @@ libraries and exports exactly its allowlisted `gf_*` entry points and
 `raster_initialize`), and on Windows the Win32 compatibility shim's user32
 and gdi32 names (`IsWindow`, `GetDC`, `BitBlt` and the rest of
 `src/surface/windows/win32_compat_shim.def`; the import libraries leave them
-out), as the `gui_forms_abi_exports_only_entry_points` and
-`gui_forms_abi_system_imports_only` tests check. A process uses one or the other,
-never both. The localizable-literal plugin is a Clang plugin loaded by the
-compiler, and the static test runtime (`cmake/TestRuntime.cmake`) is
-test-only; neither ships in a program.
+out). `cmake/CheckCAbiExports.cmake` and `cmake/CheckSystemImports.cmake`
+check both statements; gui_forms_tests runs them against the test cache. A
+process uses one or the other, never both. The localizable-literal plugin is
+a Clang plugin loaded by the compiler and never ships in a program.
 
 Release links prune what a program does not reach: sources are compiled
 with `-ffunction-sections -fdata-sections` and linked with `--gc-sections`
@@ -313,8 +293,8 @@ macOS package bundles the LLVM runtime dylibs and nothing else.
 
 Windows builds target the Windows 10 API level (`_WIN32_WINNT=0x0A00`). A
 Windows host build produces `GUI.Forms Gallery.exe` (one module), the
-automation client `gui_forms_windows_probe.exe` and a `fonts/` directory, all
-in the build directory.
+automation client `gui_forms_windows_probe.exe` and a `fonts/` directory of
+font licences, all in the build directory.
 
 To run a Windows build under Wine, copy its build directory to the Mac and
 run the program from there: it loads no DLL of its own and no runtime
@@ -329,7 +309,9 @@ renderer with bundled fonts, no rejected host events, exactly one close
 request, and a closed, shut-down host. The log and capture
 (`wine-gallery-smoke.jsonl`, `gallery-automation.bmp`) go to the build
 directory or `GUI_FORMS_EVIDENCE_DIR`. `tools/run_windows_gallery_text_smoke.sh`
-runs the Windows text tests under Wine before driving the text page, and
+runs the Windows text test program (`gui_forms_windows_text_tests.exe`, built
+by gui_forms_tests and copied into the build directory) under Wine before
+driving the text page, and
 `tools/run_windows_gallery_services_smoke.sh` drives the animation,
 dispatcher and host-service pages. The scripts need `wine` (override with
 `WINE_BINARY`) and `rg`. When the build is configured on macOS with `wine`
@@ -345,7 +327,7 @@ The native Windows build in MSYS2 uses the same host sources with
 ## Install prefix and SDK layout
 
 `cmake --install build` installs headers, libraries, the CMake package and the
-font directory under `CMAKE_INSTALL_PREFIX`. The exact contents are listed in
+font licences under `CMAKE_INSTALL_PREFIX`. The exact contents are listed in
 [Installation](../user/install.md#what-gets-installed). CI installs into a scratch prefix and
 then builds `examples/reference/` against it, so the installed package is
 tested on every platform, not only the build tree.
@@ -356,8 +338,8 @@ The GUI.Forms runtime reads its bundled faces from one font pack compiled into
 Core, never from files beside the program. The build packs every face of
 `assets/fonts/bundled-fonts.sha256` with the `stx_fontpack` tool, in the
 groups of `assets/fonts/font-pack.manifest` (`cmake/FontPack.cmake`), and
-`ctest -R gui_forms_font_pack_round_trip` checks the built pack against the
-files. At run time the interface group (every Portsmouth face and Carlito) is
+the `gui_forms_font_pack_round_trip` test in gui_forms_tests checks the built
+pack against the files. At run time the interface group (every Portsmouth face and Carlito) is
 decoded on the first request for any face, every other group on the first
 request for one of its faces, on the core worker pool. Each face is checked
 against the CRC-32 the pack stores for it; a refused group is reported once
@@ -417,11 +399,18 @@ The CI tools that do this live in template_harness, pinned by `harness.lock`
 
 ## Dependency boundaries
 
-The build enforces the project's boundaries as tests rather than as
-conventions: C++20 everywhere, AppKit only in `src/surface/macos/`, Win32
-only in `src/surface/windows/`, X11 only in `src/surface/linux/`, Skia only in
+The project's boundaries are checked, not left to convention: C++20
+everywhere, AppKit only in `src/surface/macos/`, Win32 only in
+`src/surface/windows/`, X11 only in `src/surface/linux/`, Skia only in
 `src/render/skia/`, PNG as the only image decoder, and no GPU API anywhere.
-A change that violates one of these fails `ctest` before it reaches review.
+The checks are CMake scripts in `cmake/`: `check_renderer_boundaries.cmake`
+(no Skia, Core Graphics, AppKit, Metal or OpenGL symbol in the
+renderer-free core, and no GPU framework in the renderer benchmark's
+dependencies; the `gui_forms_renderer_boundary_audit` target), `check_windows_boundaries.cmake`
+(the `gui_forms_windows_boundary_audit` target), `CheckCAbiExports.cmake`,
+`CheckSystemImports.cmake` and `CheckObjectSurface.cmake`. gui_forms_tests
+runs them, with its header audits, against the test cache, so a change that
+breaks a boundary fails there before it reaches review.
 
 ```{toctree}
 :hidden:

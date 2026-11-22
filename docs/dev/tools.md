@@ -21,8 +21,8 @@ template_harness, checked out beside this repository at the commit
   with `--check`, verifies `demo/gallery_catalog.inc`. `members` writes the
   member manifest `manifests/members.json` (`tools/member_manifest.py`): every
   control's properties, events and methods against Windows Forms, supported,
-  deferred, excluded or unclassified; `--catalogue` reads stage W's Windows
-  Forms catalogue again, `--runtime` dotnet/runtime's reference sources for
+  deferred, excluded or unclassified; `--catalogue` reads the Windows
+  Forms catalogue in the notes repository again, `--runtime` dotnet/runtime's reference sources for
   `Component` and `BackgroundWorker`, and `--check` fails when the manifest and the
   registry, schema or headers disagree.
   `python3 tools/control_registry.py check`
@@ -37,9 +37,19 @@ template_harness, checked out beside this repository at the commit
 
 `tools/generate_library_docs.py`
 : Generates the API reference pages under `docs/api/` and the documented
-  examples test `tests/doc_examples_tests.cpp`. `--check` regenerates into a
-  temporary directory and fails if the committed output differs.
+  examples test, `tests/doc_examples_tests.cpp` in the gui_forms_tests
+  checkout (`tools/tests_checkout.py` finds it; without one the examples
+  test is left alone and gui_forms_tests' CI writes it). `--check`
+  regenerates into a temporary directory and fails if the committed output
+  differs.
   `python3 tools/generate_library_docs.py --check`
+
+`tools/make_roadmap_svg.py`
+: Draws the chevron bar at the top of the [Roadmap](roadmap.md) page,
+  `docs/_static/roadmap.svg`, with the Portsmouth Rapids faces subset and
+  embedded. Edit its `STAGES` list and the matching section of the roadmap
+  page together, then commit the regenerated image.
+  `python3 tools/make_roadmap_svg.py`
 
 `tools/api_reference.py`
 : Extracts the exact declaration inventory `docs/reference/inventory.json`
@@ -58,7 +68,7 @@ template_harness, checked out beside this repository at the commit
 : The spelling scanner the `house-style` CI job runs (see
   [Style guide](style.md)). Takes files or directories, reports one line per
   finding and exits non-zero on any finding or on an empty scope.
-  `python3 -B tools/check_house_style.py src/core/image tests/png_writer_tests.cpp`
+  `python3 -B tools/check_house_style.py src/core/image src/controls/badge`
 
 `tools/check_lifetime_rules.py`
 : The borrow and foreign-type checks the `house-style` job runs (house style
@@ -70,15 +80,37 @@ template_harness, checked out beside this repository at the commit
   `BorrowedText`) is qualified `const&` and has a deleted `&&` overload.
   The `house-style` CI job calls the harness's checker directly, so this
   member-accessor rule runs only through the shim.
-  `python3 -B tools/check_lifetime_rules.py tests/semantic_tests.cpp`
+  `python3 -B tools/check_lifetime_rules.py src/core`
+
+`tools/check_std_rules.py`
+: The standard-library rules (`rand`, `strerror`, `setlocale`, `atoi`,
+  pthread and `wchar_t` outside native code, and the rest; `--list-rules`
+  prints them): STXlib's checker, copied with its source commit in its first
+  lines and configured by `tools/std_rules.toml`, whose `host_paths` name the
+  native code. It fails on any finding that the shrink-only allowance
+  `tools/std_rules_allowance.txt` does not admit. Fix a finding and lower its
+  count, or allow one use in the source with
+  `// std-rules: allow(<rule>) <reason>`; never raise a count.
+  `python3 -I tools/check_std_rules.py --config tools/std_rules.toml`
+
+`tools/std_surface_census.py`
+: Counts the standard vocabulary at the C++ surface (`std::string`,
+  `std::vector`, the ownership pointers, `std::optional`,
+  `std::string_view`, `std::span`, qualified, in `include/gui_forms/` without
+  `c/`), which STXlib's owned vocabulary replaces. The baseline,
+  `manifests/std_surface_census.json`, is a ratchet: `check` fails when a
+  count rises, and also when one falls until `update` lowers it in the same
+  change; `update` refuses to raise a count. The `house-style` job reports
+  its result without failing for now.
+  `python3 -I tools/std_surface_census.py check`
 
 `tools/lifetime_lint.py`
 : Clang's experimental lifetime-safety analysis over the whole tree, in a
   build tree of its own (`gui-forms-lifetime-lint` beside the plain tree),
   report-only: it prints the findings, marks the six known false positives
-  of the cp28 run (a pointer taken through a local `std::unique_ptr` that
-  then moves into a container) and always exits 0. The checkpoint verify on
-  the M4 runs it; `--stx-prefix` links an stx package already built.
+  (a pointer taken through a local `std::unique_ptr` that then moves into a
+  container) and always exits 0. The checkpoint verification runs it;
+  `--stx-prefix` links an stx package already built.
   `python3 -B tools/lifetime_lint.py --jobs 4 --stx-prefix <stx-package>`
 
 `tools/check_state_machines.py`
@@ -95,15 +127,15 @@ template_harness, checked out beside this repository at the commit
 : Lists the native entries under `src/host/` (Windows `CALLBACK` and COM
   methods, Linux ATK and GLib callbacks, AppKit selectors) and fails on any
   that neither calls `call_failing_fast` nor is `noexcept`, unless it is in
-  `tools/native_boundary_baseline.txt`, which may only shrink and has been
-  empty since cp29 (every entry is routed). ctest runs it and its
-  `--self-test`.
+  `tools/native_boundary_baseline.txt`, which may only shrink and is empty
+  (every entry is routed). gui_forms_tests runs it and its `--self-test`
+  against the test cache's sources (`gui_forms_native_boundary_check`).
   `python3 -B tools/check_native_boundaries.py --root .`
 
-`tools/sanitizer/lsan.supp`
-: LeakSanitizer suppressions for sanitized runs (local trees and the
-  `sanitizers` CI job, which runs only when requested): system libraries
-  only, never a first-party frame.
+`tools/sanitizer/lsan.supp`, `tools/sanitizer/tsan.supp`
+: LeakSanitizer and ThreadSanitizer suppressions for the sanitized trees
+  built here (`ci_build.py --sanitize`, `abi_tsan.py`) and the test runs
+  against them: system libraries only, never a first-party frame.
 
 `tools/house_policy_check/`
 : A Clang LibTooling checker for the full C++ subset, run over a build's
@@ -121,9 +153,13 @@ template_harness, checked out beside this repository at the commit
 
 ## The C ABI and other generated sources
 
-The `house-style` CI job runs each of these with `--check` (or `check`), so a
-stale generated file fails it. Run the generator and commit its output with
-the change that needs it.
+Each writes a committed file, or one the build generates, and has a check
+mode. The `house-style` CI job checks `abi_bindings.py`,
+`abi_class_tables.py`, `drawing_bridge.py`, `export_annotations.py`,
+`control_schema.py`, `stock_anatomies.py`, `paint_census.py` and
+`host_trig_check.py`, so a stale file fails it; gui_forms_tests runs the ABI
+audit and the stock icon oracle. Run the generator and commit its output
+with the change that needs it.
 
 `tools/abi_audit.py`
 : Records and audits the C ABI (`include/gui_forms/c/gf_abi.h`). `extract`
@@ -131,8 +167,8 @@ the change that needs it.
   ABI rules and the recorded baselines (`--mode blocking` fails on any
   break), `probe` writes or checks the layout probe, `exports` checks a built
   library's exports and `coverage` requires every slot to be called. It
-  parses with clang, so pass `--clang` with LLVM 22.1.8. ctest runs the
-  blocking check in every native build (`gui_forms_abi_audit`).
+  parses with clang, so pass `--clang` with LLVM 22.1.8. gui_forms_tests
+  runs the blocking check (`gui_forms_abi_audit`).
   `python3 -B tools/abi_audit.py check --clang /path/to/clang --mode blocking`
 
 `tools/abi_bindings.py`
@@ -141,9 +177,12 @@ the change that needs it.
   `python3 -B tools/abi_bindings.py csharp --check`
 
 `tools/abi_class_tables.py`
-: Generates the C ABI 1.3 class tables, through which C and C# code
-  overrides a control's `on_*` hooks, and checks that the ledger only grows
-  (`--previous`).
+: Generates the C ABI's class tables (`gf_abi_classes.h`, the C++ bridges,
+  the C# hook classes, the conformance part and their ledger
+  `manifests/abi/class_tables.json`), through which C and C# code overrides
+  a control's `on_*` hooks, from the member manifest's `raiser` fields and
+  the public headers, and checks that the ledger only grows: no entry,
+  segment or class id is lost, reordered or renumbered.
   `python3 -B tools/abi_class_tables.py --check`
 
 `tools/abi_event_catalog.py`
@@ -158,6 +197,29 @@ the change that needs it.
   `gui_forms_abi<GF_ABI_MAJOR>`, which holds the drawing ABI and its raster
   service. Edit the template, not the generated file.
   `python3 -B tools/drawing_bridge.py --check`
+
+`tools/module_exports.py`
+: Writes the `gui_forms` C++20 module's interface unit,
+  `modules/gui_forms.cppm`: the consumer headers in its global module
+  fragment and every exportable namespace-scope name of the consumer
+  surface, internals and internal-linkage entities left out.
+  `python3 -B tools/module_exports.py check --root .`
+
+`tools/consumer_shield.py`
+: Writes the consumer-macro shields for consumers who cannot
+  `import gui_forms;`: the C shield (`gf_c_shield_begin.h`,
+  `gf_c_shield_end.h`, checked in) around the C ABI headers, and the full
+  shield over every header, generated at build time
+  (`cmake/ConsumerShield.cmake`). `tools/consumer_macros.py` decides which
+  identifiers a consumer may define.
+  `python3 -B tools/consumer_shield.py c --root . --check`
+
+`tools/stock_icon_codec.py`
+: Converts the Heroicons SVG files under `assets/icons/heroicons/` into the
+  stock icon records. It is the oracle of the build's C++ generator,
+  `tools/stock_icon_generator/`, whose output must be byte-identical to
+  `generate`; gui_forms_tests runs `check` over the build's copy.
+  `python3 -B tools/stock_icon_codec.py check --output <build>/generated/stock_icons/stock_icon_data.inc`
 
 `tools/export_annotations.py`
 : Checks that every public declaration carries its library's export macro
@@ -194,10 +256,13 @@ the change that needs it.
   `manifests/host_trig_allowance.json` may only shrink.
   `python3 -B tools/host_trig_check.py check`
 
-`tools/check_test_registration.py`, `tools/check_test_asserts.py`
-: Refuse test programs the build never runs, and checks in test code that
-  `NDEBUG` would remove.
-  `python3 -B tools/check_test_registration.py`
+`tools/check_platform_headers.py`
+: Refuses an operating-system, window-system or platform-framework header
+  (`windows.h`, `unistd.h`, `pthread.h`, X11, AppKit and the rest) anywhere
+  in `include/` and `src/` outside `src/surface/<platform>/`; the rest of
+  the library reaches the system through STXlib. The allowance in
+  `manifests/platform_header_allowance.json` may only shrink.
+  `python3 -B tools/check_platform_headers.py check`
 
 `tools/warning_baseline.py`
 : Counts the distinct warning sites per directory in a build's compiler
@@ -206,9 +271,25 @@ the change that needs it.
 
 ## Migrations
 
+`tools/convert_form_to_xml.py`
+: Converts a form document in the old, CSS-like syntax, which the form
+  compiler no longer reads, to the XML form ([Forms](../user/forms.md)), in
+  place and keeping the `.form` extension. Property order, comments and
+  blank lines are kept, so the generated header does not change; a document
+  whose order XML cannot keep is refused. `--check` fails while a document
+  is still in the old syntax.
+  `python3 -B tools/convert_form_to_xml.py forms/main.form`
+
+`tools/verify_form_conversion.py`
+: Proves a conversion: compiles each form of a configured Ninja tree twice,
+  the old document with the form compiler of a build at the base commit and
+  the converted one with the current compiler, and compares the two headers
+  byte for byte.
+  `python3 -B tools/verify_form_conversion.py --build-dir <build> --old-bin-dir <old-build>/bin --base <commit>`
+
 `tools/flatten_control_headers.py`
-: Moved the control headers to `include/gui_forms/controls/<name>.hpp`
-  (checkpoint 29); `check` fails on any remaining old include spelling, and
+: Moved the control headers to `include/gui_forms/controls/<name>.hpp`;
+  `check` fails on any remaining old include spelling, and
   `tools/control_header_moves.json` lists the moves for consumers.
   `python3 -B tools/flatten_control_headers.py check`
 
@@ -223,16 +304,40 @@ the change that needs it.
 ## Build, install and packaging
 
 `tools/ci_build.py`
-: Builds and tests the toolkit exactly as the native CI job does: builds or
-  reuses the stx package (the CPU renderer and the text stack), configures
-  with `cmake/llvm22.cmake`, runs `ctest`, installs into a scratch SDK and
-  builds `examples/reference/` against it. It expects the checkout in a
+: Builds the toolkit exactly as the native CI job does: builds or reuses
+  the stx package (the CPU renderer, the stx libraries and STXlib),
+  configures with `cmake/llvm22.cmake` for the test cache, builds the whole
+  tree, installs into a scratch SDK, checks its notices (and on Windows its
+  DLLs' imports), and builds and runs `examples/reference/` against it. It
+  runs no test of the library: `--test-cache <dir>` packs the test cache
+  that gui_forms_tests builds against. It expects the checkout in a
   directory named `gui_forms` and writes to `.build/native-<host>-<arch>/`
   in the workspace that holds it. `--gallery` also builds the programs;
-  `--sanitize` builds the sanitizer tree ([Contributing](contributing.md));
-  `--test-targets-only` is the pull-request build (the whole suite, nothing
-  installed); `--install-only` installs the SDK without running the tests.
-  `python3 tools/ci_build.py --jobs 4`
+  `--sanitize` builds the sanitizer tree and packs the sanitize test cache
+  ([Contributing](contributing.md)); `--install-only` stops after the SDK
+  checks.
+  `python3 tools/ci_build.py --jobs 4 --test-cache ../caches`
+
+`tools/test_cache.py`
+: Packs a configured tree's test cache (`pack`): one archive per commit,
+  platform and kind (`gui_forms_test_cache-<platform>[-<kind>].tar.gz`,
+  with its `.sha256`) holding the installed SDK, the sources the tests read
+  and every target's built file, loaded in gui_forms_tests as imported
+  targets of the same names. `publish` uploads an archive to the
+  `test-cache-<commit>` pre-release. `ci_build.py --test-cache` calls
+  `pack`; the programs job packs the `programs` kind itself.
+  `python3 -B tools/test_cache.py pack --build-dir <tree> --platform macos-arm64 --kind normal --output ../caches`
+
+`tools/tests_checkout.py`
+: Finds the gui_forms_tests checkout for the tools that write or read a
+  file of the tests: a tool's `--tests-root`, else `GUI_FORMS_TESTS_ROOT`,
+  else a `gui_forms_tests` checkout beside this one. Without one, those
+  tools leave the tests' files alone and say so.
+
+`tools/abi_tsan.py`
+: Builds the ThreadSanitizer tree for the C ABI's thread promises and the
+  event stack; see [ThreadSanitizer](../building/index.md#threadsanitizer).
+  `python3 -B tools/abi_tsan.py --jobs 4`
 
 `tools/build_sdk.py`, `tools/package_sdk.py`
 : The source SDK. `package_sdk.py` archives a release's tree with the stx
@@ -248,11 +353,12 @@ the change that needs it.
   `Application` component, `--relocate` copies the SDK to a new prefix first,
   and `--toolchain` and `--runner` build the consumer with another CMake
   toolchain and run its tests through an emulator. `--feature-components`
-  (with `--native`) also builds and runs `tests/installed_feature_consumer/`
-  against a `build_sdk.py --features all` prefix, through the `TextMasks` and
-  `AudioLoopTransport` components. Without it, those two must be rejected.
-  `--sdk-consumer` (with `--native`) builds and runs `tests/sdk_consumer/`,
-  which links every public component from the prefix's archives (the
+  (with `--native`) also builds and runs gui_forms_tests'
+  `tests/installed_feature_consumer/` against a `build_sdk.py --features all`
+  prefix, through the `TextMasks` and `AudioLoopTransport` components.
+  Without it, those two must be rejected. `--sdk-consumer` (with `--native`)
+  builds and runs gui_forms_tests' `tests/sdk_consumer/`, which links every
+  public component from the prefix's archives (the
   controls, a composite, an application font family, the drawing raster
   seam, `TextMasks` and the C ABI with `gd_get_api_v0`);
   `--sdk-consumer-text-masks OFF` and `--sdk-consumer-c-abi OFF` describe a
@@ -260,16 +366,15 @@ the change that needs it.
   `python3 tools/verify_install.py /path/to/prefix --native`
 
 `tools/sdk_consumer_link.py`
-: The SDK-consumer link test, the `gui_forms_sdk_consumer_link` test: installs
-  a build tree into a temporary prefix and builds `tests/sdk_consumer/`
-  against that prefix alone, configured as the tree was. A symbol the
-  installed archives lack fails the link; a separate program links
-  `GUIForms::TextMasks` alone, so an empty interface fails too. The suite
-  registers it in an installable tree (a native host, and no development
-  prepared text). CI's tree builds the text masks for it
+: The SDK-consumer link test, gui_forms_tests' `gui_forms_sdk_consumer_link`:
+  installs a build tree into a temporary prefix and builds gui_forms_tests'
+  `tests/sdk_consumer/` against that prefix alone, configured as the tree
+  was. A symbol the installed archives lack fails the link; a separate
+  program links `GUIForms::TextMasks` alone, so an empty interface fails
+  too. CI's tree builds the text masks for it
   (`GUI_FORMS_BUILD_TEXT_MASKS=ON`, as `build_sdk.py --features all`); in a
   tree without them, or without the C ABI library, it says what it could not
-  check and CTest reports it skipped, not passed.
+  check and is reported skipped, not passed.
   `python3 tools/sdk_consumer_link.py --build-dir build --scratch build/sdk-consumer-link -- -GNinja`
 
 `tools/package_programs.py`
@@ -278,7 +383,7 @@ the change that needs it.
   installer on Windows, a `tar.gz` and Debian package on Linux, plus
   `SHA256SUMS.txt` and a `packages-<platform>.json` receipt. `--dry-run`
   prints the plan; `--no-installer` writes archives only.
-  `python3 tools/package_programs.py --build-dir build --version 0.6.0 --out dist`
+  `python3 tools/package_programs.py --build-dir build --version <version> --out dist`
 
 `tools/smoke_package.py`
 : Extracts each packaged program, launches it with `--smoke-test` and the
@@ -346,6 +451,14 @@ the change that needs it.
   outside the repository, so every path is an argument.
   `python3 -B tools/integrity_counts.py --audit <audit folder> --queue <queue> --repo gui_forms=.@HEAD --repo stx=../stx@<pin>`
 
+`tools/factory_bundle_sizes.py`
+: Prints the factory bundle's sizes and character coverage for
+  [Factory bundle](../user/factory-bundle.md): the faces the font pack
+  embeds, its groups, each face's bytes and covered characters (it needs
+  fontTools), and the installed licence files. `--pack` also reads a built
+  pack's coded group sizes.
+  `python3 -B tools/factory_bundle_sizes.py --pack <build>/generated/bundled_fonts/bundled_fonts.fpk`
+
 `tools/png_admission_probe/`
 : A standalone consumer of an installed SDK that times `validate_png` and
   `ImageRegistry::load_png` separately on generated uncompressed PNGs and
@@ -355,19 +468,20 @@ the change that needs it.
 
 `tools/unicode/generate_grapheme_tables.py`
 : Regenerates the Unicode 17.0.0 grapheme-break tables
-  (`src/core/text/unicode/unicode_grapheme_data.hpp`) and conformance cases
-  (`tests/unicode_grapheme_break_cases.hpp`) from the downloaded Unicode data
-  files, whose hashes it checks.
-  `python3 tools/unicode/generate_grapheme_tables.py --grapheme GraphemeBreakProperty.txt --derived DerivedCoreProperties.txt --emoji emoji-data.txt --test GraphemeBreakTest.txt --tables-output src/core/text/unicode/unicode_grapheme_data.hpp --tests-output tests/unicode_grapheme_break_cases.hpp`
+  (`src/core/text/unicode/unicode_grapheme_data.hpp`) and the conformance
+  cases, which belong to gui_forms_tests
+  (`tests/unicode_grapheme_break_cases.hpp` in its checkout), from the
+  downloaded Unicode data files, whose hashes it checks.
+  `python3 tools/unicode/generate_grapheme_tables.py --grapheme GraphemeBreakProperty.txt --derived DerivedCoreProperties.txt --emoji emoji-data.txt --test GraphemeBreakTest.txt --tables-output src/core/text/unicode/unicode_grapheme_data.hpp --tests-output ../gui_forms_tests/tests/unicode_grapheme_break_cases.hpp`
 
 `tools/profile_hot_paths.py`
-: Phase E, E5: on Linux, builds the recorded workloads (the Gallery painted
+: On Linux, builds the recorded workloads (the Gallery painted
   through the CPU Skia adapter, `benchmarks/paint_profile_workload.cpp`; the
   text engine and DocumentView benchmarks) with frame pointers, samples each
   under `perf record`, and writes `hot-paths.json` and `hot-paths.md`: every
   function's share of the samples, self and inclusive, and each area's
-  (GUI.Forms, Skia, HarfBuzz, FreeType, runtime, kernel). Shares, not
-  timings. `.github/workflows/profile-linux.yml` runs it weekly and on demand.
+  (GUI.Forms, Skia, STXlib, the C and C++ runtimes, the kernel). Shares,
+  not timings. `.github/workflows/profile-linux.yml` runs it weekly and on demand.
   `python3 gui_forms/tools/profile_hot_paths.py run --output hot-paths --jobs 4`
 
 `tools/linux_vm/`
@@ -385,8 +499,9 @@ Unit tests for the scripts
 
 These run inside the workflows and are rarely run by hand:
 `ci_reuse.py` and `ci_promote.py` reuse or promote validation of an identical
-tree; `ci_tree_receipt.py` and `release_tests.py` let the docs and
-programs jobs carry an earlier run of the same tree; `compiler_identity.py`, `cache_manifest.py`, `publish_cache.py` and
+tree; `ci_tree_receipt.py` lets the docs job carry an earlier run of the
+same tree; `readthedocs_build.py` asks Read the Docs to build the site once
+CI has passed (`.github/workflows/docs-publish.yml`); `compiler_identity.py`, `cache_manifest.py`, `publish_cache.py` and
 `prune_cache_releases.py` describe, publish and prune the compiler-cache
 pre-releases; `macos_runtime_manifest.py` and `prove_macos_runtime_restore.py`
 check the published macOS runtime payload; `publication_version.py` and

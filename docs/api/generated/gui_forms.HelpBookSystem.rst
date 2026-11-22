@@ -13,7 +13,27 @@ gui_forms::HelpBookSystem
 
    ``#include <gui_forms/controls/help_book_system.hpp>`` (:src:`source <include/gui_forms/controls/help_book_system.hpp>`)
 
-   The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.
+   A program's help: it holds the help text of the program's language files, compiles the help book from it and the program's windows, and shows it on F1, in What's This mode, on window cards and from the ribbon.
+
+   The system holds the program's language-file catalog (:cpp:class:`LocaleCatalog <gui_forms::LocaleCatalog>`: the
+   built-in locale file, the help fields the attached windows' controls hold in
+   code, a translation and the user's overrides) and its help view
+   (:cpp:class:`HelpCatalog <gui_forms::HelpCatalog>`). It compiles the help book section from that view, the
+   attached windows' structure and the declared help topics, and presents it:
+
+   - F1 shows the focused control's page, walking up to the window's page and
+     then home when the control has none;
+   - Shift+F1 enters What's This mode: the pointer becomes the help cursor,
+     the next click shows the clicked control's help in a paper popup, and
+     Escape leaves the mode;
+   - a window card shows a control's help line and "More..." to its page;
+   - the ribbon's help button and a :cpp:class:`RibbonToolTip <gui_forms::RibbonToolTip>`'s F1, and a
+     :cpp:class:`HelpProvider <gui_forms::HelpProvider>`'s requests, routed by the program, show help too.
+
+   Pages show in an embedded viewer when one is set (:cpp:func:`set_viewer <gui_forms::HelpBookSystem::set_viewer>`), else in a
+   :cpp:class:`HelpBookWindow <gui_forms::HelpBookWindow>` owned by the first attached window that has a handle. The
+   system never opens a browser, a file or a network resource: external links
+   and printing are raised to the program.
 
    .. gf-preview:: controls/help_book_system
       :alt: A HelpBookSystem as the stock specimen shows it, in the windows-professional theme.
@@ -23,33 +43,52 @@ gui_forms::HelpBookSystem
    :Parameters:
 
       **options** : ``HelpBookSystemOptions``, default ``{}``
+         The :cpp:class:`HelpBookSystemOptions <gui_forms::HelpBookSystemOptions>`: the prefix of every stable ID the system
+         makes, the built-in language's tag, the help window's title and size,
+         the home page, the viewer's and the book's labels, the "More..." text,
+         the images, the compile options and the popup's width.
 
    :Properties:
 
       **locale** : ``LocaleCatalog``, read-only
-         The language files' text: every field the loaded files give, and the program layer as of the last compile, section(), export or resolve_field. Declared HelpTopics are not in it; they join the help view at each compile and the template export.
+         The language files' text: every field the loaded files give, and the
+         program's own values as of the last compile.
 
       **options** : ``HelpBookSystemOptions``, read-only
+         The options the system was made with.
 
       **active_viewer** : ``std::shared_ptr<HelpBookViewer>``, read-only
+         The viewer pages show in now: the embedded one, or the help window's.
 
       **popup_open** : ``bool``, read-only
+         Whether a paper popup is open.
 
       **popup_book** : ``std::shared_ptr<HelpBook>``, read-only
+         The popup's :cpp:class:`HelpBook <gui_forms::HelpBook>`.
 
       **help_mode_active** : ``bool``, read-only
+         Whether What's This mode is on.
 
       **snapshot** : ``HelpBookSystemSnapshot``, read-only
+         The system's counters (:cpp:class:`HelpBookSystemSnapshot <gui_forms::HelpBookSystemSnapshot>`): compiles, rejections,
+         requests, pages shown, popups, help-mode entries, external links,
+         attached windows, and whether a popup or help mode is on.
 
       **bookmarks** : ``std::vector<std::string>``
+         The bookmarks, as stable IDs; the program keeps them in its settings.
+         :cpp:func:`set_bookmarks <gui_forms::HelpBookSystem::set_bookmarks>` replaces them.
 
    :Events:
 
       **external_link** : ``Event<HelpLinkActivation&>``
+         Raised when an external link is followed; the program decides what to
+         do with it.
 
       **print_requested** : ``Event<HelpPrintRequest&>``
+         Raised when printing is asked for, with a :cpp:class:`HelpPrintRequest <gui_forms::HelpPrintRequest>`.
 
       **bookmarks_changed** : ``Event<const std::vector<std::string>&>``
+         Raised when the bookmarks change, with the new list.
 
    :Inherited:
 
@@ -62,23 +101,23 @@ gui_forms::HelpBookSystem
       :widths: 35 65
 
       * - :cpp:func:`catalog <gui_forms::HelpBookSystem::catalog>`
-        - The help view of locale().
+        - The help view of :cpp:func:`locale <gui_forms::HelpBookSystem::locale>`.
       * - :cpp:func:`load_built_in <gui_forms::HelpBookSystem::load_built_in>`
-        - Reads a locale file: merged into the built-in layer (the embedded built-in locale file, which must be for options().built_in_language), or as the translation (user overrides for another language go).
+        - Reads the built-in locale file, which must be for the options' built-in language, into the built-in layer.
       * - :cpp:func:`load_translation <gui_forms::HelpBookSystem::load_translation>`
         -  
       * - :cpp:func:`load_user_overrides <gui_forms::HelpBookSystem::load_user_overrides>`
-        - The user's own ``locales-<tag>.xml`` for the language in force: wins over the translation and the built-in text per field.
+        - Reads the user's own locale file for the language in force, which wins over the translation and the built-in text field by field.
       * - :cpp:func:`clear_user_overrides <gui_forms::HelpBookSystem::clear_user_overrides>`
         - Drops the user's overrides (one way back: the file is removed).
       * - :cpp:func:`use_built_in_language <gui_forms::HelpBookSystem::use_built_in_language>`
-        - The untranslatable way back: help in the built-in language only, whatever the translation and the user's file say.
+        - Shows help in the built-in language only, whatever the translation and the user's file say: the way back the viewer's built-in-language link turns on.
       * - :cpp:func:`export_template <gui_forms::HelpBookSystem::export_template>`
-        - The template export (translation design 7): the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, when ``language`` is the translation's, its translations over them; never the user's overrides.
+        - Exports the template translators work from: the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, for the translation's language, its translations over them; never the user's overrides.
       * - :cpp:func:`resolve_field <gui_forms::HelpBookSystem::resolve_field>`
-        - One field of a record as it shows now, with the layer it came from: the attached windows' program values are read first.
+        - One field of a record as it shows now, with the layer it came from.
       * - :cpp:func:`compile <gui_forms::HelpBookSystem::compile>`
-        - Compiles the section from the catalog, the attached windows' structure and the declared topics, and shows it in the viewers.
+        - Compiles the section and shows it in the viewers.
       * - :cpp:func:`section <gui_forms::HelpBookSystem::section>`
         - The section, compiled first when the catalog changed since.
       * - :cpp:func:`attach <gui_forms::HelpBookSystem::attach>`
@@ -86,13 +125,13 @@ gui_forms::HelpBookSystem
       * - :cpp:func:`detach <gui_forms::HelpBookSystem::detach>`
         -  
       * - :cpp:func:`attach_ribbon_tool_tip <gui_forms::HelpBookSystem::attach_ribbon_tool_tip>`
-        -  
+        - Answers a :cpp:class:`RibbonToolTip <gui_forms::RibbonToolTip>`'s F1 with help.
       * - :cpp:func:`attach_ribbon <gui_forms::HelpBookSystem::attach_ribbon>`
-        - Answers the ribbon's help button (Ribbon::help_button_clicked) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon.
+        - Answers a ribbon's help button with the window card of the ribbon's window, beside the ribbon; the ribbon must sit in an attached window.
       * - :cpp:func:`resolve <gui_forms::HelpBookSystem::resolve>`
-        -  
+        - Where help for a control is (:cpp:class:`HelpTarget <gui_forms::HelpTarget>`): the page and the anchor on it, or the home page when nothing on the way up had help.
       * - :cpp:func:`show <gui_forms::HelpBookSystem::show>`
-        -  
+        - Shows a record at an anchor.
       * - :cpp:func:`show_help_for <gui_forms::HelpBookSystem::show_help_for>`
         -  
       * - :cpp:func:`show_contents <gui_forms::HelpBookSystem::show_contents>`
@@ -102,29 +141,48 @@ gui_forms::HelpBookSystem
       * - :cpp:func:`show_search <gui_forms::HelpBookSystem::show_search>`
         -  
       * - :cpp:func:`show_popup <gui_forms::HelpBookSystem::show_popup>`
-        - The paper popup beside ``anchor``: the page of record ``stable_id``.
+        - Shows the page of a record in a paper popup beside an anchor control.
       * - :cpp:func:`show_card <gui_forms::HelpBookSystem::show_card>`
-        - The window card beside ``anchor``: its help line and "More...", which opens its page.
+        - Shows the window card beside an anchor control: its help line and "More...", which opens its page; it falls back to the page popup when the control has no line.
       * - :cpp:func:`close_popup <gui_forms::HelpBookSystem::close_popup>`
         -  
       * - :cpp:func:`enter_help_mode <gui_forms::HelpBookSystem::enter_help_mode>`
-        -  
+        - Enters What's This mode in a window; :cpp:func:`cancel_help_mode <gui_forms::HelpBookSystem::cancel_help_mode>` leaves it.
       * - :cpp:func:`cancel_help_mode <gui_forms::HelpBookSystem::cancel_help_mode>`
         -  
       * - :cpp:func:`on_help_requested <gui_forms::HelpBookSystem::on_help_requested>`
-        - Program routes: a HelpProvider's request (its target's page unless a handler took it) and the ribbon's "?" or a RibbonToolTip's F1 (the help topic, else the target's page).
+        - Answers a :cpp:class:`HelpProvider <gui_forms::HelpProvider>`'s request with its target's page, unless a handler took it.
       * - :cpp:func:`on_ribbon_help <gui_forms::HelpBookSystem::on_ribbon_help>`
         -  
       * - :cpp:func:`on_ribbon_button_help <gui_forms::HelpBookSystem::on_ribbon_button_help>`
         - The ribbon's help button: the window card of the attached window that holds the ribbon, beside it; nothing when no attached window holds it.
       * - :cpp:func:`on_help_key <gui_forms::HelpBookSystem::on_help_key>`
-        - The accelerators' targets in an attached window: F1 shows the focused control's help (ending What's This when it is on), Shift+F1 enters What's This.
+        - F1 in an attached window: shows the focused control's help, ending What's This mode when it is on; true when the key was used.
       * - :cpp:func:`on_help_mode_key <gui_forms::HelpBookSystem::on_help_mode_key>`
         -  
       * - :cpp:func:`set_section <gui_forms::HelpBookSystem::set_section>`
-        - Uses a section compiled elsewhere (the language-file compiler pass, read_helpbook_section) instead of compiling.
+        - Uses a section compiled elsewhere instead of compiling; :cpp:func:`section <gui_forms::HelpBookSystem::section>` returns the section, compiled first when the catalog changed since.
       * - :cpp:func:`set_viewer <gui_forms::HelpBookSystem::set_viewer>`
-        - Shows pages in ``viewer`` (a viewer in a dock panel, say) instead of the help window; null goes back to the window.
+        - Shows pages in a given viewer, such as one in a dock panel, instead of the help window; null goes back to the window.
+
+   .. seealso::
+
+      :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
+         The viewer that shows the pages.
+
+      :cpp:class:`HelpBook <gui_forms::HelpBook>`
+         The topic pane.
+
+      :cpp:class:`HelpProvider <gui_forms::HelpProvider>`
+         Help text and topics for controls.
+
+   .. rubric:: Notes
+
+   The system runs on the UI thread of the attached windows. A
+   :cpp:class:`HelpBookWindow <gui_forms::HelpBookWindow>` hides when the user closes it and shows again on the next
+   open, so its history, tab and pane width carry over; it is destroyed with
+   its owner window or by its ``close``. Without application windowing, as in a
+   headless run, it does not open.
 
 
    .. rubric:: Construction
@@ -136,49 +194,83 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: const LocaleCatalog& locale() const noexcept
 
-      The language files' text: every field the loaded files give, and the program layer as of the last compile, section(), export or resolve_field. Declared HelpTopics are not in it; they join the help view at each compile and the template export.
+      The language files' text: every field the loaded files give, and the
+      program's own values as of the last compile.
 
    .. cpp:function:: const HelpBookSystemOptions& options() const noexcept
 
+      The options the system was made with.
+
    .. cpp:function:: std::shared_ptr<HelpBookViewer> active_viewer() const
+
+      The viewer pages show in now: the embedded one, or the help window's.
 
    .. cpp:function:: bool popup_open() const noexcept
 
+      Whether a paper popup is open.
+
    .. cpp:function:: std::shared_ptr<HelpBook> popup_book() const noexcept
+
+      The popup's :cpp:class:`HelpBook <gui_forms::HelpBook>`.
 
    .. cpp:function:: bool help_mode_active() const noexcept
 
+      Whether What's This mode is on.
+
    .. cpp:function:: HelpBookSystemSnapshot snapshot() const noexcept
+
+      The system's counters (:cpp:class:`HelpBookSystemSnapshot <gui_forms::HelpBookSystemSnapshot>`): compiles, rejections,
+      requests, pages shown, popups, help-mode entries, external links,
+      attached windows, and whether a popup or help mode is on.
 
    .. cpp:function:: const std::vector<std::string>& bookmarks() const& noexcept
 
+      The bookmarks, as stable IDs; the program keeps them in its settings.
+      :cpp:func:`set_bookmarks <gui_forms::HelpBookSystem::set_bookmarks>` replaces them.
+
    .. cpp:function:: void set_bookmarks(std::vector<std::string> stable_ids)
+
+      Sets :cpp:func:`bookmarks <gui_forms::HelpBookSystem::bookmarks>`; see the property's description above.
 
 
    .. rubric:: Events
 
    .. cpp:function:: Event<HelpLinkActivation&>& external_link() noexcept
 
+      Raised when an external link is followed; the program decides what to
+      do with it.
+
    .. cpp:function:: Event<HelpPrintRequest&>& print_requested() noexcept
 
+      Raised when printing is asked for, with a :cpp:class:`HelpPrintRequest <gui_forms::HelpPrintRequest>`.
+
    .. cpp:function:: Event<const std::vector<std::string>&>& bookmarks_changed() noexcept
+
+      Raised when the bookmarks change, with the new list.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: HelpCatalog& catalog() noexcept
 
-      The help view of locale(). Every load and the way back replace it from locale() (HelpCatalog::adopt_locale), so a direct edit lasts only until the next one.
+      The help view of :cpp:func:`locale <gui_forms::HelpBookSystem::locale>`. Every load and the way back replace it from
+      :cpp:func:`locale <gui_forms::HelpBookSystem::locale>`, so a direct edit lasts only until the next one.
 
    .. cpp:function:: LocaleReadResult load_built_in(std::string_view locale_xml)
 
-      Reads a locale file: merged into the built-in layer (the embedded built-in locale file, which must be for options().built_in_language), or as the translation (user overrides for another language go). A refused file changes nothing; rejected fields are left out and listed.
+      Reads the built-in locale file, which must be for the options' built-in
+      language, into the built-in layer. A refused file changes nothing;
+      rejected fields are left out and listed in the result.
+      :cpp:func:`load_translation <gui_forms::HelpBookSystem::load_translation>` reads a translation the same way.
 
    .. cpp:function:: LocaleReadResult load_translation(std::string_view locale_xml)
 
    .. cpp:function:: LocaleReadResult load_user_overrides(std::string_view locale_xml)
 
-      The user's own ``locales-<tag>.xml`` for the language in force: wins over the translation and the built-in text per field. A file for another language is refused (language_mismatch) and changes nothing.
+      Reads the user's own locale file for the language in force, which wins
+      over the translation and the built-in text field by field. A file for
+      another language is refused and changes nothing.
+      :cpp:func:`clear_user_overrides <gui_forms::HelpBookSystem::clear_user_overrides>` drops them.
 
    .. cpp:function:: void clear_user_overrides()
 
@@ -186,19 +278,26 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: void use_built_in_language(bool built_in_only)
 
-      The untranslatable way back: help in the built-in language only, whatever the translation and the user's file say. The viewer's built-in-language link turns it on.
+      Shows help in the built-in language only, whatever the translation and
+      the user's file say: the way back the viewer's built-in-language link
+      turns on.
 
    .. cpp:function:: XmlWriteResult export_template(std::string_view language)
 
-      The template export (translation design 7): the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, when ``language`` is the translation's, its translations over them; never the user's overrides. ``language`` empty exports the built-in language. The error is the XML writer's.
+      Exports the template translators work from: the declared topics, the
+      built-in file and the attached windows' program values, with the
+      built-in text as values and, for the translation's language, its
+      translations over them; never the user's overrides. An empty language
+      exports the built-in one.
 
    .. cpp:function:: LocaleResolvedField resolve_field(std::string_view stable_id, LocaleField field)
 
-      One field of a record as it shows now, with the layer it came from: the attached windows' program values are read first.
+      One field of a record as it shows now, with the layer it came from.
 
    .. cpp:function:: const HelpBookCompileResult& compile()
 
-      Compiles the section from the catalog, the attached windows' structure and the declared topics, and shows it in the viewers. The result keeps the rejections; the section holds every record that compiled.
+      Compiles the section and shows it in the viewers. The result keeps the
+      rejections; the section holds every record that compiled.
 
    .. cpp:function:: std::shared_ptr<const HelpBookSection> section()
 
@@ -206,19 +305,31 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: void attach(Window& window, ApplicationWindowHandle handle = {}, std::string window_id = {})
 
-      Attaches a window: F1 and Shift+F1 become help keys in it, and its structure joins the contents. ``handle`` and ``window_id`` (the window's ApplicationWindow::stable_id) let the help window be owned by it.
+      Attaches a window: F1 and Shift+F1 become help keys in it, and its
+      structure joins the contents. Its application handle and window ID let
+      the help window be owned by it. Detach (:cpp:func:`detach <gui_forms::HelpBookSystem::detach>`) every attached window
+      before it is destroyed.
 
    .. cpp:function:: void detach(Window& window) noexcept
 
    .. cpp:function:: void attach_ribbon_tool_tip(RibbonToolTip& tool_tip)
 
+      Answers a :cpp:class:`RibbonToolTip <gui_forms::RibbonToolTip>`'s F1 with help.
+
    .. cpp:function:: void attach_ribbon(Ribbon& ribbon)
 
-      Answers the ribbon's help button (Ribbon::help_button_clicked) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon. The ribbon must sit in an attached window.
+      Answers a ribbon's help button with the window card of the ribbon's
+      window, beside the ribbon; the ribbon must sit in an attached window.
 
    .. cpp:function:: HelpTarget resolve(const Control& control)
 
+      Where help for a control is (:cpp:class:`HelpTarget <gui_forms::HelpTarget>`): the page and the anchor on
+      it, or the home page when nothing on the way up had help.
+
    .. cpp:function:: bool show(std::string_view stable_id, std::string_view anchor = {})
+
+      Shows a record at an anchor. :cpp:func:`show_help_for <gui_forms::HelpBookSystem::show_help_for>` shows a control's help,
+      :cpp:func:`show_contents <gui_forms::HelpBookSystem::show_contents>`, :cpp:func:`show_index <gui_forms::HelpBookSystem::show_index>` and :cpp:func:`show_search <gui_forms::HelpBookSystem::show_search>` open the viewer's tabs.
 
    .. cpp:function:: bool show_help_for(const Control& control)
 
@@ -230,21 +341,28 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: bool show_popup(std::string_view stable_id, const Control::Ptr& anchor)
 
-      The paper popup beside ``anchor``: the page of record ``stable_id``.
+      Shows the page of a record in a paper popup beside an anchor control.
 
    .. cpp:function:: bool show_card(const Control::Ptr& anchor)
 
-      The window card beside ``anchor``: its help line and "More...", which opens its page. Falls back to the page popup when it has no line.
+      Shows the window card beside an anchor control: its help line and
+      "More...", which opens its page; it falls back to the page popup when
+      the control has no line. :cpp:func:`close_popup <gui_forms::HelpBookSystem::close_popup>` closes either.
 
    .. cpp:function:: void close_popup() noexcept
 
    .. cpp:function:: bool enter_help_mode(Window& window)
 
+      Enters What's This mode in a window; :cpp:func:`cancel_help_mode <gui_forms::HelpBookSystem::cancel_help_mode>` leaves it.
+
    .. cpp:function:: void cancel_help_mode() noexcept
 
    .. cpp:function:: void on_help_requested(HelpRequestEvent& request)
 
-      Program routes: a HelpProvider's request (its target's page unless a handler took it) and the ribbon's "?" or a RibbonToolTip's F1 (the help topic, else the target's page).
+      Answers a :cpp:class:`HelpProvider <gui_forms::HelpProvider>`'s request with its target's page, unless a
+      handler took it. :cpp:func:`on_ribbon_help <gui_forms::HelpBookSystem::on_ribbon_help>` answers the ribbon's help or a
+      :cpp:class:`RibbonToolTip <gui_forms::RibbonToolTip>`'s F1, and :cpp:func:`on_ribbon_button_help <gui_forms::HelpBookSystem::on_ribbon_button_help>` the ribbon's help
+      button.
 
    .. cpp:function:: void on_ribbon_help(const RibbonToolTipHelpRequest& request)
 
@@ -254,17 +372,21 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: bool on_help_key(Window& window)
 
-      The accelerators' targets in an attached window: F1 shows the focused control's help (ending What's This when it is on), Shift+F1 enters What's This. True when the key was used.
+      F1 in an attached window: shows the focused control's help, ending
+      What's This mode when it is on; true when the key was used.
+      :cpp:func:`on_help_mode_key <gui_forms::HelpBookSystem::on_help_mode_key>` is Shift+F1's, entering the mode.
 
    .. cpp:function:: bool on_help_mode_key(Window& window)
 
    .. cpp:function:: void set_section(std::shared_ptr<const HelpBookSection> section)
 
-      Uses a section compiled elsewhere (the language-file compiler pass, read_helpbook_section) instead of compiling.
+      Uses a section compiled elsewhere instead of compiling; :cpp:func:`section <gui_forms::HelpBookSystem::section>`
+      returns the section, compiled first when the catalog changed since.
 
    .. cpp:function:: void set_viewer(std::shared_ptr<HelpBookViewer> viewer)
 
-      Shows pages in ``viewer`` (a viewer in a dock panel, say) instead of the help window; null goes back to the window.
+      Shows pages in a given viewer, such as one in a dock panel, instead of
+      the help window; null goes back to the window.
 
 
    .. rubric:: Extension points

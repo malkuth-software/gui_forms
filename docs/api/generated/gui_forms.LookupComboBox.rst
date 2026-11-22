@@ -13,7 +13,12 @@ gui_forms::LookupComboBox
 
    ``#include <gui_forms/controls/lookup_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/lookup_combo_box.hpp>`)
 
-   Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.
+   A multi-column lookup: a drop-down field that chooses a row by its key and shows one of the row's cells, with a list of every column under headers when open.
+
+   The field is not editable. While the list is open, typing filters it to the
+   rows any of whose cells contain the typed text (ignoring ASCII case),
+   Backspace removes the last typed character, and the filter shows in the
+   field. Use a :cpp:class:`ComboBox <gui_forms::ComboBox>` for a list of single values.
 
    .. gf-preview:: controls/lookup_combo_box
       :alt: A LookupComboBox as the stock specimen shows it, in the windows-professional theme.
@@ -23,43 +28,60 @@ gui_forms::LookupComboBox
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **selected_key** : ``std::string``
-         The key of the chosen row, or empty for none. A write of a key no row has throws std::invalid_argument; the field then shows the chosen row's display cell.
+      **selected_key** : ``std::string``, default empty
+         The key of the chosen row, or empty for none. A key no row has throws
+         ``std::invalid_argument``.
 
-      **display_column** : ``std::uint32_t``
-         The column whose cell the field shows for the chosen row. A column the rows lack shows nothing.
+      **display_column** : ``std::uint32_t``, default ``0``
+         The column whose cell the field shows for the chosen row. A column the
+         rows lack shows nothing.
 
-      **max_drop_down_rows** : ``std::uint32_t``
-         The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
+      **max_drop_down_rows** : ``std::uint32_t``, default ``8``
+         The rows the open list shows before it scrolls, from 1 to 64; outside
+         that range throws ``std::invalid_argument``.
 
       **columns** : ``BorrowedSpan<LookupColumn>``
+         The columns (:cpp:class:`LookupColumn <gui_forms::LookupColumn>`: a header and a width in logical units).
+         :cpp:func:`set_columns <gui_forms::LookupComboBox::set_columns>` replaces them; a header that is not valid UTF-8 or a width
+         that is not finite and positive throws ``std::invalid_argument`` and
+         changes nothing.
 
       **rows** : ``BorrowedSpan<LookupRow>``
+         The rows (:cpp:class:`LookupRow <gui_forms::LookupRow>`: the key the application stores and one cell per
+         column; missing cells show empty). :cpp:func:`set_rows <gui_forms::LookupComboBox::set_rows>` replaces them; keys must
+         be distinct and not empty and every text valid UTF-8, or it throws
+         ``std::invalid_argument`` and changes nothing. A selected key no row has
+         any more is cleared, raising :cpp:func:`selected_key_changed <gui_forms::LookupComboBox::selected_key_changed>`.
 
       **shown_text** : ``std::string``, read-only
-         The text the field shows: the filter while open and typed into, else the chosen row's display cell.
+         The text the field shows: the filter while the list is open and typed
+         into, else the chosen row's display cell.
 
       **is_dropped_down** : ``bool``, read-only
+         Whether the list is open.
 
       **filter** : ``std::string``, read-only
-         The typed filter while open (empty when closed).
+         The typed filter while the list is open; empty when closed.
 
       **filtered_rows** : ``BorrowedSpan<std::size_t>``, read-only
-         The rows the open list shows, as indices into rows(), in order.
+         The rows the open list shows, as indices into :cpp:func:`rows <gui_forms::LookupComboBox::rows>`, in order.
 
       **highlighted** : ``stxlib::Optional<std::size_t>``, read-only
-         The highlighted position in filtered_rows(), if any.
+         The highlighted position in :cpp:func:`filtered_rows <gui_forms::LookupComboBox::filtered_rows>`, or none.
 
       **parts** : ``Parts``, read-only
 
    :Events:
 
       **selected_key_changed** : ``Event<const std::string&>``
+         Raised after :cpp:member:`selected_key <gui_forms::LookupComboBox::selected_key>` changes, with the new key.
 
       **drop_down_changed** : ``Event<bool>``
+         Raised when the list opens (true) or closes (false).
 
    :Inherited:
 
@@ -72,13 +94,34 @@ gui_forms::LookupComboBox
       :widths: 35 65
 
       * - :cpp:func:`row_of <gui_forms::LookupComboBox::row_of>`
-        - The row with ``key``, if any.
+        - The index of the row with a key, or none.
       * - :cpp:func:`open_drop_down <gui_forms::LookupComboBox::open_drop_down>`
-        -  
+        - Opens the list.
       * - :cpp:func:`close_drop_down <gui_forms::LookupComboBox::close_drop_down>`
-        -  
+        - Closes the list without choosing.
       * - :cpp:func:`lookup_combo_box_property_entries <gui_forms::LookupComboBox::lookup_combo_box_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`ComboBox <gui_forms::ComboBox>`
+         A drop-down list of single values.
+
+   .. rubric:: Notes
+
+   The keys follow a Windows Forms :cpp:class:`ComboBox <gui_forms::ComboBox>` in its drop-down-list style:
+   Alt+Down or F4 opens and closes the list; with it closed, Up and Down choose
+   the previous or next row at once; with it open, Up, Down, Page Up, Page
+   Down, Home and End move the highlight, Enter or Alt+Up chooses the
+   highlighted row and closes, and Escape closes without choosing. A press on
+   the field toggles the list, a press on a row chooses it, and a press
+   elsewhere closes the list. Keyboard focus stays on the field throughout.
+
+   To assistive technology it is a combo box whose value is the shown cell,
+   expanded while the list is open. A theme draws the field as ``well`` and
+   the drop-down ``actuator`` with its chevron ``glyph`` (choice family); the
+   open list's ``face`` (menu-item family), its ``header`` captions, its rows
+   (``item``, selected when highlighted) and their cells' ``label`` parts.
 
 
    .. rubric:: Construction
@@ -90,45 +133,62 @@ gui_forms::LookupComboBox
 
    .. cpp:member:: std::string selected_key
 
-      The key of the chosen row, or empty for none. A write of a key no row has throws std::invalid_argument; the field then shows the chosen row's display cell.
+      The key of the chosen row, or empty for none. A key no row has throws
+      ``std::invalid_argument``.
 
    .. cpp:member:: std::uint32_t display_column
 
-      The column whose cell the field shows for the chosen row. A column the rows lack shows nothing.
+      The column whose cell the field shows for the chosen row. A column the
+      rows lack shows nothing.
 
    .. cpp:member:: std::uint32_t max_drop_down_rows
 
-      The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
+      The rows the open list shows before it scrolls, from 1 to 64; outside
+      that range throws ``std::invalid_argument``.
 
    .. cpp:function:: BorrowedSpan<LookupColumn> columns() const& noexcept
 
+      The columns (:cpp:class:`LookupColumn <gui_forms::LookupColumn>`: a header and a width in logical units).
+      :cpp:func:`set_columns <gui_forms::LookupComboBox::set_columns>` replaces them; a header that is not valid UTF-8 or a width
+      that is not finite and positive throws ``std::invalid_argument`` and
+      changes nothing.
+
    .. cpp:function:: void set_columns(std::vector<LookupColumn> columns)
 
-      The columns; a header must be valid UTF-8 and a width finite and positive (std::invalid_argument, changing nothing).
+      Sets :cpp:func:`columns <gui_forms::LookupComboBox::columns>`; see the property's description above.
 
    .. cpp:function:: BorrowedSpan<LookupRow> rows() const& noexcept
 
+      The rows (:cpp:class:`LookupRow <gui_forms::LookupRow>`: the key the application stores and one cell per
+      column; missing cells show empty). :cpp:func:`set_rows <gui_forms::LookupComboBox::set_rows>` replaces them; keys must
+      be distinct and not empty and every text valid UTF-8, or it throws
+      ``std::invalid_argument`` and changes nothing. A selected key no row has
+      any more is cleared, raising :cpp:func:`selected_key_changed <gui_forms::LookupComboBox::selected_key_changed>`.
+
    .. cpp:function:: void set_rows(std::vector<LookupRow> rows)
 
-      The rows; keys must be distinct and non-empty and every text valid UTF-8 (std::invalid_argument, changing nothing). A selected key no row has any more is cleared (raising selected_key_changed).
+      Sets :cpp:func:`rows <gui_forms::LookupComboBox::rows>`; see the property's description above.
 
    .. cpp:function:: std::string shown_text() const
 
-      The text the field shows: the filter while open and typed into, else the chosen row's display cell.
+      The text the field shows: the filter while the list is open and typed
+      into, else the chosen row's display cell.
 
    .. cpp:function:: bool is_dropped_down() const noexcept
 
+      Whether the list is open.
+
    .. cpp:function:: const std::string& filter() const& noexcept
 
-      The typed filter while open (empty when closed).
+      The typed filter while the list is open; empty when closed.
 
    .. cpp:function:: BorrowedSpan<std::size_t> filtered_rows() const& noexcept
 
-      The rows the open list shows, as indices into rows(), in order.
+      The rows the open list shows, as indices into :cpp:func:`rows <gui_forms::LookupComboBox::rows>`, in order.
 
    .. cpp:function:: stxlib::Optional<std::size_t> highlighted() const noexcept
 
-      The highlighted position in filtered_rows(), if any.
+      The highlighted position in :cpp:func:`filtered_rows <gui_forms::LookupComboBox::filtered_rows>`, or none.
 
    .. cpp:function:: Parts parts() const
 
@@ -137,18 +197,26 @@ gui_forms::LookupComboBox
 
    .. cpp:function:: Event<const std::string&>& selected_key_changed() noexcept
 
+      Raised after :cpp:member:`selected_key <gui_forms::LookupComboBox::selected_key>` changes, with the new key.
+
    .. cpp:function:: Event<bool>& drop_down_changed() noexcept
+
+      Raised when the list opens (true) or closes (false).
 
 
    .. rubric:: Methods
 
    .. cpp:function:: stxlib::Optional<std::size_t> row_of(std::string_view key) const noexcept
 
-      The row with ``key``, if any.
+      The index of the row with a key, or none.
 
    .. cpp:function:: void open_drop_down()
 
+      Opens the list.
+
    .. cpp:function:: void close_drop_down()
+
+      Closes the list without choosing.
 
    .. cpp:function:: static const std::array<PropertyEntry, lookup_combo_box_property_count>& lookup_combo_box_property_entries() noexcept
 

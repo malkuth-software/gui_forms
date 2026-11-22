@@ -13,7 +13,13 @@ gui_forms::PlotAxisItem
 
    ``#include <gui_forms/controls/plot_axis_item.hpp>`` (:src:`source <include/gui_forms/controls/plot_axis_item.hpp>`)
 
-   Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.
+   One axis of a :cpp:class:`PlotView <gui_forms::PlotView>`, declared as a child of the plot: its direction, scale, initial range, title, fitting and following.
+
+   The first horizontal axis is drawn below the plot and a second above it;
+   the first vertical axis left of the plot and a second right of it; further
+   axes are ignored. A plot without a horizontal or a vertical axis item uses a
+   linear one over 0 to 1. An item draws nothing, takes no input, no focus and
+   no space, and publishes no accessibility node: the plot reads it.
 
    .. gf-preview:: controls/plot_axis_item
       :alt: A PlotAxisItem as the stock specimen shows it, in the windows-professional theme.
@@ -23,32 +29,41 @@ gui_forms::PlotAxisItem
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the item, unique within its window.
 
    :Properties:
 
-      **direction** : ``PlotAxisDirection``
+      **direction** : ``PlotAxisDirection``, default ``PlotAxisDirection::horizontal``
          Which way the axis runs: horizontal (an x axis) or vertical (a y axis).
 
-      **scale** : ``PlotAxisScale``
-         How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+      **scale** : ``PlotAxisScale``, default ``PlotAxisScale::linear``
+         How the axis maps values: linear, log10, symlog, time (UTC seconds) or
+         category.
 
-      **minimum** : ``double``
-         The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+      **minimum** : ``double``, default ``0``
+         The smallest value shown until a gesture or a fit moves the view. A
+         value that is not finite throws ``std::invalid_argument``.
 
-      **maximum** : ``double``
-         The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+      **maximum** : ``double``, default ``1``
+         The largest value shown until a gesture or a fit moves the view. A value
+         that is not finite throws ``std::invalid_argument``.
 
-      **label** : ``std::string``
-         The axis title drawn beside its tick labels.
+      **label** : ``std::string``, default empty
+         The axis title, drawn beside its tick labels.
 
-      **auto_fit** : ``bool``
-         Whether the axis fits the data when the series change, until a gesture moves the view.
+      **auto_fit** : ``bool``, default ``true``
+         Whether the axis fits the data when the series change, until a gesture
+         moves the view.
 
-      **follow_span** : ``double``
-         A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off. Negative or not finite throws std::invalid_argument.
+      **follow_span** : ``double``, default ``0``
+         A horizontal axis's following window: above zero the axis shows the
+         newest x and this span before it, as a live plot's tail; zero turns
+         following off. A negative or non-finite value throws
+         ``std::invalid_argument``.
 
       **revision** : ``std::uint64_t``, read-only
-         Bumped by every property write: the owning plot compares it with the revision it last took the item's range at.
+         A count every property write raises; the plot compares it with the one
+         it last took the item's range at.
 
    :Inherited:
 
@@ -61,9 +76,23 @@ gui_forms::PlotAxisItem
       :widths: 35 65
 
       * - :cpp:func:`axis_description <gui_forms::PlotAxisItem::axis_description>`
-        - The axis as the plots primitives describe it, on ``side``.
+        - The axis as the plot's primitives describe it (``plots::Axis``), on a given side.
       * - :cpp:func:`plot_axis_item_property_entries <gui_forms::PlotAxisItem::plot_axis_item_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`PlotView <gui_forms::PlotView>`
+         The plot that reads the axis.
+
+      :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
+         A series drawn against the axes.
+
+   .. rubric:: Notes
+
+   Changing a property tells the owning plot, which lays out and repaints. The
+   plot takes the item's range again only until a gesture moves its view;
+   ``PlotView::reset_view`` takes it again.
 
 
    .. rubric:: Construction
@@ -79,38 +108,47 @@ gui_forms::PlotAxisItem
 
    .. cpp:member:: PlotAxisScale scale
 
-      How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+      How the axis maps values: linear, log10, symlog, time (UTC seconds) or
+      category.
 
    .. cpp:member:: double minimum
 
-      The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+      The smallest value shown until a gesture or a fit moves the view. A
+      value that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: double maximum
 
-      The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
+      The largest value shown until a gesture or a fit moves the view. A value
+      that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: std::string label
 
-      The axis title drawn beside its tick labels.
+      The axis title, drawn beside its tick labels.
 
    .. cpp:member:: bool auto_fit
 
-      Whether the axis fits the data when the series change, until a gesture moves the view.
+      Whether the axis fits the data when the series change, until a gesture
+      moves the view.
 
    .. cpp:member:: double follow_span
 
-      A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off. Negative or not finite throws std::invalid_argument.
+      A horizontal axis's following window: above zero the axis shows the
+      newest x and this span before it, as a live plot's tail; zero turns
+      following off. A negative or non-finite value throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::uint64_t revision() const noexcept
 
-      Bumped by every property write: the owning plot compares it with the revision it last took the item's range at.
+      A count every property write raises; the plot compares it with the one
+      it last took the item's range at.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: plots::Axis axis_description(plots::AxisSide side) const
 
-      The axis as the plots primitives describe it, on ``side``.
+      The axis as the plot's primitives describe it (``plots::Axis``), on a
+      given side.
 
    .. cpp:function:: static const std::array<PropertyEntry, plot_axis_item_property_count>& plot_axis_item_property_entries() noexcept
 

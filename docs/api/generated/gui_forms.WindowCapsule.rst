@@ -13,7 +13,14 @@ gui_forms::WindowCapsule
 
    ``#include <gui_forms/controls/window_capsule.hpp>`` (:src:`source <include/gui_forms/controls/window_capsule.hpp>`)
 
-   A window's controls as one capsule worked by gestures: double click or drag down the left half to maximise or minimise, the question mark for help, drag the right half to move, three clicks to close; the surface window manager's title bar controls and a program's own corner controls.
+   A window's controls as one capsule in three sections, worked by gestures: maximise and minimise on the left, help in the middle, move on the right, and a close that takes three clicks.
+
+   A program without a title bar places a capsule in a corner of its own
+   content. The capsule then runs the gesture on its own pointer and key input
+   and raises :cpp:func:`requested <gui_forms::WindowCapsule::requested>` for each command; the program carries the command
+   out on its window (:cpp:class:`ApplicationWindowHandle <gui_forms::ApplicationWindowHandle>`). A window manager that draws
+   title bars can show a capsule that is not :cpp:func:`interactive <gui_forms::WindowCapsule::interactive>`, run the gesture
+   itself (:cpp:class:`WindowCapsuleGesture <gui_forms::WindowCapsuleGesture>`) and give the capsule its :cpp:func:`look <gui_forms::WindowCapsule::look>`.
 
    .. gf-preview:: controls/window_capsule
       :alt: A WindowCapsule as the stock specimen shows it, in the windows-professional theme.
@@ -23,23 +30,42 @@ gui_forms::WindowCapsule
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
       **look** : ``WindowCapsuleLook``
+         The :cpp:class:`WindowCapsuleLook <gui_forms::WindowCapsuleLook>` shown: the arming, the close intention, the
+         minimise drag and the hovered, pressed and focused sections.
+         :cpp:func:`set_look <gui_forms::WindowCapsule::set_look>` changes it; an interactive capsule's own gesture replaces it
+         at its next input. The capsule paints again only when it changed.
 
       **colors** : ``WindowCapsuleColors``
+         The :cpp:class:`WindowCapsuleColors <gui_forms::WindowCapsuleColors>` its fills and glyphs are drawn in, over its
+         theme parts: by default a dark face, light glyphs, a green invitation
+         and a red X. :cpp:func:`set_colors <gui_forms::WindowCapsule::set_colors>` changes them.
 
       **help_width** : ``double``
+         The question mark's width, at least the capsule's height; 20 by
+         default. :cpp:func:`set_help_width <gui_forms::WindowCapsule::set_help_width>` changes it.
 
       **interactive** : ``bool``
+         Whether the capsule takes the pointer and, when focused, the keyboard,
+         and raises :cpp:func:`requested <gui_forms::WindowCapsule::requested>`; on by default. Not interactive, it only shows
+         the look it is given and passes the pointer through. :cpp:func:`set_interactive <gui_forms::WindowCapsule::set_interactive>`
+         changes it.
 
       **parts** : ``Parts``, read-only
 
    :Events:
 
       **requested** : ``Event<const WindowCapsuleRequest&>``
-         A command of an interactive capsule's gesture, for its program.
+         Raised for each command of an interactive capsule's gesture, with a
+         :cpp:class:`WindowCapsuleRequest <gui_forms::WindowCapsuleRequest>`: maximise or restore, minimise, a move begun,
+         continued, finished (with its snap) or cancelled, a tile, a nudge, the
+         help, or close. Points are in the capsule's client coordinates; a
+         program moving its window reads the screen pointer and asks for the
+         frame, and chooses any snap itself.
 
    :Inherited:
 
@@ -52,11 +78,43 @@ gui_forms::WindowCapsule
       :widths: 35 65
 
       * - :cpp:func:`section_at <gui_forms::WindowCapsule::section_at>`
-        - The section at a client point, none outside the capsule.
+        - The section at a client point; none outside the capsule.
       * - :cpp:func:`section_bounds <gui_forms::WindowCapsule::section_bounds>`
-        - The sections' rectangles in client coordinates.
+        - A section's rectangle in client coordinates.
       * - :cpp:func:`set_measures <gui_forms::WindowCapsule::set_measures>`
-        - The gesture's measures (an interactive capsule's own gesture) and the minimise distance its look scales the drag's light by.
+        - Sets the gesture's measures (:cpp:class:`WindowCapsuleMeasures <gui_forms::WindowCapsuleMeasures>`): the click slop, the minimise distance, the snap edge and release, the animation time and the keyboard nudge.
+
+   .. seealso::
+
+      :cpp:class:`BusinessCard <gui_forms::BusinessCard>`
+         The program's card the help can show.
+
+   .. rubric:: Notes
+
+   On the left half, a double click maximises or restores, and a drag down of
+   at least the minimise distance, released, minimises. A click on the
+   question mark opens the help (``window_capsule_help_text`` is the capsule's
+   own); hovering it shows the window's title. Dragged past the slop, the right
+   half moves the window live. Closing takes three clicks: a click on one half
+   arms it (that half turns into half an X and the other lights green), a click
+   on the other half completes the X (the capsule turns red), and a click on
+   the X closes the window. Leaving the capsule, Escape, or the window losing
+   the capsule disarms it.
+
+   Focused, Left and Right choose a section and Enter or Space click it
+   (arming moves the focus to the other half, so Enter three times closes); Up
+   maximises or restores, Down minimises, Shift with Left or Right tiles to a
+   half, Shift with Down floats, Ctrl with an arrow moves the window by the
+   nudge, F1 opens the help, and Escape disarms, then leaves the capsule. Any
+   other key leaves the capsule and goes to the window. The arming colour and
+   the minimise drag's spring-back animate; with reduced motion they take their
+   targets at once. A press whose capture is taken away cancels the gesture.
+
+   To assistive technology the capsule is a group named "Window controls" (or
+   its accessible name) whose sections are buttons: "Maximise or minimise",
+   "Help" and "Move", and "Close" while the X shows. Its parts are ``face``,
+   ``left_half``, ``help``, ``right_half``, ``glyph`` (the halves' marks and
+   the X), ``label`` (the question mark) and ``focus``.
 
 
    .. rubric:: Construction
@@ -68,23 +126,44 @@ gui_forms::WindowCapsule
 
    .. cpp:function:: const WindowCapsuleLook& look() const noexcept
 
+      The :cpp:class:`WindowCapsuleLook <gui_forms::WindowCapsuleLook>` shown: the arming, the close intention, the
+      minimise drag and the hovered, pressed and focused sections.
+      :cpp:func:`set_look <gui_forms::WindowCapsule::set_look>` changes it; an interactive capsule's own gesture replaces it
+      at its next input. The capsule paints again only when it changed.
+
    .. cpp:function:: void set_look(const WindowCapsuleLook& look)
 
-      The look shown; an interactive capsule's own gesture replaces it at its next input. Paints again only when it changed.
+      Sets :cpp:func:`look <gui_forms::WindowCapsule::look>`; see the property's description above.
 
    .. cpp:function:: const WindowCapsuleColors& colors() const noexcept
 
+      The :cpp:class:`WindowCapsuleColors <gui_forms::WindowCapsuleColors>` its fills and glyphs are drawn in, over its
+      theme parts: by default a dark face, light glyphs, a green invitation
+      and a red X. :cpp:func:`set_colors <gui_forms::WindowCapsule::set_colors>` changes them.
+
    .. cpp:function:: void set_colors(const WindowCapsuleColors& colors)
+
+      Sets :cpp:func:`colors <gui_forms::WindowCapsule::colors>`; see the property's description above.
 
    .. cpp:function:: double help_width() const noexcept
 
+      The question mark's width, at least the capsule's height; 20 by
+      default. :cpp:func:`set_help_width <gui_forms::WindowCapsule::set_help_width>` changes it.
+
    .. cpp:function:: void set_help_width(double width)
 
-      The question mark's width: at least the capsule's height, so the halves' rounded inner ends lie under it (20 by default).
+      Sets :cpp:func:`help_width <gui_forms::WindowCapsule::help_width>`; see the property's description above.
 
    .. cpp:function:: bool interactive() const noexcept
 
+      Whether the capsule takes the pointer and, when focused, the keyboard,
+      and raises :cpp:func:`requested <gui_forms::WindowCapsule::requested>`; on by default. Not interactive, it only shows
+      the look it is given and passes the pointer through. :cpp:func:`set_interactive <gui_forms::WindowCapsule::set_interactive>`
+      changes it.
+
    .. cpp:function:: void set_interactive(bool interactive)
+
+      Sets :cpp:func:`interactive <gui_forms::WindowCapsule::interactive>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -93,22 +172,30 @@ gui_forms::WindowCapsule
 
    .. cpp:function:: Event<const WindowCapsuleRequest&>& requested() noexcept
 
-      A command of an interactive capsule's gesture, for its program.
+      Raised for each command of an interactive capsule's gesture, with a
+      :cpp:class:`WindowCapsuleRequest <gui_forms::WindowCapsuleRequest>`: maximise or restore, minimise, a move begun,
+      continued, finished (with its snap) or cancelled, a tile, a nudge, the
+      help, or close. Points are in the capsule's client coordinates; a
+      program moving its window reads the screen pointer and asks for the
+      frame, and chooses any snap itself.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: WindowCapsuleSection section_at(Point local_point) const noexcept
 
-      The section at a client point, none outside the capsule.
+      The section at a client point; none outside the capsule.
 
    .. cpp:function:: Rect section_bounds(WindowCapsuleSection section) const noexcept
 
-      The sections' rectangles in client coordinates.
+      A section's rectangle in client coordinates.
 
    .. cpp:function:: void set_measures(const WindowCapsuleMeasures& measures)
 
-      The gesture's measures (an interactive capsule's own gesture) and the minimise distance its look scales the drag's light by.
+      Sets the gesture's measures (:cpp:class:`WindowCapsuleMeasures <gui_forms::WindowCapsuleMeasures>`): the click slop,
+      the minimise distance, the snap edge and release, the animation time and
+      the keyboard nudge. Non-finite or negative values fall back to the
+      defaults.
 
 
    .. rubric:: Extension points

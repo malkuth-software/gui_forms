@@ -152,6 +152,13 @@ gui_forms::Ribbon
          The popup's content control while open (for tests and inspection).
 
       **quick_access_toolbar** : ``std::shared_ptr<QuickAccessToolbar>``
+         The :cpp:class:`QuickAccessToolbar <gui_forms::QuickAccessToolbar>` the ribbon hosts, or null; a child of the
+         ribbon while set. Its placement chooses where it shows: ``above_ribbon``
+         on the tab row after the File tab, taking at most half the row's free
+         width (commands that do not fit go to its overflow menu), or
+         ``below_ribbon`` on a row of its own under the plane. Setting null
+         removes it; it is detached, not disposed. Setting a toolbar another
+         parent holds throws ``std::invalid_argument``.
 
       **recent_items** : ``std::span<const RibbonRecentItem>``
          The application menu's recent pane (:cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`: ID, text and a
@@ -248,7 +255,7 @@ gui_forms::Ribbon
       * - :cpp:func:`reduction_ladder <gui_forms::Ribbon::reduction_ladder>`
         - A tab's :cpp:class:`RibbonLadderEntry <gui_forms::RibbonLadderEntry>` list from the widest to the narrowest, built if needed.
       * - :cpp:func:`show_plane_popup <gui_forms::Ribbon::show_plane_popup>`
-        - The minimized ribbon's temporary popup (interview G1, D3, T7): the selected tab's plane in an overlay below the tab row, casting the overlay shadow, over the document instead of pushing it down.
+        - While the ribbon is minimized, opens the selected tab's plane in a temporary popup below the tab row, over the document instead of pushing it down; the tab's hosted controls move into it while it is open.
       * - :cpp:func:`close_plane_popup <gui_forms::Ribbon::close_plane_popup>`
         -  
       * - :cpp:func:`show_application_menu <gui_forms::Ribbon::show_application_menu>`
@@ -283,6 +290,9 @@ gui_forms::Ribbon
       :cpp:class:`ToolStrip <gui_forms::ToolStrip>`
          A strip of records and hosted controls.
 
+      :cpp:class:`QuickAccessToolbar <gui_forms::QuickAccessToolbar>`
+         The toolbar the ribbon hosts on its tab row or below it.
+
       :cpp:class:`Command <gui_forms::Command>`
          The shared action a command carries.
 
@@ -293,8 +303,12 @@ gui_forms::Ribbon
 
    Clicking the selected tab minimizes the command plane, and clicking it again
    shows it; clicking another tab selects it and shows the plane (owner
-   decision 19). There is no minimize button. The minimized ribbon's temporary
-   overlay comes in a later phase.
+   decision 19). There is no minimize button. While minimized, clicking
+   another tab selects it and opens the plane in a temporary popup over the
+   document (:cpp:func:`show_plane_popup <gui_forms::Ribbon::show_plane_popup>`); clicking the selected tab pins the plane open
+   again. A click outside the popup is consumed and only closes it (a click on
+   a tab still acts); Escape closes it, and so does a command or launcher run
+   from it.
 
    A large command shows a 32-unit icon over its label and fills the group's
    height; small and hosted commands take one of three rows, stacked in
@@ -428,10 +442,10 @@ gui_forms::Ribbon
    press on a tab closes it and selects that tab, and it follows the window's
    size.
 
-   Not yet: the Quick Access Toolbar, the minimized overlay, icons in the
-   two-pane menu, right-to-left mirroring of the cycle, two-line large labels
-   and ellipsized tab labels (decision 30 allows them; tabs past the row's end
-   are clipped).
+   Not yet: icons in the two-pane menu, right-to-left mirroring, two-line
+   large labels and ellipsized tab labels (tabs past the row's end are
+   clipped); in the minimized popup, collapsed groups' overlays, drop-down
+   menus and keyboard stops (the popup's hosted controls take focus as usual).
 
    .. rubric:: Examples
 
@@ -595,9 +609,17 @@ gui_forms::Ribbon
 
    .. cpp:function:: const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept
 
+      The :cpp:class:`QuickAccessToolbar <gui_forms::QuickAccessToolbar>` the ribbon hosts, or null; a child of the
+      ribbon while set. Its placement chooses where it shows: ``above_ribbon``
+      on the tab row after the File tab, taking at most half the row's free
+      width (commands that do not fit go to its overflow menu), or
+      ``below_ribbon`` on a row of its own under the plane. Setting null
+      removes it; it is detached, not disposed. Setting a toolbar another
+      parent holds throws ``std::invalid_argument``.
+
    .. cpp:function:: void set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolbar)
 
-      The Quick Access Toolbar the ribbon hosts (owner decisions RB-12 and RB-44, interview D1), a child of the ribbon while set. Its placement chooses where it shows: above_ribbon on the tab row after the File tab, the tabs following it, taking at most half the row's free width (commands that do not fit go to its overflow menu); below_ribbon on a row of its own under the plane (under the tab row while the plane does not show). The ribbon follows its placement and customization. Null removes it (it is detached, not disposed). Throws std::invalid_argument for a toolbar another parent holds.
+      Sets :cpp:func:`quick_access_toolbar <gui_forms::Ribbon::quick_access_toolbar>`; see the property's description above.
 
    .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const& noexcept
 
@@ -729,7 +751,12 @@ gui_forms::Ribbon
 
    .. cpp:function:: bool show_plane_popup()
 
-      The minimized ribbon's temporary popup (interview G1, D3, T7): the selected tab's plane in an overlay below the tab row, casting the overlay shadow, over the document instead of pushing it down. While minimized, clicking a tab other than the selected one selects it and opens the popup; clicking the selected tab pins the plane open again (decision 19). A click outside the popup is consumed and only closes it (a click on a tab still acts); Escape closes it, and so does a command or launcher run from it. The selected tab's hosted controls move into the popup while it is open. False when not minimized, without a selected tab, a window, or while disabled.
+      While the ribbon is minimized, opens the selected tab's plane in a
+      temporary popup below the tab row, over the document instead of pushing
+      it down; the tab's hosted controls move into it while it is open.
+      Returns false when not minimized, without a selected tab or a window, or
+      while disabled. :cpp:func:`close_plane_popup <gui_forms::Ribbon::close_plane_popup>` closes it, :cpp:func:`plane_popup_open <gui_forms::Ribbon::plane_popup_open>` says
+      whether it is open and :cpp:func:`plane_popup <gui_forms::Ribbon::plane_popup>` returns its content control.
 
    .. cpp:function:: void close_plane_popup() noexcept
 

@@ -13,7 +13,14 @@ gui_forms::StepIndicator
 
    ``#include <gui_forms/controls/step_indicator.hpp>`` (:src:`source <include/gui_forms/controls/step_indicator.hpp>`)
 
-   Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
+   A step indicator: a row of numbered steps joined by connectors, each with its name beneath.
+
+   The steps before :cpp:member:`current_step <gui_forms::StepIndicator::current_step>` are complete and show a check; the current
+   step is highlighted; the steps after it are upcoming. A press on a completed
+   step raises :cpp:func:`step_clicked <gui_forms::StepIndicator::step_clicked>` with its index; the indicator does not change
+   :cpp:member:`current_step <gui_forms::StepIndicator::current_step>` itself, so its owner decides (a :cpp:class:`Wizard <gui_forms::Wizard>` goes back to that
+   step). It takes no focus: the keyboard path is its owner's, such as a
+   wizard's Back button.
 
    .. gf-preview:: controls/step_indicator
       :alt: A StepIndicator as the stock specimen shows it, in the windows-professional theme.
@@ -23,22 +30,30 @@ gui_forms::StepIndicator
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **current_step** : ``std::uint32_t``
-         The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
+      **current_step** : ``std::uint32_t``, default ``0``
+         The step under way, counted from zero; the steps before it are
+         complete. A step past the last throws ``std::invalid_argument``; zero is
+         always accepted.
 
       **steps** : ``std::vector<std::string>``
+         The steps' names, in order. :cpp:func:`set_steps <gui_forms::StepIndicator::set_steps>` replaces them; a name that is
+         not valid UTF-8 throws ``std::invalid_argument`` and keeps the old steps.
+         A current step past the new last step moves to the last, or to zero
+         when there are none.
 
       **parts** : ``Parts``, read-only
 
    :Events:
 
       **step_clicked** : ``Event<std::size_t>``
-         Raised with a completed step's index when it is pressed.
+         Raised with a completed step's index when the user presses it.
 
       **current_step_changed** : ``Event<std::uint32_t>``
+         Raised after :cpp:member:`current_step <gui_forms::StepIndicator::current_step>` changes, with the new step.
 
    :Inherited:
 
@@ -51,9 +66,24 @@ gui_forms::StepIndicator
       :widths: 35 65
 
       * - :cpp:func:`step_at <gui_forms::StepIndicator::step_at>`
-        - The step whose chip or name contains a local point, if any.
+        - The step whose chip or name contains a local point, or none.
       * - :cpp:func:`step_indicator_property_entries <gui_forms::StepIndicator::step_indicator_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`Wizard <gui_forms::Wizard>`
+         Pages of a task, with a step indicator.
+
+   .. rubric:: Notes
+
+   To assistive technology the indicator is a group whose value reads, for
+   example, "Step 2 of 4: Details". A theme draws each step's ``chip`` in the
+   selection family (selected for the complete and current steps, checked for
+   the complete ones), with the ``glyph`` check or the step's number as its
+   label; ``divider`` connectors join the chips, selected between complete
+   steps; and ``caption`` is a step's name, ordinary for the current step and
+   secondary for the others.
 
 
    .. rubric:: Construction
@@ -65,13 +95,20 @@ gui_forms::StepIndicator
 
    .. cpp:member:: std::uint32_t current_step
 
-      The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
+      The step under way, counted from zero; the steps before it are
+      complete. A step past the last throws ``std::invalid_argument``; zero is
+      always accepted.
 
    .. cpp:function:: const std::vector<std::string>& steps() const& noexcept
 
+      The steps' names, in order. :cpp:func:`set_steps <gui_forms::StepIndicator::set_steps>` replaces them; a name that is
+      not valid UTF-8 throws ``std::invalid_argument`` and keeps the old steps.
+      A current step past the new last step moves to the last, or to zero
+      when there are none.
+
    .. cpp:function:: void set_steps(std::vector<std::string> steps)
 
-      The steps' names, in order; each must be valid UTF-8 (otherwise this throws std::invalid_argument and keeps the old steps). A current step past the new last step moves to the last (to zero when empty).
+      Sets :cpp:func:`steps <gui_forms::StepIndicator::steps>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 
@@ -80,16 +117,18 @@ gui_forms::StepIndicator
 
    .. cpp:function:: Event<std::size_t>& step_clicked() noexcept
 
-      Raised with a completed step's index when it is pressed.
+      Raised with a completed step's index when the user presses it.
 
    .. cpp:function:: Event<std::uint32_t>& current_step_changed() noexcept
+
+      Raised after :cpp:member:`current_step <gui_forms::StepIndicator::current_step>` changes, with the new step.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: stxlib::Optional<std::size_t> step_at(Point local_point) const
 
-      The step whose chip or name contains a local point, if any.
+      The step whose chip or name contains a local point, or none.
 
    .. cpp:function:: static const std::array<PropertyEntry, step_indicator_property_count>& step_indicator_property_entries() noexcept
 

@@ -13,7 +13,17 @@ gui_forms::SevenSegmentDisplay
 
    ``#include <gui_forms/controls/seven_segment_display.hpp>`` (:src:`source <include/gui_forms/controls/seven_segment_display.hpp>`)
 
-   Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.
+   A segmented numeric readout: a row of cells in which each character of the reading lights the bars of a seven-segment display, as a meter, clock or instrument panel shows a value.
+
+   The reading is right-aligned in :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>` cells, or in as many cells as
+   it needs when :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>` is zero. Digits, the hexadecimal letters, the
+   other letters a seven-segment cell can form, ``-``, ``_``, ``=``, the degree
+   sign and spaces each take a cell; ``.`` and ``,`` light the decimal point of
+   the cell before them, and ``:`` is a colon cell, half a digit wide with two
+   dots. A reading longer than the cells keeps its last digits, as an LCD
+   counter does, and :cpp:func:`overflowed <gui_forms::SevenSegmentDisplay::overflowed>` reports it. Use a :cpp:class:`Label <gui_forms::Label>` for text that is
+   not a reading, and a :cpp:class:`LinearGauge <gui_forms::LinearGauge>` or :cpp:class:`RadialGauge <gui_forms::RadialGauge>` to show a value against
+   a scale.
 
    .. gf-preview:: controls/seven_segment_display
       :alt: A SevenSegmentDisplay as the stock specimen shows it, in the windows-professional theme.
@@ -23,25 +33,37 @@ gui_forms::SevenSegmentDisplay
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **text** : ``std::string``
-         The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell. Other characters show as blank cells. Must be valid UTF-8 (std::invalid_argument).
+      **text** : ``std::string``, default empty
+         The reading the cells show. A character no cell can form shows as a
+         blank cell. A point with no digit before it, or a second point after
+         one, takes a blank cell of its own. Invalid UTF-8 throws
+         ``std::invalid_argument`` and keeps the old reading.
 
-      **digit_count** : ``std::uint32_t``
-         The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs. A longer reading keeps its last digits (overflowed()).
+      **digit_count** : ``std::uint32_t``, default ``0``
+         The number of digit cells, at most 64; zero shows as many as the
+         reading needs. A colon cell is not counted. A larger value throws
+         ``std::invalid_argument``.
 
-      **ghost_segments** : ``bool``
+      **ghost_segments** : ``bool``, default ``true``
          Whether the unlit segments are drawn faintly, as on a real display.
 
       **cells** : ``std::vector<SevenSegmentCell>``, read-only
-         The cells shown now, left to right, padded with blank cells on the left to digit_count digits; read from text and digit_count each call.
+         The cells shown now, left to right, as :cpp:class:`SevenSegmentCell <gui_forms::SevenSegmentCell>` records (the
+         lit segments, the point and whether the cell is a colon), padded on the
+         left with blank cells to :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>` digits.
 
       **overflowed** : ``bool``, read-only
-         Whether the reading has more digits than digit_count, so that its first digits are not shown.
+         Whether the reading has more digits than :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>`, so that its
+         first digits are not shown.
 
       **parts** : ``Parts``, read-only
+         The control's parts and where they lie: ``plot``, the window around the
+         cells; ``trace``, the box around the lit bars; and ``graticule``, the box
+         around the cells while :cpp:member:`ghost_segments <gui_forms::SevenSegmentDisplay::ghost_segments>` is set.
 
    :Events:
 
@@ -61,6 +83,30 @@ gui_forms::SevenSegmentDisplay
       * - :cpp:func:`seven_segment_display_property_entries <gui_forms::SevenSegmentDisplay::seven_segment_display_property_entries>`
         -  
 
+   .. seealso::
+
+      :cpp:class:`LinearGauge <gui_forms::LinearGauge>`
+         A value against a scale, with alarm limits.
+
+      :cpp:class:`IndicatorLamp <gui_forms::IndicatorLamp>`
+         An off, on or error lamp.
+
+   .. rubric:: Notes
+
+   The cells grow and shrink with the control's height, and shrink further to
+   fit its width. The display takes no input or focus. To assistive technology
+   it is static text, read-only, named by its accessible name (or else by the
+   reading), with the reading as its value.
+
+   A theme styles the window as the ``plot`` part (the instruments' field,
+   drawn as a well), a lit bar as the ``trace`` part in the selected state and
+   an unlit one as the ``graticule`` part, both of the progress family:
+   ``seven-segment-display::part(trace)`` and ``::part(graticule)``.
+
+   ``seven_segment_pattern`` gives the segments a character lights, as bits from
+   the top bar (bit 0) clockwise to the upper left (bit 5) and the middle bar
+   (bit 6); zero for a character no cell can form.
+
 
    .. rubric:: Construction
 
@@ -71,11 +117,16 @@ gui_forms::SevenSegmentDisplay
 
    .. cpp:member:: std::string text
 
-      The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell. Other characters show as blank cells. Must be valid UTF-8 (std::invalid_argument).
+      The reading the cells show. A character no cell can form shows as a
+      blank cell. A point with no digit before it, or a second point after
+      one, takes a blank cell of its own. Invalid UTF-8 throws
+      ``std::invalid_argument`` and keeps the old reading.
 
    .. cpp:member:: std::uint32_t digit_count
 
-      The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs. A longer reading keeps its last digits (overflowed()).
+      The number of digit cells, at most 64; zero shows as many as the
+      reading needs. A colon cell is not counted. A larger value throws
+      ``std::invalid_argument``.
 
    .. cpp:member:: bool ghost_segments
 
@@ -83,13 +134,20 @@ gui_forms::SevenSegmentDisplay
 
    .. cpp:function:: std::vector<SevenSegmentCell> cells() const
 
-      The cells shown now, left to right, padded with blank cells on the left to digit_count digits; read from text and digit_count each call.
+      The cells shown now, left to right, as :cpp:class:`SevenSegmentCell <gui_forms::SevenSegmentCell>` records (the
+      lit segments, the point and whether the cell is a colon), padded on the
+      left with blank cells to :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>` digits.
 
    .. cpp:function:: bool overflowed() const
 
-      Whether the reading has more digits than digit_count, so that its first digits are not shown.
+      Whether the reading has more digits than :cpp:member:`digit_count <gui_forms::SevenSegmentDisplay::digit_count>`, so that its
+      first digits are not shown.
 
    .. cpp:function:: Parts parts() const
+
+      The control's parts and where they lie: ``plot``, the window around the
+      cells; ``trace``, the box around the lit bars; and ``graticule``, the box
+      around the cells while :cpp:member:`ghost_segments <gui_forms::SevenSegmentDisplay::ghost_segments>` is set.
 
 
    .. rubric:: Events
