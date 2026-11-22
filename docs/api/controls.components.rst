@@ -14,7 +14,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    * - :cpp:class:`DockWorkspace <gui_forms::DockWorkspace>`
      - A docking workspace: the layout, the panels and their factories, and which panel and document are active.
    * - :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
-     - Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.
+     - A group of :cpp:class:`PlotView <gui_forms::PlotView>` controls whose first x axes, first y axes or both share one range, such as linked subplots or a plot and its overview.
    * - :cpp:class:`Timer <gui_forms::Timer>`
      - A component that raises ``tick`` at a fixed interval on a window's UI thread.
    * - :cpp:class:`BackgroundWorker <gui_forms::BackgroundWorker>`

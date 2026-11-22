@@ -11,59 +11,102 @@ gui_forms::PlotSeriesItem
 
    ``#include <gui_forms/controls/plot_series_item.hpp>``
 
-   Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).
+   One series of a :cpp:class:`PlotView <gui_forms::PlotView>`, declared as a child of the plot: what it draws, its legend label, the axes it is drawn against, and where its data comes from.
+
+   Data arrives in one of four ways, and each is a whole replacement: the last
+   call chooses.
+
+   - **Copied in**: :cpp:func:`set_points <gui_forms::PlotSeriesItem::set_points>`, :cpp:func:`append_points <gui_forms::PlotSeriesItem::append_points>` and :cpp:func:`set_values <gui_forms::PlotSeriesItem::set_values>` copy the
+     data into columns the item owns. A series whose x never decreases is
+     monotone; one that is also free of gaps keeps an envelope pyramid once it
+     reaches ``pyramid_threshold`` points, so a large series draws at the cost of
+     the plot's width.
+   - **A ring**: :cpp:func:`use_ring <gui_forms::PlotSeriesItem::use_ring>`, then :cpp:func:`push_points <gui_forms::PlotSeriesItem::push_points>`, keeps the newest points up to
+     the ring's capacity.
+   - **Borrowed**: :cpp:func:`borrow_points <gui_forms::PlotSeriesItem::borrow_points>` reads two leased views of the caller's
+     arrays in place, under a pin each paint; the caller releases the lease
+     before changing or freeing them (``plots::SeriesLease``).
+   - **Produced**: :cpp:member:`source <gui_forms::PlotSeriesItem::source>` names a signal program the plot runs on its clock,
+     or :cpp:func:`live_channel <gui_forms::PlotSeriesItem::live_channel>` gives a ring channel that a producer thread writes.
+
+   The item draws nothing, takes no input, no focus and no space, and publishes
+   no accessibility node: the plot reads it, and its legend entry toggles
+   :cpp:member:`hidden <gui_forms::PlotSeriesItem::hidden>`. Everything happens on the plot's UI thread, except a producer's
+   writes through the channel.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the item, unique within its window.
 
    :Properties:
 
-      **kind** : ``PlotSeriesKind``
-         What the series draws: line, stairs, scatter, shaded, bars or stems.
+      **kind** : ``PlotSeriesKind``, default ``PlotSeriesKind::line``
+         What the series draws: a line (decimated to the plot's width), stairs,
+         scatter markers, the shaded band between the series and zero, bars or
+         stems.
 
-      **label** : ``std::string``
+      **label** : ``std::string``, default empty
          The series' name in the legend and to assistive technology.
 
-      **source** : ``std::string``
-         A signal program declaration, ``signal(sine, frequency 2Hz, amplitude 1)`` (plots::parse_signal_source); empty for data written in C++. A declaration that does not parse throws std::invalid_argument.
+      **source** : ``std::string``, default empty
+         A signal program declaration, such as
+         ``signal(sine, frequency 2Hz, amplitude 1)``
+         (``plots::parse_signal_source``); empty for data written in C++. A
+         declaration that does not parse throws ``std::invalid_argument``. The
+         program fills a ring of ``signal_ring_capacity`` points.
 
-      **hidden** : ``bool``
-         Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.
+      **hidden** : ``bool``, default ``false``
+         Whether the series is left out of the plot; its legend entry stays,
+         dimmed. Clicking the entry toggles it.
 
-      **x_axis** : ``std::uint32_t``
-         The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).
+      **x_axis** : ``std::uint32_t``, default ``0``
+         The horizontal axis the series is drawn against, by position among the
+         plot's horizontal axes; past the last, the first.
 
-      **y_axis** : ``std::uint32_t``
-         The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
+      **y_axis** : ``std::uint32_t``, default ``0``
+         The vertical axis the series is drawn against, by position among the
+         plot's vertical axes; past the last, the first.
 
       **custom** : ``std::shared_ptr<PlotCustomSeries>``
+         The custom series (:cpp:class:`PlotCustomSeries <gui_forms::PlotCustomSeries>`) installed with :cpp:func:`set_custom <gui_forms::PlotSeriesItem::set_custom>`, or
+         null. While one is installed the plot draws, fits and picks through it
+         instead of the item's points and :cpp:member:`kind <gui_forms::PlotSeriesItem::kind>`; null removes it. The item
+         shares ownership.
 
       **data_source** : ``DataSource``, read-only
+         Whether the plot reads the item's columns or borrowed views.
 
       **column_samples** : ``plots::ColumnSamples<double, double>``, read-only
+         The owned columns, as the plot reads them.
 
       **borrowed_x** : ``plots::BorrowedSeries<double>``, read-only
+         The borrowed x view; :cpp:func:`borrowed_y <gui_forms::PlotSeriesItem::borrowed_y>` is the y view.
 
       **borrowed_y** : ``plots::BorrowedSeries<double>``, read-only
 
       **x_order** : ``plots::XOrder``, read-only
+         Whether the series' x is monotone.
 
       **pyramid** : ``plots::EnvelopePyramid*``, read-only
-         The pyramid when it matches the columns (a growable, monotone, gap-free series of at least pyramid_threshold points), else null.
+         The envelope pyramid when it matches the columns (a growable, monotone,
+         gap-free series of at least ``pyramid_threshold`` points), else null.
 
       **signal** : ``stxlib::Optional<plots::SignalProgram>``, read-only
          The parsed :cpp:member:`source <gui_forms::PlotSeriesItem::source>`, when one is set.
 
       **channel** : ``std::shared_ptr<plots::SeriesRingChannel>``, read-only
+         The live channel, once :cpp:func:`live_channel <gui_forms::PlotSeriesItem::live_channel>` made it.
 
       **revision** : ``std::uint64_t``, read-only
-         Bumped by every data change and property write.
+         A count every data change and property write raises.
 
       **data_revision** : ``std::uint64_t``, read-only
-         Bumped by every change to the points alone (set, append, push, borrow, clear, a new ring, a signal or channel frame), not by other property writes: a live plot copies a series again only when it moves.
+         A count only changes to the points raise (a set, append, push, borrow or
+         clear, a new ring, a signal or channel frame); a live plot copies a
+         series again only when it moves.
 
    :Inherited:
 
@@ -76,29 +119,40 @@ gui_forms::PlotSeriesItem
       :widths: 35 65
 
       * - :cpp:func:`append_points <gui_forms::PlotSeriesItem::append_points>`
-        - Appends to the owned columns (after set_points or set_values; a monotone series stays monotone or the append throws std::invalid_argument, changing nothing).
+        - Appends to the owned columns, after :cpp:func:`set_points <gui_forms::PlotSeriesItem::set_points>` or :cpp:func:`set_values <gui_forms::PlotSeriesItem::set_values>`, growing as a ``std::vector`` does.
       * - :cpp:func:`use_ring <gui_forms::PlotSeriesItem::use_ring>`
-        - Replaces the data with an empty ring of ``capacity`` points (at least 2; std::invalid_argument otherwise), monotone in x.
+        - Replaces the data with an empty ring of a capacity of at least 2 points, monotone in x; a smaller capacity throws ``std::invalid_argument``.
       * - :cpp:func:`push_points <gui_forms::PlotSeriesItem::push_points>`
-        - Pushes points into the ring (use_ring first; std::logic_error otherwise), dropping the oldest past its capacity.
+        - Pushes points into the ring, dropping the oldest past its capacity.
       * - :cpp:func:`borrow_points <gui_forms::PlotSeriesItem::borrow_points>`
-        - Reads ``xs`` and ``ys`` in place under their leases from now on.
+        - Reads two borrowed views (``plots::BorrowedSeries``) in place from now on, with their x order.
       * - :cpp:func:`live_channel <gui_forms::PlotSeriesItem::live_channel>`
-        - The channel a producer thread writes (x, y) samples into (two streams), made with ``capacity`` samples on the first call and kept; the series becomes a ring of the channel's capacity, fed each frame.
+        - The channel a producer thread writes (x, y) samples into, made with the given capacity on the first call and kept.
       * - :cpp:func:`clear_points <gui_forms::PlotSeriesItem::clear_points>`
-        - Empties the series (copied-in columns stay reserved).
+        - Empties the series; copied-in columns keep their storage.
       * - :cpp:func:`custom_changed <gui_forms::PlotSeriesItem::custom_changed>`
-        -  
+        - Tells the plot that the installed custom series' content changed; it fits and repaints as for new points.
       * - :cpp:func:`run_signal_frame <gui_forms::PlotSeriesItem::run_signal_frame>`
-        - Runs the signal program for ``frame`` into the ring (the plot's ambient frame; ``sink`` is the plot's reused scratch).
+        - Runs the signal program for a frame into the ring, with the plot's reused scratch; false when the item has no signal.
       * - :cpp:func:`consume_channel <gui_forms::PlotSeriesItem::consume_channel>`
-        - Moves the channel's published samples into the ring (``scratch`` holds capacity * 2 doubles).
+        - Moves the channel's published samples into the ring, through scratch storage of twice the capacity in doubles, and returns the count taken; 0 without a channel.
       * - :cpp:func:`plot_series_item_property_entries <gui_forms::PlotSeriesItem::plot_series_item_property_entries>`
         -  
       * - :cpp:func:`set_points <gui_forms::PlotSeriesItem::set_points>`
-        - Copies ``xs`` and ``ys`` (equal lengths; std::invalid_argument otherwise) into owned columns, monotone when xs never decreases (gaps aside).
+        - Copies x and y values of equal length into owned columns; unequal lengths throw ``std::invalid_argument``.
       * - :cpp:func:`set_values <gui_forms::PlotSeriesItem::set_values>`
-        - Copies ``ys`` with x = 0, 1, 2, ...
+        - Copies y values, with x = 0, 1, 2 and so on.
+
+   .. seealso::
+
+      :cpp:class:`PlotView <gui_forms::PlotView>`
+         The plot that draws the series.
+
+      :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
+         The axes the series is drawn against.
+
+      :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>`
+         A label at a data point.
 
 
    .. rubric:: Construction
@@ -110,7 +164,9 @@ gui_forms::PlotSeriesItem
 
    .. cpp:member:: PlotSeriesKind kind
 
-      What the series draws: line, stairs, scatter, shaded, bars or stems.
+      What the series draws: a line (decimated to the plot's width), stairs,
+      scatter markers, the shaded band between the series and zero, bars or
+      stems.
 
    .. cpp:member:: std::string label
 
@@ -118,39 +174,60 @@ gui_forms::PlotSeriesItem
 
    .. cpp:member:: std::string source
 
-      A signal program declaration, ``signal(sine, frequency 2Hz, amplitude 1)`` (plots::parse_signal_source); empty for data written in C++. A declaration that does not parse throws std::invalid_argument.
+      A signal program declaration, such as
+      ``signal(sine, frequency 2Hz, amplitude 1)``
+      (``plots::parse_signal_source``); empty for data written in C++. A
+      declaration that does not parse throws ``std::invalid_argument``. The
+      program fills a ring of ``signal_ring_capacity`` points.
 
    .. cpp:member:: bool hidden
 
-      Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.
+      Whether the series is left out of the plot; its legend entry stays,
+      dimmed. Clicking the entry toggles it.
 
    .. cpp:member:: std::uint32_t x_axis
 
-      The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).
+      The horizontal axis the series is drawn against, by position among the
+      plot's horizontal axes; past the last, the first.
 
    .. cpp:member:: std::uint32_t y_axis
 
-      The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
+      The vertical axis the series is drawn against, by position among the
+      plot's vertical axes; past the last, the first.
 
    .. cpp:function:: const std::shared_ptr<PlotCustomSeries>& custom() const noexcept
 
+      The custom series (:cpp:class:`PlotCustomSeries <gui_forms::PlotCustomSeries>`) installed with :cpp:func:`set_custom <gui_forms::PlotSeriesItem::set_custom>`, or
+      null. While one is installed the plot draws, fits and picks through it
+      instead of the item's points and :cpp:member:`kind <gui_forms::PlotSeriesItem::kind>`; null removes it. The item
+      shares ownership.
+
    .. cpp:function:: void set_custom(std::shared_ptr<PlotCustomSeries> custom)
 
-      A custom kind (PlotCustomSeries): while one is installed the plot draws, fits and picks through it instead of the item's points and :cpp:member:`kind <gui_forms::PlotSeriesItem::kind>`; null removes it. The item shares ownership. custom_changed tells the plot that the installed series' content changed (it fits and repaints as for new points).
+      Sets :cpp:func:`custom <gui_forms::PlotSeriesItem::custom>`; see the property's description above.
 
    .. cpp:function:: DataSource data_source() const noexcept
 
+      Whether the plot reads the item's columns or borrowed views.
+
    .. cpp:function:: plots::ColumnSamples<double, double> column_samples() const noexcept
 
+      The owned columns, as the plot reads them.
+
    .. cpp:function:: const plots::BorrowedSeries<double>& borrowed_x() const noexcept
+
+      The borrowed x view; :cpp:func:`borrowed_y <gui_forms::PlotSeriesItem::borrowed_y>` is the y view.
 
    .. cpp:function:: const plots::BorrowedSeries<double>& borrowed_y() const noexcept
 
    .. cpp:function:: plots::XOrder x_order() const noexcept
 
+      Whether the series' x is monotone.
+
    .. cpp:function:: const plots::EnvelopePyramid* pyramid() const noexcept
 
-      The pyramid when it matches the columns (a growable, monotone, gap-free series of at least pyramid_threshold points), else null.
+      The envelope pyramid when it matches the columns (a growable, monotone,
+      gap-free series of at least ``pyramid_threshold`` points), else null.
 
    .. cpp:function:: const stxlib::Optional<plots::SignalProgram>& signal() const noexcept
 
@@ -158,60 +235,81 @@ gui_forms::PlotSeriesItem
 
    .. cpp:function:: const std::shared_ptr<plots::SeriesRingChannel>& channel() const noexcept
 
+      The live channel, once :cpp:func:`live_channel <gui_forms::PlotSeriesItem::live_channel>` made it.
+
    .. cpp:function:: std::uint64_t revision() const noexcept
 
-      Bumped by every data change and property write.
+      A count every data change and property write raises.
 
    .. cpp:function:: std::uint64_t data_revision() const noexcept
 
-      Bumped by every change to the points alone (set, append, push, borrow, clear, a new ring, a signal or channel frame), not by other property writes: a live plot copies a series again only when it moves.
+      A count only changes to the points raise (a set, append, push, borrow or
+      clear, a new ring, a signal or channel frame); a live plot copies a
+      series again only when it moves.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void append_points(std::span<const double> xs, std::span<const double> ys)
 
-      Appends to the owned columns (after set_points or set_values; a monotone series stays monotone or the append throws std::invalid_argument, changing nothing). Grows as std::vector does.
+      Appends to the owned columns, after :cpp:func:`set_points <gui_forms::PlotSeriesItem::set_points>` or :cpp:func:`set_values <gui_forms::PlotSeriesItem::set_values>`, growing
+      as a ``std::vector`` does. A monotone series stays monotone, or the append
+      throws ``std::invalid_argument`` and changes nothing.
 
    .. cpp:function:: void use_ring(std::size_t capacity)
 
-      Replaces the data with an empty ring of ``capacity`` points (at least 2; std::invalid_argument otherwise), monotone in x.
+      Replaces the data with an empty ring of a capacity of at least 2
+      points, monotone in x; a smaller capacity throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: void push_points(std::span<const double> xs, std::span<const double> ys)
 
-      Pushes points into the ring (use_ring first; std::logic_error otherwise), dropping the oldest past its capacity. A point going back in x throws std::invalid_argument, changing nothing.
+      Pushes points into the ring, dropping the oldest past its capacity.
+      Without :cpp:func:`use_ring <gui_forms::PlotSeriesItem::use_ring>` first it throws ``std::logic_error``; a point that goes
+      back in x throws ``std::invalid_argument`` and changes nothing.
 
    .. cpp:function:: void borrow_points(plots::BorrowedSeries<double> xs, plots::BorrowedSeries<double> ys, plots::XOrder order)
 
-      Reads ``xs`` and ``ys`` in place under their leases from now on. Invalid views (BorrowedSeries::check) throw std::invalid_argument.
+      Reads two borrowed views (``plots::BorrowedSeries``) in place from now on,
+      with their x order. Invalid views throw ``std::invalid_argument``.
 
    .. cpp:function:: std::shared_ptr<plots::SeriesRingChannel> live_channel(std::size_t capacity)
 
-      The channel a producer thread writes (x, y) samples into (two streams), made with ``capacity`` samples on the first call and kept; the series becomes a ring of the channel's capacity, fed each frame.
+      The channel a producer thread writes (x, y) samples into, made with the
+      given capacity on the first call and kept. The series becomes a ring of
+      the channel's capacity, fed each frame.
 
    .. cpp:function:: void clear_points()
 
-      Empties the series (copied-in columns stay reserved).
+      Empties the series; copied-in columns keep their storage.
 
    .. cpp:function:: void custom_changed()
 
+      Tells the plot that the installed custom series' content changed; it
+      fits and repaints as for new points.
+
    .. cpp:function:: bool run_signal_frame(const plots::SignalFrame& frame, plots::SignalSink& sink)
 
-      Runs the signal program for ``frame`` into the ring (the plot's ambient frame; ``sink`` is the plot's reused scratch). False when the item has no signal.
+      Runs the signal program for a frame into the ring, with the plot's
+      reused scratch; false when the item has no signal. The plot calls it.
 
    .. cpp:function:: std::size_t consume_channel(std::span<double> scratch)
 
-      Moves the channel's published samples into the ring (``scratch`` holds capacity * 2 doubles). The count taken; 0 without a channel.
+      Moves the channel's published samples into the ring, through scratch
+      storage of twice the capacity in doubles, and returns the count taken;
+      0 without a channel. The plot calls it.
 
    .. cpp:function:: static const std::array<PropertyEntry, plot_series_item_property_count>& plot_series_item_property_entries() noexcept
 
    .. cpp:function:: void set_points(std::span<const double> xs, std::span<const double> ys)
 
-      Copies ``xs`` and ``ys`` (equal lengths; std::invalid_argument otherwise) into owned columns, monotone when xs never decreases (gaps aside). Allocates; nothing changes on a throw.
+      Copies x and y values of equal length into owned columns; unequal
+      lengths throw ``std::invalid_argument``. It allocates, and nothing changes
+      on a throw.
 
    .. cpp:function:: void set_values(std::span<const double> ys)
 
-      Copies ``ys`` with x = 0, 1, 2, ...
+      Copies y values, with x = 0, 1, 2 and so on.
 
 
    .. rubric:: Extension points

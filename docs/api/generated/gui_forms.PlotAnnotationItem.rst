@@ -11,24 +11,32 @@ gui_forms::PlotAnnotationItem
 
    ``#include <gui_forms/controls/plot_annotation_item.hpp>``
 
-   Item child of a PlotView declaring a text label anchored at a data point.
+   A plain-text label of a :cpp:class:`PlotView <gui_forms::PlotView>`, anchored at a data point and declared as a child of the plot.
+
+   The plot places the label beside its anchor, clear of the annotations
+   before it and inside the plot (``plots::layout_annotations``). The item draws
+   nothing itself, takes no input, no focus and no space, and publishes no
+   accessibility node: the plot reads it.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the item, unique within its window.
 
    :Properties:
 
-      **text** : ``std::string``
-         The annotation's words.
+      **text** : ``std::string``, default empty
+         The annotation's words, as plain text.
 
-      **x** : ``double``
-         The anchor's x in the first horizontal axis's units.
+      **x** : ``double``, default ``0``
+         The anchor's x, in the units of the plot's first horizontal axis. A
+         value that is not finite throws ``std::invalid_argument``.
 
-      **y** : ``double``
-         The anchor's y in the first vertical axis's units.
+      **y** : ``double``, default ``0``
+         The anchor's y, in the units of the plot's first vertical axis. A value
+         that is not finite throws ``std::invalid_argument``.
 
    :Inherited:
 
@@ -43,6 +51,14 @@ gui_forms::PlotAnnotationItem
       * - :cpp:func:`plot_annotation_item_property_entries <gui_forms::PlotAnnotationItem::plot_annotation_item_property_entries>`
         -  
 
+   .. seealso::
+
+      :cpp:class:`PlotView <gui_forms::PlotView>`
+         The plot that draws the label.
+
+      :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
+         A series the label may point at.
+
 
    .. rubric:: Construction
 
@@ -53,15 +69,17 @@ gui_forms::PlotAnnotationItem
 
    .. cpp:member:: std::string text
 
-      The annotation's words.
+      The annotation's words, as plain text.
 
    .. cpp:member:: double x
 
-      The anchor's x in the first horizontal axis's units.
+      The anchor's x, in the units of the plot's first horizontal axis. A
+      value that is not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: double y
 
-      The anchor's y in the first vertical axis's units.
+      The anchor's y, in the units of the plot's first vertical axis. A value
+      that is not finite throws ``std::invalid_argument``.
 
 
    .. rubric:: Methods

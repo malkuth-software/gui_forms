@@ -11,49 +11,74 @@ gui_forms::PlotView
 
    ``#include <gui_forms/controls/plot_view.hpp>``
 
-   Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
+   A retained, declarative plot: axes, series and annotations declared as item children, with panning, zooming, picking and a legend.
+
+   A plot is declared, in a form or in C++, as a :cpp:class:`PlotView <gui_forms::PlotView>` whose children are
+   items: :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>` (its axes), :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>` (what it draws) and
+   :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>` (labels at data points). Other children are ignored.
+   The plot reads its items on each layout and paint, and an item's change
+   tells the plot, which lays out and repaints, so a form's rules reach a plot
+   through its items' properties and its own. Use a :cpp:class:`Sparkline <gui_forms::Sparkline>` for a small
+   trend without axes or interaction, and a :cpp:class:`Plot3DView <gui_forms::Plot3DView>` for a surface or
+   points in three dimensions.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **title** : ``std::string``
-         The words drawn above the plot, and its accessible name by default.
+      **title** : ``std::string``, default empty
+         The words drawn above the plot, and its accessible name unless an
+         accessible name is set.
 
-      **live** : ``bool``
-         Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a). Off draws on the window's thread.
+      **live** : ``bool``, default ``false``
+         Whether the plot draws on its own sub-surface, paced by that
+         sub-surface's frame pacer and fed by its series' ring channels (see
+         Notes). Off, it draws on the window's thread.
 
-      **show_legend** : ``bool``
-         Whether the legend is drawn (when a series has a label).
+      **show_legend** : ``bool``, default ``true``
+         Whether the legend is drawn, when a series has a label.
 
-      **show_grid** : ``bool``
+      **show_grid** : ``bool``, default ``true``
          Whether the major and minor grid lines are drawn.
 
-      **crosshair** : ``bool``
-         Whether a crosshair follows the pointer over the plot, with its coordinates.
+      **crosshair** : ``bool``, default ``false``
+         Whether a crosshair follows the pointer over the plot, with its
+         coordinates.
 
       **handles** : ``std::span<const PlotHandle>``
+         The handles the user drags across the plot, as :cpp:class:`PlotHandle <gui_forms::PlotHandle>` records:
+         points, and vertical or horizontal lines, in the data coordinates of the
+         first axes. :cpp:func:`set_handles <gui_forms::PlotView::set_handles>` replaces them, cancelling a running handle
+         drag first; it throws ``std::invalid_argument`` and changes nothing for a
+         non-finite position, a repeated ``id`` or more than
+         ``maximum_plot_handles``.
 
       **dragged_handle** : ``stxlib::Optional<std::uint32_t>``, read-only
-         The handle being dragged, if any.
+         The ``id`` of the handle being dragged, or none.
 
       **series_items** : ``std::vector<PlotSeriesItem*>``, read-only
-         The item children, in child order, as the plot read them last.
+         The series items, in child order, as the plot read them last.
 
       **query** : ``PlotQuery``, read-only
          The query rectangle, if one is kept.
 
       **cursor** : ``stxlib::Optional<PlotPointPick>``
-         The keyboard point cursor's point, if it is on one.
+         The keyboard point cursor's point, or none when it is on no point.
+         :cpp:func:`set_cursor <gui_forms::PlotView::set_cursor>` places it on an element of a series (false when there is
+         none) and raises :cpp:func:`point_picked <gui_forms::PlotView::point_picked>`.
 
       **summary** : ``std::string``, read-only
-         The figure's summary (its semantic description) and its data as tab-separated rows (series, x, y), at most 1000 per series.
+         The figure's summary: its series, their kinds and point counts, and the
+         visible ranges. It is the plot's accessible description.
 
       **table_text** : ``std::string``, read-only
+         The plot's data as tab-separated rows (series, x, y), at most 1000 rows
+         per series; :cpp:func:`table_row_count <gui_forms::PlotView::table_row_count>` counts them.
 
       **table_row_count** : ``std::size_t``, read-only
 
@@ -64,7 +89,7 @@ gui_forms::PlotView
          The view and gesture model (diagnostics and tests; live plots keep theirs on the sub-surface).
 
       **live_host** : ``SubSurfaceHost*``, read-only
-         The live sub-surface's host while :cpp:member:`live <gui_forms::PlotView::live>`; null otherwise.
+         The :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>` the plot draws on while :cpp:member:`live <gui_forms::PlotView::live>`; null otherwise.
 
       **live_column_copies** : ``std::uint64_t``, read-only
          Copies of copied-in series made for the live frame: one each time a series' points change while live, none for a repaint that leaves them.
@@ -79,16 +104,29 @@ gui_forms::PlotView
    :Events:
 
       **view_changed** : ``Event<const PlotViewRanges&>``
+         Raised once per change of the first axes' ranges by a gesture, a key,
+         :cpp:func:`set_x_range <gui_forms::PlotView::set_x_range>`, :cpp:func:`set_y_range <gui_forms::PlotView::set_y_range>` or :cpp:func:`fit_view <gui_forms::PlotView::fit_view>`, with the new ranges.
+         Automatic fitting and following, which run inside layout and paint,
+         raise nothing.
 
       **selection_changed** : ``Event<const PlotQuery&>``
+         Raised when the query rectangle is made or cleared.
 
       **point_picked** : ``Event<const PlotPointPick&>``
+         Raised when a click or the keyboard cursor reaches a point, with the
+         series, the element and its coordinates.
 
       **legend_toggled** : ``Event<std::size_t>``
+         Raised after a click on a legend entry, or :cpp:func:`toggle_series <gui_forms::PlotView::toggle_series>`, changed a
+         series' ``hidden``; it carries the series' position.
 
       **handle_moved** : ``Event<const PlotHandleMove&>``
+         Raised at each move of a dragged handle, and when a drag is cancelled
+         (by Escape, a lost capture or the window's deactivation) with the handle
+         back where it was.
 
       **handle_committed** : ``Event<const PlotHandleMove&>``
+         Raised when the user releases a dragged handle, with its final position.
 
    :Inherited:
 
@@ -101,29 +139,85 @@ gui_forms::PlotView
       :widths: 35 65
 
       * - :cpp:func:`handle_point <gui_forms::PlotView::handle_point>`
-        - The handle's centre in local coordinates on the first axes, if the plot is laid out (tests and owner-drawn labels).
+        - A handle's centre in local coordinates on the first axes, or none while the plot is not laid out.
       * - :cpp:func:`x_range <gui_forms::PlotView::x_range>`
-        - The view: the visible range of axis ``index`` of each orientation (the items' ranges until a gesture, a fit or following moves them).
+        - The visible range of the x axis at an index: the axis item's range until a gesture, a fit or following moves it.
       * - :cpp:func:`y_range <gui_forms::PlotView::y_range>`
         -  
       * - :cpp:func:`fit_view <gui_forms::PlotView::fit_view>`
-        - Fits the view to the visible series' data; raises view_changed when it moved.
+        - Fits the view to the visible series' data, and raises :cpp:func:`view_changed <gui_forms::PlotView::view_changed>` when it moved.
       * - :cpp:func:`reset_view <gui_forms::PlotView::reset_view>`
-        - Takes the axis items' ranges again.
+        - Takes the axis items' ranges again, and resumes automatic fitting.
       * - :cpp:func:`toggle_series <gui_forms::PlotView::toggle_series>`
-        - Hides or shows series ``position`` (its item's ``hidden``) and raises legend_toggled, as a click on its legend entry does.
+        - Hides or shows the series at a position (its item's ``hidden``) and raises :cpp:func:`legend_toggled <gui_forms::PlotView::legend_toggled>`, as a click on its legend entry does.
       * - :cpp:func:`clear_query <gui_forms::PlotView::clear_query>`
-        -  
+        - Removes the query rectangle.
       * - :cpp:func:`take_live_notice <gui_forms::PlotView::take_live_notice>`
         - A live plot's frame reports a change; raised here on the UI thread (detail::PlotLiveNotice).
       * - :cpp:func:`plot_view_property_entries <gui_forms::PlotView::plot_view_property_entries>`
         -  
       * - :cpp:func:`set_handle_position <gui_forms::PlotView::set_handle_position>`
-        - Moves a handle (false for an unknown id or a non-finite position); raises nothing.
+        - Moves a handle; false for an unknown ``id`` or a non-finite position.
       * - :cpp:func:`set_x_range <gui_forms::PlotView::set_x_range>`
-        - Sets a range (refused, false, when the axis does not exist or the range is inadmissible); raises view_changed for the first axes.
+        - Sets the visible range of an x axis; false, changing nothing, when the axis does not exist or the range cannot be shown.
       * - :cpp:func:`set_y_range <gui_forms::PlotView::set_y_range>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
+         An axis of the plot.
+
+      :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
+         A series the plot draws.
+
+      :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>`
+         A label at a data point.
+
+      :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
+         Plots that share their view.
+
+      :cpp:class:`Sparkline <gui_forms::Sparkline>`
+         A small trend without axes.
+
+   .. rubric:: Notes
+
+   With the pointer, a left drag pans, the wheel zooms about the pointer, a
+   right drag zooms to a box, Ctrl with a right drag keeps a query rectangle,
+   and a double click fits; over an axis each acts on that axis only. A click
+   on a point picks it, and a click on a legend entry hides or shows its
+   series. With the keyboard, the arrows move the point cursor (left and right
+   along its series, ten points with Shift; up and down between series), Alt
+   with the arrows pans, Ctrl with the arrows zooms one axis, ``+`` and ``-``
+   zoom, Home fits, End resumes following, and Escape cancels a gesture or
+   clears the query. The events are raised on the UI thread after the change
+   they report.
+
+   A primary press within ``handle_pick_radius`` of an enabled handle starts a
+   handle drag once the pointer passes the drag threshold, ahead of panning.
+   The handle follows the pointer and stays inside the plot rectangle: a point
+   moves on both axes, a line across itself only. Positions are in the first
+   axes' data coordinates, so a handle on a log or time axis moves as the axis
+   reads. A live plot draws and drags no handles, and handles have no keyboard
+   drag yet.
+
+   While :cpp:member:`live <gui_forms::PlotView::live>` is set, the plot draws on a :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>` child covering it,
+   paced by the sub-surface and running its signal programs on that clock.
+   Each series' ring channel (:cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`'s ``live_channel``) is consumed
+   there, its producer thread writing without touching the UI thread. The live
+   plot's gestures and cursor run on its thread and come back as the same
+   events, raised on the UI thread. Without :cpp:member:`live <gui_forms::PlotView::live>`, signal programs and
+   channels run on the window's motion clock, 60 times a second while the plot
+   has either. A plot that is not painted (a hidden tab, a collapsed panel, a
+   plot scrolled out) runs no signal ticks and consumes no channel until it is
+   painted again; its signals then continue without catching up, and what a
+   channel's ring overwrote meanwhile is lost.
+
+   To assistive technology the plot is one figure, named by its accessible
+   name or else its title, described by :cpp:func:`summary <gui_forms::PlotView::summary>`, with the cursor's point as
+   its value; :cpp:func:`table_text <gui_forms::PlotView::table_text>` offers its data as rows. The plot's parts are
+   ``title``, ``plot``, ``x_axis``, ``y_axis``, ``legend``, ``crosshair`` and
+   ``focus``.
 
 
    .. rubric:: Construction
@@ -135,15 +229,18 @@ gui_forms::PlotView
 
    .. cpp:member:: std::string title
 
-      The words drawn above the plot, and its accessible name by default.
+      The words drawn above the plot, and its accessible name unless an
+      accessible name is set.
 
    .. cpp:member:: bool live
 
-      Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a). Off draws on the window's thread.
+      Whether the plot draws on its own sub-surface, paced by that
+      sub-surface's frame pacer and fed by its series' ring channels (see
+      Notes). Off, it draws on the window's thread.
 
    .. cpp:member:: bool show_legend
 
-      Whether the legend is drawn (when a series has a label).
+      Whether the legend is drawn, when a series has a label.
 
    .. cpp:member:: bool show_grid
 
@@ -151,21 +248,29 @@ gui_forms::PlotView
 
    .. cpp:member:: bool crosshair
 
-      Whether a crosshair follows the pointer over the plot, with its coordinates.
+      Whether a crosshair follows the pointer over the plot, with its
+      coordinates.
 
    .. cpp:function:: std::span<const PlotHandle> handles() const& noexcept
 
+      The handles the user drags across the plot, as :cpp:class:`PlotHandle <gui_forms::PlotHandle>` records:
+      points, and vertical or horizontal lines, in the data coordinates of the
+      first axes. :cpp:func:`set_handles <gui_forms::PlotView::set_handles>` replaces them, cancelling a running handle
+      drag first; it throws ``std::invalid_argument`` and changes nothing for a
+      non-finite position, a repeated ``id`` or more than
+      ``maximum_plot_handles``.
+
    .. cpp:function:: void set_handles(std::vector<PlotHandle> handles)
 
-      Replaces the handles. Throws std::invalid_argument, changing nothing, for a non-finite position, a repeated id or more than maximum_plot_handles; a running handle drag is cancelled first (model_changed).
+      Sets :cpp:func:`handles <gui_forms::PlotView::handles>`; see the property's description above.
 
    .. cpp:function:: stxlib::Optional<std::uint32_t> dragged_handle() const noexcept
 
-      The handle being dragged, if any.
+      The ``id`` of the handle being dragged, or none.
 
    .. cpp:function:: std::vector<PlotSeriesItem*> series_items() const
 
-      The item children, in child order, as the plot read them last.
+      The series items, in child order, as the plot read them last.
 
    .. cpp:function:: PlotQuery query() const
 
@@ -173,17 +278,23 @@ gui_forms::PlotView
 
    .. cpp:function:: stxlib::Optional<PlotPointPick> cursor() const
 
-      The keyboard point cursor's point, if it is on one.
+      The keyboard point cursor's point, or none when it is on no point.
+      :cpp:func:`set_cursor <gui_forms::PlotView::set_cursor>` places it on an element of a series (false when there is
+      none) and raises :cpp:func:`point_picked <gui_forms::PlotView::point_picked>`.
 
    .. cpp:function:: bool set_cursor(std::size_t series, std::size_t element)
 
-      Places the cursor on element ``element`` of series ``series`` (false when there is none) and raises point_picked.
+      Sets :cpp:func:`cursor <gui_forms::PlotView::cursor>`; see the property's description above.
 
    .. cpp:function:: std::string summary() const
 
-      The figure's summary (its semantic description) and its data as tab-separated rows (series, x, y), at most 1000 per series.
+      The figure's summary: its series, their kinds and point counts, and the
+      visible ranges. It is the plot's accessible description.
 
    .. cpp:function:: std::string table_text() const
+
+      The plot's data as tab-separated rows (series, x, y), at most 1000 rows
+      per series; :cpp:func:`table_row_count <gui_forms::PlotView::table_row_count>` counts them.
 
    .. cpp:function:: std::size_t table_row_count() const
 
@@ -197,7 +308,7 @@ gui_forms::PlotView
 
    .. cpp:function:: SubSurfaceHost* live_host() const noexcept
 
-      The live sub-surface's host while :cpp:member:`live <gui_forms::PlotView::live>`; null otherwise.
+      The :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>` the plot draws on while :cpp:member:`live <gui_forms::PlotView::live>`; null otherwise.
 
    .. cpp:function:: std::uint64_t live_column_copies() const noexcept
 
@@ -216,42 +327,67 @@ gui_forms::PlotView
 
    .. cpp:function:: Event<const PlotViewRanges&>& view_changed() noexcept
 
+      Raised once per change of the first axes' ranges by a gesture, a key,
+      :cpp:func:`set_x_range <gui_forms::PlotView::set_x_range>`, :cpp:func:`set_y_range <gui_forms::PlotView::set_y_range>` or :cpp:func:`fit_view <gui_forms::PlotView::fit_view>`, with the new ranges.
+      Automatic fitting and following, which run inside layout and paint,
+      raise nothing.
+
    .. cpp:function:: Event<const PlotQuery&>& selection_changed() noexcept
+
+      Raised when the query rectangle is made or cleared.
 
    .. cpp:function:: Event<const PlotPointPick&>& point_picked() noexcept
 
+      Raised when a click or the keyboard cursor reaches a point, with the
+      series, the element and its coordinates.
+
    .. cpp:function:: Event<std::size_t>& legend_toggled() noexcept
+
+      Raised after a click on a legend entry, or :cpp:func:`toggle_series <gui_forms::PlotView::toggle_series>`, changed a
+      series' ``hidden``; it carries the series' position.
 
    .. cpp:function:: Event<const PlotHandleMove&>& handle_moved() noexcept
 
+      Raised at each move of a dragged handle, and when a drag is cancelled
+      (by Escape, a lost capture or the window's deactivation) with the handle
+      back where it was.
+
    .. cpp:function:: Event<const PlotHandleMove&>& handle_committed() noexcept
+
+      Raised when the user releases a dragged handle, with its final position.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: stxlib::Optional<Point> handle_point(std::uint32_t id) const
 
-      The handle's centre in local coordinates on the first axes, if the plot is laid out (tests and owner-drawn labels).
+      A handle's centre in local coordinates on the first axes, or none while
+      the plot is not laid out.
 
    .. cpp:function:: plots::PlotRange x_range(std::size_t index) const
 
-      The view: the visible range of axis ``index`` of each orientation (the items' ranges until a gesture, a fit or following moves them).
+      The visible range of the x axis at an index: the axis item's range until
+      a gesture, a fit or following moves it. :cpp:func:`y_range <gui_forms::PlotView::y_range>` gives a y axis's.
 
    .. cpp:function:: plots::PlotRange y_range(std::size_t index) const
 
    .. cpp:function:: void fit_view()
 
-      Fits the view to the visible series' data; raises view_changed when it moved.
+      Fits the view to the visible series' data, and raises :cpp:func:`view_changed <gui_forms::PlotView::view_changed>`
+      when it moved.
 
    .. cpp:function:: void reset_view()
 
-      Takes the axis items' ranges again.
+      Takes the axis items' ranges again, and resumes automatic fitting.
 
    .. cpp:function:: void toggle_series(std::size_t position)
 
-      Hides or shows series ``position`` (its item's ``hidden``) and raises legend_toggled, as a click on its legend entry does.
+      Hides or shows the series at a position (its item's ``hidden``) and
+      raises :cpp:func:`legend_toggled <gui_forms::PlotView::legend_toggled>`, as a click on its legend entry does.
 
    .. cpp:function:: void clear_query()
+
+      Removes the query rectangle.
 
    .. cpp:function:: void take_live_notice(const detail::PlotLiveNotice& notice)
 
@@ -261,11 +397,14 @@ gui_forms::PlotView
 
    .. cpp:function:: bool set_handle_position(std::uint32_t id, double x, double y)
 
-      Moves a handle (false for an unknown id or a non-finite position); raises nothing.
+      Moves a handle; false for an unknown ``id`` or a non-finite position.
+      It raises nothing.
 
    .. cpp:function:: bool set_x_range(std::size_t index, plots::PlotRange range)
 
-      Sets a range (refused, false, when the axis does not exist or the range is inadmissible); raises view_changed for the first axes.
+      Sets the visible range of an x axis; false, changing nothing, when the
+      axis does not exist or the range cannot be shown. :cpp:func:`set_y_range <gui_forms::PlotView::set_y_range>` sets a
+      y axis's. Each raises :cpp:func:`view_changed <gui_forms::PlotView::view_changed>` for the first axes.
 
    .. cpp:function:: bool set_y_range(std::size_t index, plots::PlotRange range)
 

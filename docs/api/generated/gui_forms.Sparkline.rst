@@ -11,33 +11,46 @@ gui_forms::Sparkline
 
    ``#include <gui_forms/controls/sparkline.hpp>``
 
-   Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.
+   A word-sized trend line: the newest values drawn as one line across the control, with a dot on the newest.
+
+   A sparkline keeps the newest :cpp:member:`capacity <gui_forms::Sparkline::capacity>` values in a ring and draws them
+   across its bounds, the newest at the right, scaled to their own minimum and
+   maximum, with a dot on the newest value and, with :cpp:member:`fill <gui_forms::Sparkline::fill>`, the band under the
+   line shaded. Any number of values draws at about four points per device
+   column. It is read-only: it takes no input and no focus. Use a :cpp:class:`PlotView <gui_forms::PlotView>` for
+   axes, several series or interaction. To draw the same trend inside a grid
+   cell, a list item or an owner-drawn control without a :cpp:class:`Sparkline <gui_forms::Sparkline>`, call
+   ``paint_sparkline``.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **capacity** : ``std::uint32_t``
-         How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
+      **capacity** : ``std::uint32_t``, default ``120``
+         How many of the newest values the line keeps, from 2 to 100000; outside
+         that range throws ``std::invalid_argument``. A smaller capacity drops the
+         oldest values.
 
-      **fill** : ``bool``
+      **fill** : ``bool``, default ``false``
          Whether the band under the line is shaded.
 
       **values** : ``plots::SeriesSpans<double>``, read-only
-         The live values, oldest first.
+         The values kept now, oldest first.
 
       **latest** : ``stxlib::Optional<double>``, read-only
-         The newest finite value, if any.
+         The newest finite value, or none.
 
       **extent** : ``plots::PlotRange``, read-only
-         The live values' finite extent (invalid when there are none).
+         The finite extent of the values kept now; an invalid range when there
+         are none.
 
       **plot_bounds** : ``Rect``, read-only
-         The plot the line is drawn in, in local coordinates.
+         The rectangle the line is drawn in, in local coordinates.
 
       **parts** : ``Parts``, read-only
 
@@ -54,13 +67,36 @@ gui_forms::Sparkline
       :widths: 35 65
 
       * - :cpp:func:`push <gui_forms::Sparkline::push>`
-        - Appends values, dropping the oldest past the capacity.
+        - Appends a value, dropping the oldest past the capacity.
       * - :cpp:func:`push_values <gui_forms::Sparkline::push_values>`
         -  
       * - :cpp:func:`clear_values <gui_forms::Sparkline::clear_values>`
         - Removes every value.
       * - :cpp:func:`sparkline_property_entries <gui_forms::Sparkline::sparkline_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`PlotView <gui_forms::PlotView>`
+         A full plot with axes and interaction.
+
+      :cpp:class:`SevenSegmentDisplay <gui_forms::SevenSegmentDisplay>`
+         A single reading.
+
+   .. rubric:: Notes
+
+   To assistive technology a sparkline is a figure, named by its accessible
+   name, with the newest value as its value and a description such as "Trend
+   of 120 values from 3.5 to 9.25", unless an accessible description is set.
+   Numbers are written with a point, whatever the locale. Its parts are
+   ``plot``, ``series`` and ``marker`` (the newest dot).
+
+   ``paint_sparkline`` draws values (oldest first; NaN is a gap) the way the
+   control draws its ring, inside a rectangle, across a number of slots with
+   the newest at the right. The slots must be at least 2 and at least the
+   number of values, or nothing is drawn. It takes a :cpp:class:`SparklineStyle <gui_forms::SparklineStyle>` and a
+   :cpp:class:`SparklineWorkspace <gui_forms::SparklineWorkspace>` that it reuses from paint to paint and grows only for
+   a wider plot.
 
 
    .. rubric:: Construction
@@ -72,7 +108,9 @@ gui_forms::Sparkline
 
    .. cpp:member:: std::uint32_t capacity
 
-      How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
+      How many of the newest values the line keeps, from 2 to 100000; outside
+      that range throws ``std::invalid_argument``. A smaller capacity drops the
+      oldest values.
 
    .. cpp:member:: bool fill
 
@@ -80,19 +118,20 @@ gui_forms::Sparkline
 
    .. cpp:function:: plots::SeriesSpans<double> values() const noexcept
 
-      The live values, oldest first.
+      The values kept now, oldest first.
 
    .. cpp:function:: stxlib::Optional<double> latest() const noexcept
 
-      The newest finite value, if any.
+      The newest finite value, or none.
 
    .. cpp:function:: plots::PlotRange extent() const noexcept
 
-      The live values' finite extent (invalid when there are none).
+      The finite extent of the values kept now; an invalid range when there
+      are none.
 
    .. cpp:function:: Rect plot_bounds() const noexcept
 
-      The plot the line is drawn in, in local coordinates.
+      The rectangle the line is drawn in, in local coordinates.
 
    .. cpp:function:: Parts parts() const
 
@@ -103,7 +142,9 @@ gui_forms::Sparkline
 
    .. cpp:function:: void push(double value)
 
-      Appends values, dropping the oldest past the capacity. NaN is a gap in the line; infinities throw std::invalid_argument, changing nothing.
+      Appends a value, dropping the oldest past the capacity. NaN is a gap in
+      the line; an infinity throws ``std::invalid_argument`` and changes
+      nothing. :cpp:func:`push_values <gui_forms::Sparkline::push_values>` appends several at once, under the same rules.
 
    .. cpp:function:: void push_values(std::span<const double> values)
 

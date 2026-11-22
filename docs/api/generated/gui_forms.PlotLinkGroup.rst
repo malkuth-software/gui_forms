@@ -11,32 +11,50 @@ gui_forms::PlotLinkGroup
 
    ``#include <gui_forms/controls/plot_view_links.hpp>``
 
-   Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.
+   A group of :cpp:class:`PlotView <gui_forms::PlotView>` controls whose first x axes, first y axes or both share one range, such as linked subplots or a plot and its overview.
+
+   When a member's view changes (by a gesture, a key, ``PlotView::set_x_range``,
+   ``PlotView::set_y_range`` or ``PlotView::fit_view`` on it), the group sets the
+   changed range on every other member, in the order they joined. Each member
+   still raises its own ``view_changed``; the group ignores those as echoes of
+   its own sets, so a change goes round once and the member that moved is never
+   set again. A range a member refuses (one its scale cannot show) is left, and
+   that member keeps its own.
 
    *Status:* provisional.
 
    :Parameters:
 
       **axes** : ``PlotLinkAxes``
+         Which of the members' first axes are linked: :cpp:enum:`PlotLinkAxes <gui_forms::PlotLinkAxes>` ``x``,
+         ``y`` or ``both``.
 
       **x** : ``plots::PlotRange``
+         The linked x range the group starts with; it must be valid. The first
+         member to join takes it.
 
       **y** : ``plots::PlotRange``
+         The linked y range the group starts with; it must be valid.
 
    :Properties:
 
       **axes** : ``PlotLinkAxes``
+         Which axes are linked. :cpp:func:`set_axes <gui_forms::PlotLinkGroup::set_axes>` changes it from then on; linking an
+         axis that was not linked makes every member take that link's range.
 
       **x_link** : ``plots::AxisLink``, read-only
+         The linked x range (``plots::AxisLink``); :cpp:func:`y_link <gui_forms::PlotLinkGroup::y_link>` is the y range.
 
       **y_link** : ``plots::AxisLink``, read-only
 
       **member_count** : ``std::size_t``, read-only
+         The number of plots that have joined.
 
       **propagations** : ``std::uint64_t``, read-only
-         Ranges the group set on members, and member view changes it ignored as echoes of its own sets (diagnostics and tests).
+         The ranges the group has set on members.
 
       **echoes** : ``std::uint64_t``, read-only
+         The member view changes the group ignored as echoes of its own sets.
 
    :Inherited:
 
@@ -49,7 +67,19 @@ gui_forms::PlotLinkGroup
       :widths: 35 65
 
       * - :cpp:func:`add <gui_forms::PlotLinkGroup::add>`
-        - Joins ``plot``, which takes the linked ranges now.
+        - Joins a plot, which takes the linked ranges at once.
+
+   .. seealso::
+
+      :cpp:class:`PlotView <gui_forms::PlotView>`
+         The plots the group links.
+
+   .. rubric:: Notes
+
+   The group observes its members and does not own them: it holds weak
+   pointers and skips a member that has died. Its subscriptions end when the
+   group is disposed or destroyed, or with the member's events. The group and
+   its members share one UI thread.
 
 
    .. rubric:: Construction
@@ -63,28 +93,39 @@ gui_forms::PlotLinkGroup
 
    .. cpp:function:: PlotLinkAxes axes() const noexcept
 
+      Which axes are linked. :cpp:func:`set_axes <gui_forms::PlotLinkGroup::set_axes>` changes it from then on; linking an
+      axis that was not linked makes every member take that link's range.
+
    .. cpp:function:: void set_axes(PlotLinkAxes axes)
 
-      Which axes are linked from now on. Linking an axis that was not makes every member take that link's range.
+      Sets :cpp:func:`axes <gui_forms::PlotLinkGroup::axes>`; see the property's description above.
 
    .. cpp:function:: const plots::AxisLink& x_link() const noexcept
+
+      The linked x range (``plots::AxisLink``); :cpp:func:`y_link <gui_forms::PlotLinkGroup::y_link>` is the y range.
 
    .. cpp:function:: const plots::AxisLink& y_link() const noexcept
 
    .. cpp:function:: std::size_t member_count() const noexcept
 
+      The number of plots that have joined.
+
    .. cpp:function:: std::uint64_t propagations() const noexcept
 
-      Ranges the group set on members, and member view changes it ignored as echoes of its own sets (diagnostics and tests).
+      The ranges the group has set on members.
 
    .. cpp:function:: std::uint64_t echoes() const noexcept
+
+      The member view changes the group ignored as echoes of its own sets.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void add(const std::shared_ptr<PlotView>& plot)
 
-      Joins ``plot``, which takes the linked ranges now. Throws std::invalid_argument for a null plot or one already joined, adding nothing.
+      Joins a plot, which takes the linked ranges at once. A null plot, or one
+      that has already joined, throws ``std::invalid_argument`` and adds
+      nothing.
 
 .. rubric:: Windows Forms correspondence
 
