@@ -1,0 +1,108 @@
+The help topic pane: one help page on paper, with its title over a rule,
+collapsible sections under topic bars, callouts, links and PNG images.
+
+The book shows a `HelpPageModel` and scrolls vertically. It never opens a
+link itself: it raises `link_activated`, and its owner decides; a
+`HelpBookViewer` handles topic and popup links and offers external ones to
+the application. A `HelpBookSystem` docks a book beside a program's window.
+
+Parameters
+----------
+stable_id
+    Identity of the control, unique within its window.
+
+Properties
+----------
+page
+    The page shown.
+close_visible
+    Whether the close mark shows at the upper left, as in a docked book.
+    `set_close_visible` changes it.
+labels
+    The words the book shows for its callouts and its close mark
+    (`HelpBookLabels`: ``Note``, ``Tip``, ``Caution`` and ``Close help`` by
+    default), translated with the program's text. `set_labels` changes
+    them.
+focused_stop
+    The link or topic bar keyboard focus is on, as an index into the book's
+    focus stops (links in reading order, bars among them), or none.
+content_height
+    The page's content height when laid out at the current width.
+
+Events
+------
+link_activated
+    Raised when a link is activated (a click, Enter, or the accessibility
+    press), with a `HelpLinkActivation`: the page, the link's kind, target
+    and fragment, and its box in window coordinates, where a popup anchors.
+    A handler that acts sets ``handled``.
+close_requested
+    Raised when the user presses the close mark.
+section_toggled
+    Raised when a collapsible section is opened or closed, with a
+    `HelpSectionToggle`.
+
+Methods
+-------
+show_page
+    Shows a page, scrolled to an anchor (a heading's anchor or a listed
+    control's stable ID) or to the top. Collapsible sections take their
+    initial state, except one holding the anchor, which opens.
+show_record
+    Shows a record of a `HelpBookSection` by its stable ID, through
+    `build_help_page`; false, changing nothing, when the section has no such
+    record.
+scroll_to_anchor
+    Scrolls so the anchored block is at the top, opening the sections around
+    it; false when no block has the anchor.
+set_section_open
+    Opens or closes a collapsible section; `section_open` says whether one
+    is open.
+set_images
+    Sets the PNG resources a body may show (``![alt](name.png)``), as
+    `HelpBookImage` records: the name in the body, the registered image and
+    its size.
+set_highlight
+    Sets the words to mark with the search highlight, folded with
+    `fold_help_text`.
+set_visited
+    Sets the topic targets shown as visited links; `mark_visited` adds one
+    and `visited` asks about one.
+move_focus
+    Moves keyboard focus to the next or previous stop; false past the end.
+activate_link
+    Follows a link of the page, by its index, as a click would.
+block_top
+    A block's top in content coordinates, or none when it is hidden.
+link_bounds
+    A link's box in local coordinates, scroll applied, or none when it is
+    not laid out. `topic_bar_bounds` gives a section's topic bar.
+layout_for_print
+    Lays the page out for printing at a width, with every section open, no
+    close mark and no paper ground, and links followed by their target's
+    title in brackets; returns the content height. The print layout is kept
+    apart from the screen's.
+print_break_positions
+    Fills a list with the places the print layout may break pages: the top
+    of every line, in content coordinates, ascending.
+paint_print_band
+    Paints a band of the print layout, from a top to a height in content
+    coordinates, at an origin on a painter, clipped to the band.
+
+See Also
+--------
+HelpBookViewer : A book with navigation, search and popups.
+HelpBookSystem : A program's help, docked and opened by F1.
+MarkdownDocument : Markdown text parsed into blocks.
+
+Notes
+-----
+Tab and Shift+Tab move through the links and topic bars (past the last,
+focus leaves the book), Enter and Space follow a link or toggle a section,
+and the arrows, Page Up, Page Down, Home and End scroll.
+
+The paper's look is the theme's: the parts ``paper``, ``title``, ``rule``,
+``body`` and ``close``, and the topic items' ``topic_bar`` and
+``expander``. Until a theme gives rules for them, they are drawn with the
+tool-tip family (the paper), the menu-item family (topic bars), the card
+family (callouts) and the link families.

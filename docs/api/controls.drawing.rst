@@ -20,7 +20,7 @@ Owner-drawn, live and raster surfaces.
    * - :cpp:class:`LiveSurface <gui_forms::LiveSurface>`
      - A thread-safe exchange that hands the newest frame from a pixel producer to the window.
    * - :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>`
-     - Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.
+     - A region of a window drawn by a sub-surface: content with its own control tree on its own thread, composed into the window frame by frame.
    * - :cpp:class:`ContentSurface <gui_forms::ContentSurface>`
      - A region whose pixels a consumer renders itself, on its own thread, with its own engine and fonts.
    * - :cpp:class:`ContentTextEditor <gui_forms::ContentTextEditor>`

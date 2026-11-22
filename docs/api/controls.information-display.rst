@@ -58,9 +58,9 @@ Labels, images, progress and review cards.
    * - :cpp:class:`StepIndicator <gui_forms::StepIndicator>`
      - A step indicator: a row of numbered steps joined by connectors, each with its name beneath.
    * - :cpp:class:`HelpBook <gui_forms::HelpBook>`
-     - Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
+     - The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images.
    * - :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
-     - Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.
+     - The three-pane help viewer: a toolbar, the navigation tabs (Contents, Index, Search and Bookmarks) and a :cpp:class:`HelpBook <gui_forms::HelpBook>`.
 
 .. toctree::
    :hidden:

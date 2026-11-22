@@ -11,46 +11,75 @@ gui_forms::HelpBookViewer
 
    ``#include <gui_forms/controls/help_book_viewer.hpp>``
 
-   Three-pane help viewer: toolbar, Contents, Index, Search and Bookmarks tabs and a HelpBook, with history and contents sync, over one compiled helpbook section.
+   The three-pane help viewer: a toolbar, the navigation tabs (Contents, Index, Search and Bookmarks) and a :cpp:class:`HelpBook <gui_forms::HelpBook>`.
+
+   The toolbar holds Hide and Show, Back, Forward, Home, Print, Show in
+   contents, and the way back to the program's built-in language. The viewer
+   can be placed in any window or dock panel; :cpp:class:`HelpBookWindow <gui_forms::HelpBookWindow>` presents it in
+   a window of its own. It shows one compiled language's help section, never opens a file
+   or a network resource, and passes external links on to the application.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
       **section** : ``std::shared_ptr<const HelpBookSection>``
+         The :cpp:class:`HelpBookSection <gui_forms::HelpBookSection>` shown (shared, read-only). :cpp:func:`set_section <gui_forms::HelpBookViewer::set_section>` fills the
+         contents and the index and shows the home page; null shows nothing.
 
       **home_page** : ``std::string``, read-only
+         The home page's stable ID: the one :cpp:func:`set_home <gui_forms::HelpBookViewer::set_home>` named, else the contents'
+         first page.
 
       **selected_tab** : ``HelpNavigationTab``, read-only
+         The navigation tab selected (:cpp:enum:`HelpNavigationTab <gui_forms::HelpNavigationTab>`).
 
       **can_go_back** : ``bool``, read-only
+         Whether history has a page before the current one; :cpp:func:`can_go_forward <gui_forms::HelpBookViewer::can_go_forward>`,
+         whether it has one after.
 
       **can_go_forward** : ``bool``, read-only
 
       **current_page** : ``std::string``, read-only
+         The stable ID of the page shown.
 
       **navigation_visible** : ``bool``
+         Whether the navigation pane shows; :cpp:func:`set_navigation_visible <gui_forms::HelpBookViewer::set_navigation_visible>` changes it,
+         as Hide and Show do.
 
       **navigation_width** : ``double``
+         The navigation pane's width in logical units, at most 60% of the
+         viewer; :cpp:func:`set_navigation_width <gui_forms::HelpBookViewer::set_navigation_width>` changes it, and so does dragging the gap
+         between the pane and the book.
 
       **labels** : ``HelpBookViewerLabels``
+         The words the viewer shows (:cpp:class:`HelpBookViewerLabels <gui_forms::HelpBookViewerLabels>`), translated with the
+         program's text; its ``built_in_language`` is the name of the program's
+         built-in language, in that language, and empty hides the way back.
+         :cpp:func:`set_labels <gui_forms::HelpBookViewer::set_labels>` changes them.
 
       **bookmarks** : ``std::vector<std::string>``
+         The bookmarks, as stable IDs; the application keeps them in its
+         settings. :cpp:func:`set_bookmarks <gui_forms::HelpBookViewer::set_bookmarks>` replaces them.
 
       **index_row_count** : ``std::size_t``, read-only
-         The index tab's rows: one per keyword and subkeyword, in index order.
+         The Index tab's rows: one per keyword and subkeyword, in index order.
 
       **chooser_records** : ``std::vector<std::string>``, read-only
-         The records the chooser offers (stable IDs), empty when it is closed.
+         The records the chooser offers (stable IDs) when an index row names
+         several; empty while it is closed.
 
       **search_results** : ``std::vector<std::string>``, read-only
          The last search's hits as stable IDs, best first.
 
       **book** : ``std::shared_ptr<HelpBook>``, read-only
+         The viewer's :cpp:class:`HelpBook <gui_forms::HelpBook>`. :cpp:func:`contents_tree <gui_forms::HelpBookViewer::contents_tree>`, :cpp:func:`index_field <gui_forms::HelpBookViewer::index_field>` and
+         :cpp:func:`search_field <gui_forms::HelpBookViewer::search_field>` are its other parts.
 
       **contents_tree** : ``std::shared_ptr<TreeView>``, read-only
 
@@ -59,24 +88,33 @@ gui_forms::HelpBookViewer
       **search_field** : ``std::shared_ptr<TextBox>``, read-only
 
       **snapshot** : ``HelpBookViewerSnapshot``, read-only
+         The viewer's counters (:cpp:class:`HelpBookViewerSnapshot <gui_forms::HelpBookViewerSnapshot>`): history size and
+         position, navigations, searches, the last search's status and hit
+         count.
 
    :Events:
 
       **navigated** : ``Event<const std::string&>``
-         A page was shown (its stable ID).
+         Raised when a page is shown, with its stable ID.
 
       **external_link** : ``Event<HelpLinkActivation&>``
-         An external link was followed: the application decides (ruling 6).
+         Raised when an external link is followed; the application decides what
+         to do with it.
 
       **popup_requested** : ``Event<HelpLinkActivation&>``
-         A popup link was followed: the help system shows the paper popup.
+         Raised when a popup link is followed; the help system shows the popup.
 
       **print_requested** : ``Event<HelpPrintRequest&>``
+         Raised when printing is asked for, with a :cpp:class:`HelpPrintRequest <gui_forms::HelpPrintRequest>`: the page
+         shown, or the contents book under it. The help system's handler prints.
 
       **bookmarks_changed** : ``Event<const std::vector<std::string>&>``
+         Raised when the bookmarks change, with the new list.
 
       **built_in_language_requested** : ``Event<>``
-         The untranslatable way back was chosen: the help system switches help to the built-in language and gives the viewer the new section.
+         Raised when the user chooses the way back to the built-in language; the
+         help system switches help to that language and gives the viewer the new
+         section.
 
    :Inherited:
 
@@ -89,41 +127,56 @@ gui_forms::HelpBookViewer
       :widths: 35 65
 
       * - :cpp:func:`initialize_control_tree <gui_forms::HelpBookViewer::initialize_control_tree>`
-        -  
+        - Makes the viewer's panes; ``make_control`` calls it once, after construction.
       * - :cpp:func:`show <gui_forms::HelpBookViewer::show>`
-        - Opens record ``stable_id`` at ``anchor``, adding it to history and selecting it in the contents (sync).
+        - Opens a record at an anchor, adding it to history and selecting it in the contents; false, changing nothing, for a record the section does not hold.
       * - :cpp:func:`show_contents <gui_forms::HelpBookViewer::show_contents>`
-        -  
+        - Selects the Contents tab.
       * - :cpp:func:`show_index <gui_forms::HelpBookViewer::show_index>`
-        - Selects the Index tab with ``keyword`` typed.
+        - Selects the Index tab with a keyword typed.
       * - :cpp:func:`show_search <gui_forms::HelpBookViewer::show_search>`
-        - Selects the Search tab and searches for ``text``.
+        - Selects the Search tab and searches for a text.
       * - :cpp:func:`select_tab <gui_forms::HelpBookViewer::select_tab>`
-        -  
+        - Selects a navigation tab.
       * - :cpp:func:`back <gui_forms::HelpBookViewer::back>`
-        -  
+        - Moves back in history; :cpp:func:`forward <gui_forms::HelpBookViewer::forward>` moves forward and :cpp:func:`home <gui_forms::HelpBookViewer::home>` shows the home page.
       * - :cpp:func:`forward <gui_forms::HelpBookViewer::forward>`
         -  
       * - :cpp:func:`home <gui_forms::HelpBookViewer::home>`
         -  
       * - :cpp:func:`locate <gui_forms::HelpBookViewer::locate>`
-        - Selects the shown page in the contents (CHM's Locate).
+        - Selects the page shown in the contents.
       * - :cpp:func:`add_bookmark <gui_forms::HelpBookViewer::add_bookmark>`
-        -  
+        - Adds the page shown to the bookmarks; :cpp:func:`remove_selected_bookmark <gui_forms::HelpBookViewer::remove_selected_bookmark>` removes the selected one.
       * - :cpp:func:`remove_selected_bookmark <gui_forms::HelpBookViewer::remove_selected_bookmark>`
         -  
       * - :cpp:func:`open_index_row <gui_forms::HelpBookViewer::open_index_row>`
-        - Opens index row ``row``: its record, or the chooser when it names several records.
+        - Opens an index row: its record, or the chooser when it names several; false when the row is out of range.
       * - :cpp:func:`open_chooser_entry <gui_forms::HelpBookViewer::open_chooser_entry>`
         -  
       * - :cpp:func:`open_search_result <gui_forms::HelpBookViewer::open_search_result>`
-        -  
+        - Opens one of the last search's hits.
       * - :cpp:func:`set_home <gui_forms::HelpBookViewer::set_home>`
-        - The home page's stable ID; empty takes the contents' first page.
+        - Names the home page by its stable ID; empty takes the contents' first page.
       * - :cpp:func:`set_images <gui_forms::HelpBookViewer::set_images>`
-        -  
+        - Sets the PNG resources the pages may show (:cpp:class:`HelpBookImage <gui_forms::HelpBookImage>`).
       * - :cpp:func:`set_titles_only <gui_forms::HelpBookViewer::set_titles_only>`
-        -  
+        - Whether the search looks at titles only.
+
+   .. seealso::
+
+      :cpp:class:`HelpBook <gui_forms::HelpBook>`
+         The topic pane.
+
+      :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>`
+         A program's help, docked and opened by F1.
+
+   .. rubric:: Notes
+
+   History keeps at most ``maximum_history`` pages; the oldest goes first. Alt+C,
+   Alt+N, Alt+S and Alt+I select Contents, Index, Search and Bookmarks; F6
+   moves between the navigation pane and the book; Alt+Left and Alt+Right move
+   in history and Alt+Home goes home; Ctrl+P prints.
 
 
    .. rubric:: Construction
@@ -135,51 +188,89 @@ gui_forms::HelpBookViewer
 
    .. cpp:function:: const std::shared_ptr<const HelpBookSection>& section() const noexcept
 
+      The :cpp:class:`HelpBookSection <gui_forms::HelpBookSection>` shown (shared, read-only). :cpp:func:`set_section <gui_forms::HelpBookViewer::set_section>` fills the
+      contents and the index and shows the home page; null shows nothing.
+
    .. cpp:function:: void set_section(std::shared_ptr<const HelpBookSection> section)
 
-      Shows :cpp:func:`section <gui_forms::HelpBookViewer::section>` (shared, read-only): fills the contents and the index and shows the home page. Null shows nothing.
+      Sets :cpp:func:`section <gui_forms::HelpBookViewer::section>`; see the property's description above.
 
    .. cpp:function:: std::string home_page() const
 
+      The home page's stable ID: the one :cpp:func:`set_home <gui_forms::HelpBookViewer::set_home>` named, else the contents'
+      first page.
+
    .. cpp:function:: HelpNavigationTab selected_tab() const noexcept
 
+      The navigation tab selected (:cpp:enum:`HelpNavigationTab <gui_forms::HelpNavigationTab>`).
+
    .. cpp:function:: bool can_go_back() const noexcept
+
+      Whether history has a page before the current one; :cpp:func:`can_go_forward <gui_forms::HelpBookViewer::can_go_forward>`,
+      whether it has one after.
 
    .. cpp:function:: bool can_go_forward() const noexcept
 
    .. cpp:function:: std::string current_page() const
 
+      The stable ID of the page shown.
+
    .. cpp:function:: bool navigation_visible() const noexcept
+
+      Whether the navigation pane shows; :cpp:func:`set_navigation_visible <gui_forms::HelpBookViewer::set_navigation_visible>` changes it,
+      as Hide and Show do.
 
    .. cpp:function:: void set_navigation_visible(bool visible)
 
+      Sets :cpp:func:`navigation_visible <gui_forms::HelpBookViewer::navigation_visible>`; see the property's description above.
+
    .. cpp:function:: double navigation_width() const noexcept
+
+      The navigation pane's width in logical units, at most 60% of the
+      viewer; :cpp:func:`set_navigation_width <gui_forms::HelpBookViewer::set_navigation_width>` changes it, and so does dragging the gap
+      between the pane and the book.
 
    .. cpp:function:: void set_navigation_width(double width)
 
+      Sets :cpp:func:`navigation_width <gui_forms::HelpBookViewer::navigation_width>`; see the property's description above.
+
    .. cpp:function:: const HelpBookViewerLabels& labels() const noexcept
+
+      The words the viewer shows (:cpp:class:`HelpBookViewerLabels <gui_forms::HelpBookViewerLabels>`), translated with the
+      program's text; its ``built_in_language`` is the name of the program's
+      built-in language, in that language, and empty hides the way back.
+      :cpp:func:`set_labels <gui_forms::HelpBookViewer::set_labels>` changes them.
 
    .. cpp:function:: void set_labels(HelpBookViewerLabels labels)
 
+      Sets :cpp:func:`labels <gui_forms::HelpBookViewer::labels>`; see the property's description above.
+
    .. cpp:function:: const std::vector<std::string>& bookmarks() const& noexcept
+
+      The bookmarks, as stable IDs; the application keeps them in its
+      settings. :cpp:func:`set_bookmarks <gui_forms::HelpBookViewer::set_bookmarks>` replaces them.
 
    .. cpp:function:: void set_bookmarks(std::vector<std::string> stable_ids)
 
-      Bookmarks are stable IDs; the application keeps them in its settings (bookmarks_changed says when).
+      Sets :cpp:func:`bookmarks <gui_forms::HelpBookViewer::bookmarks>`; see the property's description above.
 
    .. cpp:function:: std::size_t index_row_count() const noexcept
 
-      The index tab's rows: one per keyword and subkeyword, in index order.
+      The Index tab's rows: one per keyword and subkeyword, in index order.
 
    .. cpp:function:: std::vector<std::string> chooser_records() const
 
-      The records the chooser offers (stable IDs), empty when it is closed.
+      The records the chooser offers (stable IDs) when an index row names
+      several; empty while it is closed.
 
    .. cpp:function:: std::vector<std::string> search_results() const
 
       The last search's hits as stable IDs, best first.
 
    .. cpp:function:: std::shared_ptr<HelpBook> book() const noexcept
+
+      The viewer's :cpp:class:`HelpBook <gui_forms::HelpBook>`. :cpp:func:`contents_tree <gui_forms::HelpBookViewer::contents_tree>`, :cpp:func:`index_field <gui_forms::HelpBookViewer::index_field>` and
+      :cpp:func:`search_field <gui_forms::HelpBookViewer::search_field>` are its other parts.
 
    .. cpp:function:: std::shared_ptr<TreeView> contents_tree() const noexcept
 
@@ -189,51 +280,75 @@ gui_forms::HelpBookViewer
 
    .. cpp:function:: HelpBookViewerSnapshot snapshot() const noexcept
 
+      The viewer's counters (:cpp:class:`HelpBookViewerSnapshot <gui_forms::HelpBookViewerSnapshot>`): history size and
+      position, navigations, searches, the last search's status and hit
+      count.
+
 
    .. rubric:: Events
 
    .. cpp:function:: Event<const std::string&>& navigated() noexcept
 
-      A page was shown (its stable ID).
+      Raised when a page is shown, with its stable ID.
 
    .. cpp:function:: Event<HelpLinkActivation&>& external_link() noexcept
 
-      An external link was followed: the application decides (ruling 6).
+      Raised when an external link is followed; the application decides what
+      to do with it.
 
    .. cpp:function:: Event<HelpLinkActivation&>& popup_requested() noexcept
 
-      A popup link was followed: the help system shows the paper popup.
+      Raised when a popup link is followed; the help system shows the popup.
 
    .. cpp:function:: Event<HelpPrintRequest&>& print_requested() noexcept
 
+      Raised when printing is asked for, with a :cpp:class:`HelpPrintRequest <gui_forms::HelpPrintRequest>`: the page
+      shown, or the contents book under it. The help system's handler prints.
+
    .. cpp:function:: Event<const std::vector<std::string>&>& bookmarks_changed() noexcept
+
+      Raised when the bookmarks change, with the new list.
 
    .. cpp:function:: Event<>& built_in_language_requested() noexcept
 
-      The untranslatable way back was chosen: the help system switches help to the built-in language and gives the viewer the new section.
+      Raised when the user chooses the way back to the built-in language; the
+      help system switches help to that language and gives the viewer the new
+      section.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void initialize_control_tree()
 
+      Makes the viewer's panes; ``make_control`` calls it once, after
+      construction.
+
    .. cpp:function:: bool show(std::string_view stable_id, std::string_view anchor = {})
 
-      Opens record ``stable_id`` at ``anchor``, adding it to history and selecting it in the contents (sync). Returns false, changing nothing, for a record the section does not hold.
+      Opens a record at an anchor, adding it to history and selecting it in
+      the contents; false, changing nothing, for a record the section does not
+      hold.
 
    .. cpp:function:: void show_contents()
 
+      Selects the Contents tab.
+
    .. cpp:function:: void show_index(std::string_view keyword)
 
-      Selects the Index tab with ``keyword`` typed.
+      Selects the Index tab with a keyword typed.
 
    .. cpp:function:: void show_search(std::string_view text)
 
-      Selects the Search tab and searches for ``text``.
+      Selects the Search tab and searches for a text.
 
    .. cpp:function:: void select_tab(HelpNavigationTab tab)
 
+      Selects a navigation tab.
+
    .. cpp:function:: bool back()
+
+      Moves back in history; :cpp:func:`forward <gui_forms::HelpBookViewer::forward>` moves forward and :cpp:func:`home <gui_forms::HelpBookViewer::home>` shows the home
+      page. Each returns false when it cannot.
 
    .. cpp:function:: bool forward()
 
@@ -241,27 +356,39 @@ gui_forms::HelpBookViewer
 
    .. cpp:function:: void locate()
 
-      Selects the shown page in the contents (CHM's Locate).
+      Selects the page shown in the contents.
 
    .. cpp:function:: bool add_bookmark()
+
+      Adds the page shown to the bookmarks; :cpp:func:`remove_selected_bookmark <gui_forms::HelpBookViewer::remove_selected_bookmark>` removes
+      the selected one.
 
    .. cpp:function:: bool remove_selected_bookmark()
 
    .. cpp:function:: bool open_index_row(std::size_t row)
 
-      Opens index row ``row``: its record, or the chooser when it names several records. Returns false when the row is out of range.
+      Opens an index row: its record, or the chooser when it names several;
+      false when the row is out of range. :cpp:func:`open_chooser_entry <gui_forms::HelpBookViewer::open_chooser_entry>` opens one of
+      the chooser's records.
 
    .. cpp:function:: bool open_chooser_entry(std::size_t entry)
 
    .. cpp:function:: bool open_search_result(std::size_t result)
 
+      Opens one of the last search's hits.
+
    .. cpp:function:: void set_home(std::string stable_id)
 
-      The home page's stable ID; empty takes the contents' first page.
+      Names the home page by its stable ID; empty takes the contents' first
+      page.
 
    .. cpp:function:: void set_images(std::vector<HelpBookImage> images)
 
+      Sets the PNG resources the pages may show (:cpp:class:`HelpBookImage <gui_forms::HelpBookImage>`).
+
    .. cpp:function:: void set_titles_only(bool titles_only)
+
+      Whether the search looks at titles only.
 
 
    .. rubric:: Extension points

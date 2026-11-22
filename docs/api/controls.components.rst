@@ -30,7 +30,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    * - :cpp:class:`HelpProvider <gui_forms::HelpProvider>`
      - A component that attaches help text and help topics to controls and routes F1.
    * - :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>`
-     - The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.
+     - A program's help: it holds the help text of the program's language files, compiles the help book from it and the program's windows, and shows it on F1, in What's This mode, on window cards and from the ribbon.
    * - :cpp:class:`SemanticFeedback <gui_forms::SemanticFeedback>`
      - A component that turns application events into sound cues and a bounded history.
    * - :cpp:class:`Binding <gui_forms::Binding>`
