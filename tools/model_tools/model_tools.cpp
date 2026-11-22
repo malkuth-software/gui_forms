@@ -1,6 +1,5 @@
 #include "model_tools.hpp"
 
-#include "../../src/controls/automation/core/automation_core.hpp"
 #include "../../src/controls/automation/core/automation_internal.hpp"
 #include "../../src/controls/form_document_export/process_form_exports.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
@@ -60,8 +59,9 @@ struct Arguments final {
     std::string error{};
 };
 
-[[nodiscard]] bool read(const ToolInvocation& invocation, Arguments& arguments) {
-    const bool read = detail::read_arguments(invocation.arguments_json, arguments.object, arguments.error);
+[[nodiscard]] bool read(const ModelToolCall& call, Arguments& arguments) {
+    const std::string_view json(call.arguments_json, call.arguments_bytes);
+    const bool read = detail::read_arguments(json, arguments.object, arguments.error);
     return read;
 }
 
@@ -84,16 +84,15 @@ struct FormsTarget final {
     Control::Ptr root{};
 };
 
-[[nodiscard]] bool forms_target(const ToolInvocation& invocation, const Arguments& arguments, FormsTarget& target,
+[[nodiscard]] bool forms_target(const ModelToolCall& call, const Arguments& arguments, FormsTarget& target,
                                 ToolReply& failure) {
-    if (invocation.core == nullptr) {
-        failure = ToolReply::failure(ToolError::window_gone, "no automation core for this call");
-        return false;
-    }
-    const std::string name = text_or_empty(arguments, "window");
-    Window* const window = (*invocation.core).find_window(name);
+    // The dispatcher resolved the call's `window` argument (else the active
+    // window) before calling.
+    Window* const window = call.window;
     if (window == nullptr) {
-        failure = ToolReply::failure(ToolError::not_found, "no window " + name, "the windows tool lists them");
+        const std::string name = text_or_empty(arguments, "window");
+        failure = ToolReply::failure(ToolError::window_gone, name.empty() ? "no window" : "no window " + name,
+                                     "the windows tool lists them");
         return false;
     }
     target.window = window;
@@ -134,13 +133,13 @@ struct FormsTarget final {
     return ToolReply::success(std::move(success));
 }
 
-ToolReply forms_export_tool(void* context, const ToolInvocation& invocation) {
+ToolReply forms_export_tool(void* context, const ModelToolCall& call) {
     static_cast<void>(context);
     Arguments arguments{};
-    if (!read(invocation, arguments)) return bad_arguments(arguments.error);
+    if (!read(call, arguments)) return bad_arguments(arguments.error);
     FormsTarget target{};
     ToolReply failure{};
-    if (!forms_target(invocation, arguments, target, failure)) return failure;
+    if (!forms_target(call, arguments, target, failure)) return failure;
     std::string document{};
     static_cast<void>(form_language::process_form_exports().export_document(*target.root, document));
     const bool replaced = form_language::process_form_exports().replaced(*target.root);
@@ -151,30 +150,30 @@ ToolReply forms_export_tool(void* context, const ToolInvocation& invocation) {
     return ToolReply::success(std::move(success));
 }
 
-ToolReply forms_validate_tool(void* context, const ToolInvocation& invocation) {
+ToolReply forms_validate_tool(void* context, const ModelToolCall& call) {
     static_cast<void>(context);
     Arguments arguments{};
-    if (!read(invocation, arguments)) return bad_arguments(arguments.error);
+    if (!read(call, arguments)) return bad_arguments(arguments.error);
     const std::optional<std::string> document = detail::text_member(arguments.object, "document");
     if (!document) return bad_arguments("document is required");
     FormsTarget target{};
     ToolReply failure{};
-    if (!forms_target(invocation, arguments, target, failure)) return failure;
+    if (!forms_target(call, arguments, target, failure)) return failure;
     theme_language::ThemeDiagnosticList diagnostics{};
     const form_language::FormExportOutcome outcome = form_language::process_form_exports().validate(
         *target.root, model_tools_schema(), "candidate.form", *document, diagnostics);
     return diagnostics_reply(outcome, diagnostics, "valid\n");
 }
 
-ToolReply forms_apply_tool(void* context, const ToolInvocation& invocation) {
+ToolReply forms_apply_tool(void* context, const ModelToolCall& call) {
     static_cast<void>(context);
     Arguments arguments{};
-    if (!read(invocation, arguments)) return bad_arguments(arguments.error);
+    if (!read(call, arguments)) return bad_arguments(arguments.error);
     const std::optional<std::string> document = detail::text_member(arguments.object, "document");
     if (!document) return bad_arguments("document is required");
     FormsTarget target{};
     ToolReply failure{};
-    if (!forms_target(invocation, arguments, target, failure)) return failure;
+    if (!forms_target(call, arguments, target, failure)) return failure;
     const std::string part = text_or_empty(arguments, "target");
     theme_language::ThemeDiagnosticList diagnostics{};
     const form_language::FormExportOutcome outcome = form_language::process_form_exports().apply(
@@ -182,13 +181,13 @@ ToolReply forms_apply_tool(void* context, const ToolInvocation& invocation) {
     return diagnostics_reply(outcome, diagnostics, part.empty() ? "applied to the window\n" : "applied to " + part + "\n");
 }
 
-ToolReply forms_revert_tool(void* context, const ToolInvocation& invocation) {
+ToolReply forms_revert_tool(void* context, const ModelToolCall& call) {
     static_cast<void>(context);
     Arguments arguments{};
-    if (!read(invocation, arguments)) return bad_arguments(arguments.error);
+    if (!read(call, arguments)) return bad_arguments(arguments.error);
     FormsTarget target{};
     ToolReply failure{};
-    if (!forms_target(invocation, arguments, target, failure)) return failure;
+    if (!forms_target(call, arguments, target, failure)) return failure;
     theme_language::ThemeDiagnosticList diagnostics{};
     const form_language::FormExportOutcome outcome =
         form_language::process_form_exports().revert(*target.root, model_tools_schema(), diagnostics);
@@ -209,6 +208,24 @@ ToolReply forms_revert_tool(void* context, const ToolInvocation& invocation) {
     return made;
 }
 
+// Calls a handler written against a ToolReply (the library's own) and
+// gives its reply through the public ModelToolReply.
+template <ToolReply (*Body)(void* context, const ModelToolCall& call)>
+void reply_tool(void* context, const ModelToolCall& call, ModelToolReply& reply) {
+    const ToolReply made = Body(context, call);
+    const ToolFailure* const failure = made.failure_value();
+    if (failure != nullptr) {
+        reply.fail((*failure).error, (*failure).message.c_str(), (*failure).hint.c_str());
+        return;
+    }
+    const ToolSuccess* const success = made.success_value();
+    if (success == nullptr) return;
+    static_cast<void>(reply.text((*success).text.data(), (*success).text.size()));
+    if (!(*success).structured_json.empty()) {
+        static_cast<void>(reply.structured((*success).structured_json.data(), (*success).structured_json.size()));
+    }
+}
+
 [[nodiscard]] std::size_t add(ToolRegistry& tools, ToolSpec spec, ToolHandler handler) {
     const bool added = tools.add(std::move(spec), handler, nullptr) == ToolRegistration::added;
     return added ? 1U : 0U;
@@ -220,8 +237,8 @@ std::size_t register_model_tools(ToolRegistry& tools) {
     // Made here, on the UI thread, before any call reads it.
     static_cast<void>(model_tools_schema());
     std::size_t added = 0U;
-    const ToolHandler forms_handlers[] = {&forms_export_tool, &forms_validate_tool, &forms_apply_tool,
-                                          &forms_revert_tool};
+    const ToolHandler forms_handlers[] = {&reply_tool<&forms_export_tool>, &reply_tool<&forms_validate_tool>,
+                                          &reply_tool<&forms_apply_tool>, &reply_tool<&forms_revert_tool>};
     const char* const forms_titles[] = {"Export a window's form", "Validate a form document", "Apply a form document",
                                         "Revert a window's form"};
     for (std::size_t index = 0U; index < model_inspection::forms_tool_specs.size(); ++index) {

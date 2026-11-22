@@ -3,6 +3,7 @@
 #include "../../../core/host/session/session_directory.hpp"
 #include "../../commands/command_directory/command_directory.hpp"
 #include "../marks/automation_marks_internal.hpp"
+#include "../model_extensions/model_inspect_sections.hpp"
 
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "gui_forms/commands/command/command.hpp"
@@ -501,6 +502,7 @@ void AutomationCore::append_route_trace(const SurfaceRoot& window, std::string_v
 AutomationCore::AutomationCore(AutomationControl& control, AutomationSettings settings)
     : control_(control), settings_(settings) {
     detail::register_core_inspect_sections(tools());
+    static_cast<void>(register_model_inspect_sections(tools()));
     static_cast<void>(tools().add_inspect_section(
         "events", "the pointer and key events the window routed, and where each went (the event-propagation trace)",
         &string_section<&events_section>, this));

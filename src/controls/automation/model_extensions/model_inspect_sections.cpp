@@ -47,17 +47,18 @@ std::size_t register_model_inspect_sections(ToolRegistry& tools) {
     if (tools.add_inspect_section("summary",
                                   "the window in one paragraph: focus, selection, checked, expanded, busy, invalid, "
                                   "disabled and what waits on the user",
-                                  &summary_section, nullptr) == ToolRegistration::added) {
+                                  &string_section<&summary_section>, nullptr) == ToolRegistration::added) {
         added = added + 1U;
     }
-    if (tools.add_inspect_section("layout",
+    // "layout" is the core's (bounds); this one says why.
+    if (tools.add_inspect_section("layout_reasons",
                                   "why the target has its place and size: requested and arranged bounds, its layout "
                                   "properties, what its parent gives it, tight constraints and overflow records",
-                                  &layout_section, nullptr) == ToolRegistration::added) {
+                                  &string_section<&layout_section>, nullptr) == ToolRegistration::added) {
         added = added + 1U;
     }
     if (tools.add_inspect_section("resources", "the window's images and the counted allocations by subsystem",
-                                  &resources_section, nullptr) == ToolRegistration::added) {
+                                  &string_section<&resources_section>, nullptr) == ToolRegistration::added) {
         added = added + 1U;
     }
     return added;
