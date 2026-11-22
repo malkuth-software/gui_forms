@@ -1271,41 +1271,6 @@ const FinishFill* tiled_finish_of(const SurfaceMaterial* material, bool recorded
 
 } // namespace
 
-// A refused part of one finish (PartPaintRun::tiled_finish): the finish
-// from the window's world tiles over the part inside its border, clipped
-// to its corners, at its presented opacity, with world (0, 0) at the
-// part's corner, so it reads as the part's own surface (an in-room glint
-// lights it from its upper left) and the tiles stand for the bake the
-// budget refused. Until the tiles are made the built-in recipe shows.
-void ThemeEngine::paint_tiled_finish(Painter& painter, const Control& control, const PartPaint& part,
-                                     const PartPaintRun& run) const {
-    if (run.opacity <= 0.0) return;
-    const SurfaceMaterial& material = *run.request.target.material;
-    double inset = 0.0;
-    if (material.border.present()) inset = std::max(0.0, (*material.border.value()).width);
-    const Rect bounds = run.shown.bounds;
-    const Rect inside{bounds.x + inset, bounds.y + inset, std::max(0.0, bounds.width - 2.0 * inset),
-                      std::max(0.0, bounds.height - 2.0 * inset)};
-    if (!part_bounds_paintable(inside)) return;
-    FinishTiles tiles{};
-    tiles.key = *part.key.value();
-    tiles.finish = run.tiled_finish;
-    tiles.anchor = Point{bounds.x, bounds.y};
-    tiles.zoom = 1.0;
-    tiles.area = inside;
-    const double radius = std::max(0.0, material.corner_radius - inset);
-    PaintGroup group{};
-    group.bounds = inside;
-    group.opacity = std::min(1.0, run.opacity);
-    group.isolated = run.opacity < 1.0;
-    painter.begin_group(group);
-    painter.save();
-    painter.clip_rounded_rect(inside, radius);
-    static_cast<void>(paint_finish_tiles(painter, control, tiles));
-    painter.restore();
-    painter.end_group();
-}
-
 bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const {
     SurfaceRoot* const window = control.attached_surface_root();
     if (window == nullptr || tiles.finish == nullptr) return false;
@@ -1427,6 +1392,41 @@ struct ThemeEngine::PartPaintRun final {
     // any other part.
     const FinishFill* tiled_finish{};
 };
+
+// A refused part of one finish (PartPaintRun::tiled_finish): the finish
+// from the window's world tiles over the part inside its border, clipped
+// to its corners, at its presented opacity, with world (0, 0) at the
+// part's corner, so it reads as the part's own surface (an in-room glint
+// lights it from its upper left) and the tiles stand for the bake the
+// budget refused. Until the tiles are made the built-in recipe shows.
+void ThemeEngine::paint_tiled_finish(Painter& painter, const Control& control, const PartPaint& part,
+                                     const PartPaintRun& run) const {
+    if (run.opacity <= 0.0) return;
+    const SurfaceMaterial& material = *run.request.target.material;
+    double inset = 0.0;
+    if (material.border.present()) inset = std::max(0.0, (*material.border.value()).width);
+    const Rect bounds = run.shown.bounds;
+    const Rect inside{bounds.x + inset, bounds.y + inset, std::max(0.0, bounds.width - 2.0 * inset),
+                      std::max(0.0, bounds.height - 2.0 * inset)};
+    if (!part_bounds_paintable(inside)) return;
+    FinishTiles tiles{};
+    tiles.key = *part.key.value();
+    tiles.finish = run.tiled_finish;
+    tiles.anchor = Point{bounds.x, bounds.y};
+    tiles.zoom = 1.0;
+    tiles.area = inside;
+    const double radius = std::max(0.0, material.corner_radius - inset);
+    PaintGroup group{};
+    group.bounds = inside;
+    group.opacity = std::min(1.0, run.opacity);
+    group.isolated = run.opacity < 1.0;
+    painter.begin_group(group);
+    painter.save();
+    painter.clip_rounded_rect(inside, radius);
+    static_cast<void>(paint_finish_tiles(painter, control, tiles));
+    painter.restore();
+    painter.end_group();
+}
 
 void ThemeEngine::paint_planned(Painter& painter, const Control& control, const PartPaint& part,
                                 const PartPlan& decided, const std::span<const Rect> clips,
