@@ -72,6 +72,11 @@ gui_forms::MenuStrip
       **is_open** : ``bool``, default ``false``, read-only
          Whether one of the strip's menus is open.
 
+      **mdi_window_list_item** : ``stxlib::Optional<std::size_t>``, read-only
+         -- the multiple document interface (DK decisions 60 to 63) -- The menu the window list joins: the first visible item whose spec sets window_list, or none (WinForms' MdiWindowListItem). The list is read from the attached window's document area (Window::mdi_children) each time the menu opens.
+
+      **document_frame_buttons** : ``bool``
+
       **parts** : ``Parts``, read-only
 
       **realized_items** : ``std::vector<Item>``, read-only
@@ -90,6 +95,9 @@ gui_forms::MenuStrip
          open menu closes. Switching directly from one menu to another raises it
          once, with the new index.
 
+      **frame_button_pressed** : ``Event<MenuStripFrameButton>``
+         Raised when a shown frame button is pressed and released (pointer) or pressed (semantic press).
+
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -104,6 +112,8 @@ gui_forms::MenuStrip
         - ``open(index, mode)`` opens the menu of the item at ``index`` and returns true.
       * - :cpp:func:`close <gui_forms::MenuStrip::close>`
         - Closes the open menu, if any.
+      * - :cpp:func:`document_frame_button_bounds <gui_forms::MenuStrip::document_frame_button_bounds>`
+        - Where a frame button shows, in the strip's coordinates; empty while the buttons are off.
 
    .. seealso::
 
@@ -260,6 +270,16 @@ gui_forms::MenuStrip
 
       Whether one of the strip's menus is open.
 
+   .. cpp:function:: stxlib::Optional<std::size_t> mdi_window_list_item() const noexcept
+
+      -- the multiple document interface (DK decisions 60 to 63) -- The menu the window list joins: the first visible item whose spec sets window_list, or none (WinForms' MdiWindowListItem). The list is read from the attached window's document area (Window::mdi_children) each time the menu opens.
+
+   .. cpp:function:: bool document_frame_buttons() const noexcept
+
+   .. cpp:function:: void set_document_frame_buttons(bool shown)
+
+      Whether the strip shows a maximized MDI child's caption buttons (minimize, restore, close) at its end, as WinForms' MDI shows them on the main menu strip. The docking site turns them on while a document frame is maximized and the strip is its window's main menu strip (Window::main_menu_strip), and listens to frame_button_pressed.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: std::vector<Item> realized_items() const
@@ -282,6 +302,10 @@ gui_forms::MenuStrip
       open menu closes. Switching directly from one menu to another raises it
       once, with the new index.
 
+   .. cpp:function:: Event<MenuStripFrameButton>& frame_button_pressed() noexcept
+
+      Raised when a shown frame button is pressed and released (pointer) or pressed (semantic press).
+
 
    .. rubric:: Methods
 
@@ -298,6 +322,10 @@ gui_forms::MenuStrip
    .. cpp:function:: void close() noexcept
 
       Closes the open menu, if any.
+
+   .. cpp:function:: Rect document_frame_button_bounds(MenuStripFrameButton button) const
+
+      Where a frame button shows, in the strip's coordinates; empty while the buttons are off.
 
 
    .. rubric:: Extension points
@@ -323,6 +351,10 @@ gui_forms::MenuStrip
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
 
    .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
 
       *Protected.*
 
@@ -370,7 +402,7 @@ gui_forms::MenuStrip
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 9 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 13 supported, 0 deferred, 0 excluded, 8 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -395,8 +427,8 @@ Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supp
      - unclassified (unmatched)
    * - property
      - ``MdiWindowListItem``
-     - none
-     - unclassified (unmatched)
+     - ``mdi_window_list_item``
+     - supported
    * - property
      - ``ShowItemToolTips``
      - none
@@ -427,6 +459,10 @@ Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``document_frame_buttons``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``is_open``
      - supported
    * - property
@@ -439,6 +475,10 @@ Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supp
      - supported
    * - event
      - GUI.Forms-only
+     - ``frame_button_pressed``
+     - supported
+   * - event
+     - GUI.Forms-only
      - ``item_invoked``
      - supported
    * - event
@@ -448,6 +488,10 @@ Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supp
    * - method
      - GUI.Forms-only
      - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``document_frame_button_bounds``
      - supported
    * - method
      - GUI.Forms-only

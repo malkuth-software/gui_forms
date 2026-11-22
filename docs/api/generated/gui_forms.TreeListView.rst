@@ -604,7 +604,7 @@ gui_forms::TreeListView
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 31 supported, 0 deferred, 0 excluded, 5 unclassified; 36 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 4 unclassified; 36 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -702,7 +702,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 31 s
    * - method
      - GUI.Forms-only
      - ``index_of``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``

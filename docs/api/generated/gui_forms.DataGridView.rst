@@ -2133,7 +2133,7 @@ gui_forms::DataGridView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162 supported, 0 deferred, 0 excluded, 307 unclassified; 88 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DataGridView``. Members declared here and by the counterpart: 163 supported, 0 deferred, 0 excluded, 306 unclassified; 88 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -2395,7 +2395,7 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162
    * - property
      - ``SelectionMode``
      - ``selection_mode``
-     - unclassified (untested)
+     - supported
    * - property
      - ``ShowCellErrors``
      - none

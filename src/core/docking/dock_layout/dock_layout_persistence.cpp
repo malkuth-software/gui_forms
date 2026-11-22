@@ -135,6 +135,22 @@ using detail::DockRegion;
     return std::nullopt;
 }
 
+[[nodiscard]] std::string_view frame_state_name(DockFrameState state) noexcept {
+    switch (state) {
+    case DockFrameState::normal: return "normal";
+    case DockFrameState::minimized: return "minimized";
+    case DockFrameState::maximized: return "maximized";
+    }
+    return "normal";
+}
+
+[[nodiscard]] std::optional<DockFrameState> parse_frame_state(std::string_view text) noexcept {
+    if (text == "normal") return DockFrameState::normal;
+    if (text == "minimized") return DockFrameState::minimized;
+    if (text == "maximized") return DockFrameState::maximized;
+    return std::nullopt;
+}
+
 [[nodiscard]] std::string_view boolean_name(bool value) noexcept {
     const std::string_view name = value ? "true" : "false";
     return name;
@@ -195,6 +211,7 @@ void add_frame(XmlElement& element, Rect frame) {
     case DockUnknownOwnerKind::docked_memory: return "panel_record " + owner.panel.value + "/docked";
     case DockUnknownOwnerKind::floating_memory: return "panel_record " + owner.panel.value + "/floating";
     case DockUnknownOwnerKind::auto_hidden_memory: return "panel_record " + owner.panel.value + "/auto_hidden";
+    case DockUnknownOwnerKind::frame_memory: return "panel_record " + owner.panel.value + "/frame";
     }
     return "?";
 }
@@ -245,6 +262,11 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
     if (node.kind == DockNodeKind::document_area) {
         element.name = "document_area";
         add_number(element, "id", node.id.value);
+        // Written only for frames, so a layout in tabs keeps the form
+        // written before the frames presentation existed.
+        if (state.document_presentation == DockDocumentPresentation::frames) {
+            add_attribute(element, "presentation", "frames");
+        }
         if (!(node.first == DockNodeId{})) element.children.push_back(node_element(state, node.first));
         add_unknown_fields(state, owner_of(DockUnknownOwnerKind::node, node.id.value), element);
         return element;
@@ -295,6 +317,16 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
         add_double(hidden, "extent", memory.extent);
         add_unknown_fields(state, owner_of(DockUnknownOwnerKind::auto_hidden_memory, 0, record.id), hidden);
         element.children.push_back(std::move(hidden));
+    }
+    if (record.frame.present()) {
+        const DockFrameMemory& memory = (*record.frame.value());
+        XmlElement frame = element_named("frame");
+        add_frame(frame, memory.bounds);
+        add_attribute(frame, "state", frame_state_name(memory.state));
+        add_number(frame, "icon_slot", memory.icon_slot);
+        add_number(frame, "order", memory.order);
+        add_unknown_fields(state, owner_of(DockUnknownOwnerKind::frame_memory, 0, record.id), frame);
+        element.children.push_back(std::move(frame));
     }
     add_unknown_fields(state, owner_of(DockUnknownOwnerKind::panel_record, 0, record.id), element);
     return element;
@@ -672,7 +704,17 @@ private:
         std::uint32_t id = 0;
         if (!read_id(element, id)) return false;
         const DockUnknownOwner owner = owner_of(DockUnknownOwnerKind::node, id);
-        check_attributes(element, {"id"}, owner);
+        check_attributes(element, {"id", "presentation"}, owner);
+        const XmlAttribute* const presentation = element.find_attribute("presentation");
+        if (presentation != nullptr) {
+            if ((*presentation).value == "frames") {
+                state_.document_presentation = DockDocumentPresentation::frames;
+            } else if ((*presentation).value == "tabs") {
+                state_.document_presentation = DockDocumentPresentation::tabs;
+            } else {
+                return invalid("document_area", "presentation", (*presentation).value);
+            }
+        }
         std::vector<DockNodeId> children{};
         if (!load_children(element, children, owner)) return false;
         if (children.size() > 1U) return structure("the document area has more than one child");
@@ -880,7 +922,7 @@ private:
         std::size_t known = 0U;
         for (const XmlElement& child : element.children) {
             const bool memory_element = child.name == "docked" || child.name == "floating" ||
-                                        child.name == "auto_hidden";
+                                        child.name == "auto_hidden" || child.name == "frame";
             if (!memory_element) {
                 unknown_element("panel_record", child, owner, known);
                 continue;
@@ -889,6 +931,7 @@ private:
             DockUnknownOwnerKind memory_kind = DockUnknownOwnerKind::docked_memory;
             if (child.name == "floating") memory_kind = DockUnknownOwnerKind::floating_memory;
             if (child.name == "auto_hidden") memory_kind = DockUnknownOwnerKind::auto_hidden_memory;
+            if (child.name == "frame") memory_kind = DockUnknownOwnerKind::frame_memory;
             const DockUnknownOwner memory_owner = owner_of(memory_kind, 0, record.id);
             for (const XmlElement& nested : child.children) unknown_element(child.name, nested, memory_owner, 0U);
             if (child.name == "docked") {
@@ -913,6 +956,26 @@ private:
                 if (!read_frame(child, memory.frame)) return false;
                 memory.monitor_id = monitor_of(child);
                 record.floating = std::move(memory);
+            } else if (child.name == "frame") {
+                check_attributes(child, {"x", "y", "width", "height", "state", "icon_slot", "order"}, memory_owner);
+                DockFrameMemory memory{};
+                if (!read_frame(child, memory.bounds)) return false;
+                const XmlAttribute* const state = child.find_attribute("state");
+                const std::optional<DockFrameState> parsed_state =
+                    state == nullptr ? std::nullopt : parse_frame_state((*state).value);
+                if (!parsed_state.has_value()) return invalid("frame", "state", state == nullptr ? "" : (*state).value);
+                memory.state = *parsed_state;
+                const XmlAttribute* const slot = child.find_attribute("icon_slot");
+                const std::optional<std::uint32_t> parsed_slot =
+                    slot == nullptr ? std::nullopt : parse_unsigned((*slot).value);
+                if (!parsed_slot.has_value()) return invalid("frame", "icon_slot", slot == nullptr ? "" : (*slot).value);
+                memory.icon_slot = *parsed_slot;
+                const XmlAttribute* const order = child.find_attribute("order");
+                const std::optional<std::uint32_t> parsed_order =
+                    order == nullptr ? std::nullopt : parse_unsigned((*order).value);
+                if (!parsed_order.has_value()) return invalid("frame", "order", order == nullptr ? "" : (*order).value);
+                memory.order = *parsed_order;
+                record.frame.set(memory);
             } else {
                 check_attributes(child, {"stack", "edge", "extent"}, memory_owner);
                 DockAutoHideMemory memory{};
@@ -1189,6 +1252,8 @@ DockRestoreResult DockLayout::restore_xml(std::string_view xml, const DockRestor
                     diagnostics);
     }
 
+    // The frames presentation's documents all have frames (DK decision 61).
+    detail::sync_document_frames(state);
     const DockInvariantResult invariants = detail::check_dock_invariants(state);
     if (!invariants) {
         report(diagnostics, DockRestoreDiagnosticKind::structure_invalid, invariants.problem);

@@ -137,12 +137,33 @@ gui_forms::Window
       **chrome** : ``WindowChrome``, read-only
          The chrome as the host is asked for it: the written properties' values (the icon decoded to premultiplied BGRA8, empty when none or when the image could not be decoded).
 
+      **is_mdi_container** : ``bool``
+         -- the multiple document interface (DK decisions 60 to 63; window_document_area.hpp) -- WinForms' Form surface over the window's docking document area: an MDI child is a document of the area, named by its DockPanelId. The area is bound by the docking workspace's main DockSite while it is attached to this window; without one the children are empty and the calls change nothing (activate_mdi_child and layout_mdi answer false). Whether the window is an MDI container: its document area shows its documents as overlapping frames rather than tabs. Bound, it reads and sets the area's presentation; unbound, it is kept and given to the area that binds, once written. UI thread.
+
+      **mdi_children** : ``BorrowedSpan<DockPanelId>``, read-only
+         The children (the area's documents), in tree and tab order. Read into storage the window keeps: valid until the next call. UI thread.
+
+      **active_mdi_child** : ``stxlib::Optional<DockPanelId>``, read-only
+         The active child, or none.
+
+      **mdi_children_minimized_anchor_bottom** : ``bool``
+         Whether minimized children line the bottom of the area (the default), else its top (WinForms' MdiChildrenMinimizedAnchorBottom).
+
+      **main_menu_strip** : ``Control::Ptr``
+         The window's main menu strip (WinForms' MainMenuStrip): the strip the active child's menus merge into and whose end shows a maximized child's caption buttons. Held weakly; null when none was set or it is gone. A control of this window or not yet attached; the type is checked by its users (gui_forms_controls), so any control is held.
+
+      **document_area** : ``WindowDocumentArea*``, read-only
+         The bound area, or null.
+
    :Events:
 
       **popup_window_closed** : ``Event<std::size_t>``
 
       **toast_dismissed** : ``Event<const ToastDismissal&>``
          Raised after a toast closed, last in the operation that closed it.
+
+      **mdi_child_activate** : ``Event<const MdiChildActivation&>``
+         Raised after the active child changed, on the UI thread.
 
    :Inherited:
 
@@ -202,6 +223,14 @@ gui_forms::Window
         - Closes the toast that shows when ``content`` is its content, for ``reason`` (the content's own close mark or action); false, changing nothing, otherwise.
       * - :cpp:func:`hide_toast <gui_forms::Window::hide_toast>`
         - Closes the toast that shows (dismissed ``hidden``).
+      * - :cpp:func:`activate_mdi_child <gui_forms::Window::activate_mdi_child>`
+        - Activates a child; false for one the area does not hold.
+      * - :cpp:func:`layout_mdi <gui_forms::Window::layout_mdi>`
+        - Arranges the children's frames (WinForms' LayoutMdi); false when there is nothing to arrange.
+      * - :cpp:func:`bind_document_area <gui_forms::Window::bind_document_area>`
+        - Binds the document area (a DockSite calls it when it attaches), or unbinds it (when it leaves; nothing for another area).
+      * - :cpp:func:`unbind_document_area <gui_forms::Window::unbind_document_area>`
+        -  
       * - :cpp:func:`set_scale <gui_forms::Window::set_scale>`
         -  
       * - :cpp:func:`set_band_appearance <gui_forms::Window::set_band_appearance>`
@@ -478,6 +507,36 @@ gui_forms::Window
 
       The chrome as the host is asked for it: the written properties' values (the icon decoded to premultiplied BGRA8, empty when none or when the image could not be decoded).
 
+   .. cpp:function:: bool is_mdi_container() const
+
+      -- the multiple document interface (DK decisions 60 to 63; window_document_area.hpp) -- WinForms' Form surface over the window's docking document area: an MDI child is a document of the area, named by its DockPanelId. The area is bound by the docking workspace's main DockSite while it is attached to this window; without one the children are empty and the calls change nothing (activate_mdi_child and layout_mdi answer false). Whether the window is an MDI container: its document area shows its documents as overlapping frames rather than tabs. Bound, it reads and sets the area's presentation; unbound, it is kept and given to the area that binds, once written. UI thread.
+
+   .. cpp:function:: void set_is_mdi_container(bool container)
+
+   .. cpp:function:: BorrowedSpan<DockPanelId> mdi_children() const&
+
+      The children (the area's documents), in tree and tab order. Read into storage the window keeps: valid until the next call. UI thread.
+
+   .. cpp:function:: stxlib::Optional<DockPanelId> active_mdi_child() const
+
+      The active child, or none.
+
+   .. cpp:function:: bool mdi_children_minimized_anchor_bottom() const noexcept
+
+      Whether minimized children line the bottom of the area (the default), else its top (WinForms' MdiChildrenMinimizedAnchorBottom).
+
+   .. cpp:function:: void set_mdi_children_minimized_anchor_bottom(bool bottom)
+
+   .. cpp:function:: Control::Ptr main_menu_strip() const noexcept
+
+      The window's main menu strip (WinForms' MainMenuStrip): the strip the active child's menus merge into and whose end shows a maximized child's caption buttons. Held weakly; null when none was set or it is gone. A control of this window or not yet attached; the type is checked by its users (gui_forms_controls), so any control is held.
+
+   .. cpp:function:: void set_main_menu_strip(const Control::Ptr& strip)
+
+   .. cpp:function:: WindowDocumentArea* document_area() const noexcept
+
+      The bound area, or null.
+
 
    .. rubric:: Events
 
@@ -486,6 +545,10 @@ gui_forms::Window
    .. cpp:function:: Event<const ToastDismissal&>& toast_dismissed() noexcept
 
       Raised after a toast closed, last in the operation that closed it.
+
+   .. cpp:function:: Event<const MdiChildActivation&>& mdi_child_activate() noexcept
+
+      Raised after the active child changed, on the UI thread.
 
 
    .. rubric:: Methods
@@ -578,6 +641,20 @@ gui_forms::Window
 
       Closes the toast that shows (dismissed ``hidden``). UI thread.
 
+   .. cpp:function:: bool activate_mdi_child(const DockPanelId& child)
+
+      Activates a child; false for one the area does not hold.
+
+   .. cpp:function:: bool layout_mdi(MdiLayout layout)
+
+      Arranges the children's frames (WinForms' LayoutMdi); false when there is nothing to arrange. std::invalid_argument for a value outside MdiLayout, changing nothing.
+
+   .. cpp:function:: void bind_document_area(WindowDocumentArea& area)
+
+      Binds the document area (a DockSite calls it when it attaches), or unbinds it (when it leaves; nothing for another area). Binding an area unbinds the window's previous one and the area's previous window, then gives the area the written container and anchor settings. UI thread.
+
+   .. cpp:function:: void unbind_document_area(const WindowDocumentArea& area) noexcept
+
    .. cpp:function:: void set_scale(double scale)
 
    .. cpp:function:: void set_band_appearance(const WindowBandAppearance& appearance)
@@ -604,7 +681,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 236 supported, 10 deferred, 10 excluded, 138 unclassified; 254 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 249 supported, 0 deferred, 13 excluded, 135 unclassified; 257 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -629,8 +706,8 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - unclassified (unmatched)
    * - property
      - ``ActiveMdiChild``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``active_mdi_child``
+     - supported
    * - property
      - ``AllowTransparency``
      - none
@@ -706,11 +783,11 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
    * - property
      - ``IsMdiChild``
      - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - excluded: An MDI child is a document of the window's docking document area, named by its DockPanelId, never a second Window, so no window is an MDI child or has an MDI parent (DK decisions 60 to 63; Window::mdi_children).
    * - property
      - ``IsMdiContainer``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``is_mdi_container``
+     - supported
    * - property
      - ``IsRestrictedWindow``
      - none
@@ -725,8 +802,8 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - unclassified (unmatched)
    * - property
      - ``MainMenuStrip``
-     - none
-     - unclassified (unmatched)
+     - ``main_menu_strip``
+     - supported
    * - property
      - ``Margin``
      - none
@@ -741,16 +818,16 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - unclassified (unmatched)
    * - property
      - ``MdiChildren``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``mdi_children``
+     - supported
    * - property
      - ``MdiChildrenMinimizedAnchorBottom``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``mdi_children_minimized_anchor_bottom``
+     - supported
    * - property
      - ``MdiParent``
      - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - excluded: An MDI child is a document of the window's docking document area, named by its DockPanelId, never a second Window, so no window is an MDI child or has an MDI parent (DK decisions 60 to 63; Window::mdi_children).
    * - property
      - ``Menu``
      - none
@@ -917,8 +994,8 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - unclassified (unmatched)
    * - event
      - ``MdiChildActivate``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``mdi_child_activate``
+     - supported
    * - event
      - ``MenuComplete``
      - none
@@ -961,8 +1038,8 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - unclassified (unmatched)
    * - method
      - ``ActivateMdiChild``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``activate_mdi_child``
+     - supported
    * - method
      - ``AddOwnedForm``
      - none
@@ -989,8 +1066,8 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
    * - method
      - ``LayoutMdi``
-     - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - ``layout_mdi``
+     - supported
    * - method
      - ``OnActivated``
      - none
@@ -1066,7 +1143,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
    * - method
      - ``OnMdiChildActivate``
      - none
-     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+     - excluded: The document area raises mdi_child_activate; Window has no overridable raiser (DK decisions 60 to 63).
    * - method
      - ``OnMenuComplete``
      - none
@@ -1265,6 +1342,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - supported
    * - property
      - GUI.Forms-only
+     - ``document_area``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``drag_engine_if_made``
      - supported
    * - property
@@ -1306,7 +1387,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
    * - property
      - GUI.Forms-only
      - ``hovered_control``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``image_resource_snapshot``
@@ -1653,6 +1734,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
      - supported
    * - method
      - GUI.Forms-only
+     - ``bind_document_area``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``cancel_drag``
      - supported
    * - method
@@ -1782,7 +1867,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
    * - method
      - GUI.Forms-only
      - ``forward_input_to_popup_window``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``hide_popup_window``
@@ -2142,6 +2227,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 236 support
    * - method
      - GUI.Forms-only
      - ``text_input_caret``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``unbind_document_area``
      - supported
    * - method
      - GUI.Forms-only

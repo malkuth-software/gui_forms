@@ -111,6 +111,25 @@ gui_forms::DockWorkspace
       **site** : ``DockSite*``, default none, read-only
          The :cpp:class:`DockSite <gui_forms::DockSite>` showing the main site, or none.
 
+      **document_presentation** : ``DockDocumentPresentation``
+         -- the frames presentation and the multiple document interface (DK decisions 60 to 63) -- The document area shows its documents as tabs in document stacks (the default) or as overlapping document frames, each placed by its DockFrameMemory; the layout keeps the presentation and the frames, and saves them. The main site realizes the frames (DockSite's document frames). The workspace is the document area of the window its main site is attached to (document_area, bound by the site), which gives that Window its WinForms MDI calls: an MDI child is a document of the area. UI thread. The presentation, and changing it (one set_document_presentation edit; the documents keep their stacks, and their frame memories wait while tabs show).
+
+      **frame_icons_at_bottom** : ``bool``
+
+      **frame_metrics** : ``DockFrameMetrics``, read-only
+         What the frames are measured with: the main site's (its caption height scaled with the text), else the defaults, with the icon edge.
+
+      **area_documents** : ``BorrowedSpan<DockPanelId>``, read-only
+         The documents of the main site's document area in tree and tab order (the MDI children), whichever the presentation. Read into storage the workspace keeps: valid until the layout changes.
+
+      **area_active_document** : ``stxlib::Optional<DockPanelId>``, read-only
+         The active document of the area: the most recently active document still in the area; else, with frames shown, the frontmost frame; else the selected document of the area's first stack; none when the area is empty.
+
+      **document_area** : ``WindowDocumentArea``, read-only
+
+      **merged_document** : ``stxlib::Optional<DockPanelId>``, read-only
+         The document whose menu strip is merged into the main menu strip, or none.
+
    :Events:
 
       **document_closing** : ``Event<DockDocumentClosing&>``
@@ -199,10 +218,26 @@ gui_forms::DockWorkspace
         - The edit that docks a subject back: into the stack its panel was docked in last, else beside the neighbour remembered there, else a document into the document area or a tool panel along its default edge; the first the layout accepts.
       * - :cpp:func:`dock_back <gui_forms::DockWorkspace::dock_back>`
         - Applies :cpp:func:`dock_back_edit <gui_forms::DockWorkspace::dock_back_edit>` and activates the panel.
+      * - :cpp:func:`arrange_frames <gui_forms::DockWorkspace::arrange_frames>`
+        - Arranges the frames in the main site's document area as last laid out (plan_frame_arrangement with frame_metrics), as one transaction; applied with nothing to change when there is no main site, no frame or no area.
+      * - :cpp:func:`frame_memory <gui_forms::DockWorkspace::frame_memory>`
+        - A document's frame memory, or none (no such panel, or no frame yet).
+      * - :cpp:func:`document_area <gui_forms::DockWorkspace::document_area>`
+        - The document area the workspace presents to its main window.
+      * - :cpp:func:`clear_panel_menu_strip <gui_forms::DockWorkspace::clear_panel_menu_strip>`
+        -  
+      * - :cpp:func:`panel_menu_strip <gui_forms::DockWorkspace::panel_menu_strip>`
+        -  
       * - :cpp:func:`set_panel_title <gui_forms::DockWorkspace::set_panel_title>`
         - Retitles a panel's caption, tab and navigator row; false for an unregistered panel.
       * - :cpp:func:`set_floating_window_shown_while_inactive <gui_forms::DockWorkspace::set_floating_window_shown_while_inactive>`
         - One floating site's override of the option above (none: the workspace's).
+      * - :cpp:func:`set_frame_state <gui_forms::DockWorkspace::set_frame_state>`
+        - A document frame's state and normal bounds (in the document area's coordinates), as one edit each; refused for a document not in the document area (not_placed, not_in_main_site) and for bounds not finite or empty (invalid_frame).
+      * - :cpp:func:`set_frame_bounds <gui_forms::DockWorkspace::set_frame_bounds>`
+        -  
+      * - :cpp:func:`set_panel_menu_strip <gui_forms::DockWorkspace::set_panel_menu_strip>`
+        - A panel's menu strip: while its document is the area's active document, the strip's items merge into the main window's main menu strip (Window::main_menu_strip, when it is a MenuStrip) by the existing merge (merge_strips, the items' MergeAction and MergeIndex), and the merge is reverted when another document becomes active or the panel leaves (WinForms' MDI menu merging).
 
    .. seealso::
 
@@ -439,6 +474,36 @@ gui_forms::DockWorkspace
 
       The :cpp:class:`DockSite <gui_forms::DockSite>` showing the main site, or none.
 
+   .. cpp:function:: DockDocumentPresentation document_presentation() const noexcept
+
+      -- the frames presentation and the multiple document interface (DK decisions 60 to 63) -- The document area shows its documents as tabs in document stacks (the default) or as overlapping document frames, each placed by its DockFrameMemory; the layout keeps the presentation and the frames, and saves them. The main site realizes the frames (DockSite's document frames). The workspace is the document area of the window its main site is attached to (document_area, bound by the site), which gives that Window its WinForms MDI calls: an MDI child is a document of the area. UI thread. The presentation, and changing it (one set_document_presentation edit; the documents keep their stacks, and their frame memories wait while tabs show).
+
+   .. cpp:function:: DockTransactionResult set_document_presentation(DockDocumentPresentation presentation, DockEditOrigin origin = DockEditOrigin::program)
+
+   .. cpp:function:: bool frame_icons_at_bottom() const noexcept
+
+   .. cpp:function:: void set_frame_icons_at_bottom(bool bottom)
+
+      Whether minimized frames line the bottom of the area (the default), else its top; the bound window's mdi_children_minimized_anchor_bottom writes it. Not saved with the layout.
+
+   .. cpp:function:: DockFrameMetrics frame_metrics() const
+
+      What the frames are measured with: the main site's (its caption height scaled with the text), else the defaults, with the icon edge.
+
+   .. cpp:function:: BorrowedSpan<DockPanelId> area_documents() const&
+
+      The documents of the main site's document area in tree and tab order (the MDI children), whichever the presentation. Read into storage the workspace keeps: valid until the layout changes.
+
+   .. cpp:function:: stxlib::Optional<DockPanelId> area_active_document() const
+
+      The active document of the area: the most recently active document still in the area; else, with frames shown, the frontmost frame; else the selected document of the area's first stack; none when the area is empty.
+
+   .. cpp:function:: const WindowDocumentArea& document_area() const noexcept
+
+   .. cpp:function:: stxlib::Optional<DockPanelId> merged_document() const
+
+      The document whose menu strip is merged into the main menu strip, or none.
+
 
    .. rubric:: Events
 
@@ -626,6 +691,22 @@ gui_forms::DockWorkspace
 
       Applies :cpp:func:`dock_back_edit <gui_forms::DockWorkspace::dock_back_edit>` and activates the panel.
 
+   .. cpp:function:: DockTransactionResult arrange_frames(DockFrameArrangement arrangement, DockEditOrigin origin = DockEditOrigin::user)
+
+      Arranges the frames in the main site's document area as last laid out (plan_frame_arrangement with frame_metrics), as one transaction; applied with nothing to change when there is no main site, no frame or no area.
+
+   .. cpp:function:: stxlib::Optional<DockFrameMemory> frame_memory(const DockPanelId& document) const
+
+      A document's frame memory, or none (no such panel, or no frame yet).
+
+   .. cpp:function:: WindowDocumentArea& document_area() noexcept
+
+      The document area the workspace presents to its main window.
+
+   .. cpp:function:: bool clear_panel_menu_strip(const DockPanelId& panel)
+
+   .. cpp:function:: Control::Ptr panel_menu_strip(const DockPanelId& panel) const
+
    .. cpp:function:: bool set_panel_title(const DockPanelId& panel, std::string title)
 
       Retitles a panel's caption, tab and navigator row; false for an
@@ -634,6 +715,16 @@ gui_forms::DockWorkspace
    .. cpp:function:: void set_floating_window_shown_while_inactive(DockSiteId site, stxlib::Optional<bool> shown)
 
       One floating site's override of the option above (none: the workspace's). Kept for the site while it exists, through a window opened again for it.
+
+   .. cpp:function:: DockTransactionResult set_frame_state(const DockPanelId& document, DockFrameState state, DockEditOrigin origin = DockEditOrigin::user)
+
+      A document frame's state and normal bounds (in the document area's coordinates), as one edit each; refused for a document not in the document area (not_placed, not_in_main_site) and for bounds not finite or empty (invalid_frame). Maximizing one frame restores a maximized other, so at most one is maximized, as in WinForms.
+
+   .. cpp:function:: DockTransactionResult set_frame_bounds(const DockPanelId& document, Rect bounds, DockEditOrigin origin = DockEditOrigin::user)
+
+   .. cpp:function:: bool set_panel_menu_strip(const DockPanelId& panel, MenuStrip& strip)
+
+      A panel's menu strip: while its document is the area's active document, the strip's items merge into the main window's main menu strip (Window::main_menu_strip, when it is a MenuStrip) by the existing merge (merge_strips, the items' MergeAction and MergeIndex), and the merge is reverted when another document becomes active or the panel leaves (WinForms' MDI menu merging). The strip is held by the workspace; it need not be shown. False for an unknown panel. Setting or clearing it merges again.
 
 
    .. rubric:: Extension points
@@ -648,7 +739,7 @@ gui_forms::DockWorkspace
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 42 supported, 0 deferred, 0 excluded, 14 unclassified; 56 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 56 supported, 0 deferred, 0 excluded, 14 unclassified; 70 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -669,7 +760,15 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``area_active_document``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``area_background``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``area_documents``
      - supported
    * - property
      - GUI.Forms-only
@@ -689,8 +788,16 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``document_area``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``document_history``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``document_presentation``
+     - supported
    * - property
      - GUI.Forms-only
      - ``document_tabs_shown``
@@ -705,12 +812,24 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
      - unclassified (untested)
    * - property
      - GUI.Forms-only
+     - ``frame_icons_at_bottom``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``frame_metrics``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``layout``
      - supported
    * - property
      - GUI.Forms-only
      - ``main_window``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``merged_document``
+     - supported
    * - property
      - GUI.Forms-only
      - ``named_layouts``
@@ -777,6 +896,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``arrange_frames``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``assign``
      - supported
    * - method
@@ -786,6 +909,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
    * - method
      - GUI.Forms-only
      - ``can_float``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_panel_menu_strip``
      - supported
    * - method
      - GUI.Forms-only
@@ -837,6 +964,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``frame_memory``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``hide_panel``
      - supported
    * - method
@@ -846,6 +977,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
    * - method
      - GUI.Forms-only
      - ``panel_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``panel_menu_strip``
      - supported
    * - method
      - GUI.Forms-only
@@ -871,6 +1006,18 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 42 s
      - GUI.Forms-only
      - ``set_floating_window_shown_while_inactive``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_frame_bounds``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_frame_state``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_panel_menu_strip``
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_panel_title``

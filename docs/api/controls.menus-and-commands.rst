@@ -819,6 +819,10 @@ Related types
 
    .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
+   .. cpp:member:: bool window_list
+
+      Whether this menu lists the window's MDI children when it opens (WinForms' MdiWindowListItem; MenuStrip::mdi_window_list_item): a separator, then one checkable row per child of the window's document area ("&1 Title" to "&9 Title", the active child checked), then "More Windows..." when there are more than nine. Choosing a row activates its child (Window::activate_mdi_child) and raises no item_invoked; "More Windows..." raises item_invoked with the item ID "mdi-window-list.more", for the application's own chooser.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> MenuStripSelectedItemIdCapability
@@ -2771,6 +2775,18 @@ Enumerations
    .. cpp:enumerator:: keyboard
 
    .. cpp:enumerator:: pointer
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MenuStripFrameButton
+
+   ``#include <gui_forms/controls/menu_strip.hpp>``
+
+   .. cpp:enumerator:: minimize
+
+   .. cpp:enumerator:: restore
+
+   .. cpp:enumerator:: close
 
 .. cpp:namespace:: gui_forms
 

@@ -87,6 +87,31 @@ void detach_dock_panel(DockLayoutState& state, const DockPanelId& panel);
 
 [[nodiscard]] DockInvariantResult check_dock_invariants(const DockLayoutState& state);
 
+// The frames presentation (DK decisions 60 to 63; dock_layout_frames.cpp).
+// A frame the layout places itself is cascaded down and right by this step
+// from the area's corner, wrapping after this many steps, at this size.
+inline constexpr double dock_frame_cascade_step = 24.0;
+inline constexpr std::uint32_t dock_frame_cascade_wrap = 8U;
+inline constexpr double dock_frame_default_width = 480.0;
+inline constexpr double dock_frame_default_height = 320.0;
+
+// Appends the documents docked in the main site's document area, in tree
+// and tab order.
+void collect_area_documents(const DockLayoutState& state, std::vector<DockPanelId>& out);
+// The highest frame order among the records; 0 when none has a frame.
+[[nodiscard]] std::uint32_t top_frame_order(const DockLayoutState& state) noexcept;
+// The frame of a document new to the frames presentation: cascaded one step
+// past the area's frames, and in front of them.
+[[nodiscard]] DockFrameMemory default_frame_memory(const DockLayoutState& state);
+// The first icon slot no minimized frame of the area's documents holds.
+[[nodiscard]] std::uint32_t first_free_icon_slot(const DockLayoutState& state);
+// In the frames presentation: gives each document of the area that has no
+// frame a default one, moves a minimized frame whose icon slot another
+// minimized frame holds to the first free slot, and numbers the area's
+// frames' orders from 1, back to front, keeping their stacking. Nothing in
+// the tabs presentation. Run after a transaction's edits and by restore.
+void sync_document_frames(DockLayoutState& state);
+
 // Kept unknown fields (DK decision 48). The entry for an owner, or null;
 // whether the owner's element is still in the layout; and dropping every
 // entry whose element is gone, appending their owners to `dropped`.

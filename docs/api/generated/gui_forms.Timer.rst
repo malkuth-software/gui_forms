@@ -229,7 +229,7 @@ gui_forms::Timer
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Timer``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Timer``. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -251,7 +251,7 @@ Counterpart: ``Timer``. Members declared here and by the counterpart: 6 supporte
    * - property
      - ``Interval``
      - ``interval``
-     - unclassified (untested)
+     - supported
    * - property
      - ``Tag``
      - none

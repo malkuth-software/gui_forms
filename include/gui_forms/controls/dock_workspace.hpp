@@ -10,6 +10,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/controls/dock_workspace_capabilities.hpp"
+#include "gui_forms/window/document_area/window_document_area.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -24,6 +25,7 @@
 namespace gui_forms {
 
 class DockSite;
+class MenuStrip;
 class WorkspaceTransaction;
 
 // A factory's request: build the content of `panel` and store it in
@@ -424,6 +426,79 @@ public:
     // The bound main site, or null.
     [[nodiscard]] DockSite* site() const noexcept { return site_; }
 
+    // -- the frames presentation and the multiple document interface (DK
+    // decisions 60 to 63) --
+    // The document area shows its documents as tabs in document stacks (the
+    // default) or as overlapping document frames, each placed by its
+    // DockFrameMemory; the layout keeps the presentation and the frames, and
+    // saves them. The main site realizes the frames (DockSite's document
+    // frames). The workspace is the document area of the window its main
+    // site is attached to (document_area, bound by the site), which gives
+    // that Window its WinForms MDI calls: an MDI child is a document of the
+    // area. UI thread.
+    //
+    // The presentation, and changing it (one set_document_presentation
+    // edit; the documents keep their stacks, and their frame memories wait
+    // while tabs show).
+    [[nodiscard]] DockDocumentPresentation document_presentation() const noexcept {
+        return layout_.state().document_presentation;
+    }
+    DockTransactionResult set_document_presentation(DockDocumentPresentation presentation,
+                                                    DockEditOrigin origin = DockEditOrigin::program);
+    // A document frame's state and normal bounds (in the document area's
+    // coordinates), as one edit each; refused for a document not in the
+    // document area (not_placed, not_in_main_site) and for bounds not finite
+    // or empty (invalid_frame). Maximizing one frame restores a maximized
+    // other, so at most one is maximized, as in WinForms.
+    DockTransactionResult set_frame_state(const DockPanelId& document, DockFrameState state,
+                                          DockEditOrigin origin = DockEditOrigin::user);
+    DockTransactionResult set_frame_bounds(const DockPanelId& document, Rect bounds,
+                                           DockEditOrigin origin = DockEditOrigin::user);
+    // Arranges the frames in the main site's document area as last laid out
+    // (plan_frame_arrangement with frame_metrics), as one transaction;
+    // applied with nothing to change when there is no main site, no frame
+    // or no area.
+    DockTransactionResult arrange_frames(DockFrameArrangement arrangement,
+                                         DockEditOrigin origin = DockEditOrigin::user);
+    // A document's frame memory, or none (no such panel, or no frame yet).
+    [[nodiscard]] stxlib::Optional<DockFrameMemory> frame_memory(const DockPanelId& document) const;
+    // Whether minimized frames line the bottom of the area (the default),
+    // else its top; the bound window's mdi_children_minimized_anchor_bottom
+    // writes it. Not saved with the layout.
+    void set_frame_icons_at_bottom(bool bottom);
+    [[nodiscard]] bool frame_icons_at_bottom() const noexcept { return frame_icons_at_bottom_; }
+    // What the frames are measured with: the main site's (its caption
+    // height scaled with the text), else the defaults, with the icon edge.
+    [[nodiscard]] DockFrameMetrics frame_metrics() const;
+    // The documents of the main site's document area in tree and tab order
+    // (the MDI children), whichever the presentation. Read into storage the
+    // workspace keeps: valid until the layout changes.
+    [[nodiscard]] BorrowedSpan<DockPanelId> area_documents() const&;
+    BorrowedSpan<DockPanelId> area_documents() const&& = delete;
+    // The active document of the area: the most recently active document
+    // still in the area; else, with frames shown, the frontmost frame; else
+    // the selected document of the area's first stack; none when the area
+    // is empty.
+    [[nodiscard]] stxlib::Optional<DockPanelId> area_active_document() const;
+    // The document area the workspace presents to its main window.
+    [[nodiscard]] WindowDocumentArea& document_area() noexcept { return area_link_; }
+    [[nodiscard]] const WindowDocumentArea& document_area() const noexcept { return area_link_; }
+
+    // A panel's menu strip: while its document is the area's active
+    // document, the strip's items merge into the main window's main menu
+    // strip (Window::main_menu_strip, when it is a MenuStrip) by the
+    // existing merge (merge_strips, the items' MergeAction and
+    // MergeIndex), and the merge is reverted when another document becomes
+    // active or the panel leaves (WinForms' MDI menu merging). The strip
+    // is held by the workspace; it need not be shown. False for an unknown
+    // panel. Setting or clearing it merges again.
+    bool set_panel_menu_strip(const DockPanelId& panel, MenuStrip& strip);
+    bool clear_panel_menu_strip(const DockPanelId& panel);
+    [[nodiscard]] Control::Ptr panel_menu_strip(const DockPanelId& panel) const;
+    // The document whose menu strip is merged into the main menu strip, or
+    // none.
+    [[nodiscard]] stxlib::Optional<DockPanelId> merged_document() const;
+
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
@@ -434,6 +509,40 @@ private:
     struct PanelEntry final {
         DockPanelRegistration registration{};
         Control::Ptr content{};
+        // The panel's menu strip (set_panel_menu_strip), a MenuStrip.
+        Control::Ptr menu_strip{};
+    };
+    // The workspace as its main window's document area: the window's MDI
+    // calls reach the workspace through it. Its titles are the panels'
+    // titles, lent until a title or registration changes; its document list
+    // is read again when the layout's generation moves.
+    class AreaLink final : public WindowDocumentArea {
+    public:
+        explicit AreaLink(DockWorkspace& workspace) noexcept : workspace_(&workspace) {}
+        [[nodiscard]] bool document_frames_shown() const override;
+        void show_document_frames(bool frames) override;
+        [[nodiscard]] std::size_t document_count() const override;
+        [[nodiscard]] DockPanelId document_at(std::size_t index) const override;
+        [[nodiscard]] BorrowedText document_title(const DockPanelId& document) const override;
+        [[nodiscard]] stxlib::Optional<DockPanelId> active_document() const override;
+        bool activate_document(const DockPanelId& document) override;
+        bool arrange_documents(MdiLayout layout) override;
+        void set_icons_at_bottom(bool bottom) override;
+        // Raises the bound window's mdi_child_activate when the area's
+        // active document is not the one last reported.
+        void follow_active();
+        // The panels' titles or their storage changed.
+        void titles_changed() noexcept;
+
+    private:
+        friend class DockWorkspace;
+        void refresh() const;
+        DockWorkspace* workspace_{};
+        mutable detail::LendingVector<DockPanelId> documents_{};
+        mutable std::uint64_t documents_generation_{};
+        mutable bool documents_read_{};
+        detail::BorrowLender titles_{};
+        stxlib::Optional<DockPanelId> reported_{};
     };
     // One floating window the workspace opened. `model` observes the
     // window's Window from its ready callback until it closes; `frame` is
@@ -545,6 +654,15 @@ private:
     // main_window target.
     void publish_command_targets();
     void on_layout_changed(const DockLayoutChange& change);
+    // The MDI bookkeeping after activation or a layout change: a maximized
+    // frame carried to the newly active document, the menu merge following
+    // the area's active document, and the window told of a new active
+    // child.
+    void follow_area_activation();
+    void carry_maximized(const DockPanelId& previous, const DockPanelId& current);
+    void update_menu_merge();
+    void revert_menu_merge() noexcept;
+    [[nodiscard]] bool in_document_area(const DockPanelId& panel) const;
     // Starts a request (busy while another runs) and runs its prompts.
     DockCloseOutcome begin_close(CloseRequest request);
     // Asks about the documents from `next` until one is cancelled or
@@ -585,6 +703,16 @@ private:
     bool document_tabs_shown_{true};
     bool auto_hide_opens_on_hover_{true};
     stxlib::Optional<Color> area_background_{};
+    // The multiple document interface: the frames' icon edge, the area
+    // link, the area's active document as last followed (for carrying a
+    // maximized frame), and the merge in force (the panel strip, the main
+    // strip it merged into, and the document).
+    bool frame_icons_at_bottom_{true};
+    AreaLink area_link_{*this};
+    stxlib::Optional<DockPanelId> followed_active_{};
+    Control::WeakPtr merged_source_{};
+    Control::WeakPtr merged_target_{};
+    stxlib::Optional<DockPanelId> merged_document_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
     // property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)

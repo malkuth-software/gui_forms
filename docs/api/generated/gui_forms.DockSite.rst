@@ -63,6 +63,12 @@ gui_forms::DockSite
          Whether every tool stack is hidden so the documents fill the site
          (Ctrl+Shift+F12). Focus in a tool panel moves to the active document.
 
+      **document_frames_shown** : ``bool``, read-only
+         -- document frames (the frames presentation; DK decisions 60 to 63) -- In the main site of a workspace whose document presentation is frames (DockWorkspace::set_document_presentation), each document of the document area shows in its own frame instead of a tab: a child of the site, a ``pane`` named by the document's title, holding the document's content below a caption with minimize, maximize (restore) and close buttons, its chrome drawn by the theme engine in the in-window dialog's parts. The frames overlap inside the area, stacked by their DockFrameMemory order (the active document's in front), each placed at its memory's bounds and kept inside the area; a minimized frame shows as an icon (its caption) along an edge of the area (dock_frame_icon_bounds), a maximized one fills the area. Dragging a caption moves a frame and dragging its border resizes it (one user edit at the release); a double-click on a caption maximizes or restores it; Ctrl+F4 (close_document) closes the active frame as its close button does, asking as request_close does; Ctrl+F6 and Ctrl+Tab step through the frames as through tabs. While a frame is maximized and the window has a MenuStrip as its main menu strip (Window::main_menu_strip), the frame shows no caption and its buttons show at the strip's end (MenuStrip::document_frame_buttons). A floating site shows its documents as tabs. Whether this site shows the document area's documents as frames.
+
+      **frame_metrics** : ``DockFrameMetrics``, read-only
+         What the frames are laid out with: the caption height (scaled with the text), the icon width and the workspace's icon edge (DockWorkspace::frame_icons_at_bottom).
+
       **realized_stacks** : ``std::vector<DockNodeId>``, read-only
          The stacks shown, collapsed ones included, in tree order, then the
          auto-hidden stacks in layout order.
@@ -192,6 +198,10 @@ gui_forms::DockSite
         - Realizes the workspace's layout.
       * - :cpp:func:`release_workspace <gui_forms::DockSite::release_workspace>`
         - Unbinds the workspace; the site then shows nothing.
+      * - :cpp:func:`document_frame <gui_forms::DockSite::document_frame>`
+        - The control of a document's frame, or null for a document this site does not show as a frame.
+      * - :cpp:func:`document_frame_bounds <gui_forms::DockSite::document_frame_bounds>`
+        - Where a document's frame shows after the last layout pass, in the site's coordinates; empty for one without a frame.
       * - :cpp:func:`stack_view <gui_forms::DockSite::stack_view>`
         - The :cpp:class:`PageView <gui_forms::PageView>` showing a stack, or null.
       * - :cpp:func:`focus_seam <gui_forms::DockSite::focus_seam>`
@@ -537,6 +547,14 @@ gui_forms::DockSite
 
       Sets :cpp:func:`document_area_maximized <gui_forms::DockSite::document_area_maximized>`; see the property's description above.
 
+   .. cpp:function:: bool document_frames_shown() const noexcept
+
+      -- document frames (the frames presentation; DK decisions 60 to 63) -- In the main site of a workspace whose document presentation is frames (DockWorkspace::set_document_presentation), each document of the document area shows in its own frame instead of a tab: a child of the site, a ``pane`` named by the document's title, holding the document's content below a caption with minimize, maximize (restore) and close buttons, its chrome drawn by the theme engine in the in-window dialog's parts. The frames overlap inside the area, stacked by their DockFrameMemory order (the active document's in front), each placed at its memory's bounds and kept inside the area; a minimized frame shows as an icon (its caption) along an edge of the area (dock_frame_icon_bounds), a maximized one fills the area. Dragging a caption moves a frame and dragging its border resizes it (one user edit at the release); a double-click on a caption maximizes or restores it; Ctrl+F4 (close_document) closes the active frame as its close button does, asking as request_close does; Ctrl+F6 and Ctrl+Tab step through the frames as through tabs. While a frame is maximized and the window has a MenuStrip as its main menu strip (Window::main_menu_strip), the frame shows no caption and its buttons show at the strip's end (MenuStrip::document_frame_buttons). A floating site shows its documents as tabs. Whether this site shows the document area's documents as frames.
+
+   .. cpp:function:: DockFrameMetrics frame_metrics() const
+
+      What the frames are laid out with: the caption height (scaled with the text), the icon width and the workspace's icon edge (DockWorkspace::frame_icons_at_bottom).
+
    .. cpp:function:: std::vector<DockNodeId> realized_stacks() const
 
       The stacks shown, collapsed ones included, in tree order, then the
@@ -692,6 +710,14 @@ gui_forms::DockSite
    .. cpp:function:: void release_workspace() noexcept
 
       Unbinds the workspace; the site then shows nothing.
+
+   .. cpp:function:: Control::Ptr document_frame(const DockPanelId& document) const
+
+      The control of a document's frame, or null for a document this site does not show as a frame.
+
+   .. cpp:function:: Rect document_frame_bounds(const DockPanelId& document) const
+
+      Where a document's frame shows after the last layout pass, in the site's coordinates; empty for one without a frame.
 
    .. cpp:function:: std::shared_ptr<PageView> stack_view(DockNodeId stack) const
 
@@ -897,7 +923,7 @@ gui_forms::DockSite
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 7 unclassified; 53 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 50 supported, 0 deferred, 0 excluded, 7 unclassified; 57 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -915,6 +941,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - property
      - GUI.Forms-only
      - ``document_area_maximized``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``document_frames_shown``
      - supported
    * - property
      - GUI.Forms-only
@@ -990,6 +1020,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``frame_metrics``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``moving_window``
      - supported
    * - property
@@ -1059,6 +1093,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - method
      - GUI.Forms-only
      - ``close_position_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``document_frame``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``document_frame_bounds``
      - supported
    * - method
      - GUI.Forms-only

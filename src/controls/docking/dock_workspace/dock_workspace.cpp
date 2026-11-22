@@ -153,6 +153,9 @@ void DockWorkspace::on_dispose() noexcept {
 // list cannot be copied (no memory) is unbound without being told.
 void DockWorkspace::release_sites() noexcept {
     layout_token_.disconnect();
+    revert_menu_merge();
+    Window* const presented = area_link_.bound_window();
+    if (presented != nullptr) (*presented).unbind_document_area(area_link_);
     detach_windows();
     std::vector<DockSite*> sites{};
     try {
@@ -185,6 +188,8 @@ bool DockWorkspace::register_panel(DockPanelRegistration registration) {
     PanelEntry entry{};
     entry.registration = std::move(registration);
     panels_.push_back(std::move(entry));
+    // The entries may have moved, and the area's titles with them.
+    area_link_.titles_changed();
     return true;
 }
 
@@ -222,6 +227,7 @@ bool DockWorkspace::set_panel_title(const DockPanelId& panel, std::string title)
     if (entry == nullptr) return false;
     if ((*entry).registration.title == title) return true;
     (*entry).registration.title = std::move(title);
+    area_link_.titles_changed();
     const std::vector<DockSite*> sites = bound_sites();
     for (DockSite* const site : sites) {
         if (bound(site)) (*site).realize();
@@ -714,6 +720,7 @@ void DockWorkspace::note_active(const DockPanelId& panel, DockActivationCause ca
     set_track(DockActivationTrack::panel, chosen, cause);
     if (document) set_track(DockActivationTrack::document, chosen, cause);
     publish_command_targets();
+    follow_area_activation();
 }
 
 void DockWorkspace::publish_command_targets() {
@@ -786,6 +793,7 @@ void DockWorkspace::on_layout_changed(const DockLayoutChange& change) {
     if (transaction_ != nullptr || !windows_attached() || main == nullptr) {
         realize_on_sites(change);
         if (transaction_ != nullptr) reconcile_windows(*transaction_);
+        follow_area_activation();
         return;
     }
     WorkspaceTransaction transaction(main_window_.windows());
@@ -804,6 +812,7 @@ void DockWorkspace::on_layout_changed(const DockLayoutChange& change) {
     transaction_ = nullptr;
     static_cast<void>(transaction.commit());
     write_pending_frames();
+    follow_area_activation();
 }
 
 // The bound sites realize a change, the main site first. The list is copied

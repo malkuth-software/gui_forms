@@ -111,4 +111,35 @@ DockEdit DockEdit::set_floating_frame(DockSiteId site, Rect frame, std::string m
     return edit;
 }
 
+DockEdit DockEdit::set_document_presentation(DockDocumentPresentation presentation) {
+    DockEdit edit{};
+    edit.kind = DockEditKind::set_document_presentation;
+    edit.presentation = presentation;
+    return edit;
+}
+
+DockEdit DockEdit::set_frame_bounds(DockPanelId panel, Rect bounds) {
+    DockEdit edit{};
+    edit.kind = DockEditKind::set_frame_bounds;
+    edit.subject = DockSubject::of_panel(std::move(panel));
+    edit.frame = bounds;
+    return edit;
+}
+
+DockEdit DockEdit::set_frame_state(DockPanelId panel, DockFrameState state) {
+    DockEdit edit{};
+    edit.kind = DockEditKind::set_frame_state;
+    edit.subject = DockSubject::of_panel(std::move(panel));
+    edit.frame_state = state;
+    return edit;
+}
+
+DockEdit DockEdit::set_frame_icon_slot(DockPanelId panel, std::uint32_t slot) {
+    DockEdit edit{};
+    edit.kind = DockEditKind::set_frame_icon_slot;
+    edit.subject = DockSubject::of_panel(std::move(panel));
+    edit.index = slot;
+    return edit;
+}
+
 } // namespace gui_forms

@@ -119,6 +119,8 @@ Related types
      - Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
      - LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment.
+   * - :cpp:class:`MdiChildActivation <gui_forms::MdiChildActivation>`
+     - What Window::mdi_child_activate reports: the active child before and after (none when there was none, or none is left).
    * - :cpp:class:`NativePopupOptions <gui_forms::NativePopupOptions>`
      -  
    * - :cpp:class:`NativePopupToken <gui_forms::NativePopupToken>`
@@ -219,6 +221,8 @@ Related types
      - The corner shapes a host may report (HostCapabilities:: window_corner_shapes): Windows 11 rounds or squares, macOS reports square corners where they are (full screen, a borderless window) and nothing otherwise, X11 reports none.
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
      - A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window.
+   * - :cpp:class:`WindowDocumentArea <gui_forms::WindowDocumentArea>`
+     - The document area a Window presents.
    * - :cpp:class:`WindowFormBorderStyleCapability <gui_forms::WindowFormBorderStyleCapability>`
      - The window's frame (Form.FormBorderStyle): none removes the title bar and border; the fixed styles keep the user from resizing; the tool window styles use the platform's smaller utility frame.
    * - :cpp:class:`WindowIconCapability <gui_forms::WindowIconCapability>`
@@ -1248,6 +1252,18 @@ Related types
    .. cpp:member:: bool paired
 
       False when the frame is older than the content the window requires of the surface (Window::require_live_surface_content) and is presented anyway, one present tick after the window waited for it. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MdiChildActivation final
+
+   ``#include <gui_forms/window/document_area/window_document_area.hpp>``
+
+   What Window::mdi_child_activate reports: the active child before and after (none when there was none, or none is left).
+
+   .. cpp:member:: stxlib::Optional<DockPanelId> previous
+
+   .. cpp:member:: stxlib::Optional<DockPanelId> current
 
 .. cpp:namespace:: gui_forms
 
@@ -2499,6 +2515,72 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: WindowDocumentArea
+
+   ``#include <gui_forms/window/document_area/window_document_area.hpp>``
+
+   The document area a Window presents. The docking workspace implements it (gui_forms_controls), and its main DockSite binds it to the window it is attached to (Window::bind_document_area) and unbinds it when it leaves; the window's MDI calls go through it. A window holds at most one area, and an area is bound to at most one window: binding elsewhere unbinds it first. Destroying either side unbinds them. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: WindowDocumentArea() = default
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window* bound_window() const noexcept
+
+      The window this area is bound to, or null.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: virtual void set_icons_at_bottom(bool bottom) = 0
+
+      Whether minimized frames line the bottom of the area, else its top.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual bool document_frames_shown() const = 0
+
+      Whether the area shows its documents as frames (the MDI look) rather than as tabs, and switching between the two.
+
+   .. cpp:function:: virtual void show_document_frames(bool frames) = 0
+
+   .. cpp:function:: virtual std::size_t document_count() const = 0
+
+      The documents of the area (the MDI children), in tree and tab order.
+
+   .. cpp:function:: virtual DockPanelId document_at(std::size_t index) const = 0
+
+      Out of range: an empty identity.
+
+   .. cpp:function:: virtual BorrowedText document_title(const DockPanelId& document) const = 0
+
+      The title the area shows for a document (its window-list row); empty for one it does not hold. Valid until the area's titles change.
+
+   .. cpp:function:: virtual stxlib::Optional<DockPanelId> active_document() const = 0
+
+      The active document of the area, or none.
+
+   .. cpp:function:: virtual bool activate_document(const DockPanelId& document) = 0
+
+      Activates a document of the area (focus moves into it); false for one the area does not hold.
+
+   .. cpp:function:: virtual bool arrange_documents(MdiLayout layout) = 0
+
+      Arranges the frames; false when there is nothing to arrange or the area is not shown.
+
+   .. cpp:function:: void raise_document_activated(const MdiChildActivation& activation)
+
+      *Protected.*
+
+      Raises the bound window's mdi_child_activate; nothing while unbound.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> WindowFormBorderStyleCapability
 
    ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
@@ -2976,6 +3058,20 @@ Enumerations
    .. cpp:enumerator:: live_surface
 
    .. cpp:enumerator:: external_content
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MdiLayout
+
+   ``#include <gui_forms/window/document_area/window_document_area.hpp>``
+
+   .. cpp:enumerator:: cascade
+
+   .. cpp:enumerator:: tile_horizontal
+
+   .. cpp:enumerator:: tile_vertical
+
+   .. cpp:enumerator:: arrange_icons
 
 .. cpp:namespace:: gui_forms
 

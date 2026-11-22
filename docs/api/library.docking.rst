@@ -58,6 +58,10 @@ Related types
      -  
    * - :cpp:class:`DockFloatingSite <gui_forms::DockFloatingSite>`
      -  
+   * - :cpp:class:`DockFrameMemory <gui_forms::DockFrameMemory>`
+     - Where a document's frame stands in the frames presentation (DK decision 61).
+   * - :cpp:class:`DockFrameMetrics <gui_forms::DockFrameMetrics>`
+     - What the planners measure frames with, in logical units.
    * - :cpp:class:`DockGroupDescriptor <gui_forms::DockGroupDescriptor>`
      - Which other groups a dock group admits into a stack beside its own panels (the second restriction layer).
    * - :cpp:class:`DockGroupId <gui_forms::DockGroupId>`
@@ -460,6 +464,44 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DockFrameMemory final
+
+   ``#include <gui_forms/docking/types/dock_types.hpp>``
+
+   Where a document's frame stands in the frames presentation (DK decision 61). ``bounds`` is the normal frame in the document area's coordinates (its top-left corner is the origin), kept while the frame is minimized or maximized so that restoring returns it there. ``icon_slot`` is the frame's place in the row of icons while minimized (0 first, see dock_frame_icon_bounds). ``order`` stacks the frames: a higher order is in front; the layout keeps the orders of the area's documents numbered from 1, back to front, and selecting a document brings its frame to the front. A record keeps its frame while its document is elsewhere (floating, or in the tabs presentation), so the frame comes back where it was.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: DockFrameState state
+
+      Default: ``{DockFrameState::normal}``.
+
+   .. cpp:member:: std::uint32_t icon_slot
+
+   .. cpp:member:: std::uint32_t order
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DockFrameMetrics final
+
+   ``#include <gui_forms/docking/dock_frames/dock_frames.hpp>``
+
+   What the planners measure frames with, in logical units.
+
+   .. cpp:member:: double caption_height
+
+      A frame's caption: a cascade steps by it, and an icon is this tall. Default: ``{24.0}``.
+
+   .. cpp:member:: double icon_width
+
+      A minimized frame's icon. Default: ``{160.0}``.
+
+   .. cpp:member:: bool icons_at_bottom
+
+      Whether the icons line the bottom of the area (WinForms' default, MdiChildrenMinimizedAnchorBottom), else its top. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DockGroupDescriptor final
 
    ``#include <gui_forms/docking/types/dock_types.hpp>``
@@ -554,6 +596,10 @@ Related types
    .. cpp:member:: std::vector<DockUnknownFields> unknown_fields
 
       Fields of a newer format this framework does not know, kept from a restore and written back (DK decision 48), one entry per element that had any, in file order. An edit that removes an element drops its entry (DockTransactionResult::diagnostics).
+
+   .. cpp:member:: DockDocumentPresentation document_presentation
+
+      How the document area shows its documents; saved with the layout, so a restore brings the presentation back. Default: ``{DockDocumentPresentation::tabs}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -721,6 +767,10 @@ Related types
    .. cpp:member:: std::optional<DockFloatingMemory> floating
 
    .. cpp:member:: stxlib::Optional<DockAutoHideMemory> auto_hidden
+
+   .. cpp:member:: stxlib::Optional<DockFrameMemory> frame
+
+      A document's frame in the frames presentation (DockFrameMemory); none until the document first shows as a frame or the program places it.
 
 .. cpp:namespace:: gui_forms
 
@@ -986,6 +1036,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DockDocumentPresentation
+
+   ``#include <gui_forms/docking/types/dock_types.hpp>``
+
+   .. cpp:enumerator:: tabs
+
+   .. cpp:enumerator:: frames
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DockDropEdges
 
    ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
@@ -1052,6 +1112,14 @@ Enumerations
 
    .. cpp:enumerator:: set_floating_frame
 
+   .. cpp:enumerator:: set_document_presentation
+
+   .. cpp:enumerator:: set_frame_bounds
+
+   .. cpp:enumerator:: set_frame_state
+
+   .. cpp:enumerator:: set_frame_icon_slot
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DockEditOrigin
@@ -1061,6 +1129,32 @@ Enumerations
    .. cpp:enumerator:: program
 
    .. cpp:enumerator:: user
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DockFrameArrangement
+
+   ``#include <gui_forms/docking/dock_frames/dock_frames.hpp>``
+
+   .. cpp:enumerator:: cascade
+
+   .. cpp:enumerator:: tile_horizontal
+
+   .. cpp:enumerator:: tile_vertical
+
+   .. cpp:enumerator:: arrange_icons
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DockFrameState
+
+   ``#include <gui_forms/docking/types/dock_types.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: minimized
+
+   .. cpp:enumerator:: maximized
 
 .. cpp:namespace:: gui_forms
 
@@ -1292,6 +1386,8 @@ Enumerations
 
    .. cpp:enumerator:: auto_hidden_memory
 
+   .. cpp:enumerator:: frame_memory
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DockUpgradeDecision
@@ -1344,6 +1440,22 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t dock_drop_zone_count
 
    Value: ``5``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/docking/dock_frames/dock_frames.hpp>``
+
+.. cpp:function:: Rect dock_frame_icon_bounds(std::uint32_t slot, Size area, const DockFrameMetrics& metrics) noexcept
+
+   The rectangle of icon slot ``slot`` in an area of ``area``: icons fill rows from the reading start, as many to a row as fit (at least one), the first row along the anchored edge.
+
+.. cpp:function:: Rect dock_frame_shown_bounds(const DockFrameMemory& frame, Size area, const DockFrameMetrics& metrics) noexcept
+
+   Where a frame shows in an area of ``area``: its bounds while normal, its icon while minimized, the whole area while maximized.
+
+.. cpp:function:: DockTransaction plan_frame_arrangement(const DockLayout& layout, DockFrameArrangement arrangement, Size area, const DockFrameMetrics& metrics)
+
+   The edits that arrange the area's frames in an area of ``area`` (frame edits only, in a program transaction; the caller may make it a user one). Empty when there is no frame to move or the area is empty. A document without a frame memory counts as a normal frame behind the others.
 
 .. cpp:namespace:: gui_forms
 

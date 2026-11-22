@@ -215,6 +215,40 @@ struct GUI_FORMS_API DockAutoHideMemory final {
     }
 };
 
+// How the main site's document area shows its documents (DK decisions 60
+// to 63): as tabs in document stacks, or as overlapping document frames
+// inside the area (a multiple document interface). The tree of document
+// stacks is the same in both; the frames presentation shows each document
+// of the area in its own frame, placed by its DockFrameMemory.
+enum class DockDocumentPresentation : std::uint8_t { tabs, frames };
+
+// A document frame's state in the frames presentation (WinForms'
+// FormWindowState for an MDI child): at its bounds, minimized to an icon
+// along an edge of the document area, or filling the area.
+enum class DockFrameState : std::uint8_t { normal, minimized, maximized };
+
+// Where a document's frame stands in the frames presentation (DK decision
+// 61). `bounds` is the normal frame in the document area's coordinates (its
+// top-left corner is the origin), kept while the frame is minimized or
+// maximized so that restoring returns it there. `icon_slot` is the frame's
+// place in the row of icons while minimized (0 first, see
+// dock_frame_icon_bounds). `order` stacks the frames: a higher order is in
+// front; the layout keeps the orders of the area's documents numbered from
+// 1, back to front, and selecting a document brings its frame to the front.
+// A record keeps its frame while its document is elsewhere (floating, or in
+// the tabs presentation), so the frame comes back where it was.
+struct GUI_FORMS_API DockFrameMemory final {
+    Rect bounds{};
+    DockFrameState state{DockFrameState::normal};
+    std::uint32_t icon_slot{};
+    std::uint32_t order{};
+
+    friend bool operator==(const DockFrameMemory& left, const DockFrameMemory& right) noexcept {
+        return left.bounds == right.bounds && left.state == right.state && left.icon_slot == right.icon_slot &&
+               left.order == right.order;
+    }
+};
+
 // The layout's record of one panel: kept while the panel is placed and while
 // it is hidden (then it is the placeholder), including for panel IDs no
 // descriptor is registered for (a removed plugin's panel, kept so that its
@@ -227,11 +261,15 @@ struct GUI_FORMS_API DockPanelRecord final {
     stxlib::Optional<DockDockedMemory> docked{};
     std::optional<DockFloatingMemory> floating{};
     stxlib::Optional<DockAutoHideMemory> auto_hidden{};
+    // A document's frame in the frames presentation (DockFrameMemory); none
+    // until the document first shows as a frame or the program places it.
+    stxlib::Optional<DockFrameMemory> frame{};
 
     friend bool operator==(const DockPanelRecord& left, const DockPanelRecord& right) noexcept {
         return left.id == right.id && left.kind == right.kind &&
                left.last_placement == right.last_placement && left.docked == right.docked &&
-               left.floating == right.floating && left.auto_hidden == right.auto_hidden;
+               left.floating == right.floating && left.auto_hidden == right.auto_hidden &&
+               left.frame == right.frame;
     }
 };
 
@@ -345,6 +383,8 @@ enum class DockUnknownOwnerKind : std::uint8_t {
     docked_memory,
     floating_memory,
     auto_hidden_memory,
+    // A <panel_record>'s <frame> memory, by the panel.
+    frame_memory,
 };
 
 struct GUI_FORMS_API DockUnknownOwner final {
@@ -405,6 +445,9 @@ struct GUI_FORMS_API DockLayoutState final {
     // had any, in file order. An edit that removes an element drops its
     // entry (DockTransactionResult::diagnostics).
     std::vector<DockUnknownFields> unknown_fields{};
+    // How the document area shows its documents; saved with the layout, so
+    // a restore brings the presentation back.
+    DockDocumentPresentation document_presentation{DockDocumentPresentation::tabs};
 
     friend bool operator==(const DockLayoutState& left, const DockLayoutState& right) noexcept {
         return left.nodes == right.nodes && left.main_root == right.main_root &&
@@ -413,7 +456,8 @@ struct GUI_FORMS_API DockLayoutState final {
                left.auto_hidden == right.auto_hidden && left.panels == right.panels &&
                left.next_id == right.next_id &&
                left.application_version == right.application_version &&
-               left.unknown_fields == right.unknown_fields;
+               left.unknown_fields == right.unknown_fields &&
+               left.document_presentation == right.document_presentation;
     }
 };
 
@@ -472,6 +516,11 @@ enum class DockEditKind : std::uint8_t {
     select,
     set_ratio,
     set_floating_frame,
+    // The frames presentation (DK decisions 60 to 63).
+    set_document_presentation,
+    set_frame_bounds,
+    set_frame_state,
+    set_frame_icon_slot,
 };
 
 // One primitive edit. Build edits with the named factories; each sets the
@@ -488,16 +537,22 @@ struct GUI_FORMS_API DockEdit final {
     // the window edge.
     DockSide side{DockSide::left};
     // dock_into and move: the position in the resulting stack; an index past
-    // the end appends.
+    // the end appends. set_frame_icon_slot: the icon slot.
     std::uint32_t index{dock_append_index};
     // dock_beside and dock_at_edge: the new item's share; set_ratio: the
     // split's first child's share. Always in (0, 1).
     double ratio{0.25};
     // float_subject and set_floating_frame: screen logical units.
+    // set_frame_bounds: the document frame's bounds in the document area's
+    // coordinates.
     Rect frame{};
     std::string monitor_id{};
     // auto_hide: the flyout's extent in logical units.
     double extent{240.0};
+    // set_document_presentation: the presentation.
+    DockDocumentPresentation presentation{DockDocumentPresentation::tabs};
+    // set_frame_state: the frame's state.
+    DockFrameState frame_state{DockFrameState::normal};
 
     [[nodiscard]] static DockEdit dock_into(DockSubject subject, DockNodeId target,
                                             std::uint32_t index = dock_append_index);
@@ -523,11 +578,24 @@ struct GUI_FORMS_API DockEdit final {
     [[nodiscard]] static DockEdit set_ratio(DockNodeId split, double ratio);
     [[nodiscard]] static DockEdit set_floating_frame(DockSiteId site, Rect frame,
                                                      std::string monitor_id);
+    // The frames presentation (DK decisions 60 to 63). The frame edits name
+    // a document docked in the main site's document area (not_placed when
+    // it is in no stack, not_in_main_site when it is elsewhere); they are
+    // accepted in either presentation, so a program may place frames before
+    // showing them, and give the document a frame memory when it has none.
+    // None of them moves a panel, so the docking lock does not refuse them.
+    [[nodiscard]] static DockEdit set_document_presentation(DockDocumentPresentation presentation);
+    // The frame's normal bounds (finite, positive size; else invalid_frame).
+    [[nodiscard]] static DockEdit set_frame_bounds(DockPanelId panel, Rect bounds);
+    // Minimizing takes the first icon slot no other minimized frame of the
+    // area holds; restoring and maximizing keep the normal bounds.
+    [[nodiscard]] static DockEdit set_frame_state(DockPanelId panel, DockFrameState state);
+    [[nodiscard]] static DockEdit set_frame_icon_slot(DockPanelId panel, std::uint32_t slot);
 };
 
 // program: the application's own edits; user: edits from the user's
-// gestures, which a workspace lock refuses (all but select, set_ratio and
-// set_floating_frame).
+// gestures, which a workspace lock refuses (all but select, set_ratio,
+// set_floating_frame and the frames presentation's edits).
 enum class DockEditOrigin : std::uint8_t { program, user };
 
 // Primitive edits applied together: validated first, then applied all or
