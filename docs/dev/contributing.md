@@ -76,10 +76,9 @@ LeakSanitizer (`python tools/ci_build.py --sanitize`), with Clang 22 and
 libc++ 22 like every Linux build; any report fails it.
 It runs only when requested by hand (`workflow_dispatch` with
 `run_sanitizers`); the gate is the local sanitized run of every test when a
-checkpoint is folded. The same gate compiles every changed file against
-libstdc++ (syntax only, on macOS or the Linux VM), because macOS and Windows
-both build with libc++ and libstdc++-only failures otherwise surface only in
-CI.
+checkpoint is folded. Every platform builds against libc++ 22 (Linux
+since 2026-11-15), so the gate no longer compiles changed files against
+libstdc++.
 
 The same command is the standard local sanitizer tree, kept by every build
 tree on every platform: it builds `.build/native-<host>-<arch>/gui-forms-sanitize`

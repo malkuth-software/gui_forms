@@ -92,8 +92,8 @@ interface needs a recorded owner decision. The
 1.0 (backend) is the library, its C ABI and its C# bindings. Work goes in
 checkpoints: coders write in parallel without building, an integrator folds
 their branches into one tree, builds it once and runs the gate (the whole
-suite, the sanitized tree and a libstdc++ compile of the changed files), and
-the checkpoint merges as one pull request.
+suite and the sanitized tree), and the checkpoint merges as one pull
+request.
 
 ### Done since the seal
 
