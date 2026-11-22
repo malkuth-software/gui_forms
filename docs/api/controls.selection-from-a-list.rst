@@ -35,6 +35,8 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
      - A location bar that shows the path to the current place as clickable segments.
    * - :cpp:class:`LookupComboBox <gui_forms::LookupComboBox>`
      - A multi-column lookup: a drop-down field that chooses a row by its key and shows one of the row's cells, with a list of every column under headers when open.
+   * - :cpp:class:`PopupContainerBox <gui_forms::PopupContainerBox>`
+     - A drop-down field whose popup is a control the application gives it.
    * - :cpp:class:`ListControl <gui_forms::ListControl>`
      - The shared base of the list controls.
 
@@ -53,6 +55,7 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    generated/gui_forms.ChoiceGroup
    generated/gui_forms.BreadcrumbTrail
    generated/gui_forms.LookupComboBox
+   generated/gui_forms.PopupContainerBox
    generated/gui_forms.ListControl
 
 Related types
@@ -500,6 +503,14 @@ Related types
      - Whether icon cells show each item's secondary text under its name.
    * - :cpp:class:`ObjectViewViewModeCapability <gui_forms::ObjectViewViewModeCapability>`
      - Icons or details.
+   * - :cpp:class:`PopupClosed <gui_forms::PopupClosed>`
+     - A popup that closed, and how.
+   * - :cpp:class:`PopupContainerBox::Parts <gui_forms::PopupContainerBox::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`PopupContainerBoxCapabilities <gui_forms::PopupContainerBoxCapabilities>`
+     - Every PopupContainerBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`PopupContainerBoxTextCapability <gui_forms::PopupContainerBoxTextCapability>`
+     - The text the field shows, which the application writes, usually from the content when the popup closes.
    * - :cpp:class:`ShowGroupsCapability <gui_forms::ShowGroupsCapability>`
      - Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups).
    * - :cpp:class:`SmallImageListCapability <gui_forms::SmallImageListCapability>`
@@ -5075,6 +5086,73 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PopupClosed final
+
+   ``#include <gui_forms/controls/popup_container_box.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box.hpp>`)
+
+   A popup that closed, and how.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool accepted() const noexcept
+
+   .. cpp:member:: PopupCloseReason reason
+
+      Default: ``{PopupCloseReason::cancelled}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PopupContainerBox::Parts final
+
+   ``#include <gui_forms/controls/popup_container_box.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box.hpp>`)
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``label`` its text, ``actuator`` the drop-down button and ``glyph`` its arrow; the field is ``open`` while the popup is.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PopupContainerBoxCapabilities : public PopupContainerBoxTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/popup_container_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box_capabilities.hpp>`)
+
+   Every PopupContainerBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the field shows, which the application writes, usually from the content when the popup closes. Invalid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PopupContainerBoxTextCapability
+
+   ``#include <gui_forms/controls/popup_container_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box_capabilities.hpp>`)
+
+   The text the field shows, which the application writes, usually from the content when the popup closes. Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PopupContainerBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PopupContainerBoxTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ShowGroupsCapability
 
    ``#include <gui_forms/controls/list_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/list_view_capabilities.hpp>`)
@@ -6708,6 +6786,20 @@ Enumerations
    .. cpp:enumerator:: icons
 
    .. cpp:enumerator:: details
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PopupCloseReason
+
+   ``#include <gui_forms/controls/popup_container_box.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box.hpp>`)
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: click_away
+
+   .. cpp:enumerator:: escape
 
 .. cpp:namespace:: gui_forms
 

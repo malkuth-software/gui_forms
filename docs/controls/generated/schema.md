@@ -3577,6 +3577,27 @@ Properties beyond every control's: `display_column` (unsigned_integer), `max_dro
 | `selected_key_changed` | `std::string` |
 | `drop_down_changed` | `bool` |
 
+## `popup_container_box` (PopupContainerBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `pressed`.
+
+Properties beyond every control's: `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `popup_opened` | none |
+| `popup_closed` | `PopupClosed` |
+| `text_changed` | `std::string` |
+
 ## `about_dialog` (AboutDialog, component)
 
 | Interaction | Payload |

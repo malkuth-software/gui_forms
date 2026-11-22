@@ -1365,6 +1365,17 @@
       "doc": "api/generated/gui_forms.LookupComboBox.rst"
     },
     {
+      "id": "popup_container_box",
+      "type": "PopupContainerBox",
+      "header": "gui_forms/controls/popup_container_box.hpp",
+      "category": "Selection from a list",
+      "purpose": "Drop-down field whose popup is any control the application gives it (a calendar, a tree, a small form) in an anchored overlay; closed as accepted or cancelled by the application, a click away or Escape; a combo box to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "guided-tasks",
+      "doc": "api/generated/gui_forms.PopupContainerBox.rst"
+    },
+    {
       "id": "about_dialog",
       "type": "AboutDialog",
       "header": "gui_forms/components/about_dialog/about_dialog.hpp",

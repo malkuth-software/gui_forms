@@ -531,7 +531,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "on_pointer_bubble", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_raiser_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "on_pointer_preview", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/core_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "on_semantic_action", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "on_semantic_child_action", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_controls_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "on_semantic_child_action", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "on_semantic_text_layout", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/rich_text_box_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "on_set_semantic_text_selection", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "on_text_input", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/host_protocol_tests.cpp"},
@@ -907,23 +907,23 @@
       {"kind": "method", "winforms": null, "gui_forms": "search_field_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "search_now", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
-    {"type": "ButtonTextBox", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/property_family_generated_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "buttons", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "editor", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+    {"type": "ButtonTextBox", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "buttons", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "editor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "placeholder_text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "read_only", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "realized_buttons", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "event", "winforms": null, "gui_forms": "button_clicked", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "event", "winforms": null, "gui_forms": "text_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/property_family_generated_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "button_at", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "realized_buttons", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "button_clicked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "text_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "button_at", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "button_text_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "index_of", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "on_text_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "perform_button_click", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "set_button_enabled", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "set_button_visible", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
+      {"kind": "method", "winforms": null, "gui_forms": "perform_button_click", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_button_enabled", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_button_visible", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"}
     ]},
     {"type": "MaskedTextBox", "winforms": "MaskedTextBox", "gui_forms_base": "TextBoxBase", "winforms_base": "TextBoxBase", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
       {"kind": "constructor", "winforms": "MaskedTextBox", "scope": "admitted", "overloads": 3, "gui_forms": "MaskedTextBox", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
@@ -4407,6 +4407,19 @@
       {"kind": "method", "winforms": null, "gui_forms": "lookup_combo_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "open_drop_down", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "row_of", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
+    ]},
+    {"type": "PopupContainerBox", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "popup_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "popup_shown", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/guided-tasks_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "popup_size", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/popup_container_box_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "popup_closed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/popup_container_box_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "popup_opened", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/popup_container_box_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "text_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/property_family_generated_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "close_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/popup_container_box_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "on_text_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "popup_container_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "show_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "AboutDialog", "winforms": null, "gui_forms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "info", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},

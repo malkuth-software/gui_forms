@@ -178,6 +178,7 @@ TEXTS: Mapping[str, str] = {
     "text_box": "Harbour Quay",
     "search_field": "lighthouse",
     "button_text_box": "Documents/Harbour",
+    "popup_container_box": "Next Tuesday",
     "rich_text_box": "Tide tables for the harbour, updated each morning.",
     "text_block": "Palettes show every stock control in every state it declares.",
     "label": "Display name",

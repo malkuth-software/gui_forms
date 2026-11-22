@@ -1371,6 +1371,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/token_box/token_box.cpp
     src/controls/search_field/search_field.cpp
     src/controls/button_text_box/button_text_box.cpp
+    src/controls/popup_container_box/popup_container_box.cpp
     src/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.cpp
     src/controls/panel/masked_text_box/masked_text_box.cpp
     src/controls/panel/numeric_up_down/numeric_up_down.cpp

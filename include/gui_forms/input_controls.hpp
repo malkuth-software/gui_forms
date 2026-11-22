@@ -14,3 +14,4 @@
 #include "gui_forms/controls/search_field.hpp"
 #include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
+#include "gui_forms/controls/popup_container_box.hpp"

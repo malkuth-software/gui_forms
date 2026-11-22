@@ -2,6 +2,8 @@
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
+#include "gui_forms/controls/popup_container_box.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/step_indicator.hpp"
 #include "gui_forms/controls/wizard.hpp"
@@ -21,7 +23,9 @@ namespace gui_forms::gallery::pages {
 // lookups their columns and rows, gates the wizard's first page on its
 // check box and reports the wizard's outcome, advances the stand-alone step
 // indicator with the wizard, and opens the callout, the modal layer and the
-// About box from their buttons.
+// About box from their buttons. The due date field's popup is a month
+// calendar: a selected day closes it as accepted and becomes the field's
+// text.
 class GuidedTasksPage final : public gui_forms::Component {
 public:
     explicit GuidedTasksPage(const std::shared_ptr<Surface>& body);
@@ -39,6 +43,8 @@ private:
     void on_modal_closed(DialogResult result);
     void on_about(ButtonBase& button);
     void on_about_closed(DialogResult result);
+    void on_due_date_selected(const CalendarDateRange& range);
+    void on_due_date_closed(const PopupClosed& closed);
 
     // Owns the document's controls; the shell's page body holds them too
     // once mount_document() has moved them there.
@@ -95,14 +101,20 @@ GuidedTasksPage::GuidedTasksPage(const std::shared_ptr<Surface>& body) {
                   .copyright = "Copyright the GUI.Forms authors. MIT licence.",
                   .credits = "Portsmouth Rapids typeface, MIT. STXlib text. Skia CPU rendering."});
     on((*about_).closed(), *this, &GuidedTasksPage::on_about_closed);
+
+    PopupContainerBox& due = *document_.gallery_guided_popup;
+    due.set_popup_content(document_.gallery_guided_popup_calendar);
+    on((*document_.gallery_guided_popup_calendar).date_selected(), *this, &GuidedTasksPage::on_due_date_selected);
+    on(due.popup_closed(), *this, &GuidedTasksPage::on_due_date_closed);
 }
 
 void GuidedTasksPage::mount_document(const std::shared_ptr<Surface>& body) {
     // The document's root is a declared boundary only: its children move
-    // into the shell's page body. The modal layer's content and the callout
-    // are kept out: they are shown only on request.
+    // into the shell's page body. The modal layer's content, the due date's
+    // calendar and the callout are kept out: they are shown only on request.
     Control& root = *document_.gallery_guided_tasks_document;
     static_cast<void>(root.remove_child((*document_.gallery_guided_modal_content).runtime_id()));
+    static_cast<void>(root.remove_child((*document_.gallery_guided_popup_calendar).runtime_id()));
     Control& side = *document_.gallery_guided_side;
     static_cast<void>(side.remove_child((*document_.gallery_guided_callout).runtime_id()));
     const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
@@ -165,6 +177,26 @@ void GuidedTasksPage::on_about(ButtonBase&) {
 
 void GuidedTasksPage::on_about_closed(DialogResult) {
     (*document_.gallery_guided_result).text = "The About box closed.";
+}
+
+// A day chosen in the calendar becomes the due date, written as
+// year-month-day.
+void GuidedTasksPage::on_due_date_selected(const CalendarDateRange& range) {
+    const DateTimeValue day = range.start;
+    std::string text = std::to_string(day.year);
+    text += day.month < 10U ? "-0" : "-";
+    text += std::to_string(day.month);
+    text += day.day < 10U ? "-0" : "-";
+    text += std::to_string(day.day);
+    PopupContainerBox& due = *document_.gallery_guided_popup;
+    due.text = text;
+    static_cast<void>(due.close_popup(PopupCloseReason::accepted));
+}
+
+void GuidedTasksPage::on_due_date_closed(const PopupClosed& closed) {
+    std::string report = closed.accepted() ? "Due date chosen: " : "Due date unchanged: ";
+    report += (*document_.gallery_guided_popup).text.read();
+    (*document_.gallery_guided_result).text = report;
 }
 
 void add_guided_tasks(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {

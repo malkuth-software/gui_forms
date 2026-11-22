@@ -202,6 +202,7 @@
     _ZGVZN9gui_forms11PhysicalKey*;
     _ZGVZN9gui_forms11PlotPalette*;
     _ZGVZN9gui_forms11PngMetadata*;
+    _ZGVZN9gui_forms11PopupClosed*;
     _ZGVZN9gui_forms11ProgressBar*;
     _ZGVZN9gui_forms11RadialGauge*;
     _ZGVZN9gui_forms11RadioButton*;
@@ -851,6 +852,7 @@
     _ZGVZN9gui_forms17PartRasterRequest*;
     _ZGVZN9gui_forms17PieSliceSelection*;
     _ZGVZN9gui_forms17PlotHeatmapSeries*;
+    _ZGVZN9gui_forms17PopupContainerBox*;
     _ZGVZN9gui_forms17PresentationState*;
     _ZGVZN9gui_forms17PrimitiveRegistry*;
     _ZGVZN9gui_forms17PropertyEnumValue*;
@@ -1906,6 +1908,7 @@
     _ZGVZNK9gui_forms11PhysicalKey*;
     _ZGVZNK9gui_forms11PlotPalette*;
     _ZGVZNK9gui_forms11PngMetadata*;
+    _ZGVZNK9gui_forms11PopupClosed*;
     _ZGVZNK9gui_forms11ProgressBar*;
     _ZGVZNK9gui_forms11RadialGauge*;
     _ZGVZNK9gui_forms11RadioButton*;
@@ -2555,6 +2558,7 @@
     _ZGVZNK9gui_forms17PartRasterRequest*;
     _ZGVZNK9gui_forms17PieSliceSelection*;
     _ZGVZNK9gui_forms17PlotHeatmapSeries*;
+    _ZGVZNK9gui_forms17PopupContainerBox*;
     _ZGVZNK9gui_forms17PresentationState*;
     _ZGVZNK9gui_forms17PrimitiveRegistry*;
     _ZGVZNK9gui_forms17PropertyEnumValue*;
@@ -3676,6 +3680,7 @@
     _ZN9gui_forms11PhysicalKey*;
     _ZN9gui_forms11PlotPalette*;
     _ZN9gui_forms11PngMetadata*;
+    _ZN9gui_forms11PopupClosed*;
     _ZN9gui_forms11ProgressBar*;
     _ZN9gui_forms11RadialGauge*;
     _ZN9gui_forms11RadioButton*;
@@ -4589,6 +4594,7 @@
     _ZN9gui_forms17PartRasterRequest*;
     _ZN9gui_forms17PieSliceSelection*;
     _ZN9gui_forms17PlotHeatmapSeries*;
+    _ZN9gui_forms17PopupContainerBox*;
     _ZN9gui_forms17PresentationState*;
     _ZN9gui_forms17PrimitiveRegistry*;
     _ZN9gui_forms17PropertyEnumValue*;
@@ -7026,6 +7032,7 @@
     _ZNK[RO]9gui_forms11PhysicalKey*;
     _ZNK[RO]9gui_forms11PlotPalette*;
     _ZNK[RO]9gui_forms11PngMetadata*;
+    _ZNK[RO]9gui_forms11PopupClosed*;
     _ZNK[RO]9gui_forms11ProgressBar*;
     _ZNK[RO]9gui_forms11RadialGauge*;
     _ZNK[RO]9gui_forms11RadioButton*;
@@ -7675,6 +7682,7 @@
     _ZNK[RO]9gui_forms17PartRasterRequest*;
     _ZNK[RO]9gui_forms17PieSliceSelection*;
     _ZNK[RO]9gui_forms17PlotHeatmapSeries*;
+    _ZNK[RO]9gui_forms17PopupContainerBox*;
     _ZNK[RO]9gui_forms17PresentationState*;
     _ZNK[RO]9gui_forms17PrimitiveRegistry*;
     _ZNK[RO]9gui_forms17PropertyEnumValue*;
@@ -8730,6 +8738,7 @@
     _ZN[KRO]9gui_forms11PhysicalKey*;
     _ZN[KRO]9gui_forms11PlotPalette*;
     _ZN[KRO]9gui_forms11PngMetadata*;
+    _ZN[KRO]9gui_forms11PopupClosed*;
     _ZN[KRO]9gui_forms11ProgressBar*;
     _ZN[KRO]9gui_forms11RadialGauge*;
     _ZN[KRO]9gui_forms11RadioButton*;
@@ -9379,6 +9388,7 @@
     _ZN[KRO]9gui_forms17PartRasterRequest*;
     _ZN[KRO]9gui_forms17PieSliceSelection*;
     _ZN[KRO]9gui_forms17PlotHeatmapSeries*;
+    _ZN[KRO]9gui_forms17PopupContainerBox*;
     _ZN[KRO]9gui_forms17PresentationState*;
     _ZN[KRO]9gui_forms17PrimitiveRegistry*;
     _ZN[KRO]9gui_forms17PropertyEnumValue*;
@@ -10434,6 +10444,7 @@
     _ZT[VIST]N9gui_forms11PhysicalKey*E;
     _ZT[VIST]N9gui_forms11PlotPalette*E;
     _ZT[VIST]N9gui_forms11PngMetadata*E;
+    _ZT[VIST]N9gui_forms11PopupClosed*E;
     _ZT[VIST]N9gui_forms11ProgressBar*E;
     _ZT[VIST]N9gui_forms11RadialGauge*E;
     _ZT[VIST]N9gui_forms11RadioButton*E;
@@ -11083,6 +11094,7 @@
     _ZT[VIST]N9gui_forms17PartRasterRequest*E;
     _ZT[VIST]N9gui_forms17PieSliceSelection*E;
     _ZT[VIST]N9gui_forms17PlotHeatmapSeries*E;
+    _ZT[VIST]N9gui_forms17PopupContainerBox*E;
     _ZT[VIST]N9gui_forms17PresentationState*E;
     _ZT[VIST]N9gui_forms17PrimitiveRegistry*E;
     _ZT[VIST]N9gui_forms17PropertyEnumValue*E;
@@ -12138,6 +12150,7 @@
     _ZT[hvc]*9gui_forms11PhysicalKey*;
     _ZT[hvc]*9gui_forms11PlotPalette*;
     _ZT[hvc]*9gui_forms11PngMetadata*;
+    _ZT[hvc]*9gui_forms11PopupClosed*;
     _ZT[hvc]*9gui_forms11ProgressBar*;
     _ZT[hvc]*9gui_forms11RadialGauge*;
     _ZT[hvc]*9gui_forms11RadioButton*;
@@ -12787,6 +12800,7 @@
     _ZT[hvc]*9gui_forms17PartRasterRequest*;
     _ZT[hvc]*9gui_forms17PieSliceSelection*;
     _ZT[hvc]*9gui_forms17PlotHeatmapSeries*;
+    _ZT[hvc]*9gui_forms17PopupContainerBox*;
     _ZT[hvc]*9gui_forms17PresentationState*;
     _ZT[hvc]*9gui_forms17PrimitiveRegistry*;
     _ZT[hvc]*9gui_forms17PropertyEnumValue*;
@@ -13842,6 +13856,7 @@
     _ZZN9gui_forms11PhysicalKey*;
     _ZZN9gui_forms11PlotPalette*;
     _ZZN9gui_forms11PngMetadata*;
+    _ZZN9gui_forms11PopupClosed*;
     _ZZN9gui_forms11ProgressBar*;
     _ZZN9gui_forms11RadialGauge*;
     _ZZN9gui_forms11RadioButton*;
@@ -14491,6 +14506,7 @@
     _ZZN9gui_forms17PartRasterRequest*;
     _ZZN9gui_forms17PieSliceSelection*;
     _ZZN9gui_forms17PlotHeatmapSeries*;
+    _ZZN9gui_forms17PopupContainerBox*;
     _ZZN9gui_forms17PresentationState*;
     _ZZN9gui_forms17PrimitiveRegistry*;
     _ZZN9gui_forms17PropertyEnumValue*;
@@ -15546,6 +15562,7 @@
     _ZZNK9gui_forms11PhysicalKey*;
     _ZZNK9gui_forms11PlotPalette*;
     _ZZNK9gui_forms11PngMetadata*;
+    _ZZNK9gui_forms11PopupClosed*;
     _ZZNK9gui_forms11ProgressBar*;
     _ZZNK9gui_forms11RadialGauge*;
     _ZZNK9gui_forms11RadioButton*;
@@ -16195,6 +16212,7 @@
     _ZZNK9gui_forms17PartRasterRequest*;
     _ZZNK9gui_forms17PieSliceSelection*;
     _ZZNK9gui_forms17PlotHeatmapSeries*;
+    _ZZNK9gui_forms17PopupContainerBox*;
     _ZZNK9gui_forms17PresentationState*;
     _ZZNK9gui_forms17PrimitiveRegistry*;
     _ZZNK9gui_forms17PropertyEnumValue*;

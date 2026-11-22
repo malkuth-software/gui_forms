@@ -102,6 +102,7 @@
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/popup_container_box.hpp"
 #include "gui_forms/controls/property_grid.hpp"
 #include "gui_forms/controls/property_list.hpp"
 #include "gui_forms/controls/quick_access_toolbar.hpp"
@@ -1041,6 +1042,17 @@ struct EnumerationChoices<PointerButton> {
 };
 
 template <>
+struct EnumerationChoices<PopupCloseReason> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"accepted", static_cast<std::int64_t>(PopupCloseReason::accepted)},
+        {"cancelled", static_cast<std::int64_t>(PopupCloseReason::cancelled)},
+        {"click_away", static_cast<std::int64_t>(PopupCloseReason::click_away)},
+        {"escape", static_cast<std::int64_t>(PopupCloseReason::escape)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<ProceduralPattern> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 9> choices{{
@@ -1535,6 +1547,7 @@ void append_field(EventFields& fields, std::string_view name, const PlotQuery& v
 void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
+void append_field(EventFields& fields, std::string_view name, const PopupClosed& value);
 void append_field(EventFields& fields, std::string_view name, const PortIndex& value);
 void append_field(EventFields& fields, std::string_view name, const PortRef& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
@@ -3231,6 +3244,12 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "native_hover", value.native_hover);
     append_field(fields, "menu_show_milliseconds", value.menu_show_milliseconds);
     append_field(fields, "menu_show_origin", value.menu_show_origin);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PopupClosed& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "reason", value.reason);
     fields.leave(prefix);
 }
 
@@ -6253,6 +6272,24 @@ inline SubscriptionToken connect_control_pointer_preview_observed(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_popup_container_box_popup_closed(Component& source, const EventSink& sink) {
+    PopupContainerBox* typed = dynamic_cast<PopupContainerBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).popup_closed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_popup_container_box_popup_opened(Component& source, const EventSink& sink) {
+    PopupContainerBox* typed = dynamic_cast<PopupContainerBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).popup_opened(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_help_book_viewer_popup_requested(Component& source, const EventSink& sink) {
     HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
     if (typed == nullptr) {
@@ -7085,6 +7122,15 @@ inline SubscriptionToken connect_label_text_changed(Component& source, const Eve
     return token;
 }
 
+inline SubscriptionToken connect_popup_container_box_text_changed(Component& source, const EventSink& sink) {
+    PopupContainerBox* typed = dynamic_cast<PopupContainerBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_search_field_text_changed(Component& source, const EventSink& sink) {
     SearchField* typed = dynamic_cast<SearchField*>(&source);
     if (typed == nullptr) {
@@ -7450,7 +7496,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 391> event_connectors{{
+inline constexpr std::array<EventConnector, 394> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7710,6 +7756,8 @@ inline constexpr std::array<EventConnector, 391> event_connectors{{
     {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
     {"pointer_preview_observed", "Control", &connect_control_pointer_preview_observed},
+    {"popup_closed", "PopupContainerBox", &connect_popup_container_box_popup_closed},
+    {"popup_opened", "PopupContainerBox", &connect_popup_container_box_popup_opened},
     {"popup_requested", "HelpBookViewer", &connect_help_book_viewer_popup_requested},
     {"position_changed", "BindingSource", &connect_binding_source_position_changed},
     {"presentation_changed", "MasterDetailView", &connect_master_detail_view_presentation_changed},
@@ -7802,6 +7850,7 @@ inline constexpr std::array<EventConnector, 391> event_connectors{{
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
     {"text_changed", "ButtonTextBox", &connect_button_text_box_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
+    {"text_changed", "PopupContainerBox", &connect_popup_container_box_text_changed},
     {"text_changed", "SearchField", &connect_search_field_text_changed},
     {"text_changed", "SevenSegmentDisplay", &connect_seven_segment_display_text_changed},
     {"text_changed", "TextBlock", &connect_text_block_text_changed},

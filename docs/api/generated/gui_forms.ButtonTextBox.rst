@@ -328,7 +328,7 @@ gui_forms::ButtonTextBox
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 15 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 6 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -342,11 +342,11 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 1 su
    * - property
      - GUI.Forms-only
      - ``buttons``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``editor``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``placeholder_text``
@@ -358,15 +358,15 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 1 su
    * - property
      - GUI.Forms-only
      - ``realized_buttons``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``text``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``button_clicked``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``text_changed``
@@ -374,7 +374,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 1 su
    * - method
      - GUI.Forms-only
      - ``button_at``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``button_text_box_property_entries``
@@ -394,12 +394,12 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 1 su
    * - method
      - GUI.Forms-only
      - ``perform_button_click``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_button_enabled``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_button_visible``
-     - unclassified (untested)
+     - supported
