@@ -106,7 +106,8 @@ std::string format_bench_report(const BenchSetting& setting, const std::span<con
     std::array<char, 256> header{};
     const std::string file(setting.file);
     const int written = std::snprintf(header.data(), header.size(),
-                                      "code_zoom bench: %zu frames, %.2fx to %.2fx, %s, %.0fx%.0f at scale %.2f\n",
+                                      "code_zoom bench: %zu frames, %.2fx to %.2fx, %s, %.0fx%.0f at scale %.2f, "
+                                      "refresh: unknown (offscreen)\n",
                                       whole.frames, whole.zoom_from, whole.zoom_to, file.c_str(), setting.width,
                                       setting.height, setting.scale);
     if (written > 0) report.append(header.data(), std::min(static_cast<std::size_t>(written), header.size() - 1U));

@@ -23,7 +23,9 @@
 // notch about the pointer, or, from a precise device (a trackpad, a
 // precision touchpad's pinch, which Windows reports as Ctrl+wheel), zooms
 // at once by exp(delta * pixel_zoom_rate). A glide runs on an
-// AnimationTimer only while it lasts; reduced motion lands at once. The
+// AnimationTimer only while it lasts, advanced once per paint (a stopgap
+// for display-paced frames; code_sheet.cpp's glide_tick_interval); reduced
+// motion lands at once. The
 // wheel alone, the arrows, Page Up/Down, Home and End scroll.
 //
 // The readout (F toggles it): in the top-right corner, the milliseconds the

@@ -46,6 +46,16 @@ constexpr std::array<Color, sheet_colour_count> palette{
 constexpr std::uint32_t digit_zero_key = 0x27U;
 constexpr std::uint32_t keypad_zero_key = 0x62U;
 
+// The glide's timer interval. A stopgap until the library has a
+// display-paced frame source (hosts reporting the refresh period and each
+// frame's presentation time to the window): AnimationTimer ticks only once
+// the sheet has been painted since its last damaging tick, so at 1 ms the
+// glide advances once per paint, at the host's paint cadence (the display's
+// on macOS, where AppKit coalesces drawing to the refresh), rather than on
+// display_frame_interval's fixed 16 ms. The easing is evaluated at the
+// tick's time, not the frame's presentation time.
+constexpr FrameInterval glide_tick_interval = std::chrono::milliseconds(1);
+
 constexpr std::uint32_t maximum_source_bytes = std::numeric_limits<std::uint32_t>::max() / 2U;
 
 // -- loading ------------------------------------------------------------------------------
@@ -278,7 +288,7 @@ void CodeSheet::begin_glide() {
     if (glide_timer_.started()) return;
     const std::shared_ptr<CodeSheet> self = std::dynamic_pointer_cast<CodeSheet>(shared_from_this());
     if (!self) return;
-    glide_timer_.start(*this, display_frame_interval, GlideTick{self});
+    glide_timer_.start(*this, glide_tick_interval, GlideTick{self});
 }
 
 void CodeSheet::scroll_screen(const Point screen_delta) {
