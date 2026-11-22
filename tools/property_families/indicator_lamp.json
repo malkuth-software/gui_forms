@@ -147,6 +147,42 @@
       "hooks": "generated",
       "hand": [],
       "sample": "stxlib::Optional<Color>::of(Color::rgba(10, 20, 30))"
+    },
+    {
+      "name": "lamp_style",
+      "capability": "IndicatorLampLampStyle",
+      "value": "IndicatorLampStyle",
+      "initial": "IndicatorLampStyle::lens",
+      "comment": "How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them). Never clickable either way.",
+      "getter": "lamp_style",
+      "setter": "set_lamp_style",
+      "clear": null,
+      "field": "lamp_style_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "How the lamp draws: a lens in a bezel, or a pinpoint.",
+        "default": "BindingValue{PropertyEnumValue{\"indicator_lamp_style\", \"lens\", 0}}",
+        "effects": "Dirty::measure | Dirty::paint",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "indicator_lamp_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(IndicatorLampStyle::pinpoint)) {",
+        "    throw std::invalid_argument(\"IndicatorLamp lamp_style is invalid\");",
+        "}"
+      ],
+      "sample": "IndicatorLampStyle::pinpoint"
     }
   ],
   "not_properties": [],

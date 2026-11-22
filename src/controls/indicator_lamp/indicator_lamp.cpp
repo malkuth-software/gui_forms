@@ -33,11 +33,24 @@ std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_state_enum() {
     return value;
 }
 
+// The IndicatorLampStyle enumeration, numbered as declared. Static storage;
+// any thread may read it.
+std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(
+            PropertyEnumDescriptor{"indicator_lamp_style", {{"lens", 0}, {"pinpoint", 1}}, false});
+    return value;
+}
+
 // The lamp's metrics, in logical units: the bezel's side beside a legend,
 // the bezel's ring around the lens, and the gap before the legend.
 constexpr double legend_bezel_side = 16.0;
 constexpr double bezel_ring = 2.0;
 constexpr double legend_gap = 6.0;
+// The pinpoint's metrics (IndicatorLampStyle::pinpoint), in logical units:
+// the dot's side and the gap before the legend.
+constexpr double pinpoint_side = 6.0;
+constexpr double pinpoint_gap = 4.0;
 
 constexpr std::array<PartField<IndicatorLamp::Parts>, 4> indicator_lamp_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
@@ -57,13 +70,16 @@ constexpr std::array<AnatomyState, 3> indicator_lamp_states{
 };
 
 // "on" and "error" name the lit states for a theme's selectors
-// (`indicator-lamp::part(lens):state(on)`); off is neither.
-constexpr std::array<CustomStateDeclaration, 2> indicator_lamp_custom_states{{
+// (`indicator-lamp::part(lens):state(on)`); off is neither. "pinpoint"
+// names the pinpoint style (`indicator-lamp::part(lens):state(pinpoint)`).
+constexpr std::array<CustomStateDeclaration, 3> indicator_lamp_custom_states{{
     {.name = "on"},
     {.name = "error"},
+    {.name = "pinpoint"},
 }};
 constexpr CustomStateIndex on_state{0U};
 constexpr CustomStateIndex error_state{1U};
+constexpr CustomStateIndex pinpoint_state{2U};
 
 constexpr ControlAnatomy indicator_lamp_anatomy{
     .control_id = "indicator_lamp",
@@ -83,6 +99,12 @@ constexpr bool lit(IndicatorLampState state) noexcept {
 AnatomyStateSet with_lit_state(AnatomyStateSet states, IndicatorLampState state) noexcept {
     if (state == IndicatorLampState::on) states.insert(on_state);
     if (state == IndicatorLampState::error) states.insert(error_state);
+    return states;
+}
+
+// `states` with the pinpoint state added when `style` is the pinpoint.
+AnatomyStateSet with_style_state(AnatomyStateSet states, IndicatorLampStyle style) noexcept {
+    if (style == IndicatorLampStyle::pinpoint) states.insert(pinpoint_state);
     return states;
 }
 
@@ -139,6 +161,8 @@ bool IndicatorLamp::changing() const noexcept {
 std::shared_ptr<const engine_light::LightPlanes> IndicatorLamp::shown_bake() const {
     const std::string& name = light_planes.read();
     if (name.empty()) return nullptr;
+    // A pinpoint is the theme's dot; a bake is a lens's whole look.
+    if (lamp_style.read() == IndicatorLampStyle::pinpoint) return nullptr;
     const SurfaceRoot* const root = attached_surface_root();
     if (root == nullptr) return nullptr;
     if (part_visual_context(*this, base_anatomy_states()).high_contrast) return nullptr;
@@ -175,10 +199,26 @@ bool IndicatorLamp::reduced_motion() const noexcept {
 // the bezel is legend_bezel_side, or the client height when that is less.
 // A baked lens is the bake's aspect fitted in the client area without a
 // legend, else in the bezel's square, and the bezel is the same rectangle.
+// A pinpoint is a pinpoint_side dot (less where the client area is
+// smaller) at the start, centred down, with no bezel (empty) and the
+// legend pinpoint_gap after it.
 IndicatorLamp::Placement IndicatorLamp::placement(const engine_light::LightPlanes* bake) const {
     const Rect client = client_rectangle();
     Placement placed;
     const bool legend = !text.read().empty();
+    if (lamp_style.read() == IndicatorLampStyle::pinpoint) {
+        const double dot = std::max(0.0, std::floor(std::min({pinpoint_side, client.width, client.height})));
+        const double dot_top = client.y + std::floor((client.height - dot) * 0.5);
+        const bool dot_mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+        const double dot_left = dot_mirrored ? client.x + client.width - dot : client.x;
+        placed.lens = Rect{dot_left, dot_top, dot, dot};
+        placed.bezel = Rect{dot_left, dot_top, 0.0, 0.0};
+        if (!legend) return placed;
+        const double dot_label_width = std::max(0.0, client.width - dot - pinpoint_gap);
+        const double dot_label_left = dot_mirrored ? client.x : client.x + dot + pinpoint_gap;
+        placed.label = Rect{dot_label_left, client.y, dot_label_width, client.height};
+        return placed;
+    }
     const double shorter = std::min(client.width, client.height);
     const double side = std::max(0.0, std::floor(legend ? std::min(client.height, legend_bezel_side) : shorter));
     const double top = client.y + std::floor((client.height - side) * 0.5);
@@ -203,11 +243,12 @@ IndicatorLamp::Placement IndicatorLamp::placement(const engine_light::LightPlane
 // is set.
 Size IndicatorLamp::measure(Size available) {
     const Rect requested = requested_bounds();
-    double width = legend_bezel_side;
-    double height = legend_bezel_side;
+    const bool pinpoint = lamp_style.read() == IndicatorLampStyle::pinpoint;
+    double width = pinpoint ? pinpoint_side : legend_bezel_side;
+    double height = width;
     if (!text.read().empty()) {
         const ResolvedTextLayout layout = resolve_text_layout_utf8(text.read(), legend_font());
-        width += legend_gap + std::ceil(layout.logical_size.width);
+        width += (pinpoint ? pinpoint_gap : legend_gap) + std::ceil(layout.logical_size.width);
         height = std::max(height, std::ceil(layout.logical_size.height));
     }
     const double chosen_width = requested.width > 0.0 ? requested.width : width;
@@ -220,7 +261,7 @@ void IndicatorLamp::on_paint(Painter& painter, Rect) {
     change_timer_.note_painted();
     std::shared_ptr<const engine_light::LightPlanes> bake = shown_bake();
     const Placement placed = placement(bake.get());
-    const AnatomyStateSet states = base_anatomy_states();
+    const AnatomyStateSet states = with_style_state(base_anatomy_states(), lamp_style.read());
     if (bake) {
         paint_baked_lens(painter, placed, states, std::move(bake));
     } else {
@@ -237,11 +278,14 @@ void IndicatorLamp::on_paint(Painter& painter, Rect) {
 }
 
 void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, AnatomyStateSet states) {
-    PartPaint bezel{.role = PartRole::well, .bounds = placed.bezel, .states = with_lit_state(states, state.read()),
-                    .family = ControlVisualRole::panel};
-    bezel.corner_radius.set(placed.bezel.width * 0.5);
-    bezel.key.set(PartKey{"bezel", {}, {}});
-    paint_part(painter, *this, bezel);
+    // A pinpoint has no bezel: the dot alone.
+    if (lamp_style.read() == IndicatorLampStyle::lens) {
+        PartPaint bezel{.role = PartRole::well, .bounds = placed.bezel,
+                        .states = with_lit_state(states, state.read()), .family = ControlVisualRole::panel};
+        bezel.corner_radius.set(placed.bezel.width * 0.5);
+        bezel.key.set(PartKey{"bezel", {}, {}});
+        paint_part(painter, *this, bezel);
+    }
     // The dark lens, then the lit lens over it at the current power, clipped
     // to the lens so that its light reaches nothing else.
     const double radius = placed.lens.width * 0.5;
@@ -307,7 +351,8 @@ const ControlAnatomy& IndicatorLamp::anatomy() const noexcept {
 }
 
 AnatomyStateSet IndicatorLamp::anatomy_states() const {
-    const AnatomyStateSet states = with_lit_state(base_anatomy_states(), state.read());
+    const AnatomyStateSet styled = with_style_state(base_anatomy_states(), lamp_style.read());
+    const AnatomyStateSet states = with_lit_state(styled, state.read());
     return states;
 }
 
@@ -316,7 +361,8 @@ void IndicatorLamp::publish_part_geometry(std::span<PartGeometry> geometry) cons
     const Placement placed = placement(bake.get());
     Parts record;
     record.region = PartGeometry::from_bounds(client_rectangle());
-    record.bezel = PartGeometry::from_bounds(placed.bezel);
+    // A pinpoint has no bezel, so publishes none.
+    if (lamp_style.read() == IndicatorLampStyle::lens) record.bezel = PartGeometry::from_bounds(placed.bezel);
     record.lens = PartGeometry::from_bounds(placed.lens);
     if (!text.read().empty()) record.label = PartGeometry::from_bounds(placed.label);
     write_parts(anatomy(), indicator_lamp_part_fields, record, geometry);
@@ -468,6 +514,25 @@ const PropertyDescriptor& describe_indicator_lamp_lamp_color() {
     return descriptor;
 }
 
+PropertyDescriptor indicator_lamp_lamp_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "lamp_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the lamp draws: a lens in a bezel, or a pinpoint.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"indicator_lamp_style", "lens", 0}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint;
+    descriptor.enumeration = indicator_lamp_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_indicator_lamp_lamp_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        indicator_lamp_lamp_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<IndicatorLampState>::type() {
@@ -489,8 +554,27 @@ IndicatorLampState PropertyValueTraits<IndicatorLampState>::from_binding(const B
     return static_cast<IndicatorLampState>(choice.value);
 }
 
+PropertyType PropertyValueTraits<IndicatorLampStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, indicator_lamp_style_enum()};
+}
+
+BindingValue PropertyValueTraits<IndicatorLampStyle>::to_binding(IndicatorLampStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = indicator_lamp_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+IndicatorLampStyle PropertyValueTraits<IndicatorLampStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<IndicatorLampStyle>(choice.value);
+}
+
 const std::array<PropertyEntry, IndicatorLamp::indicator_lamp_property_count>& IndicatorLamp::indicator_lamp_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 4U> own{{
+    static constexpr std::array<PropertyEntry, 5U> own{{
         {"state", &describe_indicator_lamp_state,
          &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::state), &IndicatorLamp::state>,
          &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::state), &IndicatorLamp::state>,
@@ -509,6 +593,11 @@ const std::array<PropertyEntry, IndicatorLamp::indicator_lamp_property_count>& I
         {"lamp_color", &describe_indicator_lamp_lamp_color,
          &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_color), &IndicatorLamp::lamp_color>,
          &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_color), &IndicatorLamp::lamp_color>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"lamp_style", &describe_indicator_lamp_lamp_style,
+         &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_style), &IndicatorLamp::lamp_style>,
+         &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_style), &IndicatorLamp::lamp_style>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -551,6 +640,17 @@ void IndicatorLamp::prepare_write(const decltype(lamp_color)&, stxlib::Optional<
 
 void IndicatorLamp::written(const decltype(lamp_color)&) {
     invalidate(Dirty::paint);
+}
+
+void IndicatorLamp::prepare_write(const decltype(lamp_style)&, IndicatorLampStyle& incoming) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(IndicatorLampStyle::pinpoint)) {
+        throw std::invalid_argument("IndicatorLamp lamp_style is invalid");
+    }
+}
+
+void IndicatorLamp::written(const decltype(lamp_style)&) {
+    invalidate(Dirty::measure | Dirty::paint);
 }
 
 // property_codemod end IndicatorLamp

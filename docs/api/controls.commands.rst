@@ -1041,6 +1041,8 @@ Enumerations
 
    .. cpp:enumerator:: toggle
 
+   .. cpp:enumerator:: lamp
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: ContentAlignment

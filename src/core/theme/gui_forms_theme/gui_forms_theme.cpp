@@ -650,6 +650,43 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #6b130a;
   box-shadow: inset 0 0 3px #ffe4dab0;
 }
+/* The pinpoint (owner, 2026-11-21): a tiny accent light for status, no
+   bezel. Out, a quiet grey dot; lit, the lamp's colour, flat, with a pale
+   core. */
+indicator-lamp::part(lens):state(pinpoint) {
+  background: #a3a9b0;
+  border: none;
+  box-shadow: inset 0 0 1px #ffffff40;
+}
+indicator-lamp::part(lens):state(on):state(pinpoint) {
+  background: radial-gradient(circle at 50% 50%, #eaffdc, #46c14a 60%);
+  border: none;
+  box-shadow: inset 0 0 1px #eaffdc80;
+}
+indicator-lamp::part(lens):state(error):state(pinpoint) {
+  background: radial-gradient(circle at 50% 50%, #ffe4da, #e5432e 60%);
+  border: none;
+  box-shadow: inset 0 0 1px #ffe4da80;
+}
+/* A radio choice drawn with lamps (RadioButton's lamp look, owner
+   2026-11-21): the well is the lamp's bezel and the mark its lens, dark
+   until the option is chosen, then lit green as an indicator lamp's. The
+   row takes the click; the lamp only shows the choice. */
+radio-button::part(well):state(lamp), radio-button:checked::part(well):state(lamp) {
+  background: linear-gradient(to bottom, #b4bac1, #eef0f2);
+  border: 1px solid #8d949c;
+  seat: -10%;
+}
+radio-button::part(indicator):state(lamp) {
+  background: radial-gradient(circle at 40% 35%, #7a8088, #2c3035 70%);
+  border: 1px solid #24282c;
+  box-shadow: inset 0 1px 1px #ffffff30;
+}
+radio-button:checked::part(indicator):state(lamp) {
+  background: radial-gradient(circle at 40% 35%, #eaffdc, #46c14a 45%, #1d7424);
+  border: 1px solid #17591c;
+  box-shadow: inset 0 0 3px #eaffdcb0;
+}
 
 /* The business card (PlaySuite and Plan Paint parity, 2026-11-15): a bone
    paper stock with a faint fibre, edged a shade darker, printed in a warm

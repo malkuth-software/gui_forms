@@ -2128,6 +2128,7 @@ bool canvas_texture_pattern(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::pinstripe:
     case ProceduralPattern::brushed_metal:
     case ProceduralPattern::checker:
+    case ProceduralPattern::carbon_fibre:
     case ProceduralPattern::hatch: return true;
     case ProceduralPattern::fresco:
     default: return false;

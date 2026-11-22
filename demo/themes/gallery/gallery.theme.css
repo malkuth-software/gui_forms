@@ -114,6 +114,10 @@
   --swatch-warp: #8a6f4a;
   --swatch-weft: #c8b98f;
   --swatch-metal: #a3a3a3;       /* a glint's metal, as the fitted presets */
+  --swatch-resin: #1c1d20;       /* carbon fibre's resin, the tows in shade */
+  --swatch-sheen: #6a6e75;       /* the light the tows across catch */
+  --swatch-steel: #b9bcc1;
+  --swatch-steel-streak: #8e9298;
 }
 .finish-dusty-matte::part(face) { background: finish(dusty-matte, var(--swatch-teal), var(--swatch-white-night), 7); }
 .finish-orange-peel::part(face) { background: finish(orange-peel, var(--swatch-pale-mint), var(--swatch-grey-green), 7); }
@@ -128,6 +132,10 @@
 .finish-iridescent-glint::part(face) { background: finish(iridescent-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
 .finish-coarse-grit-glint::part(face) { background: finish(coarse-grit-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
 .finish-painted-sand-glint::part(face) { background: finish(painted-sand-glint, var(--swatch-teal), var(--swatch-metal), 5); }
+/* The procedural patterns beside the finishes: carbon fibre, a twill of
+   4px tows (one 16px repeat per tile), and brushed metal for comparison. */
+.pattern-carbon-fibre::part(face) { background: pattern(carbon-fibre, var(--swatch-resin), var(--swatch-sheen), 16px); }
+.pattern-brushed-metal::part(face) { background: pattern(brushed-metal, var(--swatch-steel), var(--swatch-steel-streak), 64px); }
 
 /* The dark variant: the same roles and grounds, each a dark paper with a
    light ink, in the order of the light rules above. The grounds keep

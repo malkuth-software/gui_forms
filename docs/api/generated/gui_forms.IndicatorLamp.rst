@@ -64,6 +64,12 @@ gui_forms::IndicatorLamp
          theme's look as an authored colour, and not in forced high contrast.
          An error always lights in the error colour (with a bake, lamp red).
 
+      **lamp_style** : ``IndicatorLampStyle``, default ``IndicatorLampStyle::lens``
+         How the lamp draws: :cpp:enumerator:`IndicatorLampStyle::lens <gui_forms::IndicatorLampStyle::lens>`, a lens in a bezel, or
+         :cpp:enumerator:`IndicatorLampStyle::pinpoint <gui_forms::IndicatorLampStyle::pinpoint>`, a tiny accent light for status, a dot
+         6 units across with no bezel and the legend 4 units after it. A
+         pinpoint lights and warms up as a lens does, but never shows a bake.
+
       **power** : ``double``, read-only
          How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
          current power, or the state's settled one.
@@ -101,8 +107,11 @@ gui_forms::IndicatorLamp
    The lamp is never clickable and takes no focus: the pointer reaches what
    lies beneath it. It lights only its own lens: the lit lens is drawn
    clipped to the lens, so its light reaches neither the bezel, the legend nor
-   a neighbour. The parts are ``bezel`` (a well), ``lens`` (an indicator) and
-   ``label``; the custom states ``on`` and ``error`` name the lit states. It
+   a neighbour. The parts are ``bezel`` (a well; none for a pinpoint),
+   ``lens`` (an indicator) and ``label``; the custom states ``on`` and
+   ``error`` name the lit states, and ``pinpoint`` the pinpoint style. A
+   radio choice drawn with lamps is a :cpp:class:`RadioButton <gui_forms::RadioButton>` whose ``indicator_style``
+   is :cpp:enumerator:`ChoiceIndicatorStyle::lamp <gui_forms::ChoiceIndicatorStyle::lamp>`, never a lamp. It
    publishes the accessibility role ``static_text``, named by its accessible
    name or else its legend, with the state as its value (``off``, ``on`` or
    ``error``), so the state never rests on colour alone. The warm-up is the
@@ -159,6 +168,13 @@ gui_forms::IndicatorLamp
       theme's look as an authored colour, and not in forced high contrast.
       An error always lights in the error colour (with a bake, lamp red).
 
+   .. cpp:member:: IndicatorLampStyle lamp_style
+
+      How the lamp draws: :cpp:enumerator:`IndicatorLampStyle::lens <gui_forms::IndicatorLampStyle::lens>`, a lens in a bezel, or
+      :cpp:enumerator:`IndicatorLampStyle::pinpoint <gui_forms::IndicatorLampStyle::pinpoint>`, a tiny accent light for status, a dot
+      6 units across with no bezel and the legend 4 units after it. A
+      pinpoint lights and warms up as a lens does, but never shows a bake.
+
    .. cpp:function:: double power() const noexcept
 
       How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
@@ -210,11 +226,11 @@ gui_forms::IndicatorLamp
 
    .. cpp:member:: constexpr std::size_t indicator_lamp_property_count
 
-      IndicatorLamp's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+      IndicatorLamp's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 5 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 6 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -232,6 +248,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 4 su
    * - property
      - GUI.Forms-only
      - ``lamp_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``lamp_style``
      - unclassified (untested)
    * - property
      - GUI.Forms-only

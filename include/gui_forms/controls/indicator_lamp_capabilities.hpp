@@ -79,6 +79,19 @@ struct IndicatorLampLampColorCapability {
     }
 };
 
+// How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them). Never clickable either way.
+template <typename Declaring>
+struct IndicatorLampLampStyleCapability {
+    PropertyCell<IndicatorLampStyle, IndicatorLampLampStyleCapability<Declaring>> lamp_style{IndicatorLampStyle::lens};
+
+    static void assign(IndicatorLampLampStyleCapability& capability, IndicatorLampStyle incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.lamp_style), incoming);
+        if (!capability.lamp_style.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.lamp_style));
+    }
+};
+
 // IndicatorLampState as a property value; defined beside IndicatorLamp's table.
 template <>
 struct PropertyValueTraits<IndicatorLampState> {
@@ -87,11 +100,20 @@ struct PropertyValueTraits<IndicatorLampState> {
     static IndicatorLampState from_binding(const BindingValue& value);
 };
 
+// IndicatorLampStyle as a property value; defined beside IndicatorLamp's table.
+template <>
+struct PropertyValueTraits<IndicatorLampStyle> {
+    static PropertyType type();
+    static BindingValue to_binding(IndicatorLampStyle value);
+    static IndicatorLampStyle from_binding(const BindingValue& value);
+};
+
 // Every IndicatorLamp capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>,
                                    public IndicatorLampTextCapability<Declaring>,
                                    public IndicatorLampLightPlanesCapability<Declaring>,
-                                   public IndicatorLampLampColorCapability<Declaring> {};
+                                   public IndicatorLampLampColorCapability<Declaring>,
+                                   public IndicatorLampLampStyleCapability<Declaring> {};
 
 } // namespace gui_forms

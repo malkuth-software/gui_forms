@@ -83,7 +83,7 @@ Related types
    * - :cpp:class:`CheckBoxCheckStateCapability <gui_forms::CheckBoxCheckStateCapability>`
      - Unchecked, checked or indeterminate (CheckState); a view onto the check state.
    * - :cpp:class:`CheckBoxIndicatorStyleCapability <gui_forms::CheckBoxIndicatorStyleCapability>`
-     - How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+     - How the check mark draws: classic, modern or toggle (std::invalid_argument outside them; lamp too, as lamps form a radio choice, never a check box).
    * - :cpp:class:`CheckBoxThreeStateCapability <gui_forms::CheckBoxThreeStateCapability>`
      - Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
    * - :cpp:class:`ColorPicker::Parts <gui_forms::ColorPicker::Parts>`
@@ -257,7 +257,7 @@ Related types
    * - :cpp:class:`RadioButtonGroupNameCapability <gui_forms::RadioButtonGroupNameCapability>`
      - The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group.
    * - :cpp:class:`RadioButtonIndicatorStyleCapability <gui_forms::RadioButtonIndicatorStyleCapability>`
-     - How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+     - How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).
    * - :cpp:class:`RangeControl::Parts <gui_forms::RangeControl::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`RangeControl::States <gui_forms::RangeControl::States>`
@@ -452,7 +452,7 @@ Related types
 
    .. cpp:member:: ChoiceIndicatorStyle indicator_style
 
-      How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+      How the check mark draws: classic, modern or toggle (std::invalid_argument outside them; lamp too, as lamps form a radio choice, never a check box).
 
 .. cpp:namespace:: gui_forms
 
@@ -494,7 +494,7 @@ Related types
 
    ``#include <gui_forms/controls/check_box_capabilities.hpp>``
 
-   How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+   How the check mark draws: classic, modern or toggle (std::invalid_argument outside them; lamp too, as lamps form a radio choice, never a check box).
 
 
    .. rubric:: Methods
@@ -2194,7 +2194,7 @@ Related types
 
    .. cpp:member:: ChoiceIndicatorStyle indicator_style
 
-      How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+      How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).
 
 .. cpp:namespace:: gui_forms
 
@@ -2234,7 +2234,7 @@ Related types
 
    ``#include <gui_forms/controls/radio_button_capabilities.hpp>``
 
-   How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
+   How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).
 
 
    .. rubric:: Methods

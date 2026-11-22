@@ -22,10 +22,18 @@ namespace gui_forms {
 
 class Command;
 
+// How a CheckBox's or RadioButton's choice mark draws.
 enum class ChoiceIndicatorStyle : std::uint8_t {
     classic,
     modern,
+    // A sliding knob in a track.
     toggle,
+    // RadioButton only (owner, 2026-11-21): the mark is an indicator lamp,
+    // a lens in a round bezel that is dark while the option is not chosen
+    // and lit while it is. The whole option row, lamp and legend, takes the
+    // click; the lamp only shows which option is chosen. A CheckBox
+    // refuses it: lamps form a radio choice, never a switch.
+    lamp,
 };
 
 class GUI_FORMS_API ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase> {

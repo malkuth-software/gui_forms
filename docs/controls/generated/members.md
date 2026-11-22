@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2334 | 13 | 367 | 4141 | 2463 |
+| 2334 | 13 | 367 | 4142 | 2464 |
 
 ## GUI.Forms types
 
@@ -30,7 +30,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
 | `Badge` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
-| `IndicatorLamp` | GUI.Forms-only | 4 | 0 | 0 | 5 | 9 |
+| `IndicatorLamp` | GUI.Forms-only | 4 | 0 | 0 | 6 | 10 |
 | `InfoBanner` | GUI.Forms-only | 3 | 0 | 0 | 5 | 8 |
 | `EmptyState` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Toast` | GUI.Forms-only | 4 | 0 | 0 | 1 | 5 |
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1590 |
-| `untested` | 966 |
+| `untested` | 967 |
 | `w-open` | 5 |

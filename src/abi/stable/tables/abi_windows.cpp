@@ -1206,7 +1206,7 @@ bool band_texture_from(const gf_window_band_appearance& record, stxlib::Optional
     WindowBandTexture made{};
     made.opacity = record.texture_opacity;
     if (record.texture == GF_WINDOW_BAND_TEXTURE_PROCEDURAL) {
-        if (record.texture_kind > GF_PROCEDURAL_PATTERN_HATCH) return false;
+        if (record.texture_kind > GF_PROCEDURAL_PATTERN_CARBON_FIBRE) return false;
         made.source = WindowBandTextureSource::procedural;
         made.procedural.pattern = static_cast<ProceduralPattern>(record.texture_kind);
         made.procedural.seed = record.texture_seed;
@@ -1237,7 +1237,8 @@ bool band_texture_from(const gf_window_band_appearance& record, stxlib::Optional
 
 static_assert(static_cast<std::uint32_t>(ProceduralPattern::checker) == GF_PROCEDURAL_PATTERN_CHECKER &&
                   static_cast<std::uint32_t>(ProceduralPattern::felt) == GF_PROCEDURAL_PATTERN_FELT &&
-                  static_cast<std::uint32_t>(ProceduralPattern::hatch) == GF_PROCEDURAL_PATTERN_HATCH,
+                  static_cast<std::uint32_t>(ProceduralPattern::hatch) == GF_PROCEDURAL_PATTERN_HATCH &&
+                  static_cast<std::uint32_t>(ProceduralPattern::carbon_fibre) == GF_PROCEDURAL_PATTERN_CARBON_FIBRE,
               "GF_PROCEDURAL_PATTERN_* follow ProceduralPattern");
 static_assert(static_cast<std::uint32_t>(HatchStyle::horizontal) == GF_HATCH_STYLE_HORIZONTAL &&
                   static_cast<std::uint32_t>(HatchStyle::diagonal_cross) == GF_HATCH_STYLE_DIAGONAL_CROSS,

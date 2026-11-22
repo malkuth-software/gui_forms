@@ -9221,6 +9221,8 @@ Enumerations
 
    .. cpp:enumerator:: hatch
 
+   .. cpp:enumerator:: carbon_fibre
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RadialExtent

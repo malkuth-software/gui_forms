@@ -136,6 +136,7 @@ public static class Constants
     public const uint GF_PROCEDURAL_PATTERN_FRESCO = 5u;
     public const uint GF_PROCEDURAL_PATTERN_CHECKER = 6u;
     public const uint GF_PROCEDURAL_PATTERN_HATCH = 7u;
+    public const uint GF_PROCEDURAL_PATTERN_CARBON_FIBRE = 8u;
     public const uint GF_HATCH_STYLE_HORIZONTAL = 0u;
     public const uint GF_HATCH_STYLE_VERTICAL = 1u;
     public const uint GF_HATCH_STYLE_FORWARD_DIAGONAL = 2u;

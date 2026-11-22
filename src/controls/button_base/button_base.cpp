@@ -29,7 +29,7 @@ namespace gui_forms {
 std::shared_ptr<const PropertyEnumDescriptor> button_base_detail::choice_indicator_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "indicator_style", {{"classic", 0}, {"modern", 1}, {"toggle", 2}}, false});
+            "indicator_style", {{"classic", 0}, {"modern", 1}, {"toggle", 2}, {"lamp", 3}}, false});
     return value;
 }
 

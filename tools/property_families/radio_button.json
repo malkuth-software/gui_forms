@@ -100,7 +100,7 @@
       "capability": "RadioButtonIndicatorStyle",
       "value": "ChoiceIndicatorStyle",
       "initial": "ChoiceIndicatorStyle::classic",
-      "comment": "How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).",
+      "comment": "How the choice mark draws: classic, modern, toggle, or lamp, an indicator lamp lit while the option is chosen, the row taking the click (std::invalid_argument outside them).",
       "getter": "indicator_style",
       "setter": "set_indicator_style",
       "clear": null,
@@ -111,7 +111,7 @@
       "table": {
         "kind": "enumeration",
         "category": "Appearance",
-        "description": "How the choice mark draws: classic, modern or toggle.",
+        "description": "How the choice mark draws: classic, modern, toggle or lamp.",
         "default": "BindingValue{PropertyEnumValue{\"indicator_style\", \"classic\", 0}}",
         "effects": "Dirty::paint | Dirty::semantics",
         "subtree": false,
@@ -124,7 +124,7 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::toggle)) throw std::invalid_argument(\"RadioButton indicator style is invalid\");"
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::lamp)) throw std::invalid_argument(\"RadioButton indicator style is invalid\");"
       ],
       "sample": "ChoiceIndicatorStyle::modern"
     }
