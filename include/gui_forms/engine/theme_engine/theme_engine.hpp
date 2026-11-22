@@ -208,7 +208,11 @@ public:
     //   scale times the zoom, on the lattice of finish_tile_side-pixel tiles
     //   through world (0, 0) (snapped to the nearest device pixel, so tiles
     //   land on whole pixels). Each tile is the kernel at those pixels, so
-    //   adjacent tiles join exactly: no period, and no seam.
+    //   adjacent tiles join exactly: no period, and no seam. Each raster
+    //   carries an apron of the world beyond its square
+    //   (finish_tile_apron), drawn over the edge of the tile before it, so
+    //   no edge composited short (resampled, antialiased or rounded to the
+    //   other pixel) shows the surface beneath.
     // - A tile not held is queued for an idle frame and its place left
     //   bare; once the queue is painted the window repaints the area
     //   (the record `tiles.key` names). Panning reuses the tiles held; a

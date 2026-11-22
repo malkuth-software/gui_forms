@@ -213,9 +213,12 @@ namespace {
 // count.
 void paint_finish_tile_bake(void* context) noexcept {
     detail::FinishTileBake& bake = *static_cast<detail::FinishTileBake*>(context);
+    // The tile's square and its apron about it (finish_tile_apron).
     const std::int64_t side = static_cast<std::int64_t>(finish_tile_side);
-    bake.written = engine_primitives::paint_world_finish(bake.key.finish, bake.key.scale, bake.key.column * side,
-                                                         bake.key.row * side, bake.view, *bake.scratch);
+    const std::int64_t apron = static_cast<std::int64_t>(finish_tile_apron);
+    bake.written = engine_primitives::paint_world_finish(bake.key.finish, bake.key.scale,
+                                                         bake.key.column * side - apron, bake.key.row * side - apron,
+                                                         bake.view, *bake.scratch);
 }
 
 // The pool's threads for `requested` (set_finish_bake_threads): 0 when the
@@ -844,10 +847,11 @@ std::shared_ptr<const PartRaster> EnginePartTable::finish_tile(const FinishTileK
         return held.raster;
     }
     statistics_.finish_tile_misses = statistics_.finish_tile_misses + 1U;
-    // A tile is painted only within the world's reach, at a scale that
-    // draws: any other is never queued.
+    // A tile is painted only within the world's reach, its apron included
+    // (the outermost tiles' would pass it), at a scale that draws: any
+    // other is never queued.
     const std::int64_t reach = engine_primitives::finish_world_reach / finish_tile_side;
-    const bool placed = key.column >= -reach && key.column < reach && key.row >= -reach && key.row < reach;
+    const bool placed = key.column > -reach && key.column < reach - 1 && key.row > -reach && key.row < reach - 1;
     const bool scaled = std::isfinite(key.scale) && key.scale > 0.0 && std::isfinite(key.display_scale) &&
                         key.display_scale > 0.0;
     if (!placed || !scaled) return nullptr;
@@ -887,9 +891,10 @@ bool EnginePartTable::make_finish_tile_room(const std::size_t incoming, const st
 }
 
 bool EnginePartTable::generate_finish_tiles(const std::uint64_t paint_sequence) {
-    const DeviceExtent extent{finish_tile_side, finish_tile_side};
-    const std::size_t bytes = static_cast<std::size_t>(finish_tile_side) * finish_tile_side * part_raster_bytes_per_pixel;
-    const std::uint64_t pixels = static_cast<std::uint64_t>(finish_tile_side) * finish_tile_side;
+    const DeviceExtent extent{finish_tile_raster_side, finish_tile_raster_side};
+    const std::size_t bytes =
+        static_cast<std::size_t>(finish_tile_raster_side) * finish_tile_raster_side * part_raster_bytes_per_pixel;
+    const std::uint64_t pixels = static_cast<std::uint64_t>(finish_tile_raster_side) * finish_tile_raster_side;
     if (!finish_batch_) finish_batch_ = std::make_unique<FinishBakeBatch>();
     FinishBakeBatch& batch = *finish_batch_;
     batch.bakes.clear();
@@ -929,8 +934,9 @@ bool EnginePartTable::generate_finish_tiles(const std::uint64_t paint_sequence) 
     if (batch.scratches.size() < count) batch.scratches.resize(count);
     for (std::size_t index = 0U; index < count; ++index) {
         engine_primitives::FinishScratch& scratch = batch.scratches[index];
-        const bool sized = scratch.upper.size() > finish_tile_side && scratch.lower.size() > finish_tile_side;
-        if (!sized) engine_primitives::reserve_finish_scratch(scratch, finish_tile_side);
+        const bool sized =
+            scratch.upper.size() > finish_tile_raster_side && scratch.lower.size() > finish_tile_raster_side;
+        if (!sized) engine_primitives::reserve_finish_scratch(scratch, finish_tile_raster_side);
         batch.bakes[index].scratch = &scratch;
     }
     const std::uint32_t threads = finish_bake_pool_threads(finish_bake_threads_);
