@@ -177,18 +177,21 @@ enum class DiagnosticCode : std::uint16_t {
     form_type_unknown = 802,
     // A stable ID written on two objects of one document.
     form_identity_repeated = 803,
-    // A property that the object's type does not list.
+    // A property that the object's type does not list, set in an attribute
+    // or named by a `bind` element.
     form_property_unknown = 804,
     // A property the object's type does not let a document set.
     form_property_read_only = 805,
-    // A property written twice in one object's block.
+    // A property written twice on one object: under two spellings, as an
+    // attribute and by a `bind` element, or by two `bind` elements.
     form_member_repeated = 806,
     // A value that is not one of the forms the property's kind admits, or
     // that the property refuses.
     form_value_invalid = 807,
     // 808 is retired: it refused a malformed `on-` handler reference, and
     // handler references are no longer admitted (E816).
-    // An object inside an object whose type holds no children.
+    // An object inside an object whose type holds no children, a span
+    // where none is admitted, or a `bind` element holding anything.
     form_children_not_admitted = 809,
     // A style block in an object's block: a form is ontological, and its
     // objects' look belongs to the project theme, reached by `classes`
@@ -222,13 +225,16 @@ enum class DiagnosticCode : std::uint16_t {
     // 2026-11-07): a form never names program code; behaviour is attached
     // from program logic. The detail says so.
     form_handler_removed = 816,
-    // A binding written wrong (form_model.hpp, Bindings): `bind(` without
-    // its source identifier, a field that is not a string, a token after
-    // the closing parenthesis, or a property that is not bindable.
+    // A binding written wrong (form_model.hpp, Bindings): a `bind` element
+    // without its property or its source, a source that is not one C++
+    // identifier, an empty field, a field or mode on a Command, a property
+    // that is not bindable (a window's, a parent-provided one), or a Value
+    // binding of a kind no Value carries.
     form_binding_invalid = 817,
-    // A binding option the language does not know, written twice, or not
-    // admitted where it is written (`update` on a value source or a non-text
-    // property, `update` with `one_way`); the detail names it.
+    // A `bind` attribute the language does not know, or one not admitted
+    // where it is written (`update` on a value source or a non-text
+    // property, `update` with `mode="one-way"`, `mode="two-way"` on a
+    // one-way property); the detail names it.
     form_binding_option_invalid = 818,
     // A binding the loader cannot make from the sources it was given: no
     // source of that name, a source of another kind than the property's, or

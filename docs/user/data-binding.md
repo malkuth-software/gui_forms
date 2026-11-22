@@ -57,9 +57,9 @@ int main() {
 }
 ```
 
-A form binds a property to a scalar `Value` or a `Command` of its model in
-the property's own slot (`checked="bind(autosave)"`), when the control is
-created ([Forms](forms.md#bindings)). The record bindings on this page are the
+A form binds a property to a scalar `Value` or a `Command` of its model with
+a `bind` element inside the control (`<bind property="checked" to="autosave"/>`),
+when the control is created ([Forms](forms.md#bindings)). The record bindings on this page are the
 layer under that: they take a field of a `BindingSource`'s current record.
 
 ## Records and currency

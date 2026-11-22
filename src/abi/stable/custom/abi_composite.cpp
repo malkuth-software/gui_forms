@@ -62,7 +62,8 @@ struct HasIdentity final {
 // The stable ID of each prototype a child type is checked on.
 constexpr std::string_view prototype_stable_id = "gf-abi.composite.prototype";
 
-// A button child's command binding (a document's `command="bind(...)"`):
+// A button child's command binding (a document's
+// `<bind property="command" to="self.<property>"/>`):
 // every stock type a command reaches is a ButtonBase.
 void bind_button_command(Component& owner, Command& command) {
     ButtonBase* const button = dynamic_cast<ButtonBase*>(&owner);

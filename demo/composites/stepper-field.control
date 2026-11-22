@@ -37,10 +37,12 @@
   <part name="decrement-glyph" role="glyph" mark="arrow-down" states="hot pressed" box="inset(decrement-arrow, 4)"/>
 
   <children>
-    <!-- DEPENDS: converters (convert is E999 today), and a logical
+    <!-- DEPENDS: converters (converter is E999 today), and a logical
          inline-end margin (margin is physical: top right bottom left). -->
-    <text-box id="@field" dock="fill" margin="0 19 0 0"
-              read-only="bind(self.read-only, one_way)" text="bind(self.value, convert number)"/>
+    <text-box id="@field" dock="fill" margin="0 19 0 0">
+      <bind property="read-only" to="self.read-only" mode="one-way"/>
+      <bind property="text" to="self.value" converter="number"/>
+    </text-box>
   </children>
 
   <focus target="child(@field)" visible-cue="part(focus)"/>

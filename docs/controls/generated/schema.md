@@ -5,7 +5,7 @@ do not edit. The manifest is written by `gui_forms_gallery_pages_tests` from the
 registry (stage T1), so this page lists what the library publishes.
 
 Every name here is a registered name, stored in snake_case (owner decision 8). Theme
-and form documents, which are CSS-family, write the same words in kebab-case
+sheets (CSS-family) and form documents (XML) write the same words in kebab-case
 (`scroll_thumb` is `::part(scroll-thumb)`, `auto_size_mode` is `auto-size-mode`);
 PropertyGrid and C# show them in PascalCase (`AutoSizeMode`). C++ reads the anatomy as
 typed records (`(*bar).parts().thumb`) and registers handlers through each type's events

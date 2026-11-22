@@ -7,8 +7,9 @@ state and [`Command`](../api/generated/gui_forms.Command.rst) for actions.
 Controls bind to them by reference, and propagation is synchronous on the UI
 thread. Record-and-field binding is described in [Data binding](data-binding).
 
-A form document binds the same sources in a property's own slot when it
-creates the control (`value="bind(volume)"`); see [Forms](forms.md#bindings).
+A form document binds the same sources with a `bind` element inside the
+control when it creates the control (`<bind property="value" to="volume"/>`);
+see [Forms](forms.md#bindings).
 The `bind` calls in the table below are the C++ spelling, for controls a
 program makes itself.
 
@@ -17,8 +18,12 @@ program makes itself.
 <!-- forms/mixer.form -->
 <form xmlns="urn:gui-forms:form:1" id="mixer.window" text="Mixer" client-size="360 160">
   <panel id="mixer.root">
-    <track-bar id="volume.left" bounds="12 12 336 40" value="bind(volume)"/>
-    <track-bar id="volume.right" bounds="12 60 336 40" value="bind(volume)"/>
+    <track-bar id="volume.left" bounds="12 12 336 40">
+      <bind property="value" to="volume"/>
+    </track-bar>
+    <track-bar id="volume.right" bounds="12 60 336 40">
+      <bind property="value" to="volume"/>
+    </track-bar>
     <command-bar id="mixer.commands" bounds="12 112 336 36"/>
   </panel>
 </form>
@@ -94,8 +99,8 @@ Its contract is `get()`, `set()`, `changed()` and `validating()`:
 
 | Control | In a form | In code | Model |
 |---|---|---|---|
-| [`RangeControl`](../api/generated/gui_forms.RangeControl.rst), [`TrackBar`](../api/generated/gui_forms.TrackBar.rst) | `value="bind(x)"` | `bind(model)` | `Value<double>` |
-| [`CheckBox`](../api/generated/gui_forms.CheckBox.rst) | `checked="bind(x)"` | `bind(model)` | `Value<bool>` |
+| [`RangeControl`](../api/generated/gui_forms.RangeControl.rst), [`TrackBar`](../api/generated/gui_forms.TrackBar.rst) | `<bind property="value" to="x"/>` | `bind(model)` | `Value<double>` |
+| [`CheckBox`](../api/generated/gui_forms.CheckBox.rst) | `<bind property="checked" to="x"/>` | `bind(model)` | `Value<bool>` |
 | [`ChoiceGroup`](../api/generated/gui_forms.ChoiceGroup.rst) | (in code) | `bind(model)`; `-1` selects nothing | `Value<int>` |
 | [`ExpandableSections`](../api/generated/gui_forms.ExpandableSections.rst) | (items are data) | `SectionItem::expanded` | `Value<bool>*` per section |
 
@@ -126,7 +131,7 @@ that again, as `CommandState::checkable` reports. `execute(source_id)` raises
 `invoked()` with a `CommandInvocation`; it returns false and invokes nothing
 when the command is disabled or disposed.
 
-`command="bind(x)"` in a form, or `button.bind(command)` in code, connects any
+`<bind property="command" to="x"/>` in a form, or `button.bind(command)` in code, connects any
 `ButtonBase`, and the command's state wins
 at bind time. The button's enabled state follows the command; a checkable
 command shows as a `CheckBox` check or a `Button` selected state; toggling a

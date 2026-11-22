@@ -12,14 +12,19 @@
 //   <form xmlns="urn:gui-forms:form:1" id="settings.window" text="Settings"
 //       accept-button="settings.ok">
 //     <panel id="settings.root">
-//       <check-box id="settings.autosave" checked="bind(autosave)"/>
+//       <check-box id="settings.autosave">
+//         <bind property="checked" to="autosave"/>
+//       </check-box>
 //     </panel>
 //   </form>
 //
 // - An element is an object, named by its type in kebab case; `form` is the
 //   window root. Its child elements are its children, in document order.
 // - `id` holds the stable ID; `xmlns` (the root only) the language and its
-//   version, form_namespace. Every other attribute is a property.
+//   version, form_namespace. Every other attribute is a property, always
+//   set to its literal value.
+// - `<bind property to field? mode? update?/>` directly inside an object
+//   binds one of its properties instead.
 // - `<span name? anchor rows? columns?/>` directly inside a type that holds
 //   spans declares one region of its grid.
 // - Whitespace between elements is indentation; an object holds no other

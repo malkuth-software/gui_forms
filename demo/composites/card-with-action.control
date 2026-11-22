@@ -17,9 +17,13 @@
   <children>
     <flex-panel id="@header" dock="top" padding="10 12"
                 style="flex-direction: row; align-items: center; column-gap: 8px">
-      <label id="@title" text="bind(self.title, one_way)" classes="heading" item-style="flex: 1 1 auto"/>
-      <button id="@action" text="bind(self.action-text, one_way)" command="bind(self.action-command)"
-              visible="not(equal(self.action-text, ''))"/>
+      <label id="@title" classes="heading" item-style="flex: 1 1 auto">
+        <bind property="text" to="self.title" mode="one-way"/>
+      </label>
+      <button id="@action" visible="not(equal(self.action-text, ''))">
+        <bind property="text" to="self.action-text" mode="one-way"/>
+        <bind property="command" to="self.action-command"/>
+      </button>
     </flex-panel>
     <slot id="@content" dock="fill" padding="12"/>
   </children>

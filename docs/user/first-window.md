@@ -13,7 +13,9 @@ package; the CMake project in [Consume the SDK](consume-the-sdk) builds it.
 <form xmlns="urn:gui-forms:form:1" id="greeter.window" text="GUI.Forms - first window" client-size="480 140">
   <panel id="greeter.root">
     <label id="greeter.status" text="Ready." bounds="24 24 432 32" classes="status"/>
-    <button id="greeter.run" text="Run" bounds="24 72 120 36" command="bind(run)"/>
+    <button id="greeter.run" text="Run" bounds="24 72 120 36">
+      <bind property="command" to="run"/>
+    </button>
   </panel>
 </form>
 ```
@@ -126,7 +128,7 @@ The theme belongs to the program
   it makes uses the result ([Themes](themes)).
 
 The model is bound when the window is made
-: `command="bind(run)"` connects the button to `model.run`: a click invokes
+: `<bind property="command" to="run"/>` connects the button to `model.run`: a click invokes
   the command, and the command's enabled state enables the button. The
   binding is made as the button is created, so no control shows a default
   that a binding then overwrites. Declare the model before the window, so the

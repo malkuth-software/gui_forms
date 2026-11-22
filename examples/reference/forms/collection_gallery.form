@@ -10,10 +10,18 @@
 
   <panel id="gallery">
     <command-bar id="commands" bounds="24 20 712 40"/>
-    <track-bar id="volume.first" bounds="24 84 340 42" value="bind(volume)"/>
-    <track-bar id="volume.second" bounds="396 84 340 42" value="bind(volume)"/>
-    <check-box id="music.left" text="Music - shared command" bounds="24 150 340 36" command="bind(music)"/>
-    <check-box id="music.right" text="Music - second presentation" bounds="396 150 340 36" command="bind(music)"/>
+    <track-bar id="volume.first" bounds="24 84 340 42">
+      <bind property="value" to="volume"/>
+    </track-bar>
+    <track-bar id="volume.second" bounds="396 84 340 42">
+      <bind property="value" to="volume"/>
+    </track-bar>
+    <check-box id="music.left" text="Music - shared command" bounds="24 150 340 36">
+      <bind property="command" to="music"/>
+    </check-box>
+    <check-box id="music.right" text="Music - second presentation" bounds="396 150 340 36">
+      <bind property="command" to="music"/>
+    </check-box>
     <choice-group id="choices" bounds="24 220 712 52"/>
     <expandable-sections id="sections" bounds="24 300 712 220"/>
     <label id="status"

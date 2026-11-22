@@ -4508,7 +4508,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string css_spelling(std::string_view registered)
 
-   The kebab-case spelling CSS-family documents write: "auto-size-mode".
+   The kebab-case spelling theme sheets and form documents write: "auto-size-mode".
 
 .. cpp:function:: std::string display_spelling(std::string_view registered)
 

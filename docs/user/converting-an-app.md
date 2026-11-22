@@ -86,8 +86,12 @@ struct GreeterModel final {
 ```
 
 ```xml
-<button id="example.greet" text="Greet" bounds="292 60 108 30" command="bind(greet)"/>
-<check-box id="example.shout" text="Shout the greeting" bounds="20 100 380 28" checked="bind(shout)"/>
+<button id="example.greet" text="Greet" bounds="292 60 108 30">
+  <bind property="command" to="greet"/>
+</button>
+<check-box id="example.shout" text="Shout the greeting" bounds="20 100 380 28">
+  <bind property="checked" to="shout"/>
+</check-box>
 ```
 
 Switch the CMake call to `MODEL example_app::GreeterModel MODEL_HEADER
@@ -103,7 +107,8 @@ What changes:
   The logic reads `model.shout.get()` instead of asking the control.
 - **Calls to `bind(...)` are removed.** A control that had one
   (`check.bind(value)`, `button.bind(command)`) is bound in the document
-  instead, when the control is created ([Forms](forms.md#bindings)).
+  instead, with a `bind` element, when the control is created
+  ([Forms](forms.md#bindings)).
 
 ## 3. Attach the behaviour from program code
 
