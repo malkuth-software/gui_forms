@@ -41,7 +41,20 @@ struct GUI_FORMS_API MenuStripItemSpec final {
     // text only.
     MergeAction merge_action{MergeAction::append};
     stxlib::Optional<std::size_t> merge_index{};
+    // Whether this menu lists the window's MDI children when it opens
+    // (WinForms' MdiWindowListItem; MenuStrip::mdi_window_list_item): a
+    // separator, then one checkable row per child of the window's document
+    // area ("&1 Title" to "&9 Title", the active child checked), then "More
+    // Windows..." when there are more than nine. Choosing a row activates
+    // its child (Window::activate_mdi_child) and raises no item_invoked;
+    // "More Windows..." raises item_invoked with the item ID
+    // "mdi-window-list.more", for the application's own chooser.
+    bool window_list{};
 };
+
+// The caption buttons of a maximized MDI child, shown at the end of its
+// window's main menu strip (MenuStrip::document_frame_buttons).
+enum class MenuStripFrameButton : std::uint8_t { minimize, restore, close };
 
 struct GUI_FORMS_API MenuStripInvocation final {
     std::string menu_strip_id{};
@@ -77,6 +90,26 @@ public:
     [[nodiscard]] Event<stxlib::Optional<std::size_t>>& open_changed() noexcept {
         return open_changed_;
     }
+
+    // -- the multiple document interface (DK decisions 60 to 63) --
+    // The menu the window list joins: the first visible item whose spec sets
+    // window_list, or none (WinForms' MdiWindowListItem). The list is read
+    // from the attached window's document area (Window::mdi_children) each
+    // time the menu opens.
+    [[nodiscard]] stxlib::Optional<std::size_t> mdi_window_list_item() const noexcept;
+    // Whether the strip shows a maximized MDI child's caption buttons
+    // (minimize, restore, close) at its end, as WinForms' MDI shows them on
+    // the main menu strip. The docking site turns them on while a document
+    // frame is maximized and the strip is its window's main menu strip
+    // (Window::main_menu_strip), and listens to frame_button_pressed.
+    void set_document_frame_buttons(bool shown);
+    [[nodiscard]] bool document_frame_buttons() const noexcept { return frame_buttons_; }
+    // Raised when a shown frame button is pressed and released (pointer) or
+    // pressed (semantic press).
+    [[nodiscard]] Event<MenuStripFrameButton>& frame_button_pressed() noexcept { return frame_button_pressed_; }
+    // Where a frame button shows, in the strip's coordinates; empty while
+    // the buttons are off.
+    [[nodiscard]] Rect document_frame_button_bounds(MenuStripFrameButton button) const;
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -126,6 +159,7 @@ public:
 
 protected:
     void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
     void on_key_down(KeyEventArgs& arguments) override;
@@ -158,6 +192,11 @@ private:
     void on_overlay_item_invoked(const MenuItemInvocation& invocation);
     void on_overlay_open_changed(bool open_state);
     void set_hot(stxlib::Optional<std::size_t> index);
+    // The frame button at a point in the strip's coordinates; 0 for none,
+    // else the button's value plus one (frame_hot_ and frame_pressed_ hold
+    // the same coding).
+    [[nodiscard]] std::uint8_t frame_button_at(Point local) const;
+    void set_frame_hot(std::uint8_t button);
 
     std::vector<MenuStripItemSpec> items_{};
     std::unique_ptr<ContextMenu> overlay_{};
@@ -172,6 +211,11 @@ private:
     SubscriptionToken overlay_changed_{};
     Event<const MenuStripInvocation&> item_invoked_{};
     Event<stxlib::Optional<std::size_t>> open_changed_{};
+    // The maximized MDI child's buttons: shown, hot and pressed.
+    bool frame_buttons_{};
+    std::uint8_t frame_hot_{};
+    std::uint8_t frame_pressed_{};
+    Event<MenuStripFrameButton> frame_button_pressed_{};
     // property_codemod begin MenuStrip (tools/property_families/menu_strip.json; generated, do not edit)
 private:
     friend struct MenuStripUseMnemonicCapability<MenuStrip>;

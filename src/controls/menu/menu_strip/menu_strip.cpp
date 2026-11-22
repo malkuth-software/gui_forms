@@ -1,6 +1,7 @@
 #include "gui_forms/controls/menu_strip.hpp"
 
 #include "../menu_utilities.hpp"
+#include "../../frame_chrome/frame_chrome.hpp"
 #include "../../tool_strip/strip_merge.hpp"
 
 #include "gui_forms/basic_controls.hpp"
@@ -19,6 +20,7 @@
 #include <functional>
 #include <optional>
 #include <stdexcept>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 
@@ -30,6 +32,84 @@ using menu_detail::validate_specs;
 namespace {
 
 constexpr double menu_strip_height = 24.0;
+
+// The maximized MDI child's buttons at the strip's end (logical units,
+// scaled with the text): 16-unit buttons 1 unit apart, 3 units from the end,
+// with 9-unit glyphs, as a document frame's caption.
+constexpr double frame_button_side = 16.0;
+constexpr double frame_button_gap = 1.0;
+constexpr double frame_button_end_inset = 3.0;
+constexpr double frame_glyph_side = 9.0;
+constexpr std::array<MenuStripFrameButton, 3> frame_buttons{
+    MenuStripFrameButton::minimize, MenuStripFrameButton::restore, MenuStripFrameButton::close};
+constexpr std::array<std::string_view, 3> frame_button_names{"frame-minimize", "frame-restore", "frame-close"};
+constexpr std::array<std::string_view, 3> frame_button_labels{"Minimize", "Restore", "Close"};
+
+// The window list's rows (MenuStripItemSpec::window_list): their item IDs
+// and the most rows before "More Windows...".
+constexpr std::string_view window_list_prefix = "mdi-window-list.";
+constexpr std::size_t window_list_rows = 9U;
+
+std::uint8_t frame_code(MenuStripFrameButton button) noexcept {
+    const std::uint8_t code = static_cast<std::uint8_t>(static_cast<std::uint8_t>(button) + 1U);
+    return code;
+}
+
+// A title as a menu row's text: '&' doubled, so it shows and names no
+// mnemonic.
+std::string escaped_title(std::string_view title) {
+    std::string escaped{};
+    escaped.reserve(title.size());
+    for (const char character : title) {
+        escaped.push_back(character);
+        if (character == '&') escaped.push_back('&');
+    }
+    return escaped;
+}
+
+// Appends the window list to a menu about to open: a separator after the
+// menu's own rows, one row per MDI child of `window`'s document area (the
+// active one checked) up to nine, and "More Windows..." past them. Nothing
+// without children.
+void append_window_list(Window& window, std::vector<MenuItemSpec>& menu) {
+    const BorrowedSpan<DockPanelId> children = window.mdi_children();
+    if (children.size() == 0U) return;
+    WindowDocumentArea* const area = window.document_area();
+    const stxlib::Optional<DockPanelId> active = window.active_mdi_child();
+    if (!menu.empty()) {
+        menu.push_back(MenuItemSpec(std::string(window_list_prefix) + "separator", MenuItemKind::separator));
+    }
+    const std::size_t shown = std::min(children.size(), window_list_rows);
+    for (std::size_t index = 0U; index < shown; ++index) {
+        const DockPanelId& child = children[index];
+        std::string title = child.value;
+        if (area != nullptr) {
+            const BorrowedText named = (*area).document_title(child);
+            if (!named.empty()) title = std::string(named.data(), named.size());
+        }
+        const std::string number = std::to_string(index + 1U);
+        MenuItemSpec row(std::string(window_list_prefix) + number, MenuItemKind::check, {},
+                         "&" + number + " " + escaped_title(title));
+        row.checked = active.present() && *active.value() == child;
+        menu.push_back(std::move(row));
+    }
+    if (children.size() > window_list_rows) {
+        menu.push_back(MenuItemSpec(std::string(window_list_prefix) + "more", MenuItemKind::command, {},
+                                    "&More Windows..."));
+    }
+}
+
+// The window list row an item ID names: its child's position, or none (not
+// a row, or "More Windows...").
+stxlib::Optional<std::size_t> window_list_row(std::string_view item_id) noexcept {
+    if (item_id.size() <= window_list_prefix.size() ||
+        item_id.substr(0U, window_list_prefix.size()) != window_list_prefix) {
+        return stxlib::Optional<std::size_t>::none();
+    }
+    const std::string_view number = item_id.substr(window_list_prefix.size());
+    if (number.size() != 1U || number[0] < '1' || number[0] > '9') return stxlib::Optional<std::size_t>::none();
+    return stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(number[0] - '1'));
+}
 
 } // namespace
 
@@ -61,6 +141,17 @@ void MenuStrip::on_overlay_item_invoked(
     const MenuItemInvocation& invocation) {
     const std::size_t* const active = active_index_.value();
     if (active == nullptr || *active >= items_.size()) return;
+    // A window list row activates its child instead.
+    const stxlib::Optional<std::size_t> row = window_list_row(invocation.item_id);
+    if (row.present() && items_[*active].window_list) {
+        Window* const host = attached_window();
+        if (host == nullptr) return;
+        const BorrowedSpan<DockPanelId> children = (*host).mdi_children();
+        if (*row.value() >= children.size()) return;
+        const DockPanelId child = children[*row.value()];
+        static_cast<void>((*host).activate_mdi_child(child));
+        return;
+    }
     MenuStripInvocation forwarded{
         std::string(stable_id().value()),
         items_[*active].stable_id, invocation};
@@ -162,6 +253,10 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     if (holds(active_index_, index) && (*overlay_).is_open()) return true;
     // A merge may have left the menu empty, or holding only empty submenus.
     std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[index].items);
+    if (items_[index].window_list) {
+        Window* const host = attached_window();
+        append_window_list(*host, menu);
+    }
     if (menu.empty()) return false;
     // A menu whose commands are all hidden would show nothing: refuse before
     // the strip changes (A-gf-controls-06-F3).
@@ -395,9 +490,90 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         ring.states.insert(AnatomyState::focus_visible);
         paint_part(painter, *this, ring);
     }
+    if (!frame_buttons_) return;
+    // A maximized MDI child's buttons, in the in-window frames' shared
+    // chrome (frame_chrome.hpp).
+    const double glyph = frame_glyph_side * effective_text_scale();
+    const std::array<frame_chrome::FrameButtonGlyph, 3> glyphs{frame_chrome::FrameButtonGlyph::minimize,
+                                                               frame_chrome::FrameButtonGlyph::restore,
+                                                               frame_chrome::FrameButtonGlyph::close};
+    for (std::size_t index = 0U; index < frame_buttons.size(); ++index) {
+        const Rect button = document_frame_button_bounds(frame_buttons[index]);
+        AnatomyStateSet states;
+        if (frame_hot_ == frame_code(frame_buttons[index])) states.insert(AnatomyState::hot);
+        if (frame_pressed_ == frame_code(frame_buttons[index])) states.insert(AnatomyState::pressed);
+        if (!effectively_enabled()) states.insert(AnatomyState::disabled);
+        const Rect mark{button.x + (button.width - glyph) * 0.5, button.y + (button.height - glyph) * 0.5, glyph,
+                        glyph};
+        frame_chrome::paint_frame_button(painter, *this, button, mark, glyphs[index], states);
+    }
+}
+
+// -- the multiple document interface ---------------------------------------------
+
+stxlib::Optional<std::size_t> MenuStrip::mdi_window_list_item() const noexcept {
+    for (std::size_t index = 0U; index < items_.size(); ++index) {
+        if (items_[index].visible && items_[index].window_list) return stxlib::Optional<std::size_t>::of(index);
+    }
+    return stxlib::Optional<std::size_t>::none();
+}
+
+void MenuStrip::set_document_frame_buttons(bool shown) {
+    require_mutable();
+    if (frame_buttons_ == shown) return;
+    frame_buttons_ = shown;
+    frame_hot_ = 0U;
+    frame_pressed_ = 0U;
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// The buttons sit at the strip's end, centred across it: minimize, restore,
+// close toward the end (mirrored right to left, at the start).
+Rect MenuStrip::document_frame_button_bounds(MenuStripFrameButton button) const {
+    if (!frame_buttons_) return Rect{};
+    const double scale = effective_text_scale();
+    const Rect frame{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
+    const double side = std::min(frame_button_side * scale, frame.height);
+    const double gap = frame_button_gap * scale;
+    const double top = (frame.height - side) * 0.5;
+    const std::size_t from_end = frame_buttons.size() - 1U - static_cast<std::size_t>(button);
+    const double right = frame.width - frame_button_end_inset * scale - static_cast<double>(from_end) * (side + gap);
+    Rect bounds{right - side, top, side, side};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) bounds = horizontally_mirrored(bounds, frame);
+    return bounds;
+}
+
+std::uint8_t MenuStrip::frame_button_at(Point local) const {
+    if (!frame_buttons_) return 0U;
+    for (const MenuStripFrameButton button : frame_buttons) {
+        if (document_frame_button_bounds(button).contains(local)) return frame_code(button);
+    }
+    return 0U;
+}
+
+void MenuStrip::set_frame_hot(std::uint8_t button) {
+    if (frame_hot_ == button) return;
+    frame_hot_ = button;
+    invalidate(Dirty::paint);
+}
+
+void MenuStrip::on_mouse_up(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary && frame_pressed_ != 0U) {
+        const std::uint8_t pressed = frame_pressed_;
+        frame_pressed_ = 0U;
+        invalidate(Dirty::paint);
+        arguments.handled = true;
+        if (frame_button_at(arguments.location) == pressed && effectively_enabled()) {
+            const Control::Ptr lifetime = shared_from_this();
+            const MenuStripFrameButton button = static_cast<MenuStripFrameButton>(pressed - 1U);
+            frame_button_pressed_.emit(button);
+        }
+    }
+    Control::on_mouse_up(arguments);
 }
 
 void MenuStrip::on_mouse_move(MouseEventArgs& arguments) {
+    set_frame_hot(frame_button_at(arguments.location));
     const stxlib::Optional<std::size_t> found = index_at(arguments.window_position);
     const std::size_t* const index = found.value();
     set_hot(found);
@@ -410,12 +586,20 @@ void MenuStrip::on_mouse_move(MouseEventArgs& arguments) {
 }
 
 void MenuStrip::on_mouse_leave() {
+    set_frame_hot(0U);
     if (!is_open()) set_hot(stxlib::Optional<std::size_t>::none());
     Control::on_mouse_leave();
 }
 
 void MenuStrip::on_mouse_down(MouseEventArgs& arguments) {
-    if (arguments.button == PointerButton::primary) {
+    const std::uint8_t frame_button = arguments.button == PointerButton::primary
+        ? frame_button_at(arguments.location) : std::uint8_t{0U};
+    if (frame_button != 0U && effectively_enabled()) {
+        close();
+        frame_pressed_ = frame_button;
+        invalidate(Dirty::paint);
+        arguments.handled = true;
+    } else if (arguments.button == PointerButton::primary) {
         const stxlib::Optional<std::size_t> found = index_at(arguments.window_position);
         const std::size_t* const index = found.value();
         if (index != nullptr && items_[*index].enabled) {
@@ -519,6 +703,23 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
                         SemanticAction::expand, SemanticAction::collapse};
         nodes.push_back(std::move(node));
     }
+    if (!frame_buttons_) return nodes;
+    // A maximized MDI child's buttons.
+    for (std::size_t index = 0U; index < frame_buttons.size(); ++index) {
+        const Rect button = document_frame_button_bounds(frame_buttons[index]);
+        SemanticNode node{};
+        node.stable_id = std::string(stable_id().value()) + "." + std::string(frame_button_names[index]);
+        node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
+        node.role = SemanticRole::button;
+        node.name = std::string(frame_button_labels[index]);
+        node.bounds = {absolute.x + button.x, absolute.y + button.y, button.width, button.height};
+        node.states = SemanticState::visible;
+        if (effectively_enabled()) {
+            node.states |= SemanticState::enabled;
+            node.actions = {SemanticAction::press};
+        }
+        nodes.push_back(std::move(node));
+    }
     return nodes;
 }
 
@@ -540,6 +741,15 @@ stxlib::Optional<std::size_t> find_top_level(const std::vector<MenuStripItemSpec
 bool MenuStrip::on_semantic_child_action(std::string_view id,
                                          SemanticAction action,
                                          std::string_view) {
+    if (frame_buttons_ && action == SemanticAction::press && effectively_enabled()) {
+        for (std::size_t index = 0U; index < frame_buttons.size(); ++index) {
+            const std::string button_id = std::string(stable_id().value()) + "." + std::string(frame_button_names[index]);
+            if (id != button_id) continue;
+            const Control::Ptr lifetime = shared_from_this();
+            frame_button_pressed_.emit(frame_buttons[index]);
+            return true;
+        }
+    }
     const stxlib::Optional<std::size_t> found = find_top_level(items_, id);
     if (found.absent()) return false;
     const std::size_t index = *found.value();

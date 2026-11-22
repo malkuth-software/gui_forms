@@ -151,6 +151,11 @@ DockSite::~DockSite() {
         if (slot.view) (*slot.view).release_site();
     }
     if (drag_layer_) (*drag_layer_).release_site();
+    frame_strip_token_.disconnect();
+    for (FrameSlot& slot : frames_) {
+        if (slot.frame) static_cast<DocumentFrame&>(*slot.frame).release_site();
+    }
+    unbind_document_area();
     if (workspace_ != nullptr) (*workspace_).detach_site(*this);
     workspace_ = nullptr;
 }
@@ -166,6 +171,8 @@ void DockSite::on_dispose() noexcept {
     if (menu_) (*menu_).dispose();
     focus_token_.disconnect();
     activation_token_.disconnect();
+    release_frames();
+    unbind_document_area();
     if (workspace_ != nullptr) (*workspace_).detach_site(*this);
     workspace_ = nullptr;
     for (StackSlot& slot : stacks_) {
@@ -183,6 +190,8 @@ void DockSite::release_workspace() noexcept {
     close_navigator();
     close_position_menu();
     activation_token_.disconnect();
+    release_frames();
+    unbind_document_area();
     workspace_ = nullptr;
     try {
         for (StackSlot& slot : stacks_) remove_slot(slot);
@@ -264,16 +273,18 @@ namespace {
 // Recurses once per dock node level: a committed tree is at most
 // dock_maximum_depth (32) deep, refused beyond by the invariant check;
 // a few hundred bytes of stack per level.
-void collect_main_stacks(const DockLayout& layout, DockNodeId node_id, std::vector<DockNodeId>& out) {
+// With `frames`, the document area's content is left out: its documents
+// show in frames (dock_site_frames.cpp), not in stack views.
+void collect_main_stacks(const DockLayout& layout, DockNodeId node_id, std::vector<DockNodeId>& out, bool frames) {
     const DockNode* const node = layout.find_node(node_id);
     if (node == nullptr) return;
     if ((*node).kind == DockNodeKind::split) {
-        collect_main_stacks(layout, (*node).first, out);
-        collect_main_stacks(layout, (*node).second, out);
+        collect_main_stacks(layout, (*node).first, out, frames);
+        collect_main_stacks(layout, (*node).second, out, frames);
         return;
     }
     if ((*node).kind == DockNodeKind::document_area) {
-        if (!((*node).first == DockNodeId{})) collect_main_stacks(layout, (*node).first, out);
+        if (!frames && !((*node).first == DockNodeId{})) collect_main_stacks(layout, (*node).first, out, frames);
         return;
     }
     out.push_back(node_id);
@@ -308,8 +319,11 @@ DockNodeId DockSite::site_root() const {
 void DockSite::realize() {
     if (workspace_ == nullptr || !is_alive()) return;
     const DockLayout& layout = (*workspace_).layout();
+    // Frames give their content back before any stack view takes it.
+    const bool frames = document_frames_shown();
+    if (!frames && !frames_.empty()) release_frames();
     std::vector<DockNodeId> order{};
-    collect_main_stacks(layout, site_root(), order);
+    collect_main_stacks(layout, site_root(), order, frames);
     // In the main site the auto-hidden stacks follow the tree's, in layout
     // order.
     const std::size_t tree_count = order.size();
@@ -373,9 +387,12 @@ void DockSite::realize() {
         }
         sync_pages(slot, *layout.find_node(slot.stack));
     }
+    // The document frames stack below the stack views.
+    if (frames) realize_frames(child_index);
     // The drag layer paints over every stack.
     if (drag_layer_) (*drag_layer_).bring_to_front();
     sync_side_strips();
+    sync_frame_buttons_on_strip();
     update_focus_regions();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -502,6 +519,10 @@ void DockSite::update_focus_regions() {
     for (const StackSlot& slot : stacks_) {
         if (slot.view && !slot.auto_hidden) ours.push_back(slot.view);
     }
+    // Then each document frame, in tree order.
+    for (const FrameSlot& slot : frames_) {
+        if (slot.frame) ours.push_back(slot.frame);
+    }
     // Then each side strip that has tabs.
     for (const SideStrip& entry : sides_) {
         if (entry.strip && !entry.panels.empty()) ours.push_back(entry.strip);
@@ -579,6 +600,10 @@ void DockSite::refocus_if_lost(bool focus_was_inside) {
                                                                (*workspace_).active_document()};
     for (const std::optional<DockPanelId>& candidate : candidates) {
         if (!candidate) continue;
+        if (frame_for(*candidate) != nullptr) {
+            static_cast<void>((*workspace_).activate_panel(*candidate, DockActivationCause::fallback));
+            return;
+        }
         const DockPanelLocation location = (*workspace_).layout().locate(*candidate);
         const StackSlot* const slot = slot_for(location.stack);
         if (slot == nullptr || (*slot).collapsed) continue;
@@ -672,6 +697,7 @@ void DockSite::on_focus_moved(const FocusedControlChange&) {
         }
     }
     if (!focused) return;
+    if (note_frame_focus(focused)) return;
     const std::size_t index = slot_index_of(*focused);
     if (index >= stacks_.size()) return;
     const std::optional<DockPanelId> panel = selected_panel(stacks_[index]);
@@ -712,6 +738,10 @@ void DockSite::on_focus_moved(const FocusedControlChange&) {
 void DockSite::focus_panel(const DockPanelId& panel) {
     Window* const host = attached_window();
     if (host == nullptr || workspace_ == nullptr) return;
+    if (frame_for(panel) != nullptr) {
+        focus_frame(panel);
+        return;
+    }
     const DockPanelLocation location = (*workspace_).layout().locate(panel);
     const StackSlot* slot = slot_for(location.stack);
     if (slot == nullptr) return;
@@ -754,6 +784,11 @@ std::optional<DockPanelId> DockSite::focused_panel() const {
     if (host == nullptr) return std::nullopt;
     const Control::Ptr focused = (*host).focused_control();
     if (!focused) return std::nullopt;
+    const std::size_t framed = frame_index_of(*focused);
+    if (framed < frames_.size()) {
+        const std::optional<DockPanelId> panel = frames_[framed].panel;
+        return panel;
+    }
     const std::size_t index = slot_index_of(*focused);
     if (index >= stacks_.size()) return std::nullopt;
     const std::optional<DockPanelId> panel = selected_panel(stacks_[index]);
@@ -803,6 +838,10 @@ void DockSite::on_attachment_committed() noexcept {
         }
         update_focus_regions();
         if (workspace_ != nullptr) (*workspace_).publish_command_targets();
+        // The main site presents the workspace as its window's document
+        // area (the window's MDI calls).
+        bind_document_area();
+        sync_frame_buttons_on_strip();
     } catch (...) {
     }
 }
@@ -826,6 +865,9 @@ void DockSite::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     // The guest showing this drag stops too (A-gf-controls-04-F2); the
     // former window ends the capture itself.
     abandon_drag(false);
+    end_frame_gesture(true);
+    release_frame_buttons_on_strip();
+    unbind_document_area();
     focus_token_.disconnect();
     followed_window_ = nullptr;
     root_pointer_.disconnect();
@@ -936,8 +978,9 @@ DockSite::Extent DockSite::extent_of(DockNodeId node_id, std::span<const DockNod
     }
     if ((*node).kind == DockNodeKind::document_area) {
         // The document area is always there, empty or not (decision DK-19).
+        // Its frames overlap inside it and ask for no room.
         extent.present = true;
-        if (!((*node).first == DockNodeId{})) {
+        if (!((*node).first == DockNodeId{}) && !document_frames_shown()) {
             const Extent content = extent_of((*node).first, collapsed);
             if (content.present) extent.minimum = content.minimum;
         }
@@ -1033,7 +1076,7 @@ void DockSite::place(DockNodeId node_id, Rect bounds, std::span<const DockNodeId
     }
     if ((*node).kind == DockNodeKind::document_area) {
         document_area_ = bounds;
-        if ((*node).first == DockNodeId{}) return;
+        if ((*node).first == DockNodeId{} || document_frames_shown()) return;
         // Content wholly held out by a drag leaves the area empty.
         if (extent_of((*node).first, collapsed).present) place((*node).first, bounds, collapsed);
         return;
@@ -1118,6 +1161,7 @@ void DockSite::arrange(Rect final_bounds) {
     tree_area_ = plan_bands_and_collapse(surface, edges, bands);
     place(site_root(), tree_area_, collapsed_);
     arrange_stack_views();
+    arrange_frames();
     arrange_side_strips(edges, bands);
     follow_flyout_after_pass();
     finish_layout_pass(previous, surface, focus_was_inside);
@@ -1249,6 +1293,11 @@ void DockSite::finish_layout_pass(const PreviousPass& previous, Size surface, bo
     shown_stacks.reserve(stacks_.size());
     for (const StackSlot& slot : stacks_) shown_stacks.push_back(slot.stack);
     for (const DockNodeId stack : shown_stacks) supply_content(stack);
+    // The frames' content likewise, over their documents copied first.
+    std::vector<DockPanelId> framed{};
+    framed.reserve(frames_.size());
+    for (const FrameSlot& slot : frames_) framed.push_back(slot.panel);
+    for (const DockPanelId& panel : framed) supply_frame_content(panel);
     if (drag_layer_) set_child_layout(drag_layer_, Rect{0.0, 0.0, surface.width, surface.height});
     if (drag_.phase == DockDragPhase::dragging) plan_drag_targets();
     if (drag_.phase == DockDragPhase::settling) place_settle_target();
@@ -1650,6 +1699,20 @@ void DockSite::on_pointer_preview(PointerEvent& event) {
         }
         return;
     }
+    // A press anywhere in a document frame activates its document first, its
+    // frame coming to the front (WinForms' MDI): the frontmost frame under
+    // the pointer.
+    const FrameSlot* pressed = nullptr;
+    for (const FrameSlot& slot : frames_) {
+        if (!slot.frame || !(*slot.frame).absolute_bounds().contains(event.position)) continue;
+        if (pressed == nullptr || slot.order >= (*pressed).order) pressed = &slot;
+    }
+    if (pressed == nullptr) return;
+    const DockPanelId panel = (*pressed).panel;
+    const std::optional<DockPanelId>& active = (*workspace_).active_panel();
+    if (!(active && *active == panel)) {
+        static_cast<void>((*workspace_).activate_panel(panel, DockActivationCause::pointer));
+    }
 }
 
 void DockSite::on_mouse_leave() {
@@ -1900,6 +1963,14 @@ bool DockSite::handle_docking_key(KeyEvent& event) {
         std::optional<DockPanelId> panel = focused_panel();
         if (!panel) panel = (*workspace_).active_panel();
         if (panel) handled = show_position_menu(*panel, MenuOpenMode::keyboard);
+    } else if (keys.matches(KeyCommand::close_document, event) && document_frames_shown()) {
+        // Ctrl+F4 closes the active frame as its close button does (a
+        // document stack's strip takes it in the tabs presentation).
+        const stxlib::Optional<DockPanelId> document = (*workspace_).area_active_document();
+        if (document.present() && frame_for(*document.value()) != nullptr) {
+            const DockPanelId closing = *document.value();
+            handled = run_frame_button(closing, FramePart::close);
+        }
     }
     if (handled) event.handled = true;
     return handled;
@@ -1975,6 +2046,7 @@ void DockSite::collect_document_steps(std::vector<DockPanelId>& out) const {
         if (node == nullptr) continue;
         documents.insert(documents.end(), (*node).panels.begin(), (*node).panels.end());
     }
+    for (const FrameSlot& slot : frames_) documents.push_back(slot.panel);
     for (const DockPanelId& panel : (*workspace_).document_history()) {
         if (std::find(documents.begin(), documents.end(), panel) == documents.end()) continue;
         out.push_back(panel);
@@ -2353,6 +2425,7 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
         const DockNode* const node = (*workspace_).layout().find_node(slot.stack);
         if (node != nullptr) shown.insert(shown.end(), (*node).panels.begin(), (*node).panels.end());
     }
+    for (const FrameSlot& slot : frames_) shown.push_back(slot.panel);
     const std::array<std::span<const DockPanelId>, 2> histories{(*workspace_).tool_history(),
                                                                 (*workspace_).document_history()};
     for (std::size_t kind = 0; kind < histories.size(); ++kind) {

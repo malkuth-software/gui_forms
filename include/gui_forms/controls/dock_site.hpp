@@ -7,6 +7,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/dock_navigator.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/docking.hpp"
 #include "gui_forms/event.hpp"
@@ -410,6 +411,41 @@ public:
     // panel moves to the active document.
     [[nodiscard]] bool document_area_maximized() const noexcept { return maximized_; }
     void set_document_area_maximized(bool maximized);
+
+    // -- document frames (the frames presentation; DK decisions 60 to 63) --
+    // In the main site of a workspace whose document presentation is frames
+    // (DockWorkspace::set_document_presentation), each document of the
+    // document area shows in its own frame instead of a tab: a child of the
+    // site, a `pane` named by the document's title, holding the document's
+    // content below a caption with minimize, maximize (restore) and close
+    // buttons, its chrome drawn by the theme engine in the in-window
+    // dialog's parts. The frames overlap inside the area, stacked by their
+    // DockFrameMemory order (the active document's in front), each placed
+    // at its memory's bounds and kept inside the area; a minimized frame
+    // shows as an icon (its caption) along an edge of the area
+    // (dock_frame_icon_bounds), a maximized one fills the area. Dragging a
+    // caption moves a frame and dragging its border resizes it (one user
+    // edit at the release); a double-click on a caption maximizes or
+    // restores it; Ctrl+F4 (close_document) closes the active frame as its
+    // close button does, asking as request_close does; Ctrl+F6 and Ctrl+Tab
+    // step through the frames as through tabs. While a frame is maximized
+    // and the window has a MenuStrip as its main menu strip
+    // (Window::main_menu_strip), the frame shows no caption and its buttons
+    // show at the strip's end (MenuStrip::document_frame_buttons). A
+    // floating site shows its documents as tabs.
+    //
+    // Whether this site shows the document area's documents as frames.
+    [[nodiscard]] bool document_frames_shown() const noexcept;
+    // The control of a document's frame, or null for a document this site
+    // does not show as a frame.
+    [[nodiscard]] Control::Ptr document_frame(const DockPanelId& document) const;
+    // Where a document's frame shows after the last layout pass, in the
+    // site's coordinates; empty for one without a frame.
+    [[nodiscard]] Rect document_frame_bounds(const DockPanelId& document) const;
+    // What the frames are laid out with: the caption height (scaled with the
+    // text), the icon width and the workspace's icon edge
+    // (DockWorkspace::frame_icons_at_bottom).
+    [[nodiscard]] DockFrameMetrics frame_metrics() const;
 
     // The PageView realizing a stack of this site, or null.
     [[nodiscard]] std::shared_ptr<PageView> stack_view(DockNodeId stack) const;
@@ -948,6 +984,113 @@ private:
     // Lets go of the flyout control, which stops reaching back.
     void release_flyout_control() noexcept;
 
+    // -- document frames (dock_site_frames.cpp) --
+    class DocumentFrame;
+    // What a point in a frame is on: its caption, its resize border, or a
+    // caption button (by slot: the first restores a minimized frame and
+    // minimizes the others; the second maximizes, or restores a maximized
+    // frame).
+    enum class FramePart : std::uint8_t { none, caption, border, minimize, maximize, close };
+    // One document's frame from the last realization and layout pass: the
+    // document, its DocumentFrame (held as a Control, so this header names
+    // no pointer to the private type), its state and stacking order from the
+    // layout, and where it shows in the site's coordinates.
+    struct FrameSlot final {
+        DockPanelId panel{};
+        Control::Ptr frame{};
+        DockFrameState state{DockFrameState::normal};
+        std::uint32_t order{};
+        Rect bounds{};
+    };
+    // A frame's rectangles in its own coordinates: the caption (empty while
+    // hidden), its label, the buttons and their glyphs, the client area the
+    // content fills, and the border's thickness (none while minimized or
+    // maximized).
+    struct FrameGeometry final {
+        Rect caption{};
+        Rect label{};
+        Rect minimize{};
+        Rect minimize_glyph{};
+        Rect maximize{};
+        Rect maximize_glyph{};
+        Rect close{};
+        Rect close_glyph{};
+        Rect client{};
+        double border{};
+    };
+    // A caption drag (edges zero) or border drag of a normal frame: the
+    // pointer's window position at the press, the frame's bounds then and
+    // the bounds it shows now (both in the document area's coordinates).
+    struct FrameGesture final {
+        bool active{};
+        DockPanelId panel{};
+        std::uint8_t edges{};
+        Point press{};
+        Rect start{};
+        Rect bounds{};
+    };
+    // A caption button of one frame, hot or pressed.
+    struct FrameButtonHit final {
+        DockPanelId panel{};
+        FramePart part{FramePart::none};
+    };
+    // Brings the frames in line with the area's documents (one per
+    // document, reused by identity, stacked by order, the frontmost at
+    // `first_index` from the top) when frames show. release_frames takes
+    // each frame's content back out first, so a stack view can take it.
+    void realize_frames(std::size_t first_index);
+    void release_frames() noexcept;
+    void remove_frame(FrameSlot& slot) noexcept;
+    // Places each frame in the document area (a layout pass stage).
+    void arrange_frames();
+    // A shown frame's content, created by the panel's factory the first
+    // time (named by the panel, since the factory may edit the layout).
+    void supply_frame_content(const DockPanelId& panel);
+    void focus_frame(const DockPanelId& panel);
+    // Brings a document's frame to the front (a select edit) unless it is.
+    void raise_frame(const DockPanelId& panel, DockEditOrigin origin);
+    // Records the panel of the frame focus entered as active (raising its
+    // frame) and remembers the focused control; false when focus is in no
+    // frame.
+    bool note_frame_focus(const Control::Ptr& focused);
+    [[nodiscard]] FrameSlot* frame_for(const DockPanelId& panel) noexcept;
+    [[nodiscard]] const FrameSlot* frame_for(const DockPanelId& panel) const noexcept;
+    // The index in frames_ of the frame that is or contains `control`, or
+    // frames_.size().
+    [[nodiscard]] std::size_t frame_index_of(const Control& control) const;
+    [[nodiscard]] FrameGeometry frame_geometry(const FrameSlot& slot) const;
+    [[nodiscard]] FramePart frame_part_at(const FrameSlot& slot, Point local, std::uint8_t& edges) const;
+    [[nodiscard]] AnatomyStateSet frame_button_states(const FrameSlot& slot, FramePart part) const;
+    [[nodiscard]] bool frame_current(const FrameSlot& slot) const;
+    // A frame's paint and pointer input (DocumentFrame calls them with its
+    // own coordinates; its semantics are its own).
+    void paint_frame(Painter& painter, const Control& frame, const DockPanelId& panel) const;
+    void frame_mouse(const DockPanelId& panel, MouseEventArgs& arguments);
+    void frame_mouse_left(const DockPanelId& panel);
+    // Runs a caption button of a document's frame (also the main menu
+    // strip's buttons for a maximized frame).
+    bool run_frame_button(const DockPanelId& panel, FramePart part);
+    // Whether a frame's caption is hidden: maximized, its buttons on the
+    // main menu strip.
+    [[nodiscard]] bool frame_caption_hidden(const FrameSlot& slot) const noexcept;
+    void set_frame_hot(const FrameButtonHit& hit);
+    void invalidate_frame(const DockPanelId& panel);
+    void begin_frame_gesture(const DockPanelId& panel, std::uint8_t edges, Point window_point);
+    void continue_frame_gesture(Point window_point);
+    void end_frame_gesture(bool cancelled);
+    // Shows a maximized frame's buttons on the window's main menu strip
+    // while one is maximized, and takes them off otherwise.
+    void sync_frame_buttons_on_strip();
+    void release_frame_buttons_on_strip() noexcept;
+    void on_strip_frame_button(MenuStripFrameButton button);
+    // Binds the workspace's document area to the window the main site is
+    // attached to (Window::bind_document_area), or unbinds it.
+    void bind_document_area();
+    void unbind_document_area() noexcept;
+    // Remembers `focused`, a control in a panel's content, for the panel's
+    // next activation.
+    void remember_focus(const DockPanelId& panel, const Control::Ptr& focused);
+
     // -- dragging (dock_site_drag.cpp) --
     // One tile as painted and published: where it is, which target it
     // stands for, and whether it is lit or refused.
@@ -1225,6 +1368,17 @@ private:
     Control::WeakPtr focus_outside_{};
     Control::WeakPtr return_focus_{};
     std::vector<FlyoutExtent> flyout_extents_{};
+    // The document frames (the frames presentation), in the area's tree and
+    // tab order; the gesture moving or resizing one; the caption button the
+    // pointer is on and the one pressed; the main menu strip showing a
+    // maximized frame's buttons, and the numbering of frame identities.
+    detail::LendingVector<FrameSlot> frames_{};
+    FrameGesture frame_gesture_{};
+    FrameButtonHit frame_hot_{};
+    FrameButtonHit frame_pressed_{};
+    Control::WeakPtr frame_strip_{};
+    SubscriptionToken frame_strip_token_{};
+    std::uint64_t frame_serial_{};
     SubscriptionToken root_pointer_{};
     Window* observed_root_window_{};
     Event<const DockFlyoutChange&> flyout_changed_{};

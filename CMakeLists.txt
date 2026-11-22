@@ -1257,8 +1257,10 @@ add_library(gui_forms_controls STATIC
     src/controls/pages/page_view/page_view.cpp
     src/controls/docking/dock_navigator/dock_navigator.cpp
     src/controls/docking/dock_workspace/dock_workspace.cpp
+    src/controls/docking/dock_workspace/dock_workspace_mdi.cpp
     src/controls/docking/dock_site/dock_site.cpp
     src/controls/docking/dock_site/dock_site_drag.cpp
+    src/controls/docking/dock_site/dock_site_frames.cpp
     src/controls/drag_gesture/drag_gesture.cpp
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
@@ -1270,6 +1272,7 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_cells.cpp
     src/controls/data_grid_view/data_grid_view_cells_region.cpp
     src/controls/task_dialog/task_dialog.cpp
+    src/controls/frame_chrome/frame_chrome.cpp
     src/controls/notify_icon/notify_icon.cpp
     src/controls/file_dialog/file_dialog_support.cpp
     src/controls/file_dialog/file_dialog_types.cpp
