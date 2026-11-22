@@ -464,9 +464,11 @@ struct RecordingMark final {
 };
 
 // The events a window raises through the C ABI (SurfaceRoot::append_interactions),
-// in declaration order. The rest of Window's events stay C++-only until a
-// consumer needs them; declaring one later is a minor ABI addition.
-constexpr std::array<InteractionDeclaration, 11> window_interactions{{
+// in declaration order, then the later additions in the order they came
+// (interaction_at's indices never move). The rest of Window's events stay
+// C++-only until a consumer needs them; declaring one later is a minor ABI
+// addition.
+constexpr std::array<InteractionDeclaration, 12> window_interactions{{
     {.name = "active_changed", .payload = "bool", .mutable_payload = false},
     {.name = "backdrop_changed", .payload = "WindowBackdropGrant", .mutable_payload = false},
     {.name = "dialog_result_changed", .payload = "DialogResult", .mutable_payload = false},
@@ -478,6 +480,8 @@ constexpr std::array<InteractionDeclaration, 11> window_interactions{{
     {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
     {.name = "presentation_changed", .payload = "PresentationSettings", .mutable_payload = false},
     {.name = "theme_changed", .payload = "Theme", .mutable_payload = false},
+    // Since C ABI 1.6: the multiple document interface (DK decisions 60 to 63).
+    {.name = "mdi_child_activate", .payload = "MdiChildActivation", .mutable_payload = false},
 }};
 
 } // namespace

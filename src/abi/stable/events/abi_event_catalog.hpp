@@ -167,6 +167,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/document_area/window_document_area.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
@@ -911,7 +912,7 @@ struct EnumerationChoices<PageSelectionCause> {
 template <>
 struct EnumerationChoices<PartMark> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 29> choices{{
+    static constexpr std::array<EnumerationChoice, 32> choices{{
         {"none", static_cast<std::int64_t>(PartMark::none)},
         {"check", static_cast<std::int64_t>(PartMark::check)},
         {"indeterminate", static_cast<std::int64_t>(PartMark::indeterminate)},
@@ -940,6 +941,9 @@ struct EnumerationChoices<PartMark> {
         {"warning", static_cast<std::int64_t>(PartMark::warning)},
         {"success", static_cast<std::int64_t>(PartMark::success)},
         {"chevron_left", static_cast<std::int64_t>(PartMark::chevron_left)},
+        {"minimize", static_cast<std::int64_t>(PartMark::minimize)},
+        {"maximize", static_cast<std::int64_t>(PartMark::maximize)},
+        {"restore", static_cast<std::int64_t>(PartMark::restore)},
         {"count", static_cast<std::int64_t>(PartMark::count)},
     }};
 };
@@ -1486,6 +1490,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialMask
 void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialTransform& value);
+void append_field(EventFields& fields, std::string_view name, const MdiChildActivation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuStripInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const ModalLayerClosingEvent& value);
@@ -2865,6 +2870,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "yx", value.yx);
     append_field(fields, "xy", value.xy);
     append_field(fields, "yy", value.yy);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const MdiChildActivation& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous", value.previous);
+    append_field(fields, "current", value.current);
     fields.leave(prefix);
 }
 
@@ -5780,6 +5792,19 @@ inline SubscriptionToken connect_material_panel_material_changed(Component& sour
     return token;
 }
 
+inline SubscriptionToken connect_window_mdi_child_activate(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mdi_child_activate(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_notify_icon_menu_item_invoked(Component& source, const EventSink& sink) {
     NotifyIcon* typed = dynamic_cast<NotifyIcon*>(&source);
     if (typed == nullptr) {
@@ -7319,7 +7344,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 382> event_connectors{{
+inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7532,6 +7557,7 @@ inline constexpr std::array<EventConnector, 382> event_connectors{{
     {"mask_changed", "MaskedTextBox", &connect_masked_text_box_mask_changed},
     {"mask_input_rejected", "MaskedTextBox", &connect_masked_text_box_mask_input_rejected},
     {"material_changed", "MaterialPanel", &connect_material_panel_material_changed},
+    {"mdi_child_activate", "Window", &connect_window_mdi_child_activate},
     {"menu_item_invoked", "NotifyIcon", &connect_notify_icon_menu_item_invoked},
     {"minimized_changed", "Ribbon", &connect_ribbon_minimized_changed},
     {"mouse_capture_changed", "Control", &connect_control_mouse_capture_changed},

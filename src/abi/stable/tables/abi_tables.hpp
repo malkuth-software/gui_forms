@@ -44,6 +44,25 @@ gf_status GF_CALL runtime_splashscreen_set_status(gf_splashscreen splashscreen, 
 gf_status GF_CALL runtime_splashscreen_set_progress(gf_splashscreen splashscreen, std::uint32_t show_progress,
                                                     double progress) noexcept;
 gf_status GF_CALL runtime_splashscreen_close(gf_splashscreen splashscreen) noexcept;
+// GF_TABLE_WINDOWS' multiple document interface slots (since 1.6,
+// abi_window_mdi.cpp); the table itself is abi_windows.cpp's.
+gf_status GF_CALL windows_set_mdi_container(gf_object window_or_root, std::uint32_t container) noexcept;
+gf_status GF_CALL windows_mdi_container(gf_object window_or_root, std::uint32_t* container) noexcept;
+gf_status GF_CALL windows_mdi_child_count(gf_object window_or_root, std::uint64_t* count) noexcept;
+gf_status GF_CALL windows_mdi_child_at(gf_object window_or_root, std::uint64_t index, char* buffer,
+                                       std::uint64_t capacity, std::uint64_t* required) noexcept;
+gf_status GF_CALL windows_active_mdi_child(gf_object window_or_root, char* buffer, std::uint64_t capacity,
+                                           std::uint64_t* required) noexcept;
+gf_status GF_CALL windows_activate_mdi_child(gf_object window_or_root, gf_utf8_view child,
+                                             std::uint32_t* activated) noexcept;
+gf_status GF_CALL windows_layout_mdi(gf_object window_or_root, gf_mdi_layout layout,
+                                     std::uint32_t* arranged) noexcept;
+gf_status GF_CALL windows_set_mdi_children_minimized_anchor_bottom(gf_object window_or_root,
+                                                                   std::uint32_t bottom) noexcept;
+gf_status GF_CALL windows_mdi_children_minimized_anchor_bottom(gf_object window_or_root,
+                                                               std::uint32_t* bottom) noexcept;
+gf_status GF_CALL windows_set_main_menu_strip(gf_object window_or_root, gf_object strip) noexcept;
+gf_status GF_CALL windows_main_menu_strip(gf_object window_or_root, gf_object* strip) noexcept;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
 [[nodiscard]] const gf_windows_paint_endpoint_table& windows_paint_endpoint_table() noexcept;
 #endif

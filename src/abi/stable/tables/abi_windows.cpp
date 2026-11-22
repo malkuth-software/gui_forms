@@ -1513,6 +1513,17 @@ constexpr gf_windows_table table{
     .shaping = &windows_shaping,
     .pointer_location = &windows_pointer_location,
     .show_business_card = &windows_show_business_card,
+    .set_mdi_container = &windows_set_mdi_container,
+    .mdi_container = &windows_mdi_container,
+    .mdi_child_count = &windows_mdi_child_count,
+    .mdi_child_at = &windows_mdi_child_at,
+    .active_mdi_child = &windows_active_mdi_child,
+    .activate_mdi_child = &windows_activate_mdi_child,
+    .layout_mdi = &windows_layout_mdi,
+    .set_mdi_children_minimized_anchor_bottom = &windows_set_mdi_children_minimized_anchor_bottom,
+    .mdi_children_minimized_anchor_bottom = &windows_mdi_children_minimized_anchor_bottom,
+    .set_main_menu_strip = &windows_set_main_menu_strip,
+    .main_menu_strip = &windows_main_menu_strip,
 };
 
 } // namespace

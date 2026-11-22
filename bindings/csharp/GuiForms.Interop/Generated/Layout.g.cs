@@ -331,7 +331,7 @@ public static unsafe class Layout
         {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 168);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 256);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -354,6 +354,17 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.shaping offset", (long)((byte*)&value.shaping - start), 144);
             failures += expect(output, "gf_windows_table.pointer_location offset", (long)((byte*)&value.pointer_location - start), 152);
             failures += expect(output, "gf_windows_table.show_business_card offset", (long)((byte*)&value.show_business_card - start), 160);
+            failures += expect(output, "gf_windows_table.set_mdi_container offset", (long)((byte*)&value.set_mdi_container - start), 168);
+            failures += expect(output, "gf_windows_table.mdi_container offset", (long)((byte*)&value.mdi_container - start), 176);
+            failures += expect(output, "gf_windows_table.mdi_child_count offset", (long)((byte*)&value.mdi_child_count - start), 184);
+            failures += expect(output, "gf_windows_table.mdi_child_at offset", (long)((byte*)&value.mdi_child_at - start), 192);
+            failures += expect(output, "gf_windows_table.active_mdi_child offset", (long)((byte*)&value.active_mdi_child - start), 200);
+            failures += expect(output, "gf_windows_table.activate_mdi_child offset", (long)((byte*)&value.activate_mdi_child - start), 208);
+            failures += expect(output, "gf_windows_table.layout_mdi offset", (long)((byte*)&value.layout_mdi - start), 216);
+            failures += expect(output, "gf_windows_table.set_mdi_children_minimized_anchor_bottom offset", (long)((byte*)&value.set_mdi_children_minimized_anchor_bottom - start), 224);
+            failures += expect(output, "gf_windows_table.mdi_children_minimized_anchor_bottom offset", (long)((byte*)&value.mdi_children_minimized_anchor_bottom - start), 232);
+            failures += expect(output, "gf_windows_table.set_main_menu_strip offset", (long)((byte*)&value.set_main_menu_strip - start), 240);
+            failures += expect(output, "gf_windows_table.main_menu_strip offset", (long)((byte*)&value.main_menu_strip - start), 248);
         }
         {
             gf_schema_type value = default;
@@ -1357,7 +1368,7 @@ public static unsafe class Layout
         {
             gf_dock_edit value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_dock_edit size", sizeof(gf_dock_edit), 104);
+            failures += expect(output, "gf_dock_edit size", sizeof(gf_dock_edit), 112);
             failures += expect(output, "gf_dock_edit.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_dock_edit.kind offset", (long)((byte*)&value.kind - start), 4);
             failures += expect(output, "gf_dock_edit.subject_is_stack offset", (long)((byte*)&value.subject_is_stack - start), 8);
@@ -1371,6 +1382,8 @@ public static unsafe class Layout
             failures += expect(output, "gf_dock_edit.frame offset", (long)((byte*)&value.frame - start), 48);
             failures += expect(output, "gf_dock_edit.panel offset", (long)((byte*)&value.panel - start), 80);
             failures += expect(output, "gf_dock_edit.reserved offset", (long)((byte*)&value.reserved - start), 96);
+            failures += expect(output, "gf_dock_edit.presentation offset", (long)((byte*)&value.presentation - start), 104);
+            failures += expect(output, "gf_dock_edit.frame_state offset", (long)((byte*)&value.frame_state - start), 108);
         }
         {
             gf_dock_location value = default;
@@ -1397,9 +1410,21 @@ public static unsafe class Layout
             failures += expect(output, "gf_dock_options.reserved offset", (long)((byte*)&value.reserved - start), 12);
         }
         {
+            gf_dock_frame_memory value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_dock_frame_memory size", sizeof(gf_dock_frame_memory), 56);
+            failures += expect(output, "gf_dock_frame_memory.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_dock_frame_memory.present offset", (long)((byte*)&value.present - start), 4);
+            failures += expect(output, "gf_dock_frame_memory.bounds offset", (long)((byte*)&value.bounds - start), 8);
+            failures += expect(output, "gf_dock_frame_memory.state offset", (long)((byte*)&value.state - start), 40);
+            failures += expect(output, "gf_dock_frame_memory.icon_slot offset", (long)((byte*)&value.icon_slot - start), 44);
+            failures += expect(output, "gf_dock_frame_memory.order offset", (long)((byte*)&value.order - start), 48);
+            failures += expect(output, "gf_dock_frame_memory.reserved offset", (long)((byte*)&value.reserved - start), 52);
+        }
+        {
             gf_docking_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 136);
+            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 208);
             failures += expect(output, "gf_docking_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_docking_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_docking_table.register_panel offset", (long)((byte*)&value.register_panel - start), 8);
@@ -1418,6 +1443,15 @@ public static unsafe class Layout
             failures += expect(output, "gf_docking_table.update_panel offset", (long)((byte*)&value.update_panel - start), 112);
             failures += expect(output, "gf_docking_table.set_options offset", (long)((byte*)&value.set_options - start), 120);
             failures += expect(output, "gf_docking_table.set_floating_window_visibility offset", (long)((byte*)&value.set_floating_window_visibility - start), 128);
+            failures += expect(output, "gf_docking_table.document_presentation offset", (long)((byte*)&value.document_presentation - start), 136);
+            failures += expect(output, "gf_docking_table.arrange_frames offset", (long)((byte*)&value.arrange_frames - start), 144);
+            failures += expect(output, "gf_docking_table.frame_memory offset", (long)((byte*)&value.frame_memory - start), 152);
+            failures += expect(output, "gf_docking_table.set_frame_icons_at_bottom offset", (long)((byte*)&value.set_frame_icons_at_bottom - start), 160);
+            failures += expect(output, "gf_docking_table.area_document_count offset", (long)((byte*)&value.area_document_count - start), 168);
+            failures += expect(output, "gf_docking_table.area_document_at offset", (long)((byte*)&value.area_document_at - start), 176);
+            failures += expect(output, "gf_docking_table.area_active_document offset", (long)((byte*)&value.area_active_document - start), 184);
+            failures += expect(output, "gf_docking_table.set_panel_menu_strip offset", (long)((byte*)&value.set_panel_menu_strip - start), 192);
+            failures += expect(output, "gf_docking_table.merged_document offset", (long)((byte*)&value.merged_document - start), 200);
         }
         {
             gf_app_font_face value = default;

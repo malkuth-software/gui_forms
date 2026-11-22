@@ -165,6 +165,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_schema_table.cpp
     src/abi/stable/tables/abi_themes.cpp
     src/abi/stable/tables/abi_windows.cpp
+    src/abi/stable/tables/abi_window_mdi.cpp
     src/abi/stable/values/abi_values.cpp
     src/abi/stable/windows/abi_window_handle.cpp
     src/abi/stable/windows/abi_window_properties.cpp

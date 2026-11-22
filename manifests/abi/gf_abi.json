@@ -7,7 +7,7 @@
   ],
   "abi": {
     "major": 1,
-    "minor": 5
+    "minor": 6
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -23,7 +23,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 5,
+      "value": 6,
       "type": "uint32"
     },
     {
@@ -809,6 +809,26 @@
     {
       "name": "GF_WINDOW_SHAPING_COMPLIED",
       "value": 32,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MDI_LAYOUT_CASCADE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MDI_LAYOUT_TILE_HORIZONTAL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MDI_LAYOUT_TILE_VERTICAL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MDI_LAYOUT_ARRANGE_ICONS",
+      "value": 3,
       "type": "uint32"
     },
     {
@@ -2732,6 +2752,71 @@
       "type": "uint32"
     },
     {
+      "name": "GF_DOCK_EDIT_SET_DOCUMENT_PRESENTATION",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SET_FRAME_BOUNDS",
+      "value": 14,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SET_FRAME_STATE",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_EDIT_SET_FRAME_ICON_SLOT",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_DOCUMENT_PRESENTATION_TABS",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_DOCUMENT_PRESENTATION_FRAMES",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_STATE_NORMAL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_STATE_MINIMIZED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_STATE_MAXIMIZED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_ARRANGEMENT_CASCADE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_ARRANGEMENT_TILE_HORIZONTAL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_ARRANGEMENT_TILE_VERTICAL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DOCK_FRAME_ARRANGEMENT_ARRANGE_ICONS",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
       "name": "GF_DOCK_REFUSAL_NONE",
       "value": 0,
       "type": "uint32"
@@ -3521,6 +3606,10 @@
       "type": "uint32_t"
     },
     {
+      "name": "gf_mdi_layout",
+      "type": "uint32_t"
+    },
+    {
       "name": "gf_schema_kind",
       "type": "uint32_t"
     },
@@ -3782,6 +3871,18 @@
     },
     {
       "name": "gf_dock_edit_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_document_presentation",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_frame_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dock_frame_arrangement",
       "type": "uint32_t"
     },
     {
@@ -5814,7 +5915,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 168,
+      "size": 256,
       "align": 8,
       "fields": [
         {
@@ -6236,6 +6337,254 @@
             ]
           },
           "since": "1.5"
+        },
+        {
+          "name": "set_mdi_container",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "container",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "mdi_container",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "container",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "mdi_child_count",
+          "type": "function",
+          "offset": 184,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "mdi_child_at",
+          "type": "function",
+          "offset": 192,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "active_mdi_child",
+          "type": "function",
+          "offset": 200,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "activate_mdi_child",
+          "type": "function",
+          "offset": 208,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "child",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "activated",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "layout_mdi",
+          "type": "function",
+          "offset": 216,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "layout",
+                "type": "gf_mdi_layout"
+              },
+              {
+                "name": "arranged",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "set_mdi_children_minimized_anchor_bottom",
+          "type": "function",
+          "offset": 224,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "bottom",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "mdi_children_minimized_anchor_bottom",
+          "type": "function",
+          "offset": 232,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "bottom",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "set_main_menu_strip",
+          "type": "function",
+          "offset": 240,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "strip",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "main_menu_strip",
+          "type": "function",
+          "offset": 248,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "strip",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.6"
         }
       ]
     },
@@ -14073,7 +14422,7 @@
     {
       "name": "gf_dock_edit",
       "kind": "extensible",
-      "size": 104,
+      "size": 112,
       "align": 8,
       "fields": [
         {
@@ -14153,6 +14502,18 @@
           "type": "uint64_t",
           "offset": 96,
           "size": 8
+        },
+        {
+          "name": "presentation",
+          "type": "gf_dock_document_presentation",
+          "offset": 104,
+          "size": 4
+        },
+        {
+          "name": "frame_state",
+          "type": "gf_dock_frame_state",
+          "offset": 108,
+          "size": 4
         }
       ]
     },
@@ -14257,9 +14618,59 @@
       ]
     },
     {
+      "name": "gf_dock_frame_memory",
+      "kind": "extensible",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "present",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "bounds",
+          "type": "gf_logical_rect",
+          "offset": 8,
+          "size": 32
+        },
+        {
+          "name": "state",
+          "type": "gf_dock_frame_state",
+          "offset": 40,
+          "size": 4
+        },
+        {
+          "name": "icon_slot",
+          "type": "uint32_t",
+          "offset": 44,
+          "size": 4
+        },
+        {
+          "name": "order",
+          "type": "uint32_t",
+          "offset": 48,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 52,
+          "size": 4
+        }
+      ]
+    },
+    {
       "name": "gf_docking_table",
       "kind": "table",
-      "size": 136,
+      "size": 208,
       "align": 8,
       "fields": [
         {
@@ -14653,6 +15064,226 @@
             ]
           },
           "since": "1.2"
+        },
+        {
+          "name": "document_presentation",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "presentation",
+                "type": "gf_dock_document_presentation*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "arrange_frames",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "arrangement",
+                "type": "gf_dock_frame_arrangement"
+              },
+              {
+                "name": "refusal",
+                "type": "gf_dock_refusal*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "frame_memory",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "document",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "frame",
+                "type": "gf_dock_frame_memory*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "set_frame_icons_at_bottom",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "bottom",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "area_document_count",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "area_document_at",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "area_active_document",
+          "type": "function",
+          "offset": 184,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "set_panel_menu_strip",
+          "type": "function",
+          "offset": 192,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "strip",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.6"
+        },
+        {
+          "name": "merged_document",
+          "type": "function",
+          "offset": 200,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.6"
         }
       ]
     },

@@ -75,16 +75,17 @@ static void GF_CALL help_release(void* context) {
     ++(*probe).released;
 }
 
-/* The listing: eleven interactions, help_requested among them with a
- * mutable payload, the key events (since 1.1), and an index past the end
- * refused. */
+/* The listing: twelve interactions, help_requested among them with a
+ * mutable payload, the key events (since 1.1), mdi_child_activate last
+ * (since 1.6), and an index past the end refused. */
 static void window_listing(gf_kit* kit) {
     uint64_t count = 0u;
     gf_kit_status(kit, (*kit).windows.interaction_count(&count), GF_STATUS_OK, "a window's interaction_count");
-    gf_kit_check(kit, count == 11u, "a window raises eleven interactions");
+    gf_kit_check(kit, count == 12u, "a window raises twelve interactions");
     int help = 0;
     int focus = 0;
     int keys = 0;
+    int mdi = 0;
     uint64_t index = 0u;
     for (index = 0u; index < count; ++index) {
         gf_schema_interaction interaction;
@@ -99,6 +100,11 @@ static void window_listing(gf_kit* kit) {
         }
         if (gf_kit_view_equals(interaction.name, "focused_control_changed")) {
             focus = 1;
+        }
+        if (index + 1u == count && gf_kit_view_equals(interaction.name, "mdi_child_activate") &&
+            gf_kit_view_equals(interaction.payload, "previous: text optional, current: text optional") &&
+            interaction.mutable_payload == 0u) {
+            mdi = 1;
         }
         if ((gf_kit_view_equals(interaction.name, "key_down") || gf_kit_view_equals(interaction.name, "key_up")) &&
             gf_kit_view_equals(interaction.payload, "key_code: unsigned_integer, physical_key: unsigned_integer, scan_code: unsigned_integer, modifiers: enumeration, repeat: boolean, released_by_deactivation: boolean, handled: boolean, suppress_key_press: boolean") && interaction.mutable_payload == 1u) {
@@ -116,6 +122,7 @@ static void window_listing(gf_kit* kit) {
     gf_kit_check(kit, keys == 4, "the listing has key_down, key_press, key_up and key_state_changed");
     gf_kit_check(kit, help, "the listing has help_requested with a mutable HelpRequestEvent");
     gf_kit_check(kit, focus, "the listing has focused_control_changed");
+    gf_kit_check(kit, mdi, "the listing ends with mdi_child_activate (since 1.6)");
     gf_schema_interaction past;
     memset(&past, 0, sizeof(past));
     past.struct_size = (uint32_t)sizeof(past);
