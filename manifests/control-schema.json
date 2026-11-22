@@ -81,10 +81,7 @@
           {"name": "gold", "kind": "number", "minimum": 0, "maximum": 1, "default": 0, "animated": false},
           {"name": "gold_plate_top", "kind": "colour", "default": "#ffedbaff", "animated": false},
           {"name": "gold_plate_bottom", "kind": "colour", "default": "#ffcf66ff", "animated": false},
-          {"name": "gold_plate_border", "kind": "colour", "default": "#c49332ff", "animated": false},
-          {"name": "gold_plate_pressed_top", "kind": "colour", "default": "#f6c15bff", "animated": false},
-          {"name": "gold_plate_pressed_bottom", "kind": "colour", "default": "#ffe297ff", "animated": false},
-          {"name": "gold_plate_corner_radius", "kind": "number", "minimum": 0, "maximum": 64, "default": 2, "animated": false}
+          {"name": "gold_plate_border", "kind": "colour", "default": "#c49332ff", "animated": false}
         ]
       },
       {

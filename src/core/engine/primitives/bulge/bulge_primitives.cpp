@@ -252,11 +252,13 @@ enum DitheredParameter : std::size_t {
     dithered_plate_top,
     dithered_plate_bottom,
     dithered_plate_border,
-    dithered_plate_pressed_top,
-    dithered_plate_pressed_bottom,
-    dithered_plate_corner_radius,
     dithered_parameter_count,
 };
+// The registry refuses a descriptor with more parameters than its block
+// holds, and the built-in registry aborts on a refusal: every program would
+// stop at startup.
+static_assert(dithered_parameter_count <= maximum_primitive_parameters,
+              "the dithered bulge's parameters fit a parameter block");
 
 const PrimitiveParameterDeclaration dithered_parameters[] = {
     {"amplitude", PrimitiveParameterKind::number, 0.0, 1.0, 1.0, {}, true},
@@ -281,13 +283,13 @@ const PrimitiveParameterDeclaration dithered_parameters[] = {
     {"gold_shaded_3", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {170, 112, 24, 255}},
     {"gold", PrimitiveParameterKind::number, 0.0, 1.0, 0.0, {}},
     // The gold form's plate (reference §1, "active tool"): the gold plate
-    // primitive's face, border, pressed face and radius.
+    // primitive's face and border. Its pressed face and radius are the gold
+    // plate primitive's defaults, constants below: the parameter block
+    // holds at most maximum_primitive_parameters (24), which these three
+    // reach.
     {"gold_plate_top", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 237, 186, 255}},
     {"gold_plate_bottom", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 207, 102, 255}},
     {"gold_plate_border", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {196, 147, 50, 255}},
-    {"gold_plate_pressed_top", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {246, 193, 91, 255}},
-    {"gold_plate_pressed_bottom", PrimitiveParameterKind::colour, 0.0, 0.0, 0.0, {255, 226, 151, 255}},
-    {"gold_plate_corner_radius", PrimitiveParameterKind::number, 0.0, 64.0, 2.0, {}},
 };
 static_assert(sizeof(dithered_parameters) / sizeof(dithered_parameters[0]) == dithered_parameter_count);
 
@@ -523,6 +525,12 @@ DotChoice gold_dot(const DitherPalette& palette, const ToneExtremes& extremes, d
 // keyline is a whole number of pixels, so every pixel outside the four
 // corner squares is wholly border or wholly face; only the corner squares,
 // `corner` pixels on a side, take the shapes' coverage.
+// The gold plate primitive's pressed face and corner radius (logical
+// units), as relief_primitives.cpp declares their defaults.
+constexpr Color gold_plate_pressed_top{246, 193, 91, 255};
+constexpr Color gold_plate_pressed_bottom{255, 226, 151, 255};
+constexpr double gold_plate_corner_radius = 2.0;
+
 struct GoldPlate final {
     std::uint32_t width{};
     std::uint32_t height{};
@@ -546,7 +554,7 @@ GoldPlate gold_plate(const PrimitiveParameterBlock& parameters, const PrimitiveT
     // keyline_width is 1 or 2.
     plate.line = std::min(static_cast<std::uint32_t>(keyline_width(target.scale.value)), half);
     const double line = static_cast<double>(plate.line);
-    const double radius = parameters.values[dithered_plate_corner_radius].number * target.scale.value;
+    const double radius = gold_plate_corner_radius * target.scale.value;
     plate.outer.kind = PartShapeKind::rounded_rectangle;
     plate.outer.corner_radius = radius;
     plate.inner.kind = PartShapeKind::rounded_rectangle;
@@ -559,10 +567,8 @@ GoldPlate gold_plate(const PrimitiveParameterBlock& parameters, const PrimitiveT
     const std::uint32_t reach = static_cast<std::uint32_t>(std::ceil(std::max(0.0, radius)));
     plate.corner = std::min(reach, half);
     plate.border = parameters.values[dithered_plate_border].colour;
-    const std::size_t top = pressed ? dithered_plate_pressed_top : dithered_plate_top;
-    const std::size_t bottom = pressed ? dithered_plate_pressed_bottom : dithered_plate_bottom;
-    plate.face_top = parameters.values[top].colour;
-    plate.face_bottom = parameters.values[bottom].colour;
+    plate.face_top = pressed ? gold_plate_pressed_top : parameters.values[dithered_plate_top].colour;
+    plate.face_bottom = pressed ? gold_plate_pressed_bottom : parameters.values[dithered_plate_bottom].colour;
     return plate;
 }
 

@@ -65,8 +65,8 @@ private:
 // In gold the dots alone read as noise (owner, 2026-11-22), so the gold form
 // draws the selected look's plate first (reference §1, "active tool"): a
 // vertical gradient, #FFEDBA to #FFCF66 (pressed, the gold plate's pressed
-// face), inside a one-keyline border #C49332 with corner radius 2, the
-// `gold_plate_*` parameters. Its dots shade the plate and stay inside the
+// face), inside a one-keyline border #C49332 with corner radius 2; the
+// gradient's ends and the border are the `gold_plate_*` parameters. Its dots shade the plate and stay inside the
 // face; a dot that reaches a rounded corner is blended by the face's
 // coverage. At amplitude 0 the gold form, like the others, draws nothing.
 class DitheredBulgePrimitive final : public EnginePrimitive {
