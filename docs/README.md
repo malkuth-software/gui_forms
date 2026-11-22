@@ -61,8 +61,36 @@ it to the exclude list with a comment saying why.
 - Present tense, addressed to a user of the library.
 - No milestone numbers, no internal claim labels (the given/observed/measured
   vocabulary), no agent or role names.
-- Link only to pages inside `docs/`. Refer to repository files outside `docs/`
-  in backticks.
+- Never type a version or ABI number. Use the substitutions `docs/conf.py`
+  reads at build time from their sources of truth: `{{ gf_version }}` (the
+  package version), `{{ gf_c_abi }}` (the C ABI), `{{ gf_host_protocol }}`
+  (the host protocol), `{{ gf_drawing_abi }}` (the drawing ABI) and
+  `{{ gf_media }}` (the address of the preview images) in Markdown, and
+  `|gf_version|` and so on in reStructuredText. A number that cannot be read
+  stops the build. The GitHub README cannot run code: `tools/readme_numbers.py`
+  writes the same values into it and CI checks them.
+- Link to pages inside `docs/` by their docnames. Name a repository file
+  outside `docs/` with the source role, `` {src}`include/gui_forms/controls/button.hpp` ``
+  in Markdown or `` :src:`...` `` in reStructuredText: it links to the file at
+  the commit the site is built from. Generated type pages carry a `[source]`
+  link beside each declaration, pinned to the same commit (`linkcode`); write
+  nothing for those.
+- Show a preview image only through the `gf-preview` directive, naming the
+  image by its place in the previews repository (`controls/<control id>` or
+  `pages/<page id>`), with alt text, which is required:
+
+  ````md
+  ```{gf-preview} controls/button
+  :alt: A Button in the windows-professional theme.
+  ```
+  ````
+
+  (`.. gf-preview:: controls/button` with the same option in
+  reStructuredText). A preview shows only once `docs/previews.json` lists the
+  image, so a page may name its preview before it is captured. Previews are
+  captured headless by `tools/capture_previews.py` in the windows-professional
+  theme and stored outside this repository; never add a screenshot under
+  `docs/`.
 - Architecture decision records live in `decisions/` on the `gui_forms` branch
   of `malkuth-software/notes`; `dev/decisions.md` links to each.
 - Keep a hand-written page to roughly 150 lines; split rather than scroll.
