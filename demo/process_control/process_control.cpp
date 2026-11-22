@@ -467,15 +467,17 @@ void ProcessControlRoot::on_cancel() {
 
 std::string process_control_sheet(std::size_t paint, std::uint32_t seed) {
     const EnamelPaint& chosen = enamel_paints[paint % enamel_paints.size()];
-    const std::string seed_text = std::to_string(seed);
+    // The seed, then the grain (paint_grain, written as finish() reads it).
+    const std::string seed_and_grain = std::to_string(seed) + ", 1.5";
+    static_assert(paint_grain == 1.5, "the sheet writes paint_grain as 1.5");
     std::string sheet{};
     sheet += "/* The process-control demonstrator's theme (demo/process_control). */\n";
     sheet += ".blasted-enamel::part(face) { background: finish(blasted-enamel-glint, ";
     sheet += chosen.body;
-    sheet += ", #a3a3a3, " + seed_text + "); }\n";
+    sheet += ", #a3a3a3, " + seed_and_grain + "); }\n";
     sheet += ".blasted-enamel-heavy::part(face) { background: finish(blasted-enamel-heavy-glint, ";
     sheet += chosen.band;
-    sheet += ", #a3a3a3, " + seed_text + "); }\n";
+    sheet += ", #a3a3a3, " + seed_and_grain + "); }\n";
     // The keys draw their own bakes (LampKey): no rule here.
     return sheet;
 }

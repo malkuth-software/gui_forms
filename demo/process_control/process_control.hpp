@@ -61,6 +61,15 @@ inline constexpr std::array<EnamelPaint, 3> enamel_paints{{
 // The study's seed.
 inline constexpr std::uint32_t study_seed = 11U;
 
+// The paint's grain (finish()'s fifth argument): the blast's specks and
+// facets 1.5 times the preset's size. The study's dialog.html draws its
+// body at two device pixels a logical unit and shows that canvas one pixel
+// a CSS pixel, so on a 2x display its grain is twice the size a window at
+// scale 2 gives the same preset; the owner found the paint's grain a
+// little too fine beside it (2026-11-22), so the demonstrator goes half
+// way there.
+inline constexpr double paint_grain = 1.5;
+
 // A held key's lamp power: the bakes' unit (demo.html drives both keys'
 // lamps at 1).
 inline constexpr double key_lit_power = 1.0;
