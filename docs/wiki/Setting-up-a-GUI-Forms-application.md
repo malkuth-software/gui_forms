@@ -2,7 +2,7 @@
 
 This tutorial builds a small program from nothing: a window where you type a
 note, press **Add** (or Ctrl+Enter), and see it appear in a list. On the way
-it uses every part of the approach sealed in GUI.Forms 0.5:
+it uses every part of the approach GUI.Forms recommends:
 
 1. a **CMake project** that consumes the installed SDK;
 2. a **form document** (`.form`) that says which controls exist;

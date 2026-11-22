@@ -17,8 +17,18 @@ controls live beside them, under `lab/docs/` and `demo/lab_controls/docs/`.
 ## Regenerate and check
 
 ```sh
-python3 tools/generate_library_docs.py          # writes docs/api/ and tests/doc_examples_tests.cpp
+python3 tools/generate_library_docs.py          # writes docs/api/ and the examples test
 python3 tools/generate_library_docs.py --check  # fails if either is stale
+```
+
+The examples test is `tests/doc_examples_tests.cpp` in the
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
+checkout, found by `tools/tests_checkout.py` (a `--tests-root`, else
+`GUI_FORMS_TESTS_ROOT`, else a checkout beside this one). Without a checkout
+the generator writes and checks the pages only.
+
+```sh
+python3 tools/generate_library_docs.py --tests-root ../gui_forms_tests
 ```
 
 Every stock control in `manifests/controls.json` and every type with a
@@ -96,7 +106,7 @@ Rules for the text:
 - Describe what a user of the control sees and does, in present tense. Say
   "raised when the user clicks" rather than "publishes after commit".
 - Every statement must match the header, the implementation under `src/` and
-  the tests under `tests/`. Read them; do not paraphrase other summaries.
+  the tests in gui_forms_tests. Read them; do not paraphrase other summaries.
 - Use single backticks for code: `` `checked` ``, `` `CheckState::checked` ``.
   Names of public types and of the type's own members become links.
 - Observe events with `on(event, owner, &Owner::method)` on a `Component`
@@ -112,8 +122,9 @@ Rules for examples:
   without running it.
 - Follow the house style: spell every type (no `auto`), no lambdas, no `->`;
   write `(*pointer).member`.
-- `tests/doc_examples_tests.cpp` is generated from these blocks and runs in
-  CI, so an example that stops compiling or throws fails the build.
+- The examples test is generated from these blocks and runs in
+  gui_forms_tests' CI, so an example that stops compiling or throws fails
+  there.
 
 ## `manual.json` schema
 

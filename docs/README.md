@@ -89,7 +89,7 @@ python3 tools/control_registry.py check          # validates manifests/controls.
 python3 tools/control_registry.py render         # writes controls/generated/
 python3 tools/control_schema.py render           # writes controls/generated/schema.md
 python3 tools/winforms_divergences.py render     # writes controls/generated/winforms-divergences.md
-python3 tools/generate_library_docs.py           # writes api/ and tests/doc_examples_tests.cpp
+python3 tools/generate_library_docs.py           # writes api/, and the examples test into a gui_forms_tests checkout
 ```
 
 The chevron bar at the top of the Roadmap page, `_static/roadmap.svg`, is drawn
@@ -100,8 +100,12 @@ regenerated image.
 The `docs` CI job builds the site. The `house-style` job runs the registry
 checks, the generator's unit tests and `generate_library_docs.py --check`; a
 stale generated page fails the job rather than being rewritten silently. The
-generated `tests/doc_examples_tests.cpp` builds and runs under `ctest`, so a
-documented example that stops compiling or throws fails the native jobs.
+generator also writes the documented examples into
+`tests/doc_examples_tests.cpp` of the gui_forms_tests checkout beside this one
+(`tools/tests_checkout.py`; without one it leaves the file alone). That test
+builds and runs in gui_forms_tests (`gui_forms_doc_examples_tests`), so a
+documented example that stops compiling or throws fails there.
+gui_forms_tests' own CI writes or checks the file against the tree it pins.
 
 ## The clang declaration inventory is checked by maintainers, not CI
 
