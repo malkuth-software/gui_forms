@@ -20,9 +20,11 @@
 //
 // Zooming. +, = and the keypad's + glide in by zoom_step, - out, 0 back to
 // 1 (about the sheet's centre); Ctrl+wheel or Cmd+wheel glides by a step a
-// notch about the pointer, or, from a precise device (a trackpad, a
-// precision touchpad's pinch, which Windows reports as Ctrl+wheel), zooms
-// at once by exp(delta * pixel_zoom_rate). A glide runs on an
+// notch about the pointer, or, from a precise device, zooms at once by
+// exp(delta * pixel_zoom_rate). A touchpad pinch (on_gesture, magnify)
+// zooms at once by its scale about its focal point and pans with the
+// fingers' travel; a two-finger double tap (smart_magnify) glides to
+// smart_zoom about it, or back to 1 from any other zoom. A glide runs on an
 // AnimationTimer only while it lasts, advanced once per paint (a stopgap
 // for display-paced frames; code_sheet.cpp's glide_tick_interval); reduced
 // motion lands at once. The
@@ -38,6 +40,7 @@
 
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/events/gesture_events/gesture_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -63,6 +66,8 @@ inline constexpr std::uint32_t gutter_columns = 7U;
 // Logical pixels a wheel line scrolls, and the zoom factor's exponent per
 // logical pixel of a precise zoom.
 inline constexpr double wheel_line_pixels = 54.0;
+// The zoom a two-finger double tap glides to from 1.
+inline constexpr double smart_zoom = 2.0;
 inline constexpr double pixel_zoom_rate = 0.005;
 
 // The colours runs take (code_sheet.cpp's palette gives each one).
@@ -143,6 +148,7 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool paint_depends_on_size() const noexcept override { return true; }
     void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_gesture(GestureEventArgs& arguments) override;
 
 protected:
     void on_detached_from_window() noexcept override;
