@@ -44,6 +44,12 @@ indicator_style : default ``ChoiceIndicatorStyle::classic``
     and lit while it is. The whole row, lamp and caption, takes the click;
     the lamp only shows which option is chosen. A theme styles it through
     the custom state ``lamp`` (``radio-button:checked::part(indicator):state(lamp)``).
+lamp_color : default empty
+    The colour the lamp look's jewel lights in, as sRGB; lamp green when
+    empty. The jewel's light is baked without colour and tinted when it is
+    drawn (`engine_light::lamp_colour_from_srgb`), so any colour serves:
+    the unchosen jewel shows it as tinted glass, the chosen one glows in
+    it. It changes nothing for the other indicator styles.
 
 Events
 ------

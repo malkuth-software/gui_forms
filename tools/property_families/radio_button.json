@@ -8,7 +8,8 @@
   "base": "ButtonBase",
   "includes": [
     "gui_forms/controls/button_base.hpp",
-    "gui_forms/controls/check_box_capabilities.hpp"
+    "gui_forms/controls/check_box_capabilities.hpp",
+    "gui_forms/drawing/color/color.hpp"
   ],
   "properties": [
     {
@@ -127,6 +128,37 @@
         "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ChoiceIndicatorStyle::lamp)) throw std::invalid_argument(\"RadioButton indicator style is invalid\");"
       ],
       "sample": "ChoiceIndicatorStyle::modern"
+    },
+    {
+      "name": "lamp_color",
+      "capability": "RadioButtonLampColor",
+      "value": "stxlib::Optional<Color>",
+      "initial": null,
+      "comment": "The colour the lamp look's jewel lights in while the option is chosen, as sRGB, or empty for lamp green. The jewel's bake is achromatic, so one bake serves every colour: the colour tints the jewel's glass when dark and drives its lamp when lit. Read only by the lamp look (ChoiceIndicatorStyle::lamp), and not in forced high contrast.",
+      "getter": "lamp_color",
+      "setter": "set_lamp_color",
+      "clear": null,
+      "field": "lamp_color_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "color",
+        "category": "Appearance",
+        "description": "The colour the lamp look's jewel lights in.",
+        "default": "BindingValue{}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": true,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "stxlib::Optional<Color>::of(Color::rgba(10, 20, 30))"
     }
   ],
   "not_properties": [],

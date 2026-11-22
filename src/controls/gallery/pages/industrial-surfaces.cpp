@@ -4,20 +4,20 @@
 #include "industrial-surfaces_form.hpp"
 #include "industrial_theme_package.hpp"
 
+#include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
-#include <algorithm>
 #include <array>
-#include <cstdlib>
-#include <filesystem>
-#include <optional>
+#include <cstddef>
+#include <memory>
 #include <stxlib/optional.hpp>
 #include <string>
-#include <system_error>
+#include <string_view>
+#include <vector>
 
 namespace gui_forms::gallery::pages {
 
@@ -25,85 +25,46 @@ namespace {
 
 // -- the page's visual choices ------------------------------------------------------------
 //
-// The lamps the page shows, each an IndicatorLamp lit from a bake of the
-// industrial-surfaces study's baker (lamp_keys.cpp: `lamps <dir> 240
-// dialog` and `lamps <dir> 112 indicator`), named by its stem without
-// `_up`, with its lamp's colour and its place in gallery.industrial.keys.
-// The colours are the study's (engine_light::lamp_green, lamp_amber and
-// lamp_red) encoded as sRGB and rounded, since a lamp's colour is an
-// ordinary colour property. These are the page's choices, not rulings; the
-// owner's references are still open. A lamp is an indicator (owner,
-// 2026-11-12): it shows a state and is never clicked on or off, so the
-// page switches them from an ordinary check box. The dialog keys are shown
-// as lamps too, as before: a lit Button face (a pressed key mixing its up
-// and down bakes) is not part of this page.
-struct LampChoice final {
-    std::string_view stem{};
-    std::string_view accessible_name{};
-    Color colour{};
-    Rect bounds{};
-};
-
+// The study's lamp colours (demo.html: green [0.16, 1, 0.25], amber [1,
+// 0.5, 0.08] and red [1, 0.12, 0.04], engine_light::lamp_green, lamp_amber
+// and lamp_red) encoded as sRGB and rounded, since a lamp's colour is an
+// ordinary colour property.
 constexpr Color lamp_green_srgb = Color::rgba(111, 255, 137);
 constexpr Color lamp_amber_srgb = Color::rgba(255, 188, 80);
 constexpr Color lamp_red_srgb = Color::rgba(255, 97, 56);
 
-constexpr std::array<LampChoice, 4> lamp_choices{{
-    {.stem = "dialog_ok", .accessible_name = "OK lamp", .colour = lamp_green_srgb,
-     .bounds = {0.0, 0.0, 180.0, 120.0}},
-    {.stem = "dialog_cancel", .accessible_name = "CANCEL lamp", .colour = lamp_amber_srgb,
-     .bounds = {196.0, 0.0, 180.0, 120.0}},
-    {.stem = "indicator_backed", .accessible_name = "Backed indicator", .colour = lamp_red_srgb,
-     .bounds = {0.0, 132.0, 56.0, 56.0}},
-    {.stem = "indicator_clear", .accessible_name = "Clear indicator", .colour = lamp_amber_srgb,
-     .bounds = {72.0, 132.0, 56.0, 56.0}},
-}};
+// The class that puts a lit key's lamps out (demo/themes/gallery/
+// gallery.theme.css, `.lit-key.lamp-off`).
+constexpr std::string_view lamp_off_class = "lamp-off";
 
-// Where the bakes are read from: GUI_FORMS_LIGHT_PLANES when it is set (a
-// preview of the integrator's bakes), else the source tree's
-// assets/light_planes, which the build names (GUI_FORMS_LIGHT_PLANE_DIR).
-std::filesystem::path light_plane_directory() {
-    const char* const chosen = std::getenv("GUI_FORMS_LIGHT_PLANES");
-    if (chosen != nullptr && *chosen != '\0') return std::filesystem::path(chosen);
-    return std::filesystem::path(GUI_FORMS_LIGHT_PLANE_DIR);
-}
-
-// The directory as the status line names it: a chosen one by its path, the
-// source tree's by its place in the tree, so that the page draws the same
-// text in every checkout (the display trace records it).
-std::string light_plane_directory_name() {
-    const char* const chosen = std::getenv("GUI_FORMS_LIGHT_PLANES");
-    if (chosen != nullptr && *chosen != '\0') return std::string(chosen);
-    return std::string("assets/light_planes");
-}
-
-// Whether the bake `name` is present in `directory`; whether it reads is
-// the lamp's to find (a defective bake shows the theme's lens).
-bool bake_present(const std::filesystem::path& directory, const std::string& name) noexcept {
-    std::error_code error{};
-    const bool present = std::filesystem::is_regular_file(directory / (name + ".f32"), error);
-    return present && !error;
-}
+// Each of the dialog's status lamps: its bake (shipped with the library,
+// engine_light::shipped_light_plane_store) and its colour, as the study's
+// dialog has them: the jewel (indicator_backed_up, seen through a dot).
+// FAULT is failing (IndicatorLampState::fault), which takes the red. The
+// keys are buttons the gallery theme draws from the shipped key bakes
+// (`primitive: light-map`): CANCEL white plastic over red lamps, always
+// lit, and OK clear over a frosted back, lit by the Lamps check box with
+// the status lamps (the `lamp-off` class puts it out).
+struct DialogLamp final {
+    std::string_view bake{};
+    Color colour{};
+};
 
 }  // namespace
 
-// Owns the industrial-surfaces page (skeudoindustrial surfaces, phase 5):
-// the controls demo/pages/industrial-surfaces.form describes, the lamps it
-// places (lamp_choices), lit from the shipped bakes where they are present,
-// the Lamps check box that switches them, and the check box that puts the
+// Owns the industrial-surfaces page (skeudoindustrial surfaces, phase 5;
+// owner, 2026-11-22): the controls demo/pages/industrial-surfaces.form
+// describes, the dialog's lamps lit from the shipped bakes, the Lamps
+// check box that switches them, and the check box that puts the
 // industrial theme (demo/themes/industrial, over the GOST paints) on the
 // preview group.
 class IndustrialSurfacesPage final : public gui_forms::Component {
 public:
     explicit IndustrialSurfacesPage(const std::shared_ptr<Surface>& body);
-    // Points the Gallery window's resources at the bakes, so the lamps'
-    // lenses are composited from them (the resources read each on first
-    // use).
-    static void install_bakes(const PageContext& context);
 
 private:
     void mount_document(const std::shared_ptr<Surface>& body);
-    void place_lamps();
+    void light_dialog();
     void on_lamps_changed(bool on);
     void on_theme_changed(bool on);
     // Start and Stop switch the Running lamp; the Coolant check box its
@@ -116,7 +77,6 @@ private:
     // Owns the document's controls; the shell's page body holds them too
     // once mount_document() has moved them there.
     IndustrialSurfacesDocument<IndustrialSurfacesPage> document_{};
-    std::vector<std::shared_ptr<IndicatorLamp>> lamps_{};
     // Compiled on first use and kept.
     std::shared_ptr<const Theme> industrial_{};
 };
@@ -124,7 +84,7 @@ private:
 IndustrialSurfacesPage::IndustrialSurfacesPage(const std::shared_ptr<Surface>& body) {
     document_.initialize_component(*this);
     mount_document(body);
-    place_lamps();
+    light_dialog();
     on((*document_.gallery_industrial_lamps).checked_changed(), *this, &IndustrialSurfacesPage::on_lamps_changed);
     on((*document_.gallery_industrial_theme).checked_changed(), *this, &IndustrialSurfacesPage::on_theme_changed);
     on((*document_.gallery_industrial_preview_start).clicked(), *this, &IndustrialSurfacesPage::on_start);
@@ -158,53 +118,34 @@ void IndustrialSurfacesPage::mount_document(const std::shared_ptr<Surface>& body
     }
 }
 
-// One lamp for each choice, named after its bake; a lamp whose bake is
-// missing shows the theme's lens. The status line says which bakes are
-// missing and how they are made.
-void IndustrialSurfacesPage::place_lamps() {
-    Control& keys = *document_.gallery_industrial_keys;
-    const std::filesystem::path directory = light_plane_directory();
-    std::size_t missing = 0;
-    for (const LampChoice& choice : lamp_choices) {
-        const std::string bake = std::string(choice.stem) + "_up";
-        if (!bake_present(directory, bake)) ++missing;
-        // A stable ID joins its words by '-', so the stem's '_' becomes '-'.
-        std::string id = "gallery.industrial.lamp." + std::string(choice.stem);
-        std::replace(id.begin(), id.end(), '_', '-');
-        std::shared_ptr<IndicatorLamp> lamp = make_control<IndicatorLamp>(StableId(id));
-        (*lamp).accessible_name = std::string(choice.accessible_name);
-        (*lamp).light_planes = bake;
-        (*lamp).lamp_color = stxlib::Optional<Color>::of(choice.colour);
-        (*lamp).set_bounds(choice.bounds);
-        keys.add_child(lamp);
-        lamps_.push_back(std::move(lamp));
+// Each dialog lamp names its bake and takes its colour; the bakes ship
+// with the library, so nothing is looked for on disk.
+void IndustrialSurfacesPage::light_dialog() {
+    const std::array<std::shared_ptr<IndicatorLamp>, 3> lamps{document_.gallery_industrial_status_pump_ready,
+                                                              document_.gallery_industrial_status_heating,
+                                                              document_.gallery_industrial_status_fault};
+    constexpr std::array<DialogLamp, 3> choices{{
+        {.bake = "indicator_backed_up", .colour = lamp_green_srgb},
+        {.bake = "indicator_backed_up", .colour = lamp_amber_srgb},
+        {.bake = "indicator_backed_up", .colour = lamp_red_srgb},
+    }};
+    for (std::size_t index = 0U; index < lamps.size(); ++index) {
+        IndicatorLamp& lamp = *lamps[index];
+        lamp.light_planes = std::string(choices[index].bake);
+        lamp.lamp_color = stxlib::Optional<Color>::of(choices[index].colour);
     }
-    std::string text{};
-    if (missing == lamp_choices.size()) {
-        text = "No light-plane bakes in " + light_plane_directory_name() +
-               ": the lamps show the theme's lens; the integrator bakes them with the study's baker (lamps <dir> 240 "
-               "dialog; lamps <dir> 112 indicator).";
-    } else if (missing != 0U) {
-        text = std::to_string(missing) +
-               " of the lamps' bakes are missing and show the theme's lens; the rest light their own lens and legend only.";
-    } else {
-        text = "Each lamp lights its own lens and legend only; the check box switches them, as a lamp is never clicked.";
-    }
-    (*document_.gallery_industrial_bakes).text = std::move(text);
 }
 
 void IndustrialSurfacesPage::on_lamps_changed(bool on) {
-    for (const std::shared_ptr<IndicatorLamp>& lamp : lamps_) {
-        (*lamp).state = on ? IndicatorLampState::on : IndicatorLampState::off;
+    (*document_.gallery_industrial_status_pump_ready).state = on ? IndicatorLampState::on : IndicatorLampState::off;
+    (*document_.gallery_industrial_status_heating).state = on ? IndicatorLampState::on : IndicatorLampState::off;
+    (*document_.gallery_industrial_status_fault).state = on ? IndicatorLampState::fault : IndicatorLampState::off;
+    Button& ok = *document_.gallery_industrial_key_ok;
+    if (on) {
+        static_cast<void>(ok.remove_class(lamp_off_class));
+    } else {
+        static_cast<void>(ok.add_class(lamp_off_class));
     }
-}
-
-void IndustrialSurfacesPage::install_bakes(const PageContext& context) {
-    if (!context.compiled) return;
-    GalleryWindow* const window = (*context.compiled).window;
-    if (window == nullptr) return;
-    const std::shared_ptr<ApplicationResources> resources = (*window).resources();
-    (*resources).set_light_plane_directory(light_plane_directory());
 }
 
 std::shared_ptr<const Theme> IndustrialSurfacesPage::build_industrial_theme(Window& window) {
@@ -252,7 +193,6 @@ void IndustrialSurfacesPage::on_theme_changed(bool on) {
 }
 
 void add_industrial_surfaces(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    IndustrialSurfacesPage::install_bakes(*context);
     (*context).components.add(std::make_shared<IndustrialSurfacesPage>(page));
 }
 

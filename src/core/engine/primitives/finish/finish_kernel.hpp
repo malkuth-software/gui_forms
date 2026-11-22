@@ -80,6 +80,15 @@ void reserve_finish_scratch(FinishScratch& scratch, std::uint32_t width);
 std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surface, FinishRect damage,
                          const PartRasterView& destination, FinishScratch& scratch) noexcept;
 
+// As paint_finish, with the room's origin at device pixel (`room_x`,
+// `room_y`) from the surface's origin, where a glint preset lit as the
+// study's dialog is (GlintPreset::blasted_enamel) places its light and eye;
+// paint_finish puts it at the surface's origin, and paint_world_finish at
+// the world's origin. Other finishes ignore it.
+std::size_t paint_finish_in_room(const FinishFill& fill, double scale, FinishRect surface, FinishRect damage,
+                                 const PartRasterView& destination, FinishScratch& scratch, std::int64_t room_x,
+                                 std::int64_t room_y) noexcept;
+
 // Linear light to an sRGB byte through the reference's 4097-step table
 // (entry i the byte for i / 4096; values outside [0, 1] clamped), which the
 // light planes' composite shares (panel_lamps.html builds the same table).

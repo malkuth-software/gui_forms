@@ -3,7 +3,9 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/radio_button_capabilities.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 
+#include <memory>
 #include <string>
 
 namespace gui_forms {
@@ -55,13 +57,21 @@ private:
     // Clears the checked sibling that shares this button's group_name.
     void clear_checked_peer();
 
+    // The lamp look's jewel (engine_light::jewel_lamp_bake) from the
+    // window's resources; null outside a window, in forced high contrast,
+    // or where none is held, when the theme's bezel and lens draw instead.
+    [[nodiscard]] std::shared_ptr<const engine_light::LightPlanes> lamp_bake() const;
+
     Event<bool> checked_changed_;
     // The checked view's storage.
     bool checked_{};
+    // The lamp look's last composite, kept between paints (one for the
+    // dark jewel and the lit one alike: a choice changes it).
+    engine_light::LightPlaneRaster lamp_raster_{};
     // property_codemod begin RadioButton (tools/property_families/radio_button.json; generated, do not edit)
 public:
     // RadioButton's property table: ButtonBase's entries, then its own.
-    static constexpr std::size_t radio_button_property_count = ButtonBase::button_base_property_count + 3U;
+    static constexpr std::size_t radio_button_property_count = ButtonBase::button_base_property_count + 4U;
     [[nodiscard]] static const std::array<PropertyEntry, radio_button_property_count>& radio_button_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -76,6 +86,7 @@ private:
     friend struct RadioButtonGroupNameCapability<RadioButton>;
     friend struct RadioButtonAutoCheckCapability<RadioButton>;
     friend struct RadioButtonIndicatorStyleCapability<RadioButton>;
+    friend struct RadioButtonLampColorCapability<RadioButton>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void write_view(const decltype(checked)& cell, bool incoming);
     [[nodiscard]] bool read_view(const decltype(checked)& cell) const;
@@ -85,6 +96,8 @@ private:
     void written(const decltype(auto_check)& cell);
     void prepare_write(const decltype(indicator_style)& cell, ChoiceIndicatorStyle& incoming);
     void written(const decltype(indicator_style)& cell);
+    void prepare_write(const decltype(lamp_color)& cell, stxlib::Optional<Color>& incoming);
+    void written(const decltype(lamp_color)& cell);
     // property_codemod end RadioButton
 };
 

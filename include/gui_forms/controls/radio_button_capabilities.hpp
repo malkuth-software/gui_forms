@@ -4,10 +4,12 @@
 #include "gui_forms/controls/shared_property_enums.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/check_box_capabilities.hpp"
+#include "gui_forms/drawing/color/color.hpp"
 
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <stxlib/optional.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -82,11 +84,25 @@ struct RadioButtonIndicatorStyleCapability {
     }
 };
 
+// The colour the lamp look's jewel lights in while the option is chosen, as sRGB, or empty for lamp green. The jewel's bake is achromatic, so one bake serves every colour: the colour tints the jewel's glass when dark and drives its lamp when lit. Read only by the lamp look (ChoiceIndicatorStyle::lamp), and not in forced high contrast.
+template <typename Declaring>
+struct RadioButtonLampColorCapability {
+    PropertyCell<stxlib::Optional<Color>, RadioButtonLampColorCapability<Declaring>> lamp_color{};
+
+    static void assign(RadioButtonLampColorCapability& capability, stxlib::Optional<Color> incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.lamp_color), incoming);
+        if (!capability.lamp_color.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.lamp_color));
+    }
+};
+
 // Every RadioButton capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct RadioButtonCapabilities : public RadioButtonCheckedCapability<Declaring>,
                                  public RadioButtonGroupNameCapability<Declaring>,
                                  public RadioButtonAutoCheckCapability<Declaring>,
-                                 public RadioButtonIndicatorStyleCapability<Declaring> {};
+                                 public RadioButtonIndicatorStyleCapability<Declaring>,
+                                 public RadioButtonLampColorCapability<Declaring> {};
 
 } // namespace gui_forms

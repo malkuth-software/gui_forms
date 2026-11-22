@@ -27,7 +27,7 @@ namespace gui_forms {
 // have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
-// Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+// Whether the lamp is off, on, showing an error, or failing (fault: lit in the error colour, flickering and stuttering as a failing lamp does, steady under reduced motion). The lens warms up on a change to a lit state and cools down on a change to off, at once under reduced motion.
 template <typename Declaring>
 struct IndicatorLampStateChoiceCapability {
     PropertyCell<IndicatorLampState, IndicatorLampStateChoiceCapability<Declaring>> state{IndicatorLampState::off};

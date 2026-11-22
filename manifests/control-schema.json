@@ -241,6 +241,22 @@
           {"name": "recipe", "kind": "choice", "choices": ["none", "window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor", "menu_item", "selection", "progress", "tool_tip", "link", "visited_link", "notice", "badge"], "default": "none", "animated": false},
           {"name": "layers", "kind": "choice", "choices": ["filter", "material"], "default": "filter", "animated": false}
         ]
+      },
+      {
+        "name": "light_map",
+        "introduced": "0.3",
+        "roles": ["region", "face", "well", "actuator"],
+        "states_read": [],
+        "inputs_read": [],
+        "cost": {"per_device_pixel": 320, "fixed": 256, "preparation_per_device_pixel": 0},
+        "outsets": [0, 0, 0, 0],
+        "parameters": [
+          {"name": "bake", "kind": "choice", "choices": ["dialog_ok", "dialog_cancel"], "default": "dialog_ok", "animated": false},
+          {"name": "lamp_colour", "kind": "colour", "default": "#ffffffff", "animated": false},
+          {"name": "lamp_power", "kind": "number", "minimum": 0, "maximum": 2, "default": 0, "animated": false},
+          {"name": "press", "kind": "number", "minimum": 0, "maximum": 1, "default": 0, "animated": false},
+          {"name": "room", "kind": "number", "minimum": 0, "maximum": 2, "default": 1, "animated": false}
+        ]
       }
     ],
     "expressions": {"maximum_operations": 64, "maximum_stack": 16, "operations": ["constant", "input", "state", "parameter", "negate", "add", "subtract", "multiply", "divide", "minimum", "maximum", "less", "less_equal", "greater", "greater_equal", "equal", "not_equal", "clamp", "mix", "smoothstep", "choose"]},
@@ -1788,7 +1804,7 @@
         {"name": "label", "role": "label", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled"],
-      "custom_states": ["on", "error", "pinpoint"],
+      "custom_states": ["on", "error", "pinpoint", "fault"],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -1831,7 +1847,7 @@
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "right_to_left", "kind": "enumeration", "category": "Appearance", "enumeration": "right_to_left", "choices": ["no", "yes", "inherit"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
-        {"name": "state", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_lamp_state", "choices": ["off", "on", "error"], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
+        {"name": "state", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_lamp_state", "choices": ["off", "on", "error", "fault"], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "text", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
@@ -4995,6 +5011,7 @@
         {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle", "lamp"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "lamp_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "maximum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},

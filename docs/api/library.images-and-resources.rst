@@ -208,7 +208,7 @@ Related types
 
    .. cpp:function:: std::shared_ptr<const engine_light::LightPlanes> lend_light_planes(std::string_view name)
 
-      The bake named ``name`` (``<directory>/<name>.f32``), or null when no directory is set or the bake is missing, defective or not a name (LightPlaneCache::lend). Throws std::bad_alloc when a read's storage cannot be had. On the UI thread (std::logic_error elsewhere).
+      The bake named ``name``: from the directory, else shipped; null when it is found nowhere, is defective or is not a name (LightPlaneCache::lend). Throws std::bad_alloc when a read's storage cannot be had. On the UI thread (std::logic_error elsewhere).
 
    .. cpp:function:: ImageLoadResult load_png(std::span<const std::byte> encoded)
 
@@ -222,7 +222,7 @@ Related types
 
    .. cpp:function:: void set_light_plane_directory(FilePath directory)
 
-      Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property), read from ``directory`` the first time each is asked for and kept (LightPlaneCache). An empty path, the default, holds none, so every such part draws its theme's look. A new directory forgets the bakes read so far and lays out and repaints every sharing window (a bake's presence changes a part's aspect). On the UI thread (std::logic_error elsewhere).
+      Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property): the bakes the library ships (engine_light::shipped_light_plane_store) always, and before them those in ``directory`` (``<name>.f32`` or ``<name>.gflp``), each read the first time it is asked for and kept (LightPlaneCache). An empty path, the default, reads the shipped bakes alone. A new directory forgets the bakes read so far and lays out and repaints every sharing window (a bake's presence changes a part's aspect). On the UI thread (std::logic_error elsewhere).
 
 .. cpp:namespace:: gui_forms
 
