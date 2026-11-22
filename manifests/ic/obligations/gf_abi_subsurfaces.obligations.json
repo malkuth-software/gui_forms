@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_subsurfaces.ic.toml",
-    "sha256": "00ead30133d49a0dbe8bfcf45fe472867e2524510fb7759c65b95af010fe52a8"
+    "sha256": "ff19c421736166ebbf5f38eb8240e75b3bae9dd938ab8be54fbecd067779e42e"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -46,6 +46,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.subsurfaces.state.order",
+      "kind": "refusal-order",
+      "statement": "When several of state's refusals apply, the first of state_state, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.subsurfaces.state.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "state in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -77,6 +86,15 @@
       "id": "gf_abi.subsurfaces.content_epoch.refusal.content_epoch_epoch",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(epoch), content_epoch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.content_epoch.order",
+      "kind": "refusal-order",
+      "statement": "When several of content_epoch's refusals apply, the first of content_epoch_epoch, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

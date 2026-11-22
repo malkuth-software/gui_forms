@@ -41,9 +41,9 @@ public:
     // gone returns an operation that is already cancelled (the explicit
     // result DispatchOperation carries) and releases the callback.
     // ic: Admitted in accepting, gone. In unbound: failure logic_error, unchanged. Requires bound != 0, else failure
-    // ic: logic_error, unchanged. Fails cancelled (the window is gone: the operation returned is already cancelled and
-    // ic: the callback released), unchanged. Returns DispatchOperation, owned by the caller. Transfers the callback
-    // ic: from caller to the window's dispatcher.
+    // ic: logic_error, unchanged. When several refusals apply: the state refusal, then bound. Fails cancelled (the
+    // ic: window is gone: the operation returned is already cancelled and the callback released), unchanged. Returns
+    // ic: DispatchOperation, owned by the caller. Transfers the callback from caller to the window's dispatcher.
     [[nodiscard]] DispatchOperation begin_invoke(std::function<void()> callback) const;
 
     // Runs `callback` on the window's UI thread and waits for it: inline on
@@ -54,10 +54,11 @@ public:
     // Window::invoke does. A live window with no running host (no wake
     // handler) throws std::logic_error, as Window::invoke does.
     // ic: Admitted in accepting, gone. In unbound: failure logic_error, unchanged. Requires bound != 0, else failure
-    // ic: logic_error, unchanged. Fails invalid_argument (an empty callback (a std::function the clause grammar cannot
-    // ic: name, so its check stays in code)), unchanged; window_gone (the window was gone first or closed while the
-    // ic: work waited (DispatchInvokeResult::window_gone); the callback did not run), unchanged; logic_error (a live
-    // ic: window with no running host (no wake handler)), unchanged.
+    // ic: logic_error, unchanged. When several refusals apply: the state refusal, then bound. Fails invalid_argument
+    // ic: (an empty callback (a std::function the clause grammar cannot name, so its check stays in code)), unchanged;
+    // ic: window_gone (the window was gone first or closed while the work waited (DispatchInvokeResult::window_gone);
+    // ic: the callback did not run), unchanged; logic_error (a live window with no running host (no wake handler)),
+    // ic: unchanged.
     [[nodiscard]] DispatchInvokeResult invoke(std::function<void()> callback) const;
 
     // Whether the window was still accepting work at the moment of the call;

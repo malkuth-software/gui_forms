@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_content.ic.toml",
-    "sha256": "5d5d2d80630cdf344b685f93ea8f8b3cd0b3bfc49c01ea26f978b09649d88cb2"
+    "sha256": "16d710376de2b4ecbc106280c5c7a7e6a1733a712ca00134e0ab218499e29396"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -47,6 +47,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.content.statistics.order",
+      "kind": "refusal-order",
+      "statement": "When several of statistics's refusals apply, the first of statistics_statistics, then statistics_statistics_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.content.request.requires.request_request",
       "kind": "entry-check",
       "statement": "request runs only when not_null(request); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
@@ -79,6 +88,15 @@
       "id": "gf_abi.content.request.refusal.request_request_size",
       "kind": "refusal-leaves",
       "statement": "Unless request_size >= request_size_1_4, request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.request.order",
+      "kind": "refusal-order",
+      "statement": "When several of request's refusals apply, the first of request_request, then request_request_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -136,6 +154,15 @@
       "id": "gf_abi.content.hosted_input.refusal.hosted_input_report_size",
       "kind": "refusal-leaves",
       "statement": "Unless report_size >= hosted_input_report_size_1_4, hosted_input changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.hosted_input.order",
+      "kind": "refusal-order",
+      "statement": "When several of hosted_input's refusals apply, the first of hosted_input_report, then hosted_input_report_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -218,6 +245,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.content.sink_request.order",
+      "kind": "refusal-order",
+      "statement": "When several of sink_request's refusals apply, the first of sink_request_request, then sink_request_request_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.content.sink_wait_for_request.requires.sink_wait_for_request_request",
       "kind": "entry-check",
       "statement": "sink_wait_for_request runs only when not_null(request); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
@@ -256,6 +292,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.content.sink_wait_for_request.order",
+      "kind": "refusal-order",
+      "statement": "When several of sink_wait_for_request's refusals apply, the first of sink_wait_for_request_request, then sink_wait_for_request_request_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.content.sink_statistics.requires.sink_statistics_statistics",
       "kind": "entry-check",
       "statement": "sink_statistics runs only when not_null(statistics); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
@@ -288,6 +333,15 @@
       "id": "gf_abi.content.sink_statistics.refusal.sink_statistics_statistics_size",
       "kind": "refusal-leaves",
       "statement": "Unless statistics_size >= statistics_size_1_4, sink_statistics changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_statistics.order",
+      "kind": "refusal-order",
+      "statement": "When several of sink_statistics's refusals apply, the first of sink_statistics_statistics, then sink_statistics_statistics_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

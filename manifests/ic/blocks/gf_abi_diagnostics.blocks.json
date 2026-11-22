@@ -344,7 +344,11 @@
         "output_size >= failure_detail_size_1_5"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "failure_detail_output",
+        "failure_detail_output_size"
+      ]
     },
     {
       "name": "gf_abi.diagnostics.failure_detail.misuse.failure_detail_output",

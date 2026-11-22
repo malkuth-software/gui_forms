@@ -949,7 +949,12 @@
       "returns": {
         "type": "gf_object",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "create_with_object",
+        "create_with_arguments",
+        "create_with_arguments_size"
+      ]
     },
     {
       "name": "gf_abi.objects.create_with.misuse.create_with_object",

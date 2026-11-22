@@ -47,7 +47,11 @@
       "returns": {
         "type": "DispatchOperation",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "outside",
+        "bound"
+      ]
     },
     {
       "name": "gui_forms.windowdispatcher.begin_invoke.gone",
@@ -84,7 +88,11 @@
       "returns": {
         "type": "DispatchOperation",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "outside",
+        "bound"
+      ]
     },
     {
       "name": "gui_forms.windowdispatcher.begin_invoke.misuse.bound",
@@ -150,7 +158,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "outside",
+        "bound"
+      ]
     },
     {
       "name": "gui_forms.windowdispatcher.invoke.gone",
@@ -194,7 +206,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "outside",
+        "bound"
+      ]
     },
     {
       "name": "gui_forms.windowdispatcher.invoke.misuse.bound",

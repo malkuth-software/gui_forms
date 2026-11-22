@@ -42,6 +42,7 @@ requires = [
   { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "first_minimum_extent" },
   { holds = "incoming <= first_maximum_bound", refuses = "failure:invalid_argument", check = "first_minimum_order" },
 ]
+refusal_order = ["first_minimum_extent", "first_minimum_order"]
 
 [[call]]
 name = "second_minimum"
@@ -53,3 +54,4 @@ requires = [
   { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "second_minimum_extent" },
   { holds = "incoming <= second_maximum_bound", refuses = "failure:invalid_argument", check = "second_minimum_order" },
 ]
+refusal_order = ["second_minimum_extent", "second_minimum_order"]

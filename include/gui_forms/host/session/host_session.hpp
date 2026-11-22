@@ -45,9 +45,11 @@ public:
     // ic: 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0), else returns
     // ic: HostDispatchError::invalid_lifecycle, unchanged. Requires finite(width) and finite(height) and width > 0 and
     // ic: height > 0, else returns HostDispatchError::invalid_geometry, unchanged. Requires finite(scale) and scale >
-    // ic: 0, else returns HostDispatchError::invalid_geometry, unchanged. Fails wrong_thread (off the thread that
-    // ic: constructed the session (HostDispatchError::wrong_thread)), unchanged; invalid_payload (a payload its own
-    // ic: rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report), unchanged.
+    // ic: 0, else returns HostDispatchError::invalid_geometry, unchanged. When several refusals apply:
+    // ic: dispatch_sequence, then dispatch_order, then the state refusal, then dispatch_lifecycle, then dispatch_size,
+    // ic: then dispatch_scale. Fails wrong_thread (off the thread that constructed the session
+    // ic: (HostDispatchError::wrong_thread)), unchanged; invalid_payload (a payload its own rules refuse: invalid UTF-8
+    // ic: text, input settings out of range, a stale compositor report), unchanged.
     [[nodiscard]] HostDispatchResult dispatch(HostEvent event);
     // ic: Admitted in any state; then shutdown.
     void shutdown() noexcept;

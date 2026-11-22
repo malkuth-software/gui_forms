@@ -1297,7 +1297,11 @@
         "row_size >= row_size_1_1"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "replace_row_row",
+        "replace_row_row_size"
+      ]
     },
     {
       "name": "gf_abi.data_grid.replace_row.disposing",
@@ -1333,7 +1337,11 @@
         "row_size >= row_size_1_1"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "replace_row_row",
+        "replace_row_row_size"
+      ]
     },
     {
       "name": "gf_abi.data_grid.replace_row.disposed",
@@ -1369,7 +1377,11 @@
         "row_size >= row_size_1_1"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "replace_row_row",
+        "replace_row_row_size"
+      ]
     },
     {
       "name": "gf_abi.data_grid.replace_row.misuse.replace_row_row",

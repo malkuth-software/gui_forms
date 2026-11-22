@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_controls.ic.toml",
-    "sha256": "3d813ba7e081c493c0b99e5de2e415c4ca3eeee9f0febfdf23925ab885a0fd29"
+    "sha256": "fb255db554dbfdd198add0224416433526a380717e6733f8079db2d0df75dcd4"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -100,6 +100,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.controls.window_bounds.order",
+      "kind": "refusal-order",
+      "statement": "When several of window_bounds's refusals apply, the first of window_bounds_bounds, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.controls.window_bounds.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "window_bounds in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -149,6 +158,15 @@
       "id": "gf_abi.controls.pointer_capture.refusal.pointer_capture_captured",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(captured), pointer_capture changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.pointer_capture.order",
+      "kind": "refusal-order",
+      "statement": "When several of pointer_capture's refusals apply, the first of pointer_capture_captured, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

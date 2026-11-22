@@ -35,6 +35,7 @@ requires = [
   { holds = "not_null(spec) and not_null(object)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_outputs" },
   { holds = "spec_size >= spec_size_1_0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_spec_size" },
 ]
+refusal_order = ["create_outputs", "create_spec_size"]
 fails = [
   { failure = "invalid_argument", when = "code: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple of 8, or whose reserved is not zero" },
 ]

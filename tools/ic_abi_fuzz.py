@@ -80,6 +80,18 @@ class Slot:
 
 
 @dataclass
+class OrderPart:
+    """One misuse block of a call, kept to pair into refusal-order blocks."""
+    refusal: str  # the clause's check, or "outside"
+    state_name: str
+    state: str
+    expected: str
+    violations: list[tuple[int, int]]
+    declared: list[str]
+    changing: list[str]
+
+
+@dataclass
 class Manifest:
     structs: dict[str, dict[str, object]]
     scalars: dict[str, str]
@@ -351,8 +363,32 @@ def generate() -> str:
     slots: dict[tuple[str, str], Slot] = {}
     block_lines: list[str] = []
     array_lines: list[str] = []
-    counts: dict[str, int] = {'legal': 0, 'misuse': 0, 'skipped': 0, 'unreachable': 0, 'unconcretized': 0}
+    counts: dict[str, int] = {'legal': 0, 'misuse': 0, 'ordered': 0, 'skipped': 0, 'unreachable': 0, 'unconcretized': 0}
     skipped_slots: dict[str, str] = {}
+
+    def emit(name: str, mode: str, table_index: int, model: str, state_index: str, moves_index: str, slot: Slot,
+             subject: str, declared: list[str], changing: list[str], expected: str,
+             violations: list[tuple[int, int]], overruled: str = '') -> None:
+        prefix: str = 'block_' + str(len(block_lines))
+        array_lines.append('inline constexpr gf_status ' + prefix + '_declared[] = {' + ', '.join(declared) + '};')
+        changing_span: str = 'std::span<const gf_status>{}'
+        if changing:
+            array_lines.append('inline constexpr gf_status ' + prefix + '_changing[] = {' + ', '.join(changing) + '};')
+            changing_span = 'std::span<const gf_status>(' + prefix + '_changing)'
+        violation_span: str = 'std::span<const Violation>{}'
+        if violations:
+            items: str = ', '.join('Violation{' + str(nulled) + 'U, ' + (str(forced) + 'U' if forced >= 0
+                                                                          else 'no_parameter') + '}'
+                                   for nulled, forced in violations)
+            array_lines.append('inline constexpr Violation ' + prefix + '_violations[] = {' + items + '};')
+            violation_span = 'std::span<const Violation>(' + prefix + '_violations)'
+        block_lines.append('    Block{' + cpp_string(name) + ', Mode::' + mode + ', ' + str(table_index) + 'U, Model::'
+                           + model + ', ' + state_index + ', ' + moves_index + ', &' + slot.function + ', '
+                           + cpp_string(subject) + ', std::span<const gf_status>(' + prefix + '_declared), '
+                           + changing_span + ', ' + expected + ', ' + violation_span
+                           + (', ' + overruled if overruled else '') + '},')
+
+    calls_of: dict[tuple[str, str], dict[str, object]] = {}
     identifier: str
     declaration: dict[str, object]
     for identifier, declaration in declarations:
@@ -369,8 +405,10 @@ def generate() -> str:
             model = matched[0]
         if table in subjects and model == 'none':
             model = 'object'
+        order_parts: dict[tuple[str, str], list[OrderPart]] = {}
         stubs: dict[str, object] = json.loads((blocks_root / (identifier + '.blocks.json')).read_text(encoding='utf-8'))
         calls: dict[str, dict[str, object]] = {str(call['name']): call for call in declaration.get('call', [])}
+        calls_of.update({(table, name): call for name, call in calls.items()})
         stub: dict[str, object]
         for stub in stubs['blocks']:
             call_name: str = str(stub['call'])
@@ -420,7 +458,6 @@ def generate() -> str:
             moves: str | None = stub.get('moves')
             if moves and model in MODELS and member:
                 moves_index = str(MODELS[model].index(moves)) + 'U'
-            block_number: int = len(block_lines)
             declared: list[str] = ['GF_STATUS_OK']
             changing: list[str] = []
             failure: dict[str, object]
@@ -467,34 +504,47 @@ def generate() -> str:
                     counts['unconcretized'] = counts['unconcretized'] + 1
                     continue
             counts[mode] = counts[mode] + 1
-            prefix: str = 'block_' + str(block_number)
-            array_lines.append('inline constexpr gf_status ' + prefix + '_declared[] = {' + ', '.join(declared) + '};')
-            changing_span: str = 'std::span<const gf_status>{}'
-            if changing:
-                array_lines.append('inline constexpr gf_status ' + prefix + '_changing[] = {' + ', '.join(changing)
-                                   + '};')
-                changing_span = 'std::span<const gf_status>(' + prefix + '_changing)'
-            violation_span: str = 'std::span<const Violation>{}'
-            if violations:
-                items: str = ', '.join('Violation{' + str(nulled) + 'U, ' + (str(forced) + 'U' if forced >= 0
-                                                                              else 'no_parameter') + '}'
-                                       for nulled, forced in violations)
-                array_lines.append('inline constexpr Violation ' + prefix + '_violations[] = {' + items + '};')
-                violation_span = 'std::span<const Violation>(' + prefix + '_violations)'
-            block_lines.append('    Block{' + cpp_string(str(stub['name'])) + ', Mode::' + mode + ', '
-                               + str(table_index) + 'U, Model::' + (model if member else 'none') + ', '
-                               + state_index + ', ' + moves_index + ', &' + slot.function + ', '
-                               + cpp_string(subjects.get(table, '') if member else '') + ', std::span<const gf_status>('
-                               + prefix + '_declared), ' + changing_span + ', ' + expected + ', ' + violation_span
-                               + '},')
+            if mode == 'misuse':
+                # Kept for the refusal-order blocks below: a clause's violation or an outside state.
+                part: str = str(stub['name']).rsplit('.', 1)[-1]
+                record: OrderPart = OrderPart(part if 'violates' in stub else 'outside', str(state_name), state_index,
+                                              expected, violations, declared, changing)
+                order_parts.setdefault(key, []).append(record)
+            emit(str(stub['name']), mode, table_index, model if member else 'none', state_index, moves_index, slot,
+                 subjects.get(table, '') if member else '', declared, changing, expected, violations)
+        for key in sorted(order_parts):
+            # A refusal-order block: a clause broken while the subject is in an outside state, so both refusals
+            # apply and the declared order (refusal_order) says which status the call reports.
+            order: list[str] = [str(name) for name in calls_of[key].get('refusal_order', [])]
+            if 'outside' not in order:
+                continue
+            parts: list[OrderPart] = order_parts[key]
+            broken: OrderPart
+            for broken in (item for item in parts if item.refusal != 'outside'):
+                if broken.refusal not in order:
+                    continue
+                state_part: OrderPart
+                for state_part in (item for item in parts if item.refusal == 'outside'):
+                    clause_first: bool = order.index(broken.refusal) < order.index('outside')
+                    winner: OrderPart = broken if clause_first else state_part
+                    loser: OrderPart = state_part if clause_first else broken
+                    counts['ordered'] = counts['ordered'] + 1
+                    declared_both: list[str] = broken.declared + [status for status in state_part.declared
+                                                                  if status not in broken.declared]
+                    emit('gf_abi.' + key[0] + '.' + key[1] + '.order.' + broken.refusal + '.' + state_part.state_name,
+                         'ordered', table_index, model, state_part.state, 'no_state', slots[key],
+                         subjects.get(key[0], ''), declared_both, broken.changing, winner.expected, broken.violations,
+                         loser.expected)
+
 
     out: list[str] = [
         '// The C ABI block table of the IC fuzz target (IC3), generated by gui_forms tools/ic_abi_fuzz.py from',
         "// gui_forms' manifests/ic/blocks (the declarations' block stubs), manifests/abi/gf_abi.json and",
         '// tools/ic/abi_fuzz.toml; do not edit. Regenerate with `python3 -B tools/ic_abi_fuzz.py` there.',
         '//',
-        '// ' + str(counts['legal']) + ' legal and ' + str(counts['misuse']) + ' misuse blocks; '
-        + str(counts['skipped']) + ' stubs of slots the engine never calls,',
+        '// ' + str(counts['legal']) + ' legal and ' + str(counts['misuse']) + ' misuse blocks, ' + str(counts['ordered'])
+        + ' refusal-order blocks;',
+        '// ' + str(counts['skipped']) + ' stubs of slots the engine never calls,',
         '// ' + str(counts['unreachable']) + ' that start in a state the engine cannot reach, '
         + str(counts['unconcretized']) + ' misuse stubs it cannot break on purpose.',
         '#pragma once',
@@ -555,6 +605,8 @@ def generate() -> str:
     out.append('    gf_status expected{GF_STATUS_OK};')
     out.append('    // A misuse block of a requires clause: the ways to break it, one chosen per run.')
     out.append('    std::span<const Violation> violations{};')
+    out.append("    // An ordered block: the refusal the declared order puts second, which must not be reported.")
+    out.append('    gf_status overruled{GF_STATUS_OK};')
     out.append('};')
     out.append('')
     key: tuple[str, str]

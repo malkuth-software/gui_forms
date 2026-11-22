@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_bindings.ic.toml",
-    "sha256": "270acd13112cb37d0e5fb5ee234bf53bc2fb84fa51400734539a41334a3bcc07"
+    "sha256": "6973c23d3983312b3c391fc88e5e3f9b61307d0217f3b2801618ffbcd476448a"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -40,6 +40,15 @@
       "id": "gf_abi.bindings.read_value.refusal.read_value_updated",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(updated), read_value changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_value.order",
+      "kind": "refusal-order",
+      "statement": "When several of read_value's refusals apply, the first of read_value_updated, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -83,6 +92,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.bindings.write_value.order",
+      "kind": "refusal-order",
+      "statement": "When several of write_value's refusals apply, the first of write_value_updated, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.bindings.write_value.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "write_value in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -114,6 +132,15 @@
       "id": "gf_abi.bindings.add_record.refusal.add_record_index",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(index), add_record changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_record.order",
+      "kind": "refusal-order",
+      "statement": "When several of add_record's refusals apply, the first of add_record_index, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -175,6 +202,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.bindings.remove_record.order",
+      "kind": "refusal-order",
+      "statement": "When several of remove_record's refusals apply, the first of remove_record_removed, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.bindings.remove_record.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "remove_record in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -224,6 +260,15 @@
       "id": "gf_abi.bindings.set_position.refusal.set_position_moved",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(moved), set_position changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_position.order",
+      "kind": "refusal-order",
+      "statement": "When several of set_position's refusals apply, the first of set_position_moved, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -303,6 +348,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.bindings.set_current_field.order",
+      "kind": "refusal-order",
+      "statement": "When several of set_current_field's refusals apply, the first of set_current_field_accepted, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.bindings.set_current_field.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "set_current_field in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -334,6 +388,15 @@
       "id": "gf_abi.bindings.add_records.refusal.add_records_records",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(first) and (not_null(records) or count == 0), add_records changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_records.order",
+      "kind": "refusal-order",
+      "statement": "When several of add_records's refusals apply, the first of add_records_records, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -390,6 +453,15 @@
       "id": "gf_abi.bindings.set_provider.refusal.set_provider_columns",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(callbacks) or column_count == 0, set_provider changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.order",
+      "kind": "refusal-order",
+      "statement": "When several of set_provider's refusals apply, the first of set_provider_provider, then set_provider_columns is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

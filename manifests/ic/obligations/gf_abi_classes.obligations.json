@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_classes.ic.toml",
-    "sha256": "b7f8b9a616b2dd6bab92ef564311f0e65982cf1d0b0ed76bdedd800013f697fa"
+    "sha256": "0369b814fc9cd63de5ab2274b75e186e4e11237f57d2c307065bf8ad077537b2"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -41,6 +41,15 @@
       "id": "gf_abi.classes.create.refusal.create_table",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(table), create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.classes.create.order",
+      "kind": "refusal-order",
+      "statement": "When several of create's refusals apply, the first of create_object, then create_table is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

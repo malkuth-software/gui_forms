@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_diagnostics.ic.toml",
-    "sha256": "1765a2a4c21447014c370589a8e7903d96782cca1ddd40bd15ce84966d3766dd"
+    "sha256": "2b34ccf59784f394e0ad95cd8cdca151937006583f5ad7f81d80c619d99c69cb"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -155,6 +155,15 @@
       "id": "gf_abi.diagnostics.failure_detail.refusal.failure_detail_output_size",
       "kind": "refusal-leaves",
       "statement": "Unless output_size >= failure_detail_size_1_5, failure_detail changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.diagnostics.failure_detail.order",
+      "kind": "refusal-order",
+      "statement": "When several of failure_detail's refusals apply, the first of failure_detail_output, then failure_detail_output_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

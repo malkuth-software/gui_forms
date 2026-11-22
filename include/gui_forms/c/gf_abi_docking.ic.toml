@@ -85,6 +85,7 @@ requires = [
   { holds = "not_null(location)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "locate_location" },
   { holds = "location_size >= location_size_1_1", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "locate_location_size" },
 ]
+refusal_order = ["locate_location", "locate_location_size", "outside"]
 fails = [
   { failure = "not_found", when = "code: no panel of that id is registered" },
 ]
@@ -146,6 +147,7 @@ parameters = { node = "uint32_t*" }
 requires = [
   { holds = "not_null(node)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "document_area_node" },
 ]
+refusal_order = ["document_area_node", "outside"]
 
 [[call]]
 name = "panel_at"
@@ -170,6 +172,7 @@ parameters = { count = "uint64_t*", sites = "uint32_t*", capacity = "uint64_t" }
 requires = [
   { holds = "not_null(count) and (not_null(sites) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "floating_sites_sites" },
 ]
+refusal_order = ["floating_sites_sites", "outside"]
 fails = [
   { failure = "buffer_too_small", when = "The floating sites' numbers, in the layout's order, into sites (capacity entries); count receives how many there are, also with GF_STATUS_BUFFER_TOO_SMALL." },
 ]
@@ -233,6 +236,7 @@ parameters = { presentation = "gf_dock_document_presentation*" }
 requires = [
   { holds = "not_null(presentation)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "document_presentation_presentation" },
 ]
+refusal_order = ["document_presentation_presentation", "outside"]
 
 [[call]]
 name = "arrange_frames"
@@ -258,6 +262,7 @@ requires = [
   { holds = "not_null(frame)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "frame_memory_frame" },
   { holds = "frame_size >= frame_memory_size_1_6", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "frame_memory_frame_size" },
 ]
+refusal_order = ["frame_memory_frame", "frame_memory_frame_size", "outside"]
 fails = [
   { failure = "not_found", when = "code: no panel of that id is registered" },
 ]
@@ -284,6 +289,7 @@ parameters = { count = "uint64_t*" }
 requires = [
   { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "area_document_count_count" },
 ]
+refusal_order = ["area_document_count_count", "outside"]
 
 [[call]]
 name = "area_document_at"

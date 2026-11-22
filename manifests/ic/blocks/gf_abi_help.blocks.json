@@ -431,7 +431,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "show_popup_shown",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.help.show_popup.misuse.show_popup_shown",
@@ -498,7 +502,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "resolve_home",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.help.resolve.misuse.resolve_home",

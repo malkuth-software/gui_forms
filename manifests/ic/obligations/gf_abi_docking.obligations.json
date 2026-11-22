@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_docking.ic.toml",
-    "sha256": "bf1b6cf1c69e71f52b7ea315ae8ac124a99e2f3af7f45511349f24ef4ac24acb"
+    "sha256": "624d6f064fd40eff1f1ef318be037cfff8da21a9fe093197a2ebba099b658726"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -113,6 +113,15 @@
       "id": "gf_abi.docking.locate.refusal.locate_location_size",
       "kind": "refusal-leaves",
       "statement": "Unless location_size >= location_size_1_1, locate changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.locate.order",
+      "kind": "refusal-order",
+      "statement": "When several of locate's refusals apply, the first of locate_location, then locate_location_size, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -228,6 +237,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.docking.document_area.order",
+      "kind": "refusal-order",
+      "statement": "When several of document_area's refusals apply, the first of document_area_node, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.docking.document_area.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "document_area in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -277,6 +295,15 @@
       "id": "gf_abi.docking.floating_sites.refusal.floating_sites_sites",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(count) and (not_null(sites) or capacity == 0), floating_sites changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.floating_sites.order",
+      "kind": "refusal-order",
+      "statement": "When several of floating_sites's refusals apply, the first of floating_sites_sites, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -392,6 +419,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.docking.document_presentation.order",
+      "kind": "refusal-order",
+      "statement": "When several of document_presentation's refusals apply, the first of document_presentation_presentation, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.docking.document_presentation.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "document_presentation in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -466,6 +502,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.docking.frame_memory.order",
+      "kind": "refusal-order",
+      "statement": "When several of frame_memory's refusals apply, the first of frame_memory_frame, then frame_memory_frame_size, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.docking.frame_memory.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "frame_memory in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -515,6 +560,15 @@
       "id": "gf_abi.docking.area_document_count.refusal.area_document_count_count",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(count), area_document_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.docking.area_document_count.order",
+      "kind": "refusal-order",
+      "statement": "When several of area_document_count's refusals apply, the first of area_document_count_count, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

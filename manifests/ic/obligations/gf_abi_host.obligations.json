@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_host.ic.toml",
-    "sha256": "796c78d84c09a31995e4eed2cdf8c48aafaaa937f30d3f2511e187468f51bcff"
+    "sha256": "fffcec7aea4d54b2b07bcd6c26699b2b924bc2de019f1231b432fe5e4d4a2508"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -41,6 +41,15 @@
       "id": "gf_abi.host.capabilities.refusal.capabilities_record_size",
       "kind": "refusal-leaves",
       "statement": "Unless record_size >= host_capabilities_size_1_0, capabilities changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.host.capabilities.order",
+      "kind": "refusal-order",
+      "statement": "When several of capabilities's refusals apply, the first of capabilities_record, then capabilities_record_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

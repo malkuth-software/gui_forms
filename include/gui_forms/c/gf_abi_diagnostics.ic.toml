@@ -108,6 +108,7 @@ requires = [
   { holds = "not_null(output)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "failure_detail_output" },
   { holds = "output_size >= failure_detail_size_1_5", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "failure_detail_output_size" },
 ]
+refusal_order = ["failure_detail_output", "failure_detail_output_size"]
 [[call]]
 name = "set_diagnostic_overlay"
 declarations = ["gf_status (GF_CALL* set_diagnostic_overlay)("]

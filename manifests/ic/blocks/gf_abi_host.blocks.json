@@ -37,7 +37,11 @@
         "record_size >= host_capabilities_size_1_0"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "capabilities_record",
+        "capabilities_record_size"
+      ]
     },
     {
       "name": "gf_abi.host.capabilities.misuse.capabilities_record",

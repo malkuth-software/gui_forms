@@ -120,7 +120,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "state_state",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.subsurfaces.state.misuse.state_state",
@@ -187,7 +191,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "content_epoch_epoch",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.subsurfaces.content_epoch.misuse.content_epoch_epoch",

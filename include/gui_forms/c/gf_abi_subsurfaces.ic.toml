@@ -55,6 +55,7 @@ parameters = { state = "gf_subsurface_state*" }
 requires = [
   { holds = "not_null(state)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "state_state" },
 ]
+refusal_order = ["state_state", "outside"]
 fails = [
   { failure = "wrong_handle_kind", when = "code: the object is not a sub_surface_host" },
 ]
@@ -70,6 +71,7 @@ parameters = { epoch = "uint64_t*" }
 requires = [
   { holds = "not_null(epoch)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "content_epoch_epoch" },
 ]
+refusal_order = ["content_epoch_epoch", "outside"]
 fails = [
   { failure = "wrong_handle_kind", when = "code: the object is not a sub_surface_host" },
 ]

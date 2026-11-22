@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_data_grid.ic.toml",
-    "sha256": "5b2aa4a4a318f3eb8a7078a5db3464cc4e044f78e0e5fbb41b0e27b160bf86d3"
+    "sha256": "55297fc8479e87c8bd8c07a23beecbacdd56205c9966a42254f53f7d913d3425"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -98,6 +98,15 @@
       "id": "gf_abi.data_grid.replace_row.refusal.replace_row_row_size",
       "kind": "refusal-leaves",
       "statement": "Unless row_size >= row_size_1_1, replace_row changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.replace_row.order",
+      "kind": "refusal-order",
+      "statement": "When several of replace_row's refusals apply, the first of replace_row_row, then replace_row_row_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

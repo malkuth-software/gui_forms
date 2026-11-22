@@ -155,6 +155,7 @@ requires = [
   { holds = "not_null(arguments)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_with_arguments" },
   { holds = "arguments_size >= create_arguments_size_1_0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_with_arguments_size" },
 ]
+refusal_order = ["create_with_object", "create_with_arguments", "create_with_arguments_size"]
 fails = [
   { failure = "invalid_argument", when = "An owner of the wrong type gives GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration GF_STATUS_INVALID_ARGUMENT; a type create makes is made as create makes it when arguments asks nothing of it." },
   { failure = "not_found", when = "code: the schema has no type of that name" },

@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_objects.ic.toml",
-    "sha256": "a04ccbaa4c0d6f035414a8e1069974f3d0faac462a98129b6dfc9e38250ce1fa"
+    "sha256": "1e7075e12746c2e1e2960f3065b9a35764111baa8c62c3fecca65b64c2782331"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -191,6 +191,15 @@
       "id": "gf_abi.objects.create_with.refusal.create_with_arguments_size",
       "kind": "refusal-leaves",
       "statement": "Unless arguments_size >= create_arguments_size_1_0, create_with changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.create_with.order",
+      "kind": "refusal-order",
+      "statement": "When several of create_with's refusals apply, the first of create_with_object, then create_with_arguments, then create_with_arguments_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

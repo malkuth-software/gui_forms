@@ -31,6 +31,7 @@ requires = [
   { holds = "not_null(record)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "capabilities_record" },
   { holds = "record_size >= host_capabilities_size_1_0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "capabilities_record_size" },
 ]
+refusal_order = ["capabilities_record", "capabilities_record_size"]
 
 [[call]]
 name = "platform_name"

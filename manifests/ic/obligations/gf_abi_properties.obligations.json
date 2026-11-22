@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_properties.ic.toml",
-    "sha256": "af3e60de97645fbab62a538767933f7603654752c41a6b0370372120d9c1aa24"
+    "sha256": "56af6555c0ad24638056179fd4a0a2fe832103a529cccb49ad3cd0e8c039a2f0"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -94,6 +94,15 @@
       "id": "gf_abi.properties.read_elements.refusal.read_elements_text_buffer",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), read_elements changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.read_elements.order",
+      "kind": "refusal-order",
+      "statement": "When several of read_elements's refusals apply, the first of read_elements_text_buffer, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

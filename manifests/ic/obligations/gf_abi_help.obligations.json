@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_help.ic.toml",
-    "sha256": "1f3f1f719834e1280a79a00569c07326b1e10d31cace4e1dce40d9243ce17dc0"
+    "sha256": "df406dfd17491e6eb3fc4a615fb28f24c846d2d0ffcd8fcdb363b8a3a1fe0d59"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -83,6 +83,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.help.show_popup.order",
+      "kind": "refusal-order",
+      "statement": "When several of show_popup's refusals apply, the first of show_popup_shown, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.help.show_popup.outside.disposing",
       "kind": "typestate-refusal",
       "statement": "show_popup in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -114,6 +123,15 @@
       "id": "gf_abi.help.resolve.refusal.resolve_home",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(home), resolve changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.resolve.order",
+      "kind": "refusal-order",
+      "statement": "When several of resolve's refusals apply, the first of resolve_home, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

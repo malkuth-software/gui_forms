@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/host/session/host_session.ic.toml",
-    "sha256": "212f5c6fa4eecbb0db6e2232c556b1b8da3a2eb776a8f25bcebeb57422f5dc9e"
+    "sha256": "d8460724918205dc2537ce86094a55b378cc24033cb78114a095088297039f37"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -98,6 +98,15 @@
       "id": "gui_forms.hostsession.dispatch.refusal.dispatch_scale",
       "kind": "refusal-leaves",
       "statement": "Unless finite(scale) and scale > 0, dispatch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.order",
+      "kind": "refusal-order",
+      "statement": "When several of dispatch's refusals apply, the first of dispatch_sequence, then dispatch_order, then the state refusal, then dispatch_lifecycle, then dispatch_size, then dispatch_scale is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

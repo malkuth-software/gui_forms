@@ -89,6 +89,7 @@ parameters = { text_required = "uint64_t*", text_buffer = "char*", text_capacity
 requires = [
   { holds = "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "read_elements_text_buffer" },
 ]
+refusal_order = ["read_elements_text_buffer", "outside"]
 fails = [
   { failure = "buffer_too_small", when = "Reads count elements of the COLLECTION property name from position first into values, an array of count records (the array rule above; fields past the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value." },
   { failure = "invalid_argument", when = "code: read_elements needs a text size output, and a buffer unless its capacity is zero" },

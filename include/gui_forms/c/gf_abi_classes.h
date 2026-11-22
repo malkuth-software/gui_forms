@@ -599,21 +599,21 @@ typedef struct gf_classes_table {
      * GF_STATUS_UNSUPPORTED_VERSION: nothing is created and release is not
      * called. The class of an object is fixed at creation. */
     // ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(table), else
-    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (A class with no class table gives
-    // ic: GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment
-    // ic: count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller
-    // ic: than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's
-    // ic: GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), unchanged; not_found (A class with no class table
-    // ic: gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a
-    // ic: segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment
-    // ic: smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's
-    // ic: GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), unchanged; unsupported_capability (code: this
-    // ic: class is not made from a stable id alone; it has no class table object yet), unchanged; unsupported_version
-    // ic: (A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size
-    // ic: or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's
-    // ic: chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer
-    // ic: than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), unchanged. Returns gf_object,
-    // ic: owned by the caller.
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: create_object, then create_table.
+    // ic: Fails invalid_argument (A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header
+    // ic: smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id
+    // ic: is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT,
+    // ic: and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re),
+    // ic: unchanged; not_found (A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header
+    // ic: smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id
+    // ic: is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT,
+    // ic: and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re),
+    // ic: unchanged; unsupported_capability (code: this class is not made from a stable id alone; it has no class table
+    // ic: object yet), unchanged; unsupported_version (A class with no class table gives GF_STATUS_NOT_FOUND; a
+    // ic: malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the
+    // ic: class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header)
+    // ic: gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION:
+    // ic: nothing is created and re), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* create)(const gf_class_header* table, gf_utf8_view stable_id, void* instance,
                                 gf_object* object);
     /* The base function of entry (its position in the segment, from zero) of

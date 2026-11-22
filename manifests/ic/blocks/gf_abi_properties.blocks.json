@@ -331,7 +331,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "read_elements_text_buffer",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.properties.read_elements.misuse.read_elements_text_buffer",

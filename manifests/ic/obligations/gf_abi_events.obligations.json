@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_events.ic.toml",
-    "sha256": "f1af50dbb02f9d677c8212ddad8365d4b83e8c8467ee8e64434e19ec6d351e0c"
+    "sha256": "f29689355148010d648f64de93e4aa2a7fe11578df545ece9d62bf3008315fa8"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -22,6 +22,15 @@
       "id": "gf_abi.events.subscribe.refusal.subscription_output",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(subscription), subscribe changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe.order",
+      "kind": "refusal-order",
+      "statement": "When several of subscribe's refusals apply, the first of subscription_output, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -59,6 +68,15 @@
       "id": "gf_abi.events.subscribe_property.refusal.subscription_output",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(subscription), subscribe_property changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.order",
+      "kind": "refusal-order",
+      "statement": "When several of subscribe_property's refusals apply, the first of subscription_output, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

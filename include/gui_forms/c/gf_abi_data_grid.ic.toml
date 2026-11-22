@@ -177,6 +177,7 @@ requires = [
   { holds = "not_null(row)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "replace_row_row" },
   { holds = "row_size >= row_size_1_1", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "replace_row_row_size" },
 ]
+refusal_order = ["replace_row_row", "replace_row_row_size"]
 
 [[call]]
 name = "clear_rows"

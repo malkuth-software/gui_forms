@@ -88,6 +88,7 @@ parameters = { shown = "uint32_t*" }
 requires = [
   { holds = "not_null(shown)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "show_popup_shown" },
 ]
+refusal_order = ["show_popup_shown", "outside"]
 fails = [
   { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
 ]
@@ -103,6 +104,7 @@ parameters = { home = "uint32_t*" }
 requires = [
   { holds = "not_null(home)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "resolve_home" },
 ]
+refusal_order = ["resolve_home", "outside"]
 fails = [
   { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
 ]

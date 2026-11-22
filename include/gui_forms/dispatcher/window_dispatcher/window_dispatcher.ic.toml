@@ -30,6 +30,7 @@ parameters = { bound = "bool" }
 requires = [
   { holds = "bound != 0", refuses = "failure:logic_error", check = "bound" },
 ]
+refusal_order = ["outside", "bound"]
 fails = [
   { failure = "cancelled", when = "the window is gone: the operation returned is already cancelled and the callback released" },
 ]
@@ -46,6 +47,7 @@ parameters = { bound = "bool" }
 requires = [
   { holds = "bound != 0", refuses = "failure:logic_error", check = "bound" },
 ]
+refusal_order = ["outside", "bound"]
 fails = [
   { failure = "invalid_argument", when = "an empty callback (a std::function the clause grammar cannot name, so its check stays in code)" },
   { failure = "window_gone", when = "the window was gone first or closed while the work waited (DispatchInvokeResult::window_gone); the callback did not run" },

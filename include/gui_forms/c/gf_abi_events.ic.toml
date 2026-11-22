@@ -34,6 +34,7 @@ parameters = { subscription = "gf_subscription*" }
 requires = [
   { holds = "not_null(subscription)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "subscription_output" },
 ]
+refusal_order = ["subscription_output", "outside"]
 returns = { type = "gf_subscription", owns = "caller" }
 fails = [
   { failure = "not_found", when = "A name the type does not raise gives GF_STATUS_NOT_FOUND." },
@@ -51,6 +52,7 @@ parameters = { subscription = "gf_subscription*" }
 requires = [
   { holds = "not_null(subscription)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "subscription_output" },
 ]
+refusal_order = ["subscription_output", "outside"]
 in = ["alive"]
 outside = "value:GF_STATUS_DISPOSED"
 returns = { type = "gf_subscription", owns = "caller" }

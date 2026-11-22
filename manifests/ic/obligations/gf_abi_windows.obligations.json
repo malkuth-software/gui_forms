@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_windows.ic.toml",
-    "sha256": "74b99404c66323d9e16658f3b9dd8f663bd9e6bb0b7651d3ea95be7dc7b6e22e"
+    "sha256": "a7e4ef7990374941b5f50dbde93febac3f7352f0ac3e9e546938d27c2d74d59c"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -218,6 +218,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.windows.mdi_container.order",
+      "kind": "refusal-order",
+      "statement": "When several of mdi_container's refusals apply, the first of mdi_container_container, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.windows.mdi_container.outside.ended",
       "kind": "typestate-refusal",
       "statement": "mdi_container in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -240,6 +249,15 @@
       "id": "gf_abi.windows.mdi_child_count.refusal.mdi_child_count_count",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(count), mdi_child_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_child_count.order",
+      "kind": "refusal-order",
+      "statement": "When several of mdi_child_count's refusals apply, the first of mdi_child_count_count, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],
@@ -319,6 +337,15 @@
       "status": "open"
     },
     {
+      "id": "gf_abi.windows.mdi_children_minimized_anchor_bottom.order",
+      "kind": "refusal-order",
+      "statement": "When several of mdi_children_minimized_anchor_bottom's refusals apply, the first of mdi_children_minimized_anchor_bottom_bottom, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gf_abi.windows.mdi_children_minimized_anchor_bottom.outside.ended",
       "kind": "typestate-refusal",
       "statement": "mdi_children_minimized_anchor_bottom in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
@@ -350,6 +377,15 @@
       "id": "gf_abi.windows.main_menu_strip.refusal.main_menu_strip_strip",
       "kind": "refusal-leaves",
       "statement": "Unless not_null(strip), main_menu_strip changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.main_menu_strip.order",
+      "kind": "refusal-order",
+      "statement": "When several of main_menu_strip's refusals apply, the first of main_menu_strip_strip, then the state refusal is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

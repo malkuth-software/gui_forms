@@ -798,8 +798,9 @@ typedef struct gf_objects_table {
      * is made as create makes it when arguments asks nothing of it. */
     // ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(arguments),
     // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires arguments_size >= create_arguments_size_1_0,
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (An owner of the wrong type gives
-    // ic: GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: create_with_object, then
+    // ic: create_with_arguments, then create_with_arguments_size. Fails invalid_argument (An owner of the wrong type
+    // ic: gives GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration
     // ic: GF_STATUS_INVALID_ARGUMENT; a type create makes is made as create makes it when arguments asks nothing of
     // ic: it.), unchanged; not_found (code: the schema has no type of that name), unchanged; unsupported_capability
     // ic: (code: a window is made by windows.create), unchanged; wrong_handle_kind (An owner of the wrong type gives
@@ -881,13 +882,14 @@ typedef struct gf_properties_table {
      * GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
     // ic: not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), else returns
-    // ic: GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (Reads count elements of the COLLECTION
-    // ic: property name from position first into values, an array of count records (the array rule above; fields past
-    // ic: the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view
-    // ic: pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which
-    // ic: writes no value.), unchanged; invalid_argument (code: read_elements needs a text size output, and a buffer
-    // ic: unless its capacity is zero), unchanged; limit_exceeded (A range past the count gives GF_STATUS_NOT_FOUND;
-    // ic: more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.),
+    // ic: GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: read_elements_text_buffer, then the state
+    // ic: refusal. Fails buffer_too_small (Reads count elements of the COLLECTION property name from position first
+    // ic: into values, an array of count records (the array rule above; fields past the 1.0 size are left alone), their
+    // ic: text copied into text_buffer one after another, each value's view pointing there. text_required receives the
+    // ic: total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.), unchanged; invalid_argument
+    // ic: (code: read_elements needs a text size output, and a buffer unless its capacity is zero), unchanged;
+    // ic: limit_exceeded (A range past the count gives GF_STATUS_NOT_FOUND; more than
+    // ic: GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.),
     // ic: unchanged; not_found (A range past the count gives GF_STATUS_NOT_FOUND; more than
     // ic: GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.),
     // ic: unchanged; unsupported_capability (code: an element's value kind has no gf_value form in this library),
@@ -936,17 +938,18 @@ typedef struct gf_events_table {
      * The event's fields carry the payload (Event fields above). A name the
      * type does not raise gives GF_STATUS_NOT_FOUND. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
-    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (A name the type
-    // ic: does not raise gives GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller.
-    // ic: Transfers callback from caller to library.
+    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: subscription_output, then the state refusal. Fails not_found (A name the type does not raise gives
+    // ic: GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from
+    // ic: caller to library.
     gf_status (GF_CALL* subscribe)(gf_object source, gf_utf8_view interaction,
                                    const gf_callback* callback,
                                    gf_subscription* subscription);
     /* Subscribes to changes of one property; the event has no payload. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
-    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the source
-    // ic: has no property of that name), unchanged. Returns gf_subscription, owned by the caller. Transfers callback
-    // ic: from caller to library.
+    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: subscription_output, then the state refusal. Fails not_found (code: the source has no property of that name),
+    // ic: unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.
     gf_status (GF_CALL* subscribe_property)(gf_object source, gf_utf8_view property,
                                             const gf_callback* callback,
                                             gf_subscription* subscription);
@@ -1637,16 +1640,18 @@ typedef struct gf_windows_table {
     // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* set_mdi_container)(gf_object window_or_root, uint32_t container);
     // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(container),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a
-    // ic: window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: mdi_container_container,
+    // ic: then the state refusal. Fails invalid_state (code: the control is not in a window), unchanged;
+    // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* mdi_container)(gf_object window_or_root, uint32_t* container);
     /* Since 1.6. The number of MDI children (Form.MdiChildren), and the id
      * of the child at index, in tree and tab order, into the caller's
      * buffer (required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL; GF_STATUS_NOT_FOUND past the end). */
     // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else
-    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a window),
-    // ic: unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: mdi_child_count_count, then the
+    // ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind
+    // ic: (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* mdi_child_count)(gf_object window_or_root, uint64_t* count);
     // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (the id
     // ic: is longer than capacity: required receives its size, nothing else is written), unchanged; invalid_state
@@ -1685,8 +1690,10 @@ typedef struct gf_windows_table {
     // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* set_mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t bottom);
     // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(bottom),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a
-    // ic: window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: mdi_children_minimized_anchor_bottom_bottom, then the state refusal. Fails invalid_state (code: the control
+    // ic: is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one),
+    // ic: unchanged.
     gf_status (GF_CALL* mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t* bottom);
     /* Since 1.6. The window's main menu strip (Form.MainMenuStrip): the
      * strip the active child's menu strip merges into (the docking table's
@@ -1701,9 +1708,9 @@ typedef struct gf_windows_table {
     // ic: object gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
     gf_status (GF_CALL* set_main_menu_strip)(gf_object window_or_root, gf_object strip);
     // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(strip), else
-    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the control is not in a window),
-    // ic: unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged. Returns
-    // ic: gf_object, owned by the caller.
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: main_menu_strip_strip, then the
+    // ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind
+    // ic: (code: the MDI calls take a window or a control in one), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* main_menu_strip)(gf_object window_or_root, gf_object* strip);
     /* Since 1.7. lifecycle receives where window, a window from create,
      * stands (gf_window_lifecycle), at any point of its life, disposed
@@ -2611,7 +2618,8 @@ typedef struct gf_host_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     // ic: Requires not_null(record), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires record_size >=
-    // ic: host_capabilities_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: host_capabilities_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: capabilities_record, then capabilities_record_size.
     gf_status (GF_CALL* capabilities)(gf_host_capabilities* record);
     /* The host's name, as win32-dib, appkit-macos or linux-x11. */
     gf_status (GF_CALL* platform_name)(char* buffer, uint64_t capacity, uint64_t* required);
@@ -2935,7 +2943,8 @@ typedef struct gf_diagnostics_table {
      * detail or one smaller than its 1.5 size.
      */
     // ic: Requires not_null(output), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires output_size >=
-    // ic: failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: failure_detail_output, then failure_detail_output_size.
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
     /*
      * Since 1.5. The diagnostic overlay: the invalidation outlines and,
@@ -3201,14 +3210,16 @@ typedef struct gf_controls_table {
     gf_status (GF_CALL* layout_state)(gf_object object, gf_layout_transaction* state);
     /* The control's bounds in its window's client space, after layout. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(bounds),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: window_bounds_bounds, then
+    // ic: the state refusal.
     gf_status (GF_CALL* window_bounds)(gf_object object, gf_logical_rect* bounds);
     /* Takes (1) or releases (0) the pointer for the control. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
     // ic: (code: captured is 0 or 1), unchanged.
     gf_status (GF_CALL* set_pointer_capture)(gf_object object, uint32_t captured);
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
-    // ic: not_null(captured), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: not_null(captured), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: pointer_capture_captured, then the state refusal.
     gf_status (GF_CALL* pointer_capture)(gf_object object, uint32_t* captured);
     gf_status (GF_CALL* scroll_state)(gf_object object, gf_scroll_snapshot* state);
     /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT and changes
@@ -3821,10 +3832,10 @@ typedef struct gf_custom_controls_table {
      * caller one reference to it. A malformed spec gives INVALID_ARGUMENT
      * and calls no callback, release among them. */
     // ic: Requires not_null(spec) and not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires
-    // ic: spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
-    // ic: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose
-    // ic: struct_size is below 32, not a multiple of 8, or whose reserved is not zero), unchanged. Returns gf_object,
-    // ic: owned by the caller.
+    // ic: spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: create_outputs, then create_spec_size. Fails invalid_argument (code: a stable id that breaks the rule, a
+    // ic: property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple
+    // ic: of 8, or whose reserved is not zero), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object);
     /* Reports that property index changed, as a C++ control raises its
      * changed event: subscribers and bindings read it afresh. A property
@@ -4077,16 +4088,18 @@ typedef struct gf_bindings_table {
      * source's field from the control (write_value), as the binding's modes
      * would; updated receives 0 when conversion or validation refused it. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(updated),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: read_value_updated, then the
+    // ic: state refusal.
     gf_status (GF_CALL* read_value)(gf_object binding, uint32_t* updated);
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(updated),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: write_value_updated, then
+    // ic: the state refusal.
     gf_status (GF_CALL* write_value)(gf_object binding, uint32_t* updated);
     /* Appends a record; index receives its position
      * (GF_BINDING_HIDDEN_POSITION when the source's filter hides it). */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(index),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (code: the source's provider does not
-    // ic: insert rows), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: add_record_index, then the
+    // ic: state refusal. Fails invalid_state (code: the source's provider does not insert rows), unchanged.
     gf_status (GF_CALL* add_record)(gf_object source, const gf_binding_record* record, uint64_t* index);
     /* Inserts a record at index (at most the count). */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
@@ -4097,8 +4110,9 @@ typedef struct gf_bindings_table {
      * records. A source that allows no removal gives
      * GF_STATUS_INVALID_STATE. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(removed),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (A source that allows no removal
-    // ic: gives GF_STATUS_INVALID_STATE.), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: remove_record_removed, then
+    // ic: the state refusal. Fails invalid_state (A source that allows no removal gives GF_STATUS_INVALID_STATE.),
+    // ic: unchanged.
     gf_status (GF_CALL* remove_record)(gf_object source, uint64_t index, uint32_t* removed);
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* clear_records)(gf_object source);
@@ -4106,8 +4120,9 @@ typedef struct gf_bindings_table {
      * already there. A position past the records gives
      * GF_STATUS_INVALID_ARGUMENT. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(moved),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (A position past the records gives
-    // ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: set_position_moved, then the
+    // ic: state refusal. Fails invalid_argument (A position past the records gives GF_STATUS_INVALID_ARGUMENT.),
+    // ic: unchanged.
     gf_status (GF_CALL* set_position)(gf_object source, int64_t position, uint32_t* moved);
     /* The current position (-1 for none) and the count of records. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
@@ -4123,7 +4138,8 @@ typedef struct gf_bindings_table {
     /* Sets the current record's field; accepted 0 when there is no current
      * record or it, or the source, allows no edit. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
-    // ic: not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: set_current_field_accepted, then the state refusal.
     gf_status (GF_CALL* set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value,
                                            uint32_t* accepted);
     /* Since 1.2 (N31). Appends count records (the array rule: the stride
@@ -4134,11 +4150,11 @@ typedef struct gf_bindings_table {
      * GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give
      * GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(first)
-    // ic: and (not_null(records) or count == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails
-    // ic: invalid_argument (code: add_records needs records and a first output), unchanged; invalid_state (code: the
-    // ic: source's provider does not insert rows), unchanged; limit_exceeded (More than
-    // ic: GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes
-    // ic: first.), unchanged.
+    // ic: and (not_null(records) or count == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several
+    // ic: refusals apply: add_records_records, then the state refusal. Fails invalid_argument (code: add_records needs
+    // ic: records and a first output), unchanged; invalid_state (code: the source's provider does not insert rows),
+    // ic: unchanged; limit_exceeded (More than GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give
+    // ic: GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first.), unchanged.
     gf_status (GF_CALL* add_records)(gf_object source, const gf_binding_record* records, uint64_t count,
                                      uint64_t* first);
     /* Since 1.2 (N31). Binds the provider callbacks describes, with
@@ -4148,9 +4164,9 @@ typedef struct gf_bindings_table {
      * and its id refused from then on); the first row becomes current. The
      * library copies columns and callbacks during the call. */
     // ic: Requires not_null(provider), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(callbacks)
-    // ic: or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
-    // ic: provider callbacks or columns their checks refuse), unchanged; wrong_handle_kind (code: the object is not a
-    // ic: binding source), unchanged.
+    // ic: or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: set_provider_provider, then set_provider_columns. Fails invalid_argument (code: provider callbacks or columns
+    // ic: their checks refuse), unchanged; wrong_handle_kind (code: the object is not a binding source), unchanged.
     gf_status (GF_CALL* set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count,
                                       const gf_binding_provider_callbacks* callbacks, uint64_t* provider);
     /* Since 1.2 (N31). Reports a provider's change, from any thread: on
@@ -4282,15 +4298,15 @@ typedef struct gf_subsurfaces_table {
     /* The host's state; GF_SUBSURFACE_STATE_STOPPED while it has no
      * thread. UI thread. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(state),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (code: the object is not a
-    // ic: sub_surface_host), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: state_state, then the state
+    // ic: refusal. Fails wrong_handle_kind (code: the object is not a sub_surface_host), unchanged.
     gf_status (GF_CALL* state)(gf_object host, gf_subsurface_state* state);
     /* The content epoch of the newest configuration the host sent its
      * sub-surface (each frame the sub-surface shows was produced at one);
      * zero before the first. UI thread. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(epoch),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (code: the object is not a
-    // ic: sub_surface_host), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: content_epoch_epoch, then
+    // ic: the state refusal. Fails wrong_handle_kind (code: the object is not a sub_surface_host), unchanged.
     gf_status (GF_CALL* content_epoch)(gf_object host, uint64_t* epoch);
     /* Why the sub-surface failed (GF_SUBSURFACE_STATE_FAILED), as text;
      * empty in every other state. UI thread. */
@@ -4869,7 +4885,8 @@ typedef struct gf_data_grid_table {
     /* Replaces the row at index (below the collection's count) with row,
      * whose stable id may be the replaced row's or one no other row has. */
     // ic: Requires not_null(row), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires row_size >=
-    // ic: row_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: row_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: replace_row_row, then replace_row_row_size.
     gf_status (GF_CALL* replace_row)(gf_object grid, uint64_t index, const gf_data_grid_row* row);
     /* Removes every row of any source (a data source or virtual provider is
      * let go) and returns the grid to its own rows. */
@@ -5345,8 +5362,9 @@ typedef struct gf_docking_table {
     /* Where a registered panel is, into location (at least the 1.1 size). */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
     // ic: not_null(location), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires location_size >=
-    // ic: location_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: no panel of
-    // ic: that id is registered), unchanged.
+    // ic: location_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: locate_location, then locate_location_size, then the state refusal. Fails not_found (code: no panel of that
+    // ic: id is registered), unchanged.
     gf_status (GF_CALL* locate)(gf_object workspace, gf_utf8_view panel, gf_dock_location* location);
     /* The layout as XML (C++ DockLayout::write_xml) into the caller's
      * buffer; required receives its size, also with
@@ -5379,7 +5397,8 @@ typedef struct gf_docking_table {
     gf_status (GF_CALL* attach_windows)(gf_object workspace);
     /* The main site's document area node. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(node),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: document_area_node, then the
+    // ic: state refusal.
     gf_status (GF_CALL* document_area)(gf_object workspace, uint32_t* node);
     /* The id of the panel at index in stack into the caller's buffer;
      * required receives its size. GF_STATUS_NOT_FOUND past the stack's
@@ -5394,9 +5413,10 @@ typedef struct gf_docking_table {
      * (capacity entries); count receives how many there are, also with
      * GF_STATUS_BUFFER_TOO_SMALL. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count)
-    // ic: and (not_null(sites) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails
-    // ic: buffer_too_small (The floating sites' numbers, in the layout's order, into sites (capacity entries); count
-    // ic: receives how many there are, also with GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
+    // ic: and (not_null(sites) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several
+    // ic: refusals apply: floating_sites_sites, then the state refusal. Fails buffer_too_small (The floating sites'
+    // ic: numbers, in the layout's order, into sites (capacity entries); count receives how many there are, also with
+    // ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
     gf_status (GF_CALL* floating_sites)(gf_object workspace, uint32_t* sites, uint64_t capacity, uint64_t* count);
     /* A floating site's frame (its window's client area, desktop logical
      * units) and its first stack (zero when it has none). */
@@ -5440,7 +5460,8 @@ typedef struct gf_docking_table {
      *
      * The document area's presentation. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
-    // ic: not_null(presentation), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: not_null(presentation), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: document_presentation_presentation, then the state refusal.
     gf_status (GF_CALL* document_presentation)(gf_object workspace, gf_dock_document_presentation* presentation);
     /* Arranges the frames in the main site's document area as last laid
      * out (gf_dock_frame_arrangement), as one program transaction: applied
@@ -5457,7 +5478,8 @@ typedef struct gf_docking_table {
      * size); present 0 when it has none. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(frame),
     // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires frame_size >= frame_memory_size_1_6, else
-    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: no panel of that id is registered),
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: frame_memory_frame, then
+    // ic: frame_memory_frame_size, then the state refusal. Fails not_found (code: no panel of that id is registered),
     // ic: unchanged.
     gf_status (GF_CALL* frame_memory)(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame);
     /* Whether minimized frames line the bottom of the area (1, the default)
@@ -5469,7 +5491,8 @@ typedef struct gf_docking_table {
     /* The number of documents in the main site's document area (the MDI
      * children), whichever the presentation. */
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: area_document_count_count,
+    // ic: then the state refusal.
     gf_status (GF_CALL* area_document_count)(gf_object workspace, uint64_t* count);
     /* The id of the document at index in the area, in tree and tab order,
      * into the caller's buffer; required receives its size, also with
@@ -5702,12 +5725,12 @@ typedef struct gf_help_table {
     gf_status (GF_CALL* show_navigator)(gf_object system, gf_help_navigator navigator, gf_utf8_view text,
                                         uint32_t* shown);
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(shown),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (code: the object is not a
-    // ic: help_book_system), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: show_popup_shown, then the
+    // ic: state refusal. Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* show_popup)(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown);
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(home),
-    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (code: the object is not a
-    // ic: help_book_system), unchanged.
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: resolve_home, then the state
+    // ic: refusal. Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* resolve)(gf_object system, gf_object control, char* buffer, uint64_t capacity,
                                  uint64_t* required, uint32_t* home);
     // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
@@ -6125,11 +6148,13 @@ typedef struct gf_content_table {
     gf_status (GF_CALL* failure)(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required);
     /* The channel's counters; all zero without content. */
     // ic: Requires not_null(statistics), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires statistics_size
-    // ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: statistics_statistics, then statistics_statistics_size.
     gf_status (GF_CALL* statistics)(gf_object surface, gf_content_statistics* statistics);
     /* The newest request sent to the content. */
     // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
-    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: request_request, then request_request_size.
     gf_status (GF_CALL* request)(gf_object surface, gf_content_request* request);
     /* The veil's caption for status (stale, abandoned and failed have
      * English defaults); empty hides it. */
@@ -6146,7 +6171,8 @@ typedef struct gf_content_table {
     /* The surface's hosted input channel; not connected and zero dropped
      * without hosted content. */
     // ic: Requires not_null(report), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires report_size >=
-    // ic: hosted_input_report_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: hosted_input_report_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals
+    // ic: apply: hosted_input_report, then hosted_input_report_size.
     gf_status (GF_CALL* hosted_input)(gf_object surface, gf_hosted_input_report* report);
     /* Whether hosted content exists here. Any thread. */
     // ic: Requires not_null(support), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
@@ -6166,7 +6192,8 @@ typedef struct gf_content_table {
                                                 gf_content_semantics_result* result);
     /* The newest request. Any thread. */
     // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
-    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
+    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: sink_request_request, then sink_request_request_size. Thread: any.
     gf_status (GF_CALL* sink_request)(gf_content_sink sink, gf_content_request* request);
     /* Blocks the calling (content) thread until the request's generation
      * passes seen_generation, the channel is revoked, a stop is asked for,
@@ -6174,7 +6201,8 @@ typedef struct gf_content_table {
      * request then. The UI thread must not call it: it would block the
      * interface. */
     // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
-    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: sink_wait_for_request_request, then sink_wait_for_request_request_size.
     gf_status (GF_CALL* sink_wait_for_request)(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms,
                                                gf_content_request* request);
     /* revoked is 1 once the channel is revoked; stop_requested 1 once the
@@ -6183,7 +6211,8 @@ typedef struct gf_content_table {
     gf_status (GF_CALL* sink_state)(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested);
     /* The channel's counters. Any thread. */
     // ic: Requires not_null(statistics), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires statistics_size
-    // ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
+    // ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: sink_statistics_statistics, then sink_statistics_statistics_size. Thread: any.
     gf_status (GF_CALL* sink_statistics)(gf_content_sink sink, gf_content_statistics* statistics);
     /* Ends the caller's handle; the channel itself lives on while the
      * surface or another handle holds it. A released or unknown sink gives

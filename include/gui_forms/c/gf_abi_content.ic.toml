@@ -111,6 +111,7 @@ requires = [
   { holds = "not_null(statistics)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "statistics_statistics" },
   { holds = "statistics_size >= statistics_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "statistics_statistics_size" },
 ]
+refusal_order = ["statistics_statistics", "statistics_statistics_size"]
 
 [[call]]
 name = "request"
@@ -122,6 +123,7 @@ requires = [
   { holds = "not_null(request)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "request_request" },
   { holds = "request_size >= request_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "request_request_size" },
 ]
+refusal_order = ["request_request", "request_request_size"]
 
 [[call]]
 name = "set_status_caption"
@@ -161,6 +163,7 @@ requires = [
   { holds = "not_null(report)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "hosted_input_report" },
   { holds = "report_size >= hosted_input_report_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "hosted_input_report_size" },
 ]
+refusal_order = ["hosted_input_report", "hosted_input_report_size"]
 
 [[call]]
 name = "hosted_support"
@@ -207,6 +210,7 @@ requires = [
   { holds = "not_null(request)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_request_request" },
   { holds = "request_size >= request_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_request_request_size" },
 ]
+refusal_order = ["sink_request_request", "sink_request_request_size"]
 
 [[call]]
 name = "sink_wait_for_request"
@@ -218,6 +222,7 @@ requires = [
   { holds = "not_null(request)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_wait_for_request_request" },
   { holds = "request_size >= request_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_wait_for_request_request_size" },
 ]
+refusal_order = ["sink_wait_for_request_request", "sink_wait_for_request_request_size"]
 
 [[call]]
 name = "sink_state"
@@ -238,6 +243,7 @@ requires = [
   { holds = "not_null(statistics)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_statistics_statistics" },
   { holds = "statistics_size >= statistics_size_1_4", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_statistics_statistics_size" },
 ]
+refusal_order = ["sink_statistics_statistics", "sink_statistics_statistics_size"]
 
 [[call]]
 name = "sink_release"

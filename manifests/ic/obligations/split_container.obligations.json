@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/controls/split_container.ic.toml",
-    "sha256": "46de4a2a5892ff0ef528d57cbe26850878907a20a61f1b4f37820bbf1bbf6a4a"
+    "sha256": "64d38deb1bc816330e44710e6d41f229eb2aa0f1404f0e5c7996b9a8f1e569c0"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -66,6 +66,15 @@
       "status": "open"
     },
     {
+      "id": "gui_forms.splitcontainer.first_minimum_write.order",
+      "kind": "refusal-order",
+      "statement": "When several of first_minimum's refusals apply, the first of first_minimum_extent, then first_minimum_order is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
       "id": "gui_forms.splitcontainer.second_minimum_write.requires.second_minimum_extent",
       "kind": "entry-check",
       "statement": "second_minimum runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
@@ -98,6 +107,15 @@
       "id": "gui_forms.splitcontainer.second_minimum_write.refusal.second_minimum_order",
       "kind": "refusal-leaves",
       "statement": "Unless incoming <= second_maximum_bound, second_minimum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.splitcontainer.second_minimum_write.order",
+      "kind": "refusal-order",
+      "statement": "When several of second_minimum's refusals apply, the first of second_minimum_extent, then second_minimum_order is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

@@ -29,6 +29,7 @@ requires = [
   { holds = "not_null(object)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_object" },
   { holds = "not_null(table)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_table" },
 ]
+refusal_order = ["create_object", "create_table"]
 fails = [
   { failure = "invalid_argument", when = "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re" },
   { failure = "not_found", when = "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re" },

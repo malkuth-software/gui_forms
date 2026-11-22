@@ -55,6 +55,7 @@ parameters = { updated = "uint32_t*" }
 requires = [
   { holds = "not_null(updated)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "read_value_updated" },
 ]
+refusal_order = ["read_value_updated", "outside"]
 
 [[call]]
 name = "write_value"
@@ -67,6 +68,7 @@ parameters = { updated = "uint32_t*" }
 requires = [
   { holds = "not_null(updated)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "write_value_updated" },
 ]
+refusal_order = ["write_value_updated", "outside"]
 
 [[call]]
 name = "add_record"
@@ -79,6 +81,7 @@ parameters = { index = "uint64_t*" }
 requires = [
   { holds = "not_null(index)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "add_record_index" },
 ]
+refusal_order = ["add_record_index", "outside"]
 fails = [
   { failure = "invalid_state", when = "code: the source's provider does not insert rows" },
 ]
@@ -106,6 +109,7 @@ parameters = { removed = "uint32_t*" }
 requires = [
   { holds = "not_null(removed)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "remove_record_removed" },
 ]
+refusal_order = ["remove_record_removed", "outside"]
 fails = [
   { failure = "invalid_state", when = "A source that allows no removal gives GF_STATUS_INVALID_STATE." },
 ]
@@ -129,6 +133,7 @@ parameters = { moved = "uint32_t*" }
 requires = [
   { holds = "not_null(moved)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_position_moved" },
 ]
+refusal_order = ["set_position_moved", "outside"]
 fails = [
   { failure = "invalid_argument", when = "A position past the records gives GF_STATUS_INVALID_ARGUMENT." },
 ]
@@ -166,6 +171,7 @@ parameters = { accepted = "uint32_t*" }
 requires = [
   { holds = "not_null(accepted)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_current_field_accepted" },
 ]
+refusal_order = ["set_current_field_accepted", "outside"]
 
 [[call]]
 name = "add_records"
@@ -178,6 +184,7 @@ parameters = { first = "uint64_t*", records = "gf_binding_record*", count = "uin
 requires = [
   { holds = "not_null(first) and (not_null(records) or count == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "add_records_records" },
 ]
+refusal_order = ["add_records_records", "outside"]
 fails = [
   { failure = "invalid_argument", when = "code: add_records needs records and a first output" },
   { failure = "invalid_state", when = "code: the source's provider does not insert rows" },
@@ -194,6 +201,7 @@ requires = [
   { holds = "not_null(provider)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_provider_provider" },
   { holds = "not_null(callbacks) or column_count == 0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_provider_columns" },
 ]
+refusal_order = ["set_provider_provider", "set_provider_columns"]
 fails = [
   { failure = "invalid_argument", when = "code: provider callbacks or columns their checks refuse" },
   { failure = "wrong_handle_kind", when = "code: the object is not a binding source" },

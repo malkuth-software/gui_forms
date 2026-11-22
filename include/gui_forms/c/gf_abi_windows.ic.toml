@@ -297,6 +297,7 @@ parameters = { container = "uint32_t*" }
 requires = [
   { holds = "not_null(container)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_container_container" },
 ]
+refusal_order = ["mdi_container_container", "outside"]
 fails = [
   { failure = "invalid_state", when = "code: the control is not in a window" },
   { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
@@ -313,6 +314,7 @@ parameters = { count = "uint64_t*" }
 requires = [
   { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_child_count_count" },
 ]
+refusal_order = ["mdi_child_count_count", "outside"]
 fails = [
   { failure = "invalid_state", when = "code: the control is not in a window" },
   { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
@@ -393,6 +395,7 @@ parameters = { bottom = "uint32_t*" }
 requires = [
   { holds = "not_null(bottom)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_children_minimized_anchor_bottom_bottom" },
 ]
+refusal_order = ["mdi_children_minimized_anchor_bottom_bottom", "outside"]
 fails = [
   { failure = "invalid_state", when = "code: the control is not in a window" },
   { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
@@ -422,6 +425,7 @@ returns = { type = "gf_object", owns = "caller" }
 requires = [
   { holds = "not_null(strip)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "main_menu_strip_strip" },
 ]
+refusal_order = ["main_menu_strip_strip", "outside"]
 fails = [
   { failure = "invalid_state", when = "code: the control is not in a window" },
   { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },

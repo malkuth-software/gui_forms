@@ -208,7 +208,11 @@
         "not_null(bounds)"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "window_bounds_bounds",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.controls.window_bounds.misuse.window_bounds_bounds",
@@ -316,7 +320,11 @@
         "not_null(captured)"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "pointer_capture_captured",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.controls.pointer_capture.misuse.pointer_capture_captured",

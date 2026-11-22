@@ -1417,7 +1417,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "mdi_container_container",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.mdi_container.running",
@@ -1456,7 +1460,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "mdi_container_container",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.mdi_container.misuse.mdi_container_container",
@@ -1517,7 +1525,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "mdi_child_count_count",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.mdi_child_count.running",
@@ -1556,7 +1568,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "mdi_child_count_count",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.mdi_child_count.misuse.mdi_child_count_count",
@@ -2012,7 +2028,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "mdi_children_minimized_anchor_bottom_bottom",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.mdi_children_minimized_anchor_bottom.running",
@@ -2051,7 +2071,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "mdi_children_minimized_anchor_bottom_bottom",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.mdi_children_minimized_anchor_bottom.misuse.mdi_children_minimized_anchor_bottom_bottom",
@@ -2186,7 +2210,11 @@
       "returns": {
         "type": "gf_object",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "main_menu_strip_strip",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.main_menu_strip.running",
@@ -2228,7 +2256,11 @@
       "returns": {
         "type": "gf_object",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "main_menu_strip_strip",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.windows.main_menu_strip.misuse.main_menu_strip_strip",

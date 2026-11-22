@@ -73,7 +73,11 @@
         "incoming <= first_maximum_bound"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "first_minimum_extent",
+        "first_minimum_order"
+      ]
     },
     {
       "name": "gui_forms.splitcontainer.first_minimum_write.misuse.first_minimum_extent",
@@ -124,7 +128,11 @@
         "incoming <= second_maximum_bound"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "second_minimum_extent",
+        "second_minimum_order"
+      ]
     },
     {
       "name": "gui_forms.splitcontainer.second_minimum_write.misuse.second_minimum_extent",

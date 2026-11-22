@@ -61,7 +61,11 @@
       "returns": {
         "type": "gf_object",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "create_object",
+        "create_table"
+      ]
     },
     {
       "name": "gf_abi.classes.create.misuse.create_object",

@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_custom_controls.ic.toml",
-    "sha256": "98a13e8c4cd560ffec7f4a1de334af503ce3e0a95b06ce0da5d6bef401f4f8da"
+    "sha256": "5fde52d8dfce089c87e7b73f53e8b18bda01607ee7e0c06154748df1773dadb0"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -41,6 +41,15 @@
       "id": "gf_abi.custom_controls.create.refusal.create_spec_size",
       "kind": "refusal-leaves",
       "statement": "Unless spec_size >= spec_size_1_0, create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.order",
+      "kind": "refusal-order",
+      "statement": "When several of create's refusals apply, the first of create_outputs, then create_spec_size is the one reported.",
       "level": "none",
       "tool": null,
       "premises": [],

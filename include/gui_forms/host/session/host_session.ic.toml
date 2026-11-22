@@ -52,6 +52,7 @@ requires = [
   { holds = "finite(width) and finite(height) and width > 0 and height > 0", refuses = "value:HostDispatchError::invalid_geometry", check = "dispatch_size" },
   { holds = "finite(scale) and scale > 0", refuses = "value:HostDispatchError::invalid_geometry", check = "dispatch_scale" },
 ]
+refusal_order = ["dispatch_sequence", "dispatch_order", "outside", "dispatch_lifecycle", "dispatch_size", "dispatch_scale"]
 fails = [
   { failure = "wrong_thread", when = "off the thread that constructed the session (HostDispatchError::wrong_thread)" },
   { failure = "invalid_payload", when = "a payload its own rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report" },

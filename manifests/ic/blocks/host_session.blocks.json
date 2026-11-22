@@ -124,7 +124,15 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "dispatch_sequence",
+        "dispatch_order",
+        "outside",
+        "dispatch_lifecycle",
+        "dispatch_size",
+        "dispatch_scale"
+      ]
     },
     {
       "name": "gui_forms.hostsession.dispatch.attached",
@@ -217,7 +225,15 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "dispatch_sequence",
+        "dispatch_order",
+        "outside",
+        "dispatch_lifecycle",
+        "dispatch_size",
+        "dispatch_scale"
+      ]
     },
     {
       "name": "gui_forms.hostsession.dispatch.close_authorized",
@@ -310,7 +326,15 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "dispatch_sequence",
+        "dispatch_order",
+        "outside",
+        "dispatch_lifecycle",
+        "dispatch_size",
+        "dispatch_scale"
+      ]
     },
     {
       "name": "gui_forms.hostsession.dispatch.closed",
@@ -403,7 +427,15 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "dispatch_sequence",
+        "dispatch_order",
+        "outside",
+        "dispatch_lifecycle",
+        "dispatch_size",
+        "dispatch_scale"
+      ]
     },
     {
       "name": "gui_forms.hostsession.dispatch.misuse.dispatch_sequence",

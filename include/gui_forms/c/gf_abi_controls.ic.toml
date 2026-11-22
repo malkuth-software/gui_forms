@@ -68,6 +68,7 @@ parameters = { bounds = "gf_logical_rect*" }
 requires = [
   { holds = "not_null(bounds)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "window_bounds_bounds" },
 ]
+refusal_order = ["window_bounds_bounds", "outside"]
 
 [[call]]
 name = "set_pointer_capture"
@@ -91,6 +92,7 @@ parameters = { captured = "uint32_t*" }
 requires = [
   { holds = "not_null(captured)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "pointer_capture_captured" },
 ]
+refusal_order = ["pointer_capture_captured", "outside"]
 
 [[call]]
 name = "scroll_state"

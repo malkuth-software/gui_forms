@@ -255,7 +255,12 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "locate_location",
+        "locate_location_size",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.docking.locate.misuse.locate_location",
@@ -525,7 +530,11 @@
         "not_null(node)"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "document_area_node",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.docking.document_area.misuse.document_area_node",
@@ -658,7 +667,11 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "floating_sites_sites",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.docking.floating_sites.misuse.floating_sites_sites",
@@ -927,7 +940,11 @@
         "not_null(presentation)"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "document_presentation_presentation",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.docking.document_presentation.misuse.document_presentation_presentation",
@@ -1054,7 +1071,12 @@
           "leaves": "unchanged"
         }
       ],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "frame_memory_frame",
+        "frame_memory_frame_size",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.docking.frame_memory.misuse.frame_memory_frame",
@@ -1173,7 +1195,11 @@
         "not_null(count)"
       ],
       "fails": [],
-      "returns": {}
+      "returns": {},
+      "refusal_order": [
+        "area_document_count_count",
+        "outside"
+      ]
     },
     {
       "name": "gf_abi.docking.area_document_count.misuse.area_document_count_count",

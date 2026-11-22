@@ -57,7 +57,11 @@
       "returns": {
         "type": "gf_object",
         "owns": "caller"
-      }
+      },
+      "refusal_order": [
+        "create_outputs",
+        "create_spec_size"
+      ]
     },
     {
       "name": "gf_abi.custom_controls.create.misuse.create_outputs",
